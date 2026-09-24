@@ -1,0 +1,54 @@
+# 数据卷名可通过环境变量覆盖：从 AuraStack 原地切换时，指向原来的卷即可复用同一个数据库与上传文件：
+#   COMPOSE_DB_VOLUME=aurastack_postgres_data COMPOSE_INSTANCE_VOLUME=aurastack_app_instance
+services:
+  db:
+    image: postgres:alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aurastack
+      POSTGRES_USER: aurastack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请设置 POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aurastack -d aurastack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:5000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://aurastack:${POSTGRES_PASSWORD:?请设置 POSTGRES_PASSWORD}@db/aurastack
+      SECRET_KEY: ${SECRET_KEY:?请设置 SECRET_KEY}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请设置 ADMIN_PASSWORD}
+      # 只读账号密码（setup-once 会用它创建 aurastack_ro，用于 AI SQL）
+      POSTGRES_RO_PASSWORD: ${POSTGRES_RO_PASSWORD:?请设置 POSTGRES_RO_PASSWORD}
+      # AI SQL 专用只读连接（必须指向非超级用户只读账号，禁止回退到主库超级用户）
+      AI_SQL_DATABASE_URL: postgresql://aurastack_ro:${POSTGRES_RO_PASSWORD}@db/aurastack
+      # 定时任务（多副本时建议 RUN_SCHEDULER_IN_WEB=false，由独立 worker 服务跑）
+      ENABLE_TASK_SCHEDULER: ${ENABLE_TASK_SCHEDULER:-true}
+      RUN_SCHEDULER_IN_WEB: ${RUN_SCHEDULER_IN_WEB:-true}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-8}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # AI（可选，不填则 AI 功能不可用）
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_API_BASE: ${AI_API_BASE:-}
+      AI_MODEL: ${AI_MODEL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # 持久化上传文件
+      - app_instance:/app/instance
+
+volumes:
+  postgres_data:
+    name: ${COMPOSE_DB_VOLUME:-castor-kit_postgres_data}
+  app_instance:
+    name: ${COMPOSE_INSTANCE_VOLUME:-castor-kit_app_instance}

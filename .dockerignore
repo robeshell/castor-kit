@@ -1,0 +1,28 @@
+# 依赖与构建产物（在镜像内重新安装/构建）
+**/node_modules/
+**/dist/
+**/.turbo/
+**/*.tsbuildinfo
+coverage/
+
+# 环境变量（安全起见不打包进镜像）
+.env
+.env.*
+**/.env.*
+!**/.env.example
+
+# 开发工具
+.git/
+.claude/
+.cursor/
+.vscode/
+.idea/
+
+# 运行时
+instance/
+**/instance/
+*.log
+/logs/
+
+# macOS
+.DS_Store

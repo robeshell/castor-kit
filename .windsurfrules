@@ -1,0 +1,57 @@
+# castor-kit — Windsurf Rules
+
+**完整项目上下文见 `AGENTS.md`，实现任何功能前必须阅读。**
+
+## 项目概况
+
+Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 18 + PostgreSQL + Semi Design 的 AI-First 管理后台脚手架（AuraStack 的 Node.js 重写版）。pnpm monorepo：`apps/api`（后端）、`apps/web`（前端）、`apps/mcp`（MCP Server）。
+
+- 后端端口：5001 | 前端：Vite dev server 5173（`/api`、`/ws` proxy 到 5001）| 启动：`pnpm dev`
+- 数据库：`postgresql://wangwenyu@localhost/aurastack`
+- 路径别名：后端 `@/*` → `apps/api/src/*`；前端 `@` → `apps/web/src`
+
+## 核心约定
+
+**后端（apps/api）**
+- API 路径格式：`/api/admin/<resource>s`
+- 权限：`import { hasMenuPermission, loginRequired } from '@/common/auth'`，`await hasMenuPermission(request, code)`
+- 不允许在 routes 文件中自定义 `hasPermission`
+- 分层：`db/schema → schema → repository → service → routes`，不跨层（routes 不直接写 SQL）
+- 时间输出用 `toIso()`，禁止 `Date#toISOString()`；numeric 保持字符串
+- 导入导出：使用 `common/tabular.ts` 的 `buildTable` / `sendTable` / `readTableFile`（只支持 csv / xlsx）
+
+**前端（apps/web）**
+- UI：只用 Semi Design，不用 antd/material-ui
+- request：`import request from '@/shared/api/request'`
+- 数据访问：`res.items` / `res.total`（不是 `res.data.items`，Axios 已 unwrap）
+- 导入导出：`@/shared/components/import-export/ExportFieldsModal` + `ImportCsvModal`
+- 下载文件：`import { downloadBlobFile } from '@/shared/utils/file'`
+
+**RBAC**
+- 权限编码规则：`system_users`（菜单）/ `system_users_add`（按钮）；component_center 域用 `cc_` 前缀
+- 菜单变更后运行：`pnpm seed:rbac -- --incremental`
+
+## 新功能开发（PM 说"做 XX 功能"时执行）
+
+```
+1. 读取 AGENTS.md + docs/templates/
+2. 生成内部技术 Spec（不问 PM 技术细节）
+3. 展示业务预览供确认（功能名/位置/字段/操作）
+4. pnpm scaffold -- --name <name> --domain admin --fields "..."
+   （自动注册路由与表定义，并生成 Drizzle 迁移）
+5. 补充 db/schema / schema / repository / service / routes 业务逻辑
+6. 在 apps/api/scripts/seed-rbac.ts 添加菜单+权限，运行 pnpm seed:rbac -- --incremental
+7. pnpm db:migrate，并用 psql -d aurastack -c '\d <table>' 确认落库
+8. pnpm verify -- --module <name> --skip-build
+```
+
+标准列表页默认含：搜索 + 新增 + 编辑 + 删除 + **导入 + 导出**
+
+## 禁止行为
+
+- 询问 PM 路由路径、权限编码、字段类型等技术细节
+- 使用非 Semi Design 的 UI 组件库
+- `res.data.items`（Axios 已 unwrap，直接用 `res.items`）
+- 手写迁移 SQL（必须 `pnpm db:generate --name <描述>`，注意不能写 `--`）
+- 迁移不落库、不用 `psql \d` 实证就声明完成
+- 跳过 `pnpm verify` 门禁

@@ -1,0 +1,87 @@
+---
+description: 当用户说"做XX功能"、"加一个XX页面"、"新增XX模块"时触发。端到端实现新功能，AI负责所有技术决策，PM只需确认业务意图。
+alwaysApply: false
+---
+
+# New Feature Autopilot
+
+**AI 负责所有技术决策，PM 只需确认业务意图。**
+
+路由路径、权限编码、字段类型、文件位置、菜单 ID——全部由 AI 自行推断，不向 PM 询问技术细节。
+
+---
+
+## 执行步骤
+
+### Step 1 — 读取上下文（必须）
+
+按顺序读取：
+1. `AGENTS.md` — 完整项目约定、字段类型推断规则、反模式
+2. `docs/templates/backend/` 和 `docs/templates/frontend/` — 代码骨架模板（`docs/templates/backend/README.md` 有占位符替换规则）
+3. 现有相似模块 — 了解实际命名风格（参考 `apps/api/src/modules/admin/users/`）
+4. `apps/api/scripts/seed-rbac.ts` — 查询当前菜单树，确定 parent_id 与下一个可用 ID
+
+### Step 2 — 生成内部 Spec（不展示给 PM）
+
+自动推断：
+- API 路径（`/api/admin/<resource>s`，多词资源用连字符）
+- 字段名 + scaffold 类型（参照 AGENTS.md 字段类型推断规则：`str/str20/str50/str500/text/int/float/bool/date/datetime`）
+- 权限编码（admin 域 `system_<name>`，component_center 域 `cc_<name>`；按钮 `_add/_edit/_delete/_export/_import`）
+- 前端文件路径
+- 菜单 ID（按 AGENTS.md 的 ID 分配区间取下一个可用 ID）、parent_id
+
+### Step 3 — 展示业务预览，等待确认
+
+```
+📋 <功能名>
+
+位置：<父菜单> → <功能名>
+功能：列表查看、新增、编辑、删除、导入、导出
+字段：
+  · <中文字段名>（必填）
+  · <中文字段名>
+  · ...
+
+确认这样做吗？或者需要调整什么？
+```
+
+### Step 4 — 执行实现
+
+**4a. 生成骨架（同时完成注册与迁移生成）**
+```bash
+pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..."
+```
+生成 `db/schema/<domain>/<name>.ts`、`modules/<domain>/<name>/{schema,repository,service,routes}.ts`、前端 api + 页面；
+自动注册 `db/schema/index.ts` 与 `modules/<domain>/router.ts`；自动执行 `drizzle-kit generate --name <name>`。
+
+**4b. 补充业务逻辑**
+按 `db/schema → schema → repository → service → routes` 顺序填充实际字段、中文表头和业务规则。
+若之后改了表结构：`pnpm db:generate --name <描述>`（不能写 `--`）。
+
+**4c. RBAC**
+在 `apps/api/scripts/seed-rbac.ts` 中添加菜单 + 按钮权限（含 `_export`/`_import`，按钮 ID = 菜单 ID × 10 + 序号），然后：
+```bash
+pnpm seed:rbac -- --incremental
+```
+
+**4d. 数据库迁移（必须落库）**
+```bash
+pnpm db:migrate
+psql -d aurastack -c '\d <name>s'
+```
+
+### Step 5 — 验证门禁（强制，不得跳过）
+
+```bash
+pnpm verify -- --module <name> --skip-build
+```
+
+失败则自动修复，全部通过后输出交付报告（注明「已迁移至 <tag>」）。
+
+---
+
+## 默认行为
+
+- 标准列表页功能：搜索 + 新增 + 编辑 + 删除 + **导入 + 导出**（csv / xlsx）
+- RBAC 权限：`_add` / `_edit` / `_delete` / `_export` / `_import`
+- 分页：每页 20 条，按 id 倒序

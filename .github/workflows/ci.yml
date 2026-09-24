@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    name: API typecheck + tests + feature gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aurastack_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d aurastack_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aurastack_test
+      DEV_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aurastack_test
+      # werkzeug 互验用例在 CI 里没有 AuraStack venv，会自动跳过
+      WERKZEUG_PYTHON: /nonexistent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Init test database (migrate + seed RBAC)
+        run: pnpm --filter @castor-kit/api setup-once
+      - name: Unit & contract tests
+        run: pnpm --filter @castor-kit/api test
+      - name: Feature gate
+        run: pnpm verify -- --skip-build
+
+  web:
+    name: Web build + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Unit tests
+        run: pnpm --filter @castor-kit/web test
+      - name: Build
+        run: pnpm --filter @castor-kit/web build

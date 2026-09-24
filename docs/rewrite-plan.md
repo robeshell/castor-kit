@@ -1,6 +1,6 @@
 # castor-kit — AuraStack 的 Node.js 重写方案
 
-> 状态：设计稿（未开始实现）
+> 状态：P0–P5 代码与自动化验收完成（2026-09-24）；待人工：浏览器手测前端页面、真实 Docker 镜像构建（本机无法访问 Docker Hub）、线上切换。结果汇总见文末 §15。
 > 日期：2026-09-24
 > 项目名：**castor-kit**（Castor = 河狸的拉丁属名，"自然界的工程师"；Kit = 脚手架/工具套件）。命名一律小写连字符，不用驼峰。
 > 命名空间：GitHub 仓库 `castor-kit`；npm scope `@castor-kit/*`；已核实 npm / PyPI / GitHub 无同名项目。
@@ -44,7 +44,7 @@
   - 错误 `{ error: string, ...payload }`（5xx 一律 `服务器内部错误，请稍后重试`，不透传内部信息）
   - 登录 / `me` 响应携带 `csrf_token`
   - `/api/*` 下 404/405/500 均返回 JSON，不落 SPA
-- 时间字段：沿用 Python `isoformat()` 风格 `YYYY-MM-DDTHH:mm:ss[.ffffff]`（**无 `Z` 后缀**，UTC 值；微秒为 0 时不带小数部分，所以是变长格式）。Node 端**不经过 `Date`**：`pg` 的 `timestamp` 类型解析器设为原样返回文本（`types.setTypeParser(1114, v => v)`），`toIso()` 只把空格换成 `T`，一行解决时区与微秒精度两个问题；禁止直接 `Date#toISOString()`。
+- 时间字段：沿用 Python `isoformat()` 风格 `YYYY-MM-DDTHH:mm:ss[.ffffff]`（**无 `Z` 后缀**，UTC 值；微秒为 0 时不带小数部分，所以是变长格式）。Node 端**不经过 `Date`**：`pg` 的 `timestamp` 类型解析器设为原样返回文本（`types.setTypeParser(1114, v => v)`），`toIso()` 把空格换成 `T`，并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，如 `.68794`，Python 固定 `.687940`；P0 shadow-diff 实测），解决时区与微秒精度两个问题；禁止直接 `Date#toISOString()`。
 - 数值字段：Python 侧 `Numeric` 经 `str(Decimal)` 输出为**字符串**（如 `"12.50"`），`pg` 返回的也是字符串，天然一致——`toDict()` 里**不要** `parseFloat`。`NaN` → `null` 的行为保留。
 - 请求宽松度：Flask 处理器是 `request.get_json() or {}` + `data.get(...)`，空 body、多余字段、类型不对都被容忍并在 service 里 `parse_bool/parse_int` 归一化。**移植期请求 schema 一律 `.passthrough()` + 全字段可选**，归一化逻辑原样搬到 service；响应 schema 可以严格（它驱动 OpenAPI）。收紧校验是重写完成之后的独立任务，不在移植期做，否则会在边缘输入上破坏现有前端。
 - 验收：`frontend/` 不改一行代码，对着新后端跑通全部页面；`docs/apifox-full.openapi.json` 与新后端生成的 OpenAPI 做 diff，差异为空（或仅为可解释的描述文本差异）。
@@ -202,7 +202,7 @@ castor-kit/
 ### 5.4 分页 / 错误 / JSON
 - `parsePagination(query)`：page ≥ 1，1 ≤ per_page ≤ 200。
 - 统一 `setErrorHandler`：`ServiceError` → `{error, ...payload}`；Zod 校验失败 → 400 `{error: <首条消息>}`（保持单一 `error` 字符串，不引入新形状）；未知异常 → 500 通用文案 + pino 记录堆栈。
-- `setNotFoundHandler`：`/api/*` → `404 {error:'资源不存在'}`；其余走 SPA `index.html`。405 需要额外处理（Fastify 默认对方法不匹配返回 404）：在 not-found handler 里检查同路径是否有其他方法注册，有则返回 `405 {error:'请求方法不允许'}`。
+- `setNotFoundHandler`：`/api/*` → `404 {error:'资源不存在'}`；其余走 SPA `index.html`。405 需要额外处理（Fastify 默认对方法不匹配返回 404）。~~在 not-found handler 里检查同路径是否有其他方法注册~~——P0 对 Flask 实测：它的 SPA catch-all 路由对任意路径接受 GET，所以规则是**未命中的 GET/HEAD → 404（/api）或 SPA；未命中的其他方法一律 `405 {error:'请求方法不允许'}`**（含未知路径；只注册了 POST 的路径被 GET 是 404）。
 - 反代：`trustProxy: true`（或具体 hop 数）替代 `ProxyFix`；`request.ip` 即真实 IP，不手动读 `X-Forwarded-For`。
 
 ### 5.5 审计日志
@@ -383,14 +383,14 @@ castor-kit/
 | 风险 | 影响 | 对策 |
 |---|---|---|
 | werkzeug 密码哈希不兼容 | 切换后全员无法登录 | §2.3；P0 就写 `password-hash.test.ts`，用现库真实哈希验证 |
-| `pg` 驱动默认把 `timestamp without time zone` 按本地时区解析成 `Date`，且 `Date` 只有毫秒精度 | 时间偏移 8 小时；微秒被截断，无法复现 Python `isoformat()` | `types.setTypeParser(1114, v => v)` 保留文本，`toIso()` 仅替换空格为 `T`（§2.2）；`contract.test` 比较**解析后的值**而不是定宽字符串（微秒为 0 时 Python 不输出小数部分） |
+| `pg` 驱动默认把 `timestamp without time zone` 按本地时区解析成 `Date`，且 `Date` 只有毫秒精度 | 时间偏移 8 小时；微秒被截断，无法复现 Python `isoformat()` | `types.setTypeParser(1114, v => v)` 保留文本，`toIso()` 替换空格为 `T` 并补齐 6 位小数秒（§2.2）；`contract.test` 比较**解析后的值**而不是定宽字符串（微秒为 0 时 Python 不输出小数部分） |
 | `Numeric` 列类型表现 | — | 已核实两侧都是字符串（Python `str(Decimal)`），无风险；`toDict()` 保持字符串即可 |
 | Drizzle introspect 对自引用/复合主键/`onDelete` 还原不完整 | 迁移或级联行为偏差 | introspect 后人工比对 `\d` 输出；baseline 用 `pg_dump --schema-only` 交叉校验 |
 | 历史遗留菜单 ID（31/33–37/100002/100003）被重排 | `role_menus` 引用断裂、用户丢权限 | seed 脚本以 ID 为主键 upsert，明文注释禁止改动；测试断言这些 ID 存在 |
 | 显式 ID 插入后序列未同步 | 新建菜单主键冲突 | seed 后 `setval`；已有逻辑原样移植 |
 | `.xls` 支持缺口 | 用户上传 xls 失败 | 已决定放弃，返回明确的 400 提示（§5.9） |
 | 时间格式（`isoformat` vs `toISOString`）不一致 | OpenAPI diff 不为空、前端解析差异 | 统一 `toIso()`，ESLint 规则禁用 `toISOString` |
-| Fastify 默认无 405 | 契约细节偏差 | not-found handler 中补 405 |
+| Fastify 默认无 405 | 契约细节偏差 | not-found handler 中按 Flask catch-all 语义补 405（§5.4） |
 | SSE 在 Fastify 需 `hijack` 并手动管理流 | 连接不关闭 / 内存泄漏 | 监听 `request.raw.on('close')` 中止上游 fetch |
 | 多副本 + web 内调度器 | 任务重复执行 | 租约模型已防重；生产建议 `RUN_SCHEDULER_IN_WEB=false` + 单 worker |
 | AI SQL 只读引擎在开发环境回退主库 | 本地误操作 | 连接参数仍强制只读；生产 fail-closed |
@@ -417,7 +417,7 @@ castor-kit/
 - 常用命令：
   ```bash
   pnpm dev                 # api(5001) + web(5173)
-  pnpm db:generate -- -m   # drizzle-kit generate
+  pnpm db:generate --name <描述>   # drizzle-kit generate（drizzle-kit 不接受 `--`）
   pnpm db:migrate
   pnpm seed:rbac -- --incremental
   pnpm verify -- --module <name>
@@ -426,3 +426,38 @@ castor-kit/
   ```
 - 字段类型推断表：DB 类型列改为 Drizzle 写法（`varchar({length:100})`、`text()`、`numeric({precision:10,scale:2})`、`boolean()`、`date()`、`timestamp()`）
 - 菜单树、ID 分配区间、交付流程、反模式清单：语义不变，命令替换
+
+---
+
+## 15. 实施结果（2026-09-24）
+
+| 阶段 | 结果 |
+|---|---|
+| P0 骨架+认证 | 完成；baseline DDL 与 Alembic head 的 `pg_dump` 逐字节一致；`aurastack` 已迁移至 `0000_baseline`（仅写标记） |
+| P1 admin 域 | users / roles / menu / logs / dicts / notification / announcement / dashboard 全部移植 |
+| P2 component_center | list_page（含上传/版本）、stats / card / tree / dynamic_form / kanban / detail_tabs / gantt / advanced_table / map_heatmap / ai_prompt |
+| P3 流式/实时 | scheduled_task + 租约调度器 + 独立 worker、ai_chat SSE、ai_sql 只读引擎、devtools perf + `/ws/devtools` |
+| P4 工具链+文档 | scaffold / verify / seed-rbac / setup-once / init-ro-role / generate-openapi / import-apifox / MCP / 模板；AI 上下文文档与 4 语言文档站重写 |
+| P5 部署 | Dockerfile / compose / entrypoint / setup.sh / CI / deploy / docs workflow |
+
+验收证据：
+- 路由：Node 收集到 114 条 `/api` 路由，与 Flask 完全一致（另有 `/ws/devtools`、`/health`、`/admin/login`、SPA fallback）。
+- shadow-diff（Flask production 模式作 oracle，24 个用例文件 847 个用例，`apps/api/scripts/shadow-all.sh` 可复跑）：841 一致；6 个为有意差异——2 个 `.xls` 导出回落 csv（§5.9），4 个是 Flask 公告模块的 bug（`AnnouncementServiceError` 缺 `payload` 属性，所有 4xx 变成 500；Node 按原意返回 400）。
+- vitest：api 430 条（428 通过 + 2 条 60s 调度端到端需 `SCHEDULER_E2E=1`，已单独跑通）、web 7、mcp 6；在“空库 + setup-once”的 CI 同构环境下全绿。
+- 工具链：在仓库副本里 scaffold 示例模块 → seed → 迁移（`psql \d` 实证）→ `pnpm verify` 14/14 → CRUD、my-menus 出现新菜单。
+- 生产布局：按 Dockerfile 的产物布局在本机模拟（`pnpm deploy --prod` + dist + drizzle + web），空库 `setup-once` → 服务启动 → 登录 / 菜单 / SPA 正常。
+
+前端品牌（2026-09-25 用户决定）：站点标题、登录页、侧边栏品牌、首页横幅与技术栈标签、示例页（AI 对话提示词、Markdown / JSON / 代码编辑器示例、CSS 3D、WebSocket、性能监控文案）改为 castor-kit 与 Node 技术栈；只改文案，不涉及接口与路由。拖拽布局的 localStorage 键 `aurastack_drag_layout_v1` 保留，避免丢失已保存的布局。
+
+与方案/Flask 有意不同（均有测试覆盖）：
+- 404/405 按 Flask catch-all 实测语义（§5.4 已更正）；`toIso()` 补齐 6 位微秒（§2.2 已更正）。
+- 请求原子性：Flask 在 400 时会因操作日志的 after_request commit 把半截修改写库；Node 每个请求一个事务，出错整体回滚。
+- SSRF：Node 额外拦截 IPv4-mapped IPv6 等地址，并在连接阶段复检（防 DNS rebinding / 重定向到内网）。
+- `setup-once` 用增量模式同步 RBAC（Python 版每次容器启动全量重建、会删用户，视为 bug 未照搬）。
+- AI SQL：Flask 经 psycopg2 执行时单个 `%` 会报错（`LIKE '%x%'` 全部失败），Node 原样执行。
+- `jsonBody`：非对象 JSON 体 / 非 JSON Content-Type 统一按 `{}` 处理（Flask 分别是 500 / 415 HTML），前端不会发这类请求。
+- OpenAPI：`generate-openapi` 与 Python 同口径（保留文档详细定义、补骨架），未做 Zod 全量生成；详细覆盖率约 53%（按路由去重）。
+
+遗留（需人工决定/操作）：
+- Docker 镜像未在本机真实构建（Docker Hub 不可达；setup.sh 会写 `~/.docker/daemon.json` 镜像加速，需用户自行决定）。
+- 线上切换（P5 最后一步）与 AuraStack 仓库归档、`alembic_version` 清理。

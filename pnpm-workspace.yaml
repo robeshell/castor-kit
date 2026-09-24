@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+
+# apps/web 是从 AuraStack 原样复制的，个别源码直接 import 了传递依赖（如 react-grid-layout 带来的
+# react-resizable/css）。npm 的扁平 node_modules 能解析，pnpm 严格布局不能，这里定点提升，不改源码。
+publicHoistPattern:
+  - react-resizable

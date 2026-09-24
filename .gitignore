@@ -11,7 +11,9 @@ dist/
 
 # runtime
 instance/
-logs/
+# 仅忽略运行时日志目录；不能写成裸 logs/，会误伤 src/modules/admin/logs 等源码目录
+/logs/
+/apps/*/logs/
 *.log
 
 # tooling
@@ -20,3 +22,8 @@ logs/
 .idea/
 coverage/
 .vitest/
+
+# 文档站构建产物
+website/.vitepress/cache/
+website/.vitepress/dist/
+apps/api/.shadow-all/
