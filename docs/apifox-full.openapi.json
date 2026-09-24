@@ -1,0 +1,6708 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "castor-kit 接口文档（自动生成）",
+    "version": "1.0.0",
+    "description": "AuraStack 接口文档（由脚本自动生成）。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5001",
+      "description": "Development"
+    },
+    {
+      "url": "http://localhost:5000",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "后台-认证",
+      "description": "登录、登出、会话与密码修改"
+    },
+    {
+      "name": "后台-日志管理",
+      "description": "登录日志与操作日志接口"
+    },
+    {
+      "name": "后台-数据字典",
+      "description": "后台数据字典类型与字典项接口"
+    },
+    {
+      "name": "后台-菜单管理",
+      "description": "后台菜单管理与我的菜单接口"
+    },
+    {
+      "name": "后台-角色管理",
+      "description": "后台角色管理相关接口"
+    },
+    {
+      "name": "后台-用户管理",
+      "description": "后台用户管理相关接口"
+    },
+    {
+      "name": "后台-查询示例",
+      "description": "后台查询示例（查询模板）相关接口"
+    },
+    {
+      "name": "系统",
+      "description": "系统与健康检查"
+    },
+    {
+      "name": "后台-高级表格",
+      "description": "高级表格行内编辑、拖拽排序与批量操作接口"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Flask Session Cookie 登录态"
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/announcements": {
+      "GET": {
+        "summary": "GET /api/admin/announcements",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/export": {
+      "POST": {
+        "summary": "POST /api/admin/announcements/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/export-fields": {
+      "GET": {
+        "summary": "GET /api/admin/announcements/export-fields",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/import": {
+      "POST": {
+        "summary": "POST /api/admin/announcements/import",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/template": {
+      "GET": {
+        "summary": "GET /api/admin/announcements/template",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/{int:item_id}": {
+      "PUT": {
+        "summary": "PUT /api/admin/announcements/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/{int:item_id}/publish": {
+      "POST": {
+        "summary": "POST /api/admin/announcements/{int:item_id}/publish",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/announcements/{int:item_id}/unpublish": {
+      "POST": {
+        "summary": "POST /api/admin/announcements/{int:item_id}/unpublish",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/change-password": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "修改当前用户密码",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/认证",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/advanced-table/rows": {
+      "get": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "分页查询高级表格记录",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "新增高级表格记录",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/advanced-table/rows/batch-delete": {
+      "post": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "批量删除高级表格记录",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/advanced-table/rows/batch-update": {
+      "post": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "批量更新高级表格记录",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/advanced-table/rows/reorder": {
+      "put": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "拖拽排序后批量保存顺序",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/advanced-table/rows/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/advanced-table/rows/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/advanced-table/rows/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/advanced-table/rows/{item_id}": {
+      "put": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "更新高级表格记录",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "删除高级表格记录",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/advanced-table/stats": {
+      "get": {
+        "tags": [
+          "后台-高级表格"
+        ],
+        "summary": "获取高级表格统计信息",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/chat/stream": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/ai/chat/stream",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/prompt/preview": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/ai/prompt/preview",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/prompt/templates": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/ai/prompt/templates",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/prompt/templates/{int:template_id}": {
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/ai/prompt/templates/{int:template_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/sql/execute": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/ai/sql/execute",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/sql/generate": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/ai/sql/generate",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/ai/sql/schema": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/ai/sql/schema",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/card-list-page": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/card-list-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/card-list-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/card-list-page/export": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/card-list-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/card-list-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/card-list-page/import": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/card-list-page/import",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/card-list-page/template": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/card-list-page/template",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/card-list-page/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/card-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/component-center/card-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/card-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/dataviz/map-heatmap/data": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/dataviz/map-heatmap/data",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/detail-tabs/members": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/detail-tabs/members",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/detail-tabs/members",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/detail-tabs/members/{int:member_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/detail-tabs/members/{int:member_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/component-center/detail-tabs/members/{int:member_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/detail-tabs/members/{int:member_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/devtools/perf-stats": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/devtools/perf-stats",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/dynamic-form-page": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/dynamic-form-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/dynamic-form-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/dynamic-form-page/export": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/dynamic-form-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/dynamic-form-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/dynamic-form-page/import": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/dynamic-form-page/import",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/dynamic-form-page/template": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/dynamic-form-page/template",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/dynamic-form-page/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/dynamic-form-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/component-center/dynamic-form-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/dynamic-form-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/gantt/tasks": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/gantt/tasks",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/gantt/tasks",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/gantt/tasks/{int:task_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/gantt/tasks/{int:task_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/gantt/tasks/{int:task_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/kanban/boards": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/kanban/boards",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/kanban/boards",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/kanban/boards/{int:board_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/kanban/boards/{int:board_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/kanban/boards/{int:board_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/kanban/cards": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/kanban/cards",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/kanban/cards/reorder": {
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/kanban/cards/reorder",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/kanban/cards/{int:card_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/kanban/cards/{int:card_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/kanban/cards/{int:card_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/list-page": {
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "查询list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "创建list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/export": {
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "导出list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/导入导出",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "导出list-page（GET）",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/导入导出",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/file/{filename}": {
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "下载list-page附件",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/文件",
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "路径参数：filename"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/file/{path:filename}": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/list-page/file/{path:filename}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/list-page/image/{filename}": {
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "访问list-page图片",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/图片",
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "路径参数：filename"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/image/{path:filename}": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/list-page/image/{path:filename}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/list-page/import": {
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "导入list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/导入导出",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/run-preview": {
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "执行list-page预览",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/预览与版本",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/template": {
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "下载list-page导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/导入导出",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/upload-file": {
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "上传list-page附件",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/文件",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/upload-image": {
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "上传list-page图片",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/图片",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/component-center/list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/list-page/{int:item_id}/versions": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/list-page/{int:item_id}/versions",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/list-page/{int:item_id}/versions/{int:version_id}/rollback": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/list-page/{int:item_id}/versions/{int:version_id}/rollback",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/list-page/{item_id}": {
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "查询list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "更新list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "删除list-page",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/{item_id}/versions": {
+      "get": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "查询list-page版本列表",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/预览与版本",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/list-page/{item_id}/versions/{version_id}/rollback": {
+      "post": {
+        "tags": [
+          "后台-查询示例"
+        ],
+        "summary": "回滚list-page版本",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/查询示例/预览与版本",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：version_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/stats-list-page": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/stats-list-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/stats-list-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/stats-list-page/export": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/stats-list-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/stats-list-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/stats-list-page/import": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/stats-list-page/import",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/stats-list-page/stats": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/stats-list-page/stats",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/stats-list-page/template": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/stats-list-page/template",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/stats-list-page/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/stats-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/component-center/stats-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/stats-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/tree-list-page": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/tree-list-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/tree-list-page",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/tree-list-page/export": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/tree-list-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/component-center/tree-list-page/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/tree-list-page/import": {
+      "POST": {
+        "summary": "POST /api/admin/component-center/tree-list-page/import",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/tree-list-page/template": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/tree-list-page/template",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/tree-list-page/tree": {
+      "GET": {
+        "summary": "GET /api/admin/component-center/tree-list-page/tree",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/tree-list-page/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/component-center/tree-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/component-center/tree-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/component-center/tree-list-page/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/csrf-token": {
+      "GET": {
+        "summary": "GET /api/admin/csrf-token",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard/stats": {
+      "GET": {
+        "summary": "GET /api/admin/dashboard/stats",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dicts": {
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "查询dicts",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "创建dicts",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/items/{int:item_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/dicts/items/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/dicts/items/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/dicts/items/{int:item_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dicts/items/{item_id}": {
+      "delete": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "删除dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "查询dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "更新dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：item_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/options": {
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "批量查询字典项（按编码）",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/只读选项",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/{dict_id}": {
+      "delete": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "删除dicts",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "查询dicts",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "更新dicts",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/{dict_id}/items": {
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "查询dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "创建dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/{dict_id}/items/export": {
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "导出dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/{dict_id}/items/import": {
+      "post": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "导入dict_items",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/{dict_id}/items/template": {
+      "get": {
+        "tags": [
+          "后台-数据字典"
+        ],
+        "summary": "下载dict_items导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/数据字典/字典项",
+        "parameters": [
+          {
+            "name": "dict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dict_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/dicts/{int:dict_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/dicts/{int:dict_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/dicts/{int:dict_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/dicts/{int:dict_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dicts/{int:dict_id}/items": {
+      "GET": {
+        "summary": "GET /api/admin/dicts/{int:dict_id}/items",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/dicts/{int:dict_id}/items",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dicts/{int:dict_id}/items/export": {
+      "GET": {
+        "summary": "GET /api/admin/dicts/{int:dict_id}/items/export",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dicts/{int:dict_id}/items/import": {
+      "POST": {
+        "summary": "POST /api/admin/dicts/{int:dict_id}/items/import",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/dicts/{int:dict_id}/items/template": {
+      "GET": {
+        "summary": "GET /api/admin/dicts/{int:dict_id}/items/template",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/login": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "创建login",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/认证",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logout": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "创建logout",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/认证",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/logs/login": {
+      "get": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "查询login",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/logs/login/export": {
+      "post": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "导出login_logs",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logs/login/import": {
+      "post": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "导入login_logs",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logs/login/template": {
+      "get": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "下载login_logs导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/logs/operation": {
+      "get": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "查询operation",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/logs/operation/export": {
+      "post": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "导出operation_logs",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logs/operation/import": {
+      "post": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "导入operation_logs",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logs/operation/template": {
+      "get": {
+        "tags": [
+          "后台-日志管理"
+        ],
+        "summary": "下载operation_logs导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/日志管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/me": {
+      "get": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "获取当前登录用户",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/menus": {
+      "get": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "查询menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "创建menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/menus/export": {
+      "post": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "导出menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/menus/import": {
+      "post": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "导入menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/menus/template": {
+      "get": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "下载menus导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/menus/{int:menu_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/menus/{int:menu_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/menus/{int:menu_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/menus/{int:menu_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/menus/{int:menu_id}/sort": {
+      "POST": {
+        "summary": "POST /api/admin/menus/{int:menu_id}/sort",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/menus/{menu_id}": {
+      "delete": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "删除menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "parameters": [
+          {
+            "name": "menu_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：menu_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "查询menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "parameters": [
+          {
+            "name": "menu_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：menu_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "更新menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "parameters": [
+          {
+            "name": "menu_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：menu_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/menus/{menu_id}/sort": {
+      "post": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "排序menus",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "parameters": [
+          {
+            "name": "menu_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：menu_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/my-menus": {
+      "get": {
+        "tags": [
+          "后台-菜单管理"
+        ],
+        "summary": "获取当前用户菜单",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/菜单管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/notifications": {
+      "GET": {
+        "summary": "GET /api/admin/notifications",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "POST": {
+        "summary": "POST /api/admin/notifications",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/read-all": {
+      "POST": {
+        "summary": "POST /api/admin/notifications/read-all",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/unread-count": {
+      "GET": {
+        "summary": "GET /api/admin/notifications/unread-count",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/{int:noti_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/notifications/{int:noti_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/{int:noti_id}/read": {
+      "POST": {
+        "summary": "POST /api/admin/notifications/{int:noti_id}/read",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/roles": {
+      "get": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "查询roles",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "创建roles",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/roles/export": {
+      "post": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "导出roles",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/import": {
+      "post": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "导入roles",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/template": {
+      "get": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "下载roles导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/roles/{int:role_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/roles/{int:role_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/roles/{int:role_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{role_id}": {
+      "delete": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "删除roles",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "parameters": [
+          {
+            "name": "role_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：role_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-角色管理"
+        ],
+        "summary": "更新roles",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/角色管理",
+        "parameters": [
+          {
+            "name": "role_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：role_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/scheduled-tasks": {
+      "get": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "查询scheduled-tasks",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "创建scheduled-task",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/scheduled-tasks/runs": {
+      "get": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "查询scheduled-task-runs",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/scheduled-tasks/{int:task_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/scheduled-tasks/{int:task_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "GET": {
+        "summary": "GET /api/admin/scheduled-tasks/{int:task_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/scheduled-tasks/{int:task_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/scheduled-tasks/{int:task_id}/run": {
+      "POST": {
+        "summary": "POST /api/admin/scheduled-tasks/{int:task_id}/run",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/scheduled-tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "查询scheduled-task",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：task_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "更新scheduled-task",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：task_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "删除scheduled-task",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：task_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/scheduled-tasks/{task_id}/run": {
+      "post": {
+        "tags": [
+          "后台-定时任务"
+        ],
+        "summary": "执行scheduled-task",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/定时任务",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：task_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "查询users",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "创建users",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/users/export": {
+      "post": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "导出users",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/import": {
+      "post": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "导入users",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/template": {
+      "get": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "下载users导入模板",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/users/{int:user_id}": {
+      "DELETE": {
+        "summary": "DELETE /api/admin/users/{int:user_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      },
+      "PUT": {
+        "summary": "PUT /api/admin/users/{int:user_id}",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}": {
+      "delete": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "删除users",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：user_id"
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "更新users",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：user_id"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "系统"
+        ],
+        "summary": "健康检查",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        },
+        "x-apifox-folder": "系统/健康检查"
+      }
+    }
+  }
+}

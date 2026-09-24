@@ -1,24 +1,76 @@
 # castor-kit
 
-AI-First 的 Node.js 全栈脚手架：PM 用自然语言描述需求，AI Agent 端到端交付功能模块（数据表、接口、页面、权限、迁移）。
+> **AI-First Full-Stack Management Scaffold**
+> Node.js + TypeScript (Fastify 5 · Zod · Drizzle) + React 18 + PostgreSQL + Semi Design — built for AI-driven, end-to-end feature development.
 
-> Castor 是河狸的拉丁属名——"自然界的工程师"，不需要图纸就能把整座水坝建起来并持续扩建。
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+![Node 22+](https://img.shields.io/badge/node-22%2B-green)
+![pnpm](https://img.shields.io/badge/pnpm-workspaces-orange)
 
-castor-kit 是 [AuraStack](https://github.com/robeshell/AuraStack)（Flask + React）的 Node.js/TypeScript 重写版，直连同一套 PostgreSQL，API 契约完全兼容。
+**[📖 Documentation](https://robeshell.github.io/castor-kit/)** · **[中文文档](README_CN.md)**
 
-## 技术栈（规划）
+> *Castor* is the Latin genus name of the beaver — nature's engineer, building and extending a whole dam without blueprints.
+>
+> castor-kit is the Node.js/TypeScript rewrite of [AuraStack](https://github.com/robeshell/AuraStack) (Flask + React). It connects to the same PostgreSQL schema, keeps the API contract compatible, and ships the same React frontend unchanged.
 
-| 层 | 选型 |
+---
+
+## Features
+
+- **AI-First workflow** — pre-configured for Claude Code, Cursor, Copilot, Windsurf, Codex CLI and MCP clients; PM describes a feature in plain English, AI generates the complete module
+- **Typed toolchain** — `pnpm scaffold` generates table + API + page, `pnpm verify` gates delivery (typecheck, layering, migration really applied, RBAC seed, docs paths)
+- **Full RBAC** — user / role / menu permission system with button-level access control
+- **30+ component examples** — admin lists, Kanban, Gantt, data dashboards, AI chat, 3D creative, editors, WebSocket, and more
+- **Import / export built-in** — every list page ships with CSV and XLSX import/export
+- **Scheduled tasks** — database-backed, lease-based scheduler with a management UI
+- **Production-ready Docker** — one command spins up the full stack with automatic Drizzle migration and RBAC seeding
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
 |---|---|
-| 后端 | Node 22 + TypeScript + Fastify 5 + Zod + Drizzle ORM + pg |
-| 前端 | React 18 + Vite + Semi Design（从 AuraStack 原样迁入） |
-| 数据库 | PostgreSQL |
-| 仓库 | pnpm workspaces：`apps/api` · `apps/web` · `apps/mcp` · `packages/shared` |
+| Backend | Node 22 · TypeScript · Fastify 5 · Zod · pino |
+| Database | PostgreSQL 14+ · Drizzle ORM + drizzle-kit (SQL migrations) |
+| Frontend | React 18 · Vite 5 · React Router 7 · Axios |
+| UI | Semi Design 2.93 |
+| Charts | ECharts 6 · echarts-for-react |
+| 3D | Three.js 0.176 |
+| Editors | Monaco Editor · react-quill |
+| Monorepo | pnpm workspaces: `apps/api` · `apps/web` · `apps/mcp` |
 
-## 状态
+---
 
-设计阶段。完整方案见 [docs/rewrite-plan.md](docs/rewrite-plan.md)。
+## Quick Start (Docker)
 
-## 命名约定
+```bash
+git clone https://github.com/robeshell/castor-kit.git
+cd castor-kit
+bash setup.sh          # interactive wizard — sets passwords and port, optionally configures AI
+```
 
-全部小写连字符：`castor-kit`、`@castor-kit/api`、`castor_session`（cookie 例外用下划线）。不用驼峰，不用 Stack 后缀。
+Open **http://localhost:5000** (or the port you chose in the wizard) and log in as `admin` with the password you set.
+
+## Local Development
+
+Requires Node 22+, pnpm and a local PostgreSQL.
+
+```bash
+pnpm install
+cp apps/api/.env.example apps/api/.env.development   # set DEV_DATABASE_URL
+createdb aurastack
+pnpm db:migrate        # create tables (Drizzle baseline)
+pnpm seed:rbac         # menus, super-admin role, admin / admin123
+pnpm dev               # api :5001 + web :5173
+```
+
+AI tools read [AGENTS.md](AGENTS.md) (all tools), [CLAUDE.md](CLAUDE.md), [CODEX.md](CODEX.md), `.cursor/rules/`, `.windsurfrules` and `.github/copilot-instructions.md`. The full rewrite design is in [docs/rewrite-plan.md](docs/rewrite-plan.md).
+
+> For deployment options, environment variables, AI tools integration and more — see the **[full documentation](https://robeshell.github.io/castor-kit/)**.
+
+---
+
+## License
+
+MIT

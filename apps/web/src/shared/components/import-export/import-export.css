@@ -1,0 +1,61 @@
+.as-import-export-modal .semi-modal-body {
+  min-width: 0;
+}
+
+.as-ie-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.as-ie-select {
+  width: 140px;
+  max-width: 100%;
+}
+
+.as-ie-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.as-ie-file-name {
+  max-width: min(100%, 320px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.as-ie-fields {
+  max-height: min(260px, 42dvh);
+}
+
+@media (max-width: 768px) {
+  .as-ie-toolbar .semi-select,
+  .as-ie-toolbar .semi-input-wrapper {
+    width: 100%;
+  }
+
+  .as-ie-select {
+    width: 100%;
+  }
+
+  .as-import-export-modal .semi-modal-content {
+    border-radius: 12px;
+  }
+
+  .as-import-export-modal .semi-modal-body {
+    padding-bottom: 4px;
+  }
+
+  .as-ie-fields {
+    max-height: 34dvh;
+  }
+
+  .as-import-export-modal .semi-modal-footer .semi-button {
+    min-width: 96px;
+  }
+}

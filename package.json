@@ -1,0 +1,28 @@
+{
+  "name": "castor-kit",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @castor-kit/api --filter @castor-kit/web dev",
+    "dev:api": "pnpm --filter @castor-kit/api dev",
+    "dev:web": "pnpm --filter @castor-kit/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "db:generate": "pnpm --filter @castor-kit/api db:generate",
+    "db:migrate": "pnpm --filter @castor-kit/api db:migrate",
+    "shadow-diff": "pnpm --filter @castor-kit/api shadow-diff",
+    "seed:rbac": "pnpm --filter @castor-kit/api seed:rbac",
+    "setup-once": "pnpm --filter @castor-kit/api setup-once",
+    "openapi:generate": "pnpm --filter @castor-kit/api openapi:generate",
+    "openapi:apifox": "pnpm --filter @castor-kit/api openapi:apifox",
+    "scaffold": "pnpm --filter @castor-kit/api scaffold",
+    "verify": "pnpm --filter @castor-kit/api verify",
+    "mcp": "pnpm --filter @castor-kit/mcp start",
+    "lint": "pnpm --filter @castor-kit/api lint"
+  }
+}

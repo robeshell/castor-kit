@@ -1,0 +1,257 @@
+/* ===== 整体布局 ===== */
+.as-layout {
+  display: flex;
+  height: 100dvh;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--semi-color-bg-0);
+  position: relative;
+}
+
+/* ===== 侧边栏 ===== */
+.as-sider {
+  width: 240px;
+  height: 100%;
+  flex-shrink: 0;
+  background: var(--semi-color-bg-1);
+  border-right: 1px solid var(--semi-color-border);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 10;
+}
+
+/* 选中项用主题色高亮（适配明暗模式，不再硬编码品牌蓝） */
+.as-sider .semi-navigation-item-selected > .semi-navigation-item-inner {
+  background: var(--semi-color-primary-light-default) !important;
+  color: var(--semi-color-primary) !important;
+  border-radius: 8px;
+}
+
+/* 压缩侧栏品牌区留白，避免首屏空洞 */
+.as-sider .semi-navigation-header {
+  padding-top: 14px;
+  padding-bottom: 12px;
+}
+
+/* 逐层传递 flex 高度约束，让菜单列表区域可以滚动 */
+/* Nav 根元素：flex 列，固定高度 */
+.as-sider .semi-navigation {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* inner 层：flex 列，撑满剩余空间 */
+.as-sider .semi-navigation-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* header+list 外层：flex 列，撑满剩余空间 */
+.as-sider .semi-navigation-header-list-outer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 菜单列表区域：占满剩余高度，纵向滚动 */
+.as-sider .semi-navigation-list-wrapper {
+  padding-top: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 滚动条细化 */
+.as-sider .semi-navigation-list-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+.as-sider .semi-navigation-list-wrapper::-webkit-scrollbar-thumb {
+  background: var(--semi-color-fill-2);
+  border-radius: 4px;
+}
+.as-sider .semi-navigation-list-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== 品牌名 ===== */
+.as-brand-text {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0;
+  font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(90deg, #0f172a 0%, #1d4ed8 62%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[theme-mode="dark"] .as-brand-text {
+  background: linear-gradient(90deg, #e2e8f0 0%, #60a5fa 62%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Header ===== */
+.as-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.as-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  background: var(--semi-color-bg-1);
+  border-bottom: 1px solid var(--semi-color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+  z-index: 9;
+}
+
+.as-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.as-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.as-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.as-user-info:hover {
+  background: var(--semi-color-fill-0);
+}
+
+.as-username {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ===== 内容区 ===== */
+.as-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  background: var(--semi-color-bg-0);
+}
+
+/* 页面根容器不再强制套一层卡片，避免与业务卡片叠加 */
+.as-content > div {
+  min-height: calc(100dvh - 108px);
+}
+
+/* 表格在窄屏允许横向滚动，避免内容被裁切 */
+.as-content .semi-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.as-menu-trigger,
+.as-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 8px;
+  background: var(--semi-color-bg-1);
+  color: var(--semi-color-text-1);
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.as-menu-trigger:hover,
+.as-theme-toggle:hover {
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+[theme-mode="dark"] .as-menu-trigger:hover,
+[theme-mode="dark"] .as-theme-toggle:hover {
+  border-color: var(--semi-color-primary-light-active);
+  color: var(--semi-color-primary);
+  background: var(--semi-color-primary-light-default);
+}
+
+.as-sider-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+  z-index: 1100;
+}
+
+@media (max-width: 992px) {
+  .as-sider {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(82vw, 280px);
+    transform: translateX(-104%);
+    transition: transform 0.24s ease;
+    z-index: 1200;
+  }
+
+  .as-sider.as-sider-open {
+    transform: translateX(0);
+  }
+
+  .as-sider .semi-navigation-footer {
+    display: none;
+  }
+
+  .as-header {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .as-header-right {
+    gap: 8px;
+  }
+
+  .as-user-info {
+    padding: 4px 8px;
+  }
+
+  .as-username {
+    max-width: 92px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .as-content {
+    padding: 8px;
+  }
+
+  .as-content > div {
+    min-height: calc(100dvh - 80px);
+  }
+}

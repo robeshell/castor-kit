@@ -1,0 +1,69 @@
+# castor-kit (AI-First Scaffold)
+
+castor-kit is a Node.js/TypeScript + React + RBAC scaffold optimized for AI-driven feature delivery.
+Product managers provide only natural-language intent. Agents perform end-to-end implementation.
+It is the Node.js rewrite of AuraStack (Flask): same PostgreSQL database, compatible API contract, unchanged frontend.
+
+## Canonical Entry Points
+
+- [Agent Rules](./AGENTS.md)
+- [Rewrite Plan](./docs/rewrite-plan.md)
+- [OpenAPI Source](./docs/apifox-full.openapi.json)
+- [OpenAPI Generator](./apps/api/scripts/generate-openapi.ts)
+- [Apifox Push Script](./apps/api/scripts/import-apifox.ts)
+- [RBAC Seed Script](./apps/api/scripts/seed-rbac.ts)
+- [Feature Verification Script](./apps/api/scripts/verify-feature.ts)
+- [Scaffold Script](./apps/api/scripts/scaffold.ts)
+- [Code Templates](./docs/templates/backend/README.md)
+- [MCP Server](./apps/mcp/src/index.ts)
+- [Semi MCP Skill](./.agents/skills/semi-ui-skills/SKILL.md)
+
+## Backend Structure (apps/api)
+
+- App bootstrap: `apps/api/src/app.ts` (entry `apps/api/src/main.ts`, scheduler worker `apps/api/src/worker.ts`)
+- Global route assembler: `apps/api/src/router.ts`
+- Table definitions (model layer, Drizzle): `apps/api/src/db/schema/` (register in `apps/api/src/db/schema/index.ts`)
+- Domain modules: `apps/api/src/modules/admin/`, `apps/api/src/modules/component-center/`
+- Per-module layers: `schema.ts` (Zod), `repository.ts`, `service.ts`, `routes.ts`; per-domain `router.ts`
+- Database migrations: `apps/api/drizzle/` (drizzle-kit generate, journal in `apps/api/drizzle/meta/_journal.json`)
+- Engineering scripts: `apps/api/scripts/`
+- Shared capabilities: `apps/api/src/common/`
+- Permission helper baseline: `apps/api/src/common/auth.ts` (`hasMenuPermission` as default API permission check)
+
+## Tech Stack
+
+- Backend: Node 22 + TypeScript + Fastify 5 + Zod + Drizzle ORM + PostgreSQL (pg)
+- Frontend: React 18 + Vite + React Router + Axios
+- UI: Semi Design
+- Import/Export: csv-parse / exceljs (csv and xlsx only; .xls is not supported)
+- Monorepo: pnpm workspaces (`apps/api`, `apps/web`, `apps/mcp`)
+
+## MCP Docs Rule
+
+- If MCP docs/skills are available for the task domain, read them first, then implement.
+- For UI components, prefer `semi-mcp` + `semi-ui-skills` skill as first reference.
+- Keep final implementation aligned with existing project patterns.
+
+## Frontend Structure (apps/web)
+
+- Dynamic routes: `apps/web/src/App.jsx`
+- Layout/nav: `apps/web/src/components/Layout/index.jsx`
+- Module pages: `apps/web/src/modules/**/pages/**/index.jsx`
+- Module APIs: `apps/web/src/modules/**/api/*.js`
+- Shared import/export UI: `apps/web/src/shared/components/import-export/`
+- Shared API client/utilities: `apps/web/src/shared/api/request.js`, `apps/web/src/shared/utils/file.js`
+
+## Definition of Done
+
+Any new module/feature should include:
+
+1. Backend table definition + module (schema/repository/service/routes) and registration (usually via `pnpm scaffold`).
+2. Frontend page + API client + menu routing.
+3. RBAC menu/button permissions in `apps/api/scripts/seed-rbac.ts`.
+4. Run `pnpm seed:rbac -- --incremental` to sync menus and refresh super-admin permissions.
+5. Drizzle migration generated (`pnpm db:generate --name <desc>`), applied (`pnpm db:migrate`), and proven with `psql -d <db> -c '\d <table>'`.
+6. OpenAPI JSON update (`pnpm openapi:generate`) and optional Apifox push (`pnpm openapi:apifox`).
+7. Feature gate: `pnpm verify -- --module <name>` all green.
+8. If import/export is implemented: follow the existing pattern (`apps/api/src/common/tabular.ts` + shared import/export modals).
+9. Report "已迁移至 <tag>" (migration tag) when schema changed, and tell the user to run `pnpm db:migrate` in other environments.
+10. Every delivery must include a concise "next steps" command checklist for the user.

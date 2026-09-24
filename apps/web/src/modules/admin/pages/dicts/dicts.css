@@ -1,0 +1,143 @@
+.dicts-page {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.dicts-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.dicts-card,
+.dicts-section {
+  min-width: 0;
+}
+
+.dicts-panel-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.dicts-panel-subtitle {
+  margin-left: 0 !important;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.dicts-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dicts-toolbar .semi-input-wrapper {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.dicts-search-input {
+  width: 220px;
+  max-width: 100%;
+}
+
+.dicts-file-type-select {
+  width: 110px;
+  max-width: 100%;
+}
+
+.dicts-table-wrap {
+  margin-top: 10px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dicts-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dicts-file-name {
+  max-width: min(100%, 280px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
+  .dicts-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dicts-page .semi-typography-h5 {
+    margin-bottom: 12px !important;
+  }
+
+  .dicts-page .semi-typography {
+    line-height: 1.35;
+  }
+
+  .dicts-card {
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .dicts-section {
+    padding: 10px !important;
+  }
+
+  .dicts-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dicts-search-input,
+  .dicts-toolbar .semi-input-wrapper {
+    width: 100% !important;
+    flex: 0 0 100%;
+    min-width: 0;
+  }
+
+  .dicts-toolbar .semi-select,
+  .dicts-file-type-select {
+    width: 100%;
+    min-width: 120px;
+    flex: 1 1 140px;
+  }
+
+  .dicts-toolbar .semi-button {
+    width: calc(50% - 4px);
+    min-width: 0;
+  }
+
+  .dicts-toolbar .semi-button:only-child {
+    width: auto;
+    min-width: 120px;
+  }
+
+  .dicts-panel-subtitle {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .dicts-table-wrap {
+    margin-top: 8px;
+  }
+}
