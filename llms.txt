@@ -2,12 +2,13 @@
 
 castor-kit is a Node.js/TypeScript + React + RBAC scaffold optimized for AI-driven feature delivery.
 Product managers provide only natural-language intent. Agents perform end-to-end implementation.
-It is the Node.js rewrite of AuraStack (Flask): same PostgreSQL database, compatible API contract, unchanged frontend.
+It is the Node.js rewrite of AuraStack (Flask): same PostgreSQL database, compatible API contract; the frontend keeps AuraStack's routing, API layer and page features, with the UI migrated from Semi Design to shadcn/ui + Tailwind CSS v4 + motion.
 
 ## Canonical Entry Points
 
 - [Agent Rules](./AGENTS.md)
 - [Rewrite Plan](./docs/rewrite-plan.md)
+- [Frontend Redesign Plan (shadcn/ui)](./docs/frontend-redesign-plan.md)
 - [OpenAPI Source](./docs/apifox-full.openapi.json)
 - [OpenAPI Generator](./apps/api/scripts/generate-openapi.ts)
 - [Apifox Push Script](./apps/api/scripts/import-apifox.ts)
@@ -15,8 +16,10 @@ It is the Node.js rewrite of AuraStack (Flask): same PostgreSQL database, compat
 - [Feature Verification Script](./apps/api/scripts/verify-feature.ts)
 - [Scaffold Script](./apps/api/scripts/scaffold.ts)
 - [Code Templates](./docs/templates/backend/README.md)
+- [Frontend Templates](./docs/templates/frontend/list_page/index.jsx)
 - [MCP Server](./apps/mcp/src/index.ts)
-- [Semi MCP Skill](./.agents/skills/semi-ui-skills/SKILL.md)
+- [shadcn/ui Skill](./.agents/skills/shadcn-ui-skills/SKILL.md)
+- [shadcn add Relay Script](./apps/web/scripts/shadcn-add.sh)
 
 ## Backend Structure (apps/api)
 
@@ -33,25 +36,29 @@ It is the Node.js rewrite of AuraStack (Flask): same PostgreSQL database, compat
 ## Tech Stack
 
 - Backend: Node 22 + TypeScript + Fastify 5 + Zod + Drizzle ORM + PostgreSQL (pg)
-- Frontend: React 18 + Vite + React Router + Axios
-- UI: Semi Design
+- Frontend: React 19 + Vite + React Router + Axios (JavaScript / JSX)
+- UI: shadcn/ui (new-york, Radix) + Tailwind CSS v4 + motion + lucide-react; react-hook-form, @tanstack/react-table, sonner
 - Import/Export: csv-parse / exceljs (csv and xlsx only; .xls is not supported)
 - Monorepo: pnpm workspaces (`apps/api`, `apps/web`, `apps/mcp`)
 
 ## MCP Docs Rule
 
 - If MCP docs/skills are available for the task domain, read them first, then implement.
-- For UI components, prefer `semi-mcp` + `semi-ui-skills` skill as first reference.
-- Keep final implementation aligned with existing project patterns.
+- For UI components, read the shadcn/ui docs or registry first (shadcn MCP if available) plus the `shadcn-ui-skills` skill; add new primitives with `apps/web/scripts/shadcn-add.sh <component>` (runs `npx shadcn@latest add` through a local REGISTRY_URL relay, because the CLI cannot reach ui.shadcn.com directly here).
+- Keep final implementation aligned with existing project patterns (repo code wins over upstream docs).
 
 ## Frontend Structure (apps/web)
 
 - Dynamic routes: `apps/web/src/App.jsx`
-- Layout/nav: `apps/web/src/components/Layout/index.jsx`
-- Module pages: `apps/web/src/modules/**/pages/**/index.jsx`
+- App shell (sidebar, top bar, ⌘K, theme): `apps/web/src/components/app/`
+- shadcn/ui primitives: `apps/web/src/components/ui/` (config `apps/web/components.json`)
+- Design tokens (light/dark) and brand gradient utilities: `apps/web/src/index.css`
+- Module pages: `apps/web/src/modules/**/pages/**/index.jsx` (reference CRUD page: `apps/web/src/modules/admin/pages/users/index.jsx`)
 - Module APIs: `apps/web/src/modules/**/api/*.js`
-- Shared import/export UI: `apps/web/src/shared/components/import-export/`
-- Shared API client/utilities: `apps/web/src/shared/api/request.js`, `apps/web/src/shared/utils/file.js`
+- Shared business components (PageHeader, DataTable, Filters, FormDialog, FormFields, ConfirmAction, StatusBadge, …): `apps/web/src/shared/components/`
+- Shared import/export UI: `apps/web/src/shared/components/data-transfer/` (ImportDialog / ExportDialog)
+- Shared API client/utilities: `apps/web/src/shared/api/request.js`, `apps/web/src/shared/utils/file.js`, `apps/web/src/lib/` (toast, format, motion, chart-theme)
+- Forbidden in pages: `@douyinfe/*` imports, `var(--semi-*)`, hard-coded hex colors (use Tailwind semantic classes)
 
 ## Definition of Done
 
@@ -64,6 +71,6 @@ Any new module/feature should include:
 5. Drizzle migration generated (`pnpm db:generate --name <desc>`), applied (`pnpm db:migrate`), and proven with `psql -d <db> -c '\d <table>'`.
 6. OpenAPI JSON update (`pnpm openapi:generate`) and optional Apifox push (`pnpm openapi:apifox`).
 7. Feature gate: `pnpm verify -- --module <name>` all green.
-8. If import/export is implemented: follow the existing pattern (`apps/api/src/common/tabular.ts` + shared import/export modals).
+8. If import/export is implemented: follow the existing pattern (`apps/api/src/common/tabular.ts` + `ImportDialog` / `ExportDialog` from `apps/web/src/shared/components/data-transfer/`).
 9. Report "已迁移至 <tag>" (migration tag) when schema changed, and tell the user to run `pnpm db:migrate` in other environments.
 10. Every delivery must include a concise "next steps" command checklist for the user.

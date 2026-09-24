@@ -1,0 +1,175 @@
+/*
+ * Markdown 排版（MarkdownView 使用）。只用主题 CSS 变量，亮 / 暗自动适配。
+ * Tailwind preflight 会清掉列表符号、标题字号等，这里按内容排版补回来。
+ */
+.md-prose {
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.md-prose > :first-child {
+  margin-top: 0;
+}
+.md-prose > :last-child {
+  margin-bottom: 0;
+}
+.md-prose h1,
+.md-prose h2,
+.md-prose h3,
+.md-prose h4 {
+  color: var(--foreground);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+.md-prose h1 {
+  font-size: 1.6em;
+  margin: 0.4em 0 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+.md-prose h2 {
+  font-size: 1.3em;
+  margin: 1.4em 0 0.5em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--border);
+}
+.md-prose h3 {
+  font-size: 1.1em;
+  margin: 1.2em 0 0.4em;
+}
+.md-prose h4 {
+  font-size: 1em;
+  margin: 1em 0 0.4em;
+}
+.md-prose p {
+  margin: 0.6em 0;
+}
+.md-prose ul,
+.md-prose ol {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+}
+.md-prose ul {
+  list-style: disc;
+}
+.md-prose ol {
+  list-style: decimal;
+}
+.md-prose li {
+  margin: 0.25em 0;
+}
+.md-prose li::marker {
+  color: var(--muted-foreground);
+}
+.md-prose li > ul,
+.md-prose li > ol {
+  margin: 0.2em 0;
+}
+/* GFM 任务列表 */
+.md-prose ul.contains-task-list {
+  list-style: none;
+  padding-left: 0.25em;
+}
+.md-prose .task-list-item input[type='checkbox'] {
+  margin-right: 0.5em;
+  vertical-align: -0.1em;
+  accent-color: var(--primary);
+}
+.md-prose blockquote {
+  margin: 0.9em 0;
+  padding: 0.5em 1em;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  background: var(--brand-soft);
+  color: var(--foreground);
+}
+.md-prose blockquote p {
+  margin: 0.2em 0;
+}
+.md-prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s;
+}
+.md-prose a:hover {
+  text-decoration-color: var(--primary);
+}
+.md-prose strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.md-prose em {
+  font-style: italic;
+}
+.md-prose del {
+  color: var(--muted-foreground);
+}
+.md-prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
+.md-prose img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+/* 行内代码 */
+.md-prose :not(pre) > code {
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+  background: var(--muted);
+  color: var(--foreground);
+  box-shadow: 0 0 0 1px var(--border);
+}
+/* 代码块（外框与标题栏由 MarkdownView 的 CodeBlock 渲染） */
+.md-prose .md-code-block {
+  margin: 0.9em 0;
+}
+.md-prose .md-code-block pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--foreground);
+  background: transparent;
+}
+.md-prose .md-code-block pre code {
+  font-family: inherit;
+}
+/* 表格 */
+.md-prose .md-table-wrap {
+  margin: 0.9em 0;
+  overflow-x: auto;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.md-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93em;
+}
+.md-prose th {
+  background: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+.md-prose th,
+.md-prose td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.md-prose tr:last-child td {
+  border-bottom: none;
+}
+.md-prose th + th,
+.md-prose td + td {
+  border-left: 1px solid var(--border);
+}

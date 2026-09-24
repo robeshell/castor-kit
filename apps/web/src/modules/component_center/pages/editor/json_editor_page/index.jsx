@@ -1,22 +1,15 @@
-import { CARD_STYLE } from '@/shared/styles'
 import { useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
 import Editor from '@monaco-editor/react'
-import { Button, Space, Toast, Typography } from '@douyinfe/semi-ui'
-
-
-const C = {
-  blue: '#4080FF',
-  green: '#00B96B',
-  orange: '#FA8C16',
-  purple: '#9254DE',
-  red: '#FF4D4F',
-  cyan: '#13C2C2',
-  border: '#eaedf1',
-  text0: '#1a1a1a',
-  text1: '#434343',
-  text2: '#8c8c8c',
-}
+import { AlertTriangle, Braces, ChevronRight, Minimize2, Sparkles, WandSparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
+import { useMonacoTheme } from '@/lib/monaco-theme'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
+import { useIsMobile } from '@/shared/hooks/useIsMobile'
 
 const EXAMPLE_JSON = {
   project: {
@@ -40,9 +33,10 @@ const EXAMPLE_JSON = {
         postgresql: '15+',
       },
       frontend: {
-        react: '18.x',
+        react: '19.x',
         vite: '5.x',
-        semiUI: '2.x',
+        tailwindcss: '4.x',
+        shadcn: 'new-york',
       },
     },
     features: [
@@ -74,119 +68,94 @@ const EXAMPLE_JSON = {
   },
 }
 
+// 类型配色：只用语义色（亮/暗自动适配）
+const TYPE_CLASS = {
+  string: 'text-success',
+  number: 'text-primary',
+  boolean: 'text-warning',
+  null: 'text-muted-foreground italic',
+  key: 'text-info',
+}
+
+const LEGEND = [
+  { label: '字符串', className: TYPE_CLASS.string },
+  { label: '数字', className: TYPE_CLASS.number },
+  { label: '布尔值', className: TYPE_CLASS.boolean },
+  { label: 'null', className: TYPE_CLASS.null },
+  { label: '键 / 对象 / 数组', className: TYPE_CLASS.key },
+]
+
 // ── 递归 JSON 树节点 ──────────────────────────────────────────────────────────
 
-const TYPE_COLOR = {
-  string: C.green,
-  number: C.blue,
-  boolean: C.orange,
-  null: C.text2,
-  object: C.purple,
-  array: C.purple,
+function NodeKey({ nodeKey }) {
+  if (nodeKey === undefined) return null
+  return <span className={TYPE_CLASS.key}>{typeof nodeKey === 'number' ? `[${nodeKey}]` : `"${nodeKey}"`}:</span>
 }
 
 function JsonNode({ nodeKey, value, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth < 2)
-
-  const indent = depth * 16
   const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
+  const indent = { paddingLeft: depth * 16 }
 
-  const isPrimitive = type !== 'object' && type !== 'array'
-
-  const renderValue = () => {
-    if (type === 'null') return <span style={{ color: C.text2, fontStyle: 'italic' }}>null</span>
-    if (type === 'string')
-      return <span style={{ color: C.green }}>&quot;{String(value)}&quot;</span>
-    if (type === 'number') return <span style={{ color: C.blue }}>{value}</span>
-    if (type === 'boolean')
-      return <span style={{ color: C.orange }}>{value ? 'true' : 'false'}</span>
-    return null
-  }
-
-  if (isPrimitive) {
+  if (type !== 'object' && type !== 'array') {
     return (
-      <div
-        style={{
-          paddingLeft: indent,
-          lineHeight: '24px',
-          fontSize: 13,
-          fontFamily: 'monospace',
-        }}
-      >
-        {nodeKey !== undefined && (
-          <span style={{ color: C.purple, marginRight: 4 }}>
-            {typeof nodeKey === 'number' ? `[${nodeKey}]` : `"${nodeKey}"`}:
-          </span>
-        )}
-        {renderValue()}
+      <div className="flex gap-1 leading-6" style={indent}>
+        <span className="w-3.5 shrink-0" />
+        <NodeKey nodeKey={nodeKey} />
+        <span className={cn('break-all', TYPE_CLASS[type])}>
+          {type === 'string' ? `"${value}"` : type === 'null' ? 'null' : String(value)}
+        </span>
       </div>
     )
   }
 
-  // object or array
   const entries = type === 'array' ? value.map((v, i) => [i, v]) : Object.entries(value)
-  const bracket = type === 'array' ? ['[', ']'] : ['{', '}']
-  const summary =
-    type === 'array' ? `Array(${value.length})` : `Object(${Object.keys(value).length})`
+  const [open, close] = type === 'array' ? ['[', ']'] : ['{', '}']
+  const summary = type === 'array' ? `Array(${value.length})` : `Object(${Object.keys(value).length})`
 
   return (
-    <div style={{ fontFamily: 'monospace', fontSize: 13 }}>
-      <div
-        style={{
-          paddingLeft: indent,
-          lineHeight: '24px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          userSelect: 'none',
-        }}
+    <div>
+      <button
+        type="button"
         onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+        className="hover:bg-muted/70 -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-1 rounded px-1 text-left leading-6 transition-colors duration-150"
+        style={indent}
       >
-        {/* Expand/collapse icon */}
-        <span
-          style={{
-            display: 'inline-block',
-            width: 14,
-            textAlign: 'center',
-            color: C.text2,
-            fontSize: 10,
-            transition: 'transform 0.15s',
-            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-          }}
-        >
-          ▶
-        </span>
-
-        {/* Key */}
-        {nodeKey !== undefined && (
-          <span style={{ color: C.purple }}>
-            {typeof nodeKey === 'number' ? `[${nodeKey}]` : `"${nodeKey}"`}:
-          </span>
-        )}
-
-        {/* Opening bracket */}
-        <span style={{ color: C.text1 }}>{bracket[0]}</span>
-
-        {/* Collapsed summary */}
-        {!expanded && (
+        <ChevronRight
+          className={cn('text-muted-foreground size-3.5 shrink-0 transition-transform duration-200', expanded && 'rotate-90')}
+        />
+        <NodeKey nodeKey={nodeKey} />
+        <span className="text-muted-foreground">{open}</span>
+        {!expanded ? (
           <>
-            <span style={{ color: C.text2, fontSize: 11 }}>{summary}</span>
-            <span style={{ color: C.text1 }}>{bracket[1]}</span>
+            <span className="bg-muted text-muted-foreground rounded px-1 text-[11px]">{summary}</span>
+            <span className="text-muted-foreground">{close}</span>
           </>
-        )}
-      </div>
-
-      {expanded && (
+        ) : null}
+      </button>
+      {expanded ? (
         <>
           {entries.map(([k, v]) => (
             <JsonNode key={String(k)} nodeKey={k} value={v} depth={depth + 1} />
           ))}
-          <div style={{ paddingLeft: indent, lineHeight: '24px', color: C.text1 }}>
-            {bracket[1]}
+          <div className="text-muted-foreground leading-6" style={{ paddingLeft: depth * 16 + 18 }}>
+            {close}
           </div>
         </>
-      )}
+      ) : null}
+    </div>
+  )
+}
+
+function PaneHeader({ icon: Icon, title, extra }) {
+  return (
+    <div className="bg-muted/40 flex h-10 shrink-0 items-center justify-between gap-3 border-b px-4">
+      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+        <Icon className="size-3.5" />
+        {title}
+      </span>
+      {extra}
     </div>
   )
 }
@@ -195,9 +164,12 @@ function JsonNode({ nodeKey, value, depth = 0 }) {
 
 export default function JsonEditorPage() {
   const isMobile = useIsMobile()
+  const monacoTheme = useMonacoTheme()
   const [jsonText, setJsonText] = useState(JSON.stringify(EXAMPLE_JSON, null, 2))
   const [parsedJson, setParsedJson] = useState(EXAMPLE_JSON)
   const [parseError, setParseError] = useState(null)
+  // 树形预览在“加载示例/格式化”后重建，展开状态回到默认
+  const [treeVersion, setTreeVersion] = useState(0)
 
   const parseJson = (text) => {
     try {
@@ -221,233 +193,123 @@ export default function JsonEditorPage() {
   const handleFormat = () => {
     try {
       const parsed = JSON.parse(jsonText)
-      const formatted = JSON.stringify(parsed, null, 2)
-      setJsonText(formatted)
+      setJsonText(JSON.stringify(parsed, null, 2))
       setParsedJson(parsed)
       setParseError(null)
-      Toast.success('JSON 已格式化')
-    } catch (e) {
-      Toast.error('JSON 格式错误，无法格式化')
+      toast.success('JSON 已格式化')
+    } catch {
+      toast.error('JSON 格式错误，无法格式化')
     }
   }
 
   const handleMinify = () => {
     try {
       const parsed = JSON.parse(jsonText)
-      const minified = JSON.stringify(parsed)
-      setJsonText(minified)
+      setJsonText(JSON.stringify(parsed))
       setParsedJson(parsed)
       setParseError(null)
-      Toast.success('JSON 已压缩')
-    } catch (e) {
-      Toast.error('JSON 格式错误，无法压缩')
+      toast.success('JSON 已压缩')
+    } catch {
+      toast.error('JSON 格式错误，无法压缩')
     }
   }
 
   const handleExample = () => {
-    const text = JSON.stringify(EXAMPLE_JSON, null, 2)
-    setJsonText(text)
+    setJsonText(JSON.stringify(EXAMPLE_JSON, null, 2))
     setParsedJson(EXAMPLE_JSON)
     setParseError(null)
-    Toast.success('已加载示例数据')
+    setTreeVersion((v) => v + 1)
+    toast.success('已加载示例数据')
   }
+
+  const status = parseError ? (
+    <StatusBadge tone="danger" dot className="max-w-[260px] sm:max-w-[360px]">
+      <span className="truncate" title={parseError}>
+        JSON 错误：{parseError}
+      </span>
+    </StatusBadge>
+  ) : parsedJson !== null ? (
+    <StatusBadge tone="success" dot>
+      JSON 有效
+    </StatusBadge>
+  ) : null
 
   return (
     <div>
-      {/* 页面标题 */}
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title heading={4} style={{ marginBottom: 4 }}>
-          JSON 编辑器
-        </Typography.Title>
-        <Typography.Text type="tertiary">
-          基于 Monaco Editor 的 JSON 编辑器，支持语法高亮、实时校验和树形可视化
-        </Typography.Text>
-      </div>
-
-      <div style={CARD_STYLE}>
-        {/* 工具栏 */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-            flexWrap: 'wrap',
-            gap: 8,
-          }}
-        >
-          <Space>
-            <Button type="primary" onClick={handleFormat}>
+      <PageHeader
+        title="JSON 编辑器"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleExample}>
+              <Sparkles />
+              示例数据
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleMinify}>
+              <Minimize2 />
+              压缩
+            </Button>
+            <Button variant="brand" size="sm" onClick={handleFormat}>
+              <WandSparkles />
               格式化
             </Button>
-            <Button onClick={handleMinify}>压缩</Button>
-            <Button onClick={handleExample}>示例数据</Button>
-          </Space>
+          </>
+        }
+      />
 
-          {parseError && (
-            <div
-              style={{
-                color: C.red,
-                fontSize: 12,
-                background: '#fff2f0',
-                border: `1px solid #ffccc7`,
-                borderRadius: 4,
-                padding: '3px 10px',
-                maxWidth: 400,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-              title={parseError}
-            >
-              ✗ JSON 错误: {parseError}
-            </div>
-          )}
-
-          {!parseError && parsedJson !== null && (
-            <div
-              style={{
-                color: C.green,
-                fontSize: 12,
-                background: '#f6ffed',
-                border: `1px solid #b7eb8f`,
-                borderRadius: 4,
-                padding: '3px 10px',
-              }}
-            >
-              ✓ JSON 有效
-            </div>
-          )}
-        </div>
-
-        {/* 左右分屏 */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, height: isMobile ? 'auto' : 500 }}>
-          {/* 左侧：Monaco 编辑器 */}
-          <div
-            style={{
-              flex: 1,
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                padding: '6px 12px',
-                background: 'var(--semi-color-fill-0)',
-                borderBottom: `1px solid ${C.border}`,
-                fontSize: 12,
-                color: C.text2,
-                fontWeight: 500,
-              }}
-            >
-              编辑器
-            </div>
+      <div className="grid gap-4 md:h-[560px] md:grid-cols-2">
+        <Panel padded={false} className="flex min-h-0 flex-col" bodyClassName="flex min-h-0 flex-1 flex-col">
+          <PaneHeader icon={Braces} title="编辑器" extra={status} />
+          <div className="min-h-0 flex-1">
             <Editor
-              height={isMobile ? '300px' : 'calc(100% - 33px)'}
+              height={isMobile ? '320px' : '100%'}
               language="json"
-              theme="vs"
+              theme={monacoTheme}
               value={jsonText}
               onChange={handleEditorChange}
+              loading={<Spinner className="text-muted-foreground" />}
               options={{
                 fontSize: 13,
+                fontFamily: 'Geist Mono Variable, ui-monospace, SFMono-Regular, Menlo, monospace',
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
                 tabSize: 2,
                 automaticLayout: true,
-                padding: { top: 8, bottom: 8 },
+                padding: { top: 10, bottom: 10 },
                 formatOnPaste: true,
                 formatOnType: false,
               }}
             />
           </div>
+        </Panel>
 
-          {/* 右侧：JSON 树形可视化 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: isMobile ? 300 : 'auto',
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div
-              style={{
-                padding: '6px 12px',
-                background: 'var(--semi-color-fill-0)',
-                borderBottom: `1px solid ${C.border}`,
-                fontSize: 12,
-                color: C.text2,
-                fontWeight: 500,
-                flexShrink: 0,
-              }}
-            >
-              树形预览
-            </div>
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '8px 12px',
-                background: 'var(--semi-color-fill-0)',
-              }}
-            >
-              {parseError ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: C.red,
-                    fontSize: 13,
-                    flexDirection: 'column',
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ fontSize: 24 }}>⚠</span>
-                  <span>JSON 解析失败</span>
-                  <span style={{ fontSize: 11, color: C.text2, textAlign: 'center' }}>
-                    {parseError}
-                  </span>
+        <Panel padded={false} className="flex min-h-[320px] flex-col" bodyClassName="flex min-h-0 flex-1 flex-col">
+          <PaneHeader icon={ChevronRight} title="树形预览" />
+          <div className="min-h-0 flex-1 overflow-auto px-4 py-3 font-mono text-[13px]">
+            {parseError ? (
+              <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 text-center">
+                <div className="bg-danger-soft text-danger flex size-10 items-center justify-center rounded-xl">
+                  <AlertTriangle className="size-[18px]" />
                 </div>
-              ) : parsedJson !== null ? (
-                <JsonNode value={parsedJson} depth={0} />
-              ) : (
-                <div
-                  style={{
-                    color: C.text2,
-                    fontSize: 13,
-                    textAlign: 'center',
-                    marginTop: 40,
-                  }}
-                >
-                  输入 JSON 后在此展示树形结构
-                </div>
-              )}
-            </div>
+                <p className="text-danger font-sans text-sm font-medium">JSON 解析失败</p>
+                <p className="text-muted-foreground max-w-sm text-xs break-all">{parseError}</p>
+              </div>
+            ) : parsedJson !== null ? (
+              <JsonNode key={treeVersion} value={parsedJson} depth={0} />
+            ) : (
+              <p className="text-muted-foreground mt-10 text-center font-sans text-[13px]">输入 JSON 后在此展示树形结构</p>
+            )}
           </div>
-        </div>
+        </Panel>
+      </div>
 
-        {/* 底部提示 */}
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 12,
-            color: C.text2,
-          }}
-        >
-          点击树节点中的 ▶ 可展开/折叠子节点 · 颜色区分类型：
-          <span style={{ color: C.green, marginLeft: 6 }}>字符串</span>
-          <span style={{ color: C.blue, marginLeft: 6 }}>数字</span>
-          <span style={{ color: C.orange, marginLeft: 6 }}>布尔值</span>
-          <span style={{ color: C.text2, marginLeft: 6 }}>null</span>
-          <span style={{ color: C.purple, marginLeft: 6 }}>对象/数组</span>
-        </div>
+      <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span>点击树节点可展开 / 折叠子节点 · 颜色区分类型：</span>
+        {LEGEND.map((item) => (
+          <span key={item.label} className={cn('not-italic', item.className)}>
+            {item.label}
+          </span>
+        ))}
       </div>
     </div>
   )

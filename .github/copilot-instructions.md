@@ -17,11 +17,13 @@ Node.js/TypeScript + React + RBAC 的 AI-First 脚手架（AuraStack 的 Node.js
 - 导入导出：使用 `common/tabular.ts` 中的 `buildTable` / `sendTable` / `readTableFile`（只支持 csv / xlsx）
 
 ### 前端（apps/web）
-- UI 组件：**只用 Semi Design**（`@douyinfe/semi-ui` + `@douyinfe/semi-icons`），禁止引入 antd 等
+- UI 组件：shadcn/ui（`@/components/ui/*`）+ 业务公共组件（`@/shared/components/*`）+ `lucide-react` 图标，Tailwind CSS v4 语义色类；禁止 `@douyinfe/*`（Semi 已下线）、antd 等其他 UI 库、`var(--semi-*)`、写死十六进制颜色
+- 列表页结构照 `apps/web/src/modules/admin/pages/users/index.jsx`（PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog，ConfirmAction 删除，`@/lib/toast` 提示）；方案见 `docs/frontend-redesign-plan.md`
 - API 请求：`import request from '@/shared/api/request'`（Vite 已配置 `@` alias → `src/`）
 - 路由响应数据：Axios 拦截器已 unwrap，直接用 `res.items` / `res.total`，**不要** `res.data.items`
 - 页面文件位置：`src/modules/<module>/pages/<subdir>/<page>/index.jsx`
-- 导入导出组件：`@/shared/components/import-export/ExportFieldsModal` + `ImportCsvModal`
+- 导入导出组件：`@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
+- 表单：`react-hook-form` + `@/shared/components/FormFields`（str→FormInput、text→FormTextarea、int/float→FormNumber、bool→FormSwitch、date→FormDate、datetime→FormDateTime）
 - 文件下载：`import { downloadBlobFile } from '@/shared/utils/file'`
 
 ### RBAC

@@ -1,24 +1,28 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
-import { Button, Space, Select, Tag, Typography, Card, Badge } from '@douyinfe/semi-ui'
-import { IconPlay, IconPause, IconDelete, IconActivity } from '@douyinfe/semi-icons'
+import { Pause, Play, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
+import { cn } from '@/lib/utils'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
+import { useIsMobile } from '@/shared/hooks/useIsMobile'
 
 const MAX_POINTS = 60
 const SERIES_CONFIG = [
-  { key: 'temperature', name: '温度', unit: '°C', color: '#4d70e8', min: 20, max: 35 },
-  { key: 'humidity', name: '湿度', unit: '%', color: '#19be6b', min: 40, max: 90 },
-  { key: 'pressure', name: '压力', unit: 'kPa', color: '#ff9900', min: 100, max: 110 },
-  { key: 'flow', name: '流量', unit: 'm³/h', color: '#c23531', min: 50, max: 200 },
+  { key: 'temperature', name: '温度', unit: '°C', min: 20, max: 35, colorVar: 'chart-1', accent: 'bg-chart-1' },
+  { key: 'humidity', name: '湿度', unit: '%', min: 40, max: 90, colorVar: 'chart-2', accent: 'bg-chart-2' },
+  { key: 'pressure', name: '压力', unit: 'kPa', min: 100, max: 110, colorVar: 'chart-4', accent: 'bg-chart-4' },
+  { key: 'flow', name: '流量', unit: 'm³/h', min: 50, max: 200, colorVar: 'chart-5', accent: 'bg-chart-5' },
 ]
-
-const CARD_STYLE = {
-  background: 'var(--semi-color-bg-1)',
-  borderRadius: 8,
-  padding: 16,
-  marginBottom: 16,
-  boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 6px 18px rgba(15,23,42,0.06)',
-}
+const SPEED_MS = { '0.5x': 2000, '1x': 1000, '2x': 500 }
+const SPEED_OPTIONS = [
+  { label: '0.5× 慢速', value: '0.5x' },
+  { label: '1× 正常', value: '1x' },
+  { label: '2× 快速', value: '2x' },
+]
 
 function randomValue(min, max, prev) {
   const delta = (max - min) * 0.05
@@ -30,50 +34,40 @@ function formatTime(date) {
   return date.toTimeString().slice(0, 8)
 }
 
+function initialState() {
+  const now = new Date()
+  const timestamps = Array.from({ length: 10 }, (_, i) => formatTime(new Date(now.getTime() - (9 - i) * 1000)))
+  const series = {}
+  const current = {}
+  SERIES_CONFIG.forEach((s) => {
+    series[s.key] = Array.from({ length: 10 }, () => +(s.min + Math.random() * (s.max - s.min)).toFixed(2))
+    current[s.key] = +(s.min + Math.random() * (s.max - s.min)).toFixed(2)
+  })
+  return { timestamps, series, current }
+}
+
 export default function RealtimeChartPage() {
   const isMobile = useIsMobile()
+  const c = useChartColors()
+  const [init] = useState(initialState)
   const [running, setRunning] = useState(true)
   const [speed, setSpeed] = useState('1x')
-  const [timestamps, setTimestamps] = useState(() => {
-    const now = new Date()
-    return Array.from({ length: 10 }, (_, i) => {
-      const d = new Date(now.getTime() - (9 - i) * 1000)
-      return formatTime(d)
-    })
-  })
-  const [series, setSeries] = useState(() => {
-    const vals = {}
-    SERIES_CONFIG.forEach(s => {
-      vals[s.key] = Array.from({ length: 10 }, () =>
-        +(s.min + Math.random() * (s.max - s.min)).toFixed(2)
-      )
-    })
-    return vals
-  })
-  const [current, setCurrent] = useState(() => {
-    const c = {}
-    SERIES_CONFIG.forEach(s => { c[s.key] = +(s.min + Math.random() * (s.max - s.min)).toFixed(2) })
-    return c
-  })
-
-  const prevRef = useRef({})
-  useEffect(() => {
-    SERIES_CONFIG.forEach(s => { prevRef.current[s.key] = current[s.key] })
-  }, [])
-
-  const speedMs = { '0.5x': 2000, '1x': 1000, '2x': 500 }
+  const [timestamps, setTimestamps] = useState(init.timestamps)
+  const [series, setSeries] = useState(init.series)
+  const [current, setCurrent] = useState(init.current)
+  const prevRef = useRef({ ...init.current })
 
   const addPoint = useCallback(() => {
     const now = formatTime(new Date())
     const newVals = {}
-    SERIES_CONFIG.forEach(s => {
+    SERIES_CONFIG.forEach((s) => {
       newVals[s.key] = +randomValue(s.min, s.max, prevRef.current[s.key] ?? (s.min + s.max) / 2).toFixed(2)
       prevRef.current[s.key] = newVals[s.key]
     })
-    setTimestamps(prev => [...prev.slice(-(MAX_POINTS - 1)), now])
-    setSeries(prev => {
+    setTimestamps((prev) => [...prev.slice(-(MAX_POINTS - 1)), now])
+    setSeries((prev) => {
       const next = {}
-      SERIES_CONFIG.forEach(s => {
+      SERIES_CONFIG.forEach((s) => {
         next[s.key] = [...prev[s.key].slice(-(MAX_POINTS - 1)), newVals[s.key]]
       })
       return next
@@ -83,104 +77,120 @@ export default function RealtimeChartPage() {
 
   useEffect(() => {
     if (!running) return
-    const ms = speedMs[speed] || 1000
-    const timer = setInterval(addPoint, ms)
+    const timer = setInterval(addPoint, SPEED_MS[speed] || 1000)
     return () => clearInterval(timer)
   }, [running, speed, addPoint])
 
   const handleClear = () => {
     setTimestamps([])
-    setSeries(() => { const v = {}; SERIES_CONFIG.forEach(s => { v[s.key] = [] }); return v })
+    setSeries(() => {
+      const v = {}
+      SERIES_CONFIG.forEach((s) => {
+        v[s.key] = []
+      })
+      return v
+    })
   }
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-    legend: { data: SERIES_CONFIG.map(s => s.name), top: 8 },
-    grid: { left: 60, right: 20, bottom: 40, top: 50 },
-    xAxis: {
-      type: 'category',
-      data: timestamps,
-      boundaryGap: false,
-      axisLabel: { fontSize: 11, rotate: timestamps.length > 30 ? 30 : 0 },
-    },
-    yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-    series: SERIES_CONFIG.map(s => ({
-      name: s.name,
-      type: 'line',
-      data: series[s.key],
-      smooth: true,
-      symbol: 'none',
-      lineStyle: { color: s.color, width: 2 },
-      areaStyle: { color: s.color, opacity: 0.06 },
-      itemStyle: { color: s.color },
-    })),
-    animation: false,
-  }
+  const option = useMemo(() => {
+    const base = chartBase(c)
+    return {
+      ...base,
+      color: SERIES_CONFIG.map((s) => c[s.colorVar]),
+      tooltip: { ...base.tooltip, axisPointer: { type: 'cross', lineStyle: { color: c.border }, crossStyle: { color: c.border } } },
+      legend: {
+        data: SERIES_CONFIG.map((s) => s.name),
+        top: 0,
+        right: 0,
+        icon: 'roundRect',
+        itemWidth: 12,
+        itemHeight: 4,
+        textStyle: { color: c['muted-foreground'], fontSize: 12 },
+      },
+      grid: { ...base.grid, top: 36 },
+      xAxis: {
+        ...base.xAxis,
+        type: 'category',
+        data: timestamps,
+        boundaryGap: false,
+        axisLabel: { ...base.xAxis.axisLabel, rotate: timestamps.length > 30 ? 30 : 0 },
+      },
+      yAxis: { ...base.yAxis, type: 'value' },
+      series: SERIES_CONFIG.map((s) => ({
+        name: s.name,
+        type: 'line',
+        data: series[s.key],
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: c[s.colorVar], width: 2 },
+        areaStyle: { color: hexToRgba(c[s.colorVar], 0.06) },
+        itemStyle: { color: c[s.colorVar] },
+      })),
+      animation: false,
+    }
+  }, [c, timestamps, series])
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <IconActivity size="large" style={{ color: '#4d70e8' }} />
-          <Typography.Title heading={4} style={{ margin: 0 }}>实时折线图</Typography.Title>
-          <Tag
-            color={running ? 'green' : 'grey'}
-            style={{ borderRadius: 20, fontWeight: 600 }}
-          >
-            {running ? '● LIVE' : '⏸ PAUSED'}
-          </Tag>
-        </div>
-        <Space>
-          <Select
-            value={speed}
-            onChange={setSpeed}
-            style={{ width: 90 }}
-            optionList={[
-              { label: '0.5× 慢速', value: '0.5x' },
-              { label: '1× 正常', value: '1x' },
-              { label: '2× 快速', value: '2x' },
-            ]}
-          />
-          <Button
-            icon={running ? <IconPause /> : <IconPlay />}
-            theme="solid"
-            type={running ? 'warning' : 'primary'}
-            onClick={() => setRunning(r => !r)}
-          >
-            {running ? '暂停' : '继续'}
-          </Button>
-          <Button icon={<IconDelete />} type="danger" onClick={handleClear}>清空</Button>
-        </Space>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="实时折线图"
+        actions={
+          <>
+            <StatusBadge tone={running ? 'success' : 'neutral'} dot className="mr-1">
+              {running ? 'LIVE' : 'PAUSED'}
+            </StatusBadge>
+            <Select value={speed} onValueChange={setSpeed}>
+              <SelectTrigger size="sm" className="h-8 w-[112px] text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SPEED_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant={running ? 'outline' : 'brand'} onClick={() => setRunning((r) => !r)}>
+              {running ? <Pause /> : <Play />}
+              {running ? '暂停' : '继续'}
+            </Button>
+            <Button size="sm" variant="ghost" className="text-danger hover:text-danger" onClick={handleClear}>
+              <Trash2 />
+              清空
+            </Button>
+          </>
+        }
+      />
 
-      {/* Current value cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-        {SERIES_CONFIG.map(s => (
-          <div key={s.key} style={{ ...CARD_STYLE, padding: 12, marginBottom: 0, borderLeft: `4px solid ${s.color}` }}>
-            <Typography.Text type="tertiary" size="small">{s.name}</Typography.Text>
-            <div style={{ fontSize: 24, fontWeight: 700, color: s.color, marginTop: 4 }}>
-              {current[s.key] ?? '--'}
-              <span style={{ fontSize: 13, fontWeight: 400, marginLeft: 4, color: 'var(--semi-color-text-2)' }}>{s.unit}</span>
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {SERIES_CONFIG.map((s) => (
+          <div key={s.key} className="surface-card relative overflow-hidden p-4">
+            <span className={cn('absolute inset-y-3 left-0 w-0.5 rounded-full', s.accent)} />
+            <div className="text-muted-foreground flex items-center gap-2 text-[13px]">
+              <span className={cn('size-1.5 rounded-full', s.accent)} />
+              {s.name}
+            </div>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums">
+                {current[s.key] ?? '--'}
+              </span>
+              <span className="text-muted-foreground text-xs">{s.unit}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Chart */}
-      <div style={CARD_STYLE}>
+      <Panel title="传感器曲线" description={`最近 ${MAX_POINTS} 个采样点`}>
         <ReactECharts
           option={option}
-          style={{ height: isMobile ? 220 : 400 }}
+          style={{ height: isMobile ? 240 : 400 }}
           opts={{ renderer: 'canvas' }}
           notMerge={false}
-          lazyUpdate={true}
+          lazyUpdate
         />
-      </div>
+      </Panel>
 
-      <Typography.Text type="tertiary" size="small">
-        已展示最近 {timestamps.length} 个数据点（最多 {MAX_POINTS} 个）· 数据由前端随机生成，模拟传感器采集
-      </Typography.Text>
     </div>
   )
 }

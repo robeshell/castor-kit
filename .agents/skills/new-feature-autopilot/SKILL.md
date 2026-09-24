@@ -1,6 +1,6 @@
 ---
 name: new-feature-autopilot
-description: PM gives feature intent in natural language; execute end-to-end implementation for castor-kit (Fastify + Drizzle + React/Semi) without requiring structured requirement docs.
+description: PM gives feature intent in natural language; execute end-to-end implementation for castor-kit (Fastify + Drizzle + React/shadcn-ui) without requiring structured requirement docs.
 ---
 
 # New Feature Autopilot
@@ -21,15 +21,15 @@ Deliver a usable feature from intent only:
 ## Execution Steps
 
 1. Identify stack + read references first
-   - This project is castor-kit: pnpm monorepo, Node 22 + TypeScript + Fastify 5 + Zod + Drizzle (`apps/api`), React 18 + Vite + Semi Design (`apps/web`), PostgreSQL.
+   - This project is castor-kit: pnpm monorepo, Node 22 + TypeScript + Fastify 5 + Zod + Drizzle (`apps/api`), React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion (`apps/web`, JSX; UI migrated from Semi Design, see `docs/frontend-redesign-plan.md`), PostgreSQL.
    - Read `AGENTS.md` and `docs/templates/backend/README.md` before writing code.
-   - If related MCP docs/skills exist, read them first (UI tasks should prefer `semi-mcp` + `semi-ui-skills`).
+   - If related MCP docs/skills exist, read them first (UI tasks: shadcn/ui docs or registry — shadcn MCP if available — plus `.agents/skills/shadcn-ui-skills/SKILL.md`).
 2. Understand intent from conversation
    - Extract actor, main workflow, key entities, and expected admin actions.
    - Make reasonable defaults for non-critical fields (field type table in `AGENTS.md`).
 3. Scan existing modules
    - Prefer extending existing modules over creating duplicates.
-   - Reference implementation: `apps/api/src/modules/admin/users/`.
+   - Reference implementation: `apps/api/src/modules/admin/users/` (backend) and `apps/web/src/modules/admin/pages/users/index.jsx` (frontend).
 4. Scaffold
    - `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "name:str,status:str20" --dry-run`, then run again without `--dry-run`.
    - Scaffold writes `db/schema/<domain-dir>/<name>.ts` + `modules/<domain-dir>/<name>/{schema,repository,service,routes}.ts` + frontend api/page, registers them in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts`, and runs `drizzle-kit generate`.
@@ -43,7 +43,9 @@ Deliver a usable feature from intent only:
    - Page under `apps/web/src/modules/**/pages/**/index.jsx`, API file under `apps/web/src/modules/**/api/`.
    - Reuse `apps/web/src/shared/api/request.js` and `apps/web/src/shared/utils/file.js`.
    - Ensure menu `path` + `component` are compatible with dynamic routing (`component` like `admin/users`, `component_center/admin/list_page`).
-   - Prefer reusing `apps/web/src/shared/components/import-export/` for import/export UX (csv / xlsx only).
+   - The scaffolded page already follows the shadcn/ui list pattern (PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog); translate titles/labels to Chinese, add `rules` validation, turn enums into `FormSelect` + `StatusBadge`.
+   - Reuse `apps/web/src/shared/components/` (DataTable, FormDialog, FormFields, ConfirmAction, StatusBadge, `data-transfer/ImportDialog` / `data-transfer/ExportDialog` for csv / xlsx) and Tailwind semantic color classes.
+   - Never import `@douyinfe/*` or use `var(--semi-*)` / hard-coded hex colors (the `frontend_no_legacy_ui` verify check fails on them). Add missing shadcn primitives with `apps/web/scripts/shadcn-add.sh <component>`.
 7. Integrate permissions
    - Add menu/button permission codes to `MENUS_DATA` in `apps/api/scripts/seed-rbac.ts` (button ID = menu ID × 10 + n).
    - Always run `pnpm seed:rbac -- --incremental` after permission/menu changes (it refreshes super-admin permissions so new pages are immediately visible).
@@ -62,7 +64,7 @@ Deliver a usable feature from intent only:
 - List page supports: search + create + edit + delete + import + export.
 - RBAC includes: `<perm>`, `<perm>_add`, `<perm>_edit`, `<perm>_delete`, `<perm>_export`, `<perm>_import` (`<perm>` = `system_<name>` for admin, `cc_<name>` for component_center).
 - New admin routes under `/api/admin/<resource>s`.
-- Use consistent Toast success/error UX with existing pages.
+- Use consistent toast UX with existing pages (`toast.success` / `toast.apiError` from `@/lib/toast`).
 - Pagination 20 per page, ordered by id desc.
 
 ## Blocking Questions Only

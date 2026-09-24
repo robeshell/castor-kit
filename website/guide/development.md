@@ -31,17 +31,21 @@ castor-kit/
 │   │   │   ├── setup-once.ts       # 迁移 + RBAC + 只读账号（容器启动时执行）
 │   │   │   └── generate-openapi.ts / import-apifox.ts
 │   │   └── test/                   # Vitest（连接真实 PostgreSQL）
-│   ├── web/                        # @castor-kit/web —— React + Vite 前端
+│   ├── web/                        # @castor-kit/web —— React 19 + Vite + shadcn/ui 前端（JSX）
+│   │   ├── scripts/shadcn-add.sh   # 经本地中转执行 npx shadcn@latest add
 │   │   └── src/
 │   │       ├── App.jsx             # 动态路由（import.meta.glob）
-│   │       ├── context/AuthContext.jsx
-│   │       ├── components/Layout/  # 侧边栏 + PrivateRoute
+│   │       ├── index.css           # Tailwind v4 + 设计 tokens（亮 / 暗）
+│   │       ├── context/            # AuthContext / ThemeContext
+│   │       ├── components/ui/      # shadcn/ui 原子组件
+│   │       ├── components/app/     # 应用外壳：侧边栏、顶栏、⌘K、主题切换
+│   │       ├── lib/                # cn / toast / format / motion / chart-theme
 │   │       ├── modules/
 │   │       │   ├── admin/          # 系统管理页面
 │   │       │   └── component_center/   # 组件示例页面
 │   │       └── shared/
 │   │           ├── api/request.js  # Axios 实例（baseURL='/api'）
-│   │           └── components/     # 共享 UI（导入导出 Modal 等）
+│   │           └── components/     # 业务公共组件：PageHeader / DataTable / FormDialog / ImportDialog …
 │   └── mcp/                        # @castor-kit/mcp —— MCP Server
 └── docs/
     └── templates/                  # AI 代码骨架模板（backend/*.ts、frontend/*）
@@ -87,11 +91,27 @@ pnpm scaffold -- --name customer --domain admin \
 脚手架会：
 
 - 生成后端表定义 `db/schema/admin/customer.ts` 与模块 `modules/admin/customer/{schema,repository,service,routes}.ts`
-- 生成前端 API 文件与列表页（含搜索、增删改、导入导出）
+- 生成前端 API 文件与列表页（shadcn/ui 体系，结构同用户管理页：搜索、增删改、导入导出；字段类型自动映射到表单组件）
 - 自动在 `db/schema/index.ts` 和域路由 `modules/admin/router.ts` 中注册
 - 自动执行 `drizzle-kit generate` 生成迁移 SQL
 
 `--domain` 可选 `admin` 或 `component_center`。字段类型：`str`（100）、`str20`、`str50`、`str500`、`text`、`int`、`float`（numeric 10,2）、`bool`、`date`、`datetime`。
+
+---
+
+## 前端开发约定
+
+前端（`apps/web`）使用 **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**（JavaScript / JSX，文案中文），UI 已从 Semi Design 整体迁移，完整方案见 [frontend-redesign-plan.md](https://github.com/robeshell/castor-kit/blob/main/docs/frontend-redesign-plan.md)。
+
+- **页面结构**：列表页照 `modules/admin/pages/users/index.jsx`——`PageHeader` → `FilterBar` → `DataTable` → `FormDialog`（react-hook-form + `FormFields`）→ `ImportDialog` / `ExportDialog`，删除用 `ConfirmAction`，提示用 `@/lib/toast`
+- **字段 → 表单组件**：`str` → `FormInput`、`text` → `FormTextarea`、`int` / `float` → `FormNumber`、`bool` → `FormSwitch`、`date` → `FormDate`、`datetime` → `FormDateTime`；表格里 `bool` 用 `StatusBadge`，时间用 `formatDate` / `formatDateTime`
+- **样式**：只用 Tailwind 语义色类（`bg-card`、`text-muted-foreground`、`bg-brand-soft` …），暗色模式自动适配；Ocean 渐变（blue → sky → cyan）只做点缀，每页最多一个 `variant="brand"` 主按钮
+- **禁止**：导入 `@douyinfe/*`、使用 `var(--semi-*)`、写死十六进制颜色、大段 inline style 布局
+- **新增 shadcn 原子组件**：本机 shadcn CLI 直连 ui.shadcn.com 会失败，用中转脚本（起本地 registry 中转，以 `REGISTRY_URL` 执行 `npx shadcn@latest add`，结束后关闭）：
+
+```bash
+apps/web/scripts/shadcn-add.sh hover-card
+```
 
 ---
 
@@ -160,7 +180,7 @@ psql -d aurastack -c '\d customers'
 pnpm verify -- --module customer --skip-build
 ```
 
-它会检查 TypeScript 类型、分层规范（禁止自定义权限函数）、迁移链完整且已落库、OpenAPI 同步、AI 文档引用路径、前后端文件与注册、RBAC 种子等。在 CI 中去掉 `--skip-build` 可同时验证前端生产构建；加 `--json` 可输出结构化结果供 AI 读取。
+它会检查 TypeScript 类型、分层规范（禁止自定义权限函数）、迁移链完整且已落库、OpenAPI 同步、AI 文档引用路径、前后端文件与注册、RBAC 种子等。前端页面还会检查不得残留旧 UI 体系（`@douyinfe/*`、`var(--semi-*)`）。在 CI 中去掉 `--skip-build` 可同时验证前端生产构建；加 `--json` 可输出结构化结果供 AI 读取。
 
 ---
 
@@ -190,7 +210,7 @@ castor-kit 为所有主流 AI 编码工具预配置了上下文文件：
 
 | 工具 | 配置文件 | 能力 |
 |---|---|---|
-| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` 端到端技能 |
+| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` 端到端技能 + `shadcn-ui-skills` 前端组件指南 |
 | Cursor | `.cursor/rules/` | 自动触发 Autopilot 工作流 |
 | GitHub Copilot | `.github/copilot-instructions.md` | 全局注入项目约定 |
 | Windsurf | `.windsurfrules` | 全局注入项目约定 |

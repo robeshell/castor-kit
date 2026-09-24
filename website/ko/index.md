@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "castor-kit"
   text: "AI-First 풀스택 스캐폴드"
-  tagline: Node.js + TypeScript (Fastify · Drizzle) + React 18 + PostgreSQL. 자연어로 기능을 설명하면 AI가 처음부터 끝까지 구현합니다.
+  tagline: Node.js + TypeScript (Fastify · Drizzle) + React 19 + shadcn/ui + PostgreSQL. 자연어로 기능을 설명하면 AI가 처음부터 끝까지 구현합니다.
   actions:
     - theme: brand
       text: 시작하기

@@ -2,6 +2,7 @@
  * scripts/verify-feature.ts
  *
  * 在临时目录里搭一个最小仓库骨架（模块文件、router、schema、seed、drizzle journal、前端文件、AGENTS.md），
+ * 前端页面额外检查不得残留旧 UI 体系（@douyinfe/*、var(--semi-*)），
  * 逐项验证各检查的通过 / 失败分支，以及 --json 输出结构（与 Python verify_feature.py 一致）。
  * migration_applied 连真实测试库（TEST_DATABASE_URL）。
  */
@@ -16,6 +17,7 @@ import {
   checkBackendFile,
   checkDocPaths,
   checkFrontendApi,
+  checkFrontendNoLegacyUi,
   checkFrontendPage,
   checkMigrationApplied,
   checkMigrationChain,
@@ -126,6 +128,41 @@ describe('verify-feature 模块级检查', () => {
     expect(checkFrontendApi(ctx, 'nope').error).toBe(
       '未找到前端 API 文件，检查路径：apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/component_center/api/nope.js',
     )
+  })
+
+  it('frontend_no_legacy_ui：页面目录禁止 @douyinfe/*、var(--semi-*)、旧公共组件；页面不存在时跳过', () => {
+    expect(checkFrontendNoLegacyUi(ctx, 'ck_widget')).toEqual({
+      name: 'frontend_no_legacy_ui',
+      passed: true,
+      path: 'apps/web/src/modules/admin/pages/ck_widget',
+    })
+    expect(checkFrontendNoLegacyUi(ctx, 'nope')).toEqual({ name: 'frontend_no_legacy_ui', passed: true, skipped: true })
+
+    put(
+      'apps/web/src/modules/component_center/pages/admin/ck_legacy_page/index.jsx',
+      [
+        '// 从 Semi Design 迁移过来的页面（注释里提到 Semi 不算）',
+        "import { Button } from '@/components/ui/button'",
+        'import {',
+        '  Table,',
+        "} from '@douyinfe/semi-ui'",
+        "import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'",
+        '',
+      ].join('\n'),
+    )
+    put('apps/web/src/modules/component_center/pages/admin/ck_legacy_page/Side.jsx', "const s = { color: 'var(--semi-color-text-2)' }\n")
+    const bad = checkFrontendNoLegacyUi(ctx, 'ck_legacy')
+    expect(bad.passed).toBe(false)
+    expect(bad.error).toContain('Semi Design 已下线')
+    expect(bad.error).toContain('apps/web/src/modules/component_center/pages/admin/ck_legacy_page/index.jsx:5 导入 @douyinfe/*')
+    expect(bad.error).toContain('ck_legacy_page/index.jsx:6 引用已下线的旧公共组件')
+    expect(bad.error).toContain('ck_legacy_page/Side.jsx:1 使用 var(--semi-*)')
+    expect(bad.error).not.toContain('index.jsx:1 ')
+
+    put('apps/web/src/modules/component_center/pages/admin/ck_icons_page/index.jsx', "import '@douyinfe/semi-ui/dist/css/semi.min.css'\n")
+    expect(checkFrontendNoLegacyUi(ctx, 'ck_icons').passed).toBe(false)
+    rmSync(join(root, 'apps/web/src/modules/component_center/pages/admin/ck_legacy_page'), { recursive: true })
+    rmSync(join(root, 'apps/web/src/modules/component_center/pages/admin/ck_icons_page'), { recursive: true })
   })
 
   it('router_registration：只认真实的 await registerXxxRoutes(...) 调用', () => {
@@ -289,6 +326,7 @@ describe('verify-feature 汇总与 CLI', () => {
       'docs_paths',
       'backend_file',
       'frontend_page',
+      'frontend_no_legacy_ui',
       'frontend_api',
       'router_registration',
       'schema_registration',
@@ -297,12 +335,12 @@ describe('verify-feature 汇总与 CLI', () => {
       'frontend_tests',
     ])
     expect(report.passed).toBe(true)
-    expect(report.summary).toBe('14/14 项通过')
+    expect(report.summary).toBe('15/15 项通过')
     expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true })
 
     const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipDb: true })
     expect(failing.passed).toBe(false)
-    expect(failing.summary).toBe('9/14 项通过')
+    expect(failing.summary).toBe('10/15 项通过')
   })
 
   it('CLI --json：stdout 只有 JSON，失败时退出码 1；无 --module 时只跑全局检查', () => {

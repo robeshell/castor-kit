@@ -1,0 +1,74 @@
+import { useId } from 'react'
+import { motion } from 'motion/react'
+import { layoutSpring } from '@/lib/motion'
+import { cn } from '@/lib/utils'
+
+/**
+ * 带滑动下划线的分段标签（状态筛选、视图切换）。渐变下划线用 layoutId 平滑移动。
+ *   <SegmentedTabs value={tab} onChange={setTab} items={[{ value: 'all', label: '全部', count: 12 }, …]} />
+ * variant="pill"：灰底胶囊样式（24h / 7d / 30d 这类小切换）。
+ */
+export default function SegmentedTabs({ value, onChange, items = [], variant = 'underline', className }) {
+  const id = useId()
+  if (variant === 'pill') {
+    return (
+      <div className={cn('bg-muted inline-flex rounded-lg p-0.5 text-xs', className)}>
+        {items.map((item) => {
+          const active = item.value === value
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onChange?.(item.value)}
+              className={cn(
+                'relative rounded-md px-2.5 py-1 transition-colors',
+                active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {active ? (
+                <motion.span
+                  layoutId={`${id}-pill`}
+                  transition={layoutSpring}
+                  className="bg-background absolute inset-0 rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_1px_var(--border)]"
+                />
+              ) : null}
+              <span className="relative">{item.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+  return (
+    <div className={cn('flex items-center gap-5 border-b', className)}>
+      {items.map((item) => {
+        const active = item.value === value
+        return (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onChange?.(item.value)}
+            className={cn(
+              'relative flex h-9 items-center gap-1.5 text-[13px] transition-colors',
+              active ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {item.label}
+            {item.count !== undefined ? (
+              <span className="bg-muted text-muted-foreground rounded-full px-1.5 text-[11px] font-normal tabular-nums">
+                {item.count}
+              </span>
+            ) : null}
+            {active ? (
+              <motion.span
+                layoutId={`${id}-underline`}
+                transition={layoutSpring}
+                className="bg-brand-gradient absolute right-0 -bottom-px left-0 h-0.5 rounded-full"
+              />
+            ) : null}
+          </button>
+        )
+      })}
+    </div>
+  )
+}

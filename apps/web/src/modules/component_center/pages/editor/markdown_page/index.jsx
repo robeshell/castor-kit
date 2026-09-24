@@ -1,23 +1,10 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Button, Space, Toast, Typography } from '@douyinfe/semi-ui'
-
-
-const C = {
-  blue: 'var(--semi-color-primary)',
-  green: '#00B96B',
-  orange: '#FA8C16',
-  purple: '#9254DE',
-  red: '#FF4D4F',
-  cyan: '#13C2C2',
-  border: 'var(--semi-color-border)',
-  text0: 'var(--semi-color-text-0)',
-  text1: 'var(--semi-color-text-1)',
-  text2: 'var(--semi-color-text-2)',
-}
+import { useDeferredValue, useRef, useState } from 'react'
+import { Copy, Eye, FileText, PencilLine, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
+import MarkdownView from '@/shared/components/markdown/MarkdownView'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
 
 const INITIAL_MARKDOWN = `# castor-kit 项目文档
 
@@ -29,8 +16,8 @@ const INITIAL_MARKDOWN = `# castor-kit 项目文档
 |------|----------|------|
 | 后端 | Node.js + Fastify + TypeScript | 22 / 5.x |
 | 校验 / ORM | Zod + Drizzle ORM | - |
-| 前端 | React + Vite | 18.x |
-| UI | Semi Design | 2.x |
+| 前端 | React + Vite | 19.x |
+| UI | shadcn/ui + Tailwind CSS | 4.x |
 | 数据库 | PostgreSQL | 15+ |
 | AI | OpenAI 兼容接口 | - |
 
@@ -99,7 +86,7 @@ pnpm dev
 castor-kit/
 ├── apps/
 │   ├── api/            # 后端：Fastify + Drizzle（src/modules/<域>/<模块>）
-│   ├── web/            # 前端：React + Vite + Semi Design
+│   ├── web/            # 前端：React + Vite + shadcn/ui
 │   └── mcp/            # MCP Server
 ├── docs/               # 方案文档与代码模板
 └── website/            # 文档站
@@ -109,9 +96,9 @@ castor-kit/
 
 欢迎提交 PR！请遵循以下规范：
 
-- 代码风格：**ESLint + TypeScript strict**（后端）/ **ESLint** (前端)
-- 提交信息：遵循 [Conventional Commits](https://conventionalcommits.org)
-- 交付前运行 \`pnpm verify -- --module <name>\`
+- [x] 代码风格：**ESLint + TypeScript strict**（后端）/ **ESLint** (前端)
+- [x] 提交信息：遵循 [Conventional Commits](https://conventionalcommits.org)
+- [ ] 交付前运行 \`pnpm verify -- --module <name>\`
 
 ---
 
@@ -125,35 +112,9 @@ const SHORTCUTS = [
   { label: '---', insert: '\n---\n' },
   { label: '`代码`', insert: '`代码`' },
   { label: '链接', insert: '[链接文字](https://example.com)' },
-  {
-    label: '表格',
-    insert: '\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 值1 | 值2 | 值3 |\n',
-  },
+  { label: '表格', insert: '\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 值1 | 值2 | 值3 |\n' },
   { label: '代码块', insert: '\n```javascript\n// 代码块\nconsole.log("Hello")\n```\n' },
 ]
-
-const MARKDOWN_STYLES = `
-.md-preview h1 { font-size: 1.7em; font-weight: 700; margin: 0.6em 0 0.4em; border-bottom: 2px solid var(--semi-color-border); padding-bottom: 0.3em; color: var(--semi-color-text-0); }
-.md-preview h2 { font-size: 1.35em; font-weight: 700; margin: 1em 0 0.4em; border-bottom: 1px solid var(--semi-color-border); padding-bottom: 0.2em; color: var(--semi-color-text-0); }
-.md-preview h3 { font-size: 1.1em; font-weight: 600; margin: 0.8em 0 0.3em; color: var(--semi-color-text-1); }
-.md-preview p { margin: 0.5em 0; line-height: 1.75; color: var(--semi-color-text-1); }
-.md-preview ul, .md-preview ol { padding-left: 1.5em; margin: 0.5em 0; }
-.md-preview li { margin: 0.25em 0; line-height: 1.6; color: var(--semi-color-text-1); }
-.md-preview blockquote { border-left: 4px solid var(--semi-color-primary); margin: 0.8em 0; padding: 0.4em 1em; background: var(--semi-color-primary-light-default); border-radius: 0 6px 6px 0; color: var(--semi-color-text-1); }
-.md-preview blockquote p { margin: 0; }
-.md-preview code { background: var(--semi-color-fill-0); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; color: var(--semi-color-primary); }
-.md-preview pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 16px; border-radius: 8px; overflow-x: auto; margin: 0.8em 0; line-height: 1.5; }
-.md-preview pre code { background: none; color: inherit; padding: 0; font-size: 0.87em; }
-.md-preview table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
-.md-preview th { background: var(--semi-color-fill-1); font-weight: 600; color: var(--semi-color-text-0); }
-.md-preview th, .md-preview td { border: 1px solid var(--semi-color-border); padding: 7px 12px; text-align: left; font-size: 0.93em; }
-.md-preview tr:nth-child(even) { background: var(--semi-color-fill-0); }
-.md-preview a { color: var(--semi-color-primary); text-decoration: none; }
-.md-preview a:hover { text-decoration: underline; }
-.md-preview hr { border: none; border-top: 1px solid var(--semi-color-border); margin: 1em 0; }
-.md-preview strong { font-weight: 600; color: var(--semi-color-text-0); }
-.md-preview em { font-style: italic; color: var(--semi-color-text-2); }
-`
 
 function countMarkdownWords(text) {
   const trimmed = text.trim()
@@ -163,205 +124,130 @@ function countMarkdownWords(text) {
   return chineseChars + englishWords
 }
 
+function PaneHeader({ icon: Icon, title, extra }) {
+  return (
+    <div className="bg-muted/40 flex h-10 shrink-0 items-center justify-between gap-3 border-b px-4">
+      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+        <Icon className="size-3.5" />
+        {title}
+      </span>
+      {extra}
+    </div>
+  )
+}
+
 export default function MarkdownPage() {
-  const isMobile = useIsMobile()
   const [content, setContent] = useState(INITIAL_MARKDOWN)
+  // 预览走 deferred 值：长文档输入时编辑区保持跟手
+  const deferredContent = useDeferredValue(content)
   const textareaRef = useRef(null)
 
   const wordCount = countMarkdownWords(content)
 
-  const insertText = (snippet) => {
+  const replaceSelection = (snippet) => {
     const el = textareaRef.current
     if (!el) return
     const start = el.selectionStart
     const end = el.selectionEnd
-    const before = content.slice(0, start)
-    const after = content.slice(end)
-    const newContent = before + snippet + after
-    setContent(newContent)
-    // Restore cursor after state update
+    setContent(content.slice(0, start) + snippet + content.slice(end))
+    // 等 React 写回 value 后再恢复光标
     setTimeout(() => {
       el.focus()
       el.setSelectionRange(start + snippet.length, start + snippet.length)
     }, 0)
   }
 
+  const handleKeyDown = (e) => {
+    // Tab 插入两个空格缩进（而不是把焦点移走）
+    if (e.key === 'Tab' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault()
+      replaceSelection('  ')
+    }
+  }
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(content).then(() => {
-      Toast.success('Markdown 内容已复制')
-    })
+    navigator.clipboard
+      .writeText(content)
+      .then(() => toast.success('Markdown 内容已复制'))
+      .catch(() => toast.error('复制失败'))
   }
 
   const handleClear = () => {
     setContent('')
-    Toast.success('内容已清空')
+    toast.success('内容已清空')
   }
 
   return (
     <div>
-      {/* 注入 Markdown 样式 */}
-      <style>{MARKDOWN_STYLES}</style>
+      <PageHeader
+        title="Markdown 预览"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleClear}>
+              <Trash2 />
+              清空
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              <Copy />
+              复制内容
+            </Button>
+          </>
+        }
+      />
 
-      {/* 页面标题 */}
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title heading={4} style={{ marginBottom: 4 }}>
-          Markdown 预览
-        </Typography.Title>
-        <Typography.Text type="tertiary">
-          左侧编辑 Markdown，右侧实时渲染预览，支持 GFM 扩展语法（表格、任务列表等）
-        </Typography.Text>
+      <div className="surface-card mb-4 flex flex-wrap items-center gap-1.5 p-2">
+        <span className="text-muted-foreground px-1.5 text-xs">快捷插入</span>
+        {SHORTCUTS.map((s) => (
+          <Button
+            key={s.label}
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 font-mono text-xs"
+            onClick={() => replaceSelection(s.insert)}
+          >
+            {s.label}
+          </Button>
+        ))}
       </div>
 
-      <div style={CARD_STYLE}>
-        {/* 快捷插入工具栏 */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-            flexWrap: 'wrap',
-            gap: 8,
-          }}
-        >
-          <Space wrap>
-            {SHORTCUTS.map((s) => (
-              <Button key={s.label} size="small" onClick={() => insertText(s.insert)}>
-                {s.label}
-              </Button>
-            ))}
-          </Space>
-          <Space>
-            <Button onClick={handleCopy}>复制内容</Button>
-            <Button onClick={handleClear}>清空</Button>
-          </Space>
-        </div>
-
-        {/* 左右分屏 */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, height: isMobile ? 'auto' : 600 }}>
-          {/* 左侧：编辑区 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: isMobile ? 300 : 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              overflow: 'hidden',
-            }}
-          >
-            {/* 编辑区标题 */}
-            <div
-              style={{
-                padding: '6px 12px',
-                background: 'var(--semi-color-fill-0)',
-                borderBottom: `1px solid ${C.border}`,
-                fontSize: 12,
-                color: C.text2,
-                fontWeight: 500,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <span>✏️ 编辑</span>
-              <span>
-                字数：<span style={{ fontWeight: 600, color: C.blue }}>{wordCount}</span>
+      <div className="grid gap-4 md:h-[640px] md:grid-cols-2">
+        <Panel padded={false} className="flex min-h-[360px] flex-col" bodyClassName="flex min-h-0 flex-1 flex-col">
+          <PaneHeader
+            icon={PencilLine}
+            title="编辑"
+            extra={
+              <span className="text-muted-foreground text-xs">
+                字数 <span className="text-foreground font-medium tabular-nums">{wordCount}</span>
               </span>
-            </div>
+            }
+          />
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="在此输入 Markdown 内容..."
+            spellCheck={false}
+            aria-label="Markdown 编辑区"
+            className="placeholder:text-muted-foreground min-h-[320px] flex-1 resize-none bg-transparent px-4 py-3 font-mono text-[13px] leading-relaxed outline-none"
+          />
+        </Panel>
 
-            {/* Textarea */}
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              style={{
-                flex: 1,
-                padding: '12px',
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                fontSize: 13,
-                lineHeight: 1.7,
-                color: C.text1,
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                background: 'var(--semi-color-fill-0)',
-                overflowY: 'auto',
-              }}
-              placeholder="在此输入 Markdown 内容..."
-              spellCheck={false}
-            />
+        <Panel padded={false} className="flex min-h-[360px] flex-col" bodyClassName="flex min-h-0 flex-1 flex-col">
+          <PaneHeader icon={Eye} title="预览" />
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            {deferredContent.trim() ? (
+              <MarkdownView>{deferredContent}</MarkdownView>
+            ) : (
+              <div className="text-muted-foreground flex h-full min-h-[240px] flex-col items-center justify-center gap-2 text-[13px]">
+                <FileText className="size-5" />
+                左侧输入 Markdown 内容后在此实时预览
+              </div>
+            )}
           </div>
-
-          {/* 右侧：预览区 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: isMobile ? 300 : 'auto',
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            {/* 预览区标题 */}
-            <div
-              style={{
-                padding: '6px 12px',
-                background: 'var(--semi-color-fill-0)',
-                borderBottom: `1px solid ${C.border}`,
-                fontSize: 12,
-                color: C.text2,
-                fontWeight: 500,
-                flexShrink: 0,
-              }}
-            >
-              👁️ 预览
-            </div>
-
-            {/* 渲染内容 */}
-            <div
-              className="md-preview"
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '12px 16px',
-                background: 'var(--semi-color-bg-1)',
-                fontSize: 14,
-              }}
-            >
-              {content.trim() ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-              ) : (
-                <div
-                  style={{
-                    color: C.text2,
-                    fontSize: 13,
-                    textAlign: 'center',
-                    marginTop: 60,
-                  }}
-                >
-                  左侧输入 Markdown 内容后在此实时预览
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 底部提示 */}
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 12,
-            color: C.text2,
-          }}
-        >
-          支持 GFM 语法（表格、删除线、任务列表）· 支持代码块语法高亮 · Tab 键插入缩进
-        </div>
+        </Panel>
       </div>
+
     </div>
   )
 }

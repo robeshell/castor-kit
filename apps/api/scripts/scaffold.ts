@@ -16,7 +16,7 @@
  *   apps/api/src/db/schema/<domain>/<name>.ts                         表定义 + toDict
  *   apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
  *   apps/web/src/modules/<module>/api/<name>.js
- *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.jsx
+ *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.jsx   shadcn/ui 列表页（结构同 users 页）
  * 自动注册：
  *   apps/api/src/db/schema/index.ts          export * from './<domain>/<name>'
  *   apps/api/src/modules/<domain>/router.ts  import + await register<Name>Routes(app)
@@ -609,7 +609,37 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
 `
 }
 
-// ─── 前端代码生成（与 Python scaffold.py 输出一致） ────────────────────────────
+// ─── 前端代码生成（shadcn/ui 体系，结构对齐 apps/web/src/modules/admin/pages/users/index.jsx） ──────
+//
+// api 文件格式与 Python scaffold.py 一致；页面按 docs/frontend-redesign-plan.md 的新体系生成：
+// PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
+// + ConfirmAction + toast + useCrudList。字段 → 表单组件 / 表格列渲染见 FRONTEND_FIELD_MAP。
+
+type FrontendKind = 'str' | 'text' | 'int' | 'float' | 'bool' | 'date' | 'datetime'
+
+export interface FrontendFieldSpec {
+  /** FormFields.jsx 里的表单组件 */
+  component: 'FormInput' | 'FormTextarea' | 'FormNumber' | 'FormSwitch' | 'FormDate' | 'FormDateTime'
+  /** 表单组件额外属性（JSX 片段） */
+  props: string
+  /** useForm 默认值（JS 字面量） */
+  empty: string
+}
+
+export const FRONTEND_FIELD_MAP: Record<FrontendKind, FrontendFieldSpec> = {
+  str: { component: 'FormInput', props: '', empty: "''" },
+  text: { component: 'FormTextarea', props: '', empty: "''" },
+  int: { component: 'FormNumber', props: ' step={1}', empty: 'null' },
+  float: { component: 'FormNumber', props: ' step={0.01}', empty: 'null' },
+  bool: { component: 'FormSwitch', props: '', empty: 'false' },
+  date: { component: 'FormDate', props: '', empty: "''" },
+  datetime: { component: 'FormDateTime', props: '', empty: "''" },
+}
+
+/** scaffold 类型 → 前端字段类别（str20 / str50 / str500 / 未知类型都按 str） */
+export function frontendKind(type: string): FrontendKind {
+  return type in FRONTEND_FIELD_MAP ? (type as FrontendKind) : 'str'
+}
 
 export function genFrontendApi(s: ScaffoldSpec): string {
   return `import request from '@/shared/api/request'
@@ -637,175 +667,335 @@ export const importItems = (file) => {
 `
 }
 
+/** 编辑时 record → 表单值（时间转成 DatePicker / DateTimePicker 的格式） */
+function formValueExpr(field: string, kind: FrontendKind): string {
+  const v = `record.${field}`
+  if (kind === 'bool') return `Boolean(${v})`
+  if (kind === 'date') return `formatDate(${v}, '')`
+  if (kind === 'datetime') return `formatDateTime(${v}, '')`
+  if (kind === 'int' || kind === 'float') return `${v} ?? null`
+  return `${v} ?? ''`
+}
+
+/** 表格列：bool → StatusBadge，日期 → formatDate / formatDateTime，数字 → tabular-nums */
+function columnLines(field: string, kind: FrontendKind): string[] {
+  const head = [`    {`, `      key: ${q(field)},`, `      title: ${q(toLabel(field))},`, `      dataIndex: ${q(field)},`]
+  const tail = [`    },`]
+  if (kind === 'bool') {
+    return [
+      ...head,
+      `      width: 100,`,
+      `      render: (value) => (`,
+      `        <StatusBadge tone={value ? 'success' : 'neutral'} dot>`,
+      `          {value ? '是' : '否'}`,
+      `        </StatusBadge>`,
+      `      ),`,
+      ...tail,
+    ]
+  }
+  if (kind === 'date') {
+    return [...head, `      width: 120,`, `      className: 'text-muted-foreground tabular-nums',`, `      render: (value) => formatDate(value),`, ...tail]
+  }
+  if (kind === 'datetime') {
+    return [...head, `      width: 180,`, `      className: 'text-muted-foreground tabular-nums',`, `      render: (value) => formatDateTime(value),`, ...tail]
+  }
+  if (kind === 'int' || kind === 'float') {
+    return [...head, `      align: 'right',`, `      className: 'tabular-nums',`, ...tail]
+  }
+  if (kind === 'text') return [...head, `      ellipsis: true,`, ...tail]
+  return [`    { key: ${q(field)}, title: ${q(toLabel(field))}, dataIndex: ${q(field)} },`]
+}
+
 export function genFrontendPage(s: ScaffoldSpec): string {
-  const cols = s.fields.slice(0, 4).map(([f]) => `    { title: '${toLabel(f)}', dataIndex: '${f}' },`)
-  const forms = s.fields.map(([f, t]) => {
-    if (t === 'text') return `          <Form.TextArea field="${f}" label="${toLabel(f)}" />`
-    if (t === 'bool') return `          <Form.Switch field="${f}" label="${toLabel(f)}" />`
-    return `          <Form.Input field="${f}" label="${toLabel(f)}" />`
-  })
+  const fields = s.fields.map(([f, t]) => [f, frontendKind(t)] as const)
+  const columnFields = s.exportFields.map(([f, t]) => [f, frontendKind(t)] as const)
+  const kinds = new Set(fields.map(([, k]) => k))
+  const title = toLabel(s.name)
+  const k = s.kebab
+
+  // 只导入用到的组件（web 的 eslint 开了 no-unused-vars）
+  const formComponents = [...new Set(fields.map(([, kind]) => FRONTEND_FIELD_MAP[kind].component))].sort()
+  const formatImports = [...(kinds.has('date') ? ['formatDate'] : []), 'formatDateTime']
+  const needsStatusBadge = columnFields.some(([, kind]) => kind === 'bool')
+
   const exportFields = [
     "  { label: 'ID', value: 'id' },",
-    ...s.fields.slice(0, 4).map(([f]) => `  { label: '${toLabel(f)}', value: '${f}' },`),
+    ...s.exportFields.map(([f]) => `  { label: ${q(toLabel(f))}, value: ${q(f)} },`),
     "  { label: '创建时间', value: 'created_at' },",
   ]
-  const k = s.kebab
-  return `import { useState, useEffect, useRef } from 'react'
-import {
-  Button, Form, Input, Modal, Popconfirm, Space, Table, Toast, Typography,
-} from '@douyinfe/semi-ui'
-import { IconPlus, IconSearch } from '@douyinfe/semi-icons'
-import { useCrudList } from '@/shared/hooks/useCrudList'
-import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'
-import ImportCsvModal from '@/shared/components/import-export/ImportCsvModal'
-import { downloadBlobFile } from '@/shared/utils/file'
-import {
-  getItems, createItem, updateItem, deleteItem,
-  exportItems, downloadTemplate, importItems,
-} from '@/modules/${s.webModule}/api/${s.name}'
+  const emptyLines = fields.map(([f, kind]) => `  ${key(f)}: ${FRONTEND_FIELD_MAP[kind].empty},`)
+  const toFormLines = fields.map(([f, kind]) => `  ${key(f)}: ${formValueExpr(f, kind)},`)
+  const formLines = fields.map(([f, kind]) => {
+    const spec = FRONTEND_FIELD_MAP[kind]
+    return `        <${spec.component} control={form.control} name="${f}" label="${toLabel(f)}"${spec.props} />`
+  })
+  const columns = [
+    `    { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },`,
+    ...columnFields.flatMap(([f, kind]) => columnLines(f, kind)),
+    `    {`,
+    `      key: 'created_at',`,
+    `      title: '创建时间',`,
+    `      dataIndex: 'created_at',`,
+    `      width: 180,`,
+    `      className: 'text-muted-foreground tabular-nums',`,
+    `      render: (value) => formatDateTime(value),`,
+    `    },`,
+    `    {`,
+    `      key: 'actions',`,
+    `      title: '',`,
+    `      align: 'right',`,
+    `      width: 132,`,
+    `      render: (_, record) => (`,
+    `        <div className="flex justify-end gap-0.5">`,
+    `          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>`,
+    `            编辑`,
+    `          </Button>`,
+    `          <ConfirmAction title="确认删除该记录？" description="删除后不可恢复。" confirmText="删除" onConfirm={() => remove(record)}>`,
+    `            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">`,
+    `              删除`,
+    `            </Button>`,
+    `          </ConfirmAction>`,
+    `        </div>`,
+    `      ),`,
+    `    },`,
+  ]
 
-const { Title } = Typography
+  return `/**
+ * ${title} 列表页（由 scripts/scaffold.ts 生成，结构同 apps/web/src/modules/admin/pages/users/index.jsx）
+ *
+ * PageHeader → FilterBar → DataTable（分页 / 勾选 / 行操作）→ FormDialog（react-hook-form）
+ * → ImportDialog / ExportDialog。标题、描述与字段标签是英文占位，按业务改成中文，并在 rules 里补必填校验。
+ */
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
+import { Download, Plus, Upload, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ${formatImports.join(', ')} } from '@/lib/format'
+import { toast } from '@/lib/toast'
+import {
+  createItem,
+  deleteItem,
+  downloadTemplate,
+  exportItems,
+  getItems,
+  importItems,
+  updateItem,
+} from '@/modules/${s.webModule}/api/${s.name}'
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
+import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FormDialog } from '@/shared/components/FormDialog'
+import { ${formComponents.join(', ')} } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+${needsStatusBadge ? "import StatusBadge from '@/shared/components/StatusBadge'\n" : ''}import { useCrudList } from '@/shared/hooks/useCrudList'
+import { downloadBlobFile } from '@/shared/utils/file'
 
 const EXPORT_FIELDS = [
 ${exportFields.join('\n')}
 ]
+const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
+
+const EMPTY_VALUES = {
+${emptyLines.join('\n')}
+}
+
+/** 编辑：只取表单字段（id / created_at 不回传），时间转成选择器格式 */
+const toFormValues = (record) => ({
+${toFormLines.join('\n')}
+})
 
 export default function ${s.pascal}Page() {
   const list = useCrudList(
-    (params) => getItems(params).catch(() => {
-      Toast.error('加载失败')
-      return { items: [], total: 0 }
-    }),
+    (params) =>
+      getItems(params).catch((err) => {
+        toast.apiError(err, '加载失败')
+        return { items: [], total: 0 }
+      }),
     { defaultPerPage: 20 },
   )
-  const { data, total, loading, page, handlePageChange, handleSearch, handleReset, fetchData } = list
+  const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
   const [search, setSearch] = useState('')
-  const [modalVisible, setModalVisible] = useState(false)
-  const [editingItem, setEditingItem] = useState(null)
-  const [exportModalVisible, setExportModalVisible] = useState(false)
-  const [importModalVisible, setImportModalVisible] = useState(false)
-  const formApiRef = useRef()
+  const [selectedKeys, setSelectedKeys] = useState([])
+  const [editing, setEditing] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
-  useEffect(() => { fetchData() }, []) // eslint-disable-line
+  const form = useForm({ defaultValues: EMPTY_VALUES })
+
+  useEffect(() => {
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const openCreate = () => {
-    setEditingItem(null)
-    setModalVisible(true)
-    setTimeout(() => formApiRef.current?.reset(), 0)
+    setEditing(null)
+    form.reset(EMPTY_VALUES)
+    setFormOpen(true)
   }
 
-  const openEdit = (item) => {
-    setEditingItem(item)
-    setModalVisible(true)
-    setTimeout(() => formApiRef.current?.setValues(item), 0)
+  const openEdit = (record) => {
+    setEditing(record)
+    form.reset(toFormValues(record))
+    setFormOpen(true)
   }
 
-  const handleModalOk = async () => {
-    let values
-    try { values = await formApiRef.current.validate() } catch { return }
+  const submit = async (values) => {
     try {
-      editingItem ? await updateItem(editingItem.id, values) : await createItem(values)
-      Toast.success(editingItem ? '更新成功' : '创建成功')
-      setModalVisible(false)
+      if (editing) {
+        await updateItem(editing.id, values)
+        toast.success('更新成功')
+      } else {
+        await createItem(values)
+        toast.success('创建成功')
+      }
+      setFormOpen(false)
       fetchData()
-    } catch (err) { Toast.error(err?.error || '操作失败') }
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
   }
 
-  const handleDelete = async (id) => {
+  const remove = async (record) => {
     try {
-      await deleteItem(id)
-      Toast.success('删除成功')
+      await deleteItem(record.id)
+      toast.success('删除成功')
+      setSelectedKeys((keys) => keys.filter((k) => k !== record.id))
       fetchData()
-    } catch { Toast.error('删除失败') }
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
   }
 
-  const handleExport = ({ fields, fileType }) => {
-    exportItems({ fields, file_type: fileType })
-      .then((blob) => {
-        downloadBlobFile(blob, \`${k}s_export.\${fileType}\`)
-        Toast.success('导出成功')
-        setExportModalVisible(false)
-      })
-      .catch(() => Toast.error('导出失败'))
+  const runSearch = () => {
+    setSelectedKeys([])
+    list.handleSearch({ search: search.trim() })
+  }
+  const reset = () => {
+    setSearch('')
+    setSelectedKeys([])
+    list.handleReset()
+  }
+
+  const handleExport = async ({ fields, fileType }) => {
+    const type = normalizeFileType(fileType)
+    const payload = { fields, file_type: type }
+    if (selectedKeys.length) payload.ids = selectedKeys
+    try {
+      const blob = await exportItems(payload)
+      downloadBlobFile(blob, \`${k}s_export.\${type}\`)
+      toast.success('导出成功')
+      setExportOpen(false)
+    } catch (err) {
+      toast.apiError(err, '导出失败')
+    }
   }
 
   const columns = [
-    { title: 'ID', dataIndex: 'id', width: 80 },
-${cols.join('\n')}
-    {
-      title: '操作', width: 160,
-      render: (_, record) => (
-        <Space>
-          <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
-          <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button size="small" type="danger">删除</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+${columns.join('\n')}
   ]
 
   return (
     <div>
-      <Title heading={5} style={{marginBottom: 16}}>TODO: 替换标题</Title>
+      <PageHeader
+        title="${title}"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download />
+              导出
+            </Button>
+            <Button size="sm" variant="brand" onClick={openCreate}>
+              <Plus />
+              新增
+            </Button>
+          </>
+        }
+      />
 
-      <div style={{ padding: 16, marginBottom: 16, background: 'var(--semi-color-bg-1)', borderRadius: 8, border: '1px solid var(--semi-color-border)' }}>
-        <Space style={{flexWrap: 'wrap'}}>
-          <Input
-            prefix={<IconSearch />}
-            placeholder="搜索…"
-            value={search}
-            onChange={setSearch}
-            onEnterPress={() => handleSearch({ search: search.trim() })}
-            style={{width: 240}}
-          />
-          <Button icon={<IconSearch />} type="primary" onClick={() => handleSearch({ search: search.trim() })}>查询</Button>
-          <Button onClick={() => { setSearch(''); handleReset() }}>重置</Button>
-        </Space>
-      </div>
+      <FilterBar onSearch={runSearch} onReset={reset}>
+        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
+      </FilterBar>
 
-      <div style={{ padding: 16, background: 'var(--semi-color-bg-1)', borderRadius: 8, border: '1px solid var(--semi-color-border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Title heading={6}>列表</Title>
-          <Space>
-            <Button onClick={() => setImportModalVisible(true)}>导入</Button>
-            <Button onClick={() => setExportModalVisible(true)}>导出</Button>
-            <Button icon={<IconPlus />} type="primary" onClick={openCreate}>新增</Button>
-          </Space>
-        </div>
+      <AnimatePresence>
+        {selectedKeys.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
+              <span>
+                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+              </span>
+              <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
+                <X />
+                清空勾选
+              </Button>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-        <Table columns={columns} dataSource={data} loading={loading} rowKey="id"
-          pagination={{ total, currentPage: page, pageSize: 20, onPageChange: handlePageChange }}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={data}
+        loading={loading}
+        selectable
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        pagination={{ page, perPage, total, onChange: handlePageChange }}
+        emptyTitle="暂无数据"
+        emptyDescription={filters.search ? '换个关键词试试' : '点击右上角「新增」添加第一条数据'}
+      />
 
-      <Modal title={editingItem ? '编辑' : '新增'} visible={modalVisible}
-        onOk={handleModalOk} onCancel={() => setModalVisible(false)} width={480}>
-        <Form getFormApi={(api) => { formApiRef.current = api }} labelPosition="left" labelWidth={90}>
-${forms.join('\n')}
-        </Form>
-      </Modal>
+      <FormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? '编辑' : '新增'}
+        form={form}
+        onSubmit={submit}
+      >
+${formLines.join('\n')}
+      </FormDialog>
 
-      <ExportFieldsModal
-        visible={exportModalVisible}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
         title="导出设置"
+        ruleHint={selectedKeys.length ? \`已勾选 \${selectedKeys.length} 条，将只导出勾选数据。\` : '未勾选数据时导出全部数据。'}
         fieldOptions={EXPORT_FIELDS}
-        onCancel={() => setExportModalVisible(false)}
         onConfirm={handleExport}
       />
 
-      <ImportCsvModal
-        visible={importModalVisible}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
         title="导入数据"
-        targetLabel="TODO: 替换资源名"
-        onCancel={() => setImportModalVisible(false)}
+        targetLabel="${title}"
         onDownloadTemplate={(fileType) =>
-          downloadTemplate(fileType)
-            .then((blob) => { downloadBlobFile(blob, \`${k}s_import_template.\${fileType}\`); Toast.success('模板下载成功') })
-            .catch(() => Toast.error('模板下载失败'))
+          downloadTemplate(normalizeFileType(fileType))
+            .then((blob) => {
+              downloadBlobFile(blob, \`${k}s_import_template.\${normalizeFileType(fileType)}\`)
+              toast.success('模板已下载')
+            })
+            .catch((err) => toast.apiError(err, '模板下载失败'))
         }
-        onImport={importItems}
-        onImported={() => { setImportModalVisible(false); fetchData() }}
+        onImport={(file) => importItems(file)}
+        onImported={(res) => {
+          toast.success(\`导入成功：新增 \${res?.created || 0} 条\`)
+          fetchData()
+        }}
         errorExportFileName="${k}s_import_errors.csv"
       />
     </div>

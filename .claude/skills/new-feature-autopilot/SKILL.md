@@ -1,6 +1,6 @@
 ---
 name: new-feature-autopilot
-description: PM gives feature intent in natural language; execute end-to-end implementation for castor-kit (Fastify + Drizzle + React/Semi) without requiring structured requirement docs.
+description: PM gives feature intent in natural language; execute end-to-end implementation for castor-kit (Fastify + Drizzle + React/shadcn-ui) without requiring structured requirement docs.
 ---
 
 # New Feature Autopilot
@@ -26,7 +26,8 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 必须按顺序读取：
 1. AGENTS.md（项目约定、命名规则、字段类型推断规则、反模式）
 2. docs/templates/backend/（含 README.md 替换规则）和 docs/templates/frontend/（代码骨架模板）
-3. 现有相似模块（参考 apps/api/src/modules/admin/users/ 与 apps/web/src/modules/component_center/pages/admin/list_page/）
+3. 现有相似模块（后端参考 apps/api/src/modules/admin/users/，前端参考 apps/web/src/modules/admin/pages/users/index.jsx）
+   + 前端约定：AGENTS.md「前端架构约定」、docs/frontend-redesign-plan.md、.claude/skills/shadcn-ui-skills/
 4. apps/api/scripts/seed-rbac.ts（MENUS_DATA：查询当前菜单树，确定 parent_id 与下一个可用 ID）
 ```
 
@@ -81,7 +82,7 @@ pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<fiel
 scaffold 会：
 - 生成 `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts`（Drizzle 表定义 + toDict）
 - 生成 `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts`
-- 生成前端 `apps/web/src/modules/<module>/api/<name>.js` + 页面 `index.jsx`
+- 生成前端 `apps/web/src/modules/<module>/api/<name>.js` + 页面 `index.jsx`（shadcn/ui 体系，结构同 users 页：PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog）
 - 自动注册 `apps/api/src/db/schema/index.ts` 与 `apps/api/src/modules/<domain-dir>/router.ts`
 - 自动执行 `drizzle-kit generate --name <name>` 生成迁移 SQL
 
@@ -97,7 +98,14 @@ scaffold 会：
 - 时间输出用 `toIso()`，numeric 保持字符串，业务错误抛 `ServiceError`
 - 若在 scaffold 之后又改了表结构：`pnpm db:generate --name <描述>` 生成增量迁移（**不能写 `--`**，drizzle-kit 不认识）
 
-UI 组件查询：使用 `semi-mcp` 工具读取 Semi Design 文档，确保组件 API 正确。
+**4b'. 前端页面**
+
+scaffold 生成的页面已可用，按业务打磨：
+
+- 标题 / 描述 / 字段标签改成中文；`rules` 补必填与格式校验（文案与后端一致）；枚举字段改成 `FormSelect` + 表格列 `StatusBadge`
+- 只用 `@/components/ui/*`、`@/shared/components/*`、`lucide-react` 与 Tailwind 语义色类；禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色（verify 的 `frontend_no_legacy_ui` 会拦截）
+- 组件用法查 `.claude/skills/shadcn-ui-skills/SKILL.md`；shadcn 组件 API 查官方文档（有 shadcn MCP 时优先用）；缺原子组件时 `apps/web/scripts/shadcn-add.sh <组件>`
+- 自检：`cd apps/web && npx eslint <页面文件>` 零错误
 
 **4c. RBAC**
 

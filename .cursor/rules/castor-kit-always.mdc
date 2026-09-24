@@ -7,7 +7,7 @@ alwaysApply: true
 
 **完整上下文见 `AGENTS.md`，实现任何新功能前必须阅读。**
 
-castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`apps/api`（Fastify 5 + Zod + Drizzle）、`apps/web`（React 18 + Vite + Semi Design）、`apps/mcp`。所有命令在仓库根目录用 pnpm 执行。
+castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`apps/api`（Fastify 5 + Zod + Drizzle）、`apps/web`（React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion，UI 已从 Semi Design 迁移，见 `docs/frontend-redesign-plan.md`）、`apps/mcp`。所有命令在仓库根目录用 pnpm 执行。
 
 ## 关键约定速查
 
@@ -20,7 +20,9 @@ castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`app
 - 命名：后端目录/文件小写连字符（`component-center`、`scheduled-task`）
 
 ### 前端（apps/web）
-- UI 组件库：只用 Semi Design（`@douyinfe/semi-ui` + `@douyinfe/semi-icons`）
+- UI：shadcn/ui 原子组件（`@/components/ui/*`）+ 业务公共组件（`@/shared/components/*`）+ `lucide-react`；样式只用 Tailwind 语义色类（`bg-card` / `text-muted-foreground` / `bg-brand-soft` …）
+- 页面结构照 `apps/web/src/modules/admin/pages/users/index.jsx`：PageHeader → FilterBar → DataTable → FormDialog（react-hook-form + FormFields）→ ImportDialog / ExportDialog
+- 新增 shadcn 原子组件：`apps/web/scripts/shadcn-add.sh <组件>`
 - API 请求：只用 `@/shared/api/request`（Vite 已配置 `@` alias 指向 `src/`）
 - 动态路由：页面必须放在 `modules/<module>/pages/<subdir>/<page>/index.jsx`
 - 菜单 `component` 字段格式：`admin/users`、`component_center/admin/list_page`
@@ -31,7 +33,7 @@ castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`app
 
 ### 导入导出（标准列表页必备）
 - 后端用 `common/tabular.ts`：`buildTable` / `sendTable` / `readTableFile`（只支持 csv / xlsx）
-- 前端用 `@/shared/components/import-export/ExportFieldsModal` + `ImportCsvModal`
+- 前端用 `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
 - 文件下载用 `@/shared/utils/file` 中的 `downloadBlobFile`
 
 ### 迁移
@@ -39,7 +41,7 @@ castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`app
 
 ### 禁止行为
 - ❌ 询问 PM 路由路径、权限编码、字段类型等技术细节
-- ❌ 使用非 Semi Design 的 UI 组件
+- ❌ 导入 `@douyinfe/*`（Semi 已下线）或其他 UI 库；使用 `var(--semi-*)`、写死十六进制颜色
 - ❌ 前端用 `fetch`/`XMLHttpRequest`（必须用 request.js）
 - ❌ 手写迁移 SQL 或迁移不落库
 - ❌ 跳过 `pnpm verify` 门禁直接声明完成

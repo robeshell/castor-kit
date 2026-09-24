@@ -1,30 +1,31 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import { useCrudList } from '@/shared/hooks/useCrudList'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
 import {
-  Button,
-  Divider,
-  Empty,
-  Form,
-  Input,
-  Modal,
-  Popconfirm,
-  Select,
-  SideSheet,
-  Space,
-  Table,
-  TextArea,
-  Tag,
-  Toast,
-  Typography,
-} from '@douyinfe/semi-ui'
-import { IconPlus, IconRefresh, IconSearch } from '@douyinfe/semi-icons'
-import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'
-import ImportCsvModal from '@/shared/components/import-export/ImportCsvModal'
-import FileUploadField from '@/shared/components/upload/FileUploadField'
-import ImageUploadField from '@/shared/components/upload/ImageUploadField'
-import { downloadBlobFile } from '@/shared/utils/file'
+  Braces,
+  CheckCircle2,
+  Database,
+  Download,
+  FileText,
+  Filter,
+  ImageIcon,
+  Paperclip,
+  Pencil,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  Wand2,
+  X,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/lib/toast'
+import { formatDateTime } from '@/lib/format'
+import { EASE_OUT } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import {
   createListPage,
   deleteListPage,
@@ -36,15 +37,19 @@ import {
   uploadListPageFile,
   uploadListPageImage,
 } from '@/modules/component_center/api/list_page'
-
-
-const EDITOR_SECTION_STYLE = {
-  width: '100%',
-  border: '1px solid var(--semi-color-border)',
-  borderRadius: 8,
-  padding: 14,
-  background: 'var(--semi-color-bg-0)',
-}
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
+import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
+import { DescriptionList, DetailSheet, FormSheet } from '@/shared/components/FormDialog'
+import { FormCustom, FormGrid, FormInput, FormNumber, FormSelect, FormSwitch } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import StatusBadge from '@/shared/components/StatusBadge'
+import FileUpload from '@/shared/components/upload/FileUpload'
+import ImageUpload from '@/shared/components/upload/ImageUpload'
+import { useCrudList } from '@/shared/hooks/useCrudList'
+import { downloadBlobFile } from '@/shared/utils/file'
 
 const CATEGORY_OPTIONS = [
   { label: '通用', value: 'general' },
@@ -55,15 +60,8 @@ const CATEGORY_OPTIONS = [
 ]
 
 const ACTIVE_OPTIONS = [
-  { label: '全部启用状态', value: '' },
   { label: '启用', value: 'true' },
   { label: '停用', value: 'false' },
-]
-
-const STATUS_FILTER_OPTIONS = [
-  { label: '全部发布状态', value: '' },
-  { label: '草稿', value: 'draft' },
-  { label: '已发布', value: 'published' },
 ]
 
 const STATUS_OPTIONS = [
@@ -157,10 +155,29 @@ const DEFAULT_PERMISSION_CONFIG = {
   editable_roles: ['super_admin'],
 }
 
-const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
-const formatDateTime = (value) => (value ? value.slice(0, 19).replace('T', ' ') : '-')
+const DEFAULT_FORM_VALUES = {
+  name: '',
+  query_code: '',
+  category: 'general',
+  status: 'draft',
+  owner: '',
+  data_source: '',
+  keyword: '',
+  description: '',
+  priority: 0,
+  is_active: true,
+  image_url: '',
+  image_urls: [],
+  file_url: '',
+  file_urls: [],
+  schema_config: '{}',
+}
+
+const DESCRIPTION_MAX = 500
 const MAX_QUERY_IMAGE_COUNT = 9
 const MAX_QUERY_FILE_COUNT = 20
+
+const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
 const normalizeUrlList = (raw) => {
   if (Array.isArray(raw)) {
@@ -176,8 +193,8 @@ const normalizeUrlList = (raw) => {
       if (Array.isArray(parsed)) {
         return parsed.map((item) => String(item || '').trim()).filter(Boolean)
       }
-    } catch (error) {
-      // ignore parse error
+    } catch {
+      // 非 JSON 数组，按分隔符切分
     }
     return value
       .replaceAll('，', ',')
@@ -190,33 +207,33 @@ const normalizeUrlList = (raw) => {
   return []
 }
 
-const buildUploadFileList = (urls = [], seed = 'default', namePrefix = '资源') => {
-  return normalizeUrlList(urls).map((url, index) => ({
+const buildUploadFileList = (urls = [], seed = 'default', namePrefix = '资源') =>
+  normalizeUrlList(urls).map((url, index) => ({
     uid: `query-upload-${seed}-${index + 1}`,
     name: `${namePrefix}${index + 1}`,
     status: 'success',
     preview: true,
     url,
   }))
-}
 
-const extractUploadedUrls = (fileList = []) => {
-  return (fileList || [])
+const extractUploadedUrls = (fileList = []) =>
+  (fileList || [])
     .filter((item) => item?.status === 'success')
     .map((item) => item?.url || item?.response?.url || '')
     .map((item) => String(item || '').trim())
     .filter(Boolean)
-}
 
 const mapCategoryLabel = (value) => {
   const matched = CATEGORY_OPTIONS.find((item) => item.value === value)
   return matched?.label || value || '-'
 }
 
-const mapStatusLabel = (value) => {
-  if (value === 'published') return { label: '已发布', color: 'green' }
-  return { label: '草稿', color: 'grey' }
+const mapStatusMeta = (value) => {
+  if (value === 'published') return { label: '已发布', tone: 'success' }
+  return { label: '草稿', tone: 'neutral' }
 }
+
+const mapDataSourceLabel = (value) => DATA_SOURCE_OPTIONS.find((item) => item.value === value)?.label || value
 
 const normalizeConditionItems = (conditions) => {
   const items = Array.isArray(conditions?.items) ? conditions.items : []
@@ -229,30 +246,155 @@ const normalizeConditionItems = (conditions) => {
   }))
 }
 
-const buildConditionPayload = (items = []) => {
-  return {
-    groups: [],
-    items: items
-      .map((item) => ({
-        field: String(item?.field || '').trim(),
-        operator: String(item?.operator || '').trim(),
-        value: item?.value ?? '',
-        logic: String(item?.logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND',
-      }))
-      .filter((item) => item.field && item.operator),
+const buildConditionPayload = (items = []) => ({
+  groups: [],
+  items: items
+    .map((item) => ({
+      field: String(item?.field || '').trim(),
+      operator: String(item?.operator || '').trim(),
+      value: item?.value ?? '',
+      logic: String(item?.logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND',
+    }))
+    .filter((item) => item.field && item.operator),
+})
+
+/** 返回 JSON 解析错误信息；合法时返回 null（空文本按 '{}' 处理，与旧页面一致） */
+const jsonError = (text) => {
+  try {
+    JSON.parse(text || '{}')
+    return null
+  } catch (error) {
+    return error.message
   }
 }
 
+/* ─── 表单分区 ─────────────────────────────────────────────────────────── */
+
+function EditorSection({ icon: Icon, title, description, actions, children }) {
+  return (
+    <section className="bg-card rounded-xl border">
+      <header className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
+        <span className="bg-brand-soft text-primary flex size-7 shrink-0 items-center justify-center rounded-lg">
+          <Icon className="size-3.5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[13px] font-medium">{title}</h3>
+          {description ? <p className="text-muted-foreground text-xs">{description}</p> : null}
+        </div>
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      </header>
+      <div className="space-y-4 p-4">{children}</div>
+    </section>
+  )
+}
+
+function MiniSelect({ value, onChange, options, placeholder, className, ariaLabel }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger size="sm" aria-label={ariaLabel} className={cn('h-8 w-full text-[13px]', className)}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+/* ─── 条件构建器 ───────────────────────────────────────────────────────── */
+
+function ConditionEditor({ items, fieldOptions, onChange, onRemove }) {
+  if (!items.length) {
+    return (
+      <div className="text-muted-foreground flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-8 text-center text-xs">
+        <Filter className="size-4 opacity-70" />
+        暂无条件，点击“新增条件”开始配置
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-2">
+      <div className="text-muted-foreground hidden grid-cols-[88px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.3fr)_32px] gap-2 px-1 text-xs md:grid">
+        <span>逻辑</span>
+        <span>字段</span>
+        <span>操作符</span>
+        <span>值</span>
+        <span className="sr-only">操作</span>
+      </div>
+      <AnimatePresence initial={false}>
+        {items.map((item, index) => (
+          <motion.div
+            key={item.uid}
+            layout
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: EASE_OUT }}
+            className="overflow-hidden"
+          >
+            <div className="bg-muted/30 grid grid-cols-2 items-center gap-2 rounded-lg border p-2 md:grid-cols-[88px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.3fr)_32px] md:border-0 md:bg-transparent md:p-0">
+              <MiniSelect
+                ariaLabel={`第 ${index + 1} 条条件逻辑`}
+                value={item.logic}
+                options={CONDITION_LOGIC_OPTIONS}
+                onChange={(next) => onChange(item.uid, { logic: next })}
+                className="font-mono text-xs"
+              />
+              <MiniSelect
+                ariaLabel={`第 ${index + 1} 条条件字段`}
+                value={item.field}
+                options={fieldOptions}
+                placeholder="选择字段"
+                onChange={(next) => onChange(item.uid, { field: next })}
+              />
+              <MiniSelect
+                ariaLabel={`第 ${index + 1} 条条件操作符`}
+                value={item.operator}
+                options={CONDITION_OPERATOR_OPTIONS}
+                onChange={(next) => onChange(item.uid, { operator: next })}
+              />
+              <Input
+                aria-label={`第 ${index + 1} 条条件值`}
+                value={String(item.value ?? '')}
+                placeholder="输入条件值"
+                onChange={(e) => onChange(item.uid, { value: e.target.value })}
+                className="h-8 text-[13px]"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="删除条件"
+                onClick={() => onRemove(item.uid)}
+                className="text-muted-foreground hover:text-danger col-span-2 w-full md:col-span-1 md:w-8"
+              >
+                <Trash2 />
+                <span className="md:hidden">删除</span>
+              </Button>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ─── 页面 ─────────────────────────────────────────────────────────────── */
+
 export default function ListPage() {
-  const isMobile = useIsMobile()
   const list = useCrudList(
-    (params) => getListPageList(params).catch(() => {
-      Toast.error('加载列表页数据失败')
-      return { items: [], total: 0 }
-    }),
+    (params) =>
+      getListPageList(params).catch(() => {
+        toast.error('加载列表页数据失败')
+        return { items: [], total: 0 }
+      }),
     { defaultPerPage: 20 },
   )
-  const { data, total, loading, page, filters, fetchData, handlePageChange } = list
+  const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
 
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
@@ -260,32 +402,27 @@ export default function ListPage() {
   const [isActive, setIsActive] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  const [modalVisible, setModalVisible] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
   const [editRecord, setEditRecord] = useState(null)
 
   const [imageFileList, setImageFileList] = useState([])
   const [attachmentFileList, setAttachmentFileList] = useState([])
-
   const [conditionLogic, setConditionLogic] = useState('AND')
   const [conditionItems, setConditionItems] = useState([])
 
-  const [currentDataSource, setCurrentDataSource] = useState('')
-  const [schemaConfigText, setSchemaConfigText] = useState('{}')
-
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const [exportModalVisible, setExportModalVisible] = useState(false)
-  const [importModalVisible, setImportModalVisible] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
-  const [detailVisible, setDetailVisible] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [detailRecord, setDetailRecord] = useState(null)
 
-  const formApiRef = useRef()
-
-  const openDetail = (record) => {
-    setDetailRecord(record)
-    setDetailVisible(true)
-  }
+  const form = useForm({ defaultValues: DEFAULT_FORM_VALUES })
+  const [watchedStatus, currentDataSource, schemaText] = useWatch({
+    control: form.control,
+    name: ['status', 'data_source', 'schema_config'],
+  })
+  const schemaError = jsonError(schemaText)
 
   const fieldOptions = useMemo(() => {
     if (!currentDataSource) return ALL_FIELD_OPTIONS
@@ -294,6 +431,7 @@ export default function ListPage() {
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首屏加载一次
   }, [])
 
   const handleSearch = () => {
@@ -317,43 +455,40 @@ export default function ListPage() {
     list.handleReset()
   }
 
-  const resetEditorState = () => {
-    setImageFileList([])
-    setAttachmentFileList([])
-    setConditionLogic('AND')
-    setConditionItems([])
-    setCurrentDataSource('')
-    setSchemaConfigText('{}')
+  const openDetail = (record) => {
+    setDetailRecord(record)
+    setDetailOpen(true)
   }
 
   const openCreate = () => {
     setEditRecord(null)
-    resetEditorState()
-    setModalVisible(true)
+    form.reset(DEFAULT_FORM_VALUES)
+    setImageFileList([])
+    setAttachmentFileList([])
+    setConditionLogic('AND')
+    setConditionItems([])
+    setFormOpen(true)
   }
 
   const openEdit = (record) => {
     setEditRecord(record)
-    setCurrentDataSource(String(record?.data_source || '').trim())
+    form.reset({
+      ...DEFAULT_FORM_VALUES,
+      ...record,
+      data_source: String(record?.data_source || '').trim(),
+      schema_config: String(record?.schema_config || '{}'),
+    })
     setImageFileList(buildUploadFileList(record?.image_urls || record?.image_url, `img-${record?.id || 'edit'}`, '图片'))
     setAttachmentFileList(buildUploadFileList(record?.file_urls || record?.file_url, `file-${record?.id || 'edit'}`, '附件'))
-
     setConditionLogic(String(record?.condition_logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND')
     setConditionItems(normalizeConditionItems(record?.conditions))
-    setSchemaConfigText(String(record?.schema_config || '{}'))
-    setModalVisible(true)
+    setFormOpen(true)
   }
 
   const handleAddCondition = () => {
     setConditionItems((prev) => [
       ...prev,
-      {
-        uid: `condition-${Date.now()}-${prev.length + 1}`,
-        field: '',
-        operator: 'eq',
-        value: '',
-        logic: 'AND',
-      },
+      { uid: `condition-${Date.now()}-${prev.length + 1}`, field: '', operator: 'eq', value: '', logic: 'AND' },
     ])
   }
 
@@ -367,30 +502,28 @@ export default function ListPage() {
 
   const handleFormatSchemaJson = () => {
     try {
-      const parsed = JSON.parse(schemaConfigText || '{}')
-      setSchemaConfigText(JSON.stringify(parsed, null, 2))
-      Toast.success('JSON 已格式化')
-    } catch (error) {
-      Toast.error('JSON 格式错误，无法格式化')
+      const parsed = JSON.parse(form.getValues('schema_config') || '{}')
+      form.setValue('schema_config', JSON.stringify(parsed, null, 2), { shouldDirty: true, shouldValidate: true })
+      toast.success('JSON 已格式化')
+    } catch {
+      toast.error('JSON 格式错误，无法格式化')
     }
   }
 
   const handleValidateSchemaJson = () => {
-    try {
-      JSON.parse(schemaConfigText || '{}')
-      Toast.success('JSON 校验通过')
-    } catch (error) {
-      Toast.error(`JSON 校验失败：${error.message}`)
+    const message = jsonError(form.getValues('schema_config'))
+    if (message) {
+      toast.error(`JSON 校验失败：${message}`)
+      form.trigger('schema_config')
+    } else {
+      toast.success('JSON 校验通过')
+      form.clearErrors('schema_config')
     }
   }
 
   const collectPayload = (formValues = {}) => {
     const imageUrls = extractUploadedUrls(imageFileList)
     const fileUrls = extractUploadedUrls(attachmentFileList)
-    const normalizedDisplayConfig = {
-      ...DEFAULT_DISPLAY_CONFIG,
-      data_source: (formValues.data_source || currentDataSource || '').trim(),
-    }
     return {
       ...formValues,
       query_code: (formValues.query_code || '').trim(),
@@ -406,506 +539,568 @@ export default function ListPage() {
       file_urls: fileUrls,
       condition_logic: conditionLogic,
       conditions: buildConditionPayload(conditionItems),
-      display_config: normalizedDisplayConfig,
+      display_config: { ...DEFAULT_DISPLAY_CONFIG, data_source: (formValues.data_source || '').trim() },
       permission_config: DEFAULT_PERMISSION_CONFIG,
-      schema_config: schemaConfigText,
+      schema_config: formValues.schema_config,
     }
   }
 
-  const handleSubmit = () => {
-    formApiRef.current.validate().then((values) => {
-      const payload = collectPayload(values)
-      setSubmitting(true)
-      const req = editRecord?.id
-        ? updateListPage(editRecord.id, payload)
-        : createListPage(payload)
-      req.then(() => {
-        Toast.success(editRecord?.id ? '更新成功' : '创建成功')
-        setModalVisible(false)
-        fetchData()
-      })
-        .catch((err) => Toast.error(err?.error || '保存失败'))
-        .finally(() => setSubmitting(false))
-    })
+  const handleSubmit = async (values) => {
+    const payload = collectPayload(values)
+    try {
+      if (editRecord?.id) await updateListPage(editRecord.id, payload)
+      else await createListPage(payload)
+      toast.success(editRecord?.id ? '更新成功' : '创建成功')
+      setFormOpen(false)
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '保存失败')
+      throw err
+    }
   }
 
-  const handleDelete = (id) => {
-    deleteListPage(id)
-      .then(() => {
-        Toast.success('删除成功')
-        fetchData()
-      })
-      .catch((err) => Toast.error(err?.error || '删除失败'))
+  const handleDelete = async (record) => {
+    try {
+      await deleteListPage(record.id)
+      toast.success('删除成功')
+      setSelectedRowKeys((keys) => keys.filter((k) => k !== record.id))
+      if (detailRecord?.id === record.id) setDetailOpen(false)
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
   }
 
-  const handleExport = ({ fields, fileType }) => {
+  const handleExport = async ({ fields, fileType }) => {
     const finalFileType = normalizeFileType(fileType)
     const hasSelected = selectedRowKeys.length > 0
-    const payload = {
-      fields,
-      file_type: finalFileType,
-      export_mode: hasSelected ? 'selected' : 'filtered',
+    const payload = { fields, file_type: finalFileType, export_mode: hasSelected ? 'selected' : 'filtered' }
+    if (hasSelected) payload.ids = selectedRowKeys
+    else payload.filters = filters
+    try {
+      const blob = await exportListPage(payload)
+      downloadBlobFile(blob, `list_page_export.${finalFileType}`)
+      toast.success('导出成功')
+      setExportOpen(false)
+    } catch (err) {
+      toast.apiError(err, '导出失败')
     }
-    if (hasSelected) {
-      payload.ids = selectedRowKeys
-    } else {
-      payload.filters = filters
-    }
-    exportListPage(payload)
-      .then((blob) => {
-        downloadBlobFile(blob, `list_page_export.${finalFileType}`)
-        Toast.success('导出成功')
-        setExportModalVisible(false)
-      })
-      .catch((err) => Toast.error(err?.error || '导出失败'))
   }
 
-  const conditionColumns = [
-    {
-      title: '逻辑',
-      dataIndex: 'logic',
-      width: 100,
-      render: (value, record) => (
-        <Select
-          size="small"
-          value={value}
-          optionList={CONDITION_LOGIC_OPTIONS}
-          onChange={(next) => handleChangeCondition(record.uid, { logic: next })}
-        />
-      ),
-    },
-    {
-      title: '字段',
-      dataIndex: 'field',
-      width: 180,
-      render: (value, record) => (
-        <Select
-          size="small"
-          value={value}
-          optionList={fieldOptions}
-          placeholder="选择字段"
-          onChange={(next) => handleChangeCondition(record.uid, { field: next })}
-        />
-      ),
-    },
-    {
-      title: '操作符',
-      dataIndex: 'operator',
-      width: 140,
-      render: (value, record) => (
-        <Select
-          size="small"
-          value={value}
-          optionList={CONDITION_OPERATOR_OPTIONS}
-          onChange={(next) => handleChangeCondition(record.uid, { operator: next })}
-        />
-      ),
-    },
-    {
-      title: '值',
-      dataIndex: 'value',
-      render: (value, record) => (
-        <Input
-          size="small"
-          value={String(value ?? '')}
-          placeholder="输入条件值"
-          onChange={(next) => handleChangeCondition(record.uid, { value: next })}
-        />
-      ),
-    },
-    {
-      title: '操作',
-      width: 100,
-      render: (_, record) => (
-        <Button size="small" type="danger" theme="borderless" onClick={() => handleRemoveCondition(record.uid)}>
-          删除
-        </Button>
-      ),
-    },
-  ]
+  const hasFilters = Boolean(filters.search || filters.category || filters.owner || filters.is_active || filters.status)
 
   const columns = [
-    { title: 'ID', dataIndex: 'id', width: 70 },
-    { title: '名称', dataIndex: 'name', width: 180 },
+    { key: 'id', title: 'ID', dataIndex: 'id', width: 64, className: 'text-muted-foreground tabular-nums' },
     {
-      title: '编码',
-      dataIndex: 'query_code',
-      width: 180,
-      render: (value) => <Tag>{value}</Tag>,
+      key: 'name',
+      title: '名称',
+      dataIndex: 'name',
+      minWidth: 200,
+      render: (value, record) => (
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => openDetail(record)}
+            className="hover:text-primary block max-w-full truncate text-left font-medium transition-colors"
+          >
+            {value}
+          </button>
+          {record.owner || record.data_source ? (
+            <p className="text-muted-foreground truncate text-xs">
+              {[record.owner, record.data_source].filter(Boolean).join(' · ')}
+            </p>
+          ) : null}
+        </div>
+      ),
     },
     {
+      key: 'query_code',
+      title: '编码',
+      dataIndex: 'query_code',
+      width: 200,
+      render: (value) =>
+        value ? (
+          <code className="bg-muted text-foreground/80 inline-block max-w-full truncate rounded-md px-1.5 py-0.5 align-middle font-mono text-xs">
+            {value}
+          </code>
+        ) : null,
+    },
+    {
+      key: 'category',
       title: '分类',
       dataIndex: 'category',
-      width: 90,
+      width: 88,
       render: (value) => mapCategoryLabel(value),
     },
     {
+      key: 'status',
       title: '发布状态',
       dataIndex: 'status',
-      width: 110,
-      render: (value) => {
-        const statusMeta = mapStatusLabel(value)
-        return <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+      width: 136,
+      render: (value, record) => {
+        const meta = mapStatusMeta(value)
+        return (
+          <div className="flex items-center gap-2">
+            <StatusBadge tone={meta.tone} dot>
+              {meta.label}
+            </StatusBadge>
+            {record.is_active === false ? (
+              <StatusBadge tone="warning" variant="plain" dot className="whitespace-nowrap">
+                停用
+              </StatusBadge>
+            ) : null}
+          </div>
+        )
       },
     },
     {
+      key: 'version',
       title: '版本',
       dataIndex: 'version',
-      width: 80,
-      render: (value) => value || 1,
+      width: 72,
+      className: 'font-mono text-xs tabular-nums text-muted-foreground',
+      render: (value) => `v${value || 1}`,
     },
     {
+      key: 'updated_at',
       title: '更新时间',
       dataIndex: 'updated_at',
-      width: 170,
-      render: formatDateTime,
+      width: 164,
+      className: 'text-muted-foreground tabular-nums',
+      render: (value) => formatDateTime(value),
     },
     {
-      title: '操作',
-      width: 260,
+      key: 'actions',
+      title: '',
+      align: 'right',
+      width: 168,
       render: (_, record) => (
-        <Space>
-          <Button size="small" theme="borderless" onClick={() => openDetail(record)}>查看</Button>
-          <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
-          <Popconfirm title="确认删除该记录？" content="删除后不可恢复" onConfirm={() => handleDelete(record.id)}>
-            <Button size="small" type="danger">删除</Button>
-          </Popconfirm>
-        </Space>
+        <div className="flex justify-end gap-0.5">
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(record)}>
+            查看
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
+            编辑
+          </Button>
+          <ConfirmAction title="确认删除该记录？" description="删除后不可恢复" confirmText="删除" onConfirm={() => handleDelete(record)}>
+            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
+              删除
+            </Button>
+          </ConfirmAction>
+        </div>
       ),
     },
   ]
 
-  const initValues = editRecord || {
-    category: 'general',
-    status: 'draft',
-    priority: 0,
-    is_active: true,
-    image_url: '',
-    image_urls: [],
-    file_url: '',
-    file_urls: [],
-    data_source: '',
-  }
+  const detailStatus = detailRecord ? mapStatusMeta(detailRecord.status) : null
 
   return (
     <div>
-      <Typography.Title heading={5} style={{ marginBottom: 6 }}>
-        列表页
-      </Typography.Title>
-      <Typography.Paragraph type="tertiary" style={{ marginBottom: 16 }}>
-        标准后台能力展示：增删改查、导入导出、图片/附件上传。
-      </Typography.Paragraph>
-
-      <div style={CARD_STYLE}>
-        <Space style={{ flexWrap: 'wrap' }}>
-          <Input
-            prefix={<IconSearch />}
-            placeholder="名称/编码/关键字/数据源/负责人"
-            value={search}
-            onChange={(value) => setSearch(value)}
-            onEnterPress={handleSearch}
-            style={{ width: isMobile ? '100%' : 280 }}
-          />
-          <Select
-            style={{ width: 140 }}
-            value={category}
-            optionList={[{ label: '全部分类', value: '' }, ...CATEGORY_OPTIONS]}
-            onChange={(value) => setCategory(value)}
-          />
-          <Input
-            placeholder="负责人"
-            value={owner}
-            onChange={(value) => setOwner(value)}
-            onEnterPress={handleSearch}
-            style={{ width: 140 }}
-          />
-          <Select
-            style={{ width: 130 }}
-            value={isActive}
-            optionList={ACTIVE_OPTIONS}
-            onChange={(value) => setIsActive(value)}
-          />
-          <Select
-            style={{ width: 130 }}
-            value={statusFilter}
-            optionList={STATUS_FILTER_OPTIONS}
-            onChange={(value) => setStatusFilter(value)}
-          />
-          <Button icon={<IconSearch />} type="primary" onClick={handleSearch}>查询</Button>
-          <Button icon={<IconRefresh />} onClick={handleReset}>重置</Button>
-        </Space>
-      </div>
-
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-          <Typography.Text strong>列表页数据</Typography.Text>
-          <Space>
-            <Button onClick={() => setImportModalVisible(true)}>导入</Button>
-            <Button onClick={() => setExportModalVisible(true)}>导出</Button>
-            <Button icon={<IconPlus />} theme="solid" type="primary" onClick={openCreate}>
+      <PageHeader
+        title="列表页"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download />
+              导出
+            </Button>
+            <Button size="sm" variant="brand" onClick={openCreate}>
+              <Plus />
               新建记录
             </Button>
-          </Space>
-        </div>
+          </>
+        }
+      />
 
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          loading={loading}
-          scroll={{}}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          }}
-          pagination={{
-            total,
-            currentPage: page,
-            pageSize: 20,
-            onPageChange: (nextPage) => handlePageChange(nextPage),
-          }}
+      <FilterBar onSearch={handleSearch} onReset={handleReset}>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          onSubmit={handleSearch}
+          placeholder="名称/编码/关键字/数据源/负责人"
+          className="sm:w-72"
         />
-      </div>
+        <Input
+          value={owner}
+          onChange={(e) => setOwner(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSearch()
+          }}
+          placeholder="负责人"
+          aria-label="负责人"
+          className="h-8 w-full text-[13px] sm:w-32"
+        />
+        <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" className="w-[calc(50%-4px)] sm:w-32" />
+        <FilterSelect value={isActive} onChange={setIsActive} options={ACTIVE_OPTIONS} placeholder="启用状态" allLabel="全部启用状态" className="w-[calc(50%-4px)] sm:w-36" />
+        <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} placeholder="发布状态" allLabel="全部发布状态" className="w-[calc(50%-4px)] sm:w-36" />
+      </FilterBar>
 
-      <Modal
+      <AnimatePresence>
+        {selectedRowKeys.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            transition={{ duration: 0.2, ease: EASE_OUT }}
+            className="overflow-hidden"
+          >
+            <div className="bg-brand-soft mb-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
+              <span>
+                已勾选 <span className="font-medium tabular-nums">{selectedRowKeys.length}</span> 条，将优先导出勾选数据
+              </span>
+              <div className="ml-auto flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-7" onClick={() => setExportOpen(true)}>
+                  <Download />
+                  导出勾选
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7" onClick={() => setSelectedRowKeys([])}>
+                  <X />
+                  清空勾选
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <DataTable
+        columns={columns}
+        data={data}
+        loading={loading}
+        minWidth={980}
+        selectable
+        selectedKeys={selectedRowKeys}
+        onSelectionChange={setSelectedRowKeys}
+        pagination={{ page, perPage, total, onChange: handlePageChange }}
+        emptyTitle="暂无列表页数据"
+        emptyDescription={hasFilters ? '没有符合条件的记录，换个筛选条件试试' : '点击右上角「新建记录」创建第一条数据'}
+      />
+
+      {/* ── 新建 / 编辑 ── */}
+      <FormSheet
+        open={formOpen}
+        onOpenChange={setFormOpen}
         title={editRecord?.id ? '编辑记录' : '新建记录'}
-        visible={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSubmit}
-        okText={formApiRef.current?.getValue?.('status') === 'published' ? '保存并发布' : '保存草稿'}
-        okButtonProps={{ loading: submitting }}
-        width={isMobile ? '95vw' : 980}
-        afterClose={() => {
-          formApiRef.current?.reset()
-          resetEditorState()
-        }}
+        description={editRecord?.id ? `正在编辑 ${editRecord.name || editRecord.query_code}（v${editRecord.version || 1}）` : undefined}
+        form={form}
+        onSubmit={handleSubmit}
+        submitText={watchedStatus === 'published' ? '保存并发布' : '保存草稿'}
+        width={760}
       >
-        <Form
-          getFormApi={(api) => { formApiRef.current = api }}
-          initValues={initValues}
-          labelPosition="top"
-          style={{ maxHeight: '72vh', overflow: 'auto', paddingRight: 4 }}
+        <EditorSection icon={Database} title="基础信息">
+          <FormGrid>
+            <FormInput control={form.control} name="name" label="名称" rules={{ required: '请输入名称' }} />
+            <FormInput
+              control={form.control}
+              name="query_code"
+              label="编码"
+              placeholder="例如：order_main_query"
+              rules={{ required: '请输入编码' }}
+              disabled={Boolean(editRecord?.id)}
+              inputClassName="font-mono text-[13px]"
+              description={editRecord?.id ? '编码创建后不可修改' : undefined}
+            />
+            <FormSelect control={form.control} name="category" label="分类" options={CATEGORY_OPTIONS} />
+            <FormSelect control={form.control} name="status" label="发布状态" options={STATUS_OPTIONS} />
+            <FormInput control={form.control} name="owner" label="负责人" placeholder="例如：admin" />
+            <FormSelect control={form.control} name="data_source" label="数据源" options={DATA_SOURCE_OPTIONS} placeholder="选择数据源" />
+          </FormGrid>
+          <FormInput control={form.control} name="keyword" label="关键字" placeholder="多个关键字用逗号分隔" />
+          <FormCustom
+            control={form.control}
+            name="description"
+            label="描述"
+            rules={{ maxLength: { value: DESCRIPTION_MAX, message: `描述不能超过 ${DESCRIPTION_MAX} 字` } }}
+            render={({ field }) => (
+              <div className="relative">
+                <Textarea
+                  {...field}
+                  value={field.value ?? ''}
+                  rows={3}
+                  maxLength={DESCRIPTION_MAX}
+                  className="field-sizing-fixed min-h-20 resize-y pb-6"
+                />
+                <span className="text-muted-foreground pointer-events-none absolute right-2.5 bottom-1.5 text-[11px] tabular-nums">
+                  {(field.value || '').length}/{DESCRIPTION_MAX}
+                </span>
+              </div>
+            )}
+          />
+          <FormGrid>
+            <FormSwitch control={form.control} name="is_active" label="启用" className="h-9 self-end py-0" />
+            <FormNumber control={form.control} name="priority" label="优先级" min={0} max={9999} />
+          </FormGrid>
+        </EditorSection>
+
+        <EditorSection
+          icon={SlidersHorizontal}
+          title="条件构建器"
+          description={currentDataSource ? `字段来自 ${mapDataSourceLabel(currentDataSource)}` : '未选数据源时可选全部字段'}
+          actions={
+            <>
+              <span className="text-muted-foreground text-xs">全局逻辑</span>
+              <MiniSelect
+                ariaLabel="全局逻辑"
+                value={conditionLogic}
+                options={CONDITION_LOGIC_OPTIONS}
+                onChange={setConditionLogic}
+                className="w-20 font-mono text-xs"
+              />
+              <Button type="button" variant="outline" size="sm" onClick={handleAddCondition}>
+                <Plus />
+                新增条件
+              </Button>
+            </>
+          }
         >
-          <Space vertical align="start" style={{ width: '100%' }} spacing={14}>
-            <div style={EDITOR_SECTION_STYLE}>
-              <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>基础信息</Typography.Text>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, width: '100%' }}>
-                <Form.Input
-                  field="name"
-                  label="名称"
-                  rules={[{ required: true, message: '请输入名称' }]}
-                />
-                <Form.Input
-                  field="query_code"
-                  label="编码"
-                  placeholder="例如：order_main_query"
-                  rules={[{ required: true, message: '请输入编码' }]}
-                  disabled={Boolean(editRecord?.id)}
-                />
-                <Form.Select field="category" label="分类" optionList={CATEGORY_OPTIONS} style={{ width: '100%' }} />
-                <Form.Select field="status" label="发布状态" optionList={STATUS_OPTIONS} style={{ width: '100%' }} />
-                <Form.Input field="owner" label="负责人" placeholder="例如：admin" />
-                <Form.Select
-                  field="data_source"
-                  label="数据源"
-                  optionList={DATA_SOURCE_OPTIONS}
-                  style={{ width: '100%' }}
-                  placeholder="选择数据源"
-                  onChange={(value) => {
-                    setCurrentDataSource(String(value || ''))
-                  }}
+          <ConditionEditor
+            items={conditionItems}
+            fieldOptions={fieldOptions}
+            onChange={handleChangeCondition}
+            onRemove={handleRemoveCondition}
+          />
+        </EditorSection>
+
+        <EditorSection
+          icon={Braces}
+          title="高级配置"
+          actions={
+            <>
+              <Button type="button" variant="ghost" size="sm" onClick={handleFormatSchemaJson}>
+                <Wand2 />
+                格式化 JSON
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={handleValidateSchemaJson}>
+                <CheckCircle2 />
+                校验 JSON
+              </Button>
+            </>
+          }
+        >
+          <FormCustom
+            control={form.control}
+            name="schema_config"
+            label="Schema 配置"
+            rules={{ validate: (value) => (jsonError(value) ? `JSON 格式错误：${jsonError(value)}` : true) }}
+            render={({ field, fieldState }) => (
+              <div className="bg-muted/30 focus-within:border-ring focus-within:ring-ring/50 overflow-hidden rounded-lg border transition-[box-shadow,border-color] focus-within:ring-[3px] aria-invalid:border-destructive" aria-invalid={Boolean(fieldState.error)}>
+                <div className="text-muted-foreground flex items-center justify-between border-b px-3 py-1.5 text-[11px]">
+                  <span className="font-mono">schema.json</span>
+                  <StatusBadge tone={schemaError ? 'danger' : 'success'} variant="plain" dot>
+                    {schemaError ? 'JSON 无效' : 'JSON 有效'}
+                  </StatusBadge>
+                </div>
+                <Textarea
+                  {...field}
+                  value={field.value ?? ''}
+                  spellCheck={false}
+                  placeholder="输入 JSON Schema 配置"
+                  className="field-sizing-fixed h-52 resize-y rounded-none border-0 bg-transparent font-mono text-xs leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent"
                 />
               </div>
-              <Form.Input field="keyword" label="关键字" placeholder="多个关键字用逗号分隔" />
-              <Form.TextArea field="description" label="描述" rows={3} maxCount={500} />
-              <Space>
-                <Form.Switch field="is_active" label="启用" />
-                <Form.InputNumber field="priority" label="优先级" min={0} max={9999} />
-              </Space>
+            )}
+          />
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-[13px] font-medium">
+              <ImageIcon className="text-muted-foreground size-3.5" />
+              图片
             </div>
+            <ImageUpload
+              fileList={imageFileList}
+              onFileListChange={setImageFileList}
+              uploadApi={uploadListPageImage}
+              limit={MAX_QUERY_IMAGE_COUNT}
+              accept=".jpg,.jpeg,.png,.gif,.webp"
+              maxSizeMB={5}
+              promptText={`照片墙上传，最多 ${MAX_QUERY_IMAGE_COUNT} 张，支持 JPG/PNG/GIF/WEBP，最大 5MB`}
+              imageSize={96}
+            />
+          </div>
 
-            <div style={EDITOR_SECTION_STYLE}>
-              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                <Typography.Text strong>条件构建器</Typography.Text>
-                <Space>
-                  <Typography.Text>全局逻辑</Typography.Text>
-                  <Select value={conditionLogic} optionList={CONDITION_LOGIC_OPTIONS} onChange={setConditionLogic} style={{ width: 120 }} />
-                  <Button icon={<IconPlus />} onClick={handleAddCondition}>新增条件</Button>
-                </Space>
-              </Space>
-              <Table
-                rowKey="uid"
-                columns={conditionColumns}
-                dataSource={conditionItems}
-                pagination={false}
-                empty={<Empty description="暂无条件，点击“新增条件”开始配置" />}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-[13px] font-medium">
+              <Paperclip className="text-muted-foreground size-3.5" />
+              附件
             </div>
+            <FileUpload
+              fileList={attachmentFileList}
+              onFileListChange={setAttachmentFileList}
+              uploadApi={uploadListPageFile}
+              limit={MAX_QUERY_FILE_COUNT}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.zip,.rar,.7z,.json,.ppt,.pptx"
+              maxSizeMB={20}
+              promptText={`最多 ${MAX_QUERY_FILE_COUNT} 个附件，支持文档/表格/压缩包，最大 20MB`}
+              triggerText="上传附件"
+            />
+          </div>
+        </EditorSection>
+      </FormSheet>
 
-            <div style={EDITOR_SECTION_STYLE}>
-              <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>高级配置</Typography.Text>
-              <Space vertical align="start" style={{ width: '100%' }} spacing={12}>
-                <Space>
-                  <Button size="small" onClick={handleFormatSchemaJson}>格式化 JSON</Button>
-                  <Button size="small" onClick={handleValidateSchemaJson}>校验 JSON</Button>
-                </Space>
-                <TextArea
-                  value={schemaConfigText}
-                  rows={8}
-                  placeholder="输入 JSON Schema 配置"
-                  onChange={setSchemaConfigText}
-                />
-                <Form.Slot label="图片">
-                  <ImageUploadField
-                    fileList={imageFileList}
-                    onFileListChange={setImageFileList}
-                    uploadApi={uploadListPageImage}
-                    limit={MAX_QUERY_IMAGE_COUNT}
-                    accept=".jpg,.jpeg,.png,.gif,.webp"
-                    maxSizeMB={5}
-                    promptText={`照片墙上传，最多 ${MAX_QUERY_IMAGE_COUNT} 张，支持 JPG/PNG/GIF/WEBP，最大 5MB`}
-                    imageSize={108}
-                  />
-                </Form.Slot>
-                <Form.Slot label="附件">
-                  <FileUploadField
-                    fileList={attachmentFileList}
-                    onFileListChange={setAttachmentFileList}
-                    uploadApi={uploadListPageFile}
-                    limit={MAX_QUERY_FILE_COUNT}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.zip,.rar,.7z,.json,.ppt,.pptx"
-                    maxSizeMB={20}
-                    promptText={`最多 ${MAX_QUERY_FILE_COUNT} 个附件，支持文档/表格/压缩包，最大 20MB`}
-                    triggerText="上传附件"
-                  />
-                </Form.Slot>
-              </Space>
-            </div>
-
-          </Space>
-        </Form>
-      </Modal>
-
-      <ExportFieldsModal
-        visible={exportModalVisible}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
         title="列表页导出字段"
-        ruleHint={
-          selectedRowKeys.length > 0
-            ? `已勾选 ${selectedRowKeys.length} 条，将优先导出勾选数据`
-            : '未勾选数据时，将按当前筛选条件导出'
-        }
+        ruleHint={selectedRowKeys.length > 0 ? `已勾选 ${selectedRowKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将按当前筛选条件导出'}
         fieldOptions={QUERY_EXPORT_FIELDS}
         defaultFields={['name', 'query_code', 'category', 'owner', 'status', 'version', 'updated_at']}
-        onCancel={() => setExportModalVisible(false)}
         onConfirm={handleExport}
       />
 
-      <ImportCsvModal
-        visible={importModalVisible}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
         title="导入列表页数据"
         targetLabel="列表页"
-        onCancel={() => setImportModalVisible(false)}
         onDownloadTemplate={(fileType) =>
           downloadListPageTemplate(normalizeFileType(fileType))
             .then((blob) => {
-              const ext = normalizeFileType(fileType)
-              downloadBlobFile(blob, `list_page_import_template.${ext}`)
-              Toast.success('模板下载成功')
+              downloadBlobFile(blob, `list_page_import_template.${normalizeFileType(fileType)}`)
+              toast.success('模板下载成功')
             })
-            .catch((err) => Toast.error(err?.error || '模板下载失败'))
+            .catch((err) => toast.apiError(err, '模板下载失败'))
         }
         onImport={(file) => importListPage(file)}
         onImported={(res) => {
-          Toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
           fetchData()
         }}
         errorExportFileName="list_page_import_error_rows.csv"
       />
 
-      {/* ── 详情抽屉 ── */}
-      <SideSheet
+      {/* ── 详情 ── */}
+      <DetailSheet
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
         title="记录详情"
-        visible={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        width={isMobile ? '100vw' : 540}
+        description={detailRecord ? `v${detailRecord.version || 1} · 更新于 ${formatDateTime(detailRecord.updated_at)}` : undefined}
+        width={540}
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setDetailVisible(false)}>关闭</Button>
+          <>
+            <Button variant="outline" onClick={() => setDetailOpen(false)}>
+              关闭
+            </Button>
             <Button
-              theme="solid"
-              type="primary"
               onClick={() => {
-                setDetailVisible(false)
+                setDetailOpen(false)
                 openEdit(detailRecord)
               }}
             >
+              <Pencil />
               编辑
             </Button>
-          </div>
+          </>
         }
       >
-        {detailRecord && (
-          <div>
-            {[
-              ['ID', detailRecord.id],
-              ['名称', detailRecord.name],
-              ['编码', <Tag key="code">{detailRecord.query_code}</Tag>],
-              ['分类', mapCategoryLabel(detailRecord.category)],
-              ['发布状态', (() => { const m = mapStatusLabel(detailRecord.status); return <Tag key="s" color={m.color}>{m.label}</Tag> })()],
-              ['版本', detailRecord.version || 1],
-              ['负责人', detailRecord.owner || '-'],
-              ['数据源', detailRecord.data_source || '-'],
-              ['关键字', detailRecord.keyword || '-'],
-              ['启用', <Tag key="active" color={detailRecord.is_active ? 'green' : 'grey'}>{detailRecord.is_active ? '启用' : '停用'}</Tag>],
-              ['优先级', detailRecord.priority ?? 0],
-              ['发布时间', detailRecord.published_at ? formatDateTime(detailRecord.published_at) : '-'],
-              ['创建时间', formatDateTime(detailRecord.created_at)],
-              ['更新时间', formatDateTime(detailRecord.updated_at)],
-            ].map(([label, val]) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid var(--semi-color-border)' }}>
-                <Typography.Text type="tertiary" style={{ width: 88, flexShrink: 0, paddingTop: 2 }}>{label}</Typography.Text>
-                <Typography.Text style={{ flex: 1 }}>{val}</Typography.Text>
+        {detailRecord ? (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <StatusBadge tone={detailStatus.tone} dot>
+                  {detailStatus.label}
+                </StatusBadge>
+                <StatusBadge tone={detailRecord.is_active ? 'success' : 'neutral'}>{detailRecord.is_active ? '启用' : '停用'}</StatusBadge>
+                <StatusBadge tone="brand">{mapCategoryLabel(detailRecord.category)}</StatusBadge>
               </div>
-            ))}
-            {detailRecord.description && (
-              <>
-                <Divider margin="16px 0 12px" />
-                <Typography.Text strong style={{ display: 'block', marginBottom: 6 }}>描述</Typography.Text>
-                <Typography.Paragraph>{detailRecord.description}</Typography.Paragraph>
-              </>
-            )}
-            {detailRecord.image_urls?.length > 0 && (
-              <>
-                <Divider margin="16px 0 12px" />
-                <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>图片</Typography.Text>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <h2 className="text-lg leading-snug font-semibold tracking-tight break-words">{detailRecord.name}</h2>
+              {detailRecord.query_code ? (
+                <code className="bg-muted text-foreground/80 inline-block rounded-md px-1.5 py-0.5 font-mono text-xs break-all">
+                  {detailRecord.query_code}
+                </code>
+              ) : null}
+            </div>
+
+            <DescriptionList
+              items={[
+                { label: 'ID', value: <span className="tabular-nums">{detailRecord.id}</span> },
+                { label: '名称', value: detailRecord.name },
+                { label: '编码', value: <span className="font-mono text-xs">{detailRecord.query_code}</span> },
+                { label: '分类', value: mapCategoryLabel(detailRecord.category) },
+                {
+                  label: '发布状态',
+                  value: (
+                    <StatusBadge tone={detailStatus.tone} dot>
+                      {detailStatus.label}
+                    </StatusBadge>
+                  ),
+                },
+                { label: '版本', value: <span className="font-mono text-xs tabular-nums">v{detailRecord.version || 1}</span> },
+                { label: '负责人', value: detailRecord.owner || '-' },
+                { label: '数据源', value: detailRecord.data_source || '-' },
+                { label: '关键字', value: detailRecord.keyword || '-' },
+                {
+                  label: '启用',
+                  value: (
+                    <StatusBadge tone={detailRecord.is_active ? 'success' : 'neutral'} dot>
+                      {detailRecord.is_active ? '启用' : '停用'}
+                    </StatusBadge>
+                  ),
+                },
+                { label: '优先级', value: <span className="tabular-nums">{detailRecord.priority ?? 0}</span> },
+                { label: '发布时间', value: <span className="tabular-nums">{detailRecord.published_at ? formatDateTime(detailRecord.published_at) : '-'}</span> },
+                { label: '创建时间', value: <span className="tabular-nums">{formatDateTime(detailRecord.created_at)}</span> },
+                { label: '更新时间', value: <span className="tabular-nums">{formatDateTime(detailRecord.updated_at)}</span> },
+              ]}
+            />
+
+            {detailRecord.description ? (
+              <section className="space-y-2 border-t pt-5">
+                <h3 className="text-[13px] font-medium">描述</h3>
+                <p className="text-muted-foreground text-[13px] leading-relaxed break-words whitespace-pre-wrap">{detailRecord.description}</p>
+              </section>
+            ) : null}
+
+            {detailRecord.image_urls?.length > 0 ? (
+              <section className="space-y-2 border-t pt-5">
+                <h3 className="text-[13px] font-medium">
+                  图片 <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.image_urls.length}</span>
+                </h3>
+                <div className="flex flex-wrap gap-2">
                   {detailRecord.image_urls.map((url, i) => (
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`图片${i + 1}`}
-                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--semi-color-border)' }}
-                    />
+                    <a
+                      key={`${i}-${url}`}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group bg-muted ring-border block size-20 overflow-hidden rounded-lg ring-1"
+                    >
+                      <img src={url} alt={`图片${i + 1}`} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    </a>
                   ))}
                 </div>
-              </>
-            )}
-            {detailRecord.file_urls?.length > 0 && (
-              <>
-                <Divider margin="16px 0 12px" />
-                <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>附件</Typography.Text>
-                <Space vertical align="start">
+              </section>
+            ) : null}
+
+            {detailRecord.file_urls?.length > 0 ? (
+              <section className="space-y-2 border-t pt-5">
+                <h3 className="text-[13px] font-medium">
+                  附件 <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.file_urls.length}</span>
+                </h3>
+                <ul className="divide-y rounded-lg border">
                   {detailRecord.file_urls.map((url, i) => (
-                    <Typography.Text key={i} link={{ href: url, target: '_blank' }}>
-                      附件 {i + 1}
-                    </Typography.Text>
+                    <li key={`${i}-${url}`}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:bg-muted/50 hover:text-primary flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors"
+                      >
+                        <FileText className="text-muted-foreground size-4 shrink-0" />
+                        附件 {i + 1}
+                      </a>
+                    </li>
                   ))}
-                </Space>
-              </>
-            )}
+                </ul>
+              </section>
+            ) : null}
           </div>
-        )}
-      </SideSheet>
+        ) : null}
+      </DetailSheet>
     </div>
   )
 }

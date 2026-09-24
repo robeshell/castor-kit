@@ -1,7 +1,8 @@
 /**
  * scripts/scaffold.ts
  *
- * - 纯函数：命名 / 字段解析 / 推断规则 / 自动注册（与 Python scaffold.py 对齐）
+ * - 纯函数：命名 / 字段解析 / 推断规则 / 自动注册（与 Python scaffold.py 对齐）；
+ *   前端页面为 shadcn/ui 新体系，用 apps/web 的 eslint（stdin，不落盘）与 @/ 路径存在性把关
  * - 集成：在临时目录里复制一份 apps/api（src + drizzle，node_modules 用符号链接），用 --root 指向它执行 scaffold，
  *   断言生成文件、注册、迁移 SQL、生成代码通过 tsc、重复执行不覆盖、dry-run 不落盘。绝不写主仓库。
  */
@@ -15,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildSpec,
   fieldSpec,
+  genFrontendPage,
   genModuleSchema,
   parseFields,
   registerRoute,
@@ -28,6 +30,9 @@ const API_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const TSX = join(API_DIR, 'node_modules', '.bin', 'tsx')
 const TSC = join(API_DIR, 'node_modules', '.bin', 'tsc')
 const SCRIPT = join(API_DIR, 'scripts', 'scaffold.ts')
+const WEB_DIR = resolve(API_DIR, '..', 'web')
+const WEB_SRC = join(WEB_DIR, 'src')
+const ESLINT = join(WEB_DIR, 'node_modules', '.bin', 'eslint')
 
 function scaffoldCli(args: string[]) {
   const res = spawnSync(TSX, [SCRIPT, ...args], { cwd: API_DIR, encoding: 'utf8', timeout: 120_000 })
@@ -86,6 +91,34 @@ describe('scaffold 纯函数', () => {
     })
     expect(cc.importFields).toEqual([['qty', 'str']])
   })
+
+  it('前端页面：只导入用到的组件，@/ 导入在 apps/web/src 都存在，apps/web 的 eslint 零错误零告警', () => {
+    const cases = [
+      ['ck_min', 'admin', 'name:str'],
+      ['ck_mix', 'component_center', 'active:bool,d:date,qty:int,title:str50,x:unknown'],
+      ['ck_all', 'admin', 'n:str,t:text,i:int,f:float,b:bool,d:date,dt:datetime'],
+    ] as const
+    for (const [name, domain, fields] of cases) {
+      const page = genFrontendPage(buildSpec(name, domain, parseFields(fields)))
+      expect(page).not.toContain('@douyinfe')
+      for (const [, spec] of page.matchAll(/from '@\/([^']+)'/g)) {
+        if (spec!.startsWith(`modules/${domain}/api/`)) continue // api 文件由 scaffold 同时生成
+        const hit = ['', '.js', '.jsx', '/index.js', '/index.jsx'].some((ext) => existsSync(join(WEB_SRC, `${spec}${ext}`)))
+        expect(hit, `${name}: @/${spec}`).toBe(true)
+      }
+      const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', `src/modules/${domain}/pages/${name}/index.jsx`], {
+        cwd: WEB_DIR,
+        input: page,
+        encoding: 'utf8',
+        timeout: 60_000,
+      })
+      expect(lint.status, `${name}\n${lint.stdout}${lint.stderr}`).toBe(0)
+    }
+    const minimal = genFrontendPage(buildSpec('ck_min', 'admin', parseFields('name:str')))
+    expect(minimal).toContain("import { FormInput } from '@/shared/components/FormFields'")
+    expect(minimal).toContain("import { formatDateTime } from '@/lib/format'")
+    expect(minimal).not.toContain('StatusBadge')
+  }, 120_000)
 
   it('schema.ts 只生成用到的归一化函数', () => {
     const onlyStr = genModuleSchema(buildSpec('a', 'admin', parseFields('name:str')))
@@ -221,14 +254,37 @@ describe('scaffold CLI（临时目录副本）', () => {
     }
     expect(routes.indexOf('service.getOr404(itemId(request.params))')).toBeLessThan(routes.indexOf("'system_ck_scaffold_demo_edit'"))
 
-    // 前端（与 Python 生成逻辑一致）
+    // 前端：api 文件格式与 Python 一致；页面是 shadcn/ui 新体系（结构同 users 页）
     const api = readFileSync(join(root, 'apps/web/src/modules/admin/api/ck_scaffold_demo.js'), 'utf8')
     expect(api).toContain("const BASE = '/admin/ck-scaffold-demos'")
     const page = readFileSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx'), 'utf8')
     expect(page).toContain('export default function CkScaffoldDemoPage()')
-    expect(page).toContain('<Form.Switch field="active" label="Active" />')
-    expect(page).toContain('<Form.TextArea field="memo" label="Memo" />')
     expect(page).toContain("from '@/modules/admin/api/ck_scaffold_demo'")
+    expect(page).not.toMatch(/@douyinfe|var\(--semi-|import-export\//)
+    for (const tag of ['PageHeader', 'FilterBar', 'SearchInput', 'DataTable', 'FormDialog', 'ImportDialog', 'ExportDialog', 'ConfirmAction']) {
+      expect(page).toContain(`<${tag}`)
+    }
+    expect(page).toContain('useCrudList(')
+    // 字段类型 → 表单组件
+    for (const line of [
+      '<FormInput control={form.control} name="name" label="Name" />',
+      '<FormInput control={form.control} name="phone" label="Phone" />',
+      '<FormNumber control={form.control} name="amount" label="Amount" step={0.01} />',
+      '<FormSwitch control={form.control} name="active" label="Active" />',
+      '<FormDate control={form.control} name="birthday" label="Birthday" />',
+      '<FormDateTime control={form.control} name="visited_at" label="Visited At" />',
+      '<FormTextarea control={form.control} name="memo" label="Memo" />',
+      '<FormNumber control={form.control} name="level" label="Level" step={1} />',
+    ]) {
+      expect(page).toContain(line)
+    }
+    expect(page).toContain("import { FormDate, FormDateTime, FormInput, FormNumber, FormSwitch, FormTextarea } from '@/shared/components/FormFields'")
+    // 表格列：前 4 个字段（name/phone/amount/active）+ 创建时间；bool → StatusBadge，时间 → formatDateTime
+    expect(page).toContain("<StatusBadge tone={value ? 'success' : 'neutral'} dot>")
+    expect(page).toContain('render: (value) => formatDateTime(value),')
+    // 编辑回填：日期转成选择器格式，不把 id / created_at 带进 PUT
+    expect(page).toContain("  birthday: formatDate(record.birthday, ''),")
+    expect(page).toContain("  visited_at: formatDateTime(record.visited_at, ''),")
 
     // 迁移 SQL
     const sqlFiles = readdirSync(join(root, 'apps/api/drizzle')).filter((f) => f.endsWith('.sql'))

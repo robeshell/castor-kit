@@ -1,59 +1,101 @@
 import { useState } from 'react'
-import { Tag, Typography } from '@douyinfe/semi-ui'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { Atom, Bot, Database, Layers, Lock, Palette, Rocket, Server, Zap } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
+import './css-3d.css'
 
 const CARDS = [
-  { front: { icon: '⚡', title: 'React 18', sub: '前端框架', color: '#61dafb' }, back: { desc: '基于 Concurrent Mode 的现代 React，支持 Suspense 流式渲染、useTransition 优先级调度', tags: ['Concurrent', 'Suspense', 'Hooks'] } },
-  { front: { icon: '🦫', title: 'Fastify 5', sub: '后端框架', color: '#00d084' }, back: { desc: 'Node.js 高性能 Web 框架，配合 Zod 校验与 Drizzle ORM 构建类型安全的 RESTful API，插件式模块化路由', tags: ['TypeScript', 'Zod', 'Drizzle'] } },
-  { front: { icon: '🎨', title: 'Semi Design', sub: 'UI 组件库', color: '#9b59b6' }, back: { desc: '字节跳动出品的企业级组件库，2000+ 组件、丰富主题定制能力，支持 AI 对话场景', tags: ['2000+组件', 'Dark Mode', 'AI Chat'] } },
-  { front: { icon: '🗄️', title: 'PostgreSQL', sub: '关系型数据库', color: '#336791' }, back: { desc: '强大的开源关系型数据库，支持 JSON、全文检索、CTE 递归查询，生产级 RBAC 存储', tags: ['JSONB', 'RBAC', 'ACID'] } },
-  { front: { icon: '🔒', title: 'RBAC', sub: '权限系统', color: '#e67e22' }, back: { desc: '基于角色的访问控制，菜单权限细粒度管控，支持超级管理员免鉴权模式', tags: ['角色', '菜单权限', '动态路由'] } },
-  { front: { icon: '🤖', title: 'AI-First', sub: '核心理念', color: '#ff6b6b' }, back: { desc: 'PM 用自然语言描述需求，Agent 端到端实现功能，将 AI 能力深度嵌入开发工作流', tags: ['Agent', 'SSE 流式', '提示词工坊'] } },
+  {
+    icon: Atom,
+    title: 'React 19',
+    sub: '前端框架',
+    desc: '基于 Concurrent 渲染的现代 React，支持 Suspense 流式渲染、useTransition 优先级调度',
+    tags: ['Concurrent', 'Suspense', 'Hooks'],
+  },
+  {
+    icon: Server,
+    title: 'Fastify 5',
+    sub: '后端框架',
+    desc: 'Node.js 高性能 Web 框架，配合 Zod 校验与 Drizzle ORM 构建类型安全的 RESTful API，插件式模块化路由',
+    tags: ['TypeScript', 'Zod', 'Drizzle'],
+  },
+  {
+    icon: Palette,
+    title: 'shadcn/ui',
+    sub: 'UI 组件',
+    desc: '基于 Radix 的开源组件源码，配合 Tailwind CSS 与 motion，亮暗主题与动效统一可控',
+    tags: ['Radix', 'Tailwind', 'Dark Mode'],
+  },
+  {
+    icon: Database,
+    title: 'PostgreSQL',
+    sub: '关系型数据库',
+    desc: '强大的开源关系型数据库，支持 JSON、全文检索、CTE 递归查询，生产级 RBAC 存储',
+    tags: ['JSONB', 'RBAC', 'ACID'],
+  },
+  {
+    icon: Lock,
+    title: 'RBAC',
+    sub: '权限系统',
+    desc: '基于角色的访问控制，菜单权限细粒度管控，支持超级管理员免鉴权模式',
+    tags: ['角色', '菜单权限', '动态路由'],
+  },
+  {
+    icon: Bot,
+    title: 'AI-First',
+    sub: '核心理念',
+    desc: 'PM 用自然语言描述需求，Agent 端到端实现功能，将 AI 能力深度嵌入开发工作流',
+    tags: ['Agent', 'SSE 流式', '提示词工坊'],
+  },
 ]
 
-function FlipCard({ card, width = 200 }) {
+const CUBE_FACES = [
+  { cls: 'css3d-front', icon: Zap },
+  { cls: 'css3d-back', icon: Lock },
+  { cls: 'css3d-left', icon: Palette },
+  { cls: 'css3d-right', icon: Bot },
+  { cls: 'css3d-top', icon: Database },
+  { cls: 'css3d-bottom', icon: Server },
+]
+
+function FlipCard({ card }) {
   const [flipped, setFlipped] = useState(false)
+  const Icon = card.icon
   return (
     <div
-      style={{ width, height: 240, perspective: 1000, cursor: 'pointer' }}
-      onMouseEnter={() => setFlipped(true)}
-      onMouseLeave={() => setFlipped(false)}
+      className="h-60 cursor-pointer [perspective:1000px]"
+      onPointerEnter={(e) => e.pointerType === 'mouse' && setFlipped(true)}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && setFlipped(false)}
+      // 触屏没有 hover，点按切换
+      onPointerUp={(e) => e.pointerType !== 'mouse' && setFlipped((v) => !v)}
     >
-      <div style={{
-        width: '100%', height: '100%', position: 'relative',
-        transformStyle: 'preserve-3d',
-        transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-      }}>
-        {/* Front */}
-        <div style={{
-          position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-          background: `linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)`,
-          borderRadius: 16, border: `1px solid ${card.front.color}33`,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
-          boxShadow: `0 8px 32px ${card.front.color}22`,
-        }}>
-          <div style={{ fontSize: 48 }}>{card.front.icon}</div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: card.front.color }}>{card.front.title}</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{card.front.sub}</div>
+      <div
+        className={cn(
+          'relative size-full transition-transform duration-[600ms] ease-[cubic-bezier(0.32,0.72,0,1)] [transform-style:preserve-3d]',
+          flipped && '[transform:rotateY(180deg)]',
+        )}
+      >
+        {/* 正面 */}
+        <div className="surface-card absolute inset-0 flex flex-col items-center justify-center gap-4 [backface-visibility:hidden]">
+          <span className="bg-brand-soft text-primary flex size-14 items-center justify-center rounded-2xl">
+            <Icon className="size-7" strokeWidth={1.6} />
+          </span>
+          <div className="text-center">
+            <div className="text-base font-semibold tracking-tight">{card.title}</div>
+            <div className="text-muted-foreground mt-0.5 text-xs">{card.sub}</div>
           </div>
-          <div style={{ width: 40, height: 2, background: card.front.color, borderRadius: 1, opacity: 0.6 }} />
+          <span className="bg-brand-gradient h-0.5 w-10 rounded-full opacity-70" />
         </div>
-        {/* Back */}
-        <div style={{
-          position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-          transform: 'rotateY(180deg)',
-          background: `linear-gradient(135deg, ${card.front.color}22 0%, ${card.front.color}08 100%)`,
-          borderRadius: 16, border: `1px solid ${card.front.color}66`,
-          display: 'flex', flexDirection: 'column', padding: 20, boxSizing: 'border-box',
-          justifyContent: 'space-between',
-          boxShadow: `0 8px 32px ${card.front.color}33`,
-        }}>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{card.back.desc}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {card.back.tags.map(t => (
-              <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: `${card.front.color}33`, color: card.front.color, border: `1px solid ${card.front.color}55` }}>{t}</span>
+        {/* 背面 */}
+        <div className="bg-brand-gradient-strong shadow-brand absolute inset-0 flex flex-col justify-between rounded-[14px] p-5 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <p className="text-[13px] leading-relaxed text-white/90">{card.desc}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {card.tags.map((t) => (
+              <span key={t} className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] ring-1 ring-white/25">
+                {t}
+              </span>
             ))}
           </div>
         </div>
@@ -64,28 +106,15 @@ function FlipCard({ card, width = 200 }) {
 
 function RotatingCube() {
   return (
-    <div style={{ perspective: 600, width: 120, height: 120 }}>
-      <style>{`
-        @keyframes rotateCube {
-          0% { transform: rotateX(-20deg) rotateY(0deg); }
-          100% { transform: rotateX(-20deg) rotateY(360deg); }
-        }
-        .cube { width: 120px; height: 120px; position: relative; transform-style: preserve-3d; animation: rotateCube 6s linear infinite; }
-        .face { position: absolute; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 32px; border: 1px solid rgba(99,179,255,0.4); background: rgba(30,60,100,0.6); backdrop-filter: blur(4px); }
-        .front  { transform: translateZ(60px); }
-        .back   { transform: rotateY(180deg) translateZ(60px); }
-        .left   { transform: rotateY(-90deg) translateZ(60px); }
-        .right  { transform: rotateY(90deg) translateZ(60px); }
-        .top    { transform: rotateX(90deg) translateZ(60px); }
-        .bottom { transform: rotateX(-90deg) translateZ(60px); }
-      `}</style>
-      <div className="cube">
-        <div className="face front">⚡</div>
-        <div className="face back">🔒</div>
-        <div className="face left">🎨</div>
-        <div className="face right">🤖</div>
-        <div className="face top">🗄️</div>
-        <div className="face bottom">🐍</div>
+    <div className="flex h-56 items-center justify-center">
+      <div className="[perspective:600px]">
+        <div className="css3d-cube">
+          {CUBE_FACES.map(({ cls, icon: Icon }) => (
+            <div key={cls} className={cn('css3d-face', cls)}>
+              <Icon className="size-8" strokeWidth={1.5} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -100,12 +129,8 @@ function ParallaxCard({ children }) {
     setTransform(`rotateY(${cx * 20}deg) rotateX(${-cy * 20}deg) scale(1.04)`)
   }
   return (
-    <div
-      style={{ perspective: 800, cursor: 'pointer' }}
-      onMouseMove={handleMove}
-      onMouseLeave={() => setTransform('')}
-    >
-      <div style={{ transition: 'transform 0.1s ease', transform, transformStyle: 'preserve-3d' }}>
+    <div className="cursor-pointer [perspective:800px]" onMouseMove={handleMove} onMouseLeave={() => setTransform('')}>
+      <div className="transition-transform duration-100 ease-out [transform-style:preserve-3d]" style={{ transform }}>
         {children}
       </div>
     </div>
@@ -113,58 +138,45 @@ function ParallaxCard({ children }) {
 }
 
 export default function Css3dPage() {
-  const isMobile = useIsMobile()
   return (
-    <div style={{ minHeight: 'calc(100vh - 60px)', background: '#0a0a1a', padding: isMobile ? '16px 12px' : 32, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 32 }}>
-        <Typography.Title heading={4} style={{ margin: 0, color: '#fff' }}>CSS 3D 交互卡片</Typography.Title>
-        <Typography.Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-          纯 CSS perspective + transform-style: preserve-3d · 无 JS 动画库
-        </Typography.Text>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="CSS 3D 交互卡片" />
 
-      {/* Section 1: Flip Cards */}
-      <div style={{ marginBottom: 48 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-          <Typography.Title heading={6} style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}>悬停翻转卡片</Typography.Title>
-          <Tag color="blue" size="small">hover to flip</Tag>
+      <Panel title="悬停翻转卡片" description="鼠标悬停（触屏点按）翻到背面">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+          {CARDS.map((c) => (
+            <FlipCard key={c.title} card={c} />
+          ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
-          {CARDS.map((c, i) => <FlipCard key={i} card={c} width="100%" />)}
-        </div>
-      </div>
+      </Panel>
 
-      {/* Section 2: Rotating Cube + Parallax */}
-      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Typography.Title heading={6} style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}>自旋立方体</Typography.Title>
-            <Tag color="purple" size="small">CSS animation</Tag>
-          </div>
+      <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <Panel title="自旋立方体">
           <RotatingCube />
-        </div>
+        </Panel>
 
-        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Typography.Title heading={6} style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}>视差跟随卡片</Typography.Title>
-            <Tag color="green" size="small">mouse tracking</Tag>
-          </div>
-          <ParallaxCard>
-            <div style={{
-              background: 'linear-gradient(135deg, #1a1a3e, #0d1b2a)',
-              borderRadius: 20, padding: 32, border: '1px solid rgba(99,179,255,0.2)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-            }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🚀</div>
-              <div style={{ color: '#63b3ff', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>castor-kit</div>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.8 }}>
-                AI-First 企业级脚手架<br />
-                鼠标移动，感受 3D 视差效果<br />
-                纯 CSS transform 实现
-              </div>
+        <Panel title="视差跟随卡片">
+          <div className="flex h-56 items-center justify-center">
+            <div className="w-full max-w-md">
+              <ParallaxCard>
+                <div className="border-brand-gradient rounded-[18px] p-7 shadow-[0_24px_48px_-24px_var(--brand-shadow)]">
+                  <span className="bg-brand-gradient-strong mb-4 flex size-11 items-center justify-center rounded-xl text-white">
+                    <Rocket className="size-5" />
+                  </span>
+                  <div className="text-brand-gradient mb-2 text-xl font-semibold tracking-tight">castor-kit</div>
+                  <div className="text-muted-foreground space-y-0.5 text-sm leading-relaxed">
+                    <p>AI-First 企业级脚手架</p>
+                    <p>鼠标移动，感受 3D 视差效果</p>
+                    <p className="flex items-center gap-1.5">
+                      <Layers className="size-3.5" />
+                      纯 CSS transform 实现
+                    </p>
+                  </div>
+                </div>
+              </ParallaxCard>
             </div>
-          </ParallaxCard>
-        </div>
+          </div>
+        </Panel>
       </div>
     </div>
   )

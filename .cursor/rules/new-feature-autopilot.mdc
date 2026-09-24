@@ -18,7 +18,7 @@ alwaysApply: false
 按顺序读取：
 1. `AGENTS.md` — 完整项目约定、字段类型推断规则、反模式
 2. `docs/templates/backend/` 和 `docs/templates/frontend/` — 代码骨架模板（`docs/templates/backend/README.md` 有占位符替换规则）
-3. 现有相似模块 — 了解实际命名风格（参考 `apps/api/src/modules/admin/users/`）
+3. 现有相似模块 — 了解实际命名风格（后端参考 `apps/api/src/modules/admin/users/`，前端参考 `apps/web/src/modules/admin/pages/users/index.jsx`）
 4. `apps/api/scripts/seed-rbac.ts` — 查询当前菜单树，确定 parent_id 与下一个可用 ID
 
 ### Step 2 — 生成内部 Spec（不展示给 PM）
@@ -51,12 +51,14 @@ alwaysApply: false
 ```bash
 pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..."
 ```
-生成 `db/schema/<domain>/<name>.ts`、`modules/<domain>/<name>/{schema,repository,service,routes}.ts`、前端 api + 页面；
+生成 `db/schema/<domain>/<name>.ts`、`modules/<domain>/<name>/{schema,repository,service,routes}.ts`、前端 api + 页面（shadcn/ui 体系，结构同 users 页）；
 自动注册 `db/schema/index.ts` 与 `modules/<domain>/router.ts`；自动执行 `drizzle-kit generate --name <name>`。
 
 **4b. 补充业务逻辑**
 按 `db/schema → schema → repository → service → routes` 顺序填充实际字段、中文表头和业务规则。
 若之后改了表结构：`pnpm db:generate --name <描述>`（不能写 `--`）。
+
+前端：把页面标题、字段标签改成中文，按业务补 `rules` 必填校验与枚举（`FormSelect` + `StatusBadge`）；只用 `@/components/ui/*`、`@/shared/components/*` 与 Tailwind 语义色类，禁止 `@douyinfe/*`。
 
 **4c. RBAC**
 在 `apps/api/scripts/seed-rbac.ts` 中添加菜单 + 按钮权限（含 `_export`/`_import`，按钮 ID = 菜单 ID × 10 + 序号），然后：

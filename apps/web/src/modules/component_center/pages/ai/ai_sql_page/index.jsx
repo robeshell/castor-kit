@@ -1,61 +1,37 @@
-import React, { useState, useRef } from 'react'
-import {
-  Typography, Button, Input, Table, Tag, Spin, Toast,
-  Empty, Tooltip, Tabs, TabPane,
-} from '@douyinfe/semi-ui'
-import {
-  IconSend, IconPlay, IconCopy, IconRefresh, IconCode,
-  IconSearch,
-} from '@douyinfe/semi-icons'
+import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
-import { generateSQL, executeSQL } from '@/modules/component_center/api/ai_sql'
+import { AnimatePresence, motion } from 'motion/react'
+import { AlertCircle, Code2, Copy, Database, Play, Search, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
+import { chartBase, useChartColors } from '@/lib/chart-theme'
+import { fadeUp } from '@/lib/motion'
+import { errorMessage, toast } from '@/lib/toast'
+import { executeSQL, generateSQL } from '@/modules/component_center/api/ai_sql'
+import SchemaSheet from '@/modules/component_center/pages/ai/ai_sql_page/SchemaSheet'
+import DataTable from '@/shared/components/DataTable'
+import EmptyState from '@/shared/components/EmptyState'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import SegmentedTabs from '@/shared/components/SegmentedTabs'
+import StatusBadge from '@/shared/components/StatusBadge'
 
-const { Title, Text, Paragraph } = Typography
-
-const CARD_STYLE = {
-  background: 'var(--semi-color-bg-1)',
-  borderRadius: 8,
-  padding: 16,
-  marginBottom: 12,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-}
+const PAGE_SIZE = 20
 
 // 判断列的值是否全为数字
 const isNumericColumn = (rows, col) => {
   if (!rows.length) return false
-  return rows.every(r => {
+  return rows.every((r) => {
     const v = r[col]
     return v !== null && v !== '' && !isNaN(Number(v))
   })
 }
 
-// 自动推断是否可以出图（2列，第二列是数字）
+// 自动推断是否可以出图（至少 2 列，第二列是数字）
 const canRenderChart = (columns, rows) => {
   if (!columns || columns.length < 2 || !rows || !rows.length) return false
   return isNumericColumn(rows, columns[1])
-}
-
-// 构建 ECharts 配置
-const buildChartOption = (columns, rows) => {
-  const xData = rows.map(r => String(r[columns[0]] ?? ''))
-  const yData = rows.map(r => Number(r[columns[1]]))
-  return {
-    tooltip: { trigger: 'axis' },
-    grid: { left: 40, right: 20, top: 20, bottom: 60, containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: xData,
-      axisLabel: { rotate: xData.length > 8 ? 30 : 0, fontSize: 12 },
-    },
-    yAxis: { type: 'value' },
-    series: [{
-      name: columns[1],
-      type: 'bar',
-      data: yData,
-      itemStyle: { color: '#6366f1', borderRadius: [4, 4, 0, 0] },
-      barMaxWidth: 48,
-    }],
-  }
 }
 
 // 示例问题
@@ -68,19 +44,63 @@ const EXAMPLE_QUESTIONS = [
   '每个月新增用户数趋势（最近 6 个月）',
 ]
 
+function ResultChart({ columns, rows }) {
+  const c = useChartColors()
+  const option = useMemo(() => {
+    const base = chartBase(c)
+    const xData = rows.map((r) => String(r[columns[0]] ?? ''))
+    const yData = rows.map((r) => Number(r[columns[1]]))
+    return {
+      ...base,
+      grid: { ...base.grid, top: 24, bottom: 8 },
+      xAxis: {
+        ...base.xAxis,
+        type: 'category',
+        data: xData,
+        axisLabel: { ...base.xAxis.axisLabel, rotate: xData.length > 8 ? 30 : 0 },
+      },
+      yAxis: { ...base.yAxis, type: 'value' },
+      series: [
+        {
+          name: columns[1],
+          type: 'bar',
+          data: yData,
+          barMaxWidth: 40,
+          itemStyle: {
+            borderRadius: [6, 6, 0, 0],
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: c['brand-to'] },
+                { offset: 1, color: c['brand-from'] },
+              ],
+            },
+          },
+        },
+      ],
+    }
+  }, [c, columns, rows])
+  return <ReactECharts option={option} style={{ height: 320 }} notMerge opts={{ renderer: 'svg' }} />
+}
+
 export default function AiSqlPage() {
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)  // { sql, columns, rows, row_count }
+  const [result, setResult] = useState(null) // { sql, columns, rows, row_count }
   const [sqlEditing, setSqlEditing] = useState('')
   const [executing, setExecuting] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('table')
-  const textAreaRef = useRef(null)
+  const [page, setPage] = useState(1)
+  const [schemaOpen, setSchemaOpen] = useState(false)
 
   const handleGenerate = async () => {
     if (!question.trim()) {
-      Toast.warning('请输入问题')
+      toast.warning('请输入问题')
       return
     }
     setLoading(true)
@@ -91,13 +111,11 @@ export default function AiSqlPage() {
       setResult(res)
       setSqlEditing(res.sql)
       setActiveTab('table')
+      setPage(1)
     } catch (e) {
-      const msg = e?.response?.data?.error || e.message || '请求失败'
-      setError(msg)
+      setError(errorMessage(e, '请求失败'))
       // 如果有 sql 也展示出来，方便调试
-      if (e?.response?.data?.sql) {
-        setSqlEditing(e.response.data.sql)
-      }
+      if (e?.sql) setSqlEditing(e.sql)
     } finally {
       setLoading(false)
     }
@@ -105,7 +123,7 @@ export default function AiSqlPage() {
 
   const handleExecute = async () => {
     if (!sqlEditing.trim()) {
-      Toast.warning('SQL 不能为空')
+      toast.warning('SQL 不能为空')
       return
     }
     setExecuting(true)
@@ -114,213 +132,227 @@ export default function AiSqlPage() {
       const res = await executeSQL({ sql: sqlEditing.trim() })
       setResult(res)
       setActiveTab('table')
+      setPage(1)
     } catch (e) {
-      setError(e?.response?.data?.error || e.message || '执行失败')
+      setError(errorMessage(e, '执行失败'))
     } finally {
       setExecuting(false)
     }
   }
 
   const handleCopySQL = () => {
-    navigator.clipboard.writeText(sqlEditing).then(() => Toast.success('SQL 已复制'))
+    navigator.clipboard
+      .writeText(sqlEditing)
+      .then(() => toast.success('SQL 已复制'))
+      .catch(() => toast.error('复制失败'))
   }
 
-  const handleExampleClick = (q) => {
-    setQuestion(q)
+  const handleQueryTable = (table) => {
+    setSqlEditing(`SELECT * FROM ${table} LIMIT 20`)
+    setSchemaOpen(false)
   }
 
-  // 构建表格列定义
-  const tableColumns = result?.columns?.map(col => ({
+  const rows = useMemo(() => result?.rows || [], [result])
+  const columns = useMemo(() => result?.columns || [], [result])
+  const pageRows = rows.length > PAGE_SIZE ? rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : rows
+
+  const tableColumns = columns.map((col) => ({
+    key: col,
     title: col,
     dataIndex: col,
-    key: col,
     ellipsis: true,
-    render: val => (val === null ? <Text type="tertiary">NULL</Text> : String(val)),
-  })) || []
+    className: 'max-w-[320px] truncate',
+    render: (val) =>
+      val === null || val === undefined ? (
+        <span className="text-muted-foreground font-mono text-xs">NULL</span>
+      ) : (
+        <span title={String(val)}>{String(val)}</span>
+      ),
+  }))
 
   const showChart = result && canRenderChart(result.columns, result.rows)
+  const showSqlPanel = !loading && (result || sqlEditing)
 
   return (
-    <div style={{ padding: 0 }}>
-      <Title heading={5} style={{ marginBottom: 16 }}>AI 数据查询</Title>
+    <div className="space-y-4">
+      <PageHeader
+        title="AI 数据查询"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => setSchemaOpen(true)}>
+            <Database />
+            表结构
+          </Button>
+        }
+      />
 
       {/* 问题输入区 */}
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <Input
-            style={{ flex: 1 }}
-            size="large"
-            placeholder="用自然语言描述你想查什么，例如：最近7天每天新增的用户数"
-            value={question}
-            onChange={setQuestion}
-            onEnterPress={handleGenerate}
-            prefix={<IconSearch />}
-          />
-          <Button
-            theme="solid"
-            type="primary"
-            size="large"
-            icon={<IconSend />}
-            loading={loading}
-            onClick={handleGenerate}
-          >
+      <Panel>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleGenerate()
+              }}
+              placeholder="用自然语言描述你想查什么，例如：最近7天每天新增的用户数"
+              className="h-10 pl-9"
+            />
+          </div>
+          <Button variant="brand" className="h-10 px-5" onClick={handleGenerate} disabled={loading}>
+            {loading ? <Spinner /> : <Sparkles />}
             AI 生成
           </Button>
         </div>
 
-        {/* 示例问题 */}
-        <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <Text type="tertiary" size="small">示例：</Text>
-          {EXAMPLE_QUESTIONS.map(q => (
-            <Tag
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-muted-foreground mr-1 text-xs">示例：</span>
+          {EXAMPLE_QUESTIONS.map((q) => (
+            <button
               key={q}
-              style={{ cursor: 'pointer' }}
-              onClick={() => handleExampleClick(q)}
+              type="button"
+              onClick={() => setQuestion(q)}
+              className="bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full border px-2.5 py-1 text-xs transition-colors duration-150"
             >
               {q}
-            </Tag>
+            </button>
           ))}
         </div>
-      </div>
+      </Panel>
 
       {/* 加载中 */}
-      {loading && (
-        <div style={{ ...CARD_STYLE, textAlign: 'center', padding: 40 }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 12 }}>
-            <Text type="tertiary">AI 正在分析数据库结构并生成 SQL…</Text>
-          </div>
-        </div>
-      )}
+      {loading ? (
+        <motion.div {...fadeUp}>
+          <Panel>
+            <div className="flex flex-col items-center gap-3 py-10">
+              <div className="bg-brand-soft text-primary flex size-10 items-center justify-center rounded-xl">
+                <Spinner className="size-5" />
+              </div>
+              <p className="text-muted-foreground text-[13px]">AI 正在分析数据库结构并生成 SQL…</p>
+            </div>
+          </Panel>
+        </motion.div>
+      ) : null}
 
       {/* 错误提示 */}
-      {!loading && error && (
-        <div style={{
-          ...CARD_STYLE,
-          borderLeft: '3px solid var(--semi-color-danger)',
-          background: 'var(--semi-color-danger-light-default)',
-        }}>
-          <Text type="danger">❌ {error}</Text>
-        </div>
-      )}
+      <AnimatePresence>
+        {!loading && error ? (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            role="alert"
+            className="bg-danger-soft text-danger flex items-start gap-2 rounded-xl px-4 py-3 text-[13px]"
+          >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <span className="break-all">{error}</span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      {/* SQL + 结果区 */}
-      {!loading && result && (
-        <>
-          {/* SQL 展示 + 编辑 */}
-          <div style={CARD_STYLE}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <IconCode style={{ color: 'var(--semi-color-primary)' }} />
-                <Text strong>生成的 SQL</Text>
-                <Tag color="violet" size="small">可编辑</Tag>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Tooltip content="复制 SQL">
-                  <Button size="small" icon={<IconCopy />} onClick={handleCopySQL} />
-                </Tooltip>
-                <Button
-                  size="small"
-                  theme="solid"
-                  type="primary"
-                  icon={<IconPlay />}
-                  loading={executing}
-                  onClick={handleExecute}
-                >
+      {/* SQL 展示 + 编辑 */}
+      {showSqlPanel ? (
+        <motion.div {...fadeUp}>
+          <Panel
+            title={
+              <span className="flex items-center gap-2">
+                <Code2 className="text-primary size-4" />
+                生成的 SQL
+                <StatusBadge tone="brand">可编辑</StatusBadge>
+              </span>
+            }
+            actions={
+              <>
+                <Button variant="ghost" size="icon-sm" aria-label="复制 SQL" title="复制 SQL" onClick={handleCopySQL}>
+                  <Copy />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExecute} disabled={executing}>
+                  {executing ? <Spinner /> : <Play />}
                   重新执行
                 </Button>
-              </div>
-            </div>
+              </>
+            }
+          >
             <textarea
-              ref={textAreaRef}
               value={sqlEditing}
-              onChange={e => setSqlEditing(e.target.value)}
-              style={{
-                width: '100%',
-                minHeight: 100,
-                padding: '10px 12px',
-                fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
-                fontSize: 13,
-                lineHeight: 1.6,
-                background: 'var(--semi-color-fill-0)',
-                border: '1px solid var(--semi-color-border)',
-                borderRadius: 6,
-                color: 'var(--semi-color-text-0)',
-                resize: 'vertical',
-                outline: 'none',
-                boxSizing: 'border-box',
+              onChange={(e) => setSqlEditing(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault()
+                  handleExecute()
+                }
               }}
               spellCheck={false}
+              aria-label="SQL 编辑区"
+              className="bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 min-h-[110px] w-full resize-y rounded-lg border px-3 py-2.5 font-mono text-[13px] leading-relaxed outline-none focus-visible:ring-[3px]"
             />
-          </div>
+            <p className="text-muted-foreground mt-1.5 text-xs">仅允许只读查询 · Ctrl / ⌘ + Enter 执行</p>
+          </Panel>
+        </motion.div>
+      ) : null}
 
-          {/* 结果区 */}
-          <div style={CARD_STYLE}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong>查询结果</Text>
-                <Tag color="green" size="small">{result.row_count} 行</Tag>
-              </div>
-              {showChart && (
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <Button
-                    size="small"
-                    type={activeTab === 'table' ? 'primary' : 'tertiary'}
-                    theme={activeTab === 'table' ? 'solid' : 'light'}
-                    onClick={() => setActiveTab('table')}
-                  >
-                    表格
-                  </Button>
-                  <Button
-                    size="small"
-                    type={activeTab === 'chart' ? 'primary' : 'tertiary'}
-                    theme={activeTab === 'chart' ? 'solid' : 'light'}
-                    onClick={() => setActiveTab('chart')}
-                  >
-                    图表
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {result.rows.length === 0 ? (
-              <Empty description="查询结果为空" />
-            ) : activeTab === 'table' ? (
-              <Table
+      {/* 结果区 */}
+      {!loading && result ? (
+        <motion.div {...fadeUp}>
+          <Panel
+            padded={false}
+            title={
+              <span className="flex items-center gap-2">
+                查询结果
+                <StatusBadge tone="success">{result.row_count} 行</StatusBadge>
+              </span>
+            }
+            actions={
+              showChart ? (
+                <SegmentedTabs
+                  variant="pill"
+                  value={activeTab}
+                  onChange={setActiveTab}
+                  items={[
+                    { value: 'table', label: '表格' },
+                    { value: 'chart', label: '图表' },
+                  ]}
+                />
+              ) : null
+            }
+          >
+            {rows.length === 0 ? (
+              <EmptyState title="查询结果为空" description="换个问题或修改 SQL 后重新执行" />
+            ) : activeTab === 'table' || !showChart ? (
+              <DataTable
+                bordered={false}
+                dense
+                className="border-t"
                 columns={tableColumns}
-                dataSource={result.rows}
-                rowKey={(r, i) => i}
-                pagination={result.rows.length > 20 ? { pageSize: 20 } : false}
-                scroll={{ x: tableColumns.length > 5 ? tableColumns.length * 160 : undefined }}
-                size="small"
+                data={pageRows}
+                rowKey={(row, i) => `${page}-${i}`}
+                minWidth={tableColumns.length > 5 ? tableColumns.length * 160 : undefined}
+                pagination={rows.length > PAGE_SIZE ? { page, perPage: PAGE_SIZE, total: rows.length, onChange: setPage } : undefined}
               />
             ) : (
-              <ReactECharts
-                option={buildChartOption(result.columns, result.rows)}
-                style={{ height: 300 }}
-                notMerge
-              />
+              <div className="border-t px-3 pt-2 pb-3">
+                <ResultChart columns={columns} rows={rows} />
+              </div>
             )}
-          </div>
-        </>
-      )}
+          </Panel>
+        </motion.div>
+      ) : null}
 
       {/* 空状态引导 */}
-      {!loading && !result && !error && (
-        <div style={{ ...CARD_STYLE, padding: 60, textAlign: 'center' }}>
-          <Empty
-            image={<IconSearch size="extra-large" style={{ color: 'var(--semi-color-text-2)', fontSize: 48 }} />}
-            description={
-              <div>
-                <div style={{ marginBottom: 8 }}>
-                  <Text type="secondary">在上方输入自然语言问题，AI 会自动生成 SQL 并执行</Text>
-                </div>
-                <Text type="tertiary" size="small">支持查询用户、角色、菜单、日志等所有业务数据</Text>
-              </div>
-            }
+      {!loading && !result && !error && !sqlEditing ? (
+        <Panel>
+          <EmptyState
+            icon={Search}
+            title="在上方输入自然语言问题，AI 会自动生成 SQL 并执行"
+            description="支持查询用户、角色、菜单、日志等所有业务数据"
+            className="py-16"
           />
-        </div>
-      )}
+        </Panel>
+      ) : null}
+
+      <SchemaSheet open={schemaOpen} onOpenChange={setSchemaOpen} onQueryTable={handleQueryTable} />
     </div>
   )
 }

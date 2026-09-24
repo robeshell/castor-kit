@@ -1,0 +1,267 @@
+/*
+ * Quill（snow 主题）适配 castor-kit 主题：边框 / 图标 / 下拉 / 链接浮层都走 CSS 变量，亮 / 暗自动切换。
+ * 全部限定在 .rt-editor 下，不影响其他页面。
+ */
+/* ---- 工具栏 ---- */
+.rt-editor .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+  font-family: inherit;
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 4px;
+}
+.rt-editor .ql-toolbar.ql-snow .ql-formats {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+  padding-right: 6px;
+  border-right: 1px solid var(--border);
+}
+.rt-editor .ql-toolbar.ql-snow .ql-formats:last-child {
+  border-right: none;
+}
+.rt-editor .ql-snow.ql-toolbar button {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+.rt-editor .ql-snow.ql-toolbar button:hover,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label:hover {
+  background: var(--accent);
+}
+.rt-editor .ql-snow.ql-toolbar button.ql-active {
+  background: var(--brand-soft);
+}
+
+/* 图标：默认前景色，悬停 / 选中为主色 */
+.rt-editor .ql-snow .ql-stroke,
+.rt-editor .ql-snow .ql-stroke-miter {
+  stroke: var(--muted-foreground);
+}
+.rt-editor .ql-snow .ql-fill,
+.rt-editor .ql-snow .ql-stroke.ql-fill {
+  fill: var(--muted-foreground);
+}
+.rt-editor .ql-snow .ql-picker {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.rt-editor .ql-snow.ql-toolbar button:hover .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar button:focus .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-item:hover .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar button:hover .ql-stroke-miter,
+.rt-editor .ql-snow.ql-toolbar button:focus .ql-stroke-miter {
+  stroke: var(--foreground);
+}
+.rt-editor .ql-snow.ql-toolbar button:hover .ql-fill,
+.rt-editor .ql-snow.ql-toolbar button:focus .ql-fill,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label:hover .ql-fill,
+.rt-editor .ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill {
+  fill: var(--foreground);
+}
+.rt-editor .ql-snow.ql-toolbar button:hover,
+.rt-editor .ql-snow.ql-toolbar button:focus,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label:hover,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-item:hover {
+  color: var(--foreground);
+}
+.rt-editor .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-stroke,
+.rt-editor .ql-snow.ql-toolbar button.ql-active .ql-stroke-miter {
+  stroke: var(--primary);
+}
+.rt-editor .ql-snow.ql-toolbar button.ql-active .ql-fill,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.rt-editor .ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill {
+  fill: var(--primary);
+}
+.rt-editor .ql-snow.ql-toolbar button.ql-active,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-label.ql-active,
+.rt-editor .ql-snow.ql-toolbar .ql-picker-item.ql-selected {
+  color: var(--primary);
+}
+
+/* ---- 下拉（标题 / 颜色） ---- */
+.rt-editor .ql-snow .ql-picker-label {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease;
+}
+.rt-editor .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  border-color: var(--border);
+  color: var(--foreground);
+}
+.rt-editor .ql-snow .ql-picker.ql-expanded .ql-picker-label .ql-stroke {
+  stroke: var(--foreground);
+}
+.rt-editor .ql-snow .ql-picker.ql-expanded .ql-picker-label .ql-fill {
+  fill: var(--foreground);
+}
+.rt-editor .ql-snow .ql-picker.ql-header {
+  width: 92px;
+}
+.rt-editor .ql-snow .ql-picker-options {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border-radius: 10px;
+  padding: 4px;
+  margin-top: 4px;
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+.rt-editor .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-options {
+  border: 1px solid var(--border);
+}
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item {
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item:hover {
+  background: var(--accent);
+}
+.rt-editor .ql-snow .ql-color-picker .ql-picker-options {
+  padding: 6px;
+  width: 164px;
+}
+.rt-editor .ql-snow .ql-color-picker .ql-picker-item {
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+.rt-editor .ql-toolbar.ql-snow .ql-color-picker .ql-picker-item.ql-selected,
+.rt-editor .ql-toolbar.ql-snow .ql-color-picker .ql-picker-item:hover {
+  border-color: var(--foreground);
+}
+
+/* 标题下拉中文化 */
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-label::before,
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item::before {
+  content: '正文';
+}
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='1']::before,
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='1']::before {
+  content: '标题 1';
+}
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='2']::before,
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='2']::before {
+  content: '标题 2';
+}
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='3']::before,
+.rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='3']::before {
+  content: '标题 3';
+}
+
+/* ---- 编辑区 ---- */
+.rt-editor .ql-container.ql-snow {
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  height: 400px;
+  color: var(--foreground);
+}
+.rt-editor .ql-editor {
+  min-height: 100%;
+  padding: 16px 20px;
+  line-height: 1.75;
+}
+.rt-editor .ql-editor.ql-blank::before {
+  color: var(--muted-foreground);
+  font-style: normal;
+  left: 20px;
+  right: 20px;
+}
+.rt-editor .ql-editor h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  margin: 0.4em 0 0.3em;
+}
+.rt-editor .ql-editor h2 {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+}
+.rt-editor .ql-editor h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.7em 0 0.2em;
+}
+.rt-editor .ql-editor li::marker,
+.rt-editor .ql-editor li > .ql-ui:before {
+  color: var(--muted-foreground);
+}
+.rt-editor .ql-snow .ql-editor blockquote {
+  border-left: 3px solid var(--primary);
+  background: var(--brand-soft);
+  border-radius: 0 8px 8px 0;
+  padding: 6px 14px;
+  margin: 8px 0;
+}
+.rt-editor .ql-snow .ql-editor code {
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+}
+.rt-editor .ql-snow .ql-editor .ql-code-block-container {
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--border);
+  padding: 10px 14px;
+  margin: 8px 0;
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.rt-editor .ql-snow .ql-editor a,
+.rt-editor .ql-snow a {
+  color: var(--primary);
+}
+
+/* ---- 链接浮层 ---- */
+.rt-editor .ql-snow .ql-tooltip {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.3);
+  padding: 6px 12px;
+  z-index: 10;
+}
+.rt-editor .ql-snow .ql-tooltip input[type='text'] {
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  outline: none;
+}
+.rt-editor .ql-snow .ql-tooltip input[type='text']:focus {
+  border-color: var(--ring);
+}
+.rt-editor .ql-snow .ql-tooltip::before {
+  content: '访问链接：';
+  color: var(--muted-foreground);
+}
+.rt-editor .ql-snow .ql-tooltip[data-mode='link']::before {
+  content: '输入链接：';
+}
+.rt-editor .ql-snow .ql-tooltip a.ql-action::after {
+  content: '编辑';
+  border-right-color: var(--border);
+}
+.rt-editor .ql-snow .ql-tooltip a.ql-remove::before {
+  content: '移除';
+}
+.rt-editor .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
+  content: '保存';
+}

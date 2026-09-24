@@ -5,6 +5,7 @@
 >
 > 各工具专属配置：`CLAUDE.md`（Claude Code）| `CODEX.md`（Codex CLI）| `.cursor/rules/`（Cursor）| `.github/copilot-instructions.md`（Copilot）| `.windsurfrules`（Windsurf）| `llms.txt`（入口索引）
 > 重写方案与验收基线：`docs/rewrite-plan.md`（§2 兼容契约、§4 分层与反模式、§7 工具链）。
+> 前端 UI 方案：`docs/frontend-redesign-plan.md`（Semi Design → shadcn/ui + Tailwind CSS v4 + motion，设计 tokens 与公共组件约定）。
 
 ---
 
@@ -14,7 +15,7 @@
 
 目标：PM 用自然语言描述业务意图 → AI Agent 自动推断技术决策 → 展示业务预览供确认 → 端到端交付符合规范的新功能模块（数据表、接口、页面、权限、迁移）。
 
-castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端换成 Node，前端不动，数据库不动，API 契约兼容**。原项目在本机 `/Users/wangwenyu/Documents/Code/AuraStack`（GitHub `robeshell/AuraStack`），移植或排查行为差异时以那里的 Python 实现为行为基准。
+castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端换成 Node，数据库不动，API 契约兼容**；前端的路由机制、API 层与页面功能沿用 AuraStack，UI 已从 Semi Design 整体迁移到 **shadcn/ui + Tailwind CSS v4 + motion**（见 `docs/frontend-redesign-plan.md`）。原项目在本机 `/Users/wangwenyu/Documents/Code/AuraStack`（GitHub `robeshell/AuraStack`），移植或排查行为差异时以那里的 Python 实现为行为基准。
 
 ---
 
@@ -33,13 +34,17 @@ castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端�
 | 其他插件 | `@fastify/cors` / `compress` / `static` / `multipart` / `websocket` / `swagger` | - |
 | 导入 / 导出 | `csv-parse` + `exceljs`（**只支持 csv / xlsx，`.xls` 已不支持**） | - |
 | 测试 | Vitest + 真实 PostgreSQL | - |
-| 前端框架 | React + Vite + React Router + Axios | 18 / 5 / 7 |
-| UI 组件库 | Semi Design（`@douyinfe/semi-ui`） | ^2.93.0 |
-| 图标 | `@douyinfe/semi-icons` | ^2.93.0 |
-| 图表 | ECharts 6 + echarts-for-react | - |
+| 前端框架 | React + Vite + React Router + Axios（JavaScript / JSX） | 19 / 5 / 7 |
+| UI 组件 | shadcn/ui（new-york 风格，Radix 原语，源码在 `apps/web/src/components/ui/`，JSX） | - |
+| 样式 | Tailwind CSS v4（`@tailwindcss/vite`）+ CSS 变量主题（亮 / 暗，`apps/web/src/index.css`） | 4.x |
+| 动效 | `motion`（`motion/react`）+ `tw-animate-css`（弹层进出） | - |
+| 图标 | `lucide-react` | - |
+| 表格 / 表单 / 提示 | `@tanstack/react-table`（封装为 DataTable）/ `react-hook-form` / `sonner` | - |
+| 日期 / 命令面板 | `react-day-picker` + `date-fns` / `cmdk`（⌘K） | - |
+| 图表 | ECharts 6 + echarts-for-react（主题色取自 `@/lib/chart-theme`） | - |
 | 3D | Three.js | 0.176 |
 | 代码编辑器 | @monaco-editor/react | - |
-| 富文本 | react-quill | - |
+| 富文本 | react-quill-new（React 19 兼容） | - |
 | 拖拽 | @dnd-kit/core + @dnd-kit/sortable | - |
 | MCP | `@modelcontextprotocol/sdk` | 1.x |
 
@@ -103,11 +108,17 @@ castor-kit/
 │   │   │                              #         init-ro-role / generate-openapi / import-apifox / shadow-diff
 │   │   ├── test/                      # Vitest（真实 PostgreSQL）
 │   │   └── drizzle.config.ts
-│   ├── web/                           # @castor-kit/web —— 从 AuraStack frontend/ 原样迁入
+│   ├── web/                           # @castor-kit/web —— React 19 + shadcn/ui + Tailwind v4（JSX）
+│   │   ├── components.json            # shadcn CLI 配置（new-york / zinc / lucide / 别名）
+│   │   ├── scripts/shadcn-add.sh      # 经本地中转执行 npx shadcn@latest add（见「新增 shadcn 原子组件」）
 │   │   └── src/
 │   │       ├── App.jsx                # 动态路由（import.meta.glob）
-│   │       ├── context/AuthContext.jsx
-│   │       ├── components/Layout/     # 侧边栏 + PrivateRoute
+│   │       ├── index.css              # Tailwind v4 入口 + 设计 tokens（亮 / 暗）+ 品牌渐变工具类
+│   │       ├── context/               # AuthContext / ThemeContext（html.dark 切换）
+│   │       ├── components/
+│   │       │   ├── ui/                # shadcn 原子组件（button / input / dialog / sheet / table / select / …）
+│   │       │   └── app/               # 应用外壳：AppLayout / AppSidebar / TopBar / CommandMenu / ThemeToggle / …
+│   │       ├── lib/                   # utils(cn) / toast / format / motion / chart-theme / menu-icons
 │   │       ├── modules/
 │   │       │   ├── admin/{pages,api}/
 │   │       │   └── component_center/
@@ -116,11 +127,13 @@ castor-kit/
 │   │       └── shared/
 │   │           ├── api/request.js     # Axios 实例（baseURL='/api', withCredentials, CSRF 头）
 │   │           ├── utils/file.js      # downloadBlobFile
-│   │           ├── hooks/             # useCrudList / useIsMobile
-│   │           └── components/import-export/{ExportFieldsModal,ImportCsvModal}.jsx
+│   │           ├── hooks/             # useCrudList / useIsMobile / useDebouncedValue
+│   │           └── components/        # 业务公共组件：PageHeader / DataTable / Filters / FormDialog / FormFields /
+│   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ …
 │   └── mcp/                           # @castor-kit/mcp —— MCP Server（src/index.ts）
 ├── docs/
 │   ├── rewrite-plan.md                # 重写方案
+│   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
 │   ├── apifox-full.openapi.json       # OpenAPI 文档（pnpm openapi:generate 补齐）
 │   └── templates/                     # 代码骨架模板（AI 临摹用）
 │       ├── backend/                   # db-schema / schema / repository / service / routes（.ts）+ README.md
@@ -258,7 +271,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 ## 前端架构约定
 
-前端从 AuraStack 原样迁入，约定不变，只是路径从 AuraStack 的 frontend 目录变为 `apps/web/`。
+前端路由机制、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面的功能沿用 AuraStack；UI 按 `docs/frontend-redesign-plan.md` 重写为 **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言保持 JavaScript（JSX），文案保持中文。
 
 ### 动态路由机制
 
@@ -312,10 +325,72 @@ export const importItems = (file) => {
 
 ### UI 组件规范
 
-- **必须**使用 Semi Design（`@douyinfe/semi-ui`）与 `@douyinfe/semi-icons`
-- **禁止**引入 antd、material-ui 等其他 UI 库
-- **参考实现**：`apps/web/src/modules/component_center/pages/admin/list_page/index.jsx`
-- **MCP-First**：实现 UI 组件前，优先通过 `semi-mcp` 工具读取 Semi Design 官方文档，确保 API 用法正确；文档与现有实现冲突时以现有实现为准
+- **组件体系**：shadcn/ui 原子组件（`@/components/ui/*`，源码在仓库里，可按需改）+ 业务公共组件（`@/shared/components/*`）；图标只用 `lucide-react`
+- **禁止**：`@douyinfe/*`（Semi 已下线）、antd / material-ui 等其他 UI 库、`var(--semi-*)`、页面里写死十六进制颜色（例外：canvas / WebGL 内部着色、图表数据色——图表先用 `useChartColors`）、大段 inline style 做布局、emoji 当图标
+- **参考实现**：`apps/web/src/modules/admin/pages/users/index.jsx`（标准 CRUD 列表页）、`apps/web/src/modules/admin/pages/dashboard/index.jsx`（卡片 / 图表 / 动效）、`apps/web/src/modules/admin/pages/profile/index.jsx`（表单页）；模板见 `docs/templates/frontend/`
+- **文档优先**：实现 shadcn 组件前先查 shadcn/ui 官方文档（https://ui.shadcn.com/docs/components ，有 shadcn MCP 时优先用它）；技能说明见 `.claude/skills/shadcn-ui-skills/SKILL.md`。文档与仓库现有实现冲突时以仓库为准（`components/ui` 里的组件可能已按本项目 tokens 调整过）
+
+**页面结构（列表页照 users 页）：**
+
+```
+PageHeader（标题 + 描述 + 右侧操作：导入 / 导出 outline，新增 variant="brand"，每页最多一个 brand 按钮）
+→ FilterBar（SearchInput / FilterSelect，查询 + 重置）
+→ DataTable（分页 page/perPage/total、勾选 selectable、行操作 ghost 按钮 + ConfirmAction 删除）
+→ FormDialog / FormSheet（react-hook-form + FormFields，提交失败 toast.apiError 后 throw 保持弹窗）
+→ ImportDialog / ExportDialog（csv / xlsx）
+分区用 Panel；状态用 StatusBadge；空态用 EmptyState；反馈统一 toast（@/lib/toast）
+```
+
+**公共组件速查（`apps/web/src/shared/components/`）：**
+
+| 组件 | 用途 |
+|---|---|
+| `PageHeader` / `Panel` | 页头（title / description / actions）/ 卡片分区（`padded={false}` 贴边） |
+| `DataTable` + `DataPagination` | 列定义 `{ key, title, dataIndex, width, align, className, ellipsis, render(value, row, index) }`；`pagination={{ page, perPage, total, onChange }}`；`selectable` / `selectedKeys` / `onSelectionChange`；`loading` 骨架与空态内置 |
+| `Filters`：`FilterBar` / `SearchInput` / `FilterSelect` | 筛选栏；`FilterSelect` 的 `''` 表示全部；防抖用 `@/shared/hooks/useDebouncedValue` |
+| `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | 新建编辑弹窗 / 侧边抽屉 / 只读详情抽屉 / 键值列表 |
+| `FormFields`：`FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormCustom` / `FormGrid` | react-hook-form 字段：`<FormInput control={form.control} name="x" label="…" rules={{ required: '请输入…' }} />` |
+| `ConfirmAction` / `RowActions` | 危险操作二次确认（替代 Popconfirm）/ 行操作 |
+| `StatusBadge` | `tone`: neutral / brand / info / success / warning / danger，`dot`，`variant="plain"` |
+| `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | 空态 / 带滑动指示条的分段标签 / 树 / 指标卡 |
+| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | 值格式 `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
+| `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | 导入 / 导出弹窗（`open` / `onOpenChange`） |
+| `upload/FileUpload` / `upload/ImageUpload` | 上传（fileList 条目 `{ uid, name, url, status, response }`） |
+
+lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning`、`toast.apiError(err, fallback)`）、`@/lib/format`（`formatDate / formatDateTime / formatNumber / formatRelative`）、`@/lib/motion`（`fadeUp / stagger / pageTransition / layoutSpring`）、`@/lib/chart-theme`（`useChartColors` 等，ECharts 必须用它取主题色）、`@/lib/menu-icons`。
+
+**字段类型 → 表单组件 / 表格列（scaffold 按此生成）：**
+
+| scaffold 类型 | 表单组件 | 表格列渲染 | 默认值 |
+|---|---|---|---|
+| `str` / `str20` / `str50` / `str500` | `FormInput` | 原样 | `''` |
+| `text` | `FormTextarea` | `ellipsis: true` | `''` |
+| `int` / `float` | `FormNumber`（`step={1}` / `step={0.01}`） | 右对齐 + `tabular-nums` | `null` |
+| `bool` | `FormSwitch` | `StatusBadge`（是 / 否） | `false` |
+| `date` | `FormDate` | `formatDate` | `''`（编辑回填 `formatDate(v, '')`） |
+| `datetime` | `FormDateTime` | `formatDateTime` | `''`（编辑回填 `formatDateTime(v, '')`） |
+| 枚举 / 状态（手写） | `FormSelect` / `FormRadioGroup` | `StatusBadge` + tone 映射 | - |
+
+**设计 tokens 与动效**（详见 `docs/frontend-redesign-plan.md` §3）：
+
+- 颜色一律用语义类：`bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`；只用语义类，暗色模式（`<html class="dark">`）天然正确
+- 中性灰为底，Ocean 渐变（blue → sky → cyan）是唯一强调色，只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`；不用紫色
+- 间距用 Tailwind（`space-y-4` / `gap-4`），数字 `tabular-nums`；移动端（<768px）不能横向撑破（表格容器横向滚动）
+- 动效克制：交互 150–250ms ease-out；列表错峰入场、指示条 layoutId、数字滚动、弹层进出已由公共组件提供；`prefers-reduced-motion` 已全局处理
+
+**菜单图标**：`menus.icon` 存的是历史 Semi 图标名（如 `IconUser`），由 `apps/web/src/lib/menu-icons.js` 映射到 lucide；新增菜单沿用映射表里已有的名字，需要新图标时在映射表补一条。
+
+### 新增 shadcn 原子组件
+
+组件源码直接进仓库（`apps/web/src/components/ui/`，配置 `apps/web/components.json`）。本机 shadcn CLI（node）直连 ui.shadcn.com 会失败，统一用中转脚本：
+
+```bash
+apps/web/scripts/shadcn-add.sh hover-card           # 启动本地中转 → REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add … → 关闭中转
+apps/web/scripts/shadcn-add.sh --view badge         # 只查看 registry 内容，不写文件
+apps/web/scripts/shadcn-add.sh badge -o -y          # 覆盖已有文件（会丢掉本地改动，先确认）
+```
+
+脚本会清掉 `HTTP(S)_PROXY` 再执行 CLI（npm 包下载仍经 `npm_config_proxy` 走原代理），并把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils`、撤掉误装的 `cn` 包。新增后检查 `git diff apps/web/package.json`，并确认组件只用语义色类。
 
 ### 纯前端页面（无后端 API）
 
@@ -344,9 +419,10 @@ component_center/dataviz/realtime_chart_page
 - 参考实现：`apps/api/src/modules/admin/users/`
 
 **前端**
-- 导出弹窗：`@/shared/components/import-export/ExportFieldsModal`
-- 导入弹窗：`@/shared/components/import-export/ImportCsvModal`（格式选项只有 CSV / XLSX）
+- 导出弹窗：`@/shared/components/data-transfer/ExportDialog`（`open` / `onOpenChange` / `fieldOptions` / `ruleHint` / `onConfirm({ fields, fileType })`）
+- 导入弹窗：`@/shared/components/data-transfer/ImportDialog`（`onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)`；格式只有 CSV / XLSX，错误行可下载）
 - 下载：`import { downloadBlobFile } from '@/shared/utils/file'`
+- 参考实现：`apps/web/src/modules/admin/pages/users/index.jsx`（勾选优先导出 + 模板下载 + 导入结果提示）
 
 ---
 
@@ -429,7 +505,9 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 ❌ db/schema 内写业务逻辑（只放 pgTable + toDict）
 ❌ 直接 Date#toISOString() 输出时间（必须用 @/common/serialize 的 toIso）
 ❌ toDict() 里把 numeric 转成数字（保持字符串）
-❌ 使用非 Semi Design 的 UI 组件库
+❌ 前端导入 @douyinfe/*（Semi 已下线；verify 的 frontend_no_legacy_ui 会拦截）或引入 antd / material-ui 等其他 UI 库
+❌ 前端用 var(--semi-*)、写死十六进制颜色、大段 inline style 布局（用 Tailwind 语义类）
+❌ 页面各写一套表格 / 弹窗 / 确认框（必须复用 DataTable / FormDialog / ConfirmAction / ImportDialog / ExportDialog）
 ❌ 前端用 fetch/XMLHttpRequest 写请求（必须用 @/shared/api/request）
 ❌ 硬编码菜单 ID（先查菜单树取下一个可用 ID）
 ❌ 新增域不在 src/router.ts + db/schema/index.ts 注册
@@ -449,7 +527,7 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 Step 1  读取上下文
         → 阅读本文件（AGENTS.md）
         → 阅读 docs/templates/ 中的代码骨架模板（backend/README.md 有替换规则）
-        → 查看现有相似模块了解命名规范（参考 modules/admin/users/）
+        → 查看现有相似模块了解命名规范（后端参考 modules/admin/users/，前端参考 apps/web/src/modules/admin/pages/users/index.jsx）
         → 查询当前菜单树（apps/api/scripts/seed-rbac.ts 的 MENUS_DATA），确定 parent_id 和下一个可用 ID
 
 Step 2  生成内部 Spec（AI 内部文档，PM 不直接看）
@@ -636,7 +714,7 @@ ID=3   组件示例中心 (component_center)
 
 - 项目名 `castor-kit`；命名一律小写连字符，不用驼峰、不用 Stack 后缀
 - 后端：Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino；不用 NestJS
-- 前端：React 18 + Vite + Semi Design，从 AuraStack 原样复制到 `apps/web`，不换 UI 库
+- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 从 Semi Design 整体迁移（`docs/frontend-redesign-plan.md`）；路由机制、API 层、页面功能与 AuraStack 保持一致
 - 数据库：直连现有 PostgreSQL（同库同表同列），不做数据迁移；`alembic_version` 表保留（Drizzle 不建模它）
 - `.xls` 不支持，只支持 csv / xlsx
 - 密码哈希必须兼容 werkzeug `pbkdf2:sha256:<iter>$<salt>$<hex>`，并行期新哈希也写此格式

@@ -1,49 +1,49 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useState, useEffect, useRef } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import { useCrudList } from '@/shared/hooks/useCrudList'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Download, Pin, Plus, RefreshCw, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
+import { formatDateTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import {
-  Table, Button, Modal, Form, Toast,
-  Popconfirm, Tag, Space, Typography, Select,
-} from '@douyinfe/semi-ui'
-import {
-  IconSend, IconPlus, IconRefresh, IconEdit, IconDelete,
-  IconUpload, IconDownload,
-} from '@douyinfe/semi-icons'
-import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'
-import ImportCsvModal from '@/shared/components/import-export/ImportCsvModal'
-import { downloadBlobFile } from '@/shared/utils/file'
-import {
-  getAnnouncements, createAnnouncement, updateAnnouncement,
-  deleteAnnouncement, publishAnnouncement, unpublishAnnouncement,
-  exportAnnouncements, downloadAnnouncementTemplate, importAnnouncements,
+  createAnnouncement,
+  deleteAnnouncement,
+  downloadAnnouncementTemplate,
+  exportAnnouncements,
+  getAnnouncements,
+  importAnnouncements,
+  publishAnnouncement,
+  unpublishAnnouncement,
+  updateAnnouncement,
 } from '@/modules/admin/api/announcement'
-
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
+import { FormDialog } from '@/shared/components/FormDialog'
+import { FormGrid, FormInput, FormNumber, FormSelect, FormSwitch, FormTextarea } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import SegmentedTabs from '@/shared/components/SegmentedTabs'
+import StatusBadge from '@/shared/components/StatusBadge'
+import { useCrudList } from '@/shared/hooks/useCrudList'
+import { downloadBlobFile } from '@/shared/utils/file'
 
 const TYPE_OPTIONS = [
   { label: '系统公告', value: 'system' },
   { label: '活动公告', value: 'activity' },
   { label: '版本更新', value: 'update' },
 ]
-
-const TYPE_COLOR_MAP = {
-  system: 'blue',
-  activity: 'orange',
-  update: 'green',
-}
-
-const TYPE_LABEL_MAP = {
-  system: '系统公告',
-  activity: '活动公告',
-  update: '版本更新',
-}
-
-const STATUS_FILTER_OPTIONS = [
+const TYPE_TONE_MAP = { system: 'info', activity: 'warning', update: 'success' }
+const TYPE_LABEL_MAP = { system: '系统公告', activity: '活动公告', update: '版本更新' }
+const STATUS_FILTER_ITEMS = [
   { label: '全部', value: '' },
   { label: '草稿', value: 'draft' },
   { label: '已发布', value: 'published' },
 ]
-
+const STATUS_OPTIONS = [
+  { label: '草稿', value: 'draft' },
+  { label: '已发布', value: 'published' },
+]
 const EXPORT_FIELD_OPTIONS = [
   { label: 'ID', value: 'id' },
   { label: '标题', value: 'title' },
@@ -55,298 +55,273 @@ const EXPORT_FIELD_OPTIONS = [
   { label: '发布时间', value: 'publish_at' },
   { label: '创建时间', value: 'created_at' },
 ]
+const DEFAULT_VALUES = { title: '', announce_type: 'system', content: '', status: 'draft', is_top: false, sort_order: 0 }
 
 export default function Announcements() {
-  const isMobile = useIsMobile()
   const list = useCrudList(
-    (params) => getAnnouncements(params).catch(() => {
-      Toast.error('加载失败')
-      return { items: [], total: 0 }
-    }),
+    (params) =>
+      getAnnouncements(params).catch(() => {
+        toast.error('加载失败')
+        return { items: [], total: 0 }
+      }),
     { defaultPerPage: 20 },
   )
-  const { data, total, loading, page, filters, fetchData, handleSearch, handlePageChange } = list
-  const [modalVisible, setModalVisible] = useState(false)
+  const { data, total, loading, page, perPage, filters, fetchData, handleSearch, handlePageChange } = list
+  const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [exportVisible, setExportVisible] = useState(false)
-  const [importVisible, setImportVisible] = useState(false)
-  const formApiRef = useRef()
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
-  useEffect(() => { fetchData() }, [])
+  const form = useForm({ defaultValues: DEFAULT_VALUES })
 
-  const handleStatusFilterChange = (val) => {
-    handleSearch({ status: val })
-  }
+  useEffect(() => {
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+  }, [])
 
   const openCreate = () => {
     setEditing(null)
-    setModalVisible(true)
+    form.reset(DEFAULT_VALUES)
+    setFormOpen(true)
   }
 
   const openEdit = (record) => {
     setEditing(record)
-    setModalVisible(true)
-  }
-
-  const handleDelete = (id) => {
-    deleteAnnouncement(id)
-      .then(() => {
-        Toast.success('删除成功')
-        fetchData()
-      })
-      .catch((err) => Toast.error(err?.error || '删除失败'))
-  }
-
-  const handlePublish = (record) => {
-    publishAnnouncement(record.id)
-      .then(() => {
-        Toast.success('已发布')
-        fetchData()
-      })
-      .catch((err) => Toast.error(err?.error || '操作失败'))
-  }
-
-  const handleUnpublish = (record) => {
-    unpublishAnnouncement(record.id)
-      .then(() => {
-        Toast.success('已撤回为草稿')
-        fetchData()
-      })
-      .catch((err) => Toast.error(err?.error || '操作失败'))
-  }
-
-  const handleSubmit = () => {
-    formApiRef.current.validate().then((values) => {
-      setSubmitting(true)
-      const action = editing
-        ? updateAnnouncement(editing.id, values)
-        : createAnnouncement(values)
-      action
-        .then(() => {
-          Toast.success(editing ? '编辑成功' : '创建成功')
-          setModalVisible(false)
-          handleSearch()
-        })
-        .catch((err) => Toast.error(err?.error || '操作失败'))
-        .finally(() => setSubmitting(false))
+    form.reset({
+      title: record.title ?? '',
+      content: record.content ?? '',
+      announce_type: record.announce_type ?? 'system',
+      status: record.status ?? 'draft',
+      is_top: Boolean(record.is_top),
+      sort_order: record.sort_order ?? 0,
     })
+    setFormOpen(true)
   }
 
-  const handleExport = ({ fields, fileType }) => {
-    exportAnnouncements({ fields, file_type: fileType, export_mode: 'all' })
-      .then((blob) => {
-        downloadBlobFile(blob, `announcements_export.${fileType}`)
-        setExportVisible(false)
-        Toast.success('导出成功')
-      })
-      .catch(() => Toast.error('导出失败'))
+  const remove = async (record) => {
+    try {
+      await deleteAnnouncement(record.id)
+      toast.success('删除成功')
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
+  }
+
+  const publish = async (record) => {
+    try {
+      await publishAnnouncement(record.id)
+      toast.success('已发布')
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
+  }
+
+  const unpublish = async (record) => {
+    try {
+      await unpublishAnnouncement(record.id)
+      toast.success('已撤回为草稿')
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
+  }
+
+  const submit = async (values) => {
+    try {
+      if (editing) await updateAnnouncement(editing.id, values)
+      else await createAnnouncement(values)
+      toast.success(editing ? '编辑成功' : '创建成功')
+      setFormOpen(false)
+      handleSearch()
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
+  }
+
+  const handleExport = async ({ fields, fileType }) => {
+    try {
+      const blob = await exportAnnouncements({ fields, file_type: fileType, export_mode: 'all' })
+      downloadBlobFile(blob, `announcements_export.${fileType}`)
+      setExportOpen(false)
+      toast.success('导出成功')
+    } catch {
+      toast.error('导出失败')
+    }
   }
 
   const handleDownloadTemplate = (fileType) => {
     downloadAnnouncementTemplate(fileType)
       .then((blob) => downloadBlobFile(blob, `announcements_template.${fileType}`))
-      .catch(() => Toast.error('模板下载失败'))
+      .catch(() => toast.error('模板下载失败'))
   }
-
-  const handleImport = (file) => importAnnouncements(file)
 
   const columns = [
     {
+      key: 'announce_type',
       title: '类型',
       dataIndex: 'announce_type',
       width: 100,
-      render: (v) => (
-        <Tag color={TYPE_COLOR_MAP[v] || 'blue'} size="small">
-          {TYPE_LABEL_MAP[v] || v}
-        </Tag>
-      ),
+      render: (v) => <StatusBadge tone={TYPE_TONE_MAP[v] || 'info'}>{TYPE_LABEL_MAP[v] || v}</StatusBadge>,
     },
     {
+      key: 'title',
       title: '标题',
       dataIndex: 'title',
       render: (v, record) => (
-        <Space>
-          {record.is_top && <Tag color="red" size="small">置顶</Tag>}
-          <span style={{ fontWeight: 500 }}>{v}</span>
-        </Space>
+        <span className="flex min-w-0 items-center gap-2">
+          {record.is_top ? (
+            <StatusBadge tone="danger" className="shrink-0">
+              <Pin className="size-3" />
+              置顶
+            </StatusBadge>
+          ) : null}
+          <span className="truncate font-medium">{v}</span>
+        </span>
       ),
     },
     {
+      key: 'status',
       title: '状态',
       dataIndex: 'status',
-      width: 90,
+      width: 96,
       render: (v) =>
         v === 'published' ? (
-          <Tag color="green" size="small">已发布</Tag>
+          <StatusBadge tone="success" dot>
+            已发布
+          </StatusBadge>
         ) : (
-          <Tag color="grey" size="small">草稿</Tag>
+          <StatusBadge tone="neutral" dot>
+            草稿
+          </StatusBadge>
         ),
     },
     {
+      key: 'publish_at',
       title: '发布时间',
       dataIndex: 'publish_at',
-      width: 160,
-      render: (v) => v?.slice(0, 19).replace('T', ' ') || '-',
+      width: 170,
+      className: 'tabular-nums whitespace-nowrap',
+      render: (v) => formatDateTime(v),
     },
     {
+      key: 'created_at',
       title: '创建时间',
       dataIndex: 'created_at',
-      width: 160,
-      render: (v) => v?.slice(0, 19).replace('T', ' '),
+      width: 170,
+      className: 'text-muted-foreground tabular-nums whitespace-nowrap',
+      render: (v) => formatDateTime(v, ''),
     },
     {
-      title: '操作',
-      width: 200,
+      key: 'actions',
+      title: '',
+      align: 'right',
+      width: 168,
       render: (_, record) => (
-        <Space>
+        <div className="flex justify-end gap-0.5">
           {record.status === 'draft' ? (
-            <Popconfirm title="确认发布该公告？" onConfirm={() => handlePublish(record)}>
-              <Button size="small" type="primary" theme="light">发布</Button>
-            </Popconfirm>
+            <ConfirmAction title="确认发布该公告？" confirmText="发布" destructive={false} onConfirm={() => publish(record)}>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 px-2">
+                发布
+              </Button>
+            </ConfirmAction>
           ) : (
-            <Popconfirm title="确认撤回该公告？" onConfirm={() => handleUnpublish(record)}>
-              <Button size="small" theme="light">撤回</Button>
-            </Popconfirm>
+            <ConfirmAction title="确认撤回该公告？" confirmText="撤回" destructive={false} onConfirm={() => unpublish(record)}>
+              <Button variant="ghost" size="sm" className="h-7 px-2">
+                撤回
+              </Button>
+            </ConfirmAction>
           )}
-          <Button size="small" icon={<IconEdit />} onClick={() => openEdit(record)}>编辑</Button>
-          <Popconfirm
-            title="确认删除该公告？"
-            content="删除后不可恢复"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button size="small" type="danger" icon={<IconDelete />}>删除</Button>
-          </Popconfirm>
-        </Space>
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
+            编辑
+          </Button>
+          <ConfirmAction title="确认删除该公告？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
+            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
+              删除
+            </Button>
+          </ConfirmAction>
+        </div>
       ),
     },
   ]
 
-  const initValues = editing
-    ? {
-        title: editing.title,
-        content: editing.content,
-        announce_type: editing.announce_type,
-        status: editing.status,
-        is_top: editing.is_top,
-        sort_order: editing.sort_order,
-      }
-    : { announce_type: 'system', status: 'draft', is_top: false, sort_order: 0 }
+  const statusFilter = filters.status ?? ''
 
   return (
     <div>
-      <Typography.Title heading={5} style={{ marginBottom: 16 }}>
-        <Space>
-          <IconSend />
-          公告管理
-        </Space>
-      </Typography.Title>
-
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <Space>
-            <Select
-              value={filters.status ?? ''}
-              onChange={handleStatusFilterChange}
-              optionList={STATUS_FILTER_OPTIONS}
-              style={{ width: 120 }}
-            />
-            <Button icon={<IconRefresh />} onClick={() => fetchData()}>刷新</Button>
-          </Space>
-          <Space>
-            <Button icon={<IconUpload />} onClick={() => setImportVisible(true)}>导入</Button>
-            <Button icon={<IconDownload />} onClick={() => setExportVisible(true)}>导出</Button>
-            <Button icon={<IconPlus />} theme="solid" type="primary" onClick={openCreate}>
+      <PageHeader
+        title="公告管理"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download />
+              导出
+            </Button>
+            <Button size="sm" variant="brand" onClick={openCreate}>
+              <Plus />
               新增公告
             </Button>
-          </Space>
-        </div>
-      </div>
-
-      <div style={CARD_STYLE}>
-        <Table
-          columns={columns}
-          dataSource={data}
-          loading={loading}
-          rowKey="id"
-          pagination={{
-            total,
-            currentPage: page,
-            pageSize: 20,
-            onPageChange: (p) => handlePageChange(p),
-          }}
-        />
-      </div>
-
-      <Modal
-        title={editing ? '编辑公告' : '新增公告'}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        okButtonProps={{ loading: submitting }}
-        afterClose={() => formApiRef.current?.reset()}
-        width={isMobile ? '95vw' : 560}
-      >
-        <Form
-          key={editing?.id ?? 'create'}
-          getFormApi={(api) => { formApiRef.current = api }}
-          initValues={initValues}
-          labelPosition="left"
-          labelWidth={90}
-        >
-          <Form.Input
-            field="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入公告标题' }]}
-            placeholder="请输入公告标题"
-          />
-          <Form.Select
-            field="announce_type"
-            label="公告类型"
-            optionList={TYPE_OPTIONS}
-            style={{ width: '100%' }}
-          />
-          <Form.TextArea
-            field="content"
-            label="内容"
-            placeholder="请输入公告内容（可选）"
-            autosize={{ minRows: 4, maxRows: 8 }}
-          />
-          <Form.Select
-            field="status"
-            label="状态"
-            optionList={[
-              { label: '草稿', value: 'draft' },
-              { label: '已发布', value: 'published' },
-            ]}
-            style={{ width: '100%' }}
-          />
-          <Form.Switch field="is_top" label="是否置顶" />
-          <Form.InputNumber
-            field="sort_order"
-            label="排序权重"
-            placeholder="数字越小越靠前"
-            style={{ width: '100%' }}
-          />
-        </Form>
-      </Modal>
-
-      <ExportFieldsModal
-        visible={exportVisible}
-        title="导出公告"
-        fieldOptions={EXPORT_FIELD_OPTIONS}
-        onCancel={() => setExportVisible(false)}
-        onConfirm={handleExport}
+          </>
+        }
       />
 
-      <ImportCsvModal
-        visible={importVisible}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <SegmentedTabs variant="pill" value={statusFilter} onChange={(val) => handleSearch({ status: val })} items={STATUS_FILTER_ITEMS} />
+        <Button variant="ghost" size="sm" className="text-muted-foreground h-8" onClick={() => fetchData()}>
+          <RefreshCw className={cn(loading && 'animate-spin')} />
+          刷新
+        </Button>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={data}
+        loading={loading}
+        minWidth={860}
+        pagination={{ page, perPage, total, onChange: handlePageChange }}
+        emptyTitle="暂无公告"
+        emptyDescription={statusFilter ? '换个状态筛选试试' : '点击右上角「新增公告」发布第一条'}
+      />
+
+      <FormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? '编辑公告' : '新增公告'}
+        description={editing ? `正在编辑「${editing.title}」` : '保存为草稿后可在列表中发布'}
+        form={form}
+        onSubmit={submit}
+      >
+        <FormInput control={form.control} name="title" label="标题" placeholder="请输入公告标题" rules={{ required: '请输入公告标题' }} />
+        <FormGrid>
+          <FormSelect control={form.control} name="announce_type" label="公告类型" options={TYPE_OPTIONS} />
+          <FormSelect control={form.control} name="status" label="状态" options={STATUS_OPTIONS} />
+        </FormGrid>
+        <FormTextarea control={form.control} name="content" label="内容" placeholder="请输入公告内容（可选）" rows={6} inputClassName="min-h-32" />
+        <FormGrid>
+          <FormNumber control={form.control} name="sort_order" label="排序权重" placeholder="数字越小越靠前" />
+          <FormSwitch control={form.control} name="is_top" label="是否置顶" className="self-end" />
+        </FormGrid>
+      </FormDialog>
+
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} title="导出公告" fieldOptions={EXPORT_FIELD_OPTIONS} onConfirm={handleExport} />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
         title="导入公告"
         targetLabel="公告列表"
-        onCancel={() => setImportVisible(false)}
         onDownloadTemplate={handleDownloadTemplate}
-        onImport={handleImport}
-        onImported={() => { handleSearch() }}
+        onImport={(file) => importAnnouncements(file)}
+        onImported={() => handleSearch()}
         errorExportFileName="announcements_import_errors.csv"
       />
     </div>

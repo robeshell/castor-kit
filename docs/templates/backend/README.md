@@ -39,7 +39,9 @@
      ```
 5. 迁移：`pnpm db:generate --name add_<resource>_table` → 审查 SQL → `pnpm db:migrate` → `psql -d <db> -c '\d <resource>s'` 确认落库
 6. RBAC：在 `apps/api/scripts/seed-rbac.ts` 添加菜单 + 按钮权限，运行 `pnpm seed:rbac -- --incremental`
-7. 门禁：`pnpm verify -- --module <resource>`
+7. 前端：临摹 `docs/templates/frontend/`（`list_page` 列表页 + `api.js`，shadcn/ui 体系，约定见 `docs/frontend-redesign-plan.md`），
+   页面放 `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx`；scaffold 会直接生成同结构的页面
+8. 门禁：`pnpm verify -- --module <resource>`（含 `frontend_no_legacy_ui`：页面目录不得导入 `@douyinfe/*`）
 
 ## 约定
 

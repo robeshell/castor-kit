@@ -1,17 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { Play, Sparkles } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Button } from '@/components/ui/button'
+import { EASE_OUT } from '@/lib/motion'
+import { cn } from '@/lib/utils'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import SegmentedTabs from '@/shared/components/SegmentedTabs'
 
 const PARTICLE_COUNT = 18000
 
 const SHAPES = ['sphere', 'torus', 'dna', 'galaxy', 'cube']
 const SHAPE_LABELS = { sphere: '球体', torus: '环面', dna: 'DNA 螺旋', galaxy: '星系', cube: '立方体' }
 
+// WebGL 顶点色（0~1 RGB），Ocean 蓝青系
 const PALETTES = [
-  { name: '极光', colors: [[0.0, 0.8, 1.0], [0.4, 0.2, 0.9], [0.0, 1.0, 0.6]] },
-  { name: '熔岩', colors: [[1.0, 0.2, 0.0], [1.0, 0.6, 0.0], [1.0, 1.0, 0.2]] },
-  { name: '星云', colors: [[0.8, 0.0, 1.0], [0.2, 0.0, 0.8], [1.0, 0.4, 0.8]] },
+  { name: '海洋', colors: [[0.15, 0.39, 0.92], [0.01, 0.52, 0.78], [0.13, 0.83, 0.93]] },
+  { name: '冰川', colors: [[0.13, 0.83, 0.93], [0.65, 0.95, 0.99], [0.22, 0.74, 0.97]] },
+  { name: '潟湖', colors: [[0.08, 0.72, 0.65], [0.18, 0.83, 0.75], [0.13, 0.83, 0.93]] },
 ]
+
+function paletteSwatch(p) {
+  const [a, , c] = p.colors.map(([r, g, b]) => `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`)
+  return `linear-gradient(90deg, ${a}, ${c})`
+}
 
 function getShapePositions(shape, count) {
   const pos = new Float32Array(count * 3)
@@ -78,7 +91,6 @@ export default function MorphingParticlesPage() {
   const [shapeIdx, setShapeIdx] = useState(0)
   const [paletteIdx, setPaletteIdx] = useState(0)
   const [morphing, setMorphing] = useState(false)
-  const isMobile = useIsMobile()
 
   useEffect(() => {
     const mount = mountRef.current
@@ -115,7 +127,7 @@ export default function MorphingParticlesPage() {
     const points = new THREE.Points(geo, mat)
     scene.add(points)
 
-    let morphT = 1.0, isMorphing = false
+    let morphT = 1.0
     let autoTimer = null
 
     function startMorph(newIdx) {
@@ -123,7 +135,6 @@ export default function MorphingParticlesPage() {
       fromPos = curPos.slice()
       toPos = getShapePositions(SHAPES[newIdx], PARTICLE_COUNT)
       morphT = 0
-      isMorphing = true
       s.shapeIdx = newIdx
       setShapeIdx(newIdx)
       setMorphing(true)
@@ -136,6 +147,11 @@ export default function MorphingParticlesPage() {
 
     // Expose to buttons
     stateRef.current.startMorph = startMorph
+    // 切换配色立即生效（不必等到下一次变形）
+    stateRef.current.applyPalette = (idx) => {
+      geo.attributes.color.array.set(getColors(idx, PARTICLE_COUNT))
+      geo.attributes.color.needsUpdate = true
+    }
 
     function scheduleAuto() {
       clearTimeout(autoTimer)
@@ -179,7 +195,6 @@ export default function MorphingParticlesPage() {
         }
         geo.attributes.position.needsUpdate = true
         if (morphT >= 1) {
-          isMorphing = false
           setMorphing(false)
           scheduleAuto()
         }
@@ -228,6 +243,7 @@ export default function MorphingParticlesPage() {
 
   const handlePalette = (idx) => {
     stateRef.current.paletteIdx = idx
+    stateRef.current.applyPalette?.(idx)
     setPaletteIdx(idx)
   }
 
@@ -238,76 +254,69 @@ export default function MorphingParticlesPage() {
   }
 
   return (
-    <div style={{ height: 'calc(100vh - 60px)', background: '#000', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-      {/* Title */}
-      <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, pointerEvents: 'none' }}>
-        <div style={{ fontSize: isMobile ? 15 : 22, fontWeight: 800, color: '#fff', letterSpacing: isMobile ? 1 : 2 }}>MORPHING PARTICLES</div>
-        {!isMobile && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-          {PARTICLE_COUNT.toLocaleString()} 粒子 · Three.js · 流体形态变换
-        </div>}
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="粒子形态变换" />
 
-      {/* Shape state */}
-      {!isMobile && (
-        <div style={{ position: 'absolute', top: 20, right: 24, zIndex: 10 }}>
-          <div style={{
-            background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
-            padding: '10px 16px', textAlign: 'right',
-          }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>当前形态</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>{SHAPE_LABELS[SHAPES[shapeIdx]]}</div>
-            {morphing && <div style={{ fontSize: 11, color: '#00d4ff', marginTop: 2 }}>变形中...</div>}
-          </div>
+      <Panel bodyClassName="flex flex-wrap items-center gap-x-6 gap-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs">形态</span>
+          <SegmentedTabs
+            variant="pill"
+            value={SHAPES[shapeIdx]}
+            onChange={(v) => handleShape(SHAPES.indexOf(v))}
+            items={SHAPES.map((s) => ({ value: s, label: SHAPE_LABELS[s] }))}
+          />
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={handleAuto}>
+            <Play />
+            自动
+          </Button>
         </div>
-      )}
-
-      {/* Controls */}
-      <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 'calc(100vw - 32px)', maxWidth: 520 }}>
-        {/* Shape buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-          {SHAPES.map((s, i) => (
-            <button key={s} onClick={() => handleShape(i)} style={{
-              padding: isMobile ? '6px 12px' : '8px 18px', borderRadius: 24, border: 'none', cursor: 'pointer', fontSize: isMobile ? 12 : 13, fontWeight: 600,
-              background: shapeIdx === i ? 'rgba(0,212,255,0.8)' : 'rgba(255,255,255,0.08)',
-              color: shapeIdx === i ? '#000' : 'rgba(255,255,255,0.7)',
-              backdropFilter: 'blur(8px)',
-              transition: 'all 0.2s',
-              boxShadow: shapeIdx === i ? '0 0 20px rgba(0,212,255,0.5)' : 'none',
-            }}>
-              {SHAPE_LABELS[s]}
-            </button>
-          ))}
-          <button onClick={handleAuto} style={{
-            padding: isMobile ? '6px 12px' : '8px 18px', borderRadius: 24, border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
-            fontSize: isMobile ? 12 : 13, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)',
-          }}>
-            自动 ▶
-          </button>
-        </div>
-        {/* Palette */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-xs">配色</span>
           {PALETTES.map((p, i) => (
-            <button key={p.name} onClick={() => handlePalette(i)} style={{
-              padding: '4px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12,
-              background: i === 0
-                ? 'linear-gradient(90deg,#00ccff,#9900ff)'
-                : i === 1
-                ? 'linear-gradient(90deg,#ff3300,#ffcc00)'
-                : 'linear-gradient(90deg,#cc00ff,#ff44aa)',
-              color: '#fff', fontWeight: 600,
-              opacity: paletteIdx === i ? 1 : 0.45,
-              boxShadow: paletteIdx === i ? '0 0 12px rgba(255,255,255,0.3)' : 'none',
-              transition: 'all 0.2s',
-            }}>
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => handlePalette(i)}
+              className={cn(
+                'flex h-7 items-center gap-1.5 rounded-md px-2 text-xs ring-1 transition-colors duration-150',
+                paletteIdx === i ? 'bg-brand-soft text-foreground ring-primary/40' : 'text-muted-foreground hover:text-foreground ring-border',
+              )}
+            >
+              <span className="h-2 w-5 rounded-full" style={{ background: paletteSwatch(p) }} />
               {p.name}
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>拖拽旋转 · 点击切换形态</div>
-      </div>
+      </Panel>
 
-      <div ref={mountRef} style={{ flex: 1, width: '100%' }} />
+      <section className="surface-card relative overflow-hidden">
+        <div ref={mountRef} className="h-[460px] w-full cursor-grab bg-black active:cursor-grabbing md:h-[600px]" />
+
+        <div className="pointer-events-none absolute top-3 right-3 rounded-xl bg-white/5 px-4 py-2.5 text-right ring-1 ring-white/10 backdrop-blur-md">
+          <div className="text-[11px] text-white/40">当前形态</div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={shapeIdx}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2, ease: EASE_OUT }}
+              className="text-lg font-semibold text-white"
+            >
+              {SHAPE_LABELS[SHAPES[shapeIdx]]}
+            </motion.div>
+          </AnimatePresence>
+          <div className={cn('text-brand-to flex items-center justify-end gap-1 text-[11px] transition-opacity duration-200', morphing ? 'opacity-100' : 'opacity-0')}>
+            <Sparkles className="size-3" />
+            变形中...
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-white/5 px-2 py-1 text-[11px] text-white/50 ring-1 ring-white/10 backdrop-blur-sm">
+          拖拽旋转 · 点击上方切换形态
+        </div>
+      </section>
     </div>
   )
 }

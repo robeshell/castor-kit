@@ -1,18 +1,31 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useState, useEffect, useRef } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import {
-  Table, Button, Modal, Form, Toast,
-  Popconfirm, Tag, Input, Space, Typography, Tree,
-} from '@douyinfe/semi-ui'
-import { IconPlus, IconRefresh, IconSearch } from '@douyinfe/semi-icons'
-import {
-  getRoles, createRole, updateRole, deleteRole,
-  exportRoles, downloadRolesTemplate, importRoles,
-} from '@/modules/admin/api/roles'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
+import { Check, Download, Minus, Plus, Upload, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
+import { formatDateTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { getMenus } from '@/modules/admin/api/menus'
-import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'
-import ImportCsvModal from '@/shared/components/import-export/ImportCsvModal'
+import {
+  createRole,
+  deleteRole,
+  downloadRolesTemplate,
+  exportRoles,
+  getRoles,
+  importRoles,
+  updateRole,
+} from '@/modules/admin/api/roles'
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
+import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FormDialog } from '@/shared/components/FormDialog'
+import { FormInput } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import StatusBadge from '@/shared/components/StatusBadge'
+import TreeView from '@/shared/components/TreeView'
 import { downloadBlobFile } from '@/shared/utils/file'
 
 const ROLE_EXPORT_FIELDS = [
@@ -26,314 +39,364 @@ const ROLE_EXPORT_FIELDS = [
 ]
 const normalizeFileType = (raw) => (['csv', 'xls', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
-// 将后端菜单树转成 Semi Tree 需要的格式
+// 后端菜单树 → TreeView 节点（key 为数字菜单 id）
 const convertToTreeData = (menus = []) =>
   menus.map((m) => ({
+    key: m.id,
     label: m.name,
-    value: m.id,
-    key: String(m.id),
     children: m.children?.length ? convertToTreeData(m.children) : undefined,
   }))
 
+const collectDescendants = (node) => (node.children || []).flatMap((child) => [child.key, ...collectDescendants(child)])
+
+/**
+ * 父子联动勾选（对齐原 Semi Tree multiple + autoMergeValue=false）：
+ * - 选中集合包含所有“完全选中”的节点（含父节点），半选父节点不在集合里
+ * - 父节点在集合中 → 其全部子孙视为选中
+ * - 父节点当且仅当所有子节点选中时为选中
+ */
+function expandDown(nodes, set) {
+  const walk = (list, parentChecked) =>
+    list.forEach((node) => {
+      const checked = parentChecked || set.has(node.key)
+      if (checked) set.add(node.key)
+      if (node.children) walk(node.children, checked)
+    })
+  walk(nodes, false)
+  return set
+}
+
+function recomputeUp(nodes, set) {
+  const walk = (node) => {
+    if (!node.children?.length) return set.has(node.key)
+    const results = node.children.map(walk)
+    const all = results.every(Boolean)
+    if (all) set.add(node.key)
+    else set.delete(node.key)
+    return all
+  }
+  nodes.forEach(walk)
+  return set
+}
+
+/** 仅展示用的勾选框（整行可点击切换）：选中 / 半选 / 未选 */
+function CheckMark({ state }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'flex size-4 shrink-0 items-center justify-center rounded-[4px] border shadow-xs transition-colors duration-150',
+        state === 'unchecked' ? 'border-input dark:bg-input/30' : 'bg-primary border-primary text-primary-foreground',
+      )}
+    >
+      {state === 'checked' ? <Check className="size-3.5" /> : null}
+      {state === 'indeterminate' ? <Minus className="size-3.5" /> : null}
+    </span>
+  )
+}
+
+function MenuTreeChecklist({ tree, value, onChange }) {
+  const checked = useMemo(() => recomputeUp(tree, expandDown(tree, new Set(value))), [tree, value])
+
+  const isIndeterminate = (node) => !checked.has(node.key) && collectDescendants(node).some((k) => checked.has(k))
+
+  const toggle = (node) => {
+    const next = new Set(checked)
+    const keys = [node.key, ...collectDescendants(node)]
+    if (checked.has(node.key)) keys.forEach((k) => next.delete(k))
+    else keys.forEach((k) => next.add(k))
+    onChange([...recomputeUp(tree, next)])
+  }
+
+  return (
+    <TreeView
+      nodes={tree}
+      defaultExpandAll
+      onSelect={toggle}
+      renderLabel={(node) => (
+        <span className="flex items-center gap-2">
+          <CheckMark state={checked.has(node.key) ? 'checked' : isIndeterminate(node) ? 'indeterminate' : 'unchecked'} />
+          <span className="truncate">{node.label}</span>
+        </span>
+      )}
+    />
+  )
+}
+
 export default function Roles() {
-  const isMobile = useIsMobile()
   const [data, setData] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [querySearch, setQuerySearch] = useState('')
-  const [modalVisible, setModalVisible] = useState(false)
-  const [editRecord, setEditRecord] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [menuTree, setMenuTree] = useState([])
   const [checkedMenus, setCheckedMenus] = useState([])
-  const [submitting, setSubmitting] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const [exportModalVisible, setExportModalVisible] = useState(false)
-  const [importModalVisible, setImportModalVisible] = useState(false)
-  const formApiRef = useRef()
+  const [selectedKeys, setSelectedKeys] = useState([])
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+
+  const form = useForm({ defaultValues: { name: '', code: '', description: '' } })
+
+  const load = () =>
+    getRoles()
+      .then((res) => setData(Array.isArray(res) ? res : []))
+      .catch(() => toast.error('加载失败'))
+      .finally(() => setLoading(false))
 
   const fetchData = () => {
     setLoading(true)
-    getRoles()
-      .then((res) => setData(Array.isArray(res) ? res : []))
-      .catch(() => Toast.error('加载失败'))
-      .finally(() => setLoading(false))
+    return load()
   }
 
   useEffect(() => {
-    fetchData()
-    getMenus({ format: 'tree' }).then((res) =>
-      setMenuTree(convertToTreeData(Array.isArray(res) ? res : []))
-    )
+    load()
+    getMenus({ format: 'tree' })
+      .then((res) => setMenuTree(convertToTreeData(Array.isArray(res) ? res : [])))
+      .catch(() => {})
   }, [])
 
   const openCreate = () => {
-    setEditRecord(null)
+    setEditing(null)
     setCheckedMenus([])
-    setModalVisible(true)
+    form.reset({ name: '', code: '', description: '' })
+    setFormOpen(true)
   }
 
   const openEdit = (record) => {
-    setEditRecord(record)
-    setCheckedMenus(Array.isArray(record.menu_ids) ? record.menu_ids : (record.menus?.map((m) => m.id) || []))
-    setModalVisible(true)
+    setEditing(record)
+    setCheckedMenus(Array.isArray(record.menu_ids) ? record.menu_ids : record.menus?.map((m) => m.id) || [])
+    form.reset({ name: record.name ?? '', code: record.code ?? '', description: record.description ?? '' })
+    setFormOpen(true)
   }
 
-  const normalizeCheckedMenuIds = (vals) => {
-    const raw = Array.isArray(vals) ? vals : (vals === undefined || vals === null ? [] : [vals])
-    return raw
-      .map((v) => (typeof v === 'object' && v !== null ? v.value : v))
-      .map((v) => Number(v))
-      .filter((v) => Number.isInteger(v))
+  const submit = async (values) => {
+    const payload = { ...values, menu_ids: checkedMenus }
+    try {
+      if (editing) await updateRole(editing.id, payload)
+      else await createRole(payload)
+      toast.success(editing ? '修改成功' : '创建成功')
+      setFormOpen(false)
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
   }
 
-  const handleSubmit = () => {
-    formApiRef.current.validate().then((values) => {
-      setSubmitting(true)
-      const payload = { ...values, menu_ids: checkedMenus }
-      const fn = editRecord ? updateRole(editRecord.id, payload) : createRole(payload)
-      fn.then(() => {
-        Toast.success(editRecord ? '修改成功' : '创建成功')
-        setModalVisible(false)
-        fetchData()
-      })
-        .catch((err) => Toast.error(err?.error || '操作失败'))
-        .finally(() => setSubmitting(false))
-    })
+  const remove = async (record) => {
+    try {
+      await deleteRole(record.id)
+      toast.success('删除成功')
+      setSelectedKeys((keys) => keys.filter((k) => k !== record.id))
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
   }
 
-  const handleDelete = (id) => {
-    deleteRole(id)
-      .then(() => { Toast.success('删除成功'); fetchData() })
-      .catch((err) => Toast.error(err?.error || '删除失败'))
-  }
-
-  const handleSearch = () => {
+  const runSearch = () => {
     setQuerySearch(search.trim())
-    setSelectedRowKeys([])
+    setSelectedKeys([])
   }
-
-  const handleReset = () => {
+  const reset = () => {
     setSearch('')
     setQuerySearch('')
-    setSelectedRowKeys([])
+    setSelectedKeys([])
   }
 
-  const handleExport = ({ fields, fileType }) => {
-    const finalFileType = normalizeFileType(fileType)
-    const hasSelected = selectedRowKeys.length > 0
-    const payload = {
-      fields,
-      file_type: finalFileType,
-      export_mode: hasSelected ? 'selected' : 'filtered',
+  const handleExport = async ({ fields, fileType }) => {
+    const type = normalizeFileType(fileType)
+    const payload = { fields, file_type: type, export_mode: selectedKeys.length ? 'selected' : 'filtered' }
+    if (selectedKeys.length) payload.ids = selectedKeys
+    else payload.filters = { search: querySearch }
+    try {
+      const blob = await exportRoles(payload)
+      downloadBlobFile(blob, `roles_export.${type}`)
+      toast.success('导出成功')
+      setExportOpen(false)
+    } catch (err) {
+      toast.apiError(err, '导出失败')
     }
-    if (hasSelected) {
-      payload.ids = selectedRowKeys
-    } else {
-      payload.filters = { search: querySearch }
-    }
-    exportRoles(payload)
-      .then((blob) => {
-        downloadBlobFile(blob, `roles_export.${finalFileType}`)
-        Toast.success('导出成功')
-        setExportModalVisible(false)
-      })
-      .catch((err) => Toast.error(err?.error || '导出失败'))
   }
+
+  const filteredData = useMemo(() => {
+    if (!querySearch) return data
+    const keyword = querySearch.toLowerCase()
+    return data.filter(
+      (item) => String(item.name || '').toLowerCase().includes(keyword) || String(item.code || '').toLowerCase().includes(keyword),
+    )
+  }, [data, querySearch])
 
   const columns = [
-    { title: 'ID', dataIndex: 'id', width: 70 },
-    { title: '角色名称', dataIndex: 'name' },
+    { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },
+    { key: 'name', title: '角色名称', dataIndex: 'name', render: (v) => <span className="font-medium">{v}</span> },
     {
+      key: 'code',
       title: '角色编码',
       dataIndex: 'code',
-      render: (v) => <Tag color="cyan">{v}</Tag>,
+      render: (v) => (v ? <StatusBadge tone="neutral" className="font-mono">{v}</StatusBadge> : null),
     },
-    { title: '描述', dataIndex: 'description' },
+    { key: 'description', title: '描述', dataIndex: 'description', ellipsis: true, className: 'text-muted-foreground' },
     {
+      key: 'menus',
       title: '菜单权限',
       dataIndex: 'menus',
-      render: (menus) => <Tag color="green">{menus?.length || 0} 个</Tag>,
+      width: 110,
+      render: (menus) => (
+        <StatusBadge tone={menus?.length ? 'success' : 'neutral'}>
+          <span className="tabular-nums">{menus?.length || 0}</span> 个
+        </StatusBadge>
+      ),
     },
     {
+      key: 'created_at',
       title: '创建时间',
       dataIndex: 'created_at',
-      render: (v) => v?.slice(0, 19).replace('T', ' '),
+      width: 180,
+      className: 'text-muted-foreground tabular-nums whitespace-nowrap',
+      render: (v) => formatDateTime(v, ''),
     },
     {
-      title: '操作',
-      width: 160,
+      key: 'actions',
+      title: '',
+      align: 'right',
+      width: 132,
       render: (_, record) => (
-        <Space>
-          <Button size="small" onClick={() => openEdit(record)}>
+        <div className="flex justify-end gap-0.5">
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
             编辑
           </Button>
-          <Popconfirm
-            title="确认删除该角色？"
-            content="删除后不可恢复"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button size="small" type="danger">
+          <ConfirmAction title="确认删除该角色？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
+            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
               删除
             </Button>
-          </Popconfirm>
-        </Space>
+          </ConfirmAction>
+        </div>
       ),
     },
   ]
 
-  const initValues = editRecord
-    ? { name: editRecord.name, code: editRecord.code, description: editRecord.description }
-    : {}
-  const filteredData = data.filter((item) => {
-    if (!querySearch) {
-      return true
-    }
-    const keyword = querySearch.toLowerCase()
-    return String(item.name || '').toLowerCase().includes(keyword)
-      || String(item.code || '').toLowerCase().includes(keyword)
-  })
-
   return (
     <div>
-      <Typography.Title heading={5} style={{ marginBottom: 16 }}>
-        角色管理
-      </Typography.Title>
-
-      <div style={CARD_STYLE}>
-        <Space style={{ flexWrap: 'wrap' }}>
-          <Input
-            prefix={<IconSearch />}
-            placeholder="搜索角色名称/编码"
-            value={search}
-            onChange={(v) => setSearch(v)}
-            onEnterPress={handleSearch}
-            style={{ width: isMobile ? '100%' : 240 }}
-          />
-          <Button icon={<IconSearch />} type="primary" onClick={handleSearch}>查询</Button>
-          <Button icon={<IconRefresh />} onClick={handleReset}>重置</Button>
-        </Space>
-      </div>
-
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-          <Typography.Text strong>角色列表</Typography.Text>
-          <Space>
-            <Button onClick={() => setImportModalVisible(true)}>导入</Button>
-            <Button onClick={() => setExportModalVisible(true)}>导出</Button>
-            <Button icon={<IconPlus />} theme="solid" type="primary" onClick={openCreate}>
+      <PageHeader
+        title="角色管理"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download />
+              导出
+            </Button>
+            <Button size="sm" variant="brand" onClick={openCreate}>
+              <Plus />
               新建角色
             </Button>
-          </Space>
-        </div>
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          loading={loading}
-          rowKey="id"
-          scroll={{}}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          }}
-          pagination={false}
-        />
-        <div style={{ marginTop: 8 }}>
-          <Space>
-            <Typography.Text type="tertiary">已勾选 {selectedRowKeys.length} 条</Typography.Text>
-            {selectedRowKeys.length > 0 ? (
-              <Button size="small" type="tertiary" onClick={() => setSelectedRowKeys([])}>
+          </>
+        }
+      />
+
+      <FilterBar onSearch={runSearch} onReset={reset}>
+        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索角色名称/编码" />
+      </FilterBar>
+
+      <AnimatePresence>
+        {selectedKeys.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
+              <span>
+                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+              </span>
+              <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
+                <X />
                 清空勾选
               </Button>
-            ) : null}
-          </Space>
-        </div>
-      </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      <Modal
-        title={editRecord ? '编辑角色' : '新建角色'}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        okButtonProps={{ loading: submitting }}
-        width={isMobile ? '95vw' : 560}
-        afterClose={() => formApiRef.current?.reset()}
+      <DataTable
+        columns={columns}
+        data={filteredData}
+        loading={loading}
+        selectable
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        minWidth={820}
+        emptyTitle="没有找到角色"
+        emptyDescription={querySearch ? '换个关键词试试' : '点击右上角「新建角色」添加第一个角色'}
+      />
+
+      <FormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? '编辑角色' : '新建角色'}
+        description={editing ? `正在编辑 ${editing.name}` : undefined}
+        form={form}
+        onSubmit={submit}
       >
-        <Form getFormApi={api => formApiRef.current = api} initValues={initValues} labelPosition="left" labelWidth={90}>
-          <Form.Input
-            field="name"
-            label="角色名称"
-            rules={[{ required: true, message: '请输入角色名称' }]}
-          />
-          <Form.Input
-            field="code"
-            label="角色编码"
-            rules={[{ required: true, message: '请输入角色编码' }]}
-            disabled={!!editRecord}
-          />
-          <Form.Input field="description" label="描述" />
-        </Form>
+        <FormInput control={form.control} name="name" label="角色名称" rules={{ required: '请输入角色名称' }} />
+        <FormInput
+          control={form.control}
+          name="code"
+          label="角色编码"
+          rules={{ required: '请输入角色编码' }}
+          disabled={Boolean(editing)}
+          inputClassName="font-mono"
+        />
+        <FormInput control={form.control} name="description" label="描述" />
 
-        <div style={{ marginTop: 12 }}>
-          <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500, color: 'var(--semi-color-text-0)' }}>
-            菜单权限
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-medium">菜单权限</span>
+            <span className="text-muted-foreground text-xs tabular-nums">已选 {checkedMenus.length} 项</span>
           </div>
-          <div
-            style={{
-              border: '1px solid var(--semi-color-border)',
-              borderRadius: 4,
-              padding: '8px 12px',
-              maxHeight: 280,
-              overflow: 'auto',
-            }}
-          >
+          <div className="max-h-72 overflow-auto rounded-lg border p-1.5">
             {menuTree.length > 0 ? (
-              <Tree
-                treeData={menuTree}
-                multiple
-                expandAll
-                autoMergeValue={false}
-                value={checkedMenus}
-                onChange={(vals) => setCheckedMenus(normalizeCheckedMenuIds(vals))}
-                style={{ width: '100%' }}
-              />
+              <MenuTreeChecklist tree={menuTree} value={checkedMenus} onChange={setCheckedMenus} />
             ) : (
-              <div style={{ color: 'var(--semi-color-text-2)', fontSize: 13 }}>暂无菜单数据</div>
+              <p className="text-muted-foreground px-2 py-3 text-[13px]">暂无菜单数据</p>
             )}
           </div>
         </div>
-      </Modal>
+      </FormDialog>
 
-      <ExportFieldsModal
-        visible={exportModalVisible}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
         title="角色导出字段"
-        ruleHint={
-          selectedRowKeys.length > 0
-            ? `已勾选 ${selectedRowKeys.length} 条，将优先导出勾选数据`
-            : '未勾选数据时，将导出当前列表全部结果'
-        }
+        ruleHint={selectedKeys.length ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将导出当前列表全部结果'}
         fieldOptions={ROLE_EXPORT_FIELDS}
         defaultFields={['name', 'code', 'description', 'menu_codes']}
-        onCancel={() => setExportModalVisible(false)}
         onConfirm={handleExport}
       />
 
-      <ImportCsvModal
-        visible={importModalVisible}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
         title="导入角色"
         targetLabel="角色管理"
-        onCancel={() => setImportModalVisible(false)}
         onDownloadTemplate={(fileType) =>
           downloadRolesTemplate(normalizeFileType(fileType))
             .then((blob) => {
-              const ext = normalizeFileType(fileType)
-              downloadBlobFile(blob, `roles_import_template.${ext}`)
-              Toast.success('模板下载成功')
+              downloadBlobFile(blob, `roles_import_template.${normalizeFileType(fileType)}`)
+              toast.success('模板下载成功')
             })
-            .catch((err) => Toast.error(err?.error || '模板下载失败'))
+            .catch((err) => toast.apiError(err, '模板下载失败'))
         }
         onImport={(file) => importRoles(file)}
         onImported={(res) => {
-          Toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
           fetchData()
         }}
         errorExportFileName="roles_import_error_rows.csv"

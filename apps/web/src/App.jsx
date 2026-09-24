@@ -1,11 +1,12 @@
 import { lazy, Suspense, useMemo } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { Button, Empty, Typography } from '@douyinfe/semi-ui'
-import { AuthProvider } from '@/context/AuthContext'
-import { useAuth } from '@/context/AuthContext'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
-import PrivateRoute from '@/components/Layout/PrivateRoute'
-import Layout from '@/components/Layout'
+import AppLayout from '@/components/app/AppLayout'
+import PrivateRoute from '@/components/app/PrivateRoute'
+import { ErrorPage, NoPermissionPage, PageLoading, RouteNotConfigured } from '@/components/app/StatusPages'
+import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import Login from '@/modules/auth/pages/login'
 import Profile from '@/modules/admin/pages/profile'
 
@@ -78,51 +79,6 @@ function normalizeRoutePath(pathname = '') {
   return pathname.replace(/^\/+/, '')
 }
 
-function NoPermissionPage() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 360 }}>
-      <Empty
-        title="暂无可访问页面"
-        description="当前账号没有分配可见菜单，请联系管理员分配权限。"
-      />
-    </div>
-  )
-}
-
-function ErrorPage({ code, title, desc }) {
-  const navigate = useNavigate()
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 480, gap: 12 }}>
-      <div style={{ fontSize: 96, fontWeight: 800, color: 'var(--semi-color-fill-2)', lineHeight: 1 }}>{code}</div>
-      <Typography.Title heading={4} style={{ margin: 0 }}>{title}</Typography.Title>
-      <Typography.Text type="tertiary">{desc}</Typography.Text>
-      <Button theme="solid" type="primary" style={{ marginTop: 8 }} onClick={() => navigate(-1)}>返回上一页</Button>
-    </div>
-  )
-}
-
-function PageLoading() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 360 }}>
-      <Typography.Text type="tertiary">页面加载中...</Typography.Text>
-    </div>
-  )
-}
-
-function RouteNotConfigured({ path, component }) {
-  return (
-    <div style={{ padding: 24 }}>
-      <Typography.Title heading={5}>页面未配置</Typography.Title>
-      <Typography.Paragraph>
-        菜单路径 <Typography.Text code>{path}</Typography.Text> 对应的组件
-        <Typography.Text code style={{ marginLeft: 6 }}>{component || '(空)'}</Typography.Text>
-        暂未在前端注册。组件值需与 `frontend/src/modules/**/pages/**/index.jsx` 对齐，
-        例如 `admin/users`、`component_center/list_page`。
-      </Typography.Paragraph>
-    </div>
-  )
-}
-
 function AppRoutes() {
   const { menus } = useAuth()
 
@@ -152,13 +108,13 @@ function AppRoutes() {
         path="/"
         element={
           <PrivateRoute>
-            <Layout />
+            <AppLayout />
           </PrivateRoute>
         }
       >
         <Route index element={defaultPath ? <Navigate to={defaultPath} replace /> : <NoPermissionPage />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="403" element={<ErrorPage code="403" title="无访问权限" desc="您没有权限访问该页面，请联系管理员" />} />
+        <Route path="403" element={<ErrorPage code="403" title="无访问权限" description="您没有权限访问该页面，请联系管理员。" />} />
         {routeMenus.map((menu) => {
           const Component = resolvePageComponent(menu.component)
           return (
@@ -175,7 +131,7 @@ function AppRoutes() {
             />
           )
         })}
-        <Route path="*" element={<ErrorPage code="404" title="页面不存在" desc="您访问的页面不存在或已被移除" />} />
+        <Route path="*" element={<ErrorPage code="404" title="页面不存在" description="您访问的页面不存在或已被移除。" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -186,9 +142,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <TooltipProvider delayDuration={300}>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+          <Toaster position="top-center" richColors={false} closeButton />
+        </TooltipProvider>
       </ThemeProvider>
     </BrowserRouter>
   )
