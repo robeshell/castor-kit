@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "castor-kit"
   text: "AI-First Full-Stack Scaffold"
-  tagline: Node.js + TypeScript (Fastify · Drizzle) + React 18 + PostgreSQL. Describe a feature in plain English — AI implements it end-to-end.
+  tagline: Node.js + TypeScript (Fastify · Drizzle) + React 19 + shadcn/ui + PostgreSQL. Describe a feature in plain English — AI implements it end-to-end.
   actions:
     - theme: brand
       text: Get Started

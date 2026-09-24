@@ -1,96 +1,193 @@
-import { useEffect, useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import { Progress, Table, Tag, Typography } from '@douyinfe/semi-ui'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
+import { motion } from 'motion/react'
+import { AlertTriangle, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
+import { cn } from '@/lib/utils'
+import DataTable from '@/shared/components/DataTable'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
 import request from '@/shared/api/request'
 
-const CARD = {
-  background: 'var(--semi-color-bg-1)', borderRadius: 10,
-  boxShadow: '0 1px 3px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.06)',
+const MAX_PTS = 60
+
+// 占用率分级：<50 正常 / <80 偏高 / 其余告警
+function levelFor(pct) {
+  return pct < 50 ? 'success' : pct < 80 ? 'warning' : 'danger'
 }
-const C = {
-  blue: '#4080FF', green: '#00B96B', orange: '#FA8C16', red: '#FF4D4F', purple: '#9254DE',
-  text2: 'var(--semi-color-text-2)',
-  border: 'var(--semi-color-border)',
-}
+const LEVEL_TEXT = { success: 'text-success', warning: 'text-warning', danger: 'text-danger' }
+const LEVEL_BAR = { success: 'bg-success', warning: 'bg-warning', danger: 'bg-danger' }
 
 const RESOURCE_COLUMNS = [
   {
+    key: 'name',
     title: '资源',
     dataIndex: 'name',
-    render: (v) => (
-      <Typography.Text ellipsis={{ showTooltip: true }} style={{ maxWidth: 200, display: 'inline-block' }}>
+    render: (v, row) => (
+      <span className="block max-w-[260px] truncate font-mono text-xs" title={row.fullName}>
         {v || '—'}
-      </Typography.Text>
+      </span>
     ),
   },
-  { title: '类型', dataIndex: 'type', width: 70, render: (v) => <Tag color="blue" size="small">{v}</Tag> },
+  { key: 'type', title: '类型', dataIndex: 'type', width: 90, render: (v) => <StatusBadge tone="info">{v}</StatusBadge> },
   {
+    key: 'duration',
     title: '耗时',
     dataIndex: 'duration',
-    width: 80,
+    width: 90,
+    align: 'right',
     render: (v) => (
-      <span style={{ fontWeight: 600, color: v > 500 ? C.red : v > 200 ? C.orange : C.green }}>
+      <span className={cn('font-medium tabular-nums', v > 500 ? 'text-danger' : v > 200 ? 'text-warning' : 'text-success')}>
         {v}ms
       </span>
     ),
   },
-  { title: '大小', dataIndex: 'size', width: 70, render: (v) => (v != null ? `${v}KB` : '—') },
+  {
+    key: 'size',
+    title: '大小',
+    dataIndex: 'size',
+    width: 90,
+    align: 'right',
+    render: (v) => <span className="text-muted-foreground tabular-nums">{v != null ? `${v}KB` : '—'}</span>,
+  },
 ]
 
-const MAX_PTS = 60
+const TIMING_ROWS = [
+  { key: 'dns', label: 'DNS', bar: 'bg-chart-4' },
+  { key: 'tcp', label: 'TCP', bar: 'bg-chart-1' },
+  { key: 'ttfb', label: 'TTFB', bar: 'bg-chart-5' },
+  { key: 'download', label: '下载', bar: 'bg-chart-3' },
+  { key: 'domParse', label: 'DOM 解析', bar: 'bg-chart-2' },
+  { key: 'domReady', label: 'DOMContentLoaded', bar: 'bg-chart-1' },
+  { key: 'total', label: '总耗时', bar: 'bg-brand-gradient' },
+]
 
-function colorFor(pct) {
-  return pct < 50 ? C.green : pct < 80 ? C.orange : C.red
+function readNavTiming() {
+  const nav = performance.getEntriesByType('navigation')[0]
+  if (!nav || nav.loadEventEnd <= 0) return null
+  return {
+    dns: +(nav.domainLookupEnd - nav.domainLookupStart).toFixed(0),
+    tcp: +(nav.connectEnd - nav.connectStart).toFixed(0),
+    ttfb: +(nav.responseStart - nav.requestStart).toFixed(0),
+    download: +(nav.responseEnd - nav.responseStart).toFixed(0),
+    domParse: +(nav.domInteractive - nav.responseEnd).toFixed(0),
+    domReady: +(nav.domContentLoadedEventEnd - nav.fetchStart).toFixed(0),
+    total: +(nav.loadEventEnd - nav.fetchStart).toFixed(0),
+  }
 }
 
-function GaugeCard({ label, value, pct, unit, desc, color }) {
-  const c = color ?? colorFor(pct)
+function readResources() {
   return (
-    <div style={{ ...CARD, padding: '14px 18px', flex: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <Typography.Text strong style={{ fontSize: 13 }}>{label}</Typography.Text>
-        <span style={{ fontSize: 20, fontWeight: 700, color: c }}>{value}<span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>{unit}</span></span>
+    performance
+      .getEntriesByType('resource')
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 8)
+      // 截断后的文件名可能重复（如多个 index.js），用序号作行 key，避免 React 重复 key 警告
+      .map((r, i) => ({
+        id: i,
+        fullName: r.name,
+        name: r.name.split('/').pop().split('?')[0].slice(0, 36) || r.name.slice(0, 36),
+        type: r.initiatorType,
+        duration: +r.duration.toFixed(0),
+        size: r.transferSize ? +(r.transferSize / 1024).toFixed(1) : null,
+      }))
+  )
+}
+
+function GaugeCard({ label, value, pct, unit, desc, level }) {
+  const clamped = Math.max(0, Math.min(100, pct || 0))
+  return (
+    <div className="surface-card flex flex-col gap-3 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-muted-foreground text-[13px]">{label}</span>
+        <span className={cn('flex items-baseline gap-0.5', LEVEL_TEXT[level])}>
+          <span className="text-[22px] leading-none font-semibold tracking-tight tabular-nums">{value}</span>
+          <span className="text-xs">{unit}</span>
+        </span>
       </div>
-      <Progress percent={pct} stroke={c} showInfo={false} style={{ marginBottom: 6 }} />
-      {desc && <Typography.Text type="tertiary" style={{ fontSize: 12 }}>{desc}</Typography.Text>}
+      <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+        {/* 每秒刷新的数值用 CSS 过渡即可，不依赖 rAF */}
+        <div
+          className={cn('h-full rounded-full transition-[width,background-color] duration-500 ease-out', LEVEL_BAR[level])}
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
+      {desc ? <span className="text-muted-foreground text-xs">{desc}</span> : null}
     </div>
   )
 }
 
-function sparkOption(data, color) {
-  return {
-    backgroundColor: 'transparent',
-    grid: { top: 4, left: 36, right: 8, bottom: 20 },
-    xAxis: { type: 'category', data: data.map((_, i) => i), show: false },
-    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: C.text2 }, splitLine: { lineStyle: { color: 'rgba(128,128,128,0.12)' } } },
-    series: [{
-      type: 'line', data, smooth: true, symbol: 'none',
-      lineStyle: { color, width: 1.5 },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + '55' }, { offset: 1, color: color + '00' }] } },
-    }],
-    tooltip: { trigger: 'axis', formatter: p => `${p[0].value.toFixed(1)}%` },
-  }
-}
+// memo：避免每秒的 FPS 刷新带动图表重渲染
+const HistoryChart = memo(function HistoryChart({ label, data, level, c }) {
+  const option = useMemo(() => {
+    const base = chartBase(c)
+    const color = c[level] || c['brand-from']
+    return {
+      ...base,
+      grid: { top: 6, left: 4, right: 8, bottom: 4, containLabel: true },
+      xAxis: { ...base.xAxis, type: 'category', data: data.map((_, i) => i), show: false },
+      yAxis: { ...base.yAxis, type: 'value', min: 0, max: 100, splitNumber: 2, axisLabel: { ...base.yAxis.axisLabel, fontSize: 10 } },
+      series: [
+        {
+          type: 'line',
+          data,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { color, width: 1.6 },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: hexToRgba(color, 0.3) },
+                { offset: 1, color: hexToRgba(color, 0) },
+              ],
+            },
+          },
+        },
+      ],
+      tooltip: { ...base.tooltip, formatter: (p) => `${Number(p[0].value).toFixed(1)}%` },
+      animation: false,
+    }
+  }, [c, data, level])
+  return (
+    <Panel title={`${label} (60s)`} bodyClassName="pt-0">
+      {/* 首个数据点到达后再挂载图表，避开 echarts-for-react 初始化期间连续 setOption 的竞态 */}
+      {data.length ? (
+        <ReactECharts option={option} style={{ height: 96 }} opts={{ renderer: 'canvas' }} />
+      ) : (
+        <Skeleton className="h-24 w-full" />
+      )}
+    </Panel>
+  )
+})
 
 export default function PerfMonitorPage() {
-  const isMobile = useIsMobile()
+  const c = useChartColors()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [history, setHistory] = useState({ cpu: [], mem: [], disk: [] })
-  const [navTiming, setNavTiming] = useState(null)
-  const [resources, setResources] = useState([])
+  // Navigation Timing / 资源耗时：进入页面时读取一次
+  const [navTiming] = useState(readNavTiming)
+  const [resources] = useState(readResources)
   const [fps, setFps] = useState(60)
   const fpsCounter = useRef(0)
-  const fpsLast    = useRef(performance.now())
-  const rafRef     = useRef(null)
+  const fpsLast = useRef(0)
+  const rafRef = useRef(null)
 
   // FPS 计数
   useEffect(() => {
+    fpsLast.current = performance.now()
     const loop = (now) => {
       fpsCounter.current++
       if (now - fpsLast.current >= 1000) {
-        setFps(Math.round(fpsCounter.current / (now - fpsLast.current) * 1000))
+        setFps(Math.round((fpsCounter.current / (now - fpsLast.current)) * 1000))
         fpsCounter.current = 0
         fpsLast.current = now
       }
@@ -98,32 +195,6 @@ export default function PerfMonitorPage() {
     }
     rafRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [])
-
-  // Navigation Timing（一次性）
-  useEffect(() => {
-    const nav = performance.getEntriesByType('navigation')[0]
-    if (nav && nav.loadEventEnd > 0) {
-      setNavTiming({
-        dns:      +(nav.domainLookupEnd  - nav.domainLookupStart).toFixed(0),
-        tcp:      +(nav.connectEnd       - nav.connectStart).toFixed(0),
-        ttfb:     +(nav.responseStart    - nav.requestStart).toFixed(0),
-        download: +(nav.responseEnd      - nav.responseStart).toFixed(0),
-        domParse: +(nav.domInteractive   - nav.responseEnd).toFixed(0),
-        domReady: +(nav.domContentLoadedEventEnd - nav.fetchStart).toFixed(0),
-        total:    +(nav.loadEventEnd     - nav.fetchStart).toFixed(0),
-      })
-    }
-    const res = performance.getEntriesByType('resource')
-      .sort((a, b) => b.duration - a.duration)
-      .slice(0, 8)
-      .map(r => ({
-        name: r.name.split('/').pop().split('?')[0].slice(0, 36) || r.name.slice(0, 36),
-        type: r.initiatorType,
-        duration: +r.duration.toFixed(0),
-        size: r.transferSize ? +(r.transferSize / 1024).toFixed(1) : null,
-      }))
-    setResources(res)
   }, [])
 
   // 轮询后端性能数据
@@ -135,120 +206,142 @@ export default function PerfMonitorPage() {
         if (!active) return
         setData(d)
         setError(null)
-        setHistory(prev => ({
-          cpu:  [...prev.cpu.slice(-(MAX_PTS - 1)),  d.cpu],
-          mem:  [...prev.mem.slice(-(MAX_PTS - 1)),  d.mem_pct],
+        setHistory((prev) => ({
+          cpu: [...prev.cpu.slice(-(MAX_PTS - 1)), d.cpu],
+          mem: [...prev.mem.slice(-(MAX_PTS - 1)), d.mem_pct],
           disk: [...prev.disk.slice(-(MAX_PTS - 1)), d.disk_pct],
         }))
-      } catch (e) {
+      } catch {
         if (active) setError('无法连接后端，请确认 pnpm dev（端口 5001）已启动')
       }
     }
     poll()
     const timer = setInterval(poll, 1000)
-    return () => { active = false; clearInterval(timer) }
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
   }, [])
 
-  const fpsColor = fps >= 55 ? C.green : fps >= 30 ? C.orange : C.red
+  const fpsLevel = fps >= 55 ? 'success' : fps >= 30 ? 'warning' : 'danger'
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 4 }}>
-        <div>
-          <Typography.Title heading={4} style={{ margin: 0 }}>性能监控面板</Typography.Title>
-          <Typography.Text type="tertiary" style={{ fontSize: 13 }}>
-            后端 systeminformation 实时采集 · 前端 Navigation Timing API · 每秒刷新
-          </Typography.Text>
-        </div>
-        {data && (
-          <Typography.Text type="tertiary" style={{ fontSize: 12 }}>
-            {new Date(data.ts).toLocaleTimeString('zh', { hour12: false })} 更新
-          </Typography.Text>
-        )}
+    <div className="space-y-5">
+      <PageHeader
+        title="性能监控面板"
+        actions={
+          data ? (
+            <StatusBadge tone="success" variant="plain" dot>
+              <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString('zh', { hour12: false })}</span> 更新
+            </StatusBadge>
+          ) : null
+        }
+      />
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <GaugeCard
+          label="CPU 使用率"
+          value={data?.cpu ?? '—'}
+          pct={data?.cpu ?? 0}
+          unit="%"
+          level={levelFor(data?.cpu ?? 0)}
+          desc={data ? (data.cpu < 40 ? '负载低' : data.cpu < 70 ? '负载中' : '负载高') : '等待数据'}
+        />
+        <GaugeCard
+          label="内存使用"
+          value={data ? data.mem_used.toFixed(0) : '—'}
+          pct={data?.mem_pct ?? 0}
+          unit="MB"
+          level={levelFor(data?.mem_pct ?? 0)}
+          desc={data ? `${data.mem_used.toFixed(0)} / ${data.mem_total.toFixed(0)} MB (${data.mem_pct}%)` : '等待数据'}
+        />
+        <GaugeCard
+          label="磁盘使用"
+          value={data ? data.disk_used.toFixed(1) : '—'}
+          pct={data?.disk_pct ?? 0}
+          unit="GB"
+          level={levelFor(data?.disk_pct ?? 0)}
+          desc={data ? `${data.disk_used.toFixed(1)} / ${data.disk_total.toFixed(1)} GB (${data.disk_pct}%)` : '等待数据'}
+        />
+        <GaugeCard
+          label="页面帧率"
+          value={fps}
+          pct={(fps / 120) * 100}
+          unit="fps"
+          level={fpsLevel}
+          desc={fps >= 55 ? '流畅' : fps >= 30 ? '轻微卡顿' : '卡顿'}
+        />
       </div>
 
-      {error && (
-        <div style={{ ...CARD, padding: '12px 16px', marginBottom: 16, color: C.red, fontSize: 13 }}>
-          ⚠️ {error}
-        </div>
-      )}
-
-      {/* 指标卡 */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', minWidth: 0 }}>
-        <GaugeCard label="CPU 使用率" value={data?.cpu ?? '—'} pct={data?.cpu ?? 0} unit="%" desc={data ? `${data.cpu < 40 ? '负载低' : data.cpu < 70 ? '负载中' : '负载高'}` : '等待数据'} />
-        <GaugeCard label="内存使用" value={data ? `${data.mem_used.toFixed(0)}` : '—'} pct={data?.mem_pct ?? 0} unit="MB" desc={data ? `${data.mem_used.toFixed(0)} / ${data.mem_total.toFixed(0)} MB (${data.mem_pct}%)` : '等待数据'} />
-        <GaugeCard label="磁盘使用" value={data ? `${data.disk_used.toFixed(1)}` : '—'} pct={data?.disk_pct ?? 0} unit="GB" desc={data ? `${data.disk_used.toFixed(1)} / ${data.disk_total.toFixed(1)} GB (${data.disk_pct}%)` : '等待数据'} />
-        <GaugeCard label="页面帧率" value={fps} pct={(fps / 120) * 100} unit="fps" color={fpsColor} desc={fps >= 55 ? '流畅' : fps >= 30 ? '轻微卡顿' : '卡顿'} />
+      <div className="grid gap-4 md:grid-cols-3">
+        <HistoryChart label="CPU %" data={history.cpu} level={levelFor(data?.cpu ?? 0)} c={c} />
+        <HistoryChart label="内存 %" data={history.mem} level={levelFor(data?.mem_pct ?? 0)} c={c} />
+        <HistoryChart label="磁盘 %" data={history.disk} level={levelFor(data?.disk_pct ?? 0)} c={c} />
       </div>
 
-      {/* 历史折线 */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        {[
-          { label: 'CPU %', data: history.cpu, color: colorFor(data?.cpu ?? 0) },
-          { label: '内存 %', data: history.mem, color: colorFor(data?.mem_pct ?? 0) },
-          { label: '磁盘 %', data: history.disk, color: colorFor(data?.disk_pct ?? 0) },
-        ].map(({ label, data: d, color }) => (
-          <div key={label} style={{ ...CARD, flex: 1, padding: '12px 16px' }}>
-            <Typography.Text strong style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{label} (60s)</Typography.Text>
-            <ReactECharts option={sparkOption(d, color)} style={{ height: 80 }} opts={{ renderer: 'canvas' }} />
-          </div>
-        ))}
-      </div>
-
-      {/* 网络 + Navigation Timing + 资源 */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '200px 320px 1fr', gap: 12 }}>
-        {/* 网络 IO */}
-        <div style={{ ...CARD, padding: '14px 16px' }}>
-          <Typography.Text strong style={{ fontSize: 13, display: 'block', marginBottom: 10 }}>网络 IO（累计）</Typography.Text>
-          {[
-            { label: '发送', value: data ? `${data.net_sent} MB` : '—', color: C.blue },
-            { label: '接收', value: data ? `${data.net_recv} MB` : '—', color: C.green },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ marginBottom: 10 }}>
-              <Typography.Text type="tertiary" style={{ fontSize: 12 }}>{label}</Typography.Text>
-              <div style={{ fontSize: 18, fontWeight: 700, color }}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Navigation Timing */}
-        <div style={{ ...CARD, padding: '14px 16px' }}>
-          <Typography.Text strong style={{ display: 'block', marginBottom: 10, fontSize: 13 }}>页面加载时序</Typography.Text>
-          {navTiming ? (
-            [
-              { label: 'DNS',            val: navTiming.dns,      color: C.purple },
-              { label: 'TCP',            val: navTiming.tcp,      color: C.blue },
-              { label: 'TTFB',           val: navTiming.ttfb,     color: C.orange },
-              { label: '下载',           val: navTiming.download, color: C.green },
-              { label: 'DOM 解析',       val: navTiming.domParse, color: C.blue },
-              { label: 'DOMContentLoaded', val: navTiming.domReady, color: C.orange },
-              { label: '总耗时',         val: navTiming.total,    color: C.red },
-            ].map(({ label, val, color }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
-                <span style={{ fontSize: 12, color: C.text2, width: 100, flexShrink: 0 }}>{label}</span>
-                <div style={{ flex: 1, background: 'var(--semi-color-fill-1)', borderRadius: 3, height: 5, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(100, (val / navTiming.total) * 100)}%`, height: '100%', background: color, borderRadius: 3 }} />
+      <div className="grid gap-4 lg:grid-cols-[220px_340px_minmax(0,1fr)]">
+        <Panel title="网络 IO（累计）">
+          <div className="space-y-2">
+            {[
+              { label: '发送', value: data ? `${data.net_sent} MB` : '—', icon: ArrowUpRight },
+              { label: '接收', value: data ? `${data.net_recv} MB` : '—', icon: ArrowDownRight },
+            ].map((item) => (
+              <div key={item.label} className="bg-muted/50 rounded-lg px-3 py-2.5">
+                <div className="text-muted-foreground flex items-center gap-1 text-[11px]">
+                  <item.icon className="size-3" />
+                  {item.label}
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color, width: 48, textAlign: 'right' }}>{val}ms</span>
+                <div className="mt-1 font-mono text-base font-medium tabular-nums">{item.value}</div>
               </div>
-            ))
-          ) : (
-            <Typography.Text type="tertiary" style={{ fontSize: 13 }}>加载完成后可用</Typography.Text>
-          )}
-        </div>
+            ))}
+          </div>
+        </Panel>
 
-        {/* 资源耗时 */}
-        <div style={{ ...CARD, padding: '14px 16px' }}>
-          <Typography.Text strong style={{ display: 'block', marginBottom: 10, fontSize: 13 }}>最慢资源 Top 8</Typography.Text>
-          <Table
+        <Panel title="页面加载时序">
+          {navTiming ? (
+            <div className="space-y-2.5">
+              {TIMING_ROWS.map((row) => {
+                const val = navTiming[row.key]
+                const pct = navTiming.total > 0 ? Math.min(100, (val / navTiming.total) * 100) : 0
+                return (
+                  <div key={row.key} className="grid grid-cols-[112px_minmax(0,1fr)_52px] items-center gap-2 text-xs">
+                    <span className="text-muted-foreground truncate">{row.label}</span>
+                    <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                      <motion.div
+                        className={cn('h-full rounded-full', row.bar)}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+                      />
+                    </div>
+                    <span className="text-right font-mono font-medium tabular-nums">{val}ms</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-[13px]">加载完成后可用</p>
+          )}
+        </Panel>
+
+        <Panel title="最慢资源 Top 8" padded={false}>
+          <DataTable
+            data={resources}
             columns={RESOURCE_COLUMNS}
-            dataSource={resources}
-            rowKey="name"
-            pagination={false}
-            size="small"
-            empty={<Typography.Text type="tertiary" style={{ fontSize: 13 }}>无资源记录</Typography.Text>}
+            rowKey="id"
+            bordered={false}
+            dense
+            emptyTitle="无资源记录"
+            className="border-t"
           />
-        </div>
+        </Panel>
       </div>
     </div>
   )

@@ -1,16 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@douyinfe/semi-ui/dist/css/semi.min.css': path.resolve(
-        __dirname,
-        'node_modules/@douyinfe/semi-ui/dist/css/semi.min.css'
-      ),
     },
   },
   server: {
@@ -24,7 +21,7 @@ export default defineConfig({
       '/ws': {
         target: 'ws://localhost:5001',
         ws: true,
-        changeOrigin: true,
+        // 不改写 Host：后端 /ws/devtools 握手校验 Origin 与 Host 同源（changeOrigin 会让 Host 变成 5001 而被拒）
       },
     },
   },
@@ -35,7 +32,8 @@ export default defineConfig({
         manualChunks: {
           // 常用 vendor 独立分包，便于浏览器长缓存；页面级依赖由动态 import 自动拆分
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'semi-ui': ['@douyinfe/semi-ui', '@douyinfe/semi-icons'],
+          'radix-ui': ['radix-ui'],
+          motion: ['motion'],
         },
       },
     },

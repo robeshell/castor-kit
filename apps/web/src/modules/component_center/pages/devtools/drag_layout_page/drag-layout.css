@@ -1,0 +1,26 @@
+/* 拖拽布局页：把 react-grid-layout 默认的红色占位 / 黑色缩放角换成主题色（亮暗自适应） */
+.drag-layout .react-grid-item.react-grid-placeholder {
+  background: var(--primary);
+  opacity: 0.12;
+  border-radius: 14px;
+  transition-duration: 150ms;
+}
+
+.drag-layout .react-grid-item > .react-resizable-handle {
+  background-image: none;
+}
+
+.drag-layout .react-grid-item > .react-resizable-handle::after {
+  right: 5px;
+  bottom: 5px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted-foreground);
+  border-bottom: 2px solid var(--muted-foreground);
+  border-bottom-right-radius: 2px;
+}
+
+.drag-layout .react-grid-item.react-draggable-dragging,
+.drag-layout .react-grid-item.resizing {
+  z-index: 3;
+}

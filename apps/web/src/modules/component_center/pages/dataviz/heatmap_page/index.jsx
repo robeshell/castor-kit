@@ -1,15 +1,12 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
-import { Button, Typography, Tag, Space } from '@douyinfe/semi-ui'
-import { IconRefresh } from '@douyinfe/semi-icons'
-
-
-const C = {
-  blue: '#4080FF', green: '#00B96B', orange: '#FA8C16',
-  purple: '#9254DE', red: '#FF4D4F', cyan: '#13C2C2',
-}
+import { Activity, CalendarCheck, Flame, Trophy, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatCard from '@/shared/components/StatCard'
+import StatusBadge from '@/shared/components/StatusBadge'
 
 // ── 日历热力图数据（近 1 年） ──────────────────────────────────────────
 function generateCalendarData() {
@@ -28,12 +25,11 @@ function generateCalendarData() {
   return data
 }
 
-// ── 散点热力图数据 ─────────────────────────────────────────────────────
+// ── 时段 × 星期热力数据 ────────────────────────────────────────────────
+const HOURS = Array.from({ length: 24 }, (_, h) => `${h}时`)
+const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
 function generateHourData() {
-  const hours = ['0时', '1时', '2时', '3时', '4时', '5时', '6时', '7时', '8时', '9时',
-    '10时', '11时', '12时', '13时', '14时', '15时', '16时', '17时', '18时', '19时',
-    '20时', '21时', '22时', '23时']
-  const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const data = []
   for (let d = 0; d < 7; d++) {
     for (let h = 0; h < 24; h++) {
@@ -48,178 +44,183 @@ function generateHourData() {
       if (val > 0) data.push([h, d, val])
     }
   }
-  return { data, hours, days }
+  return data
 }
 
 // ── 年度统计 ──────────────────────────────────────────────────────────
 function calcStats(calData) {
   const total = calData.reduce((s, [, v]) => s + v, 0)
   const activeDays = calData.filter(([, v]) => v > 0).length
-  const maxDay = calData.reduce((mx, d) => d[1] > mx[1] ? d : mx, ['', 0])
-  const streak = (() => {
-    let max = 0, cur = 0
-    for (const [, v] of calData) { cur = v > 0 ? cur + 1 : 0; max = Math.max(max, cur) }
-    return max
-  })()
+  const maxDay = calData.reduce((mx, d) => (d[1] > mx[1] ? d : mx), ['', 0])
+  let streak = 0
+  let cur = 0
+  for (const [, v] of calData) {
+    cur = v > 0 ? cur + 1 : 0
+    streak = Math.max(streak, cur)
+  }
   return { total, activeDays, maxDay, streak }
 }
 
+/** 由主题色生成的顺序色阶：中性 → Ocean 蓝 */
+function brandRamp(c) {
+  return [
+    hexToRgba(c['muted-foreground'], 0.12),
+    hexToRgba(c['brand-to'], 0.45),
+    hexToRgba(c['brand-via'], 0.65),
+    hexToRgba(c['brand-from'], 0.85),
+    c['brand-from'],
+  ]
+}
+
 export default function HeatmapPage() {
-  const isMobile = useIsMobile()
+  const c = useChartColors()
   const [calData, setCalData] = useState(() => generateCalendarData())
-  const [hourInfo, setHourInfo] = useState(() => generateHourData())
+  const [hourData, setHourData] = useState(() => generateHourData())
 
   const handleRefresh = () => {
     setCalData(generateCalendarData())
-    setHourInfo(generateHourData())
+    setHourData(generateHourData())
   }
 
-  const stats = calcStats(calData)
-  const startDate = calData[0][0]
-  const endDate = calData[calData.length - 1][0]
+  const stats = useMemo(() => calcStats(calData), [calData])
+  const ramp = useMemo(() => brandRamp(c), [c])
 
-  // ── 日历热力图 option ─────────────────────────────────────────────
-  const calOption = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      formatter: p => `${p.data[0]}<br/>活跃度：<b>${p.data[1]}</b>`,
-    },
-    visualMap: {
-      min: 0,
-      max: 18,
-      show: false,
-      inRange: {
-        color: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+  const calOption = useMemo(() => {
+    const base = chartBase(c)
+    return {
+      textStyle: base.textStyle,
+      tooltip: {
+        ...base.tooltip,
+        trigger: 'item',
+        formatter: (p) => `${p.data[0]}<br/>活跃度：<b>${p.data[1]}</b>`,
       },
-    },
-    calendar: {
-      top: 30,
-      left: 40,
-      right: 20,
-      cellSize: [14, 14],
-      range: [startDate, endDate],
-      itemStyle: { borderWidth: 2, borderColor: '#fff' },
-      yearLabel: { show: false },
-      dayLabel: {
-        firstDay: 1,
-        nameMap: ['日', '一', '二', '三', '四', '五', '六'],
-        color: '#8c8c8c',
-        fontSize: 11,
+      visualMap: { min: 0, max: 18, show: false, inRange: { color: ramp } },
+      calendar: {
+        top: 24,
+        left: 36,
+        right: 12,
+        cellSize: [14, 14],
+        range: [calData[0][0], calData[calData.length - 1][0]],
+        itemStyle: { borderWidth: 2, borderColor: c.card, color: 'transparent' },
+        splitLine: { show: false },
+        yearLabel: { show: false },
+        dayLabel: {
+          firstDay: 1,
+          nameMap: ['日', '一', '二', '三', '四', '五', '六'],
+          color: c['muted-foreground'],
+          fontSize: 11,
+        },
+        monthLabel: { color: c['muted-foreground'], fontSize: 11 },
       },
-      monthLabel: { color: '#8c8c8c', fontSize: 11 },
-    },
-    series: [{
-      type: 'heatmap',
-      coordinateSystem: 'calendar',
-      data: calData,
-    }],
-  }
+      series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: calData }],
+    }
+  }, [c, ramp, calData])
 
-  // ── 时段×星期热力图 option ────────────────────────────────────────
-  const { data: hourData, hours, days } = hourInfo
-  const maxVal = Math.max(...hourData.map(d => d[2]), 1)
-  const hourOption = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      position: 'top',
-      formatter: p => `${days[p.data[1]]} ${hours[p.data[0]]}<br/>活跃度：<b>${p.data[2]}</b>`,
-    },
-    grid: { top: 10, left: 50, right: 60, bottom: 30 },
-    xAxis: {
-      type: 'category',
-      data: hours,
-      axisLabel: { fontSize: 10, interval: 1, color: '#8c8c8c' },
-      splitArea: { show: true },
-    },
-    yAxis: {
-      type: 'category',
-      data: days,
-      axisLabel: { fontSize: 12, color: '#434343' },
-      splitArea: { show: true },
-    },
-    visualMap: {
-      min: 0,
-      max: maxVal,
-      calculable: true,
-      orient: 'vertical',
-      right: 0,
-      top: 'center',
-      inRange: {
-        color: ['#f0f9e8', '#bae4bc', '#7bccc4', '#43a2ca', '#0868ac'],
+  const hourOption = useMemo(() => {
+    const base = chartBase(c)
+    const maxVal = Math.max(...hourData.map((d) => d[2]), 1)
+    return {
+      textStyle: base.textStyle,
+      tooltip: {
+        ...base.tooltip,
+        trigger: 'item',
+        position: 'top',
+        formatter: (p) => `${DAYS[p.data[1]]} ${HOURS[p.data[0]]}<br/>活跃度：<b>${p.data[2]}</b>`,
       },
-      textStyle: { fontSize: 11, color: '#8c8c8c' },
-    },
-    series: [{
-      name: '活跃度',
-      type: 'heatmap',
-      data: hourData,
-      label: {
-        show: false,
+      grid: { top: 8, left: 8, right: 56, bottom: 8, containLabel: true },
+      xAxis: {
+        ...base.xAxis,
+        type: 'category',
+        data: HOURS,
+        axisLabel: { ...base.xAxis.axisLabel, fontSize: 10, interval: 1 },
+        splitArea: { show: false },
       },
-      emphasis: {
-        itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' },
+      yAxis: {
+        ...base.yAxis,
+        type: 'category',
+        data: DAYS,
+        splitLine: { show: false },
+        axisLabel: { ...base.yAxis.axisLabel, fontSize: 12, color: c.foreground },
       },
-    }],
-  }
+      visualMap: {
+        min: 0,
+        max: maxVal,
+        calculable: true,
+        orient: 'vertical',
+        right: 0,
+        top: 'center',
+        itemHeight: 120,
+        itemWidth: 10,
+        inRange: { color: ramp },
+        textStyle: { fontSize: 11, color: c['muted-foreground'] },
+      },
+      series: [
+        {
+          name: '活跃度',
+          type: 'heatmap',
+          data: hourData,
+          label: { show: false },
+          itemStyle: { borderColor: c.card, borderWidth: 2, borderRadius: 3 },
+          emphasis: { itemStyle: { borderColor: c.foreground, borderWidth: 1 } },
+        },
+      ],
+    }
+  }, [c, ramp, hourData])
 
   return (
-    <div>
-      {/* 页头 */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <div>
-          <Typography.Title heading={4} style={{ margin: 0 }}>热力日历图</Typography.Title>
-          <Typography.Text type="tertiary" style={{ fontSize: 13 }}>
-            ECharts Calendar Heatmap · 活跃度全年可视化
-          </Typography.Text>
-        </div>
-        <Button icon={<IconRefresh />} onClick={handleRefresh}>刷新数据</Button>
+    <div className="space-y-5">
+      <PageHeader
+        title="热力日历图"
+        actions={
+          <Button size="sm" variant="outline" onClick={handleRefresh}>
+            <RefreshCw />
+            刷新数据
+          </Button>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatCard label="年度总活跃" value={stats.total} icon={Activity} />
+        <StatCard label="活跃天数" value={stats.activeDays} suffix="天" icon={CalendarCheck} />
+        <StatCard label="最长连续" value={stats.streak} suffix="天" icon={Flame} />
+        <StatCard label="单日最高" value={stats.maxDay[1]} icon={Trophy} />
       </div>
 
-      {/* 年度统计 */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
-        {[
-          { label: '年度总活跃', value: stats.total.toLocaleString(), color: C.green },
-          { label: '活跃天数', value: `${stats.activeDays} 天`, color: C.blue },
-          { label: '最长连续', value: `${stats.streak} 天`, color: C.orange },
-          { label: '单日最高', value: stats.maxDay[1], color: C.purple },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{
-            ...CARD_STYLE,
-            borderTop: `3px solid ${color}`,
-            padding: '12px 16px',
-          }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
-            <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 2 }}>{label}</div>
+      <Panel
+        title={
+          <span className="flex items-center gap-2">
+            年度活跃日历
+            <StatusBadge tone="brand">GitHub 贡献图风格</StatusBadge>
+          </span>
+        }
+        description="近 365 天每日活跃度"
+        actions={
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
+            <span>少</span>
+            {ramp.map((color) => (
+              <span key={color} className="size-3 rounded-[3px]" style={{ background: color }} />
+            ))}
+            <span>多</span>
           </div>
-        ))}
-      </div>
+        }
+      >
+        <div className="-mx-1 overflow-x-auto px-1">
+          <ReactECharts option={calOption} style={{ height: 136, minWidth: 760 }} opts={{ renderer: 'canvas' }} notMerge />
+        </div>
+      </Panel>
 
-      {/* 年度日历热力图 */}
-      <div style={{ ...CARD_STYLE, marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Typography.Title heading={6} style={{ margin: 0 }}>年度活跃日历</Typography.Title>
-          <Tag color="green" size="small">GitHub 贡献图风格</Tag>
+      <Panel
+        title={
+          <span className="flex items-center gap-2">
+            全周活跃热力矩阵
+            <StatusBadge tone="info">24h × 7days</StatusBadge>
+          </span>
+        }
+      >
+        <div className="-mx-1 overflow-x-auto px-1">
+          <ReactECharts option={hourOption} style={{ height: 240, minWidth: 600 }} opts={{ renderer: 'canvas' }} notMerge />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-          <span style={{ fontSize: 11, color: '#8c8c8c' }}>少</span>
-          {['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'].map(c => (
-            <div key={c} style={{ width: 12, height: 12, borderRadius: 2, background: c }} />
-          ))}
-          <span style={{ fontSize: 11, color: '#8c8c8c' }}>多</span>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <ReactECharts option={calOption} style={{ height: 160, minWidth: 600 }} opts={{ renderer: 'canvas' }} />
-        </div>
-      </div>
-
-      {/* 时段×星期热力矩阵 */}
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Typography.Title heading={6} style={{ margin: 0 }}>全周活跃热力矩阵</Typography.Title>
-          <Tag color="blue" size="small">24h × 7days</Tag>
-        </div>
-        <ReactECharts option={hourOption} style={{ height: 220 }} opts={{ renderer: 'canvas' }} />
-      </div>
+      </Panel>
     </div>
   )
 }

@@ -4,7 +4,7 @@
 
 ## 项目概况
 
-Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 18 + PostgreSQL + Semi Design 的 AI-First 管理后台脚手架（AuraStack 的 Node.js 重写版）。pnpm monorepo：`apps/api`（后端）、`apps/web`（前端）、`apps/mcp`（MCP Server）。
+Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 19 + PostgreSQL + shadcn/ui（Tailwind CSS v4 + motion）的 AI-First 管理后台脚手架（AuraStack 的 Node.js 重写版；前端 UI 已从 Semi Design 迁移，见 `docs/frontend-redesign-plan.md`）。pnpm monorepo：`apps/api`（后端）、`apps/web`（前端）、`apps/mcp`（MCP Server）。
 
 - 后端端口：5001 | 前端：Vite dev server 5173（`/api`、`/ws` proxy 到 5001）| 启动：`pnpm dev`
 - 数据库：`postgresql://wangwenyu@localhost/aurastack`
@@ -21,11 +21,13 @@ Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 18 + PostgreSQL + Sem
 - 导入导出：使用 `common/tabular.ts` 的 `buildTable` / `sendTable` / `readTableFile`（只支持 csv / xlsx）
 
 **前端（apps/web）**
-- UI：只用 Semi Design，不用 antd/material-ui
+- UI：shadcn/ui 原子组件（`@/components/ui/*`）+ 业务公共组件（`@/shared/components/*`）+ lucide-react 图标；样式只用 Tailwind 语义色类
+- 页面结构照 `apps/web/src/modules/admin/pages/users/index.jsx`：PageHeader → FilterBar → DataTable → FormDialog（react-hook-form + FormFields）→ ImportDialog / ExportDialog，删除用 ConfirmAction，提示用 `@/lib/toast`
 - request：`import request from '@/shared/api/request'`
 - 数据访问：`res.items` / `res.total`（不是 `res.data.items`，Axios 已 unwrap）
-- 导入导出：`@/shared/components/import-export/ExportFieldsModal` + `ImportCsvModal`
+- 导入导出：`@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
 - 下载文件：`import { downloadBlobFile } from '@/shared/utils/file'`
+- 新增 shadcn 原子组件：`apps/web/scripts/shadcn-add.sh <组件>`（经本地中转执行 `npx shadcn@latest add`）
 
 **RBAC**
 - 权限编码规则：`system_users`（菜单）/ `system_users_add`（按钮）；component_center 域用 `cc_` 前缀
@@ -50,7 +52,7 @@ Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 18 + PostgreSQL + Sem
 ## 禁止行为
 
 - 询问 PM 路由路径、权限编码、字段类型等技术细节
-- 使用非 Semi Design 的 UI 组件库
+- 导入 `@douyinfe/*`（Semi 已下线）或 antd / material-ui 等其他 UI 库；使用 `var(--semi-*)` 或写死十六进制颜色
 - `res.data.items`（Axios 已 unwrap，直接用 `res.items`）
 - 手写迁移 SQL（必须 `pnpm db:generate --name <描述>`，注意不能写 `--`）
 - 迁移不落库、不用 `psql \d` 实证就声明完成

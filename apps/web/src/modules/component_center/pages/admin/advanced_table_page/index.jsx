@@ -1,47 +1,43 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useEffect, useMemo, useState } from 'react'
-import { useCrudList } from '@/shared/hooks/useCrudList'
-import {
-  Button,
-  Checkbox,
-  Input,
-  InputNumber,
-  Modal,
-  Popconfirm,
-  Select,
-  SideSheet,
-  Space,
-  Switch,
-  Table,
-  Tabs,
-  Tag,
-  Toast,
-  Typography,
-} from '@douyinfe/semi-ui'
-import {
-  IconDelete,
-  IconEdit,
-  IconPlus,
-  IconRefresh,
-  IconSave,
-  IconSearch,
-  IconSetting,
-  IconUndo,
-} from '@douyinfe/semi-icons'
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { useEffect, useState } from 'react'
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { AnimatePresence, motion } from 'motion/react'
+import {
+  Archive,
+  ArrowUpDown,
+  Columns3,
+  Gauge,
+  GripVertical,
+  Pin,
+  Plus,
+  RefreshCw,
+  Rows3,
+  Send,
+  Star,
+  Trash2,
+  Undo2,
+  X,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Spinner } from '@/components/ui/spinner'
+import { Switch } from '@/components/ui/switch'
+import { formatDateTime } from '@/lib/format'
+import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 import {
   batchDeleteAdvancedTableRows,
   batchUpdateAdvancedTableRows,
@@ -52,19 +48,25 @@ import {
   reorderAdvancedTableRows,
   updateAdvancedTableRow,
 } from '@/modules/component_center/api/advanced_table_page'
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
+import PageHeader from '@/shared/components/PageHeader'
+import SegmentedTabs from '@/shared/components/SegmentedTabs'
+import StatCard from '@/shared/components/StatCard'
+import StatusBadge from '@/shared/components/StatusBadge'
+import { useCrudList } from '@/shared/hooks/useCrudList'
 
 const STATUS_META = {
-  draft: { label: '草稿', color: 'light-blue' },
-  published: { label: '已发布', color: 'green' },
-  archived: { label: '已归档', color: 'grey' },
+  draft: { label: '草稿', tone: 'info' },
+  published: { label: '已发布', tone: 'success' },
+  archived: { label: '已归档', tone: 'neutral' },
 }
-
 const STATUS_OPTIONS = [
   { label: '草稿', value: 'draft' },
   { label: '已发布', value: 'published' },
   { label: '已归档', value: 'archived' },
 ]
-
 const CATEGORY_OPTIONS = [
   { label: '通用', value: 'general' },
   { label: '订单', value: 'order' },
@@ -72,10 +74,13 @@ const CATEGORY_OPTIONS = [
   { label: '财务', value: 'finance' },
   { label: '风控', value: 'risk' },
 ]
-
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_OPTIONS.map((item) => [item.value, item.label]))
-
-
+const STATUS_TABS = [
+  { label: '全部', value: '' },
+  { label: '草稿', value: 'draft' },
+  { label: '已发布', value: 'published' },
+  { label: '已归档', value: 'archived' },
+]
 const ALL_COLUMNS = [
   { key: 'row_code', label: '编码' },
   { key: 'name', label: '名称' },
@@ -91,45 +96,65 @@ const ALL_COLUMNS = [
   { key: 'updated_at', label: '更新时间' },
 ]
 
-function formatDateTime(value) {
-  return value ? value.slice(0, 19).replace('T', ' ') : '-'
+// 操作列固定在右侧：横向滚动时保持不透明底色，并与行 hover / 选中态同色
+const STICKY_CELL =
+  'sticky right-0 z-[1] bg-card shadow-[inset_1px_0_0_var(--border),-10px_0_12px_-12px_rgba(15,23,42,0.28)] transition-colors duration-150 group-hover/row:bg-[color-mix(in_srgb,var(--muted)_40%,var(--card))] group-data-[state=selected]/row:bg-[color-mix(in_srgb,var(--primary)_9%,var(--card))]'
+const STICKY_HEAD = 'sticky right-0 z-[1] bg-[color-mix(in_srgb,var(--muted)_40%,var(--card))] shadow-[inset_1px_0_0_var(--border)]'
+
+function splitTags(value) {
+  return String(value || '')
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
-function SortableItem({ item }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    border: '1px solid var(--semi-color-border)',
-    borderRadius: 8,
-    padding: '10px 12px',
-    marginBottom: 8,
-    background: 'var(--semi-color-bg-1)',
-    cursor: 'grab',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  }
+function NumberCell({ value, onChange }) {
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Space>
-        <Typography.Text strong>{item.name}</Typography.Text>
-        <Tag size="small" color="white">{item.row_code}</Tag>
-      </Space>
-      <Typography.Text type="tertiary">排序值: {item.sort_order}</Typography.Text>
+    <Input
+      type="number"
+      min={0}
+      max={100}
+      value={value === null || value === undefined ? '' : value}
+      onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+      className="h-8 w-20 px-2 text-[13px] tabular-nums"
+    />
+  )
+}
+
+function SortableItem({ item, index }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        'bg-card relative flex cursor-grab touch-none items-center gap-3 rounded-lg px-3 py-2.5 shadow-[0_0_0_1px_var(--border)] outline-none select-none',
+        'focus-visible:ring-ring/50 transition-shadow duration-200 focus-visible:ring-[3px]',
+        isDragging &&
+          'z-10 cursor-grabbing shadow-[0_0_0_1px_color-mix(in_srgb,var(--primary)_35%,transparent),0_16px_32px_-14px_rgba(15,23,42,0.35)]',
+      )}
+    >
+      <GripVertical className="text-muted-foreground size-4 shrink-0" />
+      <span className="text-muted-foreground w-5 text-right text-xs tabular-nums">{index + 1}</span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{item.name}</span>
+      <span className="text-muted-foreground rounded-md border px-1.5 font-mono text-[11px]">{item.row_code}</span>
+      <span className="text-muted-foreground w-20 text-right text-xs tabular-nums">排序值: {item.sort_order}</span>
     </div>
   )
 }
 
 export default function AdvancedTablePage() {
   const list = useCrudList(
-    (params) => getAdvancedTableRows(params).catch((err) => {
-      Toast.error(err?.error || '加载失败')
-      return { items: [], total: 0 }
-    }),
+    (params) =>
+      getAdvancedTableRows(params).catch((err) => {
+        toast.apiError(err, '加载失败')
+        return { items: [], total: 0 }
+      }),
     { defaultPerPage: 20 },
   )
-  const { data, total, loading, page, filters, fetchData, handlePageChange } = list
+  const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
   const [stats, setStats] = useState(null)
 
   const [search, setSearch] = useState('')
@@ -139,31 +164,38 @@ export default function AdvancedTablePage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [editingRowId, setEditingRowId] = useState(null)
   const [editingDraft, setEditingDraft] = useState({})
+  const [savingRowId, setSavingRowId] = useState(null)
   const [lastSnapshot, setLastSnapshot] = useState(null)
-  const [columnSettingVisible, setColumnSettingVisible] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState(ALL_COLUMNS.map((item) => item.key))
   const [sortSheetVisible, setSortSheetVisible] = useState(false)
   const [sortItems, setSortItems] = useState([])
+  const [sortSaving, setSortSaving] = useState(false)
   const [createVisible, setCreateVisible] = useState(false)
+  const [creating, setCreating] = useState(false)
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   const fetchStats = () => {
-    getAdvancedTableStats().then(setStats).catch(() => {})
+    getAdvancedTableStats()
+      .then(setStats)
+      .catch(() => {})
   }
 
   useEffect(() => {
     fetchStats()
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
   }, [])
 
   const onSearch = () => {
-    list.handleSearch({
-      search: search.trim(),
-      category,
-      pinned_only: pinnedOnly,
-    })
+    list.handleSearch({ search: search.trim(), category, pinned_only: pinnedOnly })
   }
+
+  // ── 行内编辑 ─────────────────────────────────────────────
+  const setDraft = (key) => (value) => setEditingDraft((prev) => ({ ...prev, [key]: value }))
 
   const openInlineEdit = (record) => {
     setEditingRowId(record.id)
@@ -193,486 +225,534 @@ export default function AdvancedTablePage() {
         remark: record.remark,
       },
     })
+    setSavingRowId(record.id)
     updateAdvancedTableRow(record.id, editingDraft)
       .then(() => {
-        Toast.success('保存成功')
+        toast.success('保存成功')
         setEditingRowId(null)
         fetchData()
         fetchStats()
       })
-      .catch((err) => Toast.error(err?.error || '保存失败'))
+      .catch((err) => toast.apiError(err, '保存失败'))
+      .finally(() => setSavingRowId(null))
   }
 
   const undoLastEdit = () => {
     if (!lastSnapshot) return
     updateAdvancedTableRow(lastSnapshot.id, lastSnapshot.payload)
       .then(() => {
-        Toast.success('已撤销最近一次编辑')
+        toast.success('已撤销最近一次编辑')
         setLastSnapshot(null)
         fetchData()
         fetchStats()
       })
-      .catch((err) => Toast.error(err?.error || '撤销失败'))
+      .catch((err) => toast.apiError(err, '撤销失败'))
   }
 
+  const toggleField = (record, field, checked) => {
+    updateAdvancedTableRow(record.id, { [field]: checked })
+      .then(() => {
+        fetchData()
+        if (field === 'is_pinned') fetchStats()
+      })
+      .catch((err) => toast.apiError(err, '更新失败'))
+  }
+
+  const removeRow = async (record) => {
+    try {
+      await deleteAdvancedTableRow(record.id)
+      toast.success('删除成功')
+      setSelectedRowKeys((keys) => keys.filter((k) => k !== record.id))
+      setLastSnapshot((snap) => (snap?.id === record.id ? null : snap))
+      fetchData()
+      fetchStats()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
+  }
+
+  // ── 拖拽排序 ─────────────────────────────────────────────
   const openSortSheet = () => {
-    setSortItems(
-      [...data]
-        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-        .map((item) => ({ ...item })),
-    )
+    setSortItems([...data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map((item) => ({ ...item })))
     setSortSheetVisible(true)
   }
 
   const saveSort = () => {
-    const payload = sortItems.map((item, index) => ({
-      id: item.id,
-      sort_order: (index + 1) * 10,
-    }))
+    const payload = sortItems.map((item, index) => ({ id: item.id, sort_order: (index + 1) * 10 }))
+    setSortSaving(true)
     reorderAdvancedTableRows(payload)
       .then(() => {
-        Toast.success('拖拽排序已保存')
+        toast.success('拖拽排序已保存')
         setSortSheetVisible(false)
         fetchData()
       })
-      .catch((err) => Toast.error(err?.error || '排序保存失败'))
+      .catch((err) => toast.apiError(err, '排序保存失败'))
+      .finally(() => setSortSaving(false))
   }
+
+  // ── 批量操作 ─────────────────────────────────────────────
+  const warnEmpty = () => toast.warning('请先勾选数据')
 
   const doBatchSetStatus = (nextStatus) => {
-    if (!selectedRowKeys.length) {
-      Toast.warning('请先勾选数据')
-      return
-    }
+    if (!selectedRowKeys.length) return warnEmpty()
     batchUpdateAdvancedTableRows({ ids: selectedRowKeys, status: nextStatus })
       .then((res) => {
-        Toast.success(res?.message || '批量更新成功')
+        toast.success(res?.message || '批量更新成功')
         fetchData()
         fetchStats()
       })
-      .catch((err) => Toast.error(err?.error || '批量更新失败'))
+      .catch((err) => toast.apiError(err, '批量更新失败'))
   }
 
-  const doBatchDelete = () => {
-    if (!selectedRowKeys.length) {
-      Toast.warning('请先勾选数据')
-      return
+  const doBatchDelete = async () => {
+    try {
+      const res = await batchDeleteAdvancedTableRows({ ids: selectedRowKeys })
+      toast.success(res?.message || '批量删除成功')
+      setLastSnapshot((snap) => (snap && selectedRowKeys.includes(snap.id) ? null : snap))
+      setSelectedRowKeys([])
+      fetchData()
+      fetchStats()
+    } catch (err) {
+      toast.apiError(err, '批量删除失败')
+      throw err
     }
-    batchDeleteAdvancedTableRows({ ids: selectedRowKeys })
-      .then((res) => {
-        Toast.success(res?.message || '批量删除成功')
-        setSelectedRowKeys([])
-        fetchData()
+  }
+
+  const createRow = () => {
+    const rowCode = `ADV-${Date.now().toString().slice(-6)}`
+    const safeSortOrder = Math.floor(Date.now() / 1000)
+    setCreating(true)
+    createAdvancedTableRow({
+      name: `新记录-${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`,
+      row_code: rowCode,
+      category: 'general',
+      owner: 'admin',
+      status: 'draft',
+      priority: 50,
+      progress: 0,
+      score: 0,
+      tags: '新建',
+      is_active: true,
+      is_pinned: false,
+      sort_order: safeSortOrder,
+      remark: '可立即进行行内编辑',
+    })
+      .then(() => {
+        toast.success('新增成功')
+        setCreateVisible(false)
+        list.handleSearch()
         fetchStats()
       })
-      .catch((err) => Toast.error(err?.error || '批量删除失败'))
+      .catch((err) => toast.apiError(err, '新增失败'))
+      .finally(() => setCreating(false))
   }
 
-  const columns = useMemo(() => {
-    const isEditing = (record) => editingRowId === record.id
-    const maybe = {
-      row_code: {
-        title: '编码',
-        dataIndex: 'row_code',
-        width: 120,
-      },
-      name: {
-        title: '名称',
-        dataIndex: 'name',
-        width: 220,
-        render: (text, record) =>
-          isEditing(record) ? (
-            <Input
-              value={editingDraft.name}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, name: v }))}
-            />
-          ) : (
-            <Typography.Text strong>{text}</Typography.Text>
-          ),
-      },
-      category: {
-        title: '分类',
-        dataIndex: 'category',
-        width: 110,
-        render: (value) => CATEGORY_MAP[value] || value || '-',
-      },
-      owner: {
-        title: '负责人',
-        dataIndex: 'owner',
-        width: 120,
-        render: (text, record) =>
-          isEditing(record) ? (
-            <Input
-              value={editingDraft.owner}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, owner: v }))}
-            />
-          ) : (
-            text || '-'
-          ),
-      },
-      status: {
-        title: '状态',
-        dataIndex: 'status',
-        width: 120,
-        render: (value, record) =>
-          isEditing(record) ? (
-            <Select
-              value={editingDraft.status}
-              optionList={STATUS_OPTIONS}
-              style={{ width: 110 }}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, status: v }))}
-            />
-          ) : (
-            <Tag color={STATUS_META[value]?.color || 'grey'}>{STATUS_META[value]?.label || value}</Tag>
-          ),
-      },
-      priority: {
-        title: '优先级',
-        dataIndex: 'priority',
-        width: 100,
-        render: (value, record) =>
-          isEditing(record) ? (
-            <InputNumber
-              min={0}
-              max={100}
-              value={editingDraft.priority}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, priority: v ?? 0 }))}
-            />
-          ) : (
-            value ?? 0
-          ),
-      },
-      progress: {
-        title: '进度(%)',
-        dataIndex: 'progress',
-        width: 120,
-        render: (value, record) =>
-          isEditing(record) ? (
-            <InputNumber
-              min={0}
-              max={100}
-              value={editingDraft.progress}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, progress: v ?? 0 }))}
-            />
-          ) : (
-            value ?? 0
-          ),
-      },
-      score: {
-        title: '评分',
-        dataIndex: 'score',
-        width: 100,
-        render: (value, record) =>
-          isEditing(record) ? (
-            <InputNumber
-              min={0}
-              max={100}
-              value={editingDraft.score}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, score: v ?? 0 }))}
-            />
-          ) : (
-            Number(value || 0).toFixed(1)
-          ),
-      },
-      tags: {
-        title: '标签',
-        dataIndex: 'tags',
-        width: 180,
-        render: (value, record) =>
-          isEditing(record) ? (
-            <Input
-              value={editingDraft.tags}
-              onChange={(v) => setEditingDraft((prev) => ({ ...prev, tags: v }))}
-            />
-          ) : (
-            value || '-'
-          ),
-      },
-      is_active: {
-        title: '启用',
-        dataIndex: 'is_active',
-        width: 88,
-        render: (value, record) => (
-          <Switch
-            size="small"
-            checked={Boolean(value)}
-            onChange={(checked) => {
-              updateAdvancedTableRow(record.id, { is_active: checked })
-                .then(() => fetchData())
-                .catch((err) => Toast.error(err?.error || '更新失败'))
-            }}
-          />
-        ),
-      },
-      is_pinned: {
-        title: '置顶',
-        dataIndex: 'is_pinned',
-        width: 88,
-        render: (value, record) => (
-          <Switch
-            size="small"
-            checked={Boolean(value)}
-            onChange={(checked) => {
-              updateAdvancedTableRow(record.id, { is_pinned: checked })
-                .then(() => {
-                  fetchData()
-                  fetchStats()
-                })
-                .catch((err) => Toast.error(err?.error || '更新失败'))
-            }}
-          />
-        ),
-      },
-      updated_at: {
-        title: '更新时间',
-        dataIndex: 'updated_at',
-        width: 165,
-        render: formatDateTime,
-      },
-    }
-    return ALL_COLUMNS.filter((item) => visibleColumns.includes(item.key)).map((item) => maybe[item.key])
-  }, [editingDraft, editingRowId, page, filters, visibleColumns])
-
-  const tableColumns = [
-    ...columns,
-    {
-      title: '操作',
-      fixed: 'right',
-      width: 210,
-      render: (_, record) => {
-        const editing = editingRowId === record.id
-        return editing ? (
-          <Space>
-            <Button
-              size="small"
-              theme="solid"
-              icon={<IconSave />}
-              onClick={() => saveInlineEdit(record)}
-            >
-              保存
-            </Button>
-            <Button size="small" onClick={() => setEditingRowId(null)}>取消</Button>
-          </Space>
+  // ── 列定义 ───────────────────────────────────────────────
+  const isEditing = (record) => editingRowId === record.id
+  const columnDefs = {
+    row_code: {
+      title: '编码',
+      dataIndex: 'row_code',
+      width: 120,
+      className: 'font-mono text-xs text-muted-foreground',
+    },
+    name: {
+      title: '名称',
+      dataIndex: 'name',
+      width: 220,
+      render: (text, record) =>
+        isEditing(record) ? (
+          <Input value={editingDraft.name ?? ''} onChange={(e) => setDraft('name')(e.target.value)} className="h-8 text-[13px]" />
         ) : (
-          <Space>
-            <Button
-              size="small"
-              icon={<IconEdit />}
-              onClick={() => openInlineEdit(record)}
-            >
-              行内编辑
-            </Button>
-            <Popconfirm
-              title="确认删除该记录？"
-              content={record.name}
-              onConfirm={() => {
-                deleteAdvancedTableRow(record.id)
-                  .then(() => {
-                    Toast.success('删除成功')
-                    fetchData()
-                    fetchStats()
-                  })
-                  .catch((err) => Toast.error(err?.error || '删除失败'))
-              }}
-            >
-              <Button size="small" type="danger" icon={<IconDelete />}>删除</Button>
-            </Popconfirm>
-          </Space>
+          <span className="inline-flex max-w-full items-center gap-1.5">
+            {record.is_pinned ? <Pin className="text-primary size-3.5 shrink-0 fill-current" /> : null}
+            <span className="truncate font-medium">{text}</span>
+          </span>
+        ),
+    },
+    category: {
+      title: '分类',
+      dataIndex: 'category',
+      width: 110,
+      render: (value) => CATEGORY_MAP[value] || value || '-',
+    },
+    owner: {
+      title: '负责人',
+      dataIndex: 'owner',
+      width: 120,
+      render: (text, record) =>
+        isEditing(record) ? (
+          <Input value={editingDraft.owner ?? ''} onChange={(e) => setDraft('owner')(e.target.value)} className="h-8 text-[13px]" />
+        ) : (
+          text || '-'
+        ),
+    },
+    status: {
+      title: '状态',
+      dataIndex: 'status',
+      width: 130,
+      render: (value, record) =>
+        isEditing(record) ? (
+          <Select value={editingDraft.status} onValueChange={setDraft('status')}>
+            <SelectTrigger size="sm" className="h-8 w-[110px] text-[13px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <StatusBadge tone={STATUS_META[value]?.tone || 'neutral'} dot>
+            {STATUS_META[value]?.label || value}
+          </StatusBadge>
+        ),
+    },
+    priority: {
+      title: '优先级',
+      dataIndex: 'priority',
+      width: 100,
+      className: 'tabular-nums',
+      render: (value, record) =>
+        isEditing(record) ? <NumberCell value={editingDraft.priority} onChange={setDraft('priority')} /> : (value ?? 0),
+    },
+    progress: {
+      title: '进度(%)',
+      dataIndex: 'progress',
+      width: 140,
+      render: (value, record) => {
+        if (isEditing(record)) return <NumberCell value={editingDraft.progress} onChange={setDraft('progress')} />
+        const pct = Math.max(0, Math.min(100, Number(value) || 0))
+        return (
+          <div className="flex items-center gap-2">
+            <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
+              <div className={cn('h-full rounded-full', pct >= 100 ? 'bg-success' : 'bg-brand-gradient')} style={{ width: `${pct}%` }} />
+            </div>
+            <span className="text-xs tabular-nums">{value ?? 0}</span>
+          </div>
         )
       },
     },
+    score: {
+      title: '评分',
+      dataIndex: 'score',
+      width: 100,
+      className: 'tabular-nums',
+      render: (value, record) =>
+        isEditing(record) ? <NumberCell value={editingDraft.score} onChange={setDraft('score')} /> : Number(value || 0).toFixed(1),
+    },
+    tags: {
+      title: '标签',
+      dataIndex: 'tags',
+      width: 200,
+      render: (value, record) =>
+        isEditing(record) ? (
+          <Input value={editingDraft.tags ?? ''} onChange={(e) => setDraft('tags')(e.target.value)} className="h-8 text-[13px]" />
+        ) : splitTags(value).length ? (
+          <div className="flex flex-wrap gap-1">
+            {splitTags(value).map((t) => (
+              <span key={t} className="text-muted-foreground inline-flex h-5 items-center rounded-md border px-1.5 text-[11px]">
+                {t}
+              </span>
+            ))}
+          </div>
+        ) : (
+          '-'
+        ),
+    },
+    is_active: {
+      title: '启用',
+      dataIndex: 'is_active',
+      width: 80,
+      render: (value, record) => (
+        <Switch size="sm" checked={Boolean(value)} onCheckedChange={(checked) => toggleField(record, 'is_active', checked)} aria-label="启用" />
+      ),
+    },
+    is_pinned: {
+      title: '置顶',
+      dataIndex: 'is_pinned',
+      width: 80,
+      render: (value, record) => (
+        <Switch size="sm" checked={Boolean(value)} onCheckedChange={(checked) => toggleField(record, 'is_pinned', checked)} aria-label="置顶" />
+      ),
+    },
+    updated_at: {
+      title: '更新时间',
+      dataIndex: 'updated_at',
+      width: 170,
+      className: 'text-muted-foreground tabular-nums',
+      render: (value) => formatDateTime(value),
+    },
+  }
+
+  const columns = [
+    ...ALL_COLUMNS.filter((item) => visibleColumns.includes(item.key)).map((item) => ({ key: item.key, ...columnDefs[item.key] })),
+    {
+      key: 'actions',
+      title: '操作',
+      width: 168,
+      align: 'right',
+      className: STICKY_CELL,
+      headerClassName: STICKY_HEAD,
+      render: (_, record) =>
+        isEditing(record) ? (
+          <div className="flex justify-end gap-1">
+            <Button size="sm" className="h-7 px-2.5" disabled={savingRowId === record.id} onClick={() => saveInlineEdit(record)}>
+              {savingRowId === record.id ? <Spinner /> : null}
+              保存
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingRowId(null)}>
+              取消
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end gap-0.5">
+            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openInlineEdit(record)}>
+              行内编辑
+            </Button>
+            <ConfirmAction title="确认删除该记录？" description={record.name} confirmText="删除" onConfirm={() => removeRow(record)}>
+              <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
+                删除
+              </Button>
+            </ConfirmAction>
+          </div>
+        ),
+    },
   ]
 
-  const statusTabs = [
-    { label: '全部', itemKey: '' },
-    { label: '草稿', itemKey: 'draft' },
-    { label: '已发布', itemKey: 'published' },
-    { label: '已归档', itemKey: 'archived' },
-  ]
+  const avg = (v) => (v === null || v === undefined ? 0 : Number(v))
+  const decimalsOf = (v) => (Number.isInteger(avg(v)) ? 0 : 2)
 
   return (
-    <div style={{ padding: 20 }}>
-      <Typography.Title heading={4} style={{ marginTop: 0 }}>
-        高级表格页
-      </Typography.Title>
-      <Typography.Paragraph type="tertiary" style={{ marginTop: 4 }}>
-        支持行内编辑、拖拽排序、批量操作、列显隐、置顶与快速视图切换
-      </Typography.Paragraph>
-
-      <div style={CARD_STYLE}>
-        <Space wrap style={{ width: '100%' }}>
-          <Tag color="blue">总记录 {stats?.total ?? '-'}</Tag>
-          <Tag color="green">已发布 {stats?.published_count ?? '-'}</Tag>
-          <Tag color="purple">置顶 {stats?.pinned_count ?? '-'}</Tag>
-          <Tag color="orange">平均进度 {stats?.avg_progress ?? '-'}%</Tag>
-          <Tag color="grey">平均评分 {stats?.avg_score ?? '-'}</Tag>
-        </Space>
-      </div>
-
-      <div style={CARD_STYLE}>
-        <Space wrap>
-          <Input
-            value={search}
-            onChange={setSearch}
-            placeholder="搜索名称/编码/标签/负责人"
-            style={{ width: 260 }}
-          />
-          <Select
-            value={category}
-            onChange={setCategory}
-            placeholder="分类"
-            optionList={[{ label: '全部分类', value: '' }, ...CATEGORY_OPTIONS]}
-            style={{ width: 130 }}
-          />
-          <Switch checked={pinnedOnly} onChange={setPinnedOnly} />
-          <Typography.Text type="tertiary">仅看置顶</Typography.Text>
-          <Button icon={<IconSearch />} theme="solid" onClick={onSearch}>查询</Button>
-          <Button icon={<IconRefresh />} onClick={() => {
-            fetchData()
-            fetchStats()
-          }}>
-            刷新
-          </Button>
-          <Button icon={<IconSetting />} onClick={() => setColumnSettingVisible(true)}>列设置</Button>
-          <Button onClick={openSortSheet}>拖拽排序</Button>
-          <Button icon={<IconUndo />} disabled={!lastSnapshot} onClick={undoLastEdit}>撤销上次编辑</Button>
-          <Button
-            icon={<IconPlus />}
-            theme="solid"
-            type="primary"
-            onClick={() => setCreateVisible(true)}
-          >
-            新增
-          </Button>
-        </Space>
-      </div>
-
-      <div style={CARD_STYLE}>
-        <Tabs
-          type="card"
-          collapsible
-          activeKey={filters.status ?? ''}
-          onChange={(key) => {
-            list.handleSearch({ status: key })
-          }}
-        >
-          {statusTabs.map((tab) => (
-            <Tabs.TabPane tab={tab.label} itemKey={tab.itemKey} key={tab.itemKey} />
-          ))}
-        </Tabs>
-        <Space>
-          <Button onClick={() => doBatchSetStatus('published')}>批量发布</Button>
-          <Button onClick={() => doBatchSetStatus('archived')}>批量归档</Button>
-          <Popconfirm
-            title="确认批量删除选中记录？"
-            onConfirm={doBatchDelete}
-          >
-            <Button type="danger">批量删除</Button>
-          </Popconfirm>
-        </Space>
-      </div>
-
-      <Table
-        rowKey="id"
-        loading={loading}
-        columns={tableColumns}
-        dataSource={data}
-        pagination={{
-          currentPage: page,
-          pageSize: 20,
-          total,
-          onPageChange: (nextPage) => handlePageChange(nextPage),
-        }}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-        scroll={{ x: 1600 }}
+    <div className="space-y-5">
+      <PageHeader
+        title="高级表格页"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchData()
+                fetchStats()
+              }}
+            >
+              <RefreshCw />
+              刷新
+            </Button>
+            <Button variant="outline" size="sm" onClick={openSortSheet}>
+              <ArrowUpDown />
+              拖拽排序
+            </Button>
+            <Button variant="outline" size="sm" disabled={!lastSnapshot} onClick={undoLastEdit}>
+              <Undo2 />
+              撤销上次编辑
+            </Button>
+            <Button size="sm" variant="brand" onClick={() => setCreateVisible(true)}>
+              <Plus />
+              新增
+            </Button>
+          </>
+        }
       />
 
-      <Modal
-        title="新增记录"
-        visible={createVisible}
-        onCancel={() => setCreateVisible(false)}
-        onOk={() => {
-          const rowCode = `ADV-${Date.now().toString().slice(-6)}`
-          const safeSortOrder = Math.floor(Date.now() / 1000)
-          createAdvancedTableRow({
-            name: `新记录-${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`,
-            row_code: rowCode,
-            category: 'general',
-            owner: 'admin',
-            status: 'draft',
-            priority: 50,
-            progress: 0,
-            score: 0,
-            tags: '新建',
-            is_active: true,
-            is_pinned: false,
-            sort_order: safeSortOrder,
-            remark: '可立即进行行内编辑',
-          })
-            .then(() => {
-              Toast.success('新增成功')
-              setCreateVisible(false)
-              list.handleSearch()
-              fetchStats()
-            })
-            .catch((err) => Toast.error(err?.error || '新增失败'))
-        }}
-      >
-        <Typography.Text type="tertiary">将创建一条可直接行内编辑的默认记录。</Typography.Text>
-      </Modal>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <StatCard label="总记录" icon={Rows3} value={stats?.total ?? 0} />
+        <StatCard label="已发布" icon={Send} value={stats?.published_count ?? 0} />
+        <StatCard label="置顶" icon={Pin} value={stats?.pinned_count ?? 0} />
+        <StatCard label="平均进度" icon={Gauge} value={avg(stats?.avg_progress)} decimals={decimalsOf(stats?.avg_progress)} suffix="%" />
+        <StatCard label="平均评分" icon={Star} value={avg(stats?.avg_score)} decimals={decimalsOf(stats?.avg_score)} className="col-span-2 md:col-span-1" />
+      </div>
 
-      <Modal
-        title="列设置"
-        visible={columnSettingVisible}
-        onCancel={() => setColumnSettingVisible(false)}
-        onOk={() => setColumnSettingVisible(false)}
-      >
-        <Checkbox.Group
-          value={visibleColumns}
-          options={ALL_COLUMNS.map((item) => ({ label: item.label, value: item.key }))}
-          onChange={(values) => setVisibleColumns(values)}
-          direction="vertical"
-        />
-      </Modal>
-
-      <SideSheet
-        title="拖拽排序"
-        visible={sortSheetVisible}
-        onCancel={() => setSortSheetVisible(false)}
-        size="medium"
-        footer={
-          <Space>
-            <Button onClick={() => setSortSheetVisible(false)}>取消</Button>
-            <Button theme="solid" type="primary" onClick={saveSort}>保存排序</Button>
-          </Space>
-        }
-      >
-        <Typography.Paragraph type="tertiary">
-          拖动条目后保存，系统会更新 `sort_order`，表格将按新顺序展示。
-        </Typography.Paragraph>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={(event) => {
-            const { active, over } = event
-            if (!over || active.id === over.id) return
-            setSortItems((prev) => {
-              const oldIndex = prev.findIndex((item) => item.id === active.id)
-              const newIndex = prev.findIndex((item) => item.id === over.id)
-              if (oldIndex < 0 || newIndex < 0) return prev
-              return arrayMove(prev, oldIndex, newIndex)
-            })
-          }}
+      <div>
+        <FilterBar
+          onSearch={onSearch}
+          extra={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <Columns3 />
+                  列设置
+                  <span className="text-muted-foreground tabular-nums">
+                    {visibleColumns.length}/{ALL_COLUMNS.length}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">显示列</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {ALL_COLUMNS.map((item) => (
+                  <DropdownMenuCheckboxItem
+                    key={item.key}
+                    checked={visibleColumns.includes(item.key)}
+                    onSelect={(e) => e.preventDefault()}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) =>
+                        checked
+                          ? ALL_COLUMNS.map((c) => c.key).filter((k) => k === item.key || prev.includes(k))
+                          : prev.filter((k) => k !== item.key),
+                      )
+                    }
+                  >
+                    {item.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
         >
-          <SortableContext items={sortItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-            {sortItems.map((item) => (
-              <SortableItem key={item.id} item={item} />
-            ))}
-          </SortableContext>
-        </DndContext>
-      </SideSheet>
+          <SearchInput value={search} onChange={setSearch} onSubmit={onSearch} placeholder="搜索名称/编码/标签/负责人" className="sm:w-64" />
+          <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" />
+          <label className="text-muted-foreground flex h-8 cursor-pointer items-center gap-2 rounded-md border px-2.5 text-[13px]">
+            <Switch size="sm" checked={pinnedOnly} onCheckedChange={setPinnedOnly} />
+            仅看置顶
+          </label>
+        </FilterBar>
+
+        <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <SegmentedTabs
+            value={filters.status ?? ''}
+            onChange={(key) => list.handleSearch({ status: key })}
+            items={STATUS_TABS}
+            className="md:border-b-0"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <AnimatePresence initial={false}>
+              {selectedRowKeys.length ? (
+                <motion.span
+                  initial={{ opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 6 }}
+                  transition={{ duration: 0.18 }}
+                  className="bg-brand-soft text-primary inline-flex h-8 items-center gap-1.5 rounded-md pr-1 pl-2.5 text-xs"
+                >
+                  已勾选 <span className="font-medium tabular-nums">{selectedRowKeys.length}</span> 条
+                  <button
+                    type="button"
+                    aria-label="清空勾选"
+                    onClick={() => setSelectedRowKeys([])}
+                    className="hover:bg-primary/10 flex size-6 items-center justify-center rounded"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
+            <Button variant="outline" size="sm" className="h-8" onClick={() => doBatchSetStatus('published')}>
+              <Send />
+              批量发布
+            </Button>
+            <Button variant="outline" size="sm" className="h-8" onClick={() => doBatchSetStatus('archived')}>
+              <Archive />
+              批量归档
+            </Button>
+            <ConfirmAction
+              title="确认批量删除选中记录？"
+              description={`将删除已勾选的 ${selectedRowKeys.length} 条记录，删除后不可恢复。`}
+              confirmText="删除"
+              disabled={!selectedRowKeys.length}
+              onConfirm={doBatchDelete}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-danger hover:text-danger h-8"
+                onClick={selectedRowKeys.length ? undefined : warnEmpty}
+              >
+                <Trash2 />
+                批量删除
+              </Button>
+            </ConfirmAction>
+          </div>
+        </div>
+
+        <DataTable
+          columns={columns}
+          data={data}
+          loading={loading}
+          minWidth={1560}
+          selectable
+          selectedKeys={selectedRowKeys}
+          onSelectionChange={setSelectedRowKeys}
+          rowClassName={(row) => (isEditing(row) ? 'bg-brand-soft/60 hover:bg-brand-soft/60' : undefined)}
+          pagination={{ page, perPage, total, onChange: handlePageChange }}
+          emptyTitle="暂无记录"
+          emptyDescription={filters.search || filters.category || filters.pinned_only || filters.status ? '换个筛选条件试试' : '点击右上角「新增」创建一条记录'}
+        />
+      </div>
+
+      {/* 新增确认 */}
+      <Dialog open={createVisible} onOpenChange={(next) => !creating && setCreateVisible(next)}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>新增记录</DialogTitle>
+            <DialogDescription>将创建一条可直接行内编辑的默认记录。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={creating} onClick={() => setCreateVisible(false)}>
+              取消
+            </Button>
+            <Button disabled={creating} onClick={createRow}>
+              {creating ? <Spinner /> : null}
+              确定
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 拖拽排序 */}
+      <Sheet open={sortSheetVisible} onOpenChange={(next) => !sortSaving && setSortSheetVisible(next)}>
+        <SheetContent className="gap-0 p-0 sm:max-w-none" style={{ width: 'min(520px, 100vw)' }}>
+          <SheetHeader className="border-b px-6 py-4">
+            <SheetTitle>拖拽排序</SheetTitle>
+            <SheetDescription>
+              拖动条目后保存，系统会更新 <code className="bg-muted rounded px-1 font-mono text-xs">sort_order</code>，表格将按新顺序展示。
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="px-6 py-5">
+              {sortItems.length ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={({ active, over }) => {
+                    if (!over || active.id === over.id) return
+                    setSortItems((prev) => {
+                      const oldIndex = prev.findIndex((item) => item.id === active.id)
+                      const newIndex = prev.findIndex((item) => item.id === over.id)
+                      if (oldIndex < 0 || newIndex < 0) return prev
+                      return arrayMove(prev, oldIndex, newIndex)
+                    })
+                  }}
+                >
+                  <SortableContext items={sortItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {sortItems.map((item, index) => (
+                        <SortableItem key={item.id} item={item} index={index} />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                <p className="text-muted-foreground py-10 text-center text-[13px]">当前页暂无数据</p>
+              )}
+            </div>
+          </ScrollArea>
+          <SheetFooter className="flex-row justify-end gap-2 border-t px-6 py-4">
+            <Button variant="outline" disabled={sortSaving} onClick={() => setSortSheetVisible(false)}>
+              取消
+            </Button>
+            <Button disabled={sortSaving} onClick={saveSort}>
+              {sortSaving ? <Spinner /> : null}
+              保存排序
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

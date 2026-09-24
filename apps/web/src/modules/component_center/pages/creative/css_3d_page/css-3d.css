@@ -1,0 +1,55 @@
+/* CSS 3D 页：自旋立方体（类名加前缀，避免污染全局） */
+@keyframes css3d-rotate-cube {
+  0% {
+    transform: rotateX(-20deg) rotateY(0deg);
+  }
+  100% {
+    transform: rotateX(-20deg) rotateY(360deg);
+  }
+}
+
+.css3d-cube {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: css3d-rotate-cube 8s linear infinite;
+}
+
+.css3d-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, var(--card) 80%);
+  color: var(--primary);
+  backdrop-filter: blur(4px);
+}
+
+.css3d-front {
+  transform: translateZ(60px);
+}
+.css3d-back {
+  transform: rotateY(180deg) translateZ(60px);
+}
+.css3d-left {
+  transform: rotateY(-90deg) translateZ(60px);
+}
+.css3d-right {
+  transform: rotateY(90deg) translateZ(60px);
+}
+.css3d-top {
+  transform: rotateX(90deg) translateZ(60px);
+}
+.css3d-bottom {
+  transform: rotateX(-90deg) translateZ(60px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .css3d-cube {
+    animation: none;
+    transform: rotateX(-20deg) rotateY(35deg);
+  }
+}

@@ -1,515 +1,482 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
+import { Briefcase, Building2, CalendarDays, Mail, Pencil, Phone, Plus, Trash2, UserRound, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from '@/lib/toast'
+import { EASE_OUT, layoutSpring } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import {
-  Typography,
-  Button,
-  Input,
-  Modal,
-  Form,
-  Toast,
-  Tag,
-  Tabs,
-  TabPane,
-  Divider,
-  Empty,
-  Spin,
-  Timeline,
-} from '@douyinfe/semi-ui'
-import {
-  IconPlus,
-  IconEdit,
-  IconDelete,
-  IconSearch,
-  IconMail,
-  IconPhone,
-  IconCalendar,
-} from '@douyinfe/semi-icons'
-import {
-  getDetailMembers,
   createDetailMember,
-  updateDetailMember,
   deleteDetailMember,
+  getDetailMembers,
+  updateDetailMember,
 } from '@/modules/component_center/api/detail_tabs_page'
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import EmptyState from '@/shared/components/EmptyState'
+import { SearchInput } from '@/shared/components/Filters'
+import { FormDialog } from '@/shared/components/FormDialog'
+import { FormCustom, FormDate, FormGrid, FormInput, FormSelect, FormTextarea } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import SegmentedTabs from '@/shared/components/SegmentedTabs'
+import StatusBadge from '@/shared/components/StatusBadge'
 
-const { Title, Paragraph, Text } = Typography
-
-const CARD_STYLE = {
-  background: 'var(--semi-color-bg-1)',
-  borderRadius: 8,
-  padding: '16px 20px',
-  boxShadow: '0 1px 4px rgba(0,0,0,.08)',
-}
-
-const COLOR_PALETTE = ['#4080FF', '#00B96B', '#FA8C16', '#9254DE', '#FF4D4F', '#8c8c8c']
+// 头像颜色是持久化到数据库的业务数据（后端默认 #4080FF），不是页面样式
+const COLOR_PALETTE = ['#4080FF', '#00B96B', '#FA8C16', '#06B6D4', '#FF4D4F', '#8C8C8C']
+const DEFAULT_COLOR = COLOR_PALETTE[0]
 
 const STATUS_META = {
-  active:    { label: '在职',   color: 'green' },
-  leave:     { label: '已离职', color: 'grey' },
-  probation: { label: '试用期', color: 'orange' },
+  active: { label: '在职', tone: 'success' },
+  leave: { label: '已离职', tone: 'neutral' },
+  probation: { label: '试用期', tone: 'warning' },
 }
-
 const STATUS_OPTIONS = [
-  { value: 'active',    label: '在职' },
-  { value: 'leave',     label: '已离职' },
+  { value: 'active', label: '在职' },
+  { value: 'leave', label: '已离职' },
   { value: 'probation', label: '试用期' },
 ]
 
-// ── 静态 Timeline 数据 ──────────────────────────────────────────────
+// ── 静态演示数据（与原页面一致） ──────────────────────────────────────
 const STATIC_WORK_HISTORY = [
-  { time: '2022-03 – 至今',   title: '高级前端工程师',  company: 'castor-kit 科技',    desc: '负责核心产品前端架构设计与研发，主导组件库建设。' },
-  { time: '2019-07 – 2022-02', title: '前端工程师',      company: '字节跳动',          desc: '参与飞书文档模块迭代，负责协作编辑功能开发。' },
-  { time: '2017-07 – 2019-06', title: '初级前端工程师',  company: '阿里巴巴（实习）',  desc: '参与淘宝活动页面开发，使用 React + TypeScript。' },
-  { time: '2013-09 – 2017-06', title: '计算机科学与技术', company: '同济大学',          desc: '本科毕业，GPA 3.8/4.0，多次获得奖学金。' },
+  { time: '2022-03 – 至今', title: '高级前端工程师', company: 'castor-kit 科技', desc: '负责核心产品前端架构设计与研发，主导组件库建设。' },
+  { time: '2019-07 – 2022-02', title: '前端工程师', company: '字节跳动', desc: '参与飞书文档模块迭代，负责协作编辑功能开发。' },
+  { time: '2017-07 – 2019-06', title: '初级前端工程师', company: '阿里巴巴（实习）', desc: '参与淘宝活动页面开发，使用 React + TypeScript。' },
+  { time: '2013-09 – 2017-06', title: '计算机科学与技术', company: '同济大学', desc: '本科毕业，GPA 3.8/4.0，多次获得奖学金。' },
 ]
-
-// ── 静态操作日志 ──────────────────────────────────────────────────
 const STATIC_LOGS = [
-  { time: '2026-03-18 14:32', action: '编辑成员',   operator: 'admin',    type: 'blue' },
-  { time: '2026-03-15 09:10', action: '状态变更',   operator: 'hr_zhang', type: 'orange' },
-  { time: '2026-03-10 16:50', action: '新建成员',   operator: 'admin',    type: 'green' },
-  { time: '2026-02-28 11:05', action: '附件上传',   operator: 'hr_zhang', type: 'purple' },
-  { time: '2026-01-15 08:30', action: '权限调整',   operator: 'admin',    type: 'red' },
+  { time: '2026-03-18 14:32', action: '编辑成员', operator: 'admin', tone: 'info' },
+  { time: '2026-03-15 09:10', action: '状态变更', operator: 'hr_zhang', tone: 'warning' },
+  { time: '2026-03-10 16:50', action: '新建成员', operator: 'admin', tone: 'success' },
+  { time: '2026-02-28 11:05', action: '附件上传', operator: 'hr_zhang', tone: 'brand' },
+  { time: '2026-01-15 08:30', action: '权限调整', operator: 'admin', tone: 'danger' },
+]
+const TABS = [
+  { value: 'info', label: '基本信息' },
+  { value: 'history', label: '工作经历' },
+  { value: 'logs', label: '操作日志' },
 ]
 
-// ── ColorPicker ────────────────────────────────────────────────────
-function ColorPicker({ value, onChange }) {
-  const [sel, setSel] = useState(value || COLOR_PALETTE[0])
-
-  useEffect(() => {
-    if (value) setSel(value)
-  }, [value])
-
-  const pick = (c) => {
-    setSel(c)
-    onChange && onChange(c)
-  }
-
-  return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>
-      {COLOR_PALETTE.map((c) => (
-        <div
-          key={c}
-          onClick={() => pick(c)}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            background: c,
-            cursor: 'pointer',
-            boxSizing: 'border-box',
-            border: sel === c ? '2px solid #fff' : '2px solid transparent',
-            outline: sel === c ? `2px solid ${c}` : 'none',
-            transition: 'outline .12s',
-          }}
-        />
-      ))}
-    </div>
-  )
+const EMPTY_FORM = {
+  name: '',
+  department: '',
+  role_title: '',
+  email: '',
+  phone: '',
+  status: 'active',
+  join_date: '',
+  avatar_color: DEFAULT_COLOR,
+  bio: '',
 }
 
-// ── Avatar 圆形 ────────────────────────────────────────────────────
-function Avatar({ name, color, size = 36 }) {
+// ── 小组件 ─────────────────────────────────────────────────────────
+function MemberAvatar({ name, color, className }) {
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: color || '#4080FF',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        fontWeight: 600,
-        fontSize: size * 0.38,
-        flexShrink: 0,
-        userSelect: 'none',
-      }}
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full font-semibold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)] select-none',
+        className,
+      )}
+      style={{ background: color || DEFAULT_COLOR }}
     >
       {(name || '?').charAt(0).toUpperCase()}
+    </span>
+  )
+}
+
+function ColorPicker({ value, onChange }) {
+  const sel = (value || DEFAULT_COLOR).toUpperCase()
+  return (
+    <div className="flex items-center gap-2.5">
+      {COLOR_PALETTE.map((c) => {
+        const selected = sel === c.toUpperCase()
+        return (
+          <button
+            key={c}
+            type="button"
+            aria-label={`颜色 ${c}`}
+            aria-pressed={selected}
+            onClick={() => onChange(c)}
+            className={cn(
+              'ring-offset-background size-6 rounded-full transition-[box-shadow,transform] duration-150 hover:scale-110',
+              selected && 'ring-foreground/70 ring-2 ring-offset-2',
+            )}
+            style={{ background: c }}
+          />
+        )
+      })}
     </div>
   )
 }
 
-// ── InfoRow ────────────────────────────────────────────────────────
-function InfoRow({ icon, label, value }) {
+function InfoItem({ icon: Icon, label, value }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Text type="tertiary" size="small">{label}</Text>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {icon && <span style={{ color: 'var(--semi-color-text-2)', display: 'flex' }}>{icon}</span>}
-        <Text>{value || '-'}</Text>
-      </div>
+    <div className="min-w-0 space-y-1">
+      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dd className="flex min-w-0 items-center gap-1.5 text-[13px]">
+        {Icon ? <Icon className="text-muted-foreground size-3.5 shrink-0" /> : null}
+        <span className={cn('truncate', !value && 'text-muted-foreground/60')}>{value || '-'}</span>
+      </dd>
+    </div>
+  )
+}
+
+function InfoTab({ member }) {
+  return (
+    <div className="space-y-6">
+      <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        <InfoItem icon={Building2} label="部门" value={member.department} />
+        <InfoItem icon={Briefcase} label="职位" value={member.role_title} />
+        <InfoItem icon={Mail} label="邮箱" value={member.email} />
+        <InfoItem icon={Phone} label="电话" value={member.phone} />
+        <InfoItem icon={CalendarDays} label="入职日期" value={member.join_date ? member.join_date.slice(0, 10) : ''} />
+      </dl>
+      {member.bio ? (
+        <div className="space-y-1.5">
+          <p className="text-muted-foreground text-xs">个人简介</p>
+          <p className="bg-muted/60 rounded-lg px-3.5 py-3 text-[13px] leading-relaxed whitespace-pre-wrap">{member.bio}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function HistoryTab() {
+  return (
+    <ol className="relative space-y-6 pl-6">
+      <span className="bg-border absolute top-1.5 bottom-1.5 left-[5px] w-px" aria-hidden />
+      {STATIC_WORK_HISTORY.map((item, idx) => (
+        <li key={item.time} className="relative">
+          <span
+            className={cn(
+              'absolute top-1 -left-6 size-[11px] rounded-full ring-4 ring-[var(--card)]',
+              idx === 0 ? 'bg-brand-gradient' : 'bg-muted-foreground/35',
+            )}
+            aria-hidden
+          />
+          <p className="text-muted-foreground font-mono text-xs tabular-nums">{item.time}</p>
+          <p className="mt-1 text-sm font-medium">{item.title}</p>
+          <p className="text-muted-foreground text-xs">{item.company}</p>
+          <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">{item.desc}</p>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function LogsTab() {
+  return (
+    <ul className="divide-y">
+      {STATIC_LOGS.map((log) => (
+        <li key={log.time} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+          <StatusBadge tone={log.tone} dot>
+            {log.action}
+          </StatusBadge>
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs">操作人：{log.operator}</span>
+          <span className="text-muted-foreground/80 font-mono text-xs tabular-nums">{log.time}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function ListSkeleton() {
+  return (
+    <div className="space-y-1 p-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-2 py-2.5">
+          <Skeleton className="size-9 rounded-full" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3 w-36" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
 
 // ── Main Page ──────────────────────────────────────────────────────
 export default function DetailTabsPage() {
-  const isMobile = useIsMobile()
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState(null)
+  const [tab, setTab] = useState('info')
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
 
-  // modal
-  const [modalVisible, setModalVisible] = useState(false)
-  const [editRecord, setEditRecord] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const formApiRef = useRef(null)
-  const [avatarColor, setAvatarColor] = useState(COLOR_PALETTE[0])
+  const form = useForm({ defaultValues: EMPTY_FORM })
 
-  // ── data ───────────────────────────────────────────────
-  const fetchMembers = useCallback(() => {
-    setLoading(true)
-    getDetailMembers()
-      .then((res) => setMembers(res?.items || res || []))
-      .catch(() => Toast.error('加载成员列表失败'))
-      .finally(() => setLoading(false))
-  }, [])
+  const fetchMembers = useCallback(
+    () =>
+      getDetailMembers()
+        .then((res) => {
+          const list = res?.items || res || []
+          setMembers(list)
+          // 首次进入默认选中第一位成员，右侧不留空
+          setSelectedId((cur) => (cur === null && list.length ? list[0].id : cur))
+        })
+        .catch(() => toast.error('加载成员列表失败'))
+        .finally(() => setLoading(false)),
+    [],
+  )
 
-  useEffect(() => { fetchMembers() }, [fetchMembers])
+  useEffect(() => {
+    fetchMembers()
+  }, [fetchMembers])
 
-  const filteredMembers = members.filter((m) => {
-    if (!search.trim()) return true
+  const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (
-      (m.name || '').toLowerCase().includes(q) ||
-      (m.department || '').toLowerCase().includes(q) ||
-      (m.role_title || '').toLowerCase().includes(q)
+    if (!q) return members
+    return members.filter(
+      (m) =>
+        (m.name || '').toLowerCase().includes(q) ||
+        (m.department || '').toLowerCase().includes(q) ||
+        (m.role_title || '').toLowerCase().includes(q),
     )
-  })
+  }, [members, search])
 
   const selectedMember = members.find((m) => m.id === selectedId) || null
 
   // ── CRUD ───────────────────────────────────────────────
   const openCreate = () => {
-    setEditRecord(null)
-    setAvatarColor(COLOR_PALETTE[0])
-    setModalVisible(true)
+    setEditing(null)
+    form.reset(EMPTY_FORM)
+    setFormOpen(true)
   }
-
   const openEdit = (member) => {
-    setEditRecord(member)
-    setAvatarColor(member.avatar_color || COLOR_PALETTE[0])
-    setModalVisible(true)
-  }
-
-  const handleDelete = (member) => {
-    Modal.confirm({
-      title: `确定删除成员「${member.name}」？`,
-      content: '此操作不可恢复。',
-      type: 'warning',
-      onOk: () =>
-        deleteDetailMember(member.id)
-          .then(() => {
-            Toast.success('成员已删除')
-            if (selectedId === member.id) setSelectedId(null)
-            fetchMembers()
-          })
-          .catch((err) => Toast.error(err?.error || '删除失败')),
+    setEditing(member)
+    form.reset({
+      name: member.name,
+      department: member.department || '',
+      role_title: member.role_title || '',
+      email: member.email || '',
+      phone: member.phone || '',
+      status: member.status || 'active',
+      join_date: member.join_date ? member.join_date.slice(0, 10) : '',
+      avatar_color: member.avatar_color || DEFAULT_COLOR,
+      bio: member.bio || '',
     })
+    setFormOpen(true)
   }
 
-  const handleSubmit = () => {
-    formApiRef.current?.validate().then((values) => {
-      setSubmitting(true)
-      let joinDate = null
-      if (values.join_date) {
-        if (typeof values.join_date === 'string') {
-          joinDate = values.join_date
-        } else if (values.join_date instanceof Date) {
-          joinDate = values.join_date.toISOString().slice(0, 10)
-        } else if (values.join_date?.format) {
-          joinDate = values.join_date.format('YYYY-MM-DD')
-        }
+  const submit = async (values) => {
+    const payload = {
+      name: values.name,
+      department: values.department || '',
+      role_title: values.role_title || '',
+      email: values.email || '',
+      phone: values.phone || '',
+      status: values.status || 'active',
+      join_date: values.join_date || null,
+      avatar_color: values.avatar_color || DEFAULT_COLOR,
+      bio: values.bio || '',
+    }
+    try {
+      if (editing) {
+        await updateDetailMember(editing.id, payload)
+      } else {
+        const created = await createDetailMember(payload)
+        if (created?.id) setSelectedId(created.id)
       }
-      const payload = {
-        name: values.name,
-        department: values.department || '',
-        role_title: values.role_title || '',
-        email: values.email || '',
-        phone: values.phone || '',
-        status: values.status || 'active',
-        join_date: joinDate,
-        avatar_color: avatarColor,
-        bio: values.bio || '',
-      }
-      const req = editRecord
-        ? updateDetailMember(editRecord.id, payload)
-        : createDetailMember(payload)
-      req
-        .then(() => {
-          Toast.success(editRecord ? '成员已更新' : '成员已创建')
-          setModalVisible(false)
-          fetchMembers()
-        })
-        .catch((err) => Toast.error(err?.error || '操作失败'))
-        .finally(() => setSubmitting(false))
-    }).catch(() => {})
+      toast.success(editing ? '成员已更新' : '成员已创建')
+      setFormOpen(false)
+      fetchMembers()
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
   }
 
-  const initValues = editRecord
-    ? {
-        name: editRecord.name,
-        department: editRecord.department || '',
-        role_title: editRecord.role_title || '',
-        email: editRecord.email || '',
-        phone: editRecord.phone || '',
-        status: editRecord.status || 'active',
-        join_date: editRecord.join_date ? editRecord.join_date.slice(0, 10) : undefined,
-        bio: editRecord.bio || '',
-      }
-    : { status: 'active' }
+  const remove = async (member) => {
+    try {
+      await deleteDetailMember(member.id)
+      toast.success('成员已删除')
+      if (selectedId === member.id) setSelectedId(null)
+      fetchMembers()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
+  }
 
-  // ── render ─────────────────────────────────────────────
+  const status = selectedMember ? STATUS_META[selectedMember.status] || STATUS_META.active : null
+
   return (
-    <div style={{ padding: 0 }}>
-      <div style={{ ...CARD_STYLE, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 0, minHeight: isMobile ? 'auto' : 'calc(100vh - 140px)' }}>
-        {/* ── 左侧面板 ── */}
-        <div
-          style={{
-            width: isMobile ? '100%' : 280,
-            flexShrink: 0,
-            borderRight: isMobile ? 'none' : '1px solid var(--semi-color-border)',
-            borderBottom: isMobile ? '1px solid var(--semi-color-border)' : 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            paddingRight: isMobile ? 0 : 16,
-            marginRight: 16,
-          }}
-        >
-          {/* 标题 + 新建 */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Title heading={5} style={{ margin: 0 }}>详情标签页</Title>
-            <Button icon={<IconPlus />} size="small" theme="solid" onClick={openCreate}>
-              新建成员
-            </Button>
+    <div>
+      <PageHeader
+        title="详情标签页"
+        actions={
+          <Button size="sm" variant="brand" onClick={openCreate}>
+            <Plus />
+            新建成员
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        {/* ── 左侧成员列表 ── */}
+        <Panel padded={false} className="flex flex-col lg:h-[calc(100dvh-210px)] lg:min-h-[480px]" bodyClassName="flex min-h-0 flex-1 flex-col">
+          <div className="border-b p-3">
+            <SearchInput value={search} onChange={setSearch} placeholder="搜索姓名 / 部门 / 职位" className="sm:w-full" />
           </div>
-
-          {/* 搜索框 */}
-          <Input
-            prefix={<IconSearch />}
-            placeholder="搜索姓名 / 部门 / 职位"
-            value={search}
-            onChange={(v) => setSearch(v)}
-            style={{ marginBottom: 10 }}
-          />
-
-          {/* 成员列表 */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="max-h-[360px] min-h-0 flex-1 overflow-y-auto lg:max-h-none">
             {loading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
-                <Spin />
-              </div>
+              <ListSkeleton />
             ) : filteredMembers.length === 0 ? (
-              <Empty description="暂无成员" style={{ paddingTop: 40 }} />
+              <EmptyState icon={Users} title="暂无成员" description={search ? '换个关键词试试' : '点击右上角「新建成员」添加'} />
             ) : (
-              filteredMembers.map((m) => {
-                const sm = STATUS_META[m.status] || STATUS_META.active
-                const isSelected = selectedId === m.id
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => setSelectedId(m.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '10px 8px',
-                      borderRadius: 6,
-                      cursor: 'pointer',
-                      marginBottom: 2,
-                      background: isSelected
-                        ? 'var(--semi-color-primary-light-default)'
-                        : 'transparent',
-                      transition: 'background .15s',
-                    }}
-                  >
-                    <Avatar name={m.name} color={m.avatar_color} size={38} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                        <Text strong style={{ fontSize: 13 }}>{m.name}</Text>
-                        <Tag size="small" color={sm.color}>{sm.label}</Tag>
-                      </div>
-                      <Text type="tertiary" size="small" ellipsis>
-                        {[m.department, m.role_title].filter(Boolean).join(' · ') || '-'}
-                      </Text>
-                    </div>
-                  </div>
-                )
-              })
+              <ul className="space-y-0.5 p-2">
+                {filteredMembers.map((m, i) => {
+                  const sm = STATUS_META[m.status] || STATUS_META.active
+                  const selected = selectedId === m.id
+                  return (
+                    <motion.li
+                      key={m.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, ease: EASE_OUT, delay: Math.min(i, 10) * 0.025 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(m.id)}
+                        aria-current={selected ? 'true' : undefined}
+                        className={cn(
+                          'relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors',
+                          !selected && 'hover:bg-muted/60',
+                        )}
+                      >
+                        {selected ? (
+                          <motion.span
+                            layoutId="detail-member-active"
+                            transition={layoutSpring}
+                            className="bg-brand-soft absolute inset-0 rounded-lg shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_18%,transparent)]"
+                          />
+                        ) : null}
+                        <MemberAvatar name={m.name} color={m.avatar_color} className="relative size-9 text-sm" />
+                        <span className="relative min-w-0 flex-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate text-[13px] font-medium">{m.name}</span>
+                            <StatusBadge tone={sm.tone} variant="plain" dot className="shrink-0">
+                              {sm.label}
+                            </StatusBadge>
+                          </span>
+                          <span className="text-muted-foreground block truncate text-xs">
+                            {[m.department, m.role_title].filter(Boolean).join(' · ') || '-'}
+                          </span>
+                        </span>
+                      </button>
+                    </motion.li>
+                  )
+                })}
+              </ul>
             )}
           </div>
-        </div>
+          {!loading && members.length ? (
+            <div className="text-muted-foreground border-t px-4 py-2.5 text-xs tabular-nums">
+              {search.trim() ? `${filteredMembers.length} / ${members.length} 位成员` : `共 ${members.length} 位成员`}
+            </div>
+          ) : null}
+        </Panel>
 
-        {/* ── 右侧详情区 ── */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* ── 右侧详情 ── */}
+        <Panel padded={false} className="min-h-[420px] lg:h-[calc(100dvh-210px)] lg:min-h-[480px]" bodyClassName="h-full">
           {!selectedMember ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 400 }}>
-              <Empty description="选择左侧成员查看详情" />
+            <div className="flex h-full min-h-[420px] items-center justify-center">
+              <EmptyState icon={UserRound} title="选择左侧成员查看详情" />
             </div>
           ) : (
-            <div>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                <Avatar name={selectedMember.name} color={selectedMember.avatar_color} size={50} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <Title heading={5} style={{ margin: 0 }}>{selectedMember.name}</Title>
-                    <Tag size="small" color={(STATUS_META[selectedMember.status] || STATUS_META.active).color}>
-                      {(STATUS_META[selectedMember.status] || STATUS_META.active).label}
-                    </Tag>
-                  </div>
-                  <Text type="tertiary">{selectedMember.role_title || '-'}</Text>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Button icon={<IconEdit />} size="small" onClick={() => openEdit(selectedMember)}>编辑</Button>
-                  <Button icon={<IconDelete />} size="small" type="danger" theme="light" onClick={() => handleDelete(selectedMember)}>删除</Button>
-                </div>
-              </div>
-
-              <Divider style={{ margin: '0 0 16px' }} />
-
-              {/* Tabs */}
-              <Tabs type="line">
-                {/* Tab 1：基本信息 */}
-                <TabPane tab="基本信息" itemKey="1">
-                  <div style={{ padding: '16px 0' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-                      <InfoRow label="部门" value={selectedMember.department} />
-                      <InfoRow label="职位" value={selectedMember.role_title} />
-                      <InfoRow icon={<IconMail size="small" />} label="邮箱" value={selectedMember.email} />
-                      <InfoRow icon={<IconPhone size="small" />} label="电话" value={selectedMember.phone} />
-                      <InfoRow
-                        icon={<IconCalendar size="small" />}
-                        label="入职日期"
-                        value={selectedMember.join_date ? selectedMember.join_date.slice(0, 10) : '-'}
-                      />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={selectedMember.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
+                className="flex h-full flex-col"
+              >
+                <div className="flex flex-col gap-4 p-5 pb-0 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-4">
+                    <MemberAvatar name={selectedMember.name} color={selectedMember.avatar_color} className="size-14 text-xl" />
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="truncate text-lg font-semibold tracking-tight">{selectedMember.name}</h2>
+                        <StatusBadge tone={status.tone} dot>
+                          {status.label}
+                        </StatusBadge>
+                      </div>
+                      <p className="text-muted-foreground truncate text-[13px]">
+                        {[selectedMember.role_title, selectedMember.department].filter(Boolean).join(' · ') || '-'}
+                      </p>
                     </div>
-                    {selectedMember.bio && (
-                      <div>
-                        <Text type="tertiary" size="small" style={{ display: 'block', marginBottom: 6 }}>个人简介</Text>
-                        <div
-                          style={{
-                            background: 'var(--semi-color-fill-0)',
-                            borderRadius: 6,
-                            padding: '10px 12px',
-                            lineHeight: '1.7',
-                          }}
-                        >
-                          <Paragraph style={{ margin: 0 }}>{selectedMember.bio}</Paragraph>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </TabPane>
+                  <div className="flex shrink-0 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEdit(selectedMember)}>
+                      <Pencil />
+                      编辑
+                    </Button>
+                    <ConfirmAction
+                      title={`确定删除成员「${selectedMember.name}」？`}
+                      description="此操作不可恢复。"
+                      confirmText="删除"
+                      onConfirm={() => remove(selectedMember)}
+                    >
+                      <Button variant="ghost" size="sm" className="text-danger hover:text-danger">
+                        <Trash2 />
+                        删除
+                      </Button>
+                    </ConfirmAction>
+                  </div>
+                </div>
 
-                {/* Tab 2：工作经历 */}
-                <TabPane tab="工作经历" itemKey="2">
-                  <div style={{ padding: '16px 0' }}>
-                    <Timeline>
-                      {STATIC_WORK_HISTORY.map((item, idx) => (
-                        <Timeline.Item key={idx} time={item.time}>
-                          <div>
-                            <Text strong style={{ fontSize: 14 }}>{item.title}</Text>
-                            <Text type="tertiary" size="small" style={{ display: 'block', margin: '2px 0 4px' }}>
-                              {item.company}
-                            </Text>
-                            <Paragraph type="tertiary" size="small" style={{ margin: 0 }}>
-                              {item.desc}
-                            </Paragraph>
-                          </div>
-                        </Timeline.Item>
-                      ))}
-                    </Timeline>
-                  </div>
-                </TabPane>
+                <SegmentedTabs value={tab} onChange={setTab} items={TABS} className="mt-5 px-5" />
 
-                {/* Tab 3：操作日志 */}
-                <TabPane tab="操作日志" itemKey="3">
-                  <div style={{ padding: '16px 0' }}>
-                    {STATIC_LOGS.map((log, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          padding: '10px 0',
-                          borderBottom: idx < STATIC_LOGS.length - 1 ? '1px solid var(--semi-color-border)' : 'none',
-                        }}
-                      >
-                        <Tag size="small" color={log.type}>{log.action}</Tag>
-                        <Text type="tertiary" size="small" style={{ flex: 1 }}>
-                          操作人：{log.operator}
-                        </Text>
-                        <Text type="quaternary" size="small">{log.time}</Text>
-                      </div>
-                    ))}
-                  </div>
-                </TabPane>
-              </Tabs>
-            </div>
+                <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={tab}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.18, ease: EASE_OUT }}
+                    >
+                      {tab === 'info' ? <InfoTab member={selectedMember} /> : tab === 'history' ? <HistoryTab /> : <LogsTab />}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           )}
-        </div>
+        </Panel>
       </div>
 
-      {/* 新建/编辑 Modal */}
-      <Modal
-        title={editRecord ? '编辑成员' : '新建成员'}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        okButtonProps={{ loading: submitting }}
-        afterClose={() => { formApiRef.current?.reset(); setEditRecord(null) }}
-        width={isMobile ? '95vw' : 480}
+      <FormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? '编辑成员' : '新建成员'}
+        description={editing ? `正在编辑 ${editing.name}` : undefined}
+        form={form}
+        onSubmit={submit}
       >
-        <Form
-          key={editRecord ? `em-${editRecord.id}` : 'nm'}
-          initValues={initValues}
-          getFormApi={(api) => { formApiRef.current = api }}
-          labelPosition="left"
-          labelWidth={80}
-        >
-          <Form.Input
-            field="name"
-            label="姓名"
-            placeholder="请输入姓名"
-            rules={[{ required: true, message: '请输入姓名' }]}
-          />
-          <Form.Input field="department" label="部门" placeholder="请输入部门" />
-          <Form.Input field="role_title" label="职位" placeholder="请输入职位" />
-          <Form.Input field="email" label="邮箱" placeholder="请输入邮箱" />
-          <Form.Input field="phone" label="电话" placeholder="请输入电话" />
-          <Form.Select
-            field="status"
-            label="状态"
-            optionList={STATUS_OPTIONS}
-            style={{ width: '100%' }}
-          />
-          <Form.DatePicker
-            field="join_date"
-            label="入职日期"
-            style={{ width: '100%' }}
-            placeholder="请选择入职日期"
-            format="yyyy-MM-dd"
-            type="date"
-          />
-          <Form.Slot label="头像颜色">
-            <ColorPicker
-              value={avatarColor}
-              onChange={(c) => setAvatarColor(c)}
-            />
-          </Form.Slot>
-          <Form.TextArea
-            field="bio"
-            label="个人简介"
-            placeholder="请输入个人简介（选填）"
-            rows={3}
-          />
-        </Form>
-      </Modal>
+        <FormGrid>
+          <FormInput control={form.control} name="name" label="姓名" placeholder="请输入姓名" rules={{ required: '请输入姓名' }} />
+          <FormSelect control={form.control} name="status" label="状态" options={STATUS_OPTIONS} />
+          <FormInput control={form.control} name="department" label="部门" placeholder="请输入部门" />
+          <FormInput control={form.control} name="role_title" label="职位" placeholder="请输入职位" />
+          <FormInput control={form.control} name="email" label="邮箱" placeholder="请输入邮箱" />
+          <FormInput control={form.control} name="phone" label="电话" placeholder="请输入电话" />
+        </FormGrid>
+        <FormDate control={form.control} name="join_date" label="入职日期" placeholder="请选择入职日期" />
+        <FormCustom
+          control={form.control}
+          name="avatar_color"
+          label="头像颜色"
+          render={({ value, onChange }) => <ColorPicker value={value} onChange={onChange} />}
+        />
+        <FormTextarea control={form.control} name="bio" label="个人简介" placeholder="请输入个人简介（选填）" rows={3} />
+      </FormDialog>
     </div>
   )
 }

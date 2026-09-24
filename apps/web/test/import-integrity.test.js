@@ -17,12 +17,12 @@ const SRC = resolve(process.cwd(), 'src')
 const SPECIFIER_RE = /(?:from\s*|import\s*)['"]([^'"]+)['"]/g
 const RESOURCE_RE = /\.(css|scss|sass|less|svg|png|jpe?g|gif|webp|woff2?|ttf|otf|eot|json)$/i
 
-function collectFiles(dir, out = []) {
+function collectFiles(dir, out = [], ext = /\.(js|jsx)$/) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
     if (statSync(full).isDirectory()) {
-      collectFiles(full, out)
-    } else if (/\.(js|jsx)$/.test(name)) {
+      collectFiles(full, out, ext)
+    } else if (ext.test(name)) {
       out.push(full)
     }
   }
@@ -42,16 +42,6 @@ function collectSpecifiers(file) {
     }
   }
   return out
-}
-
-function collectExportNames(file) {
-  // 提取 export const X / export function X 的符号名
-  const t = readFileSync(file, 'utf-8')
-  const names = new Set()
-  for (const m of t.matchAll(/export\s+(?:const|function|let|var)\s+([A-Za-z_$][\w$]*)/g)) {
-    names.add(m[1])
-  }
-  return [...names]
 }
 
 describe('导入完整性', () => {
@@ -85,26 +75,20 @@ describe('导入完整性', () => {
     expect(broken).toEqual([])
   })
 
-  it('共享样式常量必须在本地定义或被导入后才可引用（防 ReferenceError）', () => {
-    // 读取 shared/styles.js 导出的全部符号名，逐一检查全库引用来源
-    const stylesExports = collectExportNames(join(SRC, 'shared/styles.js'))
-    expect(stylesExports.length).toBeGreaterThan(0)
-
+  it('已下线的 Semi Design / 旧富文本依赖不得再出现（防回退）', () => {
+    const LEGACY = [
+      [/from\s*['"]@douyinfe\//, '@douyinfe/semi-*'],
+      [/var\(--semi-/, 'var(--semi-*)'],
+      [/from\s*['"]react-quill['"]/, 'react-quill（改用 react-quill-new）'],
+      [/['"]@\/shared\/styles['"]/, '@/shared/styles（改用 Tailwind 工具类）'],
+    ]
     const problems = []
-    for (const file of collectFiles(SRC)) {
+    for (const file of collectFiles(SRC, [], /\.(js|jsx|css)$/)) {
       const t = readFileSync(file, 'utf-8')
-      for (const name of stylesExports) {
-        // 本地定义（const X =）则无需导入
-        if (new RegExp(`const\\s+${name}\\s*=`).test(t)) continue
-        const imported = new RegExp(`import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*['"]@/shared/styles['"]`).test(t)
-        // 非 import 行、非定义行的真实引用（含 CSS 变量注释等干扰少，这里从严）
-        const refs = t.split('\n').filter(
-          l => new RegExp(`\\b${name}\\b`).test(l) && !/^import\s/.test(l.trim()) && !new RegExp(`const\\s+${name}\\s*=`).test(l)
-        ).length
-        if (refs > 0 && !imported) {
-          problems.push(`${file} 引用了 ${name} 但未导入（若本地定义请确认命名）`)
-        }
-      }
+      for (const [re, label] of LEGACY) if (re.test(t)) problems.push(`${file} 使用了 ${label}`)
+    }
+    for (const dir of ['src/components/Layout', 'src/shared/components/import-export']) {
+      if (existsSync(resolve(process.cwd(), dir))) problems.push(`${dir} 应已删除`)
     }
     expect(problems).toEqual([])
   })

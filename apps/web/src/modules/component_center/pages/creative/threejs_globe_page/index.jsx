@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { Tag, Typography } from '@douyinfe/semi-ui'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { Hand, MapPin } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import PageHeader from '@/shared/components/PageHeader'
 
 const CITIES = [
   { name: '北京',   lat: 39.9,  lon: 116.4 },
@@ -30,8 +31,8 @@ function latLonToVec3(lat, lon, r = 1) {
 
 export default function ThreejsGlobePage() {
   const mountRef   = useRef(null)
+  const hoveredRef = useRef(null)
   const [hovered, setHovered] = useState(null)
-  const isMobile = useIsMobile()
 
   useEffect(() => {
     const mount = mountRef.current
@@ -41,7 +42,7 @@ export default function ThreejsGlobePage() {
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(W, H)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setClearColor(0x020b18)
+    renderer.setClearColor(0x020817)
     mount.appendChild(renderer.domElement)
 
     /* ── scene / camera ── */
@@ -73,9 +74,9 @@ export default function ThreejsGlobePage() {
     const globeMesh = new THREE.Mesh(
       new THREE.SphereGeometry(1, 64, 64),
       new THREE.MeshPhongMaterial({
-        color:     0x0a1f3a,
-        emissive:  0x071525,
-        specular:  0x1a4a6a,
+        color:     0x0b1f3d,
+        emissive:  0x06142b,
+        specular:  0x1e4a73,
         shininess: 12,
       })
     )
@@ -84,21 +85,21 @@ export default function ThreejsGlobePage() {
     // 经纬网格
     globeGroup.add(new THREE.Mesh(
       new THREE.SphereGeometry(1.003, 36, 18),
-      new THREE.MeshBasicMaterial({ color: 0x1a5580, wireframe: true, transparent: true, opacity: 0.18 })
+      new THREE.MeshBasicMaterial({ color: 0x0ea5e9, wireframe: true, transparent: true, opacity: 0.12 })
     ))
 
     // 大气层（单面，稍大，向外）
     globeGroup.add(new THREE.Mesh(
       new THREE.SphereGeometry(1.08, 64, 64),
       new THREE.MeshPhongMaterial({
-        color: 0x0044aa, emissive: 0x001133,
+        color: 0x1d4ed8, emissive: 0x001133,
         transparent: true, opacity: 0.12, side: THREE.FrontSide, depthWrite: false,
       })
     ))
 
     /* ── city dots + pulse rings (作为 globeGroup 子对象) ── */
     const dotGeo  = new THREE.SphereGeometry(0.013, 8, 8)
-    const dotMat  = new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+    const dotMat  = new THREE.MeshBasicMaterial({ color: 0x22d3ee })
     const ringGeo = new THREE.RingGeometry(0.018, 0.03, 24)
     const rings   = []
 
@@ -112,7 +113,7 @@ export default function ThreejsGlobePage() {
 
       const ring = new THREE.Mesh(
         ringGeo,
-        new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
+        new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
       )
       ring.position.copy(pos)
       // 朝向球心外
@@ -131,13 +132,13 @@ export default function ThreejsGlobePage() {
       const arcGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(60))
       globeGroup.add(new THREE.Line(
         arcGeo,
-        new THREE.LineBasicMaterial({ color: 0x0099ff, transparent: true, opacity: 0.35 })
+        new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35 })
       ))
     }
 
     /* ── lights ── */
-    scene.add(new THREE.AmbientLight(0x334466, 3.5))
-    const sun = new THREE.DirectionalLight(0x6699cc, 1.5)
+    scene.add(new THREE.AmbientLight(0x33456b, 3.5))
+    const sun = new THREE.DirectionalLight(0x60a5fa, 1.5)
     sun.position.set(4, 2, 4)
     scene.add(sun)
     // 背光（让暗面不全黑）
@@ -196,10 +197,18 @@ export default function ThreejsGlobePage() {
       raycaster.setFromCamera(pointer, camera)
       const hits = raycaster.intersectObjects(dotMeshes)
       if (hits.length) {
-        setHovered(hits[0].object.userData.name)
+        const name = hits[0].object.userData.name
+        // 只在悬停城市变化时更新 state，避免每帧触发渲染
+        if (hoveredRef.current !== name) {
+          hoveredRef.current = name
+          setHovered(name)
+        }
         renderer.domElement.style.cursor = 'pointer'
       } else {
-        setHovered(null)
+        if (hoveredRef.current !== null) {
+          hoveredRef.current = null
+          setHovered(null)
+        }
         renderer.domElement.style.cursor = dragging ? 'grabbing' : 'grab'
       }
 
@@ -227,25 +236,38 @@ export default function ThreejsGlobePage() {
   }, [])
 
   return (
-    <div style={{ height: 'calc(100vh - 60px)', maxHeight: 600, background: '#020b18', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10, pointerEvents: 'none' }}>
-        <Typography.Title heading={4} style={{ margin: 0, color: '#fff' }}>Three.js 3D 地球</Typography.Title>
-        <Typography.Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>拖拽旋转 · 城市节点 · 数据连线</Typography.Text>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="Three.js 3D 地球" />
 
-      {hovered && (
-        <div style={{ position: 'absolute', top: 20, right: 24, zIndex: 10, background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.4)', borderRadius: 8, padding: '6px 16px', color: '#00d4ff', fontSize: 14, fontWeight: 600 }}>
-          📍 {hovered}
+      <section className="surface-card relative overflow-hidden">
+        <div ref={mountRef} className="h-[460px] w-full bg-black md:h-[600px]" />
+
+        <div className="pointer-events-none absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-white/5 px-2 py-1 text-[11px] text-white/60 ring-1 ring-white/10 backdrop-blur-sm">
+          <Hand className="size-3" />
+          拖拽旋转地球
         </div>
-      )}
 
-      <div style={{ position: 'absolute', bottom: isMobile ? 8 : 20, left: isMobile ? 8 : 24, right: isMobile ? 8 : 'auto', zIndex: 10, display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: isMobile ? '100%' : '60%' }}>
-        {CITIES.map(c => (
-          <Tag key={c.name} color={hovered === c.name ? 'blue' : 'grey'} size="small">{c.name}</Tag>
-        ))}
-      </div>
+        {hovered ? (
+          <div className="animate-in fade-in-0 zoom-in-95 absolute top-3 right-3 flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-white ring-1 ring-white/20 backdrop-blur-md duration-150">
+            <MapPin className="text-brand-to size-4" />
+            {hovered}
+          </div>
+        ) : null}
 
-      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+        <div className="pointer-events-none absolute right-3 bottom-3 left-3 flex flex-wrap gap-1.5 md:right-auto md:max-w-[60%]">
+          {CITIES.map((c) => (
+            <span
+              key={c.name}
+              className={cn(
+                'rounded-md px-2 py-0.5 text-[11px] ring-1 backdrop-blur-sm transition-colors duration-150',
+                hovered === c.name ? 'bg-brand-to/25 text-white ring-brand-to/60' : 'bg-white/5 text-white/60 ring-white/10',
+              )}
+            >
+              {c.name}
+            </span>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

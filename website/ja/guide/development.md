@@ -31,17 +31,21 @@ castor-kit/
 │   │   │   ├── setup-once.ts       # マイグレーション + RBAC + 読み取り専用ロール（コンテナ起動時に実行）
 │   │   │   └── generate-openapi.ts / import-apifox.ts
 │   │   └── test/                   # Vitest（実際の PostgreSQL に対して実行）
-│   ├── web/                        # @castor-kit/web — React + Vite フロントエンド
+│   ├── web/                        # @castor-kit/web — React 19 + Vite + shadcn/ui フロントエンド（JSX）
+│   │   ├── scripts/shadcn-add.sh   # ローカル中継経由で npx shadcn@latest add を実行
 │   │   └── src/
 │   │       ├── App.jsx             # 動的ルーティング（import.meta.glob）
-│   │       ├── context/AuthContext.jsx
-│   │       ├── components/Layout/  # サイドバー + PrivateRoute
+│   │       ├── index.css           # Tailwind v4 + デザイントークン（ライト / ダーク）
+│   │       ├── context/            # AuthContext / ThemeContext
+│   │       ├── components/ui/      # shadcn/ui プリミティブ
+│   │       ├── components/app/     # アプリシェル：サイドバー、トップバー、⌘K、テーマ切替
+│   │       ├── lib/                # cn / toast / format / motion / chart-theme
 │   │       ├── modules/
 │   │       │   ├── admin/          # システム管理ページ
 │   │       │   └── component_center/   # コンポーネントサンプルページ
 │   │       └── shared/
 │   │           ├── api/request.js  # Axios インスタンス（baseURL='/api'）
-│   │           └── components/     # 共有 UI（インポート/エクスポートのモーダルなど）
+│   │           └── components/     # 共通業務コンポーネント：PageHeader / DataTable / FormDialog / ImportDialog …
 │   └── mcp/                        # @castor-kit/mcp — MCP サーバー
 └── docs/
     └── templates/                  # AI 用コードスケルトンテンプレート（backend/*.ts、frontend/*）
@@ -87,11 +91,27 @@ pnpm scaffold -- --name customer --domain admin \
 スキャフォールダーは以下を行います：
 
 - テーブル定義 `db/schema/admin/customer.ts` とモジュール `modules/admin/customer/{schema,repository,service,routes}.ts` を書き出す
-- フロントエンドの API ファイルとリストページ（検索、作成/編集/削除、インポート/エクスポート）を書き出す
+- フロントエンドの API ファイルと shadcn/ui のリストページ（ユーザー管理ページと同じ構成：検索、作成/編集/削除、インポート/エクスポート。フィールド型はフォーム部品に自動マッピング）を書き出す
 - `db/schema/index.ts` とドメインルーター `modules/admin/router.ts` に登録する
 - `drizzle-kit generate` を実行してマイグレーション SQL を生成する
 
 `--domain` は `admin` または `component_center` です。フィールド型：`str`（100）、`str20`、`str50`、`str500`、`text`、`int`、`float`（numeric 10,2）、`bool`、`date`、`datetime`。
+
+---
+
+## フロントエンドの規約
+
+フロントエンド（`apps/web`）は **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**（JavaScript / JSX、UI 文言は中国語）で構成され、UI は Semi Design から移行済みです。詳細は[フロントエンド刷新プラン](https://github.com/robeshell/castor-kit/blob/main/docs/frontend-redesign-plan.md)を参照してください。
+
+- **ページ構成**：リストページは `modules/admin/pages/users/index.jsx` に倣う — `PageHeader` → `FilterBar` → `DataTable` → `FormDialog`（react-hook-form + `FormFields`）→ `ImportDialog` / `ExportDialog`。削除は `ConfirmAction`、通知は `@/lib/toast`
+- **フィールド → フォーム部品**：`str` → `FormInput`、`text` → `FormTextarea`、`int` / `float` → `FormNumber`、`bool` → `FormSwitch`、`date` → `FormDate`、`datetime` → `FormDateTime`。テーブルでは `bool` を `StatusBadge`、日時を `formatDate` / `formatDateTime` で表示
+- **スタイル**：Tailwind のセマンティックカラークラスのみ（`bg-card`、`text-muted-foreground`、`bg-brand-soft` …）を使うのでダークモードも自動対応。Ocean グラデーション（blue → sky → cyan）はアクセントのみ、`variant="brand"` のメインボタンは 1 ページ 1 つまで
+- **禁止**：`@douyinfe/*` の import、`var(--semi-*)`、16 進カラーのハードコード、大量のインラインスタイルによるレイアウト
+- **shadcn プリミティブの追加**：この環境では shadcn CLI が ui.shadcn.com に直接つながらないため、中継スクリプトを使います（ローカルのレジストリ中継を起動し、`REGISTRY_URL` 付きで `npx shadcn@latest add` を実行、終了後に停止）：
+
+```bash
+apps/web/scripts/shadcn-add.sh hover-card
+```
 
 ---
 
@@ -160,7 +180,7 @@ psql -d aurastack -c '\d customers'
 pnpm verify -- --module customer --skip-build
 ```
 
-TypeScript の型、層構成ルール（ローカルの権限ヘルパー禁止）、マイグレーションチェーンの整合性と適用状況、OpenAPI の同期、AI ドキュメントが参照するパス、バックエンド/フロントエンドのファイルと登録、RBAC シードをチェックします。CI では `--skip-build` を外すと本番フロントエンドビルドも検証されます。`--json` を付けると AI が読める構造化出力になります。
+TypeScript の型、層構成ルール（ローカルの権限ヘルパー禁止）、マイグレーションチェーンの整合性と適用状況、OpenAPI の同期、AI ドキュメントが参照するパス、バックエンド/フロントエンドのファイルと登録、RBAC シードをチェックします。フロントエンドページに旧 UI スタック（`@douyinfe/*`、`var(--semi-*)`）が残っていないかも検査します。CI では `--skip-build` を外すと本番フロントエンドビルドも検証されます。`--json` を付けると AI が読める構造化出力になります。
 
 ---
 
@@ -190,7 +210,7 @@ castor-kit にはすべての主要 AI コーディングツール向けのコ�
 
 | ツール | 設定ファイル | 機能 |
 |---|---|---|
-| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` エンドツーエンドスキル |
+| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` エンドツーエンドスキル + `shadcn-ui-skills` フロントエンドガイド |
 | Cursor | `.cursor/rules/` | Autopilot ワークフローを自動トリガー |
 | GitHub Copilot | `.github/copilot-instructions.md` | プロジェクト規約をグローバルに注入 |
 | Windsurf | `.windsurfrules` | プロジェクト規約をグローバルに注入 |

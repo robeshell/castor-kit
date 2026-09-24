@@ -1,7 +1,7 @@
 # Getting Started
 
 ::: info castor-kit and AuraStack
-castor-kit is the Node.js/TypeScript rewrite of AuraStack (the Flask version): the backend is now Fastify + Drizzle, the React frontend is reused unchanged, and it connects to the same PostgreSQL schema with a compatible API contract.
+castor-kit is the Node.js/TypeScript rewrite of AuraStack (the Flask version): the backend is now Fastify + Drizzle, the React frontend keeps its routing and features with the UI migrated from Semi Design to shadcn/ui + Tailwind CSS v4, and it connects to the same PostgreSQL schema with a compatible API contract.
 :::
 
 ## Prerequisites

@@ -1,7 +1,7 @@
 # castor-kit
 
 > **AI-First 全栈管理脚手架**
-> Node.js + TypeScript（Fastify 5 · Zod · Drizzle）+ React 18 + PostgreSQL + Semi Design — 为 AI 驱动的端到端功能开发而生。
+> Node.js + TypeScript（Fastify 5 · Zod · Drizzle）+ React 19 + PostgreSQL + shadcn/ui（Tailwind CSS v4 · motion）— 为 AI 驱动的端到端功能开发而生。
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![Node 22+](https://img.shields.io/badge/node-22%2B-green)
@@ -11,7 +11,7 @@
 
 > Castor 是河狸的拉丁属名——“自然界的工程师”，不需要图纸就能把整座水坝建起来并持续扩建。
 >
-> castor-kit 是 [AuraStack](https://github.com/robeshell/AuraStack)（Flask + React）的 Node.js/TypeScript 重写版：直连同一套 PostgreSQL 表结构，API 契约兼容，React 前端原样沿用。
+> castor-kit 是 [AuraStack](https://github.com/robeshell/AuraStack)（Flask + React）的 Node.js/TypeScript 重写版：直连同一套 PostgreSQL 表结构，API 契约兼容；React 前端沿用 AuraStack 的路由与功能，UI 已从 Semi Design 迁移到 shadcn/ui + Tailwind CSS v4（见 [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)）。
 
 ---
 
@@ -33,11 +33,12 @@
 |---|---|
 | 后端 | Node 22 · TypeScript · Fastify 5 · Zod · pino |
 | 数据库 | PostgreSQL 14+ · Drizzle ORM + drizzle-kit（SQL 迁移） |
-| 前端 | React 18 · Vite 5 · React Router 7 · Axios |
-| UI | Semi Design 2.93 |
+| 前端 | React 19 · Vite 5 · React Router 7 · Axios（JavaScript / JSX） |
+| UI | shadcn/ui（new-york，Radix）· Tailwind CSS v4 · motion · lucide-react |
+| 表单 / 表格 | react-hook-form · @tanstack/react-table · sonner |
 | 图表 | ECharts 6 · echarts-for-react |
 | 3D | Three.js 0.176 |
-| 编辑器 | Monaco Editor · react-quill |
+| 编辑器 | Monaco Editor · react-quill-new |
 | 仓库 | pnpm workspaces：`apps/api` · `apps/web` · `apps/mcp` |
 
 ---
@@ -65,7 +66,7 @@ pnpm seed:rbac         # 菜单、超级管理员角色、admin / admin123
 pnpm dev               # api :5001 + web :5173
 ```
 
-AI 工具的上下文入口：[AGENTS.md](AGENTS.md)（所有工具通用）、[CLAUDE.md](CLAUDE.md)、[CODEX.md](CODEX.md)、`.cursor/rules/`、`.windsurfrules`、`.github/copilot-instructions.md`。完整重写方案见 [docs/rewrite-plan.md](docs/rewrite-plan.md)。
+AI 工具的上下文入口：[AGENTS.md](AGENTS.md)（所有工具通用）、[CLAUDE.md](CLAUDE.md)、[CODEX.md](CODEX.md)、`.cursor/rules/`、`.windsurfrules`、`.github/copilot-instructions.md`。完整重写方案见 [docs/rewrite-plan.md](docs/rewrite-plan.md)，前端 UI 约定见 [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)。新增 shadcn/ui 原子组件用 `apps/web/scripts/shadcn-add.sh <组件>`（经本地 registry 中转执行 `npx shadcn@latest add`）。
 
 > 部署方式、环境变量、AI 工具集成等详细说明，请查阅 **[在线文档](https://robeshell.github.io/castor-kit/)**。
 

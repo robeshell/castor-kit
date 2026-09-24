@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "castor-kit"
   text: "AI-First フルスタックスキャフォールド"
-  tagline: Node.js + TypeScript（Fastify · Drizzle）+ React 18 + PostgreSQL。自然言語で要件を記述するだけで、AI が機能をエンドツーエンドで実装します。
+  tagline: Node.js + TypeScript（Fastify · Drizzle）+ React 19 + shadcn/ui + PostgreSQL。自然言語で要件を記述するだけで、AI が機能をエンドツーエンドで実装します。
   actions:
     - theme: brand
       text: はじめる

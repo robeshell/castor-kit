@@ -1,44 +1,111 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import { Button, Input, Tag, Typography } from '@douyinfe/semi-ui'
-import { IconClose, IconSend, IconRefresh } from '@douyinfe/semi-icons'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
+import { motion } from 'motion/react'
+import { ArrowDown, ArrowUp, CircleCheck, CircleX, Plug, PlugZap, Radio, Send, Unplug } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
+import { brandArea, brandLine, chartBase, useChartColors } from '@/lib/chart-theme'
+import { EASE_OUT } from '@/lib/motion'
+import { cn } from '@/lib/utils'
+import EmptyState from '@/shared/components/EmptyState'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
 
-const CARD = {
-  background: 'var(--semi-color-bg-1)', borderRadius: 10,
-  boxShadow: '0 1px 3px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.06)',
-}
-// ECharts option 渲染到 canvas，不支持 CSS 变量 → 保留具体色值
-const C = { blue: '#4080FF', green: '#00B96B', orange: '#FA8C16', red: '#FF4D4F', border: '#eaedf1', text0: '#1a1a1a', text2: '#8c8c8c' }
-// 真实 DOM 颜色 → Semi Design CSS 变量（暗黑模式自适应）
-const DOM = { border: 'var(--semi-color-border)', text0: 'var(--semi-color-text-0)', text2: 'var(--semi-color-text-2)' }
-
-const WS_URL = '/ws/devtools'  // vite proxy → ws://localhost:5001/ws/devtools
+const WS_URL = '/ws/devtools' // vite proxy → ws://localhost:5001/ws/devtools
 const MAX_MSGS = 300
-const MAX_PTS  = 40
+const MAX_PTS = 40
+
+const STATUS_META = {
+  idle: { tone: 'neutral', label: '未连接' },
+  connecting: { tone: 'warning', label: '连接中...' },
+  connected: { tone: 'success', label: '已连接' },
+  error: { tone: 'danger', label: '连接错误' },
+  closed: { tone: 'neutral', label: '已断开' },
+}
+
+// 系统消息的图标与颜色
+const SYS_ICON = { ok: CircleCheck, error: CircleX, closed: Plug }
+const SYS_CLASS = { ok: 'text-success', error: 'text-danger', closed: 'text-muted-foreground' }
 
 function getWsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'
   return `${proto}://${location.host}${WS_URL}`
 }
 
+// 服务端消息为 JSON（type: metric / echo），解析失败时按纯文本展示
+function messageType(text) {
+  try {
+    const obj = JSON.parse(text)
+    return obj && typeof obj === 'object' && typeof obj.type === 'string' ? obj.type : null
+  } catch {
+    return null
+  }
+}
+
+function MessageRow({ m }) {
+  const SysIcon = m.dir === 'sys' ? SYS_ICON[m.kind] || Radio : null
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: EASE_OUT }}
+      className={cn(
+        'grid grid-cols-[64px_16px_minmax(0,1fr)] items-start gap-2 rounded-md px-2 py-1 font-mono text-xs',
+        m.dir === 'out' && 'bg-brand-soft',
+        m.dir === 'sys' && 'bg-muted/50',
+      )}
+    >
+      <span className="text-muted-foreground pt-px text-[11px] tabular-nums">{m.ts}</span>
+      <span className="flex h-[18px] items-center">
+        {m.dir === 'in' ? (
+          <ArrowDown className="text-success size-3" />
+        ) : m.dir === 'out' ? (
+          <ArrowUp className="text-primary size-3" />
+        ) : (
+          <SysIcon className={cn('size-3', SYS_CLASS[m.kind])} />
+        )}
+      </span>
+      <span className="leading-[18px] break-all">
+        {m.type ? (
+          <StatusBadge tone={m.type === 'echo' ? 'brand' : 'neutral'} className="mr-1.5 h-4 px-1 align-[1px] text-[10px]">
+            {m.type}
+          </StatusBadge>
+        ) : null}
+        <span className={cn(m.dir === 'sys' && 'font-sans', m.dir === 'sys' && SYS_CLASS[m.kind])}>{m.text}</span>
+      </span>
+    </motion.div>
+  )
+}
+
 export default function WebSocketPage() {
-  const isMobile = useIsMobile()
-  const [status, setStatus]   = useState('idle')
+  const c = useChartColors()
+  const [status, setStatus] = useState('idle')
   const [messages, setMessages] = useState([])
-  const [input, setInput]     = useState('')
-  const [stats, setStats]     = useState({ sent: 0, received: 0 })
+  const [input, setInput] = useState('')
+  const [stats, setStats] = useState({ sent: 0, received: 0 })
   const [rateData, setRateData] = useState({ times: [], values: [] })
 
-  const wsRef       = useRef(null)
+  const wsRef = useRef(null)
   const rateCounter = useRef(0)
-  const rateTimer   = useRef(null)
-  const logRef      = useRef(null)
+  const rateTimer = useRef(null)
+  const logRef = useRef(null)
+  const seqRef = useRef(0)
 
-  const addMsg = useCallback((text, dir) => {
-    setMessages(prev => [
+  const addMsg = useCallback((text, dir, kind) => {
+    seqRef.current += 1
+    const id = seqRef.current
+    setMessages((prev) => [
       ...prev.slice(-(MAX_MSGS - 1)),
-      { id: Date.now() + Math.random(), text, dir, ts: new Date().toLocaleTimeString('zh', { hour12: false }) },
+      {
+        id,
+        text,
+        dir,
+        kind,
+        type: dir === 'sys' ? null : messageType(text),
+        ts: new Date().toLocaleTimeString('zh', { hour12: false }),
+      },
     ])
     if (dir === 'in') rateCounter.current++
   }, [])
@@ -63,29 +130,29 @@ export default function WebSocketPage() {
 
     ws.onopen = () => {
       setStatus('connected')
-      addMsg('✅ WebSocket 连接已建立（后端实时推送服务器指标）', 'sys')
+      addMsg('WebSocket 连接已建立（后端实时推送服务器指标）', 'sys', 'ok')
       rateTimer.current = setInterval(() => {
-        const c = rateCounter.current
+        const n = rateCounter.current
         rateCounter.current = 0
-        setRateData(prev => ({
-          times:  [...prev.times.slice(-(MAX_PTS - 1)),  new Date().toLocaleTimeString('zh', { hour12: false })],
-          values: [...prev.values.slice(-(MAX_PTS - 1)), c],
+        setRateData((prev) => ({
+          times: [...prev.times.slice(-(MAX_PTS - 1)), new Date().toLocaleTimeString('zh', { hour12: false })],
+          values: [...prev.values.slice(-(MAX_PTS - 1)), n],
         }))
       }, 1000)
     }
 
-    ws.onmessage = e => {
+    ws.onmessage = (e) => {
       addMsg(e.data, 'in')
-      setStats(s => ({ ...s, received: s.received + 1 }))
+      setStats((s) => ({ ...s, received: s.received + 1 }))
     }
 
     ws.onerror = () => {
-      addMsg('❌ 连接错误，请确认后端已启动（pnpm dev，端口 5001）', 'sys')
+      addMsg('连接错误，请确认后端已启动（pnpm dev，端口 5001）', 'sys', 'error')
       setStatus('error')
     }
 
-    ws.onclose = e => {
-      addMsg(`🔌 连接已关闭 (code: ${e.code})`, 'sys')
+    ws.onclose = (e) => {
+      addMsg(`连接已关闭 (code: ${e.code})`, 'sys', 'closed')
       setStatus('closed')
       clearInterval(rateTimer.current)
       wsRef.current = null
@@ -97,133 +164,157 @@ export default function WebSocketPage() {
     if (!text || status !== 'connected') return
     wsRef.current?.send(JSON.stringify({ text }))
     addMsg(text, 'out')
-    setStats(s => ({ ...s, sent: s.sent + 1 }))
+    setStats((s) => ({ ...s, sent: s.sent + 1 }))
     setInput('')
   }, [input, status, addMsg])
 
+  // 新消息到达时平滑滚到底部
   useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
+    const el = logRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
-  useEffect(() => () => { wsRef.current?.close(); clearInterval(rateTimer.current) }, [])
+  useEffect(
+    () => () => {
+      wsRef.current?.close()
+      clearInterval(rateTimer.current)
+    },
+    [],
+  )
 
-  const statusMeta = {
-    idle:       { color: 'grey',   label: '未连接' },
-    connecting: { color: 'orange', label: '连接中...' },
-    connected:  { color: 'green',  label: '已连接' },
-    error:      { color: 'red',    label: '连接错误' },
-    closed:     { color: 'grey',   label: '已断开' },
-  }
+  const chartOption = useMemo(() => {
+    const base = chartBase(c)
+    return {
+      ...base,
+      grid: { top: 8, left: 4, right: 8, bottom: 4, containLabel: true },
+      xAxis: { ...base.xAxis, type: 'category', data: rateData.times, axisLabel: { ...base.xAxis.axisLabel, fontSize: 10, interval: 9 } },
+      yAxis: { ...base.yAxis, type: 'value', minInterval: 1, axisLabel: { ...base.yAxis.axisLabel, fontSize: 10 } },
+      series: [
+        {
+          type: 'line',
+          data: rateData.values,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: 2, color: brandLine(c) },
+          areaStyle: brandArea(c),
+        },
+      ],
+      tooltip: { ...base.tooltip, formatter: (p) => `${p[0].axisValue}<br/>消息: <b>${p[0].value}</b> 条/秒` },
+      animation: false,
+    }
+  }, [c, rateData])
 
-  const chartOption = {
-    backgroundColor: 'transparent',
-    grid: { top: 8, left: 36, right: 12, bottom: 22 },
-    xAxis: { type: 'category', data: rateData.times, axisLabel: { fontSize: 10, color: C.text2, interval: 4 } },
-    yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: C.text2 } },
-    series: [{
-      type: 'line', data: rateData.values, smooth: true, symbol: 'none',
-      lineStyle: { color: C.green, width: 2 },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: C.green + '44' }, { offset: 1, color: C.green + '00' }] } },
-    }],
-    tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>消息: <b>${p[0].value}</b> 条/秒` },
-  }
+  const meta = STATUS_META[status]
+  const connected = status === 'connected'
 
   return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <Typography.Title heading={4} style={{ margin: 0 }}>WebSocket 实时通信</Typography.Title>
-        <Typography.Text type="tertiary" style={{ fontSize: 13 }}>
-          后端每秒推送真实服务器指标（CPU/内存/网络），支持双向消息收发
-        </Typography.Text>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="WebSocket 实时通信" />
 
       {/* 连接栏 */}
-      <div style={{ ...CARD, padding: '14px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <code style={{ fontSize: 13, color: DOM.text2, background: 'var(--semi-color-bg-0)', padding: '4px 10px', borderRadius: 6 }}>{getWsUrl()}</code>
-        <Tag color={statusMeta[status].color}>{statusMeta[status].label}</Tag>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          {status === 'connected'
-            ? <Button type="danger" icon={<IconClose />} onClick={disconnect}>断开</Button>
-            : <Button type="primary" icon={<IconRefresh />} onClick={connect} loading={status === 'connecting'}>连接</Button>
-          }
+      <div className="surface-card flex flex-wrap items-center gap-3 px-4 py-3">
+        <span className="bg-muted text-muted-foreground flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1 font-mono text-xs">
+          <Radio className="size-3.5 shrink-0" />
+          <span className="truncate">{getWsUrl()}</span>
+        </span>
+        <StatusBadge tone={meta.tone} dot>
+          {meta.label}
+        </StatusBadge>
+        <div className="ml-auto flex gap-2">
+          {connected ? (
+            <Button size="sm" variant="outline" className="text-danger hover:text-danger" onClick={disconnect}>
+              <Unplug />
+              断开
+            </Button>
+          ) : (
+            <Button size="sm" variant="brand" onClick={connect} disabled={status === 'connecting'}>
+              {status === 'connecting' ? <Spinner /> : <PlugZap />}
+              连接
+            </Button>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: 16 }}>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* 消息日志 */}
-        <div style={{ ...CARD, padding: 0, display: 'flex', flexDirection: 'column', height: isMobile ? 400 : 540 }}>
-          <div style={{ padding: '10px 16px', borderBottom: `1px solid ${DOM.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography.Text strong style={{ fontSize: 14 }}>消息日志</Typography.Text>
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: DOM.text2 }}>
-              <span>↑ 发送 <b style={{ color: C.blue }}>{stats.sent}</b></span>
-              <span>↓ 接收 <b style={{ color: C.green }}>{stats.received}</b></span>
+        <section className="surface-card flex h-[420px] flex-col overflow-hidden md:h-[560px]">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <h3 className="text-sm font-medium">消息日志</h3>
+            <div className="text-muted-foreground flex gap-4 text-xs">
+              <span className="flex items-center gap-1">
+                <ArrowUp className="text-primary size-3" />
+                发送 <b className="text-foreground font-medium tabular-nums">{stats.sent}</b>
+              </span>
+              <span className="flex items-center gap-1">
+                <ArrowDown className="text-success size-3" />
+                接收 <b className="text-foreground font-medium tabular-nums">{stats.received}</b>
+              </span>
             </div>
           </div>
 
-          <div ref={logRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 16px', fontFamily: 'monospace', fontSize: 12 }}>
-            {messages.length === 0 && (
-              <div style={{ color: DOM.text2, textAlign: 'center', marginTop: 60, fontSize: 14 }}>
-                点击「连接」建立 WebSocket 连接
-              </div>
+          <div ref={logRef} className="flex-1 space-y-0.5 overflow-y-auto p-2">
+            {messages.length === 0 ? (
+              <EmptyState icon={PlugZap} title="尚未建立连接" description="点击「连接」建立 WebSocket 连接" className="h-full py-0" />
+            ) : (
+              messages.map((m) => <MessageRow key={m.id} m={m} />)
             )}
-            {messages.map(m => (
-              <div key={m.id} style={{ marginBottom: 5, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <span style={{ color: DOM.text2, flexShrink: 0, fontSize: 11 }}>{m.ts}</span>
-                <span style={{ flexShrink: 0, fontSize: 11, color: m.dir === 'in' ? C.green : m.dir === 'out' ? C.blue : DOM.text2 }}>
-                  {m.dir === 'in' ? '↓' : m.dir === 'out' ? '↑' : '·'}
-                </span>
-                <span style={{ color: DOM.text0, wordBreak: 'break-all', lineHeight: 1.5 }}>{m.text}</span>
-              </div>
-            ))}
           </div>
 
-          <div style={{ padding: '10px 12px', borderTop: `1px solid ${DOM.border}`, display: 'flex', gap: 8 }}>
+          <div className="flex gap-2 border-t p-3">
             <Input
               value={input}
-              onChange={setInput}
-              onEnterPress={handleSend}
-              placeholder={status === 'connected' ? '发送自定义消息（服务端会 echo 回来）...' : '请先连接'}
-              disabled={status !== 'connected'}
-              style={{ flex: 1 }}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
+              }}
+              placeholder={connected ? '发送自定义消息（服务端会 echo 回来）...' : '请先连接'}
+              disabled={!connected}
+              className="h-9 flex-1"
             />
-            <Button icon={<IconSend />} type="primary" onClick={handleSend} disabled={status !== 'connected' || !input.trim()}>发送</Button>
+            <Button variant="outline" onClick={handleSend} disabled={!connected || !input.trim()}>
+              <Send />
+              发送
+            </Button>
           </div>
-        </div>
+        </section>
 
         {/* 右侧 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ ...CARD, padding: '14px 16px' }}>
-            <Typography.Text strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>消息速率（条/秒）</Typography.Text>
+        <div className="space-y-4">
+          <Panel title="消息速率（条/秒）" description={`最近 ${MAX_PTS} 秒`}>
             <ReactECharts option={chartOption} style={{ height: 150 }} opts={{ renderer: 'canvas' }} />
-          </div>
+          </Panel>
 
-          <div style={{ ...CARD, padding: '14px 16px' }}>
-            <Typography.Text strong style={{ fontSize: 13, display: 'block', marginBottom: 10 }}>消息格式说明</Typography.Text>
-            {[
-              ['metric', '服务器每秒推送 CPU/内存/磁盘/网络'],
-              ['echo',   '服务端将你发送的消息 echo 回来'],
-            ].map(([type, desc]) => (
-              <div key={type} style={{ marginBottom: 10 }}>
-                <Tag color="blue" size="small" style={{ fontFamily: 'monospace' }}>type: {type}</Tag>
-                <div style={{ fontSize: 12, color: DOM.text2, marginTop: 4 }}>{desc}</div>
-              </div>
-            ))}
-          </div>
+          <Panel title="消息格式说明">
+            <div className="space-y-3">
+              {[
+                ['metric', '服务器每秒推送 CPU/内存/磁盘/网络'],
+                ['echo', '服务端将你发送的消息 echo 回来'],
+              ].map(([type, desc]) => (
+                <div key={type} className="space-y-1">
+                  <StatusBadge tone="brand" className="font-mono">
+                    type: {type}
+                  </StatusBadge>
+                  <p className="text-muted-foreground text-xs">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
 
-          <div style={{ ...CARD, padding: '14px 16px' }}>
-            <Typography.Text strong style={{ fontSize: 13, display: 'block', marginBottom: 10 }}>技术栈</Typography.Text>
-            {[
-              ['后端', '@fastify/websocket + systeminformation'],
-              ['协议', 'RFC 6455 原生 WebSocket'],
-              ['路由', '/ws/devtools'],
-              ['推送', '每 1 秒服务器主动推送'],
-            ].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
-                <span style={{ color: DOM.text2 }}>{k}</span>
-                <span style={{ color: DOM.text0, fontWeight: 500 }}>{v}</span>
-              </div>
-            ))}
-          </div>
+          <Panel title="技术栈">
+            <dl className="space-y-2 text-xs">
+              {[
+                ['后端', '@fastify/websocket + systeminformation'],
+                ['协议', 'RFC 6455 原生 WebSocket'],
+                ['路由', '/ws/devtools'],
+                ['推送', '每 1 秒服务器主动推送'],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground shrink-0">{k}</dt>
+                  <dd className="truncate text-right font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </Panel>
         </div>
       </div>
     </div>

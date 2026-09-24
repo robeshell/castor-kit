@@ -1,29 +1,56 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
+import {
+  Download,
+  File,
+  Folder,
+  FolderInput,
+  Layers,
+  ListTree,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Breadcrumb,
-  Button,
-  Divider,
-  Empty,
-  Form,
-  Input,
-  Modal,
-  Popconfirm,
-  Select,
-  SideSheet,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Toast,
-  Tree,
-  TreeSelect,
-  Typography,
-} from '@douyinfe/semi-ui'
-import { IconBranch, IconPlus, IconRefresh, IconSearch } from '@douyinfe/semi-icons'
-import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'
-import ImportCsvModal from '@/shared/components/import-export/ImportCsvModal'
-import { downloadBlobFile } from '@/shared/utils/file'
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
+import { formatDateTime } from '@/lib/format'
+import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 import {
   createTreeListPage,
   deleteTreeListPage,
@@ -34,41 +61,52 @@ import {
   importTreeListPage,
   updateTreeListPage,
 } from '@/modules/component_center/api/tree_list_page'
-
-// ── 样式常量 ──────────────────────────────────────────────────────────
-const CARD_STYLE = {
-  background: 'var(--semi-color-bg-1)',
-  borderRadius: 8,
-  padding: 16,
-  boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 6px 18px rgba(15,23,42,0.06)',
-}
+import ParentSelect from '@/modules/component_center/pages/admin/tree_list_page/ParentSelect'
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
+import EmptyState from '@/shared/components/EmptyState'
+import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
+import { DescriptionList, DetailSheet, FormDialog } from '@/shared/components/FormDialog'
+import {
+  FormCustom,
+  FormGrid,
+  FormInput,
+  FormNumber,
+  FormSelect,
+  FormSwitch,
+  FormTextarea,
+} from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
+import TreeView from '@/shared/components/TreeView'
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue'
+import { downloadBlobFile } from '@/shared/utils/file'
 
 // ── 常量 ──────────────────────────────────────────────────────────────
+const PER_PAGE = 20
 const NODE_TYPE_OPTIONS = [
   { label: '分类', value: 'category' },
   { label: '条目', value: 'item' },
   { label: '分组', value: 'group' },
-]
-const NODE_TYPE_FILTER_OPTIONS = [
-  { label: '全部类型', value: '' },
-  ...NODE_TYPE_OPTIONS,
 ]
 const STATUS_OPTIONS = [
   { label: '启用', value: 'active' },
   { label: '停用', value: 'inactive' },
   { label: '已归档', value: 'archived' },
 ]
-const STATUS_FILTER_OPTIONS = [
-  { label: '全部状态', value: '' },
-  ...STATUS_OPTIONS,
-]
 const STATUS_META = {
-  active: { label: '启用', color: 'green' },
-  inactive: { label: '停用', color: 'grey' },
-  archived: { label: '已归档', color: 'orange' },
+  active: { label: '启用', tone: 'success' },
+  inactive: { label: '停用', tone: 'neutral' },
+  archived: { label: '已归档', tone: 'warning' },
 }
-const NODE_TYPE_COLOR = { category: 'blue', item: 'teal', group: 'purple' }
-const NODE_TYPE_LABEL = { category: '分类', item: '条目', group: '分组' }
+const NODE_TYPE_META = {
+  category: { label: '分类', tone: 'brand', icon: Folder },
+  item: { label: '条目', tone: 'info', icon: File },
+  group: { label: '分组', tone: 'neutral', icon: Layers },
+}
 
 const EXPORT_FIELDS = [
   { label: 'ID', value: 'id' },
@@ -85,36 +123,35 @@ const EXPORT_FIELDS = [
   { label: '更新时间', value: 'updated_at' },
 ]
 
+const normalizeFileType = (raw) => (raw === 'xlsx' ? 'xlsx' : raw === 'xls' ? 'xls' : 'csv')
+
 // ── 工具函数 ──────────────────────────────────────────────────────────
-function toTreeData(nodes) {
+/** 接口树 → TreeView 节点（key 为字符串 id，raw 保留完整节点数据） */
+function toTreeNodes(nodes) {
   return (nodes || []).map((n) => ({
     key: String(n.id),
     label: n.name,
-    value: n.id,
-    nodeType: n.node_type,
-    isActive: n.is_active,
-    childrenCount: n.children_count || 0,
-    children: n.children?.length ? toTreeData(n.children) : undefined,
+    raw: n,
+    children: n.children?.length ? toTreeNodes(n.children) : undefined,
   }))
 }
 
-function collectAllIds(treeData) {
-  const ids = []
-  const walk = (nodes) => {
-    nodes.forEach((n) => {
-      ids.push(n.key)
+function collectKeys(nodes) {
+  const keys = []
+  const walk = (list) =>
+    list.forEach((n) => {
+      keys.push(n.key)
       if (n.children?.length) walk(n.children)
     })
-  }
-  walk(treeData)
-  return ids
+  walk(nodes)
+  return keys
 }
 
-// 从树中找到指定 id 的节点路径（面包屑用）
-function findPath(treeData, targetId, path = []) {
-  for (const node of treeData) {
-    const current = [...path, { id: node.value, name: node.label }]
-    if (node.value === targetId) return current
+/** 从树中找到指定 id 的节点路径（面包屑用） */
+function findPath(nodes, targetId, path = []) {
+  for (const node of nodes || []) {
+    const current = [...path, { id: node.id, name: node.name }]
+    if (node.id === targetId) return current
     if (node.children?.length) {
       const found = findPath(node.children, targetId, current)
       if (found) return found
@@ -123,629 +160,854 @@ function findPath(treeData, targetId, path = []) {
   return null
 }
 
+function nodeTypeBadge(value) {
+  const meta = NODE_TYPE_META[value]
+  return <StatusBadge tone={meta?.tone || 'neutral'}>{meta?.label || value || '-'}</StatusBadge>
+}
+
+function statusBadge(value) {
+  const meta = STATUS_META[value] || { label: value, tone: 'neutral' }
+  return (
+    <StatusBadge tone={meta.tone} dot>
+      {meta.label}
+    </StatusBadge>
+  )
+}
+
+function toFormValues(record, parentId = null) {
+  if (!record) {
+    return {
+      name: '',
+      node_code: '',
+      parent_id: parentId,
+      node_type: 'category',
+      icon: '',
+      owner: '',
+      sort_order: 0,
+      is_active: true,
+      status: 'active',
+      description: '',
+    }
+  }
+  return {
+    name: record.name,
+    node_code: record.node_code,
+    parent_id: record.parent_id ?? null,
+    node_type: record.node_type || 'category',
+    icon: record.icon || '',
+    owner: record.owner || '',
+    sort_order: record.sort_order ?? 0,
+    is_active: record.is_active !== false,
+    status: record.status || 'active',
+    description: record.description || '',
+  }
+}
+
+// ── 删除确认（受控：树节点的“更多”菜单里触发） ────────────────────────────
+function DeleteNodeDialog({ open, node, onOpenChange, onConfirm }) {
+  const [loading, setLoading] = useState(false)
+  return (
+    <AlertDialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
+      <AlertDialogContent className="sm:max-w-[420px]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>确认删除节点「{node?.name}」？</AlertDialogTitle>
+          <AlertDialogDescription>子节点的父节点关联将被清除。</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>取消</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={loading}
+            variant="destructive"
+            onClick={async (e) => {
+              e.preventDefault()
+              try {
+                setLoading(true)
+                await onConfirm(node)
+                onOpenChange(false)
+              } catch {
+                /* 已提示，弹窗保持打开 */
+              } finally {
+                setLoading(false)
+              }
+            }}
+          >
+            {loading ? <Spinner /> : null}
+            删除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 // ── 主组件 ────────────────────────────────────────────────────────────
 export default function TreeListPage() {
-  const isMobile = useIsMobile()
-  // Tree 左侧
-  const [treeData, setTreeData] = useState([])
-  const [treeLoading, setTreeLoading] = useState(false)
+  // 左侧树
   const [treeSearch, setTreeSearch] = useState('')
-  const [expandedKeys, setExpandedKeys] = useState([])
+  const debouncedTreeSearch = useDebouncedValue(treeSearch.trim(), 300)
+  const [treeVersion, setTreeVersion] = useState(0)
+  const [treeState, setTreeState] = useState({ key: null, nodes: [] })
+  const [fullTree, setFullTree] = useState([])
+  const [expandedKeys, setExpandedKeys] = useState(null)
+  const expandedBeforeSearch = useRef(null)
 
   // 右侧表格
   const [selectedNodeId, setSelectedNodeId] = useState(null) // null = 根级
-  const [tableItems, setTableItems] = useState([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [tableLoading, setTableLoading] = useState(false)
   const [tableSearch, setTableSearch] = useState('')
+  const debouncedTableSearch = useDebouncedValue(tableSearch.trim(), 300)
   const [filterNodeType, setFilterNodeType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [tableVersion, setTableVersion] = useState(0)
+  const [tableState, setTableState] = useState({ key: null, items: [], total: 0 })
+  const [selectedKeys, setSelectedKeys] = useState([])
 
-  // CRUD Modal
-  const [modalVisible, setModalVisible] = useState(false)
-  const [editRecord, setEditRecord] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const formApiRef = useRef()
+  // 弹窗
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [moving, setMoving] = useState(null)
+  const [deleting, setDeleting] = useState(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [detail, setDetail] = useState(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
-  // 详情抽屉
-  const [detailVisible, setDetailVisible] = useState(false)
-  const [detailRecord, setDetailRecord] = useState(null)
+  const form = useForm({ defaultValues: toFormValues(null) })
+  const moveForm = useForm({ defaultValues: { parent_id: null } })
 
-  // 导入/导出
-  const [exportModalVisible, setExportModalVisible] = useState(false)
-  const [importModalVisible, setImportModalVisible] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState([])
-
-  // ── 拉取树 ────────────────────────────────────────────────────────
-  const fetchTree = useCallback((search = '') => {
-    setTreeLoading(true)
-    getTreeListPageTree({ search: search || undefined })
+  // ── 拉取树（搜索防抖；fullTree 始终保存未过滤的完整树，供父节点选择与面包屑） ──
+  const treeKey = `${debouncedTreeSearch}|${treeVersion}`
+  useEffect(() => {
+    let alive = true
+    getTreeListPageTree({ search: debouncedTreeSearch || undefined })
       .then((res) => {
-        const data = toTreeData(res || [])
-        setTreeData(data)
-        if (!search) setExpandedKeys(collectAllIds(data).slice(0, 20))
+        if (!alive) return
+        const list = Array.isArray(res) ? res : []
+        setTreeState({ key: treeKey, nodes: list })
+        if (!debouncedTreeSearch) setFullTree(list)
+        else {
+          // 搜索态下树是过滤后的，单独刷新一份完整树
+          getTreeListPageTree({})
+            .then((full) => alive && setFullTree(Array.isArray(full) ? full : []))
+            .catch(() => {})
+        }
+        const keys = collectKeys(toTreeNodes(list))
+        if (debouncedTreeSearch) {
+          // 搜索态展开全部命中；记住搜索前的展开状态，清空搜索后恢复
+          setExpandedKeys((prev) => {
+            if (expandedBeforeSearch.current === null) expandedBeforeSearch.current = prev
+            return keys
+          })
+        } else if (expandedBeforeSearch.current !== null) {
+          const restore = expandedBeforeSearch.current
+          expandedBeforeSearch.current = null
+          setExpandedKeys(restore ?? keys.slice(0, 20))
+        } else {
+          setExpandedKeys((prev) => prev ?? keys.slice(0, 20))
+        }
       })
-      .catch((err) => Toast.error(err?.error || '树形数据加载失败'))
-      .finally(() => setTreeLoading(false))
-  }, [])
+      .catch((err) => {
+        if (!alive) return
+        setTreeState((s) => ({ ...s, key: treeKey }))
+        toast.apiError(err, '树形数据加载失败')
+      })
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- treeKey 由 search/version 派生
+  }, [debouncedTreeSearch, treeVersion])
+  const treeLoading = treeState.key !== treeKey
+  const treeNodes = useMemo(() => toTreeNodes(treeState.nodes), [treeState.nodes])
 
   // ── 拉取表格 ──────────────────────────────────────────────────────
-  const fetchTable = useCallback((
-    nodeId = selectedNodeId,
-    pg = page,
-    search = tableSearch,
-    nodeType = filterNodeType,
-    status = filterStatus,
-  ) => {
-    setTableLoading(true)
-    const params = {
-      page: pg,
-      per_page: 20,
-      parent_id: nodeId === null ? 'root' : nodeId,
-      search: search || undefined,
-      node_type: nodeType || undefined,
-      status: status || undefined,
-    }
-    getTreeListPageList(params)
+  const tableParams = useMemo(
+    () => ({
+      page,
+      per_page: PER_PAGE,
+      parent_id: selectedNodeId === null ? 'root' : selectedNodeId,
+      search: debouncedTableSearch || undefined,
+      node_type: filterNodeType || undefined,
+      status: filterStatus || undefined,
+    }),
+    [page, selectedNodeId, debouncedTableSearch, filterNodeType, filterStatus],
+  )
+  const tableKey = `${JSON.stringify(tableParams)}|${tableVersion}`
+  useEffect(() => {
+    let alive = true
+    getTreeListPageList(tableParams)
       .then((res) => {
-        setTableItems(res.items || [])
-        setTotal(res.total || 0)
+        if (!alive) return
+        const items = res?.items || []
+        // 删除末页最后一条后页码越界：回退一页
+        if (!items.length && (res?.total || 0) > 0 && page > 1) {
+          setPage((p) => p - 1)
+          return
+        }
+        setTableState({ key: tableKey, items, total: res?.total || 0 })
       })
-      .catch((err) => Toast.error(err?.error || '列表加载失败'))
-      .finally(() => setTableLoading(false))
-  }, [selectedNodeId, page, tableSearch, filterNodeType, filterStatus])
+      .catch((err) => {
+        if (!alive) return
+        setTableState((s) => ({ ...s, key: tableKey }))
+        toast.apiError(err, '列表加载失败')
+      })
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tableKey 由 tableParams/version 派生
+  }, [tableParams, tableVersion])
+  const tableLoading = tableState.key !== tableKey
 
-  useEffect(() => { fetchTree() }, [fetchTree])
-  useEffect(() => { fetchTable() }, [fetchTable])
+  const reloadAll = () => {
+    setTreeVersion((v) => v + 1)
+    setTableVersion((v) => v + 1)
+  }
 
-  // ── 树节点点击 ────────────────────────────────────────────────────
-  const handleTreeSelect = (key, _selected, node) => {
-    const id = node.value
+  // ── 导航：切换当前父节点 ────────────────────────────────────────────
+  const navigateTo = (id, { resetFilters = true } = {}) => {
     setSelectedNodeId(id)
     setPage(1)
-    setTableSearch('')
-    setFilterNodeType('')
-    setFilterStatus('')
-    fetchTable(id, 1, '', '', '')
+    if (resetFilters) {
+      setTableSearch('')
+      setFilterNodeType('')
+      setFilterStatus('')
+    }
   }
 
-  const handleShowRoot = () => {
-    setSelectedNodeId(null)
-    setPage(1)
-    setTableSearch('')
-    setFilterNodeType('')
-    setFilterStatus('')
-    fetchTable(null, 1, '', '', '')
-  }
-
-  // ── 面包屑路径 ────────────────────────────────────────────────────
   const breadcrumbPath = selectedNodeId
-    ? (findPath(treeData, selectedNodeId) || [{ id: selectedNodeId, name: '当前节点' }])
+    ? findPath(fullTree, selectedNodeId) || findPath(treeState.nodes, selectedNodeId) || [{ id: selectedNodeId, name: '当前节点' }]
     : []
 
+  const nodeNameOf = (id) => {
+    if (id === null || id === undefined) return null
+    const path = findPath(fullTree, id)
+    return path ? path[path.length - 1].name : null
+  }
+
   // ── CRUD ──────────────────────────────────────────────────────────
-  const openCreate = () => {
-    setEditRecord(null)
-    setModalVisible(true)
+  const openCreate = (parentId = selectedNodeId) => {
+    setEditing(null)
+    form.reset(toFormValues(null, parentId || null))
+    setFormOpen(true)
   }
 
   const openEdit = (record) => {
-    setEditRecord(record)
-    setModalVisible(true)
+    setEditing(record)
+    form.reset(toFormValues(record))
+    setFormOpen(true)
+  }
+
+  const openMove = (record) => {
+    setMoving(record)
+    moveForm.reset({ parent_id: record.parent_id ?? null })
   }
 
   const openDetail = (record) => {
-    setDetailRecord(record)
-    setDetailVisible(true)
+    setDetail(record)
+    setDetailOpen(true)
   }
 
-  const handleDelete = (id) => {
-    deleteTreeListPage(id)
-      .then(() => {
-        Toast.success('删除成功')
-        fetchTree(treeSearch)
-        fetchTable()
-      })
-      .catch((err) => Toast.error(err?.error || '删除失败'))
+  /** 保存后展开目标父节点，保证新建 / 移动的节点在树里可见 */
+  const expandParent = (parentId) => {
+    if (parentId === null || parentId === undefined) return
+    setExpandedKeys((prev) => Array.from(new Set([...(prev || []), String(parentId)])))
   }
 
-  const handleSubmit = () => {
-    formApiRef.current?.validate().then((values) => {
-      setSubmitting(true)
-      const promise = editRecord?.id
-        ? updateTreeListPage(editRecord.id, values)
-        : createTreeListPage({ ...values, parent_id: values.parent_id ?? (selectedNodeId || null) })
-      promise
-        .then(() => {
-          Toast.success(editRecord?.id ? '编辑成功' : '新建成功')
-          setModalVisible(false)
-          fetchTree(treeSearch)
-          fetchTable()
-        })
-        .catch((err) => Toast.error(err?.error || (editRecord?.id ? '编辑失败' : '新建失败')))
-        .finally(() => setSubmitting(false))
-    }).catch(() => {})
+  const submit = async (values) => {
+    const parentId = editing?.id ? values.parent_id : values.parent_id ?? (selectedNodeId || null)
+    try {
+      if (editing?.id) await updateTreeListPage(editing.id, values)
+      else await createTreeListPage({ ...values, parent_id: parentId })
+      expandParent(parentId)
+      toast.success(editing?.id ? '编辑成功' : '新建成功')
+      setFormOpen(false)
+      reloadAll()
+    } catch (err) {
+      toast.apiError(err, editing?.id ? '编辑失败' : '新建失败')
+      throw err
+    }
   }
 
-  const initValues = editRecord ? {
-    name: editRecord.name,
-    node_code: editRecord.node_code,
-    parent_id: editRecord.parent_id ?? null,
-    node_type: editRecord.node_type || 'category',
-    icon: editRecord.icon || '',
-    owner: editRecord.owner || '',
-    sort_order: editRecord.sort_order ?? 0,
-    is_active: editRecord.is_active !== false,
-    status: editRecord.status || 'active',
-    description: editRecord.description || '',
-  } : {
-    node_type: 'category',
-    is_active: true,
-    status: 'active',
-    sort_order: 0,
-    parent_id: selectedNodeId || null,
+  const submitMove = async (values) => {
+    try {
+      await updateTreeListPage(moving.id, { parent_id: values.parent_id ?? null })
+      expandParent(values.parent_id)
+      toast.success('移动成功')
+      setMoving(null)
+      reloadAll()
+    } catch (err) {
+      toast.apiError(err, '移动失败')
+      throw err
+    }
+  }
+
+  const remove = async (record) => {
+    try {
+      await deleteTreeListPage(record.id)
+      toast.success('删除成功')
+      setSelectedKeys((keys) => keys.filter((k) => k !== record.id))
+      if (record.id === selectedNodeId) navigateTo(record.parent_id ?? null)
+      reloadAll()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
   }
 
   // ── 导出 ──────────────────────────────────────────────────────────
-  const handleExport = (fields, fileType) => {
+  const handleExport = async ({ fields, fileType }) => {
+    const ext = normalizeFileType(fileType)
     const payload = {
       fields,
-      file_type: fileType,
-      export_mode: selectedRowKeys.length > 0 ? 'selected' : 'filtered',
-      ids: selectedRowKeys,
-      filters: { node_type: filterNodeType, status: filterStatus },
+      file_type: ext,
+      export_mode: selectedKeys.length > 0 ? 'selected' : 'filtered',
+      ids: selectedKeys,
+      filters: { search: debouncedTableSearch, node_type: filterNodeType, status: filterStatus },
     }
-    exportTreeListPage(payload)
-      .then((blob) => {
-        const ext = fileType === 'xlsx' ? 'xlsx' : fileType === 'xls' ? 'xls' : 'csv'
-        downloadBlobFile(blob, `tree_list_page_export.${ext}`)
-        Toast.success('导出成功')
-      })
-      .catch(() => Toast.error('导出失败'))
+    try {
+      const blob = await exportTreeListPage(payload)
+      downloadBlobFile(blob, `tree_list_page_export.${ext}`)
+      toast.success('导出成功')
+      setExportOpen(false)
+    } catch (err) {
+      toast.apiError(err, '导出失败')
+    }
   }
 
   // ── 表格列 ────────────────────────────────────────────────────────
   const columns = [
     {
+      key: 'name',
       title: '节点名称',
       dataIndex: 'name',
-      render: (name, record) => (
-        <Space>
-          <IconBranch size="small" style={{ color: 'var(--semi-color-text-2)' }} />
-          <Typography.Text
-            style={{ cursor: 'pointer', color: 'var(--semi-color-primary)' }}
-            onClick={() => {
-              setSelectedNodeId(record.id)
-              setPage(1)
-              setTableSearch('')
-              setFilterNodeType('')
-              setFilterStatus('')
-              fetchTable(record.id, 1, '', '', '')
-            }}
+      minWidth: 160,
+      render: (name, record) => {
+        const Icon = NODE_TYPE_META[record.node_type]?.icon || Folder
+        return (
+          <button
+            type="button"
+            onClick={() => navigateTo(record.id)}
+            className="group/name hover:text-primary flex max-w-full items-center gap-2 text-left font-medium transition-colors"
+            title="查看子节点"
           >
-            {name}
-          </Typography.Text>
-        </Space>
-      ),
-    },
-    {
-      title: '编码',
-      dataIndex: 'node_code',
-      render: (v) => <Tag>{v}</Tag>,
-    },
-    {
-      title: '类型',
-      dataIndex: 'node_type',
-      render: (v) => (
-        <Tag color={NODE_TYPE_COLOR[v] || 'grey'}>
-          {NODE_TYPE_LABEL[v] || v || '-'}
-        </Tag>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (v) => {
-        const m = STATUS_META[v] || { label: v, color: 'grey' }
-        return <Tag color={m.color}>{m.label}</Tag>
+            <Icon className="text-muted-foreground group-hover/name:text-primary size-3.5 shrink-0 transition-colors" />
+            <span className="truncate">{name}</span>
+          </button>
+        )
       },
     },
     {
-      title: '负责人',
-      dataIndex: 'owner',
-      render: (v) => v || '-',
+      key: 'node_code',
+      title: '编码',
+      dataIndex: 'node_code',
+      width: 150,
+      render: (v) => (v ? <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs whitespace-nowrap">{v}</code> : null),
     },
+    { key: 'node_type', title: '类型', dataIndex: 'node_type', width: 80, render: nodeTypeBadge },
+    { key: 'status', title: '状态', dataIndex: 'status', width: 90, render: statusBadge },
+    { key: 'owner', title: '负责人', dataIndex: 'owner', width: 100, render: (v) => v || '-' },
+    { key: 'sort_order', title: '排序', dataIndex: 'sort_order', width: 64, align: 'right', className: 'tabular-nums', render: (v) => v ?? 0 },
     {
-      title: '排序',
-      dataIndex: 'sort_order',
-      width: 70,
-      render: (v) => v ?? 0,
-    },
-    {
+      key: 'is_active',
       title: '启用',
       dataIndex: 'is_active',
-      width: 70,
+      width: 76,
       render: (v) => (
-        <Tag color={v ? 'green' : 'grey'}>{v ? '启用' : '停用'}</Tag>
+        <StatusBadge tone={v ? 'success' : 'neutral'} variant="plain">
+          {v ? '启用' : '停用'}
+        </StatusBadge>
       ),
     },
     {
-      title: '操作',
-      width: 180,
+      key: 'actions',
+      title: '',
+      align: 'right',
+      width: 160,
       render: (_, record) => (
-        <Space>
-          <Button size="small" theme="borderless" onClick={() => openDetail(record)}>详情</Button>
-          <Button size="small" theme="borderless" type="primary" onClick={() => openEdit(record)}>编辑</Button>
-          <Popconfirm
+        <div className="flex justify-end gap-0.5">
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(record)}>
+            详情
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
+            编辑
+          </Button>
+          <ConfirmAction
             title="确认删除该节点？"
-            content="子节点的父节点关联将被清除。"
-            onConfirm={() => handleDelete(record.id)}
+            description="子节点的父节点关联将被清除。"
+            confirmText="删除"
+            onConfirm={() => remove(record)}
           >
-            <Button size="small" theme="borderless" type="danger">删除</Button>
-          </Popconfirm>
-        </Space>
+            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
+              删除
+            </Button>
+          </ConfirmAction>
+        </div>
       ),
     },
   ]
 
+  const treeCount = collectKeys(treeNodes).length
+  const currentName = breadcrumbPath.length ? breadcrumbPath[breadcrumbPath.length - 1].name : null
+
   // ── 渲染 ──────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100%', gap: 0, minHeight: 0 }}>
+    <div className="space-y-5">
+      <PageHeader
+        title="树形列表页"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={reloadAll}>
+              <RefreshCw className={cn((treeLoading || tableLoading) && 'animate-spin')} />
+              刷新
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download />
+              导出
+            </Button>
+            <Button size="sm" variant="brand" onClick={() => openCreate()}>
+              <Plus />
+              新建节点
+            </Button>
+          </>
+        }
+      />
 
-      {/* ══ 左侧树面板 ══ */}
-      <div style={{
-        width: isMobile ? '100%' : 280,
-        flexShrink: 0,
-        borderRight: isMobile ? 'none' : '1px solid var(--semi-color-border)',
-        borderBottom: isMobile ? '1px solid var(--semi-color-border)' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--semi-color-bg-0)',
-        overflow: 'hidden',
-      }}>
-        {/* 标题 + 搜索 */}
-        <div style={{ padding: '16px 12px 8px', borderBottom: '1px solid var(--semi-color-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <IconBranch />
-            <Typography.Text strong>节点树</Typography.Text>
-          </div>
-          <Input
-            prefix={<IconSearch />}
-            placeholder="搜索节点名称…"
-            value={treeSearch}
-            showClear
-            onChange={(v) => {
-              setTreeSearch(v)
-              fetchTree(v)
-            }}
-          />
-        </div>
-
-        {/* 根级入口 */}
-        <div
-          style={{
-            padding: '10px 16px',
-            cursor: 'pointer',
-            background: selectedNodeId === null ? 'var(--semi-color-primary-light-default)' : 'transparent',
-            color: selectedNodeId === null ? 'var(--semi-color-primary)' : 'inherit',
-            borderBottom: '1px solid var(--semi-color-border)',
-            fontWeight: selectedNodeId === null ? 600 : 400,
-          }}
-          onClick={handleShowRoot}
-        >
-          全部根节点
-        </div>
-
-        {/* 树 */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '8px 4px' }}>
-          {treeLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-              <Spin />
+      <div className="grid items-start gap-4 lg:grid-cols-[288px_minmax(0,1fr)]">
+        {/* ══ 左侧节点树 ══ */}
+        <Panel padded={false} className="flex max-h-[420px] flex-col lg:max-h-[calc(100vh-11rem)]" bodyClassName="flex min-h-0 flex-1 flex-col">
+          <div className="space-y-3 border-b px-3 pt-4 pb-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <ListTree className="text-muted-foreground size-4" />
+                节点树
+              </span>
+              <span className="text-muted-foreground text-xs tabular-nums">{treeCount} 个节点</span>
             </div>
-          ) : treeData.length === 0 ? (
-            <Empty description="暂无节点数据" style={{ padding: 24 }} />
-          ) : (
-            <Tree
-              treeData={treeData}
-              selectedKeys={selectedNodeId ? [String(selectedNodeId)] : []}
-              expandedKeys={expandedKeys}
-              onExpand={(keys) => setExpandedKeys(keys)}
-              onSelect={handleTreeSelect}
-              style={{ width: '100%' }}
-              renderLabel={(label, data) => (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span>{label}</span>
-                  {data.childrenCount > 0 && (
-                    <Tag size="small" style={{ marginLeft: 4, lineHeight: '16px' }}>
-                      {data.childrenCount}
-                    </Tag>
-                  )}
-                </span>
-              )}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ══ 右侧内容区 ══ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, padding: 16, gap: 12 }}>
-
-        {/* 页面标题 */}
-        <div>
-          <Typography.Title heading={5} style={{ marginBottom: 4 }}>树形列表页</Typography.Title>
-          <Typography.Paragraph type="tertiary">
-            展示 Tree + Table 联动的树形层级浏览页：左侧节点树点击后，右侧动态加载子节点列表。
-          </Typography.Paragraph>
-        </div>
-
-        {/* 面包屑 + 工具栏 card */}
-        <div style={CARD_STYLE}>
-          {/* 面包屑 */}
-          <div style={{ marginBottom: 12 }}>
-            <Breadcrumb>
-              <Breadcrumb.Item onClick={handleShowRoot} style={{ cursor: 'pointer' }}>根节点</Breadcrumb.Item>
-              {breadcrumbPath.map((seg, idx) => (
-                <Breadcrumb.Item
-                  key={seg.id}
-                  style={{ cursor: idx < breadcrumbPath.length - 1 ? 'pointer' : 'default' }}
-                  onClick={() => {
-                    if (idx < breadcrumbPath.length - 1) {
-                      setSelectedNodeId(seg.id)
-                      setPage(1)
-                      fetchTable(seg.id, 1, tableSearch, filterNodeType, filterStatus)
-                    }
-                  }}
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <Input
+                value={treeSearch}
+                onChange={(e) => setTreeSearch(e.target.value)}
+                placeholder="搜索节点名称…"
+                className="h-8 pr-7 pl-8 text-[13px]"
+              />
+              {treeSearch ? (
+                <button
+                  type="button"
+                  aria-label="清空"
+                  onClick={() => setTreeSearch('')}
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
                 >
-                  {seg.name}
-                </Breadcrumb.Item>
-              ))}
-            </Breadcrumb>
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
           </div>
 
-          {/* 搜索过滤行 */}
-          <Space style={{ flexWrap: 'wrap' }}>
-            <Input
-              prefix={<IconSearch />}
-              placeholder="搜索名称/编码/负责人"
-              style={{ width: 200 }}
+          <div className="px-2 pt-2">
+            <button
+              type="button"
+              onClick={() => navigateTo(null)}
+              className={cn(
+                'flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-left text-[13px] transition-colors',
+                selectedNodeId === null ? 'bg-brand-soft text-primary font-medium' : 'hover:bg-muted/60',
+              )}
+            >
+              <Layers className="size-3.5" />
+              全部根节点
+            </button>
+          </div>
+
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="px-2 pt-1 pb-3">
+              {treeLoading && treeNodes.length === 0 ? (
+                <div className="space-y-1.5 px-1 pt-1">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-6" style={{ marginLeft: (i % 3) * 16 }} />
+                  ))}
+                </div>
+              ) : treeNodes.length === 0 ? (
+                <EmptyState
+                  className="py-10"
+                  title={debouncedTreeSearch ? '没有匹配的节点' : '暂无节点数据'}
+                  description={debouncedTreeSearch ? '换个关键词试试' : undefined}
+                />
+              ) : (
+                <TreeView
+                  nodes={treeNodes}
+                  selectedKey={selectedNodeId !== null ? String(selectedNodeId) : undefined}
+                  expandedKeys={expandedKeys || []}
+                  onExpandedChange={setExpandedKeys}
+                  onSelect={(node) => navigateTo(node.raw.id)}
+                  className={cn('transition-opacity', treeLoading && 'opacity-60')}
+                  renderLabel={(node) => {
+                    const Icon = NODE_TYPE_META[node.raw.node_type]?.icon || Folder
+                    const count = node.raw.children_count || 0
+                    return (
+                      <span className={cn('flex min-w-0 items-center gap-1.5', node.raw.is_active === false && 'text-muted-foreground')}>
+                        <Icon className="text-muted-foreground size-3.5 shrink-0" />
+                        <span className="truncate">{node.label}</span>
+                        {count > 0 ? (
+                          <span className="bg-muted text-muted-foreground shrink-0 rounded px-1 text-[10px] leading-4 tabular-nums">{count}</span>
+                        ) : null}
+                      </span>
+                    )
+                  }}
+                  renderActions={(node) => (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6"
+                        aria-label="新建子节点"
+                        title="新建子节点"
+                        onClick={() => openCreate(node.raw.id)}
+                      >
+                        <Plus className="size-3.5" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6" aria-label="更多操作">
+                            <MoreHorizontal className="size-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="min-w-36">
+                          <DropdownMenuItem onSelect={() => openEdit(node.raw)}>
+                            <Pencil />
+                            编辑
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openMove(node.raw)}>
+                            <FolderInput />
+                            移动到…
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => {
+                              setDeleting(node.raw)
+                              setDeleteOpen(true)
+                            }}
+                          >
+                            <Trash2 />
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  )}
+                />
+              )}
+            </div>
+          </ScrollArea>
+        </Panel>
+
+        {/* ══ 右侧内容区 ══ */}
+        <div className="min-w-0">
+          <div className="mb-3 flex min-h-8 flex-wrap items-center justify-between gap-2">
+            <Breadcrumb>
+              <BreadcrumbList className="gap-1 text-[13px] sm:gap-1.5">
+                <BreadcrumbItem>
+                  {breadcrumbPath.length ? (
+                    <BreadcrumbLink asChild>
+                      <button type="button" onClick={() => navigateTo(null)}>
+                        根节点
+                      </button>
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>根节点</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
+                {breadcrumbPath.map((seg, idx) => (
+                  <Fragment key={seg.id}>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {idx < breadcrumbPath.length - 1 ? (
+                        <BreadcrumbLink asChild>
+                          <button type="button" onClick={() => navigateTo(seg.id, { resetFilters: false })}>
+                            {seg.name}
+                          </button>
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage className="font-medium">{seg.name}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+            <span className="text-muted-foreground text-xs tabular-nums">
+              {currentName ? `「${currentName}」的子节点` : '根级节点'} · 共 {tableState.total} 条
+            </span>
+          </div>
+
+          <FilterBar
+            onReset={
+              tableSearch || filterNodeType || filterStatus
+                ? () => {
+                    setTableSearch('')
+                    setFilterNodeType('')
+                    setFilterStatus('')
+                    setPage(1)
+                  }
+                : undefined
+            }
+          >
+            <SearchInput
               value={tableSearch}
-              showClear
               onChange={(v) => {
                 setTableSearch(v)
                 setPage(1)
-                fetchTable(selectedNodeId, 1, v, filterNodeType, filterStatus)
               }}
+              placeholder="搜索名称/编码/负责人"
             />
-            <Select
-              placeholder="节点类型"
-              style={{ width: 120 }}
-              optionList={NODE_TYPE_FILTER_OPTIONS}
+            <FilterSelect
               value={filterNodeType}
               onChange={(v) => {
                 setFilterNodeType(v)
                 setPage(1)
-                fetchTable(selectedNodeId, 1, tableSearch, v, filterStatus)
               }}
+              options={NODE_TYPE_OPTIONS}
+              placeholder="节点类型"
+              allLabel="全部类型"
+              className="w-32"
             />
-            <Select
-              placeholder="状态"
-              style={{ width: 120 }}
-              optionList={STATUS_FILTER_OPTIONS}
+            <FilterSelect
               value={filterStatus}
               onChange={(v) => {
                 setFilterStatus(v)
                 setPage(1)
-                fetchTable(selectedNodeId, 1, tableSearch, filterNodeType, v)
               }}
+              options={STATUS_OPTIONS}
+              placeholder="状态"
+              allLabel="全部状态"
+              className="w-32"
             />
-            <div style={{ flex: 1 }} />
-            <Button
-              icon={<IconRefresh />}
-              onClick={() => { fetchTree(treeSearch); fetchTable() }}
-            >
-              刷新
-            </Button>
-            <Button onClick={() => setImportModalVisible(true)}>导入</Button>
-            <Button onClick={() => setExportModalVisible(true)}>导出</Button>
-            <Button
-              icon={<IconPlus />}
-              type="primary"
-              theme="solid"
-              onClick={openCreate}
-            >
-              新建节点
-            </Button>
-          </Space>
-        </div>
+          </FilterBar>
 
-        {/* 表格 card */}
-        <div style={CARD_STYLE}>
-          <Table
+          <AnimatePresence>
+            {selectedKeys.length > 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: -6, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -6, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
+                  <span>
+                    已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                  </span>
+                  <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
+                    <X />
+                    清空勾选
+                  </Button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <DataTable
             columns={columns}
-            dataSource={tableItems}
+            data={tableState.items}
             loading={tableLoading}
-            rowKey="id"
-            scroll={{}}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: (keys) => setSelectedRowKeys(keys),
-            }}
-            pagination={{
-              total,
-              currentPage: page,
-              pageSize: 20,
-              onPageChange: (p) => {
-                setPage(p)
-                fetchTable(selectedNodeId, p, tableSearch, filterNodeType, filterStatus)
-              },
-            }}
-            empty={
-              <Empty
-                description={selectedNodeId ? '该节点暂无子节点' : '暂无根节点数据'}
-              />
+            selectable
+            selectedKeys={selectedKeys}
+            onSelectionChange={setSelectedKeys}
+            pagination={{ page, perPage: PER_PAGE, total: tableState.total, onChange: setPage }}
+            minWidth={880}
+            emptyTitle={selectedNodeId ? '该节点暂无子节点' : '暂无根节点数据'}
+            emptyAction={
+              !tableSearch && !filterNodeType && !filterStatus ? (
+                <Button variant="outline" size="sm" onClick={() => openCreate()}>
+                  <Plus />
+                  {selectedNodeId ? '新建子节点' : '新建节点'}
+                </Button>
+              ) : null
             }
           />
         </div>
       </div>
 
-      {/* ── 新建/编辑 Modal ── */}
-      <Modal
-        title={editRecord?.id ? '编辑节点' : '新建节点'}
-        visible={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSubmit}
-        okButtonProps={{ loading: submitting }}
-        width={isMobile ? '95vw' : 580}
-        afterClose={() => {
-          formApiRef.current?.reset()
-          setEditRecord(null)
-        }}
+      {/* ── 新建/编辑 ── */}
+      <FormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing?.id ? '编辑节点' : '新建节点'}
+        description={editing?.id ? `正在编辑 ${editing.name}` : undefined}
+        form={form}
+        onSubmit={submit}
+        size="md"
       >
-        <Form
-          getFormApi={(api) => { formApiRef.current = api }}
-          initValues={initValues}
-          labelPosition="top"
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-            <Form.Input
-              field="name"
-              label="节点名称"
-              rules={[{ required: true, message: '请输入节点名称' }]}
-            />
-            <Form.Input
-              field="node_code"
-              label="节点编码"
-              placeholder="例如：root_001"
-              rules={[{ required: true, message: '请输入节点编码' }]}
-              disabled={Boolean(editRecord?.id)}
-            />
-            <Form.TreeSelect
-              field="parent_id"
-              label="父节点"
-              placeholder="不选则作为根节点"
-              treeData={treeData}
-              style={{ width: '100%' }}
-              showClear
-            />
-            <Form.Select
-              field="node_type"
-              label="节点类型"
-              optionList={NODE_TYPE_OPTIONS}
-              style={{ width: '100%' }}
-            />
-            <Form.Input field="owner" label="负责人" placeholder="例如：admin" />
-            <Form.Input field="icon" label="图标" placeholder="图标名称（可选）" />
-            <Form.InputNumber
-              field="sort_order"
-              label="排序"
-              min={0}
-              max={9999}
-              style={{ width: '100%' }}
-            />
-            <Form.Select
-              field="status"
-              label="状态"
-              optionList={STATUS_OPTIONS}
-              style={{ width: '100%' }}
-            />
-          </div>
-          <Space style={{ marginTop: 4 }}>
-            <Form.Switch field="is_active" label="启用" />
-          </Space>
-          <Form.TextArea field="description" label="描述" rows={3} maxCount={300} />
-        </Form>
-      </Modal>
+        <FormGrid>
+          <FormInput control={form.control} name="name" label="节点名称" rules={{ required: '请输入节点名称' }} />
+          <FormInput
+            control={form.control}
+            name="node_code"
+            label="节点编码"
+            placeholder="例如：root_001"
+            rules={{ required: '请输入节点编码' }}
+            disabled={Boolean(editing?.id)}
+          />
+          <FormCustom
+            control={form.control}
+            name="parent_id"
+            label="父节点"
+            render={({ value, onChange }) => (
+              <ParentSelect value={value} onChange={onChange} tree={fullTree} excludeId={editing?.id} />
+            )}
+          />
+          <FormSelect control={form.control} name="node_type" label="节点类型" options={NODE_TYPE_OPTIONS} />
+          <FormInput control={form.control} name="owner" label="负责人" placeholder="例如：admin" />
+          <FormInput control={form.control} name="icon" label="图标" placeholder="图标名称（可选）" />
+          <FormNumber
+            control={form.control}
+            name="sort_order"
+            label="排序"
+            min={0}
+            max={9999}
+            step={1}
+            rules={{
+              min: { value: 0, message: '排序范围 0–9999' },
+              max: { value: 9999, message: '排序范围 0–9999' },
+            }}
+          />
+          <FormSelect control={form.control} name="status" label="状态" options={STATUS_OPTIONS} />
+        </FormGrid>
+        <FormSwitch control={form.control} name="is_active" label="启用" />
+        <FormTextarea
+          control={form.control}
+          name="description"
+          label="描述"
+          rows={3}
+          inputClassName="min-h-20"
+          rules={{ maxLength: { value: 300, message: '描述最多 300 字' } }}
+        />
+      </FormDialog>
 
-      {/* ── 详情抽屉 ── */}
-      <SideSheet
+      {/* ── 移动父节点 ── */}
+      <FormDialog
+        open={Boolean(moving)}
+        onOpenChange={(open) => !open && setMoving(null)}
+        title="移动节点"
+        description={moving ? `将「${moving.name}」移动到新的父节点下；不选则移动到根级。` : undefined}
+        form={moveForm}
+        onSubmit={submitMove}
+        submitText="移动"
+        size="sm"
+      >
+        <FormCustom
+          control={moveForm.control}
+          name="parent_id"
+          label="目标父节点"
+          description="不可选择节点自身及其子节点"
+          render={({ value, onChange }) => <ParentSelect value={value} onChange={onChange} tree={fullTree} excludeId={moving?.id} />}
+        />
+      </FormDialog>
+
+      <DeleteNodeDialog open={deleteOpen} node={deleting} onOpenChange={setDeleteOpen} onConfirm={remove} />
+
+      {/* ── 详情 ── */}
+      <DetailSheet
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
         title="节点详情"
-        visible={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        width={isMobile ? '100vw' : 480}
+        description={detail?.name}
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setDetailVisible(false)}>关闭</Button>
+          <>
+            <Button variant="outline" onClick={() => setDetailOpen(false)}>
+              关闭
+            </Button>
             <Button
-              theme="solid"
-              type="primary"
               onClick={() => {
-                setDetailVisible(false)
-                openEdit(detailRecord)
+                setDetailOpen(false)
+                openEdit(detail)
               }}
             >
               编辑
             </Button>
-          </div>
+          </>
         }
       >
-        {detailRecord && (
-          <div>
-            {[
-              ['ID', detailRecord.id],
-              ['节点名称', detailRecord.name],
-              ['节点编码', <Tag key="code">{detailRecord.node_code}</Tag>],
-              ['父节点ID', detailRecord.parent_id ?? '-'],
-              ['节点类型', <Tag key="type" color={NODE_TYPE_COLOR[detailRecord.node_type] || 'grey'}>{NODE_TYPE_LABEL[detailRecord.node_type] || detailRecord.node_type || '-'}</Tag>],
-              ['图标', detailRecord.icon || '-'],
-              ['状态', (() => { const m = STATUS_META[detailRecord.status] || { label: detailRecord.status, color: 'grey' }; return <Tag key="s" color={m.color}>{m.label}</Tag> })()],
-              ['启用', <Tag key="active" color={detailRecord.is_active ? 'green' : 'grey'}>{detailRecord.is_active ? '启用' : '停用'}</Tag>],
-              ['负责人', detailRecord.owner || '-'],
-              ['排序', detailRecord.sort_order ?? 0],
-              ['创建时间', detailRecord.created_at ? detailRecord.created_at.slice(0, 19).replace('T', ' ') : '-'],
-              ['更新时间', detailRecord.updated_at ? detailRecord.updated_at.slice(0, 19).replace('T', ' ') : '-'],
-            ].map(([label, val]) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid var(--semi-color-border)' }}>
-                <Typography.Text type="tertiary" style={{ width: 88, flexShrink: 0, paddingTop: 2 }}>{label}</Typography.Text>
-                <Typography.Text style={{ flex: 1 }}>{val}</Typography.Text>
-              </div>
-            ))}
-            {detailRecord.description && (
+        {detail ? (
+          <div className="space-y-5">
+            <DescriptionList
+              items={[
+                { label: 'ID', value: <span className="tabular-nums">{detail.id}</span> },
+                { label: '节点名称', value: detail.name },
+                { label: '节点编码', value: <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs whitespace-nowrap">{detail.node_code}</code> },
+                {
+                  label: '父节点ID',
+                  value:
+                    detail.parent_id === null || detail.parent_id === undefined ? (
+                      '-'
+                    ) : (
+                      <span className="tabular-nums">
+                        {detail.parent_id}
+                        {nodeNameOf(detail.parent_id) ? <span className="text-muted-foreground ml-1.5">（{nodeNameOf(detail.parent_id)}）</span> : null}
+                      </span>
+                    ),
+                },
+                { label: '节点类型', value: nodeTypeBadge(detail.node_type) },
+                { label: '图标', value: detail.icon || '-' },
+                { label: '状态', value: statusBadge(detail.status) },
+                {
+                  label: '启用',
+                  value: (
+                    <StatusBadge tone={detail.is_active ? 'success' : 'neutral'} dot>
+                      {detail.is_active ? '启用' : '停用'}
+                    </StatusBadge>
+                  ),
+                },
+                { label: '负责人', value: detail.owner || '-' },
+                { label: '排序', value: <span className="tabular-nums">{detail.sort_order ?? 0}</span> },
+                { label: '创建时间', value: <span className="tabular-nums">{formatDateTime(detail.created_at)}</span> },
+                { label: '更新时间', value: <span className="tabular-nums">{formatDateTime(detail.updated_at)}</span> },
+              ]}
+            />
+            {detail.description ? (
               <>
-                <Divider margin="16px 0 12px" />
-                <Typography.Text strong style={{ display: 'block', marginBottom: 6 }}>描述</Typography.Text>
-                <Typography.Paragraph>{detailRecord.description}</Typography.Paragraph>
+                <Separator />
+                <div className="space-y-1.5">
+                  <div className="text-[13px] font-medium">描述</div>
+                  <p className="text-muted-foreground text-[13px] leading-relaxed whitespace-pre-wrap">{detail.description}</p>
+                </div>
               </>
-            )}
+            ) : null}
           </div>
-        )}
-      </SideSheet>
+        ) : null}
+      </DetailSheet>
 
-      {/* ── 导出字段弹窗 ── */}
-      <ExportFieldsModal
-        visible={exportModalVisible}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
         title="树形列表页导出字段"
-        ruleHint={
-          selectedRowKeys.length > 0
-            ? `已勾选 ${selectedRowKeys.length} 条，将优先导出勾选数据`
-            : '未勾选时，将按当前筛选条件导出'
-        }
+        ruleHint={selectedKeys.length > 0 ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选时，将按当前筛选条件导出'}
         fieldOptions={EXPORT_FIELDS}
         defaultFields={['name', 'node_code', 'parent_id', 'node_type', 'status', 'owner', 'updated_at']}
-        onCancel={() => setExportModalVisible(false)}
         onConfirm={handleExport}
       />
 
-      {/* ── 导入弹窗 ── */}
-      <ImportCsvModal
-        visible={importModalVisible}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
         title="导入树形列表页数据"
         targetLabel="树形列表页"
-        onCancel={() => setImportModalVisible(false)}
         onDownloadTemplate={(fileType) => {
-          const ext = fileType === 'xlsx' ? 'xlsx' : fileType === 'xls' ? 'xls' : 'csv'
+          const ext = normalizeFileType(fileType)
           downloadTreeListPageTemplate(ext)
             .then((blob) => {
               downloadBlobFile(blob, `tree_list_page_import_template.${ext}`)
-              Toast.success('模板下载成功')
+              toast.success('模板下载成功')
             })
-            .catch((err) => Toast.error(err?.error || '模板下载失败'))
+            .catch((err) => toast.apiError(err, '模板下载失败'))
         }}
         onImport={(file) => importTreeListPage(file)}
         onImported={(res) => {
-          Toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
-          fetchTree(treeSearch)
-          fetchTable()
+          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          reloadAll()
         }}
         errorExportFileName="tree_list_page_import_error_rows.csv"
       />

@@ -31,17 +31,21 @@ castor-kit/
 │   │   │   ├── setup-once.ts       # 마이그레이션 + RBAC + 읽기 전용 역할 (컨테이너 시작 시 실행)
 │   │   │   └── generate-openapi.ts / import-apifox.ts
 │   │   └── test/                   # Vitest (실제 PostgreSQL 대상)
-│   ├── web/                        # @castor-kit/web — React + Vite 프론트엔드
+│   ├── web/                        # @castor-kit/web — React 19 + Vite + shadcn/ui 프론트엔드 (JSX)
+│   │   ├── scripts/shadcn-add.sh   # 로컬 중계를 거쳐 npx shadcn@latest add 실행
 │   │   └── src/
 │   │       ├── App.jsx             # 동적 라우팅 (import.meta.glob)
-│   │       ├── context/AuthContext.jsx
-│   │       ├── components/Layout/  # 사이드바 + PrivateRoute
+│   │       ├── index.css           # Tailwind v4 + 디자인 토큰 (라이트 / 다크)
+│   │       ├── context/            # AuthContext / ThemeContext
+│   │       ├── components/ui/      # shadcn/ui 기본 컴포넌트
+│   │       ├── components/app/     # 앱 셸: 사이드바, 상단 바, ⌘K, 테마 전환
+│   │       ├── lib/                # cn / toast / format / motion / chart-theme
 │   │       ├── modules/
 │   │       │   ├── admin/          # 시스템 관리 페이지
 │   │       │   └── component_center/   # 컴포넌트 예제 페이지
 │   │       └── shared/
 │   │           ├── api/request.js  # Axios 인스턴스 (baseURL='/api')
-│   │           └── components/     # 공유 UI (가져오기/내보내기 모달 등)
+│   │           └── components/     # 공통 비즈니스 컴포넌트: PageHeader / DataTable / FormDialog / ImportDialog …
 │   └── mcp/                        # @castor-kit/mcp — MCP 서버
 └── docs/
     └── templates/                  # AI 코드 스켈레톤 템플릿 (backend/*.ts, frontend/*)
@@ -87,11 +91,27 @@ pnpm scaffold -- --name customer --domain admin \
 스캐폴더가 하는 일:
 
 - 테이블 정의 `db/schema/admin/customer.ts`와 모듈 `modules/admin/customer/{schema,repository,service,routes}.ts` 작성
-- 프론트엔드 API 파일과 목록 페이지(검색, 추가/편집/삭제, 가져오기/내보내기) 작성
+- 프론트엔드 API 파일과 shadcn/ui 목록 페이지 작성(사용자 관리 페이지와 같은 구조: 검색, 추가/편집/삭제, 가져오기/내보내기; 필드 타입은 폼 컴포넌트로 자동 매핑)
 - `db/schema/index.ts`와 도메인 라우터 `modules/admin/router.ts`에 등록
 - `drizzle-kit generate`를 실행하여 마이그레이션 SQL 생성
 
 `--domain`은 `admin` 또는 `component_center`입니다. 필드 타입: `str` (100), `str20`, `str50`, `str500`, `text`, `int`, `float` (numeric 10,2), `bool`, `date`, `datetime`.
+
+---
+
+## 프론트엔드 규칙
+
+프론트엔드(`apps/web`)는 **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**(JavaScript / JSX, UI 문구는 중국어)를 사용하며, UI는 Semi Design에서 이전되었습니다. 자세한 내용은 [프론트엔드 개편 계획](https://github.com/robeshell/castor-kit/blob/main/docs/frontend-redesign-plan.md)을 참고하세요.
+
+- **페이지 구조**: 목록 페이지는 `modules/admin/pages/users/index.jsx`를 따릅니다 — `PageHeader` → `FilterBar` → `DataTable` → `FormDialog`(react-hook-form + `FormFields`) → `ImportDialog` / `ExportDialog`. 삭제는 `ConfirmAction`, 알림은 `@/lib/toast`
+- **필드 → 폼 컴포넌트**: `str` → `FormInput`, `text` → `FormTextarea`, `int` / `float` → `FormNumber`, `bool` → `FormSwitch`, `date` → `FormDate`, `datetime` → `FormDateTime`. 테이블에서 `bool`은 `StatusBadge`, 시간은 `formatDate` / `formatDateTime`으로 표시
+- **스타일**: Tailwind 시맨틱 색상 클래스만 사용(`bg-card`, `text-muted-foreground`, `bg-brand-soft` …)하므로 다크 모드가 자동으로 맞춰집니다. Ocean 그라데이션(blue → sky → cyan)은 포인트로만 쓰고, `variant="brand"` 주 버튼은 페이지당 최대 1개
+- **금지**: `@douyinfe/*` import, `var(--semi-*)`, 하드코딩된 16진수 색상, 인라인 스타일 위주의 레이아웃
+- **shadcn 기본 컴포넌트 추가**: 이 환경에서는 shadcn CLI가 ui.shadcn.com에 직접 연결되지 않으므로 중계 스크립트를 사용합니다(로컬 레지스트리 중계를 띄우고 `REGISTRY_URL`로 `npx shadcn@latest add`를 실행한 뒤 종료):
+
+```bash
+apps/web/scripts/shadcn-add.sh hover-card
+```
 
 ---
 
@@ -160,7 +180,7 @@ psql -d aurastack -c '\d customers'
 pnpm verify -- --module customer --skip-build
 ```
 
-TypeScript 타입, 계층 규칙(로컬 권한 헬퍼 금지), 마이그레이션 체인 무결성과 적용 여부, OpenAPI 동기화, AI 문서가 참조하는 경로, 백엔드/프론트엔드 파일과 등록, RBAC 시드를 검사합니다. CI에서는 `--skip-build`를 빼서 프로덕션 프론트엔드 빌드까지 검증하고, AI가 읽을 수 있는 구조화된 출력이 필요하면 `--json`을 추가하세요.
+TypeScript 타입, 계층 규칙(로컬 권한 헬퍼 금지), 마이그레이션 체인 무결성과 적용 여부, OpenAPI 동기화, AI 문서가 참조하는 경로, 백엔드/프론트엔드 파일과 등록, RBAC 시드를 검사합니다. 프론트엔드 페이지에 이전 UI 스택(`@douyinfe/*`, `var(--semi-*)`)이 남아 있지 않은지도 검사합니다. CI에서는 `--skip-build`를 빼서 프로덕션 프론트엔드 빌드까지 검증하고, AI가 읽을 수 있는 구조화된 출력이 필요하면 `--json`을 추가하세요.
 
 ---
 
@@ -190,7 +210,7 @@ castor-kit에는 모든 주요 AI 코딩 도구를 위한 컨텍스트 파일이
 
 | 도구 | 설정 파일 | 기능 |
 |---|---|---|
-| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` 엔드투엔드 스킬 |
+| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` 엔드투엔드 스킬 + `shadcn-ui-skills` 프론트엔드 가이드 |
 | Cursor | `.cursor/rules/` | Autopilot 워크플로우 자동 트리거 |
 | GitHub Copilot | `.github/copilot-instructions.md` | 프로젝트 규칙 전역 주입 |
 | Windsurf | `.windsurfrules` | 프로젝트 규칙 전역 주입 |

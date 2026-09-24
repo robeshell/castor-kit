@@ -1,7 +1,7 @@
 # 快速开始
 
 ::: info castor-kit 与 AuraStack
-castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写版：后端换成 Fastify + Drizzle，React 前端原样沿用，直连同一套 PostgreSQL 表结构，API 契约兼容。
+castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写版：后端换成 Fastify + Drizzle，React 前端沿用原有路由与功能、UI 从 Semi Design 迁移到 shadcn/ui + Tailwind CSS v4，直连同一套 PostgreSQL 表结构，API 契约兼容。
 :::
 
 ## 环境要求

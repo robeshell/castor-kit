@@ -1,7 +1,7 @@
 # castor-kit — Claude Code 专属补充
 
 > **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/rewrite-plan.md`（完整重写方案与兼容契约）。
-> 开始任何实现前先读这两个文件。本文件只放 Claude Code 专属的补充内容。
+> 开始任何实现前先读这两个文件；涉及前端 UI 时再读 `docs/frontend-redesign-plan.md`（shadcn/ui 体系）。本文件只放 Claude Code 专属的补充内容。
 
 ## 参考源码
 
@@ -10,7 +10,7 @@
 ## 规则
 
 - 命名一律小写连字符（`castor-kit`、`@castor-kit/api`），不用驼峰
-- Semi Design 组件实现前优先用 `semi-mcp` 读官方文档
+- shadcn/ui 组件实现前优先查阅 shadcn 官方文档 / registry（可用 shadcn MCP）；新增原子组件用 `npx shadcn@latest add`（本机需经 REGISTRY_URL 中转，直接跑 `apps/web/scripts/shadcn-add.sh <组件>`，见 AGENTS.md「新增 shadcn 原子组件」）
 - 迁移必须真实落库并用 `psql \d` 验证，静态检查不算完成
 
 ---
@@ -25,12 +25,12 @@
   3. 展示**业务预览**供确认
   4. `pnpm scaffold` → 填业务 → `seed-rbac` 增量 → `pnpm db:migrate` → `psql \d` 实证
   5. `pnpm verify -- --module <name>` 门禁全绿后输出交付报告（注明「已迁移至 <tag>」）
-- `semi-ui-skills`（`.claude/skills/semi-ui-skills/SKILL.md`）：Semi Design 组件查询与最佳实践，配合 `semi-mcp` 使用
+- `shadcn-ui-skills`（`.claude/skills/shadcn-ui-skills/SKILL.md`）：shadcn/ui 组件清单、castor-kit 公共组件用法、设计 tokens、动效规范、常见模式与禁止事项
 
-### MCP-First 读取规则
+### 文档优先规则
 
-- 实现 Semi Design UI 组件前，优先用 `semi-mcp` 工具读取官方文档
-- 如文档与现有实现冲突，以现有实现为准
+- 实现 shadcn/ui 组件前，先查官方文档（https://ui.shadcn.com/docs/components ）或 registry（`apps/web/scripts/shadcn-add.sh --view <组件>`），有 shadcn MCP 时优先用它
+- 如文档与现有实现冲突，以仓库现有实现为准（`apps/web/src/components/ui/` 已按本项目 tokens 调整过）
 
 ### 本地预览
 
@@ -49,10 +49,12 @@
 - **新增域**：需在 `src/router.ts` + `db/schema/index.ts` 中注册（已有域内新增模块由 scaffold 自动注册）
 - **导入导出**：`common/tabular.ts`（`buildTable` / `sendTable` / `readTableFile`），只支持 csv / xlsx
 
-### 前端（apps/web，从 AuraStack 原样迁入）
+### 前端（apps/web，shadcn/ui + Tailwind CSS v4 + motion + lucide-react，JSX）
 - **动态路由**：`App.jsx` 用 `import.meta.glob('./modules/**/pages/**/index.jsx')` 扫描；`menu.component` 值格式 `<module>/<subdir>/<page>`（如 `component_center/admin/kanban_page`）
 - **API client**：`apps/web/src/shared/api/request.js`（拦截 401 自动跳登录页、自动带 CSRF 头、响应已 unwrap）
-- **导入导出**：复用 `shared/components/import-export/ExportFieldsModal.jsx` + `ImportCsvModal.jsx`
+- **页面结构**：照 `apps/web/src/modules/admin/pages/users/index.jsx`——PageHeader → FilterBar → DataTable → FormDialog（react-hook-form + FormFields）→ ImportDialog / ExportDialog，删除用 ConfirmAction，反馈用 `@/lib/toast`
+- **导入导出**：复用 `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
+- **样式**：只用 Tailwind 语义色类（`bg-card` / `text-muted-foreground` / `bg-brand-soft` …），Ocean 渐变只做点缀，禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色
 - **纯前端页面**（无后端 CRUD API）：creative/、devtools/websocket_page、devtools/perf_monitor_page、dataviz/heatmap_page、dataviz/realtime_chart_page
 
 ### RBAC
@@ -80,7 +82,7 @@ pnpm openapi:generate && pnpm openapi:apifox
 
 ## 新功能开发 Checklist
 
-1. [ ] 阅读相关现有模块（参考 `apps/api/src/modules/admin/users/`、`apps/web/src/modules/component_center/pages/admin/list_page/index.jsx`）
+1. [ ] 阅读相关现有模块（参考 `apps/api/src/modules/admin/users/`、`apps/web/src/modules/admin/pages/users/index.jsx`）
 2. [ ] `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."`
 3. [ ] 后端：`db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts` 填充业务
 4. [ ] 前端：`pages/<subdir>/<page>/index.jsx` + `api/<page>.js`（纯前端页面无需 api 文件）

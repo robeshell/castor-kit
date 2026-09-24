@@ -1,7 +1,7 @@
 # 시작하기
 
 ::: info castor-kit와 AuraStack
-castor-kit는 AuraStack(Flask 버전)을 Node.js/TypeScript로 재작성한 프로젝트입니다. 백엔드는 Fastify + Drizzle로 바뀌었고, React 프론트엔드는 그대로 재사용하며, 동일한 PostgreSQL 스키마에 연결되고 API 계약도 호환됩니다.
+castor-kit는 AuraStack(Flask 버전)을 Node.js/TypeScript로 재작성한 프로젝트입니다. 백엔드는 Fastify + Drizzle로 바뀌었고, React 프론트엔드는 라우팅과 기능을 유지한 채 UI를 Semi Design에서 shadcn/ui + Tailwind CSS v4로 이전했으며, 동일한 PostgreSQL 스키마에 연결되고 API 계약도 호환됩니다.
 :::
 
 ## 환경 요구사항

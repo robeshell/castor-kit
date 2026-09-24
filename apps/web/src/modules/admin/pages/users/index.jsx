@@ -1,292 +1,318 @@
-import { CARD_STYLE } from '@/shared/styles'
-import { useState, useEffect, useRef } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import { useCrudList } from '@/shared/hooks/useCrudList'
-import {
-  Table, Button, Modal, Form, Toast,
-  Popconfirm, Tag, Input, Space, Typography,
-} from '@douyinfe/semi-ui'
-import { IconPlus, IconRefresh, IconSearch } from '@douyinfe/semi-icons'
-import {
-  getUsers, createUser, updateUser, deleteUser,
-  exportUsers, downloadUsersTemplate, importUsers,
-} from '@/modules/admin/api/users'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
+import { Download, Plus, Upload, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
+import { formatDateTime } from '@/lib/format'
 import { getRoles } from '@/modules/admin/api/roles'
-import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'
-import ImportCsvModal from '@/shared/components/import-export/ImportCsvModal'
+import {
+  createUser,
+  deleteUser,
+  downloadUsersTemplate,
+  exportUsers,
+  getUsers,
+  importUsers,
+  updateUser,
+} from '@/modules/admin/api/users'
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import DataTable from '@/shared/components/DataTable'
+import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
+import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FormDialog } from '@/shared/components/FormDialog'
+import { FormInput, FormMultiSelect } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import StatusBadge from '@/shared/components/StatusBadge'
+import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
 
-const USER_EXPORT_FIELDS = [
+const EXPORT_FIELDS = [
   { label: 'ID', value: 'id' },
   { label: '用户名', value: 'username' },
   { label: '角色名称', value: 'role_names' },
   { label: '角色编码', value: 'role_codes' },
   { label: '创建时间', value: 'created_at' },
 ]
-const normalizeFileType = (raw) => (['csv', 'xls', 'xlsx'].includes(raw) ? raw : 'xlsx')
+const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
+/**
+ * 用户管理 —— 列表页参考实现（其他 CRUD 页面照此结构）：
+ * PageHeader（标题 + 主操作）→ FilterBar（筛选）→ DataTable（分页 / 勾选 / 行操作）
+ * → FormDialog（新建/编辑，react-hook-form）→ ImportDialog / ExportDialog
+ */
 export default function Users() {
-  const isMobile = useIsMobile()
   const list = useCrudList(
-    (params) => getUsers(params).catch(() => {
-      Toast.error('加载失败')
-      return { items: [], total: 0 }
-    }),
+    (params) =>
+      getUsers(params).catch((err) => {
+        toast.apiError(err, '加载失败')
+        return { items: [], total: 0 }
+      }),
     { defaultPerPage: 20 },
   )
-  const { data, total, loading, page, filters, fetchData, handlePageChange } = list
+  const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
   const [search, setSearch] = useState('')
-  const [modalVisible, setModalVisible] = useState(false)
-  const [editRecord, setEditRecord] = useState(null)
   const [roles, setRoles] = useState([])
-  const [submitting, setSubmitting] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const [exportModalVisible, setExportModalVisible] = useState(false)
-  const [importModalVisible, setImportModalVisible] = useState(false)
-  const formApiRef = useRef()
+  const [selectedKeys, setSelectedKeys] = useState([])
+  const [editing, setEditing] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+
+  const form = useForm({ defaultValues: { username: '', password: '', role_ids: [] } })
 
   useEffect(() => {
     fetchData()
-    getRoles().then((res) => setRoles(Array.isArray(res) ? res : []))
+    getRoles()
+      .then((res) => setRoles(Array.isArray(res) ? res : []))
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const roleOptions = useMemo(() => roles.map((r) => ({ label: r.name, value: r.id })), [roles])
+
   const openCreate = () => {
-    setEditRecord(null)
-    setModalVisible(true)
+    setEditing(null)
+    form.reset({ username: '', password: '', role_ids: [] })
+    setFormOpen(true)
   }
 
   const openEdit = (record) => {
-    setEditRecord(record)
-    setModalVisible(true)
+    setEditing(record)
+    form.reset({ username: record.username, password: '', role_ids: record.roles?.map((r) => r.id) || [] })
+    setFormOpen(true)
   }
 
-  const handleSubmit = () => {
-    formApiRef.current.validate().then((values) => {
-      setSubmitting(true)
-      const fn = editRecord
-        ? updateUser(editRecord.id, values)
-        : createUser(values)
-      fn.then(() => {
-        Toast.success(editRecord ? '修改成功' : '创建成功')
-        setModalVisible(false)
-        fetchData()
-      })
-        .catch((err) => Toast.error(err?.error || '操作失败'))
-        .finally(() => setSubmitting(false))
-    })
+  const submit = async (values) => {
+    try {
+      if (editing) {
+        const payload = { role_ids: values.role_ids }
+        if (values.password) payload.password = values.password
+        await updateUser(editing.id, payload)
+        toast.success('用户已更新')
+      } else {
+        await createUser({ username: values.username, password: values.password, role_ids: values.role_ids })
+        toast.success('用户已创建')
+      }
+      setFormOpen(false)
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
   }
 
-  const handleDelete = (id) => {
-    deleteUser(id)
-      .then(() => { Toast.success('删除成功'); fetchData() })
-      .catch((err) => Toast.error(err?.error || '删除失败'))
+  const remove = async (record) => {
+    try {
+      await deleteUser(record.id)
+      toast.success('用户已删除')
+      setSelectedKeys((keys) => keys.filter((k) => k !== record.id))
+      fetchData()
+    } catch (err) {
+      toast.apiError(err, '删除失败')
+      throw err
+    }
   }
 
-  const handleSearch = () => {
-    setSelectedRowKeys([])
+  const runSearch = () => {
+    setSelectedKeys([])
     list.handleSearch({ search: search.trim() })
   }
-
-  const handleReset = () => {
+  const reset = () => {
     setSearch('')
-    setSelectedRowKeys([])
+    setSelectedKeys([])
     list.handleReset()
   }
 
-  const handleExport = ({ fields, fileType }) => {
-    const finalFileType = normalizeFileType(fileType)
-    const hasSelected = selectedRowKeys.length > 0
-    const payload = {
-      fields,
-      file_type: finalFileType,
-      export_mode: hasSelected ? 'selected' : 'filtered',
+  const handleExport = async ({ fields, fileType }) => {
+    const type = normalizeFileType(fileType)
+    const payload = { fields, file_type: type, export_mode: selectedKeys.length ? 'selected' : 'filtered' }
+    if (selectedKeys.length) payload.ids = selectedKeys
+    else payload.filters = { search: filters.search ?? '' }
+    try {
+      const blob = await exportUsers(payload)
+      downloadBlobFile(blob, `users_export.${type}`)
+      toast.success('导出成功')
+      setExportOpen(false)
+    } catch (err) {
+      toast.apiError(err, '导出失败')
     }
-    if (hasSelected) {
-      payload.ids = selectedRowKeys
-    } else {
-      payload.filters = { search: filters.search ?? '' }
-    }
-    exportUsers(payload)
-      .then((blob) => {
-        downloadBlobFile(blob, `users_export.${finalFileType}`)
-        Toast.success('导出成功')
-        setExportModalVisible(false)
-      })
-      .catch((err) => Toast.error(err?.error || '导出失败'))
   }
 
   const columns = [
-    { title: 'ID', dataIndex: 'id', width: 70 },
-    { title: '用户名', dataIndex: 'username' },
+    { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },
     {
+      key: 'username',
+      title: '用户名',
+      dataIndex: 'username',
+      render: (value) => (
+        <div className="flex items-center gap-2.5">
+          <span className="bg-muted ring-border flex size-7 items-center justify-center rounded-full text-xs font-medium ring-1">
+            {(value || '?').slice(0, 1).toUpperCase()}
+          </span>
+          <span className="font-medium">{value}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'roles',
       title: '角色',
       dataIndex: 'roles',
-      render: (r) =>
-        r?.map((role) => (
-          <Tag key={role.id} color="blue" style={{ marginRight: 4 }}>
-            {role.name}
-          </Tag>
-        )),
+      render: (value) =>
+        value?.length ? (
+          <div className="flex flex-wrap gap-1">
+            {value.map((role) => (
+              <StatusBadge key={role.id} tone={role.code === 'super_admin' ? 'brand' : 'neutral'}>
+                {role.name}
+              </StatusBadge>
+            ))}
+          </div>
+        ) : null,
     },
     {
+      key: 'created_at',
       title: '创建时间',
       dataIndex: 'created_at',
-      render: (v) => v?.slice(0, 19).replace('T', ' '),
+      width: 180,
+      className: 'text-muted-foreground tabular-nums',
+      render: (value) => formatDateTime(value),
     },
     {
-      title: '操作',
-      width: 160,
+      key: 'actions',
+      title: '',
+      align: 'right',
+      width: 132,
       render: (_, record) => (
-        <Space>
-          <Button size="small" onClick={() => openEdit(record)}>
+        <div className="flex justify-end gap-0.5">
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
             编辑
           </Button>
-          <Popconfirm
-            title="确认删除该用户？"
-            content="删除后不可恢复"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button size="small" type="danger">
+          <ConfirmAction title={`删除用户 ${record.username}？`} description="删除后不可恢复。" confirmText="删除" onConfirm={() => remove(record)}>
+            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
               删除
             </Button>
-          </Popconfirm>
-        </Space>
+          </ConfirmAction>
+        </div>
       ),
     },
   ]
 
-  const initValues = editRecord
-    ? { role_ids: editRecord.roles?.map((r) => r.id) }
-    : {}
-
   return (
     <div>
-      <Typography.Title heading={5} style={{ marginBottom: 16 }}>
-        用户管理
-      </Typography.Title>
-
-      <div style={CARD_STYLE}>
-        <Space style={{ flexWrap: 'wrap' }}>
-          <Input
-            prefix={<IconSearch />}
-            placeholder="搜索用户名"
-            value={search}
-            onChange={(v) => setSearch(v)}
-            onEnterPress={handleSearch}
-            style={{ width: isMobile ? '100%' : 240 }}
-          />
-          <Button icon={<IconSearch />} type="primary" onClick={handleSearch}>查询</Button>
-          <Button icon={<IconRefresh />} onClick={handleReset}>重置</Button>
-        </Space>
-      </div>
-
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-          <Typography.Text strong>用户列表</Typography.Text>
-          <Space>
-            <Button onClick={() => setImportModalVisible(true)}>导入</Button>
-            <Button onClick={() => setExportModalVisible(true)}>导出</Button>
-            <Button icon={<IconPlus />} theme="solid" type="primary" onClick={openCreate}>
+      <PageHeader
+        title="用户管理"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download />
+              导出
+            </Button>
+            <Button size="sm" variant="brand" onClick={openCreate}>
+              <Plus />
               新建用户
             </Button>
-          </Space>
-        </div>
-        <Table
-          columns={columns}
-          dataSource={data}
-          loading={loading}
-          rowKey="id"
-          scroll={{}}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          }}
-          pagination={{
-            total,
-            currentPage: page,
-            pageSize: 20,
-            onPageChange: (p) => handlePageChange(p),
-          }}
-        />
-        <div style={{ marginTop: 8 }}>
-          <Space>
-            <Typography.Text type="tertiary">已勾选 {selectedRowKeys.length} 条</Typography.Text>
-            {selectedRowKeys.length > 0 ? (
-              <Button size="small" type="tertiary" onClick={() => setSelectedRowKeys([])}>
+          </>
+        }
+      />
+
+      <FilterBar onSearch={runSearch} onReset={reset}>
+        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索用户名" />
+      </FilterBar>
+
+      <AnimatePresence>
+        {selectedKeys.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
+              <span>
+                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+              </span>
+              <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
+                <X />
                 清空勾选
               </Button>
-            ) : null}
-          </Space>
-        </div>
-      </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      <Modal
-        title={editRecord ? '编辑用户' : '新建用户'}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        okButtonProps={{ loading: submitting }}
-        afterClose={() => formApiRef.current?.reset()}
-        width={isMobile ? '95vw' : 480}
+      <DataTable
+        columns={columns}
+        data={data}
+        loading={loading}
+        selectable
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        pagination={{ page, perPage, total, onChange: handlePageChange }}
+        emptyTitle="没有找到用户"
+        emptyDescription={filters.search ? '换个关键词试试' : '点击右上角「新建用户」添加第一个账号'}
+      />
+
+      <FormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? '编辑用户' : '新建用户'}
+        description={editing ? `正在编辑 ${editing.username}` : undefined}
+        form={form}
+        onSubmit={submit}
+        size="sm"
       >
-        <Form getFormApi={api => formApiRef.current = api} initValues={initValues} labelPosition="left" labelWidth={100}>
-          {!editRecord && (
-            <Form.Input
-              field="username"
-              label="用户名"
-              rules={[{ required: true, message: '请输入用户名' }]}
-            />
-          )}
-          <Form.Input
-            field="password"
-            label={editRecord ? '新密码' : '密码'}
-            type="password"
-            placeholder={editRecord ? '留空则不修改' : '请输入密码'}
-            rules={editRecord ? [] : [{ required: true, message: '请输入密码' }]}
-          />
-          <Form.Select
-            field="role_ids"
-            label="角色"
-            multiple
-            optionList={roles.map((r) => ({ label: r.name, value: r.id }))}
-            style={{ width: '100%' }}
-            placeholder="请选择角色"
-            disabled={editRecord?.username === 'admin'}
-          />
-        </Form>
-      </Modal>
+        {!editing ? (
+          <FormInput control={form.control} name="username" label="用户名" placeholder="例如 zhangsan" rules={{ required: '请输入用户名' }} />
+        ) : null}
+        <FormInput
+          control={form.control}
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          label={editing ? '新密码' : '密码'}
+          placeholder={editing ? '留空则不修改' : '请输入密码'}
+          rules={editing ? undefined : { required: '请输入密码' }}
+        />
+        <FormMultiSelect
+          control={form.control}
+          name="role_ids"
+          label="角色"
+          options={roleOptions}
+          placeholder="选择角色"
+          disabled={editing?.username === 'admin'}
+        />
+      </FormDialog>
 
-      <ExportFieldsModal
-        visible={exportModalVisible}
-        title="用户导出字段"
-        ruleHint={
-          selectedRowKeys.length > 0
-            ? `已勾选 ${selectedRowKeys.length} 条，将优先导出勾选数据`
-            : '未勾选数据时，将按当前查询条件导出全部结果'
-        }
-        fieldOptions={USER_EXPORT_FIELDS}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        title="导出用户"
+        ruleHint={selectedKeys.length ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据。` : '未勾选数据时，按当前查询条件导出全部结果。'}
+        fieldOptions={EXPORT_FIELDS}
         defaultFields={['username', 'role_names', 'created_at']}
-        onCancel={() => setExportModalVisible(false)}
         onConfirm={handleExport}
       />
 
-      <ImportCsvModal
-        visible={importModalVisible}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
         title="导入用户"
         targetLabel="用户管理"
-        onCancel={() => setImportModalVisible(false)}
         onDownloadTemplate={(fileType) =>
           downloadUsersTemplate(normalizeFileType(fileType))
             .then((blob) => {
-              const ext = normalizeFileType(fileType)
-              downloadBlobFile(blob, `users_import_template.${ext}`)
-              Toast.success('模板下载成功')
+              downloadBlobFile(blob, `users_import_template.${normalizeFileType(fileType)}`)
+              toast.success('模板已下载')
             })
-            .catch((err) => Toast.error(err?.error || '模板下载失败'))
+            .catch((err) => toast.apiError(err, '模板下载失败'))
         }
         onImport={(file) => importUsers(file)}
         onImported={(res) => {
-          Toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
           fetchData()
         }}
         errorExportFileName="users_import_error_rows.csv"

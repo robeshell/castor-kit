@@ -1,34 +1,28 @@
-import { CARD_STYLE } from '@/shared/styles'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
 import { List, useListRef } from 'react-window'
-import { Button, Input, InputNumber, Tag, Typography } from '@douyinfe/semi-ui'
-import { IconSearch, IconArrowRight } from '@douyinfe/semi-icons'
-
-const { Title, Text } = Typography
-
-// ── 样式常量 ──────────────────────────────────────────────────────────
-
-const C = {
-  blue: '#4080FF', green: '#00B96B', orange: '#FA8C16',
-  purple: '#9254DE', red: '#FF4D4F', cyan: '#13C2C2',
-  border: 'var(--semi-color-border)',
-  text0: 'var(--semi-color-text-0)',
-  text1: 'var(--semi-color-text-1)',
-  text2: 'var(--semi-color-text-2)',
-}
+import { ArrowRight, Database, Layers, Timer } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import EmptyState from '@/shared/components/EmptyState'
+import { SearchInput } from '@/shared/components/Filters'
+import PageHeader from '@/shared/components/PageHeader'
+import StatusBadge from '@/shared/components/StatusBadge'
+import { useIsMobile } from '@/shared/hooks/useIsMobile'
 
 // 列宽配置
-const COL_WIDTHS = ['80px', '160px', '100px', '80px', '120px', '90px', '120px']
-const COL_HEADERS = ['ID', '姓名', '部门', '级别', '薪资', '状态', '入职日期']
+const COLUMNS = [
+  { title: 'ID', width: 'w-20' },
+  { title: '姓名', width: 'w-40' },
+  { title: '部门', width: 'w-[100px]' },
+  { title: '级别', width: 'w-20' },
+  { title: '薪资', width: 'w-[120px]' },
+  { title: '状态', width: 'w-[90px]' },
+  { title: '入职日期', width: 'w-[120px]' },
+]
 
-// 状态 Tag 配置
-const STATUS_COLOR = {
-  '在职':  'green',
-  '试用期': 'orange',
-  '离职':  'red',
-  '休假':  'blue',
-}
+const STATUS_TONE = { 在职: 'success', 试用期: 'warning', 离职: 'danger', 休假: 'info' }
+const ROW_HEIGHT = 48
 
 // ── 数据生成（带计时）────────────────────────────────────────────────
 function generateData() {
@@ -52,89 +46,60 @@ function generateData() {
   return { data, elapsed }
 }
 
-// ── 表头组件（固定）──────────────────────────────────────────────────
+// ── 表头（固定）──────────────────────────────────────────────────────
 function TableHeader() {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      height: 40,
-      background: 'var(--semi-color-bg-0)',
-      borderBottom: `1px solid ${C.border}`,
-      borderTop: `1px solid ${C.border}`,
-      padding: '0 16px',
-      fontWeight: 600,
-      fontSize: 13,
-      color: C.text1,
-      flexShrink: 0,
-    }}>
-      {COL_HEADERS.map((h, idx) => (
-        <div key={h} style={{ width: COL_WIDTHS[idx], flexShrink: 0 }}>{h}</div>
+    <div className="bg-muted/40 text-muted-foreground flex h-10 shrink-0 items-center border-y px-4 text-xs font-medium">
+      {COLUMNS.map((col) => (
+        <div key={col.title} className={cn('shrink-0', col.width)}>
+          {col.title}
+        </div>
       ))}
     </div>
   )
 }
 
-// ── 行渲染组件（react-window v2 API）──────────────────────────────────
-// react-window v2 List spreads rowProps directly into rowComponent props
+// ── 行渲染（react-window v2：rowProps 会展开到 rowComponent 的 props）────────
 function RowComponent({ index, style, ariaAttributes, itemData }) {
-  const [hovered, setHovered] = useState(false)
-  const data = itemData
-  if (!data) return null
-  const row = data[index]
+  const row = itemData?.[index]
   if (!row) return null
-  const isEven = index % 2 === 0
-  const salaryStr = `¥${row.salary.toLocaleString()}`
-
   return (
     <div
       {...ariaAttributes}
-      style={{
-        ...style,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 16px',
-        background: hovered ? 'rgba(64,128,255,0.06)' : isEven ? 'var(--semi-color-bg-1)' : 'var(--semi-color-fill-0)',
-        borderBottom: `1px solid ${C.border}`,
-        cursor: 'default',
-        transition: 'background 0.1s',
-        boxSizing: 'border-box',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      style={style}
+      className="hover:bg-muted/50 flex items-center border-b px-4 text-[13px] transition-colors duration-150"
     >
-      <div style={{ width: COL_WIDTHS[0], flexShrink: 0, color: C.text2, fontSize: 12 }}>{row.id}</div>
-      <div style={{ width: COL_WIDTHS[1], flexShrink: 0, color: C.text0, fontWeight: 500, fontSize: 13 }}>{row.name}</div>
-      <div style={{ width: COL_WIDTHS[2], flexShrink: 0, color: C.text1, fontSize: 13 }}>{row.dept}</div>
-      <div style={{ width: COL_WIDTHS[3], flexShrink: 0 }}>
-        <span style={{ display: 'inline-block', padding: '1px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: 'rgba(146,84,222,0.1)', color: C.purple }}>
+      <div className={cn('text-muted-foreground shrink-0 font-mono text-xs tabular-nums', COLUMNS[0].width)}>{row.id}</div>
+      <div className={cn('shrink-0 font-medium', COLUMNS[1].width)}>{row.name}</div>
+      <div className={cn('text-muted-foreground shrink-0', COLUMNS[2].width)}>{row.dept}</div>
+      <div className={cn('shrink-0', COLUMNS[3].width)}>
+        <StatusBadge tone="brand" className="font-mono">
           {row.level}
-        </span>
+        </StatusBadge>
       </div>
-      <div style={{ width: COL_WIDTHS[4], flexShrink: 0, color: C.green, fontWeight: 600, fontSize: 13 }}>{salaryStr}</div>
-      <div style={{ width: COL_WIDTHS[5], flexShrink: 0 }}>
-        <Tag color={STATUS_COLOR[row.status] || 'grey'} size="small">{row.status}</Tag>
+      <div className={cn('shrink-0 font-medium tabular-nums', COLUMNS[4].width)}>¥{row.salary.toLocaleString()}</div>
+      <div className={cn('shrink-0', COLUMNS[5].width)}>
+        <StatusBadge tone={STATUS_TONE[row.status] || 'neutral'} dot>
+          {row.status}
+        </StatusBadge>
       </div>
-      <div style={{ width: COL_WIDTHS[6], flexShrink: 0, color: C.text2, fontSize: 12 }}>{row.joinDate}</div>
+      <div className={cn('text-muted-foreground shrink-0 text-xs tabular-nums', COLUMNS[6].width)}>{row.joinDate}</div>
     </div>
   )
 }
 
 // ── 性能指标卡片 ──────────────────────────────────────────────────────
-function MetricCard({ label, value, desc, color }) {
+function MetricCard({ icon: Icon, label, value, desc }) {
   return (
-    <div style={{
-      ...CARD_STYLE,
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-      borderLeft: `4px solid ${color}`,
-      padding: '14px 18px',
-    }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: C.text0 }}>{label}</div>
-      {desc && <div style={{ fontSize: 12, color: C.text2 }}>{desc}</div>}
+    <div className="surface-card flex items-start gap-3 p-4">
+      <span className="bg-brand-soft text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0 space-y-0.5">
+        <div className="text-muted-foreground text-[13px]">{label}</div>
+        <div className="text-xl font-semibold tracking-tight tabular-nums">{value}</div>
+        {desc ? <div className="text-muted-foreground text-xs">{desc}</div> : null}
+      </div>
     </div>
   )
 }
@@ -143,10 +108,13 @@ function MetricCard({ label, value, desc, color }) {
 function useDebounce(initialValue, delay) {
   const [debounced, setDebounced] = useState(initialValue)
   const timerRef = useRef(null)
-  const update = useCallback((v) => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setDebounced(v), delay)
-  }, [delay])
+  const update = useCallback(
+    (v) => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setDebounced(v), delay)
+    },
+    [delay],
+  )
   // 卸载时清除待触发的定时器，避免对已卸载组件 setState
   useEffect(() => {
     return () => {
@@ -160,7 +128,7 @@ function useDebounce(initialValue, delay) {
 export default function VirtualScrollPage() {
   const isMobile = useIsMobile()
   // 生成数据（只执行一次）
-  const { data: ALL_DATA, elapsed } = useMemo(() => generateData(), [])
+  const [{ data: ALL_DATA, elapsed }] = useState(generateData)
 
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useDebounce('', 300)
@@ -176,9 +144,7 @@ export default function VirtualScrollPage() {
   const filteredData = useMemo(() => {
     if (!debouncedSearch.trim()) return ALL_DATA
     const kw = debouncedSearch.toLowerCase()
-    return ALL_DATA.filter(r =>
-      r.name.toLowerCase().includes(kw) || r.dept.toLowerCase().includes(kw)
-    )
+    return ALL_DATA.filter((r) => r.name.toLowerCase().includes(kw) || r.dept.toLowerCase().includes(kw))
   }, [ALL_DATA, debouncedSearch])
 
   const handleJump = () => {
@@ -186,128 +152,80 @@ export default function VirtualScrollPage() {
     listRef.current?.scrollToRow({ index: idx, align: 'start' })
   }
 
+  const listHeight = isMobile ? 360 : 500
+
   return (
-    <div>
-      {/* 页面头部 */}
-      <div style={{ ...CARD_STYLE, marginBottom: 16 }}>
-        <Title heading={4} style={{ margin: 0, color: C.text0 }}>虚拟滚动列表</Title>
-        <Text style={{ color: C.text2, fontSize: 13, marginTop: 4, display: 'block' }}>
-          基于 react-window 的高性能虚拟滚动，轻松渲染 10 万条数据
-        </Text>
+    <div className="space-y-5">
+      <PageHeader title="虚拟滚动列表" />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard icon={Database} label="总数据量" value="100,000 条" desc="完整员工数据集，一次性生成" />
+        <MetricCard icon={Layers} label="实际 DOM 节点" value="~15 个" desc="react-window 仅渲染可视区行" />
+        <MetricCard icon={Timer} label="数据生成耗时" value={`${elapsed} ms`} desc="首次渲染时生成一次" />
       </div>
 
-      {/* 性能指标卡片 */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <MetricCard
-          label="总数据量"
-          value="100,000 条"
-          desc="完整员工数据集，一次性生成"
-          color={C.blue}
-        />
-        <MetricCard
-          label="实际 DOM 节点"
-          value="~15 个"
-          desc="react-window 仅渲染可视区行"
-          color={C.green}
-        />
-        <MetricCard
-          label="数据生成耗时"
-          value={`${elapsed} ms`}
-          desc="useMemo 保证只生成一次"
-          color={C.orange}
-        />
-      </div>
-
-      {/* 列表主体 */}
-      <div style={{ ...CARD_STYLE, padding: 0, overflow: 'hidden' }}>
+      <section className="surface-card overflow-hidden">
         {/* 工具栏 */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 20px',
-          borderBottom: `1px solid ${C.border}`,
-          flexWrap: 'wrap',
-          gap: 12,
-        }}>
-          {/* 搜索框 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Input
-              prefix={<IconSearch style={{ color: C.text2 }} />}
-              placeholder="搜索姓名或部门..."
-              value={searchInput}
-              onChange={handleSearchChange}
-              style={{ width: isMobile ? '100%' : 240 }}
-              showClear
-            />
-            <Text style={{ fontSize: 13, color: C.text2, whiteSpace: 'nowrap' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+            <SearchInput value={searchInput} onChange={handleSearchChange} placeholder="搜索姓名或部门..." />
+            <span className="text-muted-foreground text-[13px] whitespace-nowrap tabular-nums">
               {debouncedSearch
                 ? `匹配 ${filteredData.length.toLocaleString()} / ${ALL_DATA.length.toLocaleString()} 条`
-                : `共 ${ALL_DATA.length.toLocaleString()} 条数据`
-              }
-            </Text>
+                : `共 ${ALL_DATA.length.toLocaleString()} 条数据`}
+            </span>
           </div>
 
-          {/* 跳转功能 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 13, color: C.text1, whiteSpace: 'nowrap' }}>跳转到第</Text>
-            <InputNumber
-              value={jumpIndex}
-              onChange={val => setJumpIndex(val || 1)}
+          <div className="flex items-center gap-2 text-[13px]">
+            <span className="text-muted-foreground whitespace-nowrap">跳转到第</span>
+            <Input
+              type="number"
+              inputMode="numeric"
               min={1}
               max={filteredData.length}
-              style={{ width: 100 }}
+              value={jumpIndex}
+              onChange={(e) => setJumpIndex(Number(e.target.value) || 1)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleJump()
+              }}
+              className="h-8 w-24 text-[13px] tabular-nums"
             />
-            <Text style={{ fontSize: 13, color: C.text1 }}>行</Text>
-            <Button
-              icon={<IconArrowRight />}
-              type="primary"
-              onClick={handleJump}
-              size="small"
-            >
+            <span className="text-muted-foreground">行</span>
+            <Button size="sm" variant="brand" onClick={handleJump}>
               跳转
+              <ArrowRight />
             </Button>
           </div>
         </div>
 
-        {/* 表头 + 虚拟滚动（移动端横向可滚动）*/}
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 750 }}>
+        {/* 表头 + 虚拟滚动（窄屏横向可滚动）*/}
+        <div className="overflow-x-auto">
+          <div className="min-w-[760px]">
             <TableHeader />
             {filteredData.length === 0 ? (
-              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text2, fontSize: 14 }}>
-                未找到匹配数据
-              </div>
+              <EmptyState title="未找到匹配数据" description="换个关键词试试" className="py-20" />
             ) : (
               <List
                 listRef={listRef}
                 rowComponent={RowComponent}
                 rowCount={filteredData.length}
-                rowHeight={48}
+                rowHeight={ROW_HEIGHT}
                 rowProps={{ itemData: filteredData }}
-                style={{ height: isMobile ? 360 : 500 }}
+                style={{ height: listHeight }}
               />
             )}
           </div>
         </div>
 
         {/* 底部信息栏 */}
-        <div style={{
-          borderTop: `1px solid ${C.border}`,
-          padding: '10px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 24,
-          background: 'var(--semi-color-fill-0)',
-        }}>
-          <Text style={{ fontSize: 12, color: C.text2 }}>
-            虚拟滚动窗口高度 500px，每行高度 48px，可视区约 10~11 行
-          </Text>
-          <Text style={{ fontSize: 12, color: C.text2 }}>
-            实际挂载 DOM 节点数量远少于总数据量，内存占用极低
-          </Text>
+        <div className="bg-muted/30 text-muted-foreground flex flex-wrap items-center gap-x-6 gap-y-1 border-t px-4 py-2.5 text-xs">
+          <span>
+            虚拟滚动窗口高度 {listHeight}px，每行高度 {ROW_HEIGHT}px，可视区约 {Math.floor(listHeight / ROW_HEIGHT)}~
+            {Math.ceil(listHeight / ROW_HEIGHT)} 行
+          </span>
+          <span>实际挂载 DOM 节点数量远少于总数据量，内存占用极低</span>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

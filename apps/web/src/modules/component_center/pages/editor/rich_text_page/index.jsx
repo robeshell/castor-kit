@@ -1,23 +1,13 @@
-import { CARD_STYLE } from '@/shared/styles'
 import { useMemo, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
-import { Button, Modal, Space, Toast, Typography } from '@douyinfe/semi-ui'
-import ReactQuill from 'react-quill'
-import 'react-quill/dist/quill.snow.css'
-
-
-const C = {
-  blue: '#4080FF',
-  green: '#00B96B',
-  orange: '#FA8C16',
-  purple: '#9254DE',
-  red: '#FF4D4F',
-  cyan: '#13C2C2',
-  border: '#eaedf1',
-  text0: '#1a1a1a',
-  text1: '#434343',
-  text2: '#8c8c8c',
-}
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
+import { Code2, Copy, Eraser, Keyboard } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { toast } from '@/lib/toast'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import './quill-theme.css'
 
 const INITIAL_CONTENT = `<h1>欢迎使用富文本编辑器</h1>
 <p>这是一个基于 <strong>Quill.js</strong> 的富文本编辑器示例，支持以下功能：</p>
@@ -38,6 +28,21 @@ greet('World');</pre>
 <blockquote>这是一段引用文字，可以用来强调重要内容。</blockquote>
 <p>欢迎开始编辑，体验丰富的格式化功能！</p>`
 
+const MODULES = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote', 'code-block'],
+    ['link'],
+    ['clean'],
+  ],
+}
+
+// Quill 2：有序 / 无序列表都属于 list 格式（不再有单独的 bullet）
+const FORMATS = ['header', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'list', 'blockquote', 'code-block', 'link']
+
 function countWords(html) {
   const text = html.replace(/<[^>]+>/g, '')
   const decoded = text
@@ -48,170 +53,83 @@ function countWords(html) {
     .replace(/&quot;/g, '"')
   const trimmed = decoded.trim()
   if (!trimmed) return 0
-  // Count Chinese characters + English words
+  // 中文按字计，英文按词计
   const chineseChars = (trimmed.match(/[\u4e00-\u9fa5]/g) || []).length
   const englishWords = (trimmed.replace(/[\u4e00-\u9fa5]/g, ' ').match(/\b\w+\b/g) || []).length
   return chineseChars + englishWords
 }
 
 export default function RichTextPage() {
-  const isMobile = useIsMobile()
   const [value, setValue] = useState(INITIAL_CONTENT)
-  const [htmlModalVisible, setHtmlModalVisible] = useState(false)
-
-  const modules = useMemo(
-    () => ({
-      toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ color: [] }, { background: [] }],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['blockquote', 'code-block'],
-        ['link'],
-        ['clean'],
-      ],
-    }),
-    []
-  )
-
-  const formats = [
-    'header',
-    'bold',
-    'italic',
-    'underline',
-    'strike',
-    'color',
-    'background',
-    'list',
-    'bullet',
-    'blockquote',
-    'code-block',
-    'link',
-  ]
+  const [htmlOpen, setHtmlOpen] = useState(false)
 
   const wordCount = useMemo(() => countWords(value), [value])
 
   const handleClear = () => {
     setValue('')
-    Toast.success('内容已清空')
+    toast.success('内容已清空')
   }
 
-  const handleViewHtml = () => {
-    setHtmlModalVisible(true)
+  const handleCopyHtml = () => {
+    navigator.clipboard
+      .writeText(value)
+      .then(() => toast.success('已复制到剪贴板'))
+      .catch(() => toast.error('复制失败'))
   }
 
   return (
     <div>
-      {/* 页面标题 */}
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title heading={4} style={{ marginBottom: 4 }}>
-          富文本编辑器
-        </Typography.Title>
-        <Typography.Text type="tertiary">
-          基于 Quill.js 的富文本编辑组件，支持格式化、字数统计和 HTML 源码预览
-        </Typography.Text>
-      </div>
-
-      {/* 编辑器卡片 */}
-      <div style={CARD_STYLE}>
-        {/* 工具栏 */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-            flexWrap: 'wrap',
-            gap: 8,
-          }}
-        >
-          <Space>
-            <Button onClick={handleClear}>清空内容</Button>
-            <Button type="primary" onClick={handleViewHtml}>
+      <PageHeader
+        title="富文本编辑器"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleClear}>
+              <Eraser />
+              清空内容
+            </Button>
+            <Button variant="brand" size="sm" onClick={() => setHtmlOpen(true)}>
+              <Code2 />
               查看 HTML
             </Button>
-          </Space>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '4px 12px',
-              background: 'var(--semi-color-bg-0)',
-              borderRadius: 6,
-              fontSize: 13,
-              color: C.text2,
-            }}
-          >
-            <span>字数统计：</span>
-            <span style={{ fontWeight: 600, color: C.blue }}>{wordCount}</span>
-            <span>字</span>
-          </div>
-        </div>
-
-        {/* Quill 编辑器 */}
-        <style>{`.rich-text-editor .ql-container { height: 360px; overflow-y: auto; } .rich-text-editor .ql-editor { min-height: 100%; }`}</style>
-        <div className="rich-text-editor" style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden' }}>
-          <ReactQuill
-            theme="snow"
-            value={value}
-            onChange={setValue}
-            modules={modules}
-            formats={formats}
-          />
-        </div>
-
-        {/* 底部提示 */}
-        <div
-          style={{
-            marginTop: 12,
-            paddingTop: 12,
-            borderTop: `1px solid ${C.border}`,
-            fontSize: 12,
-            color: C.text2,
-          }}
-        >
-          支持粘贴带格式文本 · 支持快捷键（Ctrl+B 加粗、Ctrl+I 斜体、Ctrl+U 下划线）
-        </div>
-      </div>
-
-      {/* HTML 预览弹窗 */}
-      <Modal
-        title="HTML 源码"
-        visible={htmlModalVisible}
-        onCancel={() => setHtmlModalVisible(false)}
-        footer={
-          <Button
-            type="primary"
-            onClick={() => {
-              navigator.clipboard.writeText(value).then(() => {
-                Toast.success('已复制到剪贴板')
-              })
-            }}
-          >
-            复制 HTML
-          </Button>
+          </>
         }
-        width={isMobile ? '95vw' : 680}
-      >
-        <pre
-          style={{
-            background: '#1e1e1e',
-            color: '#d4d4d4',
-            padding: 16,
-            borderRadius: 6,
-            fontSize: 13,
-            lineHeight: 1.6,
-            maxHeight: 400,
-            overflowY: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            margin: 0,
-          }}
-        >
-          {value || '<p><br></p>'}
-        </pre>
-      </Modal>
+      />
+
+      <Panel padded={false}>
+        <div className="rt-editor">
+          <ReactQuill theme="snow" value={value} onChange={setValue} modules={MODULES} formats={FORMATS} bounds=".rt-editor" placeholder="开始输入内容…" />
+        </div>
+        <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2.5 text-xs">
+          <span className="flex items-center gap-1.5">
+            <Keyboard className="size-3.5" />
+            支持粘贴带格式文本 · 支持快捷键（Ctrl+B 加粗、Ctrl+I 斜体、Ctrl+U 下划线）
+          </span>
+          <span>
+            字数统计 <span className="text-foreground font-medium tabular-nums">{wordCount}</span> 字
+          </span>
+        </div>
+      </Panel>
+
+      <Dialog open={htmlOpen} onOpenChange={setHtmlOpen}>
+        <DialogContent className="sm:max-w-[680px]">
+          <DialogHeader>
+            <DialogTitle>HTML 源码</DialogTitle>
+            <DialogDescription>编辑器当前内容对应的 HTML</DialogDescription>
+          </DialogHeader>
+          <pre className="bg-muted/60 max-h-[400px] overflow-y-auto rounded-[10px] p-4 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap shadow-[0_0_0_1px_var(--border)]">
+            {value || '<p><br></p>'}
+          </pre>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHtmlOpen(false)}>
+              关闭
+            </Button>
+            <Button onClick={handleCopyHtml}>
+              <Copy />
+              复制 HTML
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

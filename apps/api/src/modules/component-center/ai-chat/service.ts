@@ -27,11 +27,11 @@ export const SYSTEM_PROMPT = {
     'castor-kit 是一个 AI-First 的企业级全栈脚手架（AuraStack 的 Node.js 重写版），核心理念是：PM 用自然语言描述需求，AI Agent 端到端实现功能。\n\n' +
     '## 技术栈\n' +
     '- 后端：Node.js 22 + Fastify 5 + TypeScript + Zod + Drizzle ORM + PostgreSQL\n' +
-    '- 前端：React 18 + Vite + React Router\n' +
-    '- UI：Semi Design（字节跳动企业级组件库）\n' +
+    '- 前端：React 19 + Vite + React Router + Tailwind CSS v4\n' +
+    '- UI：shadcn/ui（Radix 原语）+ motion 动效 + lucide 图标\n' +
     '- 图表：ECharts 6\n' +
     '- 3D：Three.js\n' +
-    '- 编辑器：Monaco Editor（代码）、React Quill（富文本）\n' +
+    '- 编辑器：Monaco Editor（代码）、React Quill New（富文本）\n' +
     '- 权限：完整的 RBAC 菜单权限体系（用户/角色/菜单三张表）\n\n' +
     '## 核心功能模块\n' +
     '1. 系统管理：用户管理、角色权限、菜单管理、日志审计、数据字典、定时任务\n' +

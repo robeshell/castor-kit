@@ -31,17 +31,21 @@ castor-kit/
 │   │   │   ├── setup-once.ts       # migrations + RBAC + read-only role (runs on container start)
 │   │   │   └── generate-openapi.ts / import-apifox.ts
 │   │   └── test/                   # Vitest (against a real PostgreSQL)
-│   ├── web/                        # @castor-kit/web — React + Vite frontend
+│   ├── web/                        # @castor-kit/web — React 19 + Vite + shadcn/ui frontend (JSX)
+│   │   ├── scripts/shadcn-add.sh   # runs npx shadcn@latest add through a local relay
 │   │   └── src/
 │   │       ├── App.jsx             # dynamic routing (import.meta.glob)
-│   │       ├── context/AuthContext.jsx
-│   │       ├── components/Layout/  # sidebar + PrivateRoute
+│   │       ├── index.css           # Tailwind v4 + design tokens (light / dark)
+│   │       ├── context/            # AuthContext / ThemeContext
+│   │       ├── components/ui/      # shadcn/ui primitives
+│   │       ├── components/app/     # app shell: sidebar, top bar, ⌘K, theme toggle
+│   │       ├── lib/                # cn / toast / format / motion / chart-theme
 │   │       ├── modules/
 │   │       │   ├── admin/          # system management pages
 │   │       │   └── component_center/   # component example pages
 │   │       └── shared/
 │   │           ├── api/request.js  # Axios instance (baseURL='/api')
-│   │           └── components/     # shared UI (import/export modals, etc.)
+│   │           └── components/     # shared business components: PageHeader / DataTable / FormDialog / ImportDialog …
 │   └── mcp/                        # @castor-kit/mcp — MCP server
 └── docs/
     └── templates/                  # AI code skeleton templates (backend/*.ts, frontend/*)
@@ -87,11 +91,27 @@ pnpm scaffold -- --name customer --domain admin \
 The scaffolder:
 
 - writes the table definition `db/schema/admin/customer.ts` and the module `modules/admin/customer/{schema,repository,service,routes}.ts`
-- writes the frontend API file and a list page (search, create/edit/delete, import/export)
+- writes the frontend API file and a shadcn/ui list page shaped like the Users page (search, create/edit/delete, import/export; field types map to form components)
 - registers them in `db/schema/index.ts` and the domain router `modules/admin/router.ts`
 - runs `drizzle-kit generate` to produce the migration SQL
 
 `--domain` is `admin` or `component_center`. Field types: `str` (100), `str20`, `str50`, `str500`, `text`, `int`, `float` (numeric 10,2), `bool`, `date`, `datetime`.
+
+---
+
+## Frontend Conventions
+
+The frontend (`apps/web`) uses **shadcn/ui + Tailwind CSS v4 + motion + lucide-react** (JavaScript / JSX, Chinese UI copy); the UI was migrated from Semi Design — see the [frontend redesign plan](https://github.com/robeshell/castor-kit/blob/main/docs/frontend-redesign-plan.md).
+
+- **Page structure**: list pages follow `modules/admin/pages/users/index.jsx` — `PageHeader` → `FilterBar` → `DataTable` → `FormDialog` (react-hook-form + `FormFields`) → `ImportDialog` / `ExportDialog`; deletes go through `ConfirmAction`, feedback through `@/lib/toast`
+- **Field → form component**: `str` → `FormInput`, `text` → `FormTextarea`, `int` / `float` → `FormNumber`, `bool` → `FormSwitch`, `date` → `FormDate`, `datetime` → `FormDateTime`; in tables `bool` renders as `StatusBadge` and times via `formatDate` / `formatDateTime`
+- **Styling**: Tailwind semantic color classes only (`bg-card`, `text-muted-foreground`, `bg-brand-soft` …), so dark mode just works; the Ocean gradient (blue → sky → cyan) is an accent only, with at most one `variant="brand"` primary button per page
+- **Forbidden**: `@douyinfe/*` imports, `var(--semi-*)`, hard-coded hex colors, large inline-style layouts
+- **Adding shadcn primitives**: the shadcn CLI cannot reach ui.shadcn.com directly on this machine, so use the relay script (starts a local registry relay, runs `npx shadcn@latest add` with `REGISTRY_URL`, then shuts it down):
+
+```bash
+apps/web/scripts/shadcn-add.sh hover-card
+```
 
 ---
 
@@ -160,7 +180,7 @@ After implementing a feature, run the verification gate:
 pnpm verify -- --module customer --skip-build
 ```
 
-It checks TypeScript types, layering rules (no local permission helpers), migration chain integrity and that migrations are applied, OpenAPI sync, paths referenced by the AI docs, backend/frontend files and registration, and the RBAC seed. Drop `--skip-build` in CI to also validate the production frontend build; add `--json` for structured output an AI can read.
+It checks TypeScript types, layering rules (no local permission helpers), migration chain integrity and that migrations are applied, OpenAPI sync, paths referenced by the AI docs, backend/frontend files and registration, and the RBAC seed. Frontend pages are also checked for leftovers of the old UI stack (`@douyinfe/*`, `var(--semi-*)`). Drop `--skip-build` in CI to also validate the production frontend build; add `--json` for structured output an AI can read.
 
 ---
 
@@ -190,7 +210,7 @@ castor-kit ships pre-configured context files for all major AI coding tools:
 
 | Tool | Config File | Capability |
 |---|---|---|
-| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` end-to-end skill |
+| Claude Code | `CLAUDE.md` + `.claude/skills/` | `/new-feature-autopilot` end-to-end skill + `shadcn-ui-skills` frontend guide |
 | Cursor | `.cursor/rules/` | Auto-triggers the Autopilot workflow |
 | GitHub Copilot | `.github/copilot-instructions.md` | Injects project conventions globally |
 | Windsurf | `.windsurfrules` | Injects project conventions globally |

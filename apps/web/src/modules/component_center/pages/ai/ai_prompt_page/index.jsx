@@ -1,111 +1,105 @@
-import { CARD_STYLE } from '@/shared/styles'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { useForm, useWatch } from 'react-hook-form'
+import { AnimatePresence, motion } from 'motion/react'
+import { Check, Copy, FilePlus2, Plus, Save, Search, Trash2, Variable, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from '@/lib/toast'
+import { layoutSpring, stagger } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import {
-  Button, Input, Select, Tag, Toast, Typography, Tooltip,
-} from '@douyinfe/semi-ui'
-import { IconPlus, IconDelete, IconCopy, IconSearch, IconTick } from '@douyinfe/semi-icons'
-import {
-  getPromptTemplates, createPromptTemplate, updatePromptTemplate, deletePromptTemplate,
+  createPromptTemplate,
+  deletePromptTemplate,
+  getPromptTemplates,
+  updatePromptTemplate,
 } from '@/modules/component_center/api/ai_prompt'
-
-// ── 样式常量 ─────────────────────────────────────────────────────────
-
-const C = {
-  blue: '#4080FF', green: '#00B96B', orange: '#FA8C16',
-  purple: '#9254DE', red: '#FF4D4F', cyan: '#13C2C2',
-  border: 'var(--semi-color-border)',
-  text0: 'var(--semi-color-text-0)',
-  text1: 'var(--semi-color-text-1)',
-  text2: 'var(--semi-color-text-2)',
-}
+import ConfirmAction from '@/shared/components/ConfirmAction'
+import { FormInput, FormSelect, FormTextarea } from '@/shared/components/FormFields'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import StatusBadge from '@/shared/components/StatusBadge'
 
 // ── 分类配置 ──────────────────────────────────────────────────────────
 const CATEGORY_OPTIONS = [
-  { value: 'product',   label: '产品',   color: 'blue' },
-  { value: 'dev',       label: '开发',   color: 'green' },
-  { value: 'marketing', label: '营销',   color: 'orange' },
-  { value: 'data',      label: '数据',   color: 'purple' },
-  { value: 'office',    label: '办公',   color: 'cyan' },
-  { value: 'custom',    label: '自定义', color: 'grey' },
+  { value: 'product', label: '产品', tone: 'brand' },
+  { value: 'dev', label: '开发', tone: 'success' },
+  { value: 'marketing', label: '营销', tone: 'warning' },
+  { value: 'data', label: '数据', tone: 'info' },
+  { value: 'office', label: '办公', tone: 'neutral' },
+  { value: 'custom', label: '自定义', tone: 'neutral' },
 ]
+const categoryMeta = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c]))
 
-const categoryMeta = Object.fromEntries(CATEGORY_OPTIONS.map(c => [c.value, c]))
+const EMPTY_FORM = { name: '', category: 'custom', content: '' }
+const notBlank = (message) => (v) => Boolean(String(v ?? '').trim()) || message
 
 // ── 从模板内容中提取变量名 ────────────────────────────────────────────
 function extractVars(content) {
   const matches = [...(content || '').matchAll(/\{\{(\w+)\}\}/g)]
   const seen = new Set()
-  return matches.map(m => m[1]).filter(v => {
-    if (seen.has(v)) return false
-    seen.add(v)
-    return true
-  })
+  return matches
+    .map((m) => m[1])
+    .filter((v) => {
+      if (seen.has(v)) return false
+      seen.add(v)
+      return true
+    })
 }
 
 // ── 前端实时预览：将变量值代入模板 ────────────────────────────────────
 function buildPreview(content, varValues) {
   return (content || '').replace(/\{\{(\w+)\}\}/g, (_, key) =>
-    varValues[key] !== undefined && varValues[key] !== ''
-      ? varValues[key]
-      : `{{${key}}}`
+    varValues[key] !== undefined && varValues[key] !== '' ? varValues[key] : `{{${key}}}`,
   )
 }
 
 // ── 左侧模板卡片 ─────────────────────────────────────────────────────
 function TemplateCard({ template, selected, onSelect, onDelete }) {
-  const [hovered, setHovered] = useState(false)
   const meta = categoryMeta[template.category] || categoryMeta.custom
-
   return (
-    <div
-      onClick={() => onSelect(template)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: 'relative',
-        padding: '10px 12px',
-        borderRadius: 8,
-        cursor: 'pointer',
-        marginBottom: 6,
-        border: selected
-          ? `1px solid ${C.blue}`
-          : `1px solid ${C.border}`,
-        borderLeft: selected ? `3px solid ${C.blue}` : `3px solid transparent`,
-        background: selected ? 'var(--semi-color-primary-light-default)' : hovered ? 'var(--semi-color-fill-0)' : 'var(--semi-color-bg-1)',
-        transition: 'all 0.15s',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-        <Typography.Text
-          ellipsis
-          style={{ fontWeight: 500, fontSize: 13, color: C.text0, flex: 1 }}
+    <motion.div variants={stagger.item} className="group relative">
+      <button
+        type="button"
+        onClick={() => onSelect(template)}
+        className={cn(
+          'relative w-full rounded-lg border px-3 py-2.5 text-left transition-colors duration-150',
+          selected ? 'border-primary/40 bg-brand-soft' : 'bg-card hover:bg-muted/60 border-border',
+        )}
+      >
+        {selected ? (
+          <motion.span
+            layoutId="prompt-template-active"
+            transition={layoutSpring}
+            className="bg-brand-gradient absolute top-2 bottom-2 left-0 w-[3px] rounded-full"
+          />
+        ) : null}
+        <span className="block truncate pr-6 text-[13px] font-medium">{template.name}</span>
+        <span className="mt-1.5 flex items-center gap-2">
+          <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+          {template.variables?.length > 0 ? (
+            <span className="text-muted-foreground text-[11px] tabular-nums">{template.variables.length} 个变量</span>
+          ) : null}
+        </span>
+      </button>
+      <ConfirmAction
+        title={`删除模板「${template.name}」？`}
+        description="删除后不可恢复。"
+        confirmText="删除"
+        onConfirm={() => onDelete(template)}
+      >
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="删除模板"
+          className="text-muted-foreground hover:text-danger absolute top-2 right-2 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 md:opacity-0"
         >
-          {template.name}
-        </Typography.Text>
-        {hovered && (
-          <Tooltip content="删除模板">
-            <span
-              onClick={(e) => { e.stopPropagation(); onDelete(template) }}
-              style={{
-                cursor: 'pointer', color: C.red, fontSize: 14, flexShrink: 0,
-                display: 'flex', alignItems: 'center',
-              }}
-            >
-              <IconDelete size="small" />
-            </span>
-          </Tooltip>
-        )}
-      </div>
-      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Tag size="small" color={meta.color}>{meta.label}</Tag>
-        {template.variables?.length > 0 && (
-          <Typography.Text type="tertiary" style={{ fontSize: 11 }}>
-            {template.variables.length} 个变量
-          </Typography.Text>
-        )}
-      </div>
-    </div>
+          <Trash2 />
+        </Button>
+      </ConfirmAction>
+    </motion.div>
   )
 }
 
@@ -114,383 +108,329 @@ function PreviewPanel({ content, varValues }) {
   const [copied, setCopied] = useState(false)
   const copyTimerRef = useRef(null)
   const preview = buildPreview(content, varValues)
-  const charCount = preview.length
 
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-    }
-  }, [])
+  useEffect(() => () => clearTimeout(copyTimerRef.current), [])
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(preview).then(() => {
-      setCopied(true)
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
-    }).catch(() => Toast.error({ content: '复制失败', duration: 2 }))
+    navigator.clipboard
+      .writeText(preview)
+      .then(() => {
+        setCopied(true)
+        clearTimeout(copyTimerRef.current)
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+      })
+      .catch(() => toast.error('复制失败'))
   }
 
-  // 将未填写的变量高亮显示
-  const renderPreview = () => {
-    const parts = preview.split(/(\{\{\w+\}\})/g)
-    return parts.map((part, i) => {
-      if (/^\{\{\w+\}\}$/.test(part)) {
-        return (
-          <span
-            key={i}
-            style={{
-              background: 'rgba(250,140,22,0.12)',
-              color: C.orange,
-              border: `1px solid rgba(250,140,22,0.3)`,
-              borderRadius: 4,
-              padding: '0 4px',
-              fontSize: 12,
-              fontFamily: 'monospace',
-            }}
-          >
-            {part}
-          </span>
-        )
-      }
-      return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>
-    })
-  }
+  // 未填写的变量高亮显示
+  const parts = preview.split(/(\{\{\w+\}\})/g)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography.Title heading={6} style={{ margin: 0, color: C.text0 }}>预览</Typography.Title>
-        <Button
-          size="small"
-          icon={copied ? <IconTick /> : <IconCopy />}
-          onClick={handleCopy}
-          style={{
-            background: copied ? C.green : C.blue,
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-          }}
-        >
+    <Panel
+      title="预览"
+      description="未填写的变量会高亮显示"
+      className="flex min-h-[320px] flex-col md:w-[340px] md:shrink-0"
+      bodyClassName="flex min-h-0 flex-1 flex-col gap-2"
+      actions={
+        <Button variant="outline" size="sm" onClick={handleCopy} disabled={!preview}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={copied ? 'done' : 'copy'}
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.15 }}
+              className="inline-flex"
+            >
+              {copied ? <Check className="text-success" /> : <Copy />}
+            </motion.span>
+          </AnimatePresence>
           {copied ? '已复制' : '复制提示词'}
         </Button>
-      </div>
-
-      <div style={{
-        flex: 1,
-        border: `1px solid ${C.border}`,
-        borderRadius: 8,
-        padding: 14,
-        overflowY: 'auto',
-        background: 'var(--semi-color-fill-0)',
-        fontSize: 13,
-        lineHeight: 1.7,
-        color: C.text1,
-        minHeight: 200,
-      }}>
-        {content ? renderPreview() : (
-          <Typography.Text type="tertiary" style={{ fontSize: 13 }}>
-            请在左侧编辑模板内容，预览将在此处实时显示...
-          </Typography.Text>
+      }
+    >
+      <div className="bg-muted/40 min-h-[200px] flex-1 overflow-y-auto rounded-lg border p-3.5 text-[13px] leading-relaxed">
+        {content ? (
+          parts.map((part, i) =>
+            /^\{\{\w+\}\}$/.test(part) ? (
+              <span key={i} className="bg-warning-soft text-warning rounded px-1 font-mono text-xs">
+                {part}
+              </span>
+            ) : (
+              <span key={i} className="whitespace-pre-wrap">
+                {part}
+              </span>
+            ),
+          )
+        ) : (
+          <span className="text-muted-foreground">请在左侧编辑模板内容，预览将在此处实时显示...</span>
         )}
       </div>
-
-      <div style={{ textAlign: 'right' }}>
-        <Typography.Text type="tertiary" style={{ fontSize: 12 }}>
-          {charCount} 字符
-        </Typography.Text>
-      </div>
-    </div>
+      <p className="text-muted-foreground text-right text-xs tabular-nums">{preview.length} 字符</p>
+    </Panel>
   )
 }
 
 // ── 主组件 ────────────────────────────────────────────────────────────
 export default function AiPromptPage() {
-  const isMobile = useIsMobile()
-  // 模板列表
   const [templates, setTemplates] = useState([])
-  const [listLoading, setListLoading] = useState(false)
+  const [listLoading, setListLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
 
-  // 当前选中/编辑的模板
-  const [selectedId, setSelectedId] = useState(null)  // null = 新建模式
-  const [editName, setEditName] = useState('')
-  const [editCategory, setEditCategory] = useState('custom')
-  const [editContent, setEditContent] = useState('')
-  const [saveLoading, setSaveLoading] = useState(false)
+  // 当前选中/编辑的模板（null = 新建模式）
+  const [selectedId, setSelectedId] = useState(null)
+  const form = useForm({ defaultValues: EMPTY_FORM })
+  const editContent = useWatch({ control: form.control, name: 'content' })
 
-  // 变量值（key: varName, value: 用户填写的值）
-  const [varValues, setVarValues] = useState({})
-
-  // 从编辑内容中实时解析变量
+  // 变量值（key: 变量名）；只保留当前内容里识别到的变量
+  const [rawVarValues, setRawVarValues] = useState({})
   const detectedVars = useMemo(() => extractVars(editContent), [editContent])
+  const varValues = useMemo(
+    () => Object.fromEntries(detectedVars.map((v) => [v, rawVarValues[v] || ''])),
+    [detectedVars, rawVarValues],
+  )
 
-  // 变量值变化时同步 key（保留已有值）
-  useEffect(() => {
-    setVarValues(prev => {
-      const next = {}
-      detectedVars.forEach(v => { next[v] = prev[v] || '' })
-      return next
-    })
-  }, [detectedVars])
-
-  // 加载模板列表
   const loadTemplates = useCallback(async () => {
     setListLoading(true)
     try {
       const res = await getPromptTemplates()
-      setTemplates(res.data?.data || [])
+      setTemplates(Array.isArray(res?.data) ? res.data : [])
     } catch (err) {
-      Toast.error({ content: '加载模板失败', duration: 2 })
+      toast.apiError(err, '加载模板失败')
     } finally {
       setListLoading(false)
     }
   }, [])
 
-  useEffect(() => { loadTemplates() }, [loadTemplates])
+  // 首次加载（刷新走 loadTemplates）
+  useEffect(() => {
+    let cancelled = false
+    getPromptTemplates()
+      .then((res) => {
+        if (!cancelled) setTemplates(Array.isArray(res?.data) ? res.data : [])
+      })
+      .catch((err) => {
+        if (!cancelled) toast.apiError(err, '加载模板失败')
+      })
+      .finally(() => {
+        if (!cancelled) setListLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  // 过滤模板（前端搜索）
+  // 前端按名称过滤
   const filteredTemplates = useMemo(() => {
-    if (!searchText.trim()) return templates
     const kw = searchText.trim().toLowerCase()
-    return templates.filter(t => t.name.toLowerCase().includes(kw))
+    if (!kw) return templates
+    return templates.filter((t) => t.name.toLowerCase().includes(kw))
   }, [templates, searchText])
 
-  // 选中模板，填入编辑区
   const handleSelectTemplate = (tpl) => {
     setSelectedId(tpl.id)
-    setEditName(tpl.name)
-    setEditCategory(tpl.category || 'custom')
-    setEditContent(tpl.content || '')
-    setVarValues({})
+    form.reset({ name: tpl.name, category: tpl.category || 'custom', content: tpl.content || '' })
+    setRawVarValues({})
   }
 
-  // 新建（清空编辑区）
   const handleNew = () => {
     setSelectedId(null)
-    setEditName('')
-    setEditCategory('custom')
-    setEditContent('')
-    setVarValues({})
+    form.reset(EMPTY_FORM)
+    setRawVarValues({})
   }
 
-  // 保存（POST 或 PUT）
-  const handleSave = async () => {
-    const name = editName.trim()
-    const content = editContent.trim()
-    if (!name) { Toast.warning({ content: '请填写模板名称', duration: 2 }); return }
-    if (!content) { Toast.warning({ content: '请填写模板内容', duration: 2 }); return }
-
-    setSaveLoading(true)
+  const handleSave = async (values) => {
+    const payload = { name: values.name.trim(), category: values.category, content: values.content.trim() }
     try {
-      const payload = { name, category: editCategory, content }
       if (selectedId) {
         await updatePromptTemplate(selectedId, payload)
-        Toast.success({ content: '模板已更新', duration: 2 })
+        toast.success('模板已更新')
       } else {
         const res = await createPromptTemplate(payload)
-        setSelectedId(res.data?.id || null)
-        Toast.success({ content: '模板已创建', duration: 2 })
+        setSelectedId(res?.id ?? null)
+        toast.success('模板已创建')
       }
+      form.reset(values)
       await loadTemplates()
     } catch (err) {
-      Toast.error({ content: err?.response?.data?.error || '保存失败', duration: 3 })
-    } finally {
-      setSaveLoading(false)
+      toast.apiError(err, '保存失败')
     }
   }
 
-  // 删除模板
   const handleDelete = async (tpl) => {
     try {
       await deletePromptTemplate(tpl.id)
-      Toast.success({ content: '已删除', duration: 2 })
+      toast.success('已删除')
       if (selectedId === tpl.id) handleNew()
       await loadTemplates()
     } catch (err) {
-      Toast.error({ content: err?.response?.data?.error || '删除失败', duration: 3 })
+      toast.apiError(err, '删除失败')
+      throw err
     }
   }
 
+  const saving = form.formState.isSubmitting
+
   return (
-    <div style={{ height: isMobile ? 'auto' : 'calc(100dvh - 108px)', display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {/* 顶部标题 */}
-      <div style={{ marginBottom: 14 }}>
-        <Typography.Title heading={5} style={{ margin: 0, color: C.text0 }}>AI 提示词工坊</Typography.Title>
-        <Typography.Text type="tertiary" style={{ fontSize: 13 }}>
-          管理和预览 AI 提示词模板，支持 {'{{变量}}'} 语法，实时预览填充效果
-        </Typography.Text>
-      </div>
+    <div className="flex flex-col md:h-[calc(100svh-112px)]">
+      <PageHeader
+        title="AI 提示词工坊"
+      />
 
-      {/* 三列主体 */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, minHeight: 0 }}>
-
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
         {/* 左侧：模板库 */}
-        <div style={{ ...CARD_STYLE, width: isMobile ? '100%' : 260, flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '14px 12px', overflow: isMobile ? 'visible' : 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingLeft: 4, paddingRight: 4 }}>
-            <Typography.Text strong style={{ fontSize: 14, color: C.text0 }}>模板库</Typography.Text>
-            <Button
-              size="small"
-              icon={<IconPlus />}
-              onClick={handleNew}
-              style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 6 }}
-            >
+        <Panel
+          title="模板库"
+          actions={
+            <Button variant="outline" size="sm" className="h-7" onClick={handleNew}>
+              <Plus />
               新建
             </Button>
+          }
+          className="flex max-h-[420px] flex-col md:max-h-none md:w-[260px] md:shrink-0"
+          bodyClassName="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3"
+        >
+          <div className="relative">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+            <Input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="搜索模板名称..."
+              className="h-8 pr-7 pl-8 text-[13px]"
+            />
+            {searchText ? (
+              <button
+                type="button"
+                aria-label="清空"
+                onClick={() => setSearchText('')}
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : null}
           </div>
 
-          <Input
-            prefix={<IconSearch style={{ color: C.text2 }} />}
-            placeholder="搜索模板名称..."
-            value={searchText}
-            onChange={setSearchText}
-            size="small"
-            style={{ marginBottom: 10, borderRadius: 6 }}
-          />
-
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            {listLoading ? (
-              <Typography.Text type="tertiary" style={{ fontSize: 12, paddingLeft: 4 }}>加载中...</Typography.Text>
+          <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+            {listLoading && templates.length === 0 ? (
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[58px] rounded-lg" />
+                ))}
+              </div>
             ) : filteredTemplates.length === 0 ? (
-              <Typography.Text type="tertiary" style={{ fontSize: 12, paddingLeft: 4 }}>
+              <p className="text-muted-foreground px-1 py-6 text-center text-xs">
                 {searchText ? '无匹配模板' : '暂无模板，点击「新建」创建'}
-              </Typography.Text>
-            ) : filteredTemplates.map(tpl => (
-              <TemplateCard
-                key={tpl.id}
-                template={tpl}
-                selected={selectedId === tpl.id}
-                onSelect={handleSelectTemplate}
-                onDelete={handleDelete}
-              />
-            ))}
+              </p>
+            ) : (
+              <motion.div variants={stagger.container} initial="hidden" animate="show" className="space-y-1.5">
+                {filteredTemplates.map((tpl) => (
+                  <TemplateCard
+                    key={tpl.id}
+                    template={tpl}
+                    selected={selectedId === tpl.id}
+                    onSelect={handleSelectTemplate}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </motion.div>
+            )}
           </div>
-        </div>
+        </Panel>
 
         {/* 中间：编辑区 */}
-        <div style={{ ...CARD_STYLE, flex: 1, display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', padding: '16px 18px' }}>
-          <Typography.Title heading={6} style={{ margin: '0 0 14px', color: C.text0 }}>
-            {selectedId ? '编辑模板' : '新建模板'}
-          </Typography.Title>
+        <Panel
+          title={selectedId ? '编辑模板' : '新建模板'}
+          
+          className="flex min-w-0 flex-1 flex-col"
+          bodyClassName="flex min-h-0 flex-1 flex-col"
+        >
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSave)} className="flex min-h-0 flex-1 flex-col">
+              <div className="-mx-1 min-h-0 flex-1 space-y-4 overflow-y-auto px-1 pb-1">
+                <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+                  <FormInput
+                    control={form.control}
+                    name="name"
+                    label="模板名称"
+                    placeholder="请输入模板名称..."
+                    rules={{ validate: notBlank('请填写模板名称') }}
+                    required
+                  />
+                  <FormSelect
+                    control={form.control}
+                    name="category"
+                    label="分类"
+                    options={CATEGORY_OPTIONS.map((c) => ({ value: c.value, label: c.label }))}
+                  />
+                </div>
+                <FormTextarea
+                  control={form.control}
+                  name="content"
+                  label="模板内容"
+                  description={'使用 {{变量名}} 语法定义变量'}
+                  rows={9}
+                  placeholder={'请输入提示词模板内容...\n例如：你是一位{{role}}，请帮我分析{{topic}}的相关问题。'}
+                  inputClassName="min-h-[220px] text-[13px] leading-relaxed"
+                  rules={{ validate: notBlank('请填写模板内容') }}
+                  required
+                />
 
-          {/* 名称 */}
-          <div style={{ marginBottom: 12 }}>
-            <Typography.Text strong style={{ fontSize: 13, color: C.text1, display: 'block', marginBottom: 6 }}>
-              模板名称
-            </Typography.Text>
-            <Input
-              value={editName}
-              onChange={setEditName}
-              placeholder="请输入模板名称..."
-              style={{ borderRadius: 7 }}
-            />
-          </div>
-
-          {/* 分类 */}
-          <div style={{ marginBottom: 12 }}>
-            <Typography.Text strong style={{ fontSize: 13, color: C.text1, display: 'block', marginBottom: 6 }}>
-              分类
-            </Typography.Text>
-            <Select
-              value={editCategory}
-              onChange={setEditCategory}
-              style={{ width: '100%', borderRadius: 7 }}
-              optionList={CATEGORY_OPTIONS.map(c => ({ value: c.value, label: c.label }))}
-            />
-          </div>
-
-          {/* 模板内容 */}
-          <div style={{ marginBottom: 10 }}>
-            <Typography.Text strong style={{ fontSize: 13, color: C.text1, display: 'block', marginBottom: 6 }}>
-              模板内容
-              <Typography.Text type="tertiary" style={{ fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
-                使用 {'{{变量名}}'} 语法定义变量
-              </Typography.Text>
-            </Typography.Text>
-            <textarea
-              value={editContent}
-              onChange={e => setEditContent(e.target.value)}
-              placeholder={'请输入提示词模板内容...\n例如：你是一位{{role}}，请帮我分析{{topic}}的相关问题。'}
-              style={{
-                width: '100%',
-                height: 220,
-                padding: '10px 12px',
-                border: `1px solid ${C.border}`,
-                borderRadius: 7,
-                fontSize: 13,
-                lineHeight: 1.65,
-                color: C.text0,
-                resize: 'vertical',
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-                background: 'var(--semi-color-fill-0)',
-                transition: 'border-color 0.2s',
-              }}
-              onFocus={e => { e.target.style.borderColor = C.blue }}
-              onBlur={e => { e.target.style.borderColor = C.border }}
-            />
-          </div>
-
-          {/* 已识别变量 */}
-          {detectedVars.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Typography.Text strong style={{ fontSize: 13, color: C.text1 }}>已识别变量</Typography.Text>
-                {detectedVars.map(v => (
-                  <Tag key={v} size="small" color="orange" style={{ fontFamily: 'monospace' }}>{`{{${v}}}`}</Tag>
-                ))}
+                <AnimatePresence initial={false}>
+                  {detectedVars.length > 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-2.5 rounded-lg border border-dashed p-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="mr-1 flex items-center gap-1 text-[13px] font-medium">
+                            <Variable className="text-muted-foreground size-3.5" />
+                            已识别变量
+                          </span>
+                          {detectedVars.map((v) => (
+                            <span key={v} className="bg-warning-soft text-warning rounded px-1.5 py-0.5 font-mono text-[11px]">
+                              {`{{${v}}}`}
+                            </span>
+                          ))}
+                        </div>
+                        {detectedVars.map((v) => (
+                          <div key={v} className="flex items-center gap-2">
+                            <span className="text-muted-foreground w-28 shrink-0 truncate font-mono text-xs sm:w-36" title={v}>
+                              {v}
+                            </span>
+                            <Input
+                              value={varValues[v] || ''}
+                              onChange={(e) => setRawVarValues((prev) => ({ ...prev, [v]: e.target.value }))}
+                              placeholder={`填写 ${v} 的值...`}
+                              className="h-8 flex-1 text-[13px]"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {detectedVars.map(v => (
-                  <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Typography.Text style={{
-                      width: 140,
-                      flexShrink: 0,
-                      fontSize: 12,
-                      color: C.orange,
-                      fontFamily: 'monospace',
-                      background: 'var(--semi-color-warning-light-default)',
-                      border: '1px solid var(--semi-color-warning-light-hover)',
-                      borderRadius: 4,
-                      padding: '2px 6px',
-                    }}>
-                      {`{{${v}}}`}
-                    </Typography.Text>
-                    <Input
-                      size="small"
-                      placeholder={`填写 ${v} 的值...`}
-                      value={varValues[v] || ''}
-                      onChange={val => setVarValues(prev => ({ ...prev, [v]: val }))}
-                      style={{ flex: 1, borderRadius: 6 }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* 保存按钮 */}
-          <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8 }}>
-            <Button
-              onClick={handleSave}
-              loading={saveLoading}
-              style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 8, minWidth: 88 }}
-            >
-              {selectedId ? '保存更改' : '创建模板'}
-            </Button>
-            <Button
-              onClick={handleNew}
-              style={{ borderRadius: 8 }}
-            >
-              新建
-            </Button>
-          </div>
-        </div>
+              <div className="mt-4 flex gap-2 border-t pt-4">
+                <Button type="submit" variant="brand" size="sm" disabled={saving}>
+                  {saving ? <Spinner /> : <Save />}
+                  {selectedId ? '保存更改' : '创建模板'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={handleNew} disabled={saving}>
+                  <FilePlus2 />
+                  新建
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </Panel>
 
         {/* 右侧：实时预览 */}
-        <div style={{ ...CARD_STYLE, width: isMobile ? '100%' : 340, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <PreviewPanel content={editContent} varValues={varValues} />
-        </div>
+        <PreviewPanel content={editContent} varValues={varValues} />
       </div>
     </div>
   )

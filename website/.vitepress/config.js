@@ -111,7 +111,7 @@ export default defineConfig({
       lang: "zh-CN",
       title: "castor-kit 文档",
       description:
-        "AI-First 全栈管理脚手架 — Node.js + TypeScript（Fastify · Drizzle）+ React 18 + PostgreSQL + Semi Design",
+        "AI-First 全栈管理脚手架 — Node.js + TypeScript（Fastify · Drizzle）+ React 19 + PostgreSQL + shadcn/ui",
       themeConfig: {
         nav: zhNav,
         sidebar: zhSidebar,
@@ -128,7 +128,7 @@ export default defineConfig({
       lang: "en-US",
       title: "castor-kit Docs",
       description:
-        "AI-First Full-Stack Management Scaffold — Node.js + TypeScript (Fastify · Drizzle) + React 18 + PostgreSQL + Semi Design",
+        "AI-First Full-Stack Management Scaffold — Node.js + TypeScript (Fastify · Drizzle) + React 19 + PostgreSQL + shadcn/ui",
       themeConfig: {
         nav: enNav,
         sidebar: enSidebar,
@@ -138,7 +138,7 @@ export default defineConfig({
       label: "日本語",
       lang: "ja-JP",
       title: "castor-kit ドキュメント",
-      description: "AI-First フルスタック管理スキャフォールド — Node.js + TypeScript + React 18 + PostgreSQL",
+      description: "AI-First フルスタック管理スキャフォールド — Node.js + TypeScript + React 19 + shadcn/ui + PostgreSQL",
       themeConfig: {
         nav: jaNav,
         sidebar: jaSidebar,
@@ -154,7 +154,7 @@ export default defineConfig({
       label: "한국어",
       lang: "ko-KR",
       title: "castor-kit 문서",
-      description: "AI-First 풀스택 관리 스캐폴드 — Node.js + TypeScript + React 18 + PostgreSQL",
+      description: "AI-First 풀스택 관리 스캐폴드 — Node.js + TypeScript + React 19 + shadcn/ui + PostgreSQL",
       themeConfig: {
         nav: koNav,
         sidebar: koSidebar,

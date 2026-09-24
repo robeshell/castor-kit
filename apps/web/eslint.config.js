@@ -26,8 +26,14 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // 核心规则不识别 JSX 用法：大写组件名与 <motion.div> 这类成员表达式视为已使用
+      'no-unused-vars': ['error', { varsIgnorePattern: '^(?:[A-Z_]|motion$)', argsIgnorePattern: '^(?:[A-Z_]|_)' }],
     },
+  },
+  {
+    // Context 文件按惯例同时导出 Provider 与 useXxx hook
+    files: ['src/context/**/*.{js,jsx}', 'src/components/ui/**/*.{js,jsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
   {
     files: ['**/*.{test,spec}.{js,jsx}', 'test/**/*.{js,jsx}'],

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "castor-kit"
   text: "AI-First 全栈脚手架"
-  tagline: Node.js + TypeScript（Fastify · Drizzle）+ React 18 + PostgreSQL。用自然语言描述需求，AI 端到端实现完整功能模块。
+  tagline: Node.js + TypeScript（Fastify · Drizzle）+ React 19 + shadcn/ui + PostgreSQL。用自然语言描述需求，AI 端到端实现完整功能模块。
   actions:
     - theme: brand
       text: 快速开始

@@ -1,70 +1,284 @@
-*, *::before, *::after {
-  box-sizing: border-box;
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * castor-kit 设计系统（docs/frontend-redesign-plan.md §3）
+ * 中性灰为底，Ocean 渐变（blue → sky → cyan）作为唯一强调色，渐变只做点缀。
+ * 颜色一律走下面的 CSS 变量；页面里不要写死十六进制色值。
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+
+  /* 纯中性灰（不带蓝紫色偏）：内容区纯白、侧栏浅灰，层次靠发丝边而不是底色差 */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f4f4f4;
+  --accent-foreground: #0a0a0a;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #ebebeb;
+  --input: #e3e3e3;
+  --ring: #2563eb;
+
+  --success: #16a34a;
+  --success-soft: rgba(34, 197, 94, 0.12);
+  --warning: #d97706;
+  --warning-soft: rgba(245, 158, 11, 0.14);
+  --danger: #dc2626;
+  --danger-soft: rgba(229, 72, 77, 0.1);
+  --info: #0284c7;
+  --info-soft: rgba(2, 132, 199, 0.1);
+
+  --chart-1: #2563eb;
+  --chart-2: #0ea5e9;
+  --chart-3: #22d3ee;
+  --chart-4: #14b8a6;
+  --chart-5: #f59e0b;
+
+  --sidebar: #fafafa;
+  --sidebar-foreground: #404040;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ebebeb;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #2563eb;
+
+  /* 品牌渐变：三段用于装饰，两段（strong）用于承载白色文字的元素 */
+  --brand-from: #2563eb;
+  --brand-via: #0284c7;
+  --brand-to: #22d3ee;
+  --brand-gradient: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via) 55%, var(--brand-to) 100%);
+  --brand-gradient-strong: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via) 100%);
+  --brand-glow: rgba(2, 132, 199, 0.12);
+  --brand-shadow: rgba(37, 99, 235, 0.45);
+  --brand-soft: rgba(37, 99, 235, 0.08);
+
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #111111;
+  --card-foreground: #f5f5f5;
+  --popover: #151515;
+  --popover-foreground: #f5f5f5;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f5f5f5;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --accent: #1f1f1f;
+  --accent-foreground: #f5f5f5;
+  --destructive: #f25c61;
+  --destructive-foreground: #ffffff;
+  --border: #242424;
+  --input: #2c2c2c;
+  --ring: #3b82f6;
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.14);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.14);
+
+  --chart-1: #3b82f6;
+  --chart-2: #38bdf8;
+  --chart-3: #22d3ee;
+  --chart-4: #2dd4bf;
+  --chart-5: #fbbf24;
+
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #b5b5b5;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f1f1f;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #1f1f1f;
+  --sidebar-ring: #3b82f6;
+
+  --brand-from: #3b82f6;
+  --brand-via: #0ea5e9;
+  --brand-to: #22d3ee;
+  --brand-glow: rgba(14, 165, 233, 0.14);
+  --brand-shadow: rgba(59, 130, 246, 0.45);
+  --brand-soft: rgba(59, 130, 246, 0.12);
 }
 
-html,
-body,
-#root {
-  height: 100%;
+@theme inline {
+  --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-brand: var(--brand-from);
+  --color-brand-via: var(--brand-via);
+  --color-brand-to: var(--brand-to);
+  --color-brand-soft: var(--brand-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --ease-spring: var(--ease-spring);
+  --ease-out-soft: var(--ease-out-soft);
 }
 
-body {
-  overflow: hidden;
-}
-
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #d0d3e0;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #a0a3b8;
-}
-
-@media (max-width: 768px) {
-  .semi-modal {
-    width: calc(100vw - 24px) !important;
-    max-width: calc(100vw - 24px) !important;
-    margin: 12px auto !important;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-
-  .semi-modal-content {
-    max-height: calc(100dvh - 24px);
+  html,
+  body,
+  #root {
+    height: 100%;
   }
-
-  .semi-modal-body {
-    overflow-y: auto;
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 14px;
+    font-feature-settings: 'cv11', 'ss01';
+    overflow: hidden;
   }
-
-  .semi-modal-header {
-    margin: 16px 0 10px;
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
   }
-
-  .semi-modal-footer {
-    margin: 14px 0 16px;
-    display: flex;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
-
-  .semi-modal-footer .semi-button + .semi-button {
-    margin-left: 0;
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--foreground) 14%, transparent);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--foreground) 24%, transparent);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ---- 品牌渐变工具类（只用于点缀） ---- */
+@utility bg-brand-gradient {
+  background-image: var(--brand-gradient);
+}
+@utility bg-brand-gradient-strong {
+  background-image: var(--brand-gradient-strong);
+}
+@utility text-brand-gradient {
+  background-image: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* 渐变描边：配合圆角使用，内部保持卡片底色 */
+@utility border-brand-gradient {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    var(--brand-gradient) border-box;
+}
+/* 主按钮柔和辉光 */
+@utility shadow-brand {
+  box-shadow:
+    0 6px 16px -6px var(--brand-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+/* 页面顶部柔光 */
+@utility bg-brand-glow {
+  background-image: radial-gradient(900px 260px at 78% -80px, var(--brand-glow), transparent 70%);
+}
+/* 卡片：白底 + 发丝边 + 极浅投影（让卡片边缘清晰，而不是靠底色差） */
+@utility surface-card {
+  background: var(--card);
+  border-radius: calc(var(--radius) + 4px);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 1px 2px rgba(0, 0, 0, 0.035);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 主题切换时的颜色过渡（ThemeContext 临时加在 <html> 上） */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition:
+    background-color 0.3s var(--ease-out-soft),
+    border-color 0.3s var(--ease-out-soft),
+    color 0.3s var(--ease-out-soft),
+    fill 0.3s var(--ease-out-soft),
+    box-shadow 0.3s var(--ease-out-soft) !important;
 }

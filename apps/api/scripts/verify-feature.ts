@@ -15,12 +15,13 @@
  *   6. AI 上下文文档引用的路径存在（告警；--strict-docs 时阻断）
  *   7. 后端 routes/repository/service 文件存在
  *   8. 前端页面文件存在
- *   9. 前端 API 文件存在
- *  10. 路由注册（src/router.ts / modules/<domain>/router.ts）
- *  11. 表定义注册（db/schema/index.ts）
- *  12. RBAC 种子（scripts/seed-rbac.ts）包含菜单 component 或权限编码
- *  13. 前端构建通过（可选，--skip-build 跳过）
- *  14. 前端 Vitest 通过（可选，--skip-frontend-tests 跳过）
+ *   9. 前端页面只用 shadcn/ui 新体系（页面目录内禁止 @douyinfe/*、var(--semi-*)、已下线的旧公共组件）
+ *  10. 前端 API 文件存在
+ *  11. 路由注册（src/router.ts / modules/<domain>/router.ts）
+ *  12. 表定义注册（db/schema/index.ts）
+ *  13. RBAC 种子（scripts/seed-rbac.ts）包含菜单 component 或权限编码
+ *  14. 前端构建通过（可选，--skip-build 跳过）
+ *  15. 前端 Vitest 通过（可选，--skip-frontend-tests 跳过）
  *
  * JSON 输出结构与 Python 版一致：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
  */
@@ -442,6 +443,46 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
   }
 }
 
+/**
+ * 旧 UI 体系的残留写法（前端已按 docs/frontend-redesign-plan.md 从 Semi Design 迁到 shadcn/ui + Tailwind v4）。
+ * 这些依赖 / 文件会在迁移收尾时删除，命中即构建失败或样式失效，所以按失败处理而不是告警。
+ */
+export const LEGACY_UI_PATTERNS: { re: RegExp; hint: string }[] = [
+  { re: /(?:from|import|require)\s*\(?\s*['"]@douyinfe\//, hint: '导入 @douyinfe/*（改用 @/components/ui/* 与 @/shared/components/*，图标用 lucide-react）' },
+  { re: /var\(--semi-/, hint: '使用 var(--semi-*)（改用 Tailwind 语义色类，如 bg-card / text-muted-foreground / border）' },
+  {
+    re: /['"]@\/shared\/(components\/import-export\/|components\/upload\/(File|Image)UploadField|styles(\.js)?['"])/,
+    hint: '引用已下线的旧公共组件（改用 data-transfer/ImportDialog、ExportDialog 与 upload/FileUpload、ImageUpload）',
+  },
+]
+
+/** 前端页面目录（index.jsx 及同目录局部组件 / 样式）不得使用旧 UI 体系；页面不存在时跳过（frontend_page 已报错） */
+export function checkFrontendNoLegacyUi(ctx: VerifyContext, module: string): CheckResult {
+  const name = 'frontend_no_legacy_ui'
+  const page = checkFrontendPage(ctx, module)
+  if (!page.passed || typeof page.path !== 'string') return { name, passed: true, skipped: true }
+  const dir = dirname(join(ctx.root, page.path))
+  const offenders: string[] = []
+  for (const file of walk(dir, (p) => /\.(jsx?|tsx?|css)$/.test(p))) {
+    const lines = readFileSync(file, 'utf8').split('\n')
+    lines.forEach((line, i) => {
+      for (const { re, hint } of LEGACY_UI_PATTERNS) {
+        if (re.test(line)) offenders.push(`${rel(ctx, file)}:${i + 1} ${hint}`)
+      }
+    })
+  }
+  if (offenders.length > 0) {
+    return {
+      name,
+      passed: false,
+      error:
+        `前端页面仍在使用旧 UI 体系（Semi Design 已下线，见 docs/frontend-redesign-plan.md）：` +
+        `${offenders.slice(0, 10).join('；')}${offenders.length > 10 ? `；…共 ${offenders.length} 处` : ''}`,
+    }
+  }
+  return { name, passed: true, path: rel(ctx, dir) }
+}
+
 /** 前端 API 文件存在 */
 export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResult {
   const singular = singularOf(module)
@@ -626,6 +667,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
     const m = options.module
     step('backend_file', () => checkBackendFile(ctx, m))
     step('frontend_page', () => checkFrontendPage(ctx, m))
+    step('frontend_no_legacy_ui', () => checkFrontendNoLegacyUi(ctx, m))
     step('frontend_api', () => checkFrontendApi(ctx, m))
     step('router_registration', () => checkRouterRegistration(ctx, m))
     step('schema_registration', () => checkSchemaRegistration(ctx, m))

@@ -1,22 +1,14 @@
-import { CARD_STYLE } from '@/shared/styles'
 import { useRef, useState } from 'react'
-import { useIsMobile } from '@/shared/hooks/useIsMobile'
 import Editor from '@monaco-editor/react'
-import { Button, Select, Space, Toast, Typography } from '@douyinfe/semi-ui'
-
-
-const C = {
-  blue: 'var(--semi-color-primary)',
-  green: '#00B96B',
-  orange: '#FA8C16',
-  purple: '#9254DE',
-  red: '#FF4D4F',
-  cyan: '#13C2C2',
-  border: 'var(--semi-color-border)',
-  text0: 'var(--semi-color-text-0)',
-  text1: 'var(--semi-color-text-1)',
-  text2: 'var(--semi-color-text-2)',
-}
+import { Copy, FileCode2, RotateCcw, WandSparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from '@/lib/toast'
+import { useMonacoTheme } from '@/lib/monaco-theme'
+import PageHeader from '@/shared/components/PageHeader'
+import Panel from '@/shared/components/Panel'
+import { useIsMobile } from '@/shared/hooks/useIsMobile'
 
 const LANGUAGE_OPTIONS = [
   { label: 'JavaScript', value: 'javascript' },
@@ -29,9 +21,11 @@ const LANGUAGE_OPTIONS = [
   { label: 'Java', value: 'java' },
 ]
 
+// 默认跟随应用亮/暗主题；也可以固定浅色 / 深色
 const THEME_OPTIONS = [
-  { label: '浅色 (vs)', value: 'vs' },
-  { label: '深色 (vs-dark)', value: 'vs-dark' },
+  { label: '跟随界面主题', value: 'auto' },
+  { label: '浅色 (vs)', value: 'light' },
+  { label: '深色 (vs-dark)', value: 'dark' },
 ]
 
 const INITIAL_CODE = `// castor-kit 示例代码
@@ -96,172 +90,127 @@ console.log('原始配置:', config.theme)   // dark
 console.log('新配置:', newConfig.theme)  // light
 `
 
+function LabeledSelect({ label, value, onChange, options }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger size="sm" className="h-8 w-[180px] text-[13px]">
+        <span className="text-muted-foreground text-xs">{label}</span>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 export default function CodeEditorPage() {
   const isMobile = useIsMobile()
   const editorRef = useRef(null)
   const [language, setLanguage] = useState('javascript')
-  const [theme, setTheme] = useState('vs')
+  const [themeMode, setThemeMode] = useState('auto')
   const [code, setCode] = useState(INITIAL_CODE)
-  const [lineCount, setLineCount] = useState(0)
-  const [charCount, setCharCount] = useState(0)
+  const monacoTheme = useMonacoTheme(themeMode)
+
+  const lineCount = code ? code.split('\n').length : 0
+  const charCount = code.length
 
   const handleEditorMount = (editor) => {
     editorRef.current = editor
-    const model = editor.getModel()
-    if (model) {
-      setLineCount(model.getLineCount())
-      setCharCount(model.getValue().length)
-    }
-    editor.onDidChangeModelContent(() => {
-      const m = editor.getModel()
-      if (m) {
-        setLineCount(m.getLineCount())
-        setCharCount(m.getValue().length)
-      }
-    })
-  }
-
-  const handleChange = (val) => {
-    setCode(val || '')
   }
 
   const handleFormat = () => {
-    if (!editorRef.current) return
-    editorRef.current
-      .getAction('editor.action.formatDocument')
-      ?.run()
-      .then(() => {
-        Toast.success('代码已格式化')
-      })
+    const action = editorRef.current?.getAction('editor.action.formatDocument')
+    if (!action) return
+    action.run().then(() => toast.success('代码已格式化'))
   }
 
   const handleCopy = () => {
     const content = editorRef.current ? editorRef.current.getValue() : code
-    navigator.clipboard.writeText(content).then(() => {
-      Toast.success('代码已复制到剪贴板')
-    })
+    navigator.clipboard
+      .writeText(content)
+      .then(() => toast.success('代码已复制到剪贴板'))
+      .catch(() => toast.error('复制失败'))
+  }
+
+  const handleResetSample = () => {
+    setLanguage('javascript')
+    setCode(INITIAL_CODE)
+    toast.success('已恢复示例代码')
   }
 
   return (
     <div>
-      {/* 页面标题 */}
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title heading={4} style={{ marginBottom: 4 }}>
-          代码编辑器
-        </Typography.Title>
-        <Typography.Text type="tertiary">
-          基于 Monaco Editor 的代码编辑组件，支持多语言语法高亮和主题切换
-        </Typography.Text>
-      </div>
-
-      {/* 编辑器卡片 */}
-      <div style={CARD_STYLE}>
-        {/* 工具栏 */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-            flexWrap: 'wrap',
-            gap: 8,
-          }}
-        >
-          <Space wrap>
-            <Select
-              value={language}
-              onChange={setLanguage}
-              optionList={LANGUAGE_OPTIONS}
-              style={{ width: 150 }}
-              prefix={<span style={{ fontSize: 12, color: C.text2 }}>语言</span>}
-            />
-            <Select
-              value={theme}
-              onChange={setTheme}
-              optionList={THEME_OPTIONS}
-              style={{ width: 150 }}
-              prefix={<span style={{ fontSize: 12, color: C.text2 }}>主题</span>}
-            />
-            <Button type="primary" onClick={handleFormat}>
+      <PageHeader
+        title="代码编辑器"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleResetSample}>
+              <RotateCcw />
+              示例代码
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              <Copy />
+              复制代码
+            </Button>
+            <Button variant="brand" size="sm" onClick={handleFormat}>
+              <WandSparkles />
               格式化代码
             </Button>
-            <Button onClick={handleCopy}>复制代码</Button>
-          </Space>
+          </>
+        }
+      />
 
-          {/* 状态栏 */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              padding: '4px 12px',
-              background: 'var(--semi-color-bg-0)',
-              borderRadius: 6,
-              fontSize: 12,
-              color: C.text2,
-            }}
-          >
+      <Panel padded={false} bodyClassName="flex flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <LabeledSelect label="语言" value={language} onChange={setLanguage} options={LANGUAGE_OPTIONS} />
+            <LabeledSelect label="主题" value={themeMode} onChange={setThemeMode} options={THEME_OPTIONS} />
+          </div>
+          <div className="text-muted-foreground flex items-center gap-4 text-xs">
             <span>
-              行数：<span style={{ fontWeight: 600, color: C.blue }}>{lineCount}</span>
+              行数 <span className="text-foreground font-medium tabular-nums">{lineCount}</span>
             </span>
             <span>
-              字符：<span style={{ fontWeight: 600, color: C.green }}>{charCount}</span>
+              字符 <span className="text-foreground font-medium tabular-nums">{charCount}</span>
             </span>
-            <span
-              style={{
-                padding: '1px 6px',
-                background: theme === 'vs-dark' ? '#333' : 'var(--semi-color-primary-light-default)',
-                color: theme === 'vs-dark' ? '#ddd' : 'var(--semi-color-primary)',
-                borderRadius: 4,
-              }}
-            >
+            <span className="bg-brand-soft text-primary inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[11px]">
+              <FileCode2 className="size-3" />
               {language}
             </span>
           </div>
         </div>
 
-        {/* Monaco 编辑器 */}
-        <div
-          style={{
-            border: `1px solid ${C.border}`,
-            borderRadius: 6,
-            overflow: 'hidden',
+        <Editor
+          height={isMobile ? '360px' : '540px'}
+          language={language}
+          theme={monacoTheme}
+          value={code}
+          onChange={(val) => setCode(val || '')}
+          onMount={handleEditorMount}
+          loading={<Spinner className="text-muted-foreground" />}
+          options={{
+            fontSize: 14,
+            lineHeight: 22,
+            fontFamily: 'Geist Mono Variable, ui-monospace, SFMono-Regular, Menlo, monospace',
+            minimap: { enabled: !isMobile },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            tabSize: 2,
+            automaticLayout: true,
+            padding: { top: 12, bottom: 12 },
           }}
-        >
-          <Editor
-            height={isMobile ? '320px' : '500px'}
-            language={language}
-            theme={theme}
-            value={code}
-            onChange={handleChange}
-            onMount={handleEditorMount}
-            options={{
-              fontSize: 14,
-              lineHeight: 22,
-              minimap: { enabled: true },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              tabSize: 2,
-              automaticLayout: true,
-              padding: { top: 12, bottom: 12 },
-            }}
-          />
-        </div>
+        />
 
-        {/* 底部提示 */}
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 12,
-            color: C.text2,
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
+        <div className="text-muted-foreground flex flex-wrap justify-between gap-2 border-t px-4 py-2.5 text-xs">
           <span>支持智能补全 · 错误提示 · 括号匹配 · 多光标编辑</span>
-          <span>Ctrl+S 格式化 · Ctrl+Z 撤销 · Ctrl+/ 注释</span>
+          <span>Shift+Alt+F 格式化 · Ctrl+Z 撤销 · Ctrl+/ 注释</span>
         </div>
-      </div>
+      </Panel>
     </div>
   )
 }

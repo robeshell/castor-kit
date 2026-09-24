@@ -1,7 +1,7 @@
 # castor-kit
 
 > **AI-First Full-Stack Management Scaffold**
-> Node.js + TypeScript (Fastify 5 · Zod · Drizzle) + React 18 + PostgreSQL + Semi Design — built for AI-driven, end-to-end feature development.
+> Node.js + TypeScript (Fastify 5 · Zod · Drizzle) + React 19 + PostgreSQL + shadcn/ui (Tailwind CSS v4 · motion) — built for AI-driven, end-to-end feature development.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![Node 22+](https://img.shields.io/badge/node-22%2B-green)
@@ -11,7 +11,7 @@
 
 > *Castor* is the Latin genus name of the beaver — nature's engineer, building and extending a whole dam without blueprints.
 >
-> castor-kit is the Node.js/TypeScript rewrite of [AuraStack](https://github.com/robeshell/AuraStack) (Flask + React). It connects to the same PostgreSQL schema, keeps the API contract compatible, and ships the same React frontend unchanged.
+> castor-kit is the Node.js/TypeScript rewrite of [AuraStack](https://github.com/robeshell/AuraStack) (Flask + React). It connects to the same PostgreSQL schema and keeps the API contract compatible; the React frontend keeps AuraStack's routing and features, with the UI rebuilt on shadcn/ui + Tailwind CSS v4 (migrated from Semi Design — see [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)).
 
 ---
 
@@ -33,11 +33,12 @@
 |---|---|
 | Backend | Node 22 · TypeScript · Fastify 5 · Zod · pino |
 | Database | PostgreSQL 14+ · Drizzle ORM + drizzle-kit (SQL migrations) |
-| Frontend | React 18 · Vite 5 · React Router 7 · Axios |
-| UI | Semi Design 2.93 |
+| Frontend | React 19 · Vite 5 · React Router 7 · Axios (JavaScript / JSX) |
+| UI | shadcn/ui (new-york, Radix) · Tailwind CSS v4 · motion · lucide-react |
+| Forms / tables | react-hook-form · @tanstack/react-table · sonner |
 | Charts | ECharts 6 · echarts-for-react |
 | 3D | Three.js 0.176 |
-| Editors | Monaco Editor · react-quill |
+| Editors | Monaco Editor · react-quill-new |
 | Monorepo | pnpm workspaces: `apps/api` · `apps/web` · `apps/mcp` |
 
 ---
@@ -65,7 +66,7 @@ pnpm seed:rbac         # menus, super-admin role, admin / admin123
 pnpm dev               # api :5001 + web :5173
 ```
 
-AI tools read [AGENTS.md](AGENTS.md) (all tools), [CLAUDE.md](CLAUDE.md), [CODEX.md](CODEX.md), `.cursor/rules/`, `.windsurfrules` and `.github/copilot-instructions.md`. The full rewrite design is in [docs/rewrite-plan.md](docs/rewrite-plan.md).
+AI tools read [AGENTS.md](AGENTS.md) (all tools), [CLAUDE.md](CLAUDE.md), [CODEX.md](CODEX.md), `.cursor/rules/`, `.windsurfrules` and `.github/copilot-instructions.md`. The full rewrite design is in [docs/rewrite-plan.md](docs/rewrite-plan.md); the frontend UI conventions are in [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md). New shadcn/ui primitives are added with `apps/web/scripts/shadcn-add.sh <component>` (runs `npx shadcn@latest add` through a local registry relay).
 
 > For deployment options, environment variables, AI tools integration and more — see the **[full documentation](https://robeshell.github.io/castor-kit/)**.
 
