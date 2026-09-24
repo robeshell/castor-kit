@@ -1,0 +1,22 @@
+# deps / build
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# env
+.env
+.env.*
+!.env.example
+
+# runtime
+instance/
+logs/
+*.log
+
+# tooling
+.DS_Store
+.vscode/
+.idea/
+coverage/
+.vitest/
