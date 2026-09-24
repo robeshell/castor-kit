@@ -21,7 +21,6 @@ import {
 
 const P = 'ck_test_r6_api_'
 const T = '/api/admin/scheduled-tasks'
-const INTERNAL = { error: '服务器内部错误，请稍后重试' }
 let app: FastifyInstance
 let handle: DbHandle
 let s: AuthedSession
@@ -191,14 +190,26 @@ describe('新增', () => {
     }
   })
 
-  it('请求地址不合法：Python 在 try 之外校验（未捕获）→ 500 通用文案', async () => {
-    for (const url of [undefined, '', 'ftp://1.1.1.1/x', 'http://127.0.0.1/x', 'http://localhost/x', 'http://[::1/x', 'http://1.1.1.1:0/']) {
+  it('请求地址不合法：400 + 具体原因（有意偏离 Flask 的 500；校验在名称 / 编码 / Cron 之后）', async () => {
+    // 期望文案；RegExp 用于 localhost（不同机器先解析出 ::1 或 127.0.0.1）
+    const cases: Array<[unknown, string | RegExp]> = [
+      [undefined, '请求地址不能为空'],
+      ['', '请求地址不能为空'],
+      ['ftp://1.1.1.1/x', '请求地址仅支持 http/https 协议'],
+      ['http://127.0.0.1/x', '不允许访问内网地址'],
+      ['http://localhost/x', /^不允许访问内网地址（localhost 解析为 (127\.0\.0\.1|::1)）$/],
+      ['http://[::1/x', '请求地址格式不合法'],
+      ['http://1.1.1.1:0/', '请求地址端口不合法'],
+    ]
+    for (const [url, error] of cases) {
       const res = await s.inject({ method: 'POST', url: T, payload: valid({ task_code: `${P}create_url`, request_url: url }) })
-      expect([res.statusCode, res.json()]).toEqual([500, INTERNAL])
+      expect([url, res.statusCode]).toEqual([url, 400])
+      if (error instanceof RegExp) expect(res.json().error).toMatch(error)
+      else expect(res.json()).toEqual({ error })
     }
-    // 空 body 同样先死在 URL 校验
+    // 空 body：先报名称（与表单字段顺序一致）
     const empty = await s.inject({ method: 'POST', url: T, payload: {} })
-    expect([empty.statusCode, empty.json()]).toEqual([500, INTERNAL])
+    expect([empty.statusCode, empty.json()]).toEqual([400, { error: '任务名称不能为空' }])
     expect(await handle.db.select().from(scheduled_tasks).where(eq(scheduled_tasks.task_code, `${P}create_url`))).toHaveLength(0)
   })
 
@@ -270,9 +281,9 @@ describe('详情 / 编辑 / 删除', () => {
     }
     // 自己的编码不算重复
     expect((await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { task_code: task.task_code } })).statusCode).toBe(200)
-    // urlsplit ValueError → 500
+    // urlsplit ValueError：400「请求地址格式不合法」（有意偏离 Flask 的 500）
     const bad = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { request_url: 'http://[::1/x' } })
-    expect([bad.statusCode, bad.json()]).toEqual([500, INTERNAL])
+    expect([bad.statusCode, bad.json()]).toEqual([400, { error: '请求地址格式不合法' }])
   })
 
   it('编辑：404 先于 403；无权限 403', async () => {

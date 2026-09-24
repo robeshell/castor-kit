@@ -152,12 +152,16 @@ describe('menus 列表 / 详情', () => {
     expect(body.children[0].children).toEqual([])
   })
 
-  it('tree：search 只过滤根节点，子节点完整；flat：平铺且没有 children 键', async () => {
+  it('tree：search 保留匹配节点及其祖先路径，匹配节点子树完整；flat：平铺且没有 children 键', async () => {
     const tree = (await s.inject({ url: `/api/admin/menus?search=${P}ROOT` })).json()
     expect(tree).toHaveLength(1)
     expect(tree[0].children).toHaveLength(3)
-    // 子节点匹配 search 但不是根 → tree 里不出现
-    expect((await s.inject({ url: `/api/admin/menus?search=${P}c1` })).json()).toEqual([])
+    // 子节点匹配（有意偏离 Flask 的「只过滤根节点」）：带出祖先，兄弟节点不出现
+    const child = (await s.inject({ url: `/api/admin/menus?search=${P}c1` })).json()
+    expect(child.map((m: { code: string }) => m.code)).toEqual([`${P}root`])
+    expect(child[0].children.map((m: { code: string }) => m.code)).toEqual([`${P}c1`])
+    expect(child[0].children[0].children).toEqual([])
+    expect((await s.inject({ url: `/api/admin/menus?search=${P}nomatch` })).json()).toEqual([])
 
     const flat = (await s.inject({ url: `/api/admin/menus?format=flat&search=${P}` })).json()
     expect(flat.map((m: { code: string }) => m.code)).toEqual([`${P}c3`, `${P}c2`, `${P}root`, `${P}c1`])
@@ -197,6 +201,17 @@ describe('menus 编辑 / 删除 / 排序', () => {
     const changed = await put(`/api/admin/menus/${before.id}`, { name: 'c2', sort_order: '-2', icon: 'IconX', unknown: 1 })
     expect(changed.json()).toMatchObject({ name: 'c2', sort_order: -2, icon: 'IconX' })
     expect((await menuByCode(`${P}c2`))!.updated_at).not.toBe(before.updated_at)
+  })
+
+  it('编辑：父级改成自身或子菜单 → 400（有意偏离 Flask，成环后菜单树会 500）', async () => {
+    const root = (await menuByCode(`${P}root`))!
+    const c1 = (await menuByCode(`${P}c1`))!
+    for (const [id, parent] of [[root.id, c1.id], [c1.id, c1.id]] as const) {
+      const res = await put(`/api/admin/menus/${id}`, { parent_id: parent, name: '不应写入' })
+      expect([res.statusCode, res.json()]).toEqual([400, { error: '父级菜单不能是自身或其子菜单' }])
+    }
+    expect(await menuByCode(`${P}root`)).toMatchObject({ parent_id: null, name: root.name })
+    expect((await s.inject({ url: `/api/admin/menus/${root.id}` })).statusCode).toBe(200)
   })
 
   it('编辑校验：空名称/空编码、编码冲突、非法值 → 500；404 先于权限；非数字 405', async () => {
@@ -320,6 +335,17 @@ describe('menus 导出 / 模板 / 导入', () => {
     expect(i2).toMatchObject({ parent_id: null, sort_order: 0, is_visible: true, is_active: true, menu_type: 'directory', path: null })
     expect(i1.id).toBeLessThan(i2.id)
     expect(await menuByCode(`${P}c2`)).toMatchObject({ name: '改', menu_type: 'button', parent_id: null, sort_order: 0, icon: null })
+  })
+
+  it('导入：父级关系成环 → 错误行、整批回滚（有意偏离 Flask）', async () => {
+    const csv = '菜单名称,菜单编码,类型,父级编码\n' + `根改名,${P}root,directory,${P}c1\n`
+    const res = await s.inject({ method: 'POST', url: '/api/admin/menus/import', ...multipartFile('m.csv', csv) })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error_rows.map((r: { reason: string }) => r.reason)).toEqual([`父级编码 ${P}c1 会导致成环`])
+    const root = (await menuByCode(`${P}root`))!
+    expect(root.parent_id).toBeNull()
+    expect(root.name).not.toBe('根改名')
+    expect((await s.inject({ url: '/api/admin/menus' })).statusCode).toBe(200)
   })
 
   it('导入：缺列 / 无文件 / xls', async () => {

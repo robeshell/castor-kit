@@ -2,8 +2,12 @@
  * 定时任务 service 层（对齐 AuraStack backend/app/admin/service/scheduled_task.py）
  *
  * 与 Python 保持一致的“怪”行为（有意保留，见各处注释）：
- * - 新增时 validate_request_url 在 try 之外调用，URL 为空 / 非 http(s) / 内网地址等在 Flask 里是未捕获异常 → 500
  * - 手动执行失败时返回 500，但响应体是完整的 {message, task, run, error}（不是通用错误文案）
+ *
+ * 与 Python 的有意差异（docs/rewrite-plan.md「与方案/Flask 有意不同」）：
+ * - 新增时请求地址不合法返回 400 + 具体原因（Flask 的 validate_request_url 在 try 之外，未捕获 → 500 通用文案），
+ *   校验顺序挪到名称 / 编码 / Cron 之后，与表单字段顺序一致
+ * - 地址格式错误（urlsplit 抛的 ValueError，如 `http://[::1/x`）新增、编辑都返回 400「请求地址格式不合法」（Flask → 500）
  *
  * “当前时间”一律取数据库 UTC 时间文本（不经过 JS Date），cron 以它为基准计算。
  */
@@ -12,7 +16,7 @@ import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
 import { computeNextRunAt, parseCronExpression, parseTimestamp, toEpochMicros } from '@/common/scheduler/cron'
-import { ScheduledTaskSchemaError } from '@/common/scheduler/errors'
+import { PyUncaughtError, ScheduledTaskSchemaError } from '@/common/scheduler/errors'
 import { executeHttpRequest, type HttpExecutor, type HttpRequestSpec } from '@/common/scheduler/http'
 import { pyStrip } from '@/common/scheduler/py-compat'
 import { isPyDict, PyJsonDecodeError, pyJsonDumps, pyJsonLoads, pyValueStr, type PyJson } from '@/common/scheduler/py-json'
@@ -46,6 +50,7 @@ const RESPONSE_BODY_LIMIT = 2000
 function toServiceError(err: unknown, schemaStatus = 400): never {
   if (err instanceof ServiceError) throw err
   if (err instanceof ScheduledTaskSchemaError) throw new ServiceError(err.message, schemaStatus)
+  if (err instanceof PyUncaughtError) throw new ServiceError('请求地址格式不合法', 400)
   throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
 }
 
@@ -100,20 +105,18 @@ export class ScheduledTaskService {
     const name = pyText(data.name)
     const taskCode = pyText(data.task_code)
     const cronExpression = pyText(data.cron_expression)
-    let requestUrl: string
-    try {
-      requestUrl = await this.validateUrl(data.request_url)
-    } catch (err) {
-      // Python：validate_request_url 在 try 之外，ScheduledTaskSchemaError 没被 API 层捕获 → 500
-      toServiceError(err, 500)
-    }
     // str(data.get('request_method') or 'GET').strip().upper()
     const requestMethod = pyStrip(pyTruthy(data.request_method) ? pyStr(data.request_method) : 'GET').toUpperCase()
 
     if (!name) throw new ServiceError('任务名称不能为空', 400)
     if (!taskCode) throw new ServiceError('任务编码不能为空', 400)
     if (!cronExpression) throw new ServiceError('Cron 表达式不能为空', 400)
-    if (!requestUrl) throw new ServiceError('请求地址不能为空', 400)
+    let requestUrl: string
+    try {
+      requestUrl = await this.validateUrl(data.request_url)
+    } catch (err) {
+      toServiceError(err)
+    }
     if (!ALLOWED_METHODS.has(requestMethod)) throw new ServiceError('请求方法仅支持 GET/POST/PUT/DELETE/PATCH', 400)
     if (await this.repo.getTaskByCode(taskCode)) throw new ServiceError('任务编码已存在', 400)
 

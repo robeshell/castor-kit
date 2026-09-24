@@ -40,7 +40,7 @@ export class MenuRepository {
       .orderBy(asc(menus.sort_order), asc(menus.id))
   }
 
-  /** 树形列表的根节点（search 只过滤根节点） */
+  /** 根节点（search 只匹配根节点本身；树形搜索由 service.searchTree 处理） */
   async listRoots(search: string): Promise<Menu[]> {
     return this.db
       .select()

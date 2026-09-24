@@ -14,7 +14,7 @@
 import dns from 'node:dns'
 import net from 'node:net'
 import { Agent, buildConnector, request } from 'undici'
-import { BLOCKED_ADDRESS_MESSAGE, isBlockedIp } from './ssrf'
+import { BLOCKED_ADDRESS_MESSAGE, blockedHostMessage, isBlockedIp } from './ssrf'
 
 export interface HttpRequestSpec {
   method: string
@@ -44,7 +44,8 @@ const guardedLookup: net.LookupFunction = (hostname, options, callback) => {
     if (err) return callback(err, '', 0)
     const list = addresses as dns.LookupAddress[]
     if (list.length === 0) return callback(Object.assign(new Error(`getaddrinfo ENOTFOUND ${hostname}`), { code: 'ENOTFOUND' }), '', 0)
-    if (list.some((a) => isBlockedIp(a.address))) return callback(new Error(BLOCKED_ADDRESS_MESSAGE), '', 0)
+    const blocked = list.find((a) => isBlockedIp(a.address))
+    if (blocked) return callback(new Error(blockedHostMessage(hostname, blocked.address)), '', 0)
     if ((options as dns.LookupOptions).all) {
       ;(callback as unknown as (e: null, a: dns.LookupAddress[]) => void)(null, list)
     } else {

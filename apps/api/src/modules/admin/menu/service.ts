@@ -2,11 +2,12 @@
  * 菜单模块 service 层（对齐 AuraStack backend/app/admin/service/menu.py）
  */
 
+import { wouldCreateCycle } from '@/common/tree'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyStrOrEmpty, pyTruthy } from '@/common/py'
 import { buildTable, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
-import type { Db } from '@/db/client'
+import type { Db, Executor } from '@/db/client'
 import { menuToDict, type AdminUserWithRoles, type Menu, type MenuDict } from '@/db/schema'
 import {
   adaptBool,
@@ -76,9 +77,9 @@ export class MenuService {
     this.repo = new MenuRepository(db)
   }
 
-  private async inTx<T>(fn: (repo: MenuRepository) => Promise<T>): Promise<T> {
+  private async inTx<T>(fn: (repo: MenuRepository, tx: Executor) => Promise<T>): Promise<T> {
     try {
-      return await this.db.transaction((tx) => fn(new MenuRepository(tx)))
+      return await this.db.transaction((tx) => fn(new MenuRepository(tx), tx))
     } catch (err) {
       if (err instanceof ServiceError) throw err
       throw internalError(err instanceof Error ? err.message : String(err))
@@ -102,12 +103,49 @@ export class MenuService {
 
   async listMenus(formatType: string, search: string): Promise<MenuDict[]> {
     if (formatType === 'tree') {
-      const roots = await this.repo.listRoots(search)
+      if (search) return this.searchTree(search)
+      const roots = await this.repo.listRoots('')
       const result: MenuDict[] = []
       for (const root of roots) result.push(await this.toDictWithChildren(root))
       return result
     }
     return (await this.repo.listFlat(search)).map(menuToDict)
+  }
+
+  /**
+   * 树形搜索（有意偏离 Flask 的「search 只过滤根节点」——搜子菜单永远搜不到）：
+   * 保留匹配节点及其祖先路径；匹配节点的子树完整返回，祖先只保留通向匹配节点的分支。
+   */
+  private async searchTree(search: string): Promise<MenuDict[]> {
+    const matched = new Set((await this.repo.listFlat(search)).map((m) => m.id))
+    if (matched.size === 0) return []
+    const parentOf = new Map((await this.repo.listFlat('')).map((m) => [m.id, m.parent_id]))
+    const keep = new Set<number>()
+    for (const id of matched) {
+      // 向上补齐祖先；visited 防止库里已有环时死循环
+      let cur: number | null | undefined = id
+      while (cur != null && !keep.has(cur)) {
+        keep.add(cur)
+        cur = parentOf.get(cur)
+      }
+    }
+
+    const build = async (menu: Menu): Promise<MenuDict> => {
+      if (matched.has(menu.id)) return this.toDictWithChildren(menu)
+      const dict = menuToDict(menu)
+      const children: MenuDict[] = []
+      for (const child of await this.repo.listChildrenPyOrder(menu.id)) {
+        if (keep.has(child.id)) children.push(await build(child))
+      }
+      dict.children = children
+      return dict
+    }
+
+    const result: MenuDict[] = []
+    for (const root of await this.repo.listRoots('')) {
+      if (keep.has(root.id)) result.push(await build(root))
+    }
+    return result
   }
 
   async getMenuOr404(id: number): Promise<Menu> {
@@ -179,8 +217,13 @@ export class MenuService {
     const changed = MENU_MUTABLE_FIELDS.filter((f) => f in data && !pyEq(data[f], menu[f]))
     if (changed.length === 0) return menuToDict(menu)
 
-    return this.inTx(async (repo) => {
+    return this.inTx(async (repo, tx) => {
       const values = Object.fromEntries(changed.map((f) => [f, adaptField(f, data[f])])) as MenuUpdateValues
+      // 有意偏离 Flask：父级改成自身或子孙会成环，之后菜单树接口无限递归（500），菜单管理与侧边栏全部不可用
+      const newParent = values.parent_id
+      if (typeof newParent === 'number' && (await wouldCreateCycle(tx, 'menus', menu.id, newParent))) {
+        throw new ServiceError('父级菜单不能是自身或其子菜单', 400)
+      }
       return menuToDict(await repo.update(menu.id, values))
     })
   }
@@ -365,6 +408,21 @@ export class MenuService {
           continue
         }
         state.current.parent_id = parent.original!.id
+      }
+
+      // 有意偏离 Flask：按导入后的最终父子关系检查成环（A→B、B→A 这类），成环的行记为错误、整批回滚
+      const parentOf = new Map<number, number | null>()
+      for (const st of cache.values()) if (st.original) parentOf.set(st.original.id, st.current.parent_id ?? null)
+      for (const [state, parentCode, line, row] of pending) {
+        const start = state.original!.id
+        let cur = state.current.parent_id ?? null
+        for (let steps = 0; cur !== null && steps <= parentOf.size; steps += 1) {
+          if (cur === start) {
+            errors.push(buildErrorRow(line, `父级编码 ${parentCode} 会导致成环`, row))
+            break
+          }
+          cur = parentOf.get(cur) ?? null
+        }
       }
 
       if (errors.length > 0) {

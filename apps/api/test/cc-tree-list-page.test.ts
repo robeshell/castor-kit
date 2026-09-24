@@ -170,6 +170,11 @@ describe('tree-list-page', () => {
     expect((await put(c1.id, { node_code: ' ' })).json()).toEqual({ error: '节点编码不能为空' })
     expect((await put(c1.id, { name: null })).json()).toEqual({ error: '节点名称不能为空' })
     expect((await put(c1.id, { status: 'draft' })).json()).toEqual({ error: '状态仅支持 active/inactive/archived' })
+    // 成环（有意偏离 Flask）：移到自己的子 / 孙节点下 → 400，同一请求里的其他字段一并回滚
+    const cycle = await put(ids.root!, { name: '根改名', parent_id: ids.gc })
+    expect([cycle.statusCode, cycle.json()]).toEqual([400, { error: '不能将节点移动到自身或其子节点下' }])
+    expect((await put(ids.root!, { parent_id: ids.c2 })).json()).toEqual({ error: '不能将节点移动到自身或其子节点下' })
+    expect(await rowByCode(`${P}root`)).toMatchObject({ name: '根', parent_id: null })
     // 移动到别的父节点，再用 false / 0 / '' 置空
     expect((await put(c1.id, { parent_id: ids.c2, name: 'c1x' })).json()).toMatchObject({ parent_id: ids.c2, name: 'c1x' })
     expect((await put(c1.id, { parent_id: false })).json().parent_id).toBeNull()
@@ -211,6 +216,19 @@ describe('tree-list-page', () => {
     expect(bad.json()).toEqual({ error: '导入失败，存在错误数据', error_count: 1, error_rows: [{ line: 2, reason: '节点名称和编码不能为空', row: { 节点名称: 'a', 节点编码: '' } }] })
     const missing = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称\na\n`) })
     expect(missing.json()).toEqual({ error: '导入文件缺少"节点名称/节点编码"列' })
+
+    // 成环（有意偏离 Flask）：根挂到自己的子节点下、节点指向自身 → 400 错误行，整批回滚
+    const soloId = (await rowByCode(`${P}solo`))!.id
+    const importCsv = (body: string) => s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称,节点编码,父节点ID\n${body}`) })
+    const reason = `父节点 ${soloId} 会导致成环（不能是自身或其子节点）`
+    // 根挂到自己的子节点 solo 下
+    const cycle = await importCsv(`根,${P}root,${soloId}\n`)
+    expect([cycle.statusCode, cycle.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])]).toEqual([400, [[2, reason]]])
+    // 节点指向自身
+    const self = await importCsv(`solo,${P}solo,${soloId}\n`)
+    expect([self.statusCode, self.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])]).toEqual([400, [[2, reason]]])
+    expect((await rowByCode(`${P}root`))!.parent_id).toBeNull()
+    expect((await rowByCode(`${P}solo`))!.parent_id).toBe(ids.root)
   })
 
   it('删除：子节点 parent_id 置空且 updated_at 刷新（SQLAlchemy 先 UPDATE 子节点）', async () => {
