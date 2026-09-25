@@ -1,6 +1,5 @@
 /**
- * 卡片列表页 repository 层（对齐 AuraStack backend/app/component_center/crud/card_list_page.py
- * 以及 service 里直接拼的查询）
+ * 卡片列表页 repository 层（含 service 里直接拼的查询）
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'
@@ -86,7 +85,7 @@ export class CardListPageRepository {
     return row!
   }
 
-  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新，对齐 SQLAlchemy onupdate） */
+  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新） */
   async update(id: number, values: CardItemUpdate): Promise<void> {
     await this.db.update(card_items).set(values).where(eq(card_items.id, id))
   }

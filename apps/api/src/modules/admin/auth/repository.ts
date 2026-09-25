@@ -1,5 +1,5 @@
 /**
- * 认证模块 repository 层（对齐 AuraStack backend/app/admin/crud/auth.py + service 里的 login_logs 查询）
+ * 认证模块 repository 层（含 login_logs 查询）
  */
 
 import { and, count, eq, gte, or, sql, type SQL } from 'drizzle-orm'
@@ -44,7 +44,7 @@ export class AuthRepository {
 
   /**
    * 清零窗口内失败记录：同时给了用户名和 IP 时按 OR 删除；只给一个按该维度；
-   * 都没给时不加维度条件（与 Python 行为一致）。
+   * 都没给时不加维度条件。
    */
   async clearRecentFailures(username: string, ip: string, lockoutMinutes: number): Promise<void> {
     const conditions: (SQL | undefined)[] = [

@@ -1,5 +1,5 @@
 /**
- * 从 Fastify 路由补齐 OpenAPI paths，合并到 docs/apifox-full.openapi.json（对齐 AuraStack backend/scripts/generate_openapi.py）
+ * 从 Fastify 路由补齐 OpenAPI paths，合并到 docs/apifox-full.openapi.json
  *
  * - 保留文档中已有的详细路径定义，只为缺失的 /api 路由补上基础条目（通用响应）。
  * - 补出的条目是「骨架」（仅通用 responses、无 requestBody/parameters/content），
@@ -12,14 +12,12 @@
  * 路由来源：订阅 Fastify 的 `fastify.initialization` diagnostics channel，在实例创建后、任何路由注册前
  * 挂 onRoute 钩子，再跑一遍 buildApp() 收集全部路由（不启动监听、不连库）。
  *
- * 与 Python 的差异（均为修正 Python 的缺陷，结果更准确）：
+ * 路径与合并规则：
  * - 路径参数转成标准 OpenAPI 形式：`:user_id(^\d+$)` → `{user_id}`，通配 `*` → `{path}`。
- *   Python 的 `rule.replace('<','{')` 实际产出 `{int:user_id}` / `{path:filename}`（文档里现存的 32 条这类 key
- *   就是它补出的骨架，其中 19 条与人工维护的 `{user_id}` 详细条目重复）。
+ *   文档里还有历史遗留的 `{int:user_id}` / `{path:filename}` 这类 key（部分与人工维护的 `{user_id}` 详细条目重复）；
  *   “路径是否已在文档里”按参数位置比较（忽略参数名与转换器前缀），因此历史的 `{int:x}` 条目仍算已覆盖，不会再补第三份。
- * - 同一路径的所有方法合并后再生成骨架。Python 按 Flask Rule 逐条处理、路径已存在即跳过，
- *   同一路径拆成两个 Rule（如 announcements/<id> 的 PUT 与 DELETE）时只记下第一个 Rule 的方法。
- * - 写回时保持文档原有键顺序（含 "201" 在 "200" 前这类整数形键），输出与 Python `json.dumps(indent=2, ensure_ascii=False)` 逐字节一致。
+ * - 同一路径的所有方法合并后再生成骨架（如 announcements/:id 的 PUT 与 DELETE 一起记下）。
+ * - 写回时保持文档原有键顺序（含 "201" 在 "200" 前这类整数形键），输出格式同 Python `json.dumps(indent=2, ensure_ascii=False)`，逐字节稳定。
  */
 
 import diagnostics from 'node:diagnostics_channel'

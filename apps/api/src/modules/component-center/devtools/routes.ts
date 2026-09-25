@@ -1,13 +1,13 @@
 /**
- * 工程工具类 API（对齐 AuraStack backend/app/component_center/api/devtools.py）：
+ * 工程工具类 API：
  * 性能监控快照（REST）+ WebSocket `/ws/devtools` 实时推送。
  *
- * WebSocket 行为与 flask-sock 版一致：
+ * WebSocket 行为：
  * - 连接建立后先校验 Origin（同 Host 或 CORS_ORIGINS 白名单，无 Origin 放行）、会话已登录、
  *   `cc_devtools_perf_monitor` 权限，任一不满足直接正常关闭（1000）
  * - 立即推送一次、之后每秒推送 `{...snapshot, type:'metric'}`
  * - 收到消息回 `{...payload, type:'echo', server_ts}`（非 JSON 文本包成 `{text}`）；
- *   JSON 但不是对象时 Python 的 `payload['type'] = ...` 会抛异常、连接异常中断，这里同样直接断开
+ *   JSON 但不是对象时直接断开连接
  * - 30 秒没有收到任何消息断开（正常关闭 1000）
  */
 
@@ -21,10 +21,10 @@ import { metricMessage, systemSnapshot, warmUp } from './service'
 const PERMISSION = 'cc_devtools_perf_monitor'
 const NORMAL_CLOSURE = 1000
 
-/** 推送间隔与接收超时（Python：time.sleep(1) / ws.receive(timeout=30)）；导出仅供测试缩短 */
+/** 推送间隔（1 秒）与接收超时（30 秒）；导出仅供测试缩短 */
 export const WS_TIMINGS = { pushIntervalMs: 1000, receiveTimeoutMs: 30_000 }
 
-/** Python `urllib.parse.urlparse(url).netloc` */
+/** 取 URL 的 netloc（host[:port]，含 userinfo）：去掉 scheme 后取 `//` 与首个 `/?#` 之间的部分；没有 `//` 时返回空串 */
 export function urlNetloc(url: string): string {
   // urlsplit 会先去掉首部的 C0 控制字符与空格，并删除 \t \r \n
   const cleaned = url.replace(/^[\x00-\x20]+/, '').replace(/[\t\r\n]/g, '')
@@ -65,7 +65,7 @@ export async function registerDevtoolsRoutes(app: FastifyInstance): Promise<void
 
   // ── WebSocket：实时双向通信 demo ─────────────────────────────────────
   app.get('/ws/devtools', { websocket: true }, (socket: WebSocket, request: FastifyRequest) => {
-    // 鉴权完成前到达的消息先缓存，避免丢失（flask-sock 会缓冲在 input_buffer 里）
+    // 鉴权完成前到达的消息先缓存，避免丢失
     const pending: (string | Buffer)[] = []
     let onMessage: ((data: string | Buffer) => void) | undefined
     socket.on('message', (data, isBinary) => {
@@ -143,7 +143,7 @@ function runSession(
     try {
       payload = JSON.parse(text)
     } catch {
-      // 二进制帧解析失败时 Python 包成 {'text': bytes}，随后 json.dumps(bytes) 抛异常 → 连接异常中断
+      // 二进制帧无法按 JSON 解析时直接断开连接
       if (typeof data !== 'string') {
         stop()
         socket.terminate()
@@ -152,7 +152,7 @@ function runSession(
       payload = { text }
     }
     if (!isPlainObject(payload)) {
-      // Python：对 list/str/数字做 payload['type'] = 'echo' 抛异常，连接异常中断
+      // payload 不是对象（list/str/数字）时直接断开连接
       stop()
       socket.terminate()
       return

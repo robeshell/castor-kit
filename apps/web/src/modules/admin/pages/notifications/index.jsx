@@ -34,7 +34,7 @@ const TYPE_OPTIONS = [
 ]
 const DEFAULT_VALUES = { title: '', content: '', noti_type: 'info', link: '', is_global: true }
 
-/** 可搜索单选（原 Semi Select filter），用于“指定用户” */
+/** 可搜索单选，用于“指定用户” */
 function SearchableSelect({ value, onChange, options, placeholder, invalid }) {
   const [open, setOpen] = useState(false)
   const current = options.find((o) => String(o.value) === String(value))
@@ -95,7 +95,7 @@ export default function Notifications() {
   const [formOpen, setFormOpen] = useState(false)
   const [users, setUsers] = useState([])
 
-  // shouldUnregister：隐藏的“指定用户”字段不进入提交数据（与原 Semi Form 卸载字段行为一致）
+  // shouldUnregister：隐藏（已卸载）的“指定用户”字段不进入提交数据
   const form = useForm({ defaultValues: DEFAULT_VALUES, shouldUnregister: true })
   const isGlobal = useWatch({ control: form.control, name: 'is_global' })
 

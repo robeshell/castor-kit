@@ -1,8 +1,8 @@
 /**
- * 表格文件读写（CSV / XLSX），对齐 AuraStack backend/common/tabular.py
+ * 表格文件读写（CSV / XLSX）
  *
- * - `.xls` 已决定放弃（rewrite-plan §5.9）：上传 .xls 返回明确 400，导出/模板 file_type=xls 按默认 csv 处理
- * - CSV 输出与 Python csv.writer(excel 方言)一致：`\r\n` 行尾、最小引用、UTF-8 BOM
+ * - 不支持 `.xls`：上传 .xls 返回明确 400，导出/模板 file_type=xls 按默认 csv 处理
+ * - CSV 输出按 excel 方言：`\r\n` 行尾、最小引用、UTF-8 BOM
  * - 公式注入防护：以 = + @ 或制表符/回车开头，或 - 后跟非数字的单元格加 `'` 前缀
  * - 导入文件上限 5MB
  */
@@ -22,7 +22,7 @@ const MIME_MAP: Record<TableFileType, string> = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
-/** 读取/校验失败（对应 Python ValueError），调用方转成 400 */
+/** 读取/校验失败，调用方转成 400 */
 export class TableFileError extends Error {}
 
 export interface UploadedFile {
@@ -61,7 +61,7 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-/** 等价 Python `_format_cell_value`：None→''，datetime→'%Y-%m-%d %H:%M:%S'，整数值浮点→int，其余 str().strip() */
+/** 单元格取值转文本：null→''，日期时间→'YYYY-MM-DD HH:mm:ss'，整数值浮点→整数文本，其余转字符串后去首尾空白 */
 export function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (value instanceof Date) {
@@ -180,13 +180,13 @@ export async function readTableFile(file: UploadedFile | null | undefined): Prom
 
 // ---------------------------------------------------------------- 写出
 
-/** Python csv.writer（excel 方言，QUOTE_MINIMAL）单字段编码 */
+/** CSV（excel 方言，最小引用）单字段编码 */
 function csvField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
 }
 
 function csvRow(fields: string[]): string {
-  // Python 对“只有一个空字段”的行写成 ""，避免被读成空行
+  // “只有一个空字段”的行写成 ""，避免被读成空行
   if (fields.length === 1 && fields[0] === '') return '""\r\n'
   return `${fields.map(csvField).join(',')}\r\n`
 }
@@ -214,7 +214,7 @@ export async function buildTable(
   } else {
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Sheet')
-    // openpyxl 对空字符串单元格不写 <c> 元素；exceljs 写 '' 会生成空字符串单元格，这里转成 null 对齐
+    // 空字符串单元格不写 <c> 元素：exceljs 写 '' 会生成空字符串单元格，这里转成 null
     const blankToNull = (row: string[]) => row.map((v) => (v === '' ? null : v))
     sheet.addRow(blankToNull(safeHeaders))
     for (const row of safeRows) sheet.addRow(blankToNull(row))
@@ -223,7 +223,7 @@ export async function buildTable(
   return { payload, contentType: MIME_MAP[fileType], filename: `${baseFilename}.${fileType}` }
 }
 
-/** 发送表格文件（对应 Python build_table_response 返回的 Response） */
+/** 发送表格文件（设置 Content-Type / 下载文件名并写出内容） */
 export function sendTable(reply: FastifyReply, table: TablePayload): FastifyReply {
   return reply
     .header('Content-Type', table.contentType)

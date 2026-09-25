@@ -12,17 +12,28 @@
 import { z } from 'zod'
 import { ServiceError } from '@/common/errors'
 import { pyStr } from '@/common/py'
-import type { New<Resource> } from '@/db/schema'
+import type { <Resource>, New<Resource> } from '@/db/schema'
 
 /** 请求体：loose + 全可选（驱动 OpenAPI），归一化在 buildValues 里做 */
 export const <resource>BodySchema = z.record(z.string(), z.unknown()).nullish()
 
-/** 导出字段映射（key=toDict 字段名, value=表头中文名） */
-export const EXPORT_FIELD_MAP: Record<string, string> = {
+/**
+ * 导出列：表头字符串（值取 toDict 的同名字段），或 [表头, 取值函数]（需要转换时用，如枚举显示中文、布尔显示是/否）。
+ * 字段校验报错也用这里的表头作为字段名。
+ */
+export type ExportColumn = string | [header: string, value: (item: <Resource>) => unknown]
+
+export const EXPORT_FIELD_MAP: Record<string, ExportColumn> = {
   id: 'ID',
   name: '名称',
-  // TODO: 补充其他字段，如 status: '状态'
+  // TODO: 补充其他字段，如 status: ['状态', (item) => STATUS_LABELS[item.status ?? ''] ?? item.status]
   created_at: '创建时间',
+}
+
+/** 字段的中文名（取导出表头；没有导出列时退回字段名） */
+export function fieldLabel(field: string): string {
+  const column = EXPORT_FIELD_MAP[field]
+  return Array.isArray(column) ? column[0] : (column ?? field)
 }
 
 /** 导入列头映射（key=中文表头, value=字段名）；第一列为必填 */
@@ -34,14 +45,14 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 export type <Resource>Values = Partial<Omit<New<Resource>, 'id' | 'created_at' | 'updated_at'>>
 
 function invalid(field: string): ServiceError {
-  return new ServiceError(`字段 ${field} 的值无效`, 400)
+  return new ServiceError(`${fieldLabel(field)}的值无效`, 400)
 }
 
 function toStr(value: unknown): string | null {
   return value === null || value === undefined ? null : pyStr(value)
 }
 
-/** 示例：整数字段（Python int()），空值为 null */
+/** 示例：整数字段（按整数解析），空值为 null */
 export function toInt(field: string, value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   if (typeof value === 'number' && Number.isInteger(value)) return value
@@ -52,7 +63,7 @@ export function toInt(field: string, value: unknown): number | null {
 /**
  * 请求体 → 列值。
  * - 新增（partial=false）：所有字段都写入，缺失的为 null
- * - 编辑（partial=true）：只写请求体里出现的字段（Python `if 'x' in data`）
+ * - 编辑（partial=true）：只写请求体里出现的字段（`'x' in data`）
  */
 export function buildValues(data: Record<string, unknown>, partial: boolean): <Resource>Values {
   const values: <Resource>Values = {}

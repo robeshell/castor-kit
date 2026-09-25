@@ -1,9 +1,5 @@
 # はじめる
 
-::: info castor-kit と AuraStack
-castor-kit は AuraStack（Flask 版）の Node.js/TypeScript リライト版です。バックエンドは Fastify + Drizzle に置き換わり、React フロントエンドはルーティングと機能を引き継ぎつつ UI を Semi Design から shadcn/ui + Tailwind CSS v4 に移行し、同じ PostgreSQL スキーマに接続し、互換性のある API 契約を維持しています。
-:::
-
 ## 環境要件
 
 利用シーンに合わせてセットアップ方法を選択してください：
@@ -77,7 +73,7 @@ cp apps/api/.env.example apps/api/.env.development
 `apps/api/.env.development` を開き、最低限データベース接続を設定します：
 
 ```env
-DEV_DATABASE_URL=postgresql://youruser@localhost/aurastack
+DEV_DATABASE_URL=postgresql://youruser@localhost/castor_kit
 ```
 
 開発環境では `NODE_ENV` のデフォルトは `development` です。`SECRET_KEY` と `ADMIN_PASSWORD` は空のままでも構いません（組み込みの開発用キーと `admin123` が使われます）。
@@ -86,7 +82,7 @@ DEV_DATABASE_URL=postgresql://youruser@localhost/aurastack
 
 ```bash
 # データベースを作成
-createdb aurastack
+createdb castor_kit
 
 # Drizzle マイグレーションを実行（空のデータベースには全テーブルが作成されます）
 pnpm db:migrate

@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * 树形列表（替代 Semi Tree）。nodes = [{ key, label, children?, …任意字段 }]
+ * 树形列表。nodes = [{ key, label, children?, …任意字段 }]
  *   <TreeView nodes={tree} selectedKey={id} onSelect={(node) => …}
  *     renderLabel={(node) => …} renderActions={(node) => …} defaultExpandAll />
  */

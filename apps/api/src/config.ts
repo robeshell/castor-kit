@@ -1,7 +1,7 @@
 /**
- * 多环境配置（对齐 AuraStack config.py）
+ * 多环境配置
  *
- * - 变量名沿用原名，仅 `FLASK_ENV` → `NODE_ENV`
+ * - 运行环境由 `NODE_ENV` 决定（development / test / production）
  * - 启动时加载 `.env.<NODE_ENV>`（apps/api 目录优先，其次仓库根目录；已有环境变量不覆盖）
  * - fail-closed：production 缺 SECRET_KEY / ADMIN_PASSWORD 直接抛错退出
  */
@@ -25,7 +25,7 @@ export interface AppConfig {
   secretKey: string
   adminUsername: string
   adminPassword: string
-  /** 请求体上限（字节），对齐 Flask MAX_CONTENT_LENGTH */
+  /** 请求体上限（字节），MAX_CONTENT_LENGTH */
   maxContentLength: number
   sessionTtlHours: number
   /** SESSION_COOKIE_SECURE：true/false 强制；留空 = auto（按请求协议，TLS 才打 Secure） */
@@ -35,7 +35,7 @@ export interface AppConfig {
   loginLockoutMinutes: number
   /** 前端构建产物目录（apps/web/dist），不存在时 SPA fallback 返回 JSON 提示 */
   webDistDir: string
-  /** 运行时数据目录（对应 Flask instance/，上传文件在 instance/uploads/...） */
+  /** 运行时数据目录（instance/，上传文件在 instance/uploads/...） */
   instanceDir: string
 
   // ---- 定时任务 ----
@@ -98,7 +98,7 @@ const envSchema = z.object({
   APIFOX_API_VERSION: z.string().optional().default('2024-03-28'),
 })
 
-/** Python `_is_truthy`：'1' / 'true' / 'yes' / 'on'（忽略大小写与首尾空白） */
+/** 环境变量布尔解析：'1' / 'true' / 'yes' / 'on' 为真（忽略大小写与首尾空白） */
 export function isTruthy(value: unknown): boolean {
   return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
 }
@@ -128,7 +128,7 @@ function resolveAiSqlUrl(raw: string | undefined, env: AppEnv, mainUrl: string):
   const value = (raw ?? '').trim()
   if (value) return value
   if (env === 'production') {
-    throw new Error('生产环境必须设置 AI_SQL_DATABASE_URL（指向非超级用户只读账号 aurastack_ro），拒绝回退到主库连接')
+    throw new Error('生产环境必须设置 AI_SQL_DATABASE_URL（指向非超级用户只读账号 castor_kit_ro），拒绝回退到主库连接')
   }
   return mainUrl
 }
@@ -139,10 +139,10 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 
   const databaseUrl =
     env === 'production'
-      ? parsed.DATABASE_URL || 'postgresql://localhost/aurastack'
+      ? parsed.DATABASE_URL || 'postgresql://localhost/castor_kit'
       : env === 'test'
-        ? parsed.TEST_DATABASE_URL || 'postgresql://localhost/aurastack_test'
-        : parsed.DEV_DATABASE_URL || 'postgresql://localhost/aurastack_dev'
+        ? parsed.TEST_DATABASE_URL || 'postgresql://localhost/castor_kit_test'
+        : parsed.DEV_DATABASE_URL || 'postgresql://localhost/castor_kit_dev'
 
   const defaultPort = env === 'production' ? 5000 : env === 'test' ? 5002 : 5001
 

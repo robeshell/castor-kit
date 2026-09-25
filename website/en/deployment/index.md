@@ -24,7 +24,7 @@ Edit `.env.production` and set at least these four values (`docker-compose.yml` 
 SECRET_KEY=a-random-string-of-64-or-more-characters   # Required — session encryption key
 ADMIN_PASSWORD=your-admin-password                   # Required — initial admin password
 POSTGRES_PASSWORD=your-db-password                   # Required — PostgreSQL password
-POSTGRES_RO_PASSWORD=your-readonly-password          # Required — password of the AI SQL read-only role aurastack_ro
+POSTGRES_RO_PASSWORD=your-readonly-password          # Required — password of the AI SQL read-only role castor_kit_ro
 ```
 
 Then build and start:
@@ -91,22 +91,6 @@ docker compose --env-file .env.production up -d --build
 
 ---
 
-## Switching Over from AuraStack
-
-castor-kit is the Node.js rewrite of AuraStack and uses the same database schema. On a server that already runs AuraStack with Docker, castor-kit can reuse the existing volumes:
-
-```bash
-COMPOSE_DB_VOLUME=aurastack_postgres_data \
-COMPOSE_INSTANCE_VOLUME=aurastack_app_instance \
-docker compose --env-file .env.production up -d --build
-```
-
-- On first start the baseline migration is only marked as applied; no existing table is changed and the `alembic_version` table is left alone
-- Password hashes are compatible, so accounts keep working, but session cookies are not — every user has to log in once more after the switch
-- The old `FLASK_ENV` entry in `.env.production` is no longer used; compose sets `NODE_ENV=production`
-
----
-
 ## Manual Server Deployment
 
 For VPS or bare-metal servers without Docker. Requires Node 22+, pnpm and PostgreSQL 14+.
@@ -131,10 +115,10 @@ Edit `.env.production` (either the repository root or `apps/api/` works):
 
 ```env
 SECRET_KEY=your-strong-random-secret
-DATABASE_URL=postgresql://user:password@localhost/aurastack
+DATABASE_URL=postgresql://user:password@localhost/castor_kit
 ADMIN_PASSWORD=your-admin-password
 POSTGRES_RO_PASSWORD=your-readonly-password
-AI_SQL_DATABASE_URL=postgresql://aurastack_ro:your-readonly-password@localhost/aurastack
+AI_SQL_DATABASE_URL=postgresql://castor_kit_ro:your-readonly-password@localhost/castor_kit
 ```
 
 ### 3. Initialize the database
@@ -143,7 +127,7 @@ AI_SQL_DATABASE_URL=postgresql://aurastack_ro:your-readonly-password@localhost/a
 NODE_ENV=production node apps/api/dist/setup-once.js
 ```
 
-This runs the migrations, syncs RBAC data and creates the read-only role `aurastack_ro` from `POSTGRES_RO_PASSWORD`.
+This runs the migrations, syncs RBAC data and creates the read-only role `castor_kit_ro` from `POSTGRES_RO_PASSWORD`.
 
 ### 4. Start the server
 

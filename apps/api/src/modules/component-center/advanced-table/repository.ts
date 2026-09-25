@@ -1,6 +1,5 @@
 /**
- * 高级表格页 repository 层（对齐 AuraStack backend/app/component_center/crud/advanced_table_page.py，
- * 以及 service 里直接拼的查询：列表筛选、统计）
+ * 高级表格页 repository 层（含 service 里直接拼的查询：列表筛选、统计）
  */
 
 import { and, asc, count, desc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -32,7 +31,7 @@ const SORTABLE_FIELDS = {
   id: t.id,
 } as const
 
-/** psycopg2 内联 `id IN (...)` 时各元素的字面量；bool / list / dict 在 Python 侧同样会让数据库或驱动报错 → 500 */
+/** 内联进 `id IN (...)` 时各元素的字面量；bool / list / dict 会让数据库报错 → 500 */
 function idLiteral(value: unknown): SQL {
   if (value === null || value === undefined) return sql`NULL`
   if (typeof value === 'number' && Number.isFinite(value)) return sql.raw(String(value))

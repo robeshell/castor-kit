@@ -1,5 +1,5 @@
 /**
- * 高级表格页 schema 层（对齐 AuraStack backend/app/component_center/schema/advanced_table_page.py）
+ * 高级表格页 schema 层
  *
  * 注意这里的 parse_bool 与 kanban/detail_tabs 的不同：认 on/off/是/否，未知值回落默认值。
  */
@@ -54,8 +54,8 @@ export function hasKey(data: Record<string, unknown>, key: string): boolean {
 }
 
 /**
- * Python 发给 numeric 列的 float：psycopg2 按 `repr(float)` 内联（nan/inf 为 'NaN'/'Infinity'），
- * JS 的 `String(number)` 同为最短往返表示，数据库按 numeric(7,2) 舍入。
+ * 浮点数 → numeric 参数文本：`String(number)` 为最短往返表示（NaN/±Infinity 用 PG 的字面量），
+ * 数据库按 numeric(7,2) 舍入。
  */
 export function floatToNumericParam(value: number): string {
   if (Number.isNaN(value)) return 'NaN'
@@ -71,7 +71,7 @@ function stripDecimal(text: string): string {
   return t === '0' ? '0' : `${neg ? '-' : ''}${t}`
 }
 
-/** `Decimal(numeric) == float`：Python 按精确值比较（Decimal('0.10') != 0.1） */
+/** numeric 与浮点数按精确值比较（'0.10' 不等于 0.1） */
 export function numericEqualsFloat(numeric: string | null, value: number): boolean {
   if (numeric === null || numeric === 'NaN' || !Number.isFinite(value) || Math.abs(value) >= 1e21) return false
   const exact = stripDecimal(value.toFixed(100))
@@ -79,7 +79,7 @@ export function numericEqualsFloat(numeric: string | null, value: number): boole
   return exact === stripDecimal(numeric)
 }
 
-/** Python `round(x, 2)`：按精确二进制值舍入，恰好一半时取偶 */
+/** 保留 2 位小数，Python `round(x, 2)` 语义：按精确二进制值舍入，恰好一半时取偶 */
 export function pyRound2(x: number): number {
   if (!Number.isFinite(x)) return x
   const t = x * 8

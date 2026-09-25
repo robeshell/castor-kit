@@ -1,5 +1,5 @@
 /**
- * 数据字典 schema 层（对齐 AuraStack backend/app/admin/schema/dicts.py）
+ * 数据字典 schema 层
  */
 
 import { pyInt, pyStr, pyStrOrEmpty } from '@/common/py'

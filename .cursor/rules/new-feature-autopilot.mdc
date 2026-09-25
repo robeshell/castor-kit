@@ -69,7 +69,7 @@ pnpm seed:rbac -- --incremental
 **4d. 数据库迁移（必须落库）**
 ```bash
 pnpm db:migrate
-psql -d aurastack -c '\d <name>s'
+psql -d castor_kit -c '\d <name>s'
 ```
 
 ### Step 5 — 验证门禁（强制，不得跳过）

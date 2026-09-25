@@ -10,7 +10,7 @@ export default tseslint.config(
     files: ['**/*.ts'],
     languageOptions: { globals: globals.node },
     rules: {
-      // 时间输出必须走 common/serialize.toIso / utcNowIso（对齐 Python isoformat，rewrite-plan §2.2）
+      // 时间输出必须走 common/serialize.toIso / utcNowIso（isoformat 风格：无 Z、6 位微秒，见 docs/architecture.md §4.2）
       'no-restricted-syntax': [
         'error',
         {
@@ -18,10 +18,10 @@ export default tseslint.config(
           message: '禁止 Date#toISOString()：时间输出用 common/serialize 的 toIso() / utcNowIso()',
         },
       ],
-      // 移植 Python 的 str.strip / isspace / 控制字符判断时，正则与字符串里会有意出现控制字符与 Unicode 空白
+      // 实现 Python 语义的 str.strip / isspace / 控制字符判断时，正则与字符串里会有意出现控制字符与 Unicode 空白
       'no-control-regex': 'off',
       'no-irregular-whitespace': ['error', { skipStrings: true, skipRegExps: true, skipTemplates: true, skipComments: true }],
-      // 解构里只要有一个变量会被重新赋值就允许 let（移植的 CPython 解析代码大量使用这种写法）
+      // 解构里只要有一个变量会被重新赋值就允许 let（日期时间解析等代码大量使用这种写法）
       'prefer-const': ['error', { destructuring: 'all' }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
     },

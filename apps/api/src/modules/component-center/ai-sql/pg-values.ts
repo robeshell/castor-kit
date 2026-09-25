@@ -1,21 +1,20 @@
 /**
- * 把只读查询返回的 PostgreSQL 文本值转换成与 Flask 版一致的 JSON 值。
+ * 按 OID 把只读查询返回的 PostgreSQL 文本值转换成接口输出的 JSON 值。
  *
- * Flask 版链路：psycopg2（+ SQLAlchemy 注册的 UUID 类型）把列值转成 Python 对象，
- * 再由 ai_sql_engine.execute_readonly 按以下规则序列化：
- *   None → null；有 isoformat（date/datetime/time）→ isoformat()；int/float/bool → 原值；其余 → str(val)
- * 所以 numeric → str(Decimal)（如 `1.2E-7`）、json 对象/数组 → Python repr（`{'a': 1}`）、
- * 数组 → Python list repr（`[Decimal('1.5'), None]`）、interval → str(timedelta)（`1 day, 2:00:00`）。
- * 这里按 OID 复刻这些转换（shadow-diff 对 Flask 实测）。
+ * 先把列值解析成 Python 风格的值模型（int / float / Decimal / date / datetime / time / timedelta / Range / list / dict …），
+ * 再按以下规则序列化（toResponseValue）：
+ *   null → null；date/datetime/time → ISO 格式；int/float/bool → 原值；其余 → Python `str()` 的文本写法
+ * 所以 numeric → Decimal 文本（如 `1.2E-7`）、json 对象/数组 → Python repr（`{'a': 1}`）、
+ * 数组 → Python list repr（`[Decimal('1.5'), None]`）、interval → timedelta 文本（`1 day, 2:00:00`）。
  *
- * 已知且有意保留的差异：
- * - bytea：psycopg2 给 memoryview，str() 是带内存地址的 `<memory at 0x...>`（每次不同，无意义），这里输出 PG 的 hex 文本
- * - float 的 NaN/±Infinity：Flask 输出非法 JSON 字面量 `NaN`/`Infinity`（前端无法解析），这里输出 null
+ * 特殊处理：
+ * - bytea：输出 PG 的 hex 文本
+ * - float 的 NaN/±Infinity：输出 null（`NaN`/`Infinity` 不是合法 JSON 字面量，前端无法解析）
  */
 
 export class PyConvertError extends Error {}
 
-// ---- Python 值模型 ----
+// ---- 值模型（Python 风格，用于生成 repr / str 文本） ----
 
 interface PyInt {
   t: 'int'
@@ -77,7 +76,7 @@ interface PyDict {
   t: 'dict'
   entries: [string, PyValue][]
 }
-/** psycopg2.extras 的 NumericRange / DateRange / DateTimeRange / DateTimeTZRange */
+/** 范围类型：NumericRange / DateRange / DateTimeRange / DateTimeTZRange */
 interface PyRange {
   t: 'range'
   cls: string
@@ -301,7 +300,7 @@ function pyScalarStr(value: PyValue): string {
   }
 }
 
-/** Python `str(value)`（只用于 execute_readonly 的“其余类型”分支） */
+/** Python `str(value)` 的文本写法（只用于 toResponseValue 的“其余类型”分支） */
 function pyStrOf(value: Exclude<PyValue, null | boolean>): string {
   if (Array.isArray(value)) return pyRepr(value)
   switch (value.t) {
@@ -324,13 +323,13 @@ function pyStrOf(value: Exclude<PyValue, null | boolean>): string {
 
 type JsonRaw = { rawJSON: (text: string) => unknown }
 
-/** int → JSON 数字；超出 JS 安全整数的值用 JSON.rawJSON 保留精确位数（Python int 无精度损失） */
+/** int → JSON 数字；超出 JS 安全整数的值用 JSON.rawJSON 保留精确位数（不丢精度） */
 function intJson(v: bigint): unknown {
   const n = Number(v)
   return Number.isSafeInteger(n) ? n : (JSON as unknown as JsonRaw).rawJSON(v.toString())
 }
 
-/** execute_readonly 的逐值序列化规则 */
+/** 只读查询结果的逐值序列化规则 */
 export function toResponseValue(value: PyValue): unknown {
   if (value === null || typeof value === 'boolean') return value
   if (Array.isArray(value)) return pyRepr(value)
@@ -350,7 +349,7 @@ export function toResponseValue(value: PyValue): unknown {
   }
 }
 
-// ---- PostgreSQL 文本 → Python 值（psycopg2 typecaster 语义） ----
+// ---- PostgreSQL 文本 → 值模型 ----
 
 function parseFraction(frac: string | undefined): number {
   if (!frac) return 0
@@ -382,7 +381,7 @@ function parseDate(text: string): PyDate {
 function parseTime(text: string, withTz: boolean): PyTime {
   const m = /^(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([+-][\d:]+)?$/.exec(text)
   if (!m) throw new PyConvertError(`bad time: ${text}`)
-  // psycopg2 把 24:00:00 折回 00:00:00
+  // 24:00:00 折回 00:00:00
   const H = Number(m[1]) % 24
   return { t: 'time', H, M: Number(m[2]), S: Number(m[3]), us: parseFraction(m[4]), tz: withTz ? parseOffset(m[5]) : null }
 }
@@ -408,7 +407,7 @@ function parseTimestamp(text: string, withTz: boolean): PyDateTime {
   }
 }
 
-/** psycopg2 typecast_PYINTERVAL_cast 的状态机（IntervalStyle=postgres；年 = 365 天、月 = 30 天） */
+/** 解析 interval 文本的状态机（IntervalStyle=postgres；年 = 365 天、月 = 30 天） */
 function parseInterval(text: string): PyTimedelta {
   const INT_MAX = 2_147_483_647
   let v = 0
@@ -500,7 +499,7 @@ function parseInterval(text: string): PyTimedelta {
   return makeTimedelta(totalDays * 86_400_000_000n + totalSeconds * 1_000_000n + totalMicrosPart)
 }
 
-/** 保序 JSON 解析（Python json.loads：整数不丢精度，对象键保持文档顺序，重复键取最后一个值） */
+/** 保序 JSON 解析（整数不丢精度，对象键保持文档顺序，重复键取最后一个值） */
 export function parseJsonPy(text: string): PyValue {
   let i = 0
   const ws = () => {
@@ -701,7 +700,7 @@ const intOf: Scalar = (s) => ({ t: 'int', v: BigInt(s) })
 const floatOf: Scalar = (s) => ({ t: 'float', v: s === 'NaN' ? Number.NaN : Number(s) })
 const strOf: Scalar = (s) => ({ t: 'str', v: s })
 
-/** 标量类型 OID → 转换函数（未列出的类型按字符串原样返回，与 psycopg2 对未知类型的处理一致） */
+/** 标量类型 OID → 转换函数（未列出的类型按字符串原样返回） */
 const SCALARS: Record<number, Scalar> = {
   16: (s) => s === 't',
   20: intOf,
@@ -734,7 +733,7 @@ const SCALARS: Record<number, Scalar> = {
   3910: (s) => parseRange(s, 'DateTimeTZRange', (v) => parseTimestamp(v, true)),
 }
 
-/** 数组类型 OID → 元素类型 OID（psycopg2 内置的数组 typecaster + SQLAlchemy 注册的 uuid[]） */
+/** 数组类型 OID → 元素类型 OID（未列出的数组类型按字符串原样返回） */
 const ARRAYS: Record<number, number> = {
   1000: 16,
   1005: 21,
@@ -759,7 +758,7 @@ const ARRAYS: Record<number, number> = {
   3807: 3802,
   2951: 2950,
   1001: 17,
-  // psycopg2 对这几种数组按字符串数组解析（元素类型本身不注册）
+  // 这几种数组按字符串数组解析（元素类型本身没有转换函数）
   1041: 25,
   651: 25,
   1040: 25,
@@ -777,7 +776,7 @@ function convertArray(raw: RawArray, element: Scalar): PyValue[] {
   return raw.map((item) => (item === null ? null : Array.isArray(item) ? convertArray(item, element) : element(item)))
 }
 
-/** 一列原始文本 → Python 值 */
+/** 一列原始文本 → 值模型 */
 export function pgToPy(text: string | null, oid: number): PyValue {
   if (text === null) return null
   const scalar = SCALARS[oid]

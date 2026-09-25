@@ -1,5 +1,5 @@
 /**
- * 看板页 service 层（对齐 AuraStack backend/app/component_center/service/kanban_page.py）
+ * 看板页 service 层
  */
 
 import { randomUUID } from 'node:crypto'
@@ -203,7 +203,7 @@ export class KanbanService {
     try {
       return await this.db.transaction(async (tx) => {
         const repo = new KanbanRepository(tx)
-        // item.get(...)：元素不是 dict 时 Python 抛 AttributeError → 500
+        // 元素不是对象时返回 500
         const get = (item: unknown, key: string): unknown => {
           if (!isPlainObject(item)) throw new ServiceError(`'${typeof item}' object has no attribute 'get'`, 500)
           return item[key]

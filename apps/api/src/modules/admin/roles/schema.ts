@@ -1,11 +1,11 @@
 /**
- * 角色模块 schema 层（对齐 AuraStack backend/app/admin/schema/roles.py）
+ * 角色模块 schema 层
  */
 
 import { formatDateTime } from '@/common/serialize'
 import type { Menu, Role } from '@/db/schema'
 
-/** 导出行：角色 + 按 Python `item.menus` 实际加载顺序排列的菜单 */
+/** 导出行：角色 + 按角色菜单实际加载顺序排列的菜单 */
 export type RoleExportItem = Role & { menus: Menu[] }
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: RoleExportItem) => unknown]> = {

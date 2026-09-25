@@ -1,5 +1,5 @@
 /**
- * HTTP 契约快照（rewrite-plan §2.2 / §9）：响应形状、错误结构、csrf_token、时间格式、会话 cookie。
+ * HTTP 契约快照（见 docs/architecture.md「横切约定」）：响应形状、错误结构、csrf_token、时间格式、会话 cookie。
  * 用真实 PostgreSQL（TEST_DATABASE_URL）+ app.inject()，夹具数据自建自删。
  */
 
@@ -74,7 +74,7 @@ describe('内置路由与错误形状', () => {
     expect(res.json()).toEqual({ error: '资源不存在' })
   })
 
-  it('未命中路由的非 GET 方法一律 405；GET 只注册了 POST 的路径是 404（对齐 Flask catch-all 语义）', async () => {
+  it('未命中路由的非 GET 方法一律 405；GET 只注册了 POST 的路径是 404', async () => {
     const del = await app.inject({ method: 'DELETE', url: '/api/admin/my-menus' })
     expect(del.statusCode).toBe(405)
     expect(del.json()).toEqual({ error: '请求方法不允许' })
@@ -131,7 +131,7 @@ describe('登录 / 会话', () => {
     expect(user.roles).toHaveLength(1)
     expect(Object.keys(user.roles[0]).sort()).toEqual(['code', 'created_at', 'description', 'id', 'name'])
     expect(user.roles[0].created_at).toMatch(ISO_RE)
-    // Python 侧是 list(set(...))，顺序不保证 → 按集合比较
+    // 顺序不保证 → 按集合比较
     expect([...user.menu_codes].sort()).toEqual([...fx.assignedCodes].sort())
 
     const cookie = res.cookies.find((c) => c.name === 'castor_session')!
@@ -248,7 +248,7 @@ describe('CSRF', () => {
 })
 
 describe('改密 / 登出', () => {
-  it('校验、旧密码错误、成功后写 werkzeug 格式哈希并记操作日志', async () => {
+  it('校验、旧密码错误、成功后写 pbkdf2:sha256 格式哈希并记操作日志', async () => {
     const { cookie, csrf } = await loggedIn()
     const post = (payload: unknown) =>
       app.inject({

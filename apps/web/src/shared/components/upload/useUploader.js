@@ -12,7 +12,7 @@ const nextUid = () => `up-${Date.now()}-${seq++}`
 
 /**
  * 上传状态机：校验扩展名 / 大小 → 调用 uploadApi(file) → 回填 url。
- * fileList 条目形状与原 Semi Upload 一致：{ uid, name, url, status: 'uploading' | 'success' | 'error', response }
+ * fileList 条目形状：{ uid, name, url, status: 'uploading' | 'success' | 'error', response }
  */
 export function useUploader({ fileList, onFileListChange, uploadApi, limit, accept, maxSizeMB, kind = '文件' }) {
   const listRef = useRef(fileList)

@@ -159,15 +159,11 @@ pnpm db:generate --name add_customer_table
 pnpm db:migrate
 
 # 테이블이 실제로 존재하는지 확인
-psql -d aurastack -c '\d customers'
+psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning 마이그레이션은 반드시 실제로 적용해야 합니다
 마이그레이션 파일을 생성하는 것만으로는 충분하지 않습니다. `pnpm db:migrate`를 실행하고 `psql \d`로 테이블/컬럼이 존재하는지 확인하세요. `pnpm verify`의 `migration_applied` 검사도 데이터베이스의 마이그레이션 기록과 대조합니다.
-:::
-
-::: info AuraStack 데이터베이스 인수
-기존 AuraStack 데이터베이스에 대해 `pnpm db:migrate`를 실행하면 베이스라인 마이그레이션은 적용됨으로만 표시되고(`drizzle.__drizzle_migrations`에 기록) DDL은 실행되지 않습니다. 기존 `alembic_version` 테이블은 그대로 유지됩니다.
 :::
 
 ---
@@ -189,7 +185,7 @@ TypeScript 타입, 계층 규칙(로컬 권한 헬퍼 금지), 마이그레이�
 ```bash
 pnpm dev                       # api (5001) + web (5173)
 pnpm typecheck                 # TypeScript 타입 검사
-pnpm test                      # Vitest (aurastack_test 데이터베이스 필요)
+pnpm test                      # Vitest (castor_kit_test 데이터베이스 필요)
 pnpm build                     # web + api + mcp 빌드
 pnpm db:generate --name <desc> # 마이그레이션 생성
 pnpm db:migrate                # 마이그레이션 적용
@@ -200,7 +196,7 @@ pnpm openapi:apifox            # Apifox로 푸시 (APIFOX_PROJECT_ID / APIFOX_AC
 pnpm mcp                       # MCP 서버 시작
 ```
 
-테스트 데이터베이스: `createdb -T aurastack aurastack_test`(개발 데이터베이스 복제) 또는 `createdb aurastack_test`(빈 데이터베이스, 테스트가 마이그레이션을 자동 실행).
+테스트 데이터베이스: `createdb -T castor_kit castor_kit_test`(개발 데이터베이스 복제) 또는 `createdb castor_kit_test`(빈 데이터베이스, 테스트가 마이그레이션을 자동 실행).
 
 ---
 
@@ -228,8 +224,8 @@ castor-kit에는 모든 주요 AI 코딩 도구를 위한 컨텍스트 파일이
 | 변수 | 기본값 | 설명 |
 |---|---|---|
 | `NODE_ENV` | `development` | 실행 환경: `development` / `production` / `test` |
-| `DEV_DATABASE_URL` | `postgresql://localhost/aurastack_dev` | 로컬 PostgreSQL 연결 문자열 |
-| `TEST_DATABASE_URL` | `postgresql://localhost/aurastack_test` | `pnpm test`가 사용하는 테스트 데이터베이스 |
+| `DEV_DATABASE_URL` | `postgresql://localhost/castor_kit_dev` | 로컬 PostgreSQL 연결 문자열 |
+| `TEST_DATABASE_URL` | `postgresql://localhost/castor_kit_test` | `pnpm test`가 사용하는 테스트 데이터베이스 |
 | `SECRET_KEY` | 내장 개발용 키 | 세션 암호화 키 (개발 환경에서는 선택) |
 | `ADMIN_PASSWORD` | `admin123` | `pnpm seed:rbac`가 관리자 계정에 사용하는 비밀번호 |
 | `PORT` | `5001` | 백엔드 포트 (Vite 프록시 대상이 5001) |

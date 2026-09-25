@@ -1,5 +1,5 @@
 /**
- * castor-kit 代码骨架生成脚本（对齐 AuraStack backend/scripts/scaffold.py）
+ * castor-kit 代码骨架生成脚本：按字段定义生成后端模块、前端页面与迁移
  *
  * 用法：
  *   pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str,status:str"
@@ -24,7 +24,7 @@
  *   drizzle-kit generate --name <name>
  *
  * 后端目录/文件名按仓库约定用小写连字符（ck_demo → ck-demo，component_center → component-center）；
- * 表名 `<name>s`、前端路径（admin/pages/<name>、component_center/pages/admin/<name>_page）与 Python 版一致。
+ * 表名为 `<name>s`；前端路径为 admin/pages/<name> 或 component_center/pages/admin/<name>_page。
  */
 
 import { spawnSync } from 'node:child_process'
@@ -60,12 +60,10 @@ export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
   datetime: { column: "timestamp({ mode: 'string' })", builder: 'timestamp', coerce: 'toDateTime' },
 }
 
-/** Python：`FIELD_TYPE_MAP.get(ftype, FIELD_TYPE_MAP['str'])` */
+/** 字段类型规格；未知类型按 str 处理 */
 export function fieldSpec(type: string): FieldTypeSpec {
   return FIELD_TYPE_MAP[type] ?? FIELD_TYPE_MAP.str!
 }
-
-const STR_TYPES = new Set(['str', 'str50', 'str20', 'str100'])
 
 export type Field = [name: string, type: string]
 
@@ -134,9 +132,11 @@ export interface ScaffoldSpec {
 
 export function buildSpec(name: string, domain: 'admin' | 'component_center', fields: Field[]): ScaffoldSpec {
   const domainPrefix = domain === 'admin' ? 'system' : 'cc'
-  // 找第一个 str 类型字段作为 name 字段（Python 同款规则）
-  const nameField = fields.find(([, t]) => ['str', 'str50', 'str100'].includes(t))?.[0] ?? fields[0]?.[0] ?? 'name'
-  const importFields = fields.slice(0, 3).filter(([, t]) => STR_TYPES.has(t))
+  // 名称字段（搜索、导入必填列）：第一个 str / str50 字段；str20（编码、电话、状态）与 str500（链接）不算
+  const nameField = fields.find(([, t]) => t === 'str' || t === 'str50')?.[0] ?? fields[0]?.[0] ?? 'name'
+  // 导入 / 导出 / 表格列覆盖全部字段；
+  // 必填列（name 字段）排第一，非字符串字段由 buildValues 转换，转换失败记为错误行
+  const importFields = [...fields.filter(([f]) => f === nameField), ...fields.filter(([f]) => f !== nameField)]
   return {
     name,
     domain,
@@ -151,8 +151,7 @@ export function buildSpec(name: string, domain: 'admin' | 'component_center', fi
     menuComponent: domain === 'admin' ? `admin/${name}` : `component_center/admin/${name}_page`,
     apiBase: `/api/admin/${toKebab(name)}s`,
     nameField,
-    exportFields: fields.slice(0, 4),
-    // 没有可导入的字符串字段时退回 name 字段（Python 同款）
+    exportFields: fields,
     importFields: importFields.length > 0 ? importFields : [[nameField, 'str']],
   }
 }
@@ -224,8 +223,8 @@ function toNumeric(field: string, value: unknown): string | null {
   if (typeof value === 'boolean') return value
   if (value === 1 || value === 0) return value === 1
   const text = String(value).trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on'].includes(text)) return true
-  if (['0', 'false', 'no', 'off'].includes(text)) return false
+  if (['1', 'true', 'yes', 'on', '是'].includes(text)) return true
+  if (['0', 'false', 'no', 'off', '否'].includes(text)) return false
   throw invalid(field)
 }`,
   toDate: `/** 'YYYY-MM-DD'（也接受带时间的 ISO 字符串，取日期部分） */
@@ -271,14 +270,25 @@ export function genModuleSchema(s: ScaffoldSpec): string {
  */
 
 import { z } from 'zod'
-${needsInvalid ? `import { ServiceError } from '@/common/errors'\n` : ''}${pyImports.length > 0 ? `import { ${pyImports.join(', ')} } from '@/common/py'\n` : ''}import type { New${s.pascal} } from '@/db/schema'
+${needsInvalid ? `import { ServiceError } from '@/common/errors'\n` : ''}${pyImports.length > 0 ? `import { ${pyImports.join(', ')} } from '@/common/py'\n` : ''}import type { ${s.pascal}, New${s.pascal} } from '@/db/schema'
 
 /** 请求体：loose + 全可选，归一化在 buildValues 里做 */
 export const ${s.camel}BodySchema = z.record(z.string(), z.unknown()).nullish()
 
-/** 导出字段映射（key=toDict 字段名, value=表头）；表头由 AI/开发者翻译成中文 */
-export const EXPORT_FIELD_MAP: Record<string, string> = {
+/**
+ * 导出列：表头字符串（值取 toDict 的同名字段），或 [表头, 取值函数]（需要转换时用，如枚举显示中文、布尔显示是/否）。
+ * 表头由 AI/开发者翻译成中文；字段校验报错也用这里的表头作为字段名。
+ */
+export type ExportColumn = string | [header: string, value: (item: ${s.pascal}) => unknown]
+
+export const EXPORT_FIELD_MAP: Record<string, ExportColumn> = {
 ${exportLines.join('\n')}
+}
+
+/** 字段的中文名（取导出表头；没有导出列时退回字段名） */
+export function fieldLabel(field: string): string {
+  const column = EXPORT_FIELD_MAP[field]
+  return Array.isArray(column) ? column[0] : (column ?? field)
 }
 
 /** 导入列头映射（key=表头, value=字段名）；第一列为必填 */
@@ -286,14 +296,15 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 ${importLines.join('\n')}
 }
 
-export type ${s.pascal}Values = Partial<Omit<New${s.pascal}, 'id' | 'created_at' | 'updated_at'>>
-${needsInvalid ? `\nfunction invalid(field: string): ServiceError {\n  return new ServiceError(\`字段 \${field} 的值无效\`, 400)\n}\n` : ''}
+/** 请求体归一化后的列值：每个字段都可缺省、可为 null；必填 / 唯一由数据库约束兜底（service 转成 400） */
+export type ${s.pascal}Values = { [K in keyof Omit<New${s.pascal}, 'id' | 'created_at' | 'updated_at'>]?: New${s.pascal}[K] | null }
+${needsInvalid ? `\nfunction invalid(field: string): ServiceError {\n  return new ServiceError(\`\${fieldLabel(field)}的值无效\`, 400)\n}\n` : ''}
 ${used.map((c) => COERCERS[c]).join('\n\n')}
 
 /**
  * 请求体 → 列值。
- * - 新增（partial=false）：所有字段都写入，缺失的为 null（Python \`Model(field=data.get(field))\`）
- * - 编辑（partial=true）：只写请求体里出现的字段（Python \`if field in data\`）
+ * - 新增（partial=false）：所有字段都写入，缺失的为 null
+ * - 编辑（partial=true）：只写请求体里出现的字段
  */
 export function buildValues(data: Record<string, unknown>, partial: boolean): ${s.pascal}Values {
   const values: ${s.pascal}Values = {}
@@ -330,7 +341,7 @@ export function genRepository(s: ScaffoldSpec): string {
 
 import { ${ormImports.join(', ')} } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
-import { ${s.table}, type ${s.pascal} } from '@/db/schema'
+import { ${s.table}, type ${s.pascal}, type New${s.pascal} } from '@/db/schema'
 import type { ${s.pascal}Values } from './schema'
 
 export class ${s.pascal}Repository {
@@ -367,13 +378,24 @@ export class ${s.pascal}Repository {
     return row ?? null
   }
 
+  /**
+   * values 来自 buildValues（字段都是可选的）；给列加了 .notNull() 后缺值由数据库拒绝，
+   * service 会把 not-null / 唯一等约束错误转成 400，所以这里按插入类型收下即可。
+   */
   async insert(values: ${s.pascal}Values): Promise<${s.pascal}> {
-    const [row] = await this.db.insert(${s.table}).values(values).returning()
+    const [row] = await this.db
+      .insert(${s.table})
+      .values(values as New${s.pascal})
+      .returning()
     return row!
   }
 
   async update(id: number, values: ${s.pascal}Values): Promise<${s.pascal} | null> {
-    const [row] = await this.db.update(${s.table}).set(values).where(eq(${s.table}.id, id)).returning()
+    const [row] = await this.db
+      .update(${s.table})
+      .set(values as Partial<New${s.pascal}>)
+      .where(eq(${s.table}.id, id))
+      .returning()
     return row ?? null
   }
 
@@ -385,7 +407,6 @@ export class ${s.pascal}Repository {
 }
 
 export function genService(s: ScaffoldSpec): string {
-  const nameLabel = toLabel(s.importFields[0]?.[0] ?? s.nameField)
   return `/**
  * ${s.pascal} service 层（由 scripts/scaffold.ts 生成）：业务逻辑，抛 ServiceError，不碰 HTTP 对象
  */
@@ -393,11 +414,12 @@ export function genService(s: ScaffoldSpec): string {
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyTruthy } from '@/common/py'
+import { dbConstraintError } from '@/common/db-errors'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import type { Db } from '@/db/client'
 import { ${s.camel}ToDict, type ${s.pascal} } from '@/db/schema'
 import { ${s.pascal}Repository } from './repository'
-import { buildErrorRow, buildValues, EXPORT_FIELD_MAP, IMPORT_HEADER_MAP, type ErrorRow } from './schema'
+import { buildErrorRow, buildValues, EXPORT_FIELD_MAP, fieldLabel, IMPORT_HEADER_MAP, type ErrorRow } from './schema'
 
 type Data = Record<string, unknown>
 
@@ -413,7 +435,8 @@ export class ${s.pascal}Service {
       return await this.db.transaction((tx) => fn(new ${s.pascal}Repository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      // 唯一冲突 / 超长 / 数值溢出等输入问题 → 400；其余 → 500
+      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
 
@@ -460,10 +483,14 @@ export class ${s.pascal}Service {
       pyTruthy(data.ids) && Array.isArray(data.ids) ? data.ids.filter((v): v is number => Number.isInteger(v)) : null
 
     const items = await this.repo.listForExport(ids)
-    const headers = fields.map((f) => EXPORT_FIELD_MAP[f] ?? f)
+    const headers = fields.map((f) => fieldLabel(f))
     const rows = items.map((item) => {
       const dict: Record<string, unknown> = ${s.camel}ToDict(item)
-      return fields.map((f) => (f in dict ? dict[f] : ''))
+      return fields.map((f) => {
+        const column = EXPORT_FIELD_MAP[f]
+        if (Array.isArray(column)) return column[1](item)
+        return f in dict ? dict[f] : ''
+      })
     })
     return buildTable(headers, rows, ${q(`${s.name}_export`)}, fileType)
   }
@@ -489,7 +516,7 @@ export class ${s.pascal}Service {
       const errors: ErrorRow[] = []
       for (const [line, row] of table.rows) {
         if (!(row[requiredHeader] ?? '').trim()) {
-          errors.push(buildErrorRow(line, ${q(`${nameLabel}不能为空`)}, row))
+          errors.push(buildErrorRow(line, \`\${requiredHeader}不能为空\`, row))
           continue
         }
         const mapped: Data = {}
@@ -505,7 +532,15 @@ export class ${s.pascal}Service {
           errors.push(buildErrorRow(line, err.message, row))
           continue
         }
-        await repo.insert(values)
+        try {
+          await repo.insert(values)
+        } catch (err) {
+          // 数据库拒绝这一行（唯一冲突、超长等）：事务已中止，带上已发现的错误行一起返回
+          const rowError = dbConstraintError(err)
+          if (!rowError) throw err
+          errors.push(buildErrorRow(line, rowError.message, row))
+          throw new ServiceError('导入失败，存在错误数据', 400, { error_rows: errors.slice(0, 500), error_count: errors.length })
+        }
         created += 1
       }
       if (errors.length > 0) {
@@ -528,7 +563,7 @@ export function genRoutes(s: ScaffoldSpec): string {
  * ${s.pascal} 路由（由 scripts/scaffold.ts 生成）
  *
  * 权限编码：${p}（查看 / 模板）、${p}_add、${p}_edit、${p}_delete、${p}_export、${p}_import
- * 带 id 的路由先 get_or_404（404）再做权限检查（403），与 Flask 约定一致。
+ * 带 id 的路由先查记录（不存在 404）再做权限检查（403）。
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -609,9 +644,156 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
 `
 }
 
+// ─── 后端测试生成 ──────────────────────────────────────────────────────────────
+
+/** 各 scaffold 类型的示例值（TS 源码片段）；字符串带 tag，避免多次新增撞唯一约束 */
+function sampleExpr(field: string, type: string): string {
+  const maxLen: Record<string, number> = { str: 100, str20: 20, str50: 50, str500: 500 }
+  switch (fieldSpec(type).coerce) {
+    case 'toInt':
+      return '3'
+    case 'toNumeric':
+      return "'12.5'"
+    case 'toBool':
+      return 'true'
+    case 'toDate':
+      return "'2026-01-15'"
+    case 'toDateTime':
+      return "'2026-01-15 08:30:00'"
+    default: {
+      const text = `('ck-' + tag + '-${field}')`
+      const len = maxLen[type] ?? (type === 'text' ? 0 : 100)
+      return len > 0 ? `${text}.slice(0, ${len})` : text
+    }
+  }
+}
+
+export function testFilePath(s: ScaffoldSpec): string {
+  return `${s.domain === 'admin' ? 'admin' : 'cc'}-${s.kebab}.test.ts`
+}
+
+export function genApiTest(s: ScaffoldSpec): string {
+  const sampleLines = s.fields.map(([f, t]) => `    ${key(f)}: ${sampleExpr(f, t)},`)
+  return `/**
+ * ${s.pascal} 接口基础用例（由 scripts/scaffold.ts 生成）
+ *
+ * 覆盖：增删改查、列表分页与搜索、404、导出、导入模板、导入成功 / 必填列为空整批回滚。
+ * 按业务加了必填 / 唯一 / 枚举 / 默认值等规则后，同步修改 sample() 与断言，并补上对应的失败用例。
+ * 测试数据按 id 清理：只删本文件运行期间新增的记录。
+ */
+
+import type { FastifyInstance } from 'fastify'
+import { gt, max } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { DbHandle } from '@/db/client'
+import { ${s.table} } from '@/db/schema'
+import { IMPORT_HEADER_MAP } from '@/modules/${s.domainDir}/${s.kebab}/schema'
+import { buildTestApp, multipartFile, openTestDb, superAdminSession, type AuthedSession } from './helpers'
+
+const BASE = ${q(s.apiBase)}
+
+/** 各字段的示例值（tag 让字符串每次不同） */
+function sample(tag: string): Record<string, unknown> {
+  return {
+${sampleLines.join('\n')}
+  }
+}
+
+function csvCell(value: unknown): string {
+  const text = value === null || value === undefined ? '' : String(value)
+  return /[",\\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text
+}
+
+function importCsv(rows: Record<string, unknown>[]): string {
+  const headers = Object.keys(IMPORT_HEADER_MAP)
+  const lines = rows.map((values) => headers.map((h) => csvCell(values[IMPORT_HEADER_MAP[h]!])).join(','))
+  return [headers.map(csvCell).join(','), ...lines].join('\\n') + '\\n'
+}
+
+let app: FastifyInstance
+let handle: DbHandle
+let s: AuthedSession
+let baselineId = 0
+
+async function countNew(): Promise<number> {
+  return (await handle.db.select({ id: ${s.table}.id }).from(${s.table}).where(gt(${s.table}.id, baselineId))).length
+}
+
+beforeAll(async () => {
+  handle = openTestDb()
+  app = await buildTestApp()
+  const [row] = await handle.db.select({ id: max(${s.table}.id) }).from(${s.table})
+  baselineId = row?.id ?? 0
+  s = await superAdminSession(app, handle)
+})
+
+afterAll(async () => {
+  await handle.db.delete(${s.table}).where(gt(${s.table}.id, baselineId))
+  await app.close()
+  await handle.pool.end()
+})
+
+describe(${q(`${s.table} 接口`)}, () => {
+  it('新增 → 详情 → 编辑 → 删除', async () => {
+    const created = await s.inject({ method: 'POST', url: BASE, payload: sample('a') })
+    expect(created.statusCode, created.body).toBe(201)
+    const item = created.json()
+    expect(item.id).toBeGreaterThan(baselineId)
+    expect((await s.inject({ url: BASE + '/' + item.id })).json()).toEqual(item)
+
+    const updated = await s.inject({ method: 'PUT', url: BASE + '/' + item.id, payload: sample('b') })
+    expect(updated.statusCode, updated.body).toBe(200)
+    expect((await s.inject({ url: BASE + '/' + item.id })).json()).toEqual(updated.json())
+
+    expect((await s.inject({ method: 'DELETE', url: BASE + '/' + item.id })).json()).toEqual({ message: '删除成功' })
+    expect((await s.inject({ url: BASE + '/' + item.id })).statusCode).toBe(404)
+  })
+
+  it('列表：分页形状；按 ${s.nameField} 搜索', async () => {
+    const created = (await s.inject({ method: 'POST', url: BASE, payload: sample('list') })).json()
+    const page = await s.inject({ url: BASE + '?page=1&per_page=5' })
+    expect(page.statusCode).toBe(200)
+    expect(page.json()).toMatchObject({ page: 1, per_page: 5 })
+    expect(page.json().items.length).toBeLessThanOrEqual(5)
+    const found = await s.inject({ url: BASE + '?search=' + encodeURIComponent(String(created.${s.nameField})) })
+    expect(found.json().items.map((i: { id: number }) => i.id)).toContain(created.id)
+  })
+
+  it('不存在的记录返回 404', async () => {
+    expect((await s.inject({ url: BASE + '/99999999' })).statusCode).toBe(404)
+  })
+
+  it('导出 csv 与导入模板', async () => {
+    const exported = await s.inject({ method: 'POST', url: BASE + '/export', payload: { file_type: 'csv' } })
+    expect(exported.statusCode).toBe(200)
+    expect(exported.headers['content-type']).toContain('csv')
+    const template = await s.inject({ url: BASE + '/template?file_type=csv' })
+    expect(template.statusCode).toBe(200)
+    expect(template.body).toContain(Object.keys(IMPORT_HEADER_MAP)[0])
+  })
+
+  it('导入 csv：合法行新增；必填列为空时整批回滚', async () => {
+    const ok = await s.inject({ method: 'POST', url: BASE + '/import', ...multipartFile('import.csv', importCsv([sample('imp')])) })
+    expect(ok.json()).toEqual({ message: '导入成功', created: 1, updated: 0 })
+
+    const before = await countNew()
+    const requiredField = IMPORT_HEADER_MAP[Object.keys(IMPORT_HEADER_MAP)[0]!]!
+    const bad = await s.inject({
+      method: 'POST',
+      url: BASE + '/import',
+      ...multipartFile('import.csv', importCsv([sample('imp2'), { ...sample('imp3'), [requiredField]: '' }])),
+    })
+    expect(bad.statusCode).toBe(400)
+    expect(bad.json().error_count).toBe(1)
+    expect(await countNew()).toBe(before)
+  })
+})
+`
+}
+
 // ─── 前端代码生成（shadcn/ui 体系，结构对齐 apps/web/src/modules/admin/pages/users/index.jsx） ──────
 //
-// api 文件格式与 Python scaffold.py 一致；页面按 docs/frontend-redesign-plan.md 的新体系生成：
+// api 文件按固定模板生成；页面按 docs/frontend-redesign-plan.md 的新体系生成：
 // PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
 // + ConfirmAction + toast + useCrudList。字段 → 表单组件 / 表格列渲染见 FRONTEND_FIELD_MAP。
 
@@ -764,7 +946,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
  * ${title} 列表页（由 scripts/scaffold.ts 生成，结构同 apps/web/src/modules/admin/pages/users/index.jsx）
  *
  * PageHeader → FilterBar → DataTable（分页 / 勾选 / 行操作）→ FormDialog（react-hook-form）
- * → ImportDialog / ExportDialog。标题、描述与字段标签是英文占位，按业务改成中文，并在 rules 里补必填校验。
+ * → ImportDialog / ExportDialog。标题与字段标签是英文占位，按业务改成中文，并在 rules 里补必填校验。
  */
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -1147,6 +1329,7 @@ export function scaffold(
   writeFile(root, join(moduleDir, 'repository.ts'), genRepository(s), dryRun, log)
   writeFile(root, join(moduleDir, 'service.ts'), genService(s), dryRun, log)
   writeFile(root, join(moduleDir, 'routes.ts'), genRoutes(s), dryRun, log)
+  writeFile(root, join(apiDir, 'test', testFilePath(s)), genApiTest(s), dryRun, log)
 
   // 前端文件
   writeFile(root, join(feBase, 'api', `${name}.js`), genFrontendApi(s), dryRun, log)
@@ -1191,7 +1374,8 @@ export function scaffold(
   log('  3. 运行: pnpm seed:rbac -- --incremental')
   log('  4. 审查 apps/api/drizzle/ 下新生成的迁移 SQL，运行: pnpm db:migrate')
   log(`  5. 运行: psql -d <db> -c '\\d ${s.table}' 确认表已落库`)
-  log(`  6. 运行: pnpm verify -- --module ${name}`)
+  log(`  6. 按业务规则更新 apps/api/test/${testFilePath(s)}（生成的基础用例），补上必填 / 唯一等失败用例`)
+  log(`  7. 运行: pnpm verify -- --module ${name}`)
   return 0
 }
 

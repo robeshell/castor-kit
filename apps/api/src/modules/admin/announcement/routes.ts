@@ -1,7 +1,7 @@
 /**
- * 公告管理路由（对齐 AuraStack backend/app/admin/api/announcement.py）
+ * 公告管理路由
  *
- * 注意：与 dicts/users 不同，Flask 这里是**先做权限检查（403 '无权限'）再 get_or_404**，照搬。
+ * 注意：与 dicts/users 不同，这里是**先做权限检查（403 '无权限'）再 get_or_404**（保持既有接口行为）。
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -73,6 +73,6 @@ export async function registerAnnouncementRoutes(app: FastifyInstance): Promise<
     return service.importItems(await getUploadedFile(request))
   })
 
-  // 只要求登录，不校验菜单权限（与 Flask 一致）
+  // 只要求登录，不校验菜单权限
   app.get('/api/admin/announcements/export-fields', opts, async () => service.exportFields())
 }

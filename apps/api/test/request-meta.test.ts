@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { pyJsonDumps, safePayload } from '@/common/request-meta'
 
-describe('safePayload（对齐 backend/tests/test_safe_payload.py）', () => {
+describe('safePayload', () => {
   it('None → null', () => {
     expect(safePayload(null)).toBeNull()
     expect(safePayload(undefined)).toBeNull()
@@ -23,7 +23,7 @@ describe('safePayload（对齐 backend/tests/test_safe_payload.py）', () => {
     })
   })
 
-  it('输出格式与 Python json.dumps(ensure_ascii=False) 一致', () => {
+  it('输出格式同 json.dumps(ensure_ascii=False)', () => {
     expect(safePayload({ a: 1, b: [true, null], c: '中文' })).toBe('{"a": 1, "b": [true, null], "c": "中文"}')
     expect(pyJsonDumps({})).toBe('{}')
     expect(pyJsonDumps([])).toBe('[]')

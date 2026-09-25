@@ -1,5 +1,5 @@
 /**
- * 详情标签页 repository 层（对齐 AuraStack backend/app/component_center/crud/detail_tabs_page.py）
+ * 详情标签页 repository 层
  */
 
 import { asc, eq, ilike, or } from 'drizzle-orm'

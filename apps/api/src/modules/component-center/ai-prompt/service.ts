@@ -1,7 +1,7 @@
 /**
- * AI 提示词模板 service 层（对齐 AuraStack backend/app/component_center/api/ai_prompt.py）
+ * AI 提示词模板 service 层
  *
- * Python 的保存/删除失败返回的是带具体文案的 500（`保存模板失败，请稍后重试`），而全局错误处理会把
+ * 保存/删除失败返回带具体文案的 500（`保存模板失败，请稍后重试`），而全局错误处理会把
  * ServiceError(>=500) 的文案换成通用文案，所以这类错误用 AiPromptPersistError 抛出，由 routes 原样返回。
  */
 
@@ -18,10 +18,10 @@ const PG_INT_MAX = 2_147_483_647
 export const SAVE_FAILED = '保存模板失败，请稍后重试'
 export const DELETE_FAILED = '删除模板失败，请稍后重试'
 
-/** 带具体文案的 500（Python 在 api 层直接 `return jsonify({'error': ...}), 500`） */
+/** 带具体文案的 500（由 routes 原样返回，不走全局通用文案） */
 export class AiPromptPersistError extends Error {}
 
-/** Python `(data.get(key) or '').strip()`：真值且非 str 时 `.strip()` 抛 AttributeError → Flask 通用 500 */
+/** 取值去首尾空白：假值用 fallback；真值且非字符串 → 通用 500 */
 function strictStripOr(value: unknown, fallback: string): string {
   const raw = pyTruthy(value) ? value : fallback
   if (typeof raw !== 'string') throw new ServiceError(`'${typeof raw}' object has no attribute 'strip'`, 500)
@@ -29,8 +29,8 @@ function strictStripOr(value: unknown, fallback: string): string {
 }
 
 /**
- * SQLAlchemy Boolean 绑定处理（`_strict_as_bool`）：只接受 None/True/False（1/0 因与 True/False 相等也被接受），
- * 其他值在 commit 时报错 → Python 在 try 里捕获，返回“保存模板失败”。
+ * 严格布尔：只接受 null/true/false（1/0 也被接受），
+ * 其他值视为保存失败，返回“保存模板失败”。
  */
 function strictBool(value: unknown): boolean | null {
   if (value === null || value === undefined) return null
@@ -132,7 +132,7 @@ export class AiPromptService {
     // 保存后根据正文重新提取变量
     const variables = extractVariables((next.content as string | undefined) ?? template.content)
 
-    // SQLAlchemy 只 UPDATE 值真正变化的列；没有变化时不发 UPDATE，updated_at 也不变
+    // 只 UPDATE 值真正变化的列；没有变化时不发 UPDATE，updated_at 也不变
     const set: AiPromptTemplateUpdate = {}
     const current = template as unknown as Record<string, unknown>
     for (const [key, value] of Object.entries(next)) {

@@ -1,5 +1,5 @@
 /**
- * 通知消息 service 层（对齐 AuraStack backend/app/admin/service/notification.py）
+ * 通知消息 service 层
  */
 
 import { ServiceError } from '@/common/errors'

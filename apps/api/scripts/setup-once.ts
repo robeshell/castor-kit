@@ -1,14 +1,13 @@
 /**
- * 容器并发安全的初始化：数据库迁移 + RBAC 同步 + AI SQL 只读账号（对齐 AuraStack backend/scripts/run_setup_once.py）
+ * 容器并发安全的初始化：数据库迁移 + RBAC 同步 + AI SQL 只读账号
  *
  * 多副本同时启动时，用 PostgreSQL advisory lock 保证只有一个实例执行初始化，
  * 其余实例在锁上等待；前一个完成后，等待的实例获取锁后执行（幂等）并释放。
  *
  * 用法：Docker 入口在启动 web 进程前执行 `node dist/setup-once.js`（开发：`pnpm setup-once`）。
  *
- * 与 Python 的有意差异：RBAC 同步用增量模式（--incremental）。Python 版调用 init_rbac_data.main() 时
- * argparse 读到的是 run_setup_once.py 自己的空参数，实际走“全量重建”——每次容器启动都会清空
- * admin_users / roles / menus（用户、自定义角色、通知随之级联删除）。这里按脚本注释“同步 RBAC 菜单与权限”的本意改为增量。
+ * RBAC 同步用增量模式（--incremental）：只同步菜单与权限，不清空 admin_users / roles / menus，
+ * 容器重启不会删除已有用户、自定义角色与通知。
  */
 
 import pg from 'pg'
@@ -17,14 +16,14 @@ import { runMigrations } from '../src/db/migrate'
 import { initRoRole } from './init-ro-role'
 import { seedRbac } from './seed-rbac'
 
-/** "AUSA" */
-export const ADVISORY_LOCK_KEY = 0x41555341
+/** "CKIT" */
+export const ADVISORY_LOCK_KEY = 0x434b4954
 
 export interface SetupOnceOptions {
   databaseUrl: string
   adminPassword: string
   roPassword: string
-  /** 只读角色名，默认 aurastack_ro（仅测试覆盖） */
+  /** 只读角色名，默认 castor_kit_ro（仅测试覆盖） */
   roRoleName?: string
   log?: (msg: string) => void
 }

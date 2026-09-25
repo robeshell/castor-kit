@@ -1,8 +1,7 @@
 /**
  * dynamic_form_records / dynamic_form_fields
- * 对齐 AuraStack backend/app/component_center/model/entities_dynamic_form_page.py
  *
- * dynamic_form_fields.record_id 外键 ON DELETE CASCADE；SQLAlchemy 的 fields/record 关系对应下方 relations。
+ * dynamic_form_fields.record_id 外键 ON DELETE CASCADE；fields/record 关系见下方 relations。
  */
 
 import { relations } from 'drizzle-orm'
@@ -68,7 +67,7 @@ export function dynamicFormFieldToDict(field: DynamicFormField) {
 }
 
 /**
- * Python `to_dict(include_fields)`：fields_count 为该记录的字段数；传入 fields（已按 sort_order 排序）时附带 fields 键。
+ * 记录输出：fields_count 为该记录的字段数；传入 fields（已按 sort_order 排序）时附带 fields 键。
  */
 export function dynamicFormRecordToDict(record: DynamicFormRecord, fieldsCount: number, fields?: DynamicFormField[]) {
   const d: Record<string, unknown> = {

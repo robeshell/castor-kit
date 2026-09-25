@@ -1,7 +1,7 @@
 /**
- * 列表页路由（对齐 AuraStack backend/app/component_center/api/list_page.py）
+ * 列表页路由
  *
- * 检查顺序与 Flask 逐路由一致：详情 GET/PUT/DELETE 先 get_or_404 再做权限检查；
+ * 检查顺序（保持既有接口行为）：详情 GET/PUT/DELETE 先 get_or_404 再做权限检查；
  * versions / rollback 则是先权限检查再 get_or_404。
  */
 
@@ -125,7 +125,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   await app.register(async (scope) => {
 
     /**
-     * Flask 的 path 转换器要求至少一个字符且不能以 `/` 开头，否则不命中路由（→ 404）。
+     * 文件名参数至少一个字符且不能以 `/` 开头，否则视为不命中路由（→ 404）。
      * 文件名经 secure_filename 后只含 [A-Za-z0-9_.-]，再校验解析后的路径仍在上传目录内（防目录穿越）。
      */
     async function sendUpload(reply: FastifyReply, safeName: string, dir: string, asAttachment: boolean) {
@@ -134,7 +134,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
       if (!target.startsWith(root + sep)) throw notFound()
       const info = await stat(target).catch(() => null)
       if (!info || !info.isFile()) throw notFound()
-      // 与 Flask send_from_directory 一致：no-cache + inline/attachment（secure_filename 结果全是 token 字符，无需引号）
+      // no-cache + inline/attachment（secure_filename 结果全是 token 字符，无需引号）
       reply.header('Cache-Control', 'no-cache')
       reply.header('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename=${safeName}`)
       return reply.sendFile(safeName, root, { cacheControl: false })

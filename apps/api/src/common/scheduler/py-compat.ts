@@ -1,5 +1,5 @@
 /**
- * 定时任务移植用到的 Python 字符串语义（str.strip / str.split / str.isdigit / int）。
+ * 定时任务用到的 Python 字符串语义（str.strip / str.split / str.isdigit / int）。
  *
  * JS 的 trim() 与 \s 和 Python 的空白集合不完全相同（Python 含 \x1c-\x1f、\x85，不含 ﻿），
  * cron 表达式按空白切段，这里按 Python 的 str.isspace() 精确复刻。

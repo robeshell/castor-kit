@@ -1,5 +1,5 @@
 /**
- * admin 域路由装配（对齐 AuraStack backend/app/admin/api/router.py）
+ * admin 域路由装配
  */
 
 import type { FastifyInstance } from 'fastify'

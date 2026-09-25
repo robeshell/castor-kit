@@ -1,9 +1,9 @@
 /**
- * AI SQL 纯函数（对齐 AuraStack component_center/api/ai_sql.py 的工具函数 + ai_sql_engine.is_visible_table）
+ * AI SQL 纯函数：SQL 清洗与安全判定、表可见性（isVisibleTable）、只读查询包装
  *
- * 正则语义按 Python `re`（str 模式）复刻：
+ * 正则按 Unicode 语义实现：
  * - `\b` 的单词字符是 Unicode 字母/数字/下划线（JS 不带 u 的 `\b` 只认 ASCII，这里用环视模拟）
- * - `\s` / `.strip()` 的空白集合是 Python `str.isspace()` 的集合（含 \x1c-\x1f、\x85，不含 ﻿）
+ * - 空白字符集合见 PY_WS_CLASS（Unicode 空白，含 \x1c-\x1f、\x85，不含 U+FEFF）
  */
 
 /** 单次查询最多返回行数 */
@@ -22,29 +22,29 @@ export function isVisibleTable(tableName: string | null | undefined): boolean {
   return true
 }
 
-// ---- Python 空白 / 单词字符 ----
+// ---- 空白 / 单词字符 ----
 
 const PY_WS_CLASS = '\\t\\n\\v\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000'
 const PY_WORD_CLASS = '\\p{L}\\p{N}_'
 const LEADING_WS = new RegExp(`^[${PY_WS_CLASS}]+`, 'u')
 const TRAILING_WS = new RegExp(`[${PY_WS_CLASS}]+$`, 'u')
 
-/** Python `str.strip()` */
+/** 去掉首尾空白（空白集合见 PY_WS_CLASS） */
 export function pyStrip(text: string): string {
   return pyRstrip(text.replace(LEADING_WS, ''))
 }
 
-/** Python `str.rstrip()` */
+/** 去掉尾部空白 */
 export function pyRstrip(text: string): string {
   return text.replace(TRAILING_WS, '')
 }
 
-/** Python `str.rstrip(';')` */
+/** 去掉尾部分号 */
 function rstripSemicolons(text: string): string {
   return text.replace(/;+$/, '')
 }
 
-/** Python `re.search(rf'\b{word}\b', text)`（word 由单词字符组成） */
+/** 按单词边界匹配 pattern（`\b` 用 Unicode 单词字符的环视实现；pattern 由单词字符组成） */
 function wordRegex(pattern: string): RegExp {
   return new RegExp(`(?<![${PY_WORD_CLASS}])${pattern}(?![${PY_WORD_CLASS}])`, 'u')
 }
@@ -133,7 +133,7 @@ export function cleanSql(raw: string): string {
   return pyStrip(sql)
 }
 
-/** execute_readonly：去尾部分号与空白后包裹 LIMIT，强制服务端行数上限（多取 1 行用于判断 truncated） */
+/** 只读执行前：去尾部分号与空白后包裹 LIMIT，强制服务端行数上限（多取 1 行用于判断 truncated） */
 export function wrapReadonlySql(sql: string): string {
   const body = pyRstrip(rstripSemicolons(pyRstrip(sql)))
   return 'SELECT * FROM (' + body + ') AS _q LIMIT ' + String(MAX_SQL_ROWS + 1)

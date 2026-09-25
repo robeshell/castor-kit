@@ -1,5 +1,5 @@
 /**
- * 菜单模块 schema 层（对齐 AuraStack backend/app/admin/schema/menu.py）：参数映射、校验、类型转换
+ * 菜单模块 schema 层：参数映射、校验、类型转换
  */
 
 import { ServiceError } from '@/common/errors'

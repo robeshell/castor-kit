@@ -1,5 +1,5 @@
 /**
- * 公告管理 schema 层（对齐 AuraStack backend/app/admin/service/announcement_service.py 的字段映射与归一化）
+ * 公告管理 schema 层：字段映射与归一化
  */
 
 import { ServiceError } from '@/common/errors'
@@ -49,7 +49,7 @@ function pyTypeName(value: unknown): string {
 
 /**
  * `(value or '').strip()`：假值 → ''；真值必须是字符串，
- * 否则 Python 抛 AttributeError（未捕获 → 全局 500）。
+ * 否则抛错（未捕获 → 全局 500）。
  */
 export function stripOrEmpty(value: unknown): string {
   if (!pyTruthy(value)) return ''
@@ -59,7 +59,7 @@ export function stripOrEmpty(value: unknown): string {
 
 /**
  * `data.get('fields') or []` 后 `[f for f in fields if f in EXPORT_FIELD_MAP]`：
- * 字符串按字符迭代、dict 按键迭代；不可迭代或含不可哈希元素（list/dict）时 Python 抛 TypeError → 500。
+ * 字符串按字符迭代、dict 按键迭代；不可迭代或含不可哈希元素（list/dict）时抛错 → 500。
  */
 export function pickExportFields(raw: unknown): string[] {
   if (!pyTruthy(raw)) return []
@@ -77,7 +77,7 @@ export function pickExportFields(raw: unknown): string[] {
 }
 
 /**
- * `Announcement.id.in_(ids)`：ids 必须是 list（或 dict，取键）；元素按 psycopg2 字面量比较 ——
+ * `id IN (ids)`：ids 必须是 list（或 dict，取键）；元素按 SQL 字面量比较 ——
  * 整数 / 可解析的数字字符串参与匹配，非整数数值与 None 永不匹配，其余（bool、不合法字符串、嵌套）PG 报错 → 500。
  */
 export function idsForInClause(ids: unknown): number[] {
@@ -107,7 +107,7 @@ export function idsForInClause(ids: unknown): number[] {
 /**
  * `datetime.fromisoformat(s)` 的解析结果。
  * text 用于写库：naive 为 `YYYY-MM-DD HH:MM:SS.ffffff`（按 timestamp 存），
- * aware 为带偏移的 ISO 串（psycopg2 以 `::timestamptz` 发送，存入 timestamp 列时换算到会话时区）。
+ * aware 为带偏移的 ISO 串（以 `::timestamptz` 发送，存入 timestamp 列时换算到会话时区）。
  */
 export interface PyDateTime {
   text: string
@@ -230,7 +230,7 @@ function parseHhMmSsFf(s: string): [number, number, number, number] {
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
-/** `datetime.fromisoformat(value)`（CPython 3.13 C 实现的语义，已逐例对照：不支持 24:00）；不合法返回 null */
+/** 按 `fromisoformat` 规则解析 ISO 8601 日期时间（不支持 24:00）；不合法返回 null */
 export function pyFromIsoformat(value: string): PyDateTime | null {
   try {
     if (value.length < 7) return null
@@ -279,7 +279,7 @@ export function pyFromIsoformat(value: string): PyDateTime | null {
   }
 }
 
-/** Python：`datetime.fromisoformat(value.replace('Z', '+00:00'))`，非字符串（AttributeError）与解析失败都返回 null */
+/** 把 `Z` 替换成 `+00:00` 后按 `fromisoformat` 规则解析；非字符串与解析失败都返回 null */
 export function parsePublishAt(value: unknown): PyDateTime | null {
   if (typeof value !== 'string') return null
   return pyFromIsoformat(value.replace(/Z/g, '+00:00'))

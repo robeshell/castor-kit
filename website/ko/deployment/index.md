@@ -24,7 +24,7 @@ cp .env.example .env.production
 SECRET_KEY=a-random-string-of-64-or-more-characters   # 필수 — 세션 암호화 키
 ADMIN_PASSWORD=your-admin-password                   # 필수 — 초기 관리자 비밀번호
 POSTGRES_PASSWORD=your-db-password                   # 필수 — PostgreSQL 비밀번호
-POSTGRES_RO_PASSWORD=your-readonly-password          # 필수 — AI SQL 읽기 전용 역할 aurastack_ro의 비밀번호
+POSTGRES_RO_PASSWORD=your-readonly-password          # 필수 — AI SQL 읽기 전용 역할 castor_kit_ro의 비밀번호
 ```
 
 그다음 빌드 및 시작:
@@ -91,22 +91,6 @@ docker compose --env-file .env.production up -d --build
 
 ---
 
-## AuraStack에서 전환하기
-
-castor-kit는 AuraStack을 Node.js로 재작성한 프로젝트이며 동일한 데이터베이스 스키마를 사용합니다. 이미 Docker로 AuraStack을 운영 중인 서버에서는 castor-kit가 기존 볼륨을 재사용할 수 있습니다:
-
-```bash
-COMPOSE_DB_VOLUME=aurastack_postgres_data \
-COMPOSE_INSTANCE_VOLUME=aurastack_app_instance \
-docker compose --env-file .env.production up -d --build
-```
-
-- 최초 시작 시 베이스라인 마이그레이션은 적용됨으로만 표시되며, 기존 테이블은 변경되지 않고 `alembic_version` 테이블도 그대로 유지됩니다
-- 비밀번호 해시는 호환되므로 계정은 그대로 사용할 수 있지만, 세션 쿠키는 호환되지 않습니다 — 전환 후 모든 사용자가 한 번 다시 로그인해야 합니다
-- `.env.production`의 기존 `FLASK_ENV` 항목은 더 이상 사용되지 않으며, compose가 `NODE_ENV=production`을 설정합니다
-
----
-
 ## 수동 서버 배포
 
 Docker 없이 VPS나 베어메탈 서버에 배포하는 경우. Node 22+, pnpm, PostgreSQL 14+가 필요합니다.
@@ -131,10 +115,10 @@ cp .env.example .env.production
 
 ```env
 SECRET_KEY=your-strong-random-secret
-DATABASE_URL=postgresql://user:password@localhost/aurastack
+DATABASE_URL=postgresql://user:password@localhost/castor_kit
 ADMIN_PASSWORD=your-admin-password
 POSTGRES_RO_PASSWORD=your-readonly-password
-AI_SQL_DATABASE_URL=postgresql://aurastack_ro:your-readonly-password@localhost/aurastack
+AI_SQL_DATABASE_URL=postgresql://castor_kit_ro:your-readonly-password@localhost/castor_kit
 ```
 
 ### 3. 데이터베이스 초기화
@@ -143,7 +127,7 @@ AI_SQL_DATABASE_URL=postgresql://aurastack_ro:your-readonly-password@localhost/a
 NODE_ENV=production node apps/api/dist/setup-once.js
 ```
 
-마이그레이션을 실행하고, RBAC 데이터를 동기화하며, `POSTGRES_RO_PASSWORD`로 읽기 전용 역할 `aurastack_ro`를 생성합니다.
+마이그레이션을 실행하고, RBAC 데이터를 동기화하며, `POSTGRES_RO_PASSWORD`로 읽기 전용 역할 `castor_kit_ro`를 생성합니다.
 
 ### 4. 서버 시작
 

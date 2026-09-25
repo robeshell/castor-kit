@@ -1,5 +1,5 @@
 /**
- * buildApp()：注册插件 / 路由 / 错误处理 / 静态资源（对齐 AuraStack app.py 的 create_app）
+ * buildApp()：注册插件 / 路由 / 错误处理 / 静态资源
  *
  * 插件顺序有依赖：cookie → secure-session → CSRF（要读 session）→ 路由 → 404/405/SPA。
  */
@@ -41,7 +41,7 @@ export interface BuildAppOptions {
 export async function buildApp({ config, logger = false, dbHandle }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger,
-    // 替代 Flask ProxyFix(x_for=1, x_proto=1)：只信任最近一跳反代，request.ip / protocol 即真实值
+    // 只信任最近一跳反代（X-Forwarded-For / X-Forwarded-Proto），request.ip / protocol 即真实值
     trustProxy: (_address: string, hop: number) => hop < 1,
     bodyLimit: config.maxContentLength,
   })
@@ -70,7 +70,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
       maxAge: ttlSeconds,
     },
   })
-  // 滑动过期：对齐 Flask 永久会话 + SESSION_REFRESH_EACH_REQUEST，已登录会话每次请求都续期
+  // 滑动过期：已登录会话每次请求都续期
   app.addHook('onRequest', async (request) => {
     if (request.session.get('logged_in')) request.session.touch()
   })
@@ -78,7 +78,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   registerCsrfProtection(app)
 
   await app.register(compress, { threshold: 500 })
-  // 上传上限对齐 Flask MAX_CONTENT_LENGTH（超限 413）；按字段取文件见 common/http.getUploadedFile
+  // 上传上限取 MAX_CONTENT_LENGTH（超限 413）；按字段取文件见 common/http.getUploadedFile
   await app.register(multipart, { limits: { fileSize: config.maxContentLength } })
   // /ws/devtools 用（component-center/devtools）；会话 cookie 在 upgrade 请求的 onRequest 阶段照常解析
   await app.register(websocket)
@@ -86,7 +86,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
     await app.register(cors, { origin: config.corsOrigins, credentials: true })
   }
 
-  // 静态资源长缓存（Flask after_request 按路径后缀加头，对所有路径生效）
+  // 静态资源长缓存（按路径后缀加头，对所有路径生效）
   app.addHook('onSend', async (request, reply, payload) => {
     const path = requestPath(request)
     if (STATIC_EXTENSIONS.some((ext) => path.endsWith(ext))) {
@@ -107,9 +107,9 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
     hasSpa ? { root: config.webDistDir, wildcard: true } : { root: config.instanceDir, serve: false },
   )
 
-  // 404 / 405 语义对齐 Flask：它的 SPA catch-all 路由 `/<path:path>` 对任意路径都接受 GET，
+  // 404 / 405 语义：SPA catch-all 对任意路径都接受 GET，
   // 所以未命中的 GET/HEAD 是 404（/api）或 SPA（其他），而任何未命中的非 GET 方法都是 405 ——
-  // 包括“路径存在但只注册了 POST 时的 GET”也是 404 而不是 405（shadow-diff 实测）。
+  // 包括“路径存在但只注册了 POST 时的 GET”也是 404 而不是 405（保持既有接口行为）。
   app.setNotFoundHandler(async (request, reply) => {
     const isRead = request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS'
     if (!isRead) return reply.status(405).send({ error: '请求方法不允许' })

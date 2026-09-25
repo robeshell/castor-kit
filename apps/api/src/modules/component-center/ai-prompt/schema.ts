@@ -1,14 +1,14 @@
 /**
- * AI 提示词工坊 schema 层（Python 版逻辑都在 backend/app/component_center/api/ai_prompt.py 里，这里拆出纯函数）
+ * AI 提示词工坊 schema 层（请求体校验与模板变量提取等纯函数）
  */
 
 import { z } from 'zod'
 import { pyStr } from '@/common/py'
 
-/** 移植期请求体：loose + 全可选，归一化在 service 里做 */
+/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
 export const aiPromptBodySchema = z.record(z.string(), z.unknown()).nullish()
 
-/** Python `re.findall(r'\{\{(\w+)\}\}', text)`：str 模式下 `\w` 是 Unicode 语义 */
+/** 匹配 `{{变量名}}`：变量名由 Unicode 字母、数字、下划线组成 */
 export const VARIABLE_RE = /\{\{([\p{L}\p{N}_]+)\}\}/gu
 
 export function findVariables(text: string): string[] {
@@ -16,8 +16,7 @@ export function findVariables(text: string): string[] {
 }
 
 /**
- * `list(set(re.findall(...)))`：Python 的 set 迭代顺序随进程哈希种子变化（不可复现），
- * 这里取“首次出现顺序”去重，保证结果稳定。
+ * 提取模板变量并去重，按“首次出现顺序”排列，保证结果稳定。
  */
 export function extractVariables(content: string): string[] {
   return [...new Set(findVariables(content))]

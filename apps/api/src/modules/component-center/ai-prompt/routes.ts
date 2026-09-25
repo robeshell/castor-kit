@@ -1,7 +1,7 @@
 /**
- * AI 提示词工坊路由（对齐 AuraStack backend/app/component_center/api/ai_prompt.py）
+ * AI 提示词工坊路由
  *
- * 顺序与 Flask 一致：先权限检查（403），再查模板（404 `模板不存在`）。
+ * 检查顺序（保持既有接口行为）：先权限检查（403），再查模板（404 `模板不存在`）。
  */
 
 import type { FastifyInstance, FastifyReply } from 'fastify'

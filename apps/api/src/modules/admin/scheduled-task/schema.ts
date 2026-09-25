@@ -1,10 +1,10 @@
 /**
- * 定时任务 schema 层（对齐 AuraStack backend/app/admin/schema/scheduled_task.py）
+ * 定时任务 schema 层
  *
  * cron 解析 / URL 防 SSRF 在 common/scheduler（调度器与 worker 也要用）；这里是本模块自己的
- * parse_bool / parse_int / parse_json_object 与 service 里的 _normalize_* 辅助函数，按 Python 原样实现。
+ * 布尔 / 整数 / JSON 对象解析与 service 用到的 normalize* 归一化辅助函数。
  *
- * Python 里的 EXPORT_FIELD_MAP 没有任何路由使用（定时任务没有导出接口），不移植。
+ * 定时任务没有导出接口，因此本模块不定义 EXPORT_FIELD_MAP。
  */
 
 import { z } from 'zod'
@@ -13,12 +13,12 @@ import { ScheduledTaskSchemaError } from '@/common/scheduler/errors'
 import { pyStrip } from '@/common/scheduler/py-compat'
 import { isPyDict, pyJsonDumps, pyJsonLoads, PyJsonDecodeError, type PyJson } from '@/common/scheduler/py-json'
 
-/** 移植期请求体：loose + 全可选，归一化在 service 里做 */
+/** 请求体：loose + 全可选，归一化在 service 里做 */
 export const scheduledTaskBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 export const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
 
-/** Python `str(value or '').strip()` */
+/** 假值 → ''，否则转字符串后去掉首尾空白 */
 export function pyText(value: unknown): string {
   return pyStrip(pyTruthy(value) ? pyStr(value) : '')
 }

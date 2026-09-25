@@ -1,7 +1,7 @@
 /**
  * 手动执行 `/run` 与 `/runs`：真实 HTTP 往返（本地服务作为任务目标）
  *
- * 本地服务在 127.0.0.1 上，会被执行阶段的 SSRF 复检拦下。按 Python 测试的做法打桩：
+ * 本地服务在 127.0.0.1 上，会被执行阶段的 SSRF 复检拦下。因此打桩：
  * 只替换连接阶段用的 isBlockedIp，让“环回地址”放行；validateRequestUrl 内部仍用真实判定（新增/编辑照样拦 127.0.0.1），
  * 生产代码不做任何放宽。其他内网网段（如 10.x）在这里依然被拦。
  */
@@ -167,7 +167,7 @@ describe('手动执行（真实 HTTP）', () => {
     expect(failedRuns.total).toBe(1)
   })
 
-  it('请求体：JSON 对象按 requests json= 发送（Python 分隔符 + ensure_ascii + Content-Type）；纯文本按 data= 发送', async () => {
+  it('请求体：JSON 对象按 requests json= 发送（json.dumps 默认分隔符 + ensure_ascii + Content-Type）；纯文本按 data= 发送', async () => {
     const json = await seedTask({ request_url: `${base}/echo`, request_method: 'POST', request_body: '{"a": 1.0, "名": "值"}' })
     const res = await run(json)
     expect(JSON.parse(res.json().run.response_body)).toEqual({

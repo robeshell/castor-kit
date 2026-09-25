@@ -2,7 +2,7 @@
  * 保序 JSON + Python json.dumps 输出格式（generate-openapi / import-apifox 共用）
  *
  * JS 对象会把 "200"/"201" 这类整数形键提到最前，而 Python dict 保持插入顺序；
- * 需要与 Python 输出逐字节一致的地方，用 Map 表示对象、数字保留原文。
+ * 需要保持键顺序、逐字节稳定输出的地方，用 Map 表示对象、数字保留原文。
  */
 
 export type OrderedJson = null | boolean | string | { raw: string } | OrderedJson[] | Map<string, OrderedJson>
@@ -123,7 +123,7 @@ function dumpString(s: string, ensureAscii: boolean): string {
   return ensureAscii ? escapeNonAscii(json) : json
 }
 
-/** 对齐 Python `json.dumps(obj, ensure_ascii=False, indent=2)` */
+/** 等价于 Python `json.dumps(obj, ensure_ascii=False, indent=2)` */
 export function dumpIndented(value: OrderedJson, level = 0): string {
   if (value === null) return 'null'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
@@ -142,7 +142,7 @@ export function dumpIndented(value: OrderedJson, level = 0): string {
   return value.raw
 }
 
-/** 对齐 Python `json.dumps(obj)` 默认参数（ensure_ascii=True，分隔符 ', ' 与 ': '）——requests 的 json= 就是这样编码请求体 */
+/** 等价于 Python `json.dumps(obj)` 默认参数（ensure_ascii=True，分隔符 ', ' 与 ': '）——requests 的 json= 就是这样编码请求体 */
 export function dumpPythonDefault(value: OrderedJson): string {
   if (value === null) return 'null'
   if (typeof value === 'boolean') return value ? 'true' : 'false'

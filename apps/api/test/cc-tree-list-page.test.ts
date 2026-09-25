@@ -170,7 +170,7 @@ describe('tree-list-page', () => {
     expect((await put(c1.id, { node_code: ' ' })).json()).toEqual({ error: '节点编码不能为空' })
     expect((await put(c1.id, { name: null })).json()).toEqual({ error: '节点名称不能为空' })
     expect((await put(c1.id, { status: 'draft' })).json()).toEqual({ error: '状态仅支持 active/inactive/archived' })
-    // 成环（有意偏离 Flask）：移到自己的子 / 孙节点下 → 400，同一请求里的其他字段一并回滚
+    // 成环：移到自己的子 / 孙节点下 → 400，同一请求里的其他字段一并回滚
     const cycle = await put(ids.root!, { name: '根改名', parent_id: ids.gc })
     expect([cycle.statusCode, cycle.json()]).toEqual([400, { error: '不能将节点移动到自身或其子节点下' }])
     expect((await put(ids.root!, { parent_id: ids.c2 })).json()).toEqual({ error: '不能将节点移动到自身或其子节点下' })
@@ -217,7 +217,7 @@ describe('tree-list-page', () => {
     const missing = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称\na\n`) })
     expect(missing.json()).toEqual({ error: '导入文件缺少"节点名称/节点编码"列' })
 
-    // 成环（有意偏离 Flask）：根挂到自己的子节点下、节点指向自身 → 400 错误行，整批回滚
+    // 成环：根挂到自己的子节点下、节点指向自身 → 400 错误行，整批回滚
     const soloId = (await rowByCode(`${P}solo`))!.id
     const importCsv = (body: string) => s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称,节点编码,父节点ID\n${body}`) })
     const reason = `父节点 ${soloId} 会导致成环（不能是自身或其子节点）`
@@ -231,7 +231,7 @@ describe('tree-list-page', () => {
     expect((await rowByCode(`${P}solo`))!.parent_id).toBe(ids.root)
   })
 
-  it('删除：子节点 parent_id 置空且 updated_at 刷新（SQLAlchemy 先 UPDATE 子节点）', async () => {
+  it('删除：子节点 parent_id 置空且 updated_at 刷新（先 UPDATE 子节点）', async () => {
     const c2Before = (await rowByCode(`${P}c2`))!
     const gcBefore = (await rowByCode(`${P}gc`))!
     const res = await s.inject({ method: 'DELETE', url: `${B}/${ids.root}` })

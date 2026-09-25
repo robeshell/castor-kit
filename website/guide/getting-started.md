@@ -1,9 +1,5 @@
 # 快速开始
 
-::: info castor-kit 与 AuraStack
-castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写版：后端换成 Fastify + Drizzle，React 前端沿用原有路由与功能、UI 从 Semi Design 迁移到 shadcn/ui + Tailwind CSS v4，直连同一套 PostgreSQL 表结构，API 契约兼容。
-:::
-
 ## 环境要求
 
 根据你的使用场景选择对应的方式：
@@ -77,7 +73,7 @@ cp apps/api/.env.example apps/api/.env.development
 编辑 `apps/api/.env.development`，至少填写数据库连接：
 
 ```env
-DEV_DATABASE_URL=postgresql://用户名@localhost/aurastack
+DEV_DATABASE_URL=postgresql://用户名@localhost/castor_kit
 ```
 
 开发环境下 `NODE_ENV` 默认为 `development`，`SECRET_KEY` 与 `ADMIN_PASSWORD` 可以不填（分别使用内置的开发密钥和 `admin123`）。
@@ -86,7 +82,7 @@ DEV_DATABASE_URL=postgresql://用户名@localhost/aurastack
 
 ```bash
 # 创建数据库
-createdb aurastack
+createdb castor_kit
 
 # 执行 Drizzle 迁移（空库会建出全部表）
 pnpm db:migrate

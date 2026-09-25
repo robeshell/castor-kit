@@ -1,7 +1,7 @@
 /**
- * 迁移链完整性（移植 AuraStack backend/tests/test_migration_chain.py，Alembic → Drizzle）
+ * 迁移链完整性
  *
- * Alembic 靠 revision/down_revision 串链，分叉会产生多个 head；Drizzle 的对应物是：
+ * 并行生成迁移会让链分叉；Drizzle 迁移链需满足：
  * - meta/_journal.json 的 entries：idx 从 0 连续递增、tag 唯一且以 4 位 idx 开头、when 严格递增
  *   （migrator 只执行 folderMillis 大于库中最后一条记录的迁移，when 乱序 = 迁移被静默跳过）
  * - 每条 entry 有 <tag>.sql 与 meta/<idx>_snapshot.json；drizzle/ 下没有未登记的 .sql
@@ -51,7 +51,7 @@ function checkMigrationChain(drizzleDir: string): ChainResult {
     .filter((f) => !tags.includes(f.replace(/\.sql$/, '')))
   if (orphanSql.length) details.push(`SQL 文件未登记到 journal: ${orphanSql.join(', ')}`)
 
-  // snapshot prevId 链：等价于 Alembic 的 down_revision
+  // snapshot prevId 链：每个 snapshot 指向上一个，首尾相接成单链
   const snapshots: Array<{ id: string; prevId: string; tag: string }> = []
   for (const entry of entries) {
     const file = join(drizzleDir, 'meta', `${String(entry.idx).padStart(4, '0')}_snapshot.json`)

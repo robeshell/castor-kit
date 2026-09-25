@@ -32,7 +32,7 @@ beforeAll(async () => {
   app = await buildTestApp()
   s = await superAdminSession(app, handle)
   await cleanup()
-  // 克隆出来的测试库主键序列可能落后于 MAX(id)（Python 实现没有序列自愈逻辑），先同步
+  // 克隆出来的测试库主键序列可能落后于 MAX(id)，先同步
   await handle.pool.query(
     "SELECT setval(pg_get_serial_sequence('cc_advanced_table_rows', 'id'), COALESCE((SELECT MAX(id) FROM cc_advanced_table_rows), 0) + 1, false)",
   )
@@ -46,8 +46,8 @@ afterAll(async () => {
 })
 
 describe('advanced-table 工具函数', () => {
-  it('pyRound2 与 Python round(x, 2) 一致（含恰好一半取偶）', () => {
-    // 期望值来自 Python：round(0.125,2)=0.12, round(0.375,2)=0.38, round(2.675,2)=2.67, round(1.005,2)=1.0
+  it('pyRound2 按 round(x, 2) 语义（含恰好一半取偶）', () => {
+    // round(x, 2) 语义：round(0.125,2)=0.12, round(0.375,2)=0.38, round(2.675,2)=2.67, round(1.005,2)=1.0
     expect(pyRound2(0.125)).toBe(0.12)
     expect(pyRound2(0.375)).toBe(0.38)
     expect(pyRound2(-0.125)).toBe(-0.12)
@@ -190,7 +190,7 @@ describe('advanced-table', () => {
     const noop = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { category: 'x', priority: 'x', row_code: `${P}b` } })
     expect(noop.json().updated_at).toBe(res.json().updated_at)
     expect(noop.json().category).toBe('risk')
-    // Python：Decimal('7.01') == 7.01 为 False（精确比较）→ 仍会发 UPDATE 刷新 updated_at
+    // Decimal('7.01') 与浮点 7.01 精确比较不相等 → 仍会发 UPDATE 刷新 updated_at
     const inexact = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { score: 7.01 } })
     expect(inexact.json().score).toBe(7.01)
     expect(inexact.json().updated_at).not.toBe(res.json().updated_at)

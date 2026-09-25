@@ -1,14 +1,14 @@
 /**
  * scripts/scaffold.ts
  *
- * - 纯函数：命名 / 字段解析 / 推断规则 / 自动注册（与 Python scaffold.py 对齐）；
+ * - 纯函数：命名 / 字段解析 / 推断规则 / 自动注册；
  *   前端页面为 shadcn/ui 新体系，用 apps/web 的 eslint（stdin，不落盘）与 @/ 路径存在性把关
  * - 集成：在临时目录里复制一份 apps/api（src + drizzle，node_modules 用符号链接），用 --root 指向它执行 scaffold，
  *   断言生成文件、注册、迁移 SQL、生成代码通过 tsc、重复执行不覆盖、dry-run 不落盘。绝不写主仓库。
  */
 
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -40,7 +40,7 @@ function scaffoldCli(args: string[]) {
 }
 
 describe('scaffold 纯函数', () => {
-  it('命名：Pascal / kebab / title 与 Python 一致', () => {
+  it('命名：Pascal / kebab / title', () => {
     expect(toPascal('customer_order')).toBe('CustomerOrder')
     expect(toPascal('ck_demo_customer')).toBe('CkDemoCustomer')
     expect(toKebab('customer_order')).toBe('customer-order')
@@ -76,9 +76,9 @@ describe('scaffold 纯函数', () => {
       webModule: 'admin',
       nameField: 'name', // 第一个 str/str50 字段
     })
-    expect(admin.exportFields.map(([f]) => f)).toEqual(['amount', 'name', 'phone', 'memo'])
-    // 导入：前 3 个字段里的字符串字段
-    expect(admin.importFields.map(([f]) => f)).toEqual(['name', 'phone'])
+    // 导出 / 表格列：全部字段；导入：全部字段，名称字段排第一（必填列）
+    expect(admin.exportFields.map(([f]) => f)).toEqual(['amount', 'name', 'phone', 'memo', 'level'])
+    expect(admin.importFields.map(([f]) => f)).toEqual(['name', 'amount', 'phone', 'memo', 'level'])
 
     const cc = buildSpec('order_item', 'component_center', parseFields('qty:int,price:float'))
     expect(cc).toMatchObject({
@@ -89,7 +89,8 @@ describe('scaffold 纯函数', () => {
       webModule: 'component_center',
       nameField: 'qty', // 没有字符串字段时取第一个字段
     })
-    expect(cc.importFields).toEqual([['qty', 'str']])
+    // 没有字符串字段：按原类型导入全部字段（不把第一个字段当 str）
+    expect(cc.importFields).toEqual([['qty', 'int'], ['price', 'float']])
   })
 
   it('前端页面：只导入用到的组件，@/ 导入在 apps/web/src 都存在，apps/web 的 eslint 零错误零告警', () => {
@@ -168,6 +169,16 @@ describe('scaffold 纯函数', () => {
   })
 })
 
+/** 只保留 baseline 迁移：测试不随仓库里新增的功能迁移变化 */
+function trimDrizzleToBaseline(dir: string): void {
+  const journalPath = join(dir, 'meta', '_journal.json')
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
+  const [baseline] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
+}
+
 describe('scaffold CLI（临时目录副本）', () => {
   let root: string
   const name = 'ck_scaffold_demo'
@@ -180,15 +191,19 @@ describe('scaffold CLI（临时目录副本）', () => {
     for (const entry of ['src', 'drizzle', 'drizzle.config.ts', 'tsconfig.json', 'package.json']) {
       cpSync(join(API_DIR, entry), join(api, entry), { recursive: true })
     }
+    trimDrizzleToBaseline(join(api, 'drizzle'))
     symlinkSync(join(API_DIR, 'node_modules'), join(api, 'node_modules'), 'dir')
     mkdirSync(join(root, 'apps', 'web', 'src', 'modules'), { recursive: true })
+    // 生成的接口测试会 import ./helpers，tsc 检查时需要它
+    mkdirSync(join(api, 'test'), { recursive: true })
+    cpSync(join(API_DIR, 'test', 'helpers.ts'), join(api, 'test', 'helpers.ts'))
   })
 
   afterAll(() => {
     if (root) rmSync(root, { recursive: true, force: true })
   })
 
-  it('非法名称：exit 1 + Python 同款提示', () => {
+  it('非法名称：exit 1 + 提示', () => {
     const res = scaffoldCli(['--', '--name', 'BadName', '--root', root])
     expect(res.code).toBe(1)
     expect(res.out).toContain('❌ --name 必须是 snake_case 格式（小写字母+下划线），如 customer_order')
@@ -199,6 +214,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     const res = scaffoldCli(['--name', name, '--domain', 'component_center', '--fields', fields, '--dry-run', '--root', root])
     expect(res.code).toBe(0)
     expect(res.out).toContain('[dry-run] would write: apps/api/src/modules/component-center/ck-scaffold-demo/routes.ts')
+    expect(res.out).toContain('[dry-run] would write: apps/api/test/cc-ck-scaffold-demo.test.ts')
     expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/pages/admin/ck_scaffold_demo_page/index.jsx')
     expect(res.out).toContain('[dry-run] would run: drizzle-kit generate --name ck_scaffold_demo')
     expect(res.out).toContain('Perm prefix: cc_ck_scaffold_demo')
@@ -216,6 +232,7 @@ describe('scaffold CLI（临时目录副本）', () => {
       'apps/api/src/modules/admin/ck-scaffold-demo/repository.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/service.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts',
+      'apps/api/test/admin-ck-scaffold-demo.test.ts',
       'apps/web/src/modules/admin/api/ck_scaffold_demo.js',
       'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx',
     ]) {
@@ -238,7 +255,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(table).toContain('  created_at: createdAt(),')
     expect(table).toContain('    visited_at: toIso(item.visited_at),')
 
-    // 路由：Python 同款权限编码与文案，带 id 先 404 再 403
+    // 路由：权限编码与文案，带 id 先 404 再 403
     const routes = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts'), 'utf8')
     expect(routes).toContain("const BASE = '/api/admin/ck-scaffold-demos'")
     for (const [code, msg] of [
@@ -254,7 +271,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     }
     expect(routes.indexOf('service.getOr404(itemId(request.params))')).toBeLessThan(routes.indexOf("'system_ck_scaffold_demo_edit'"))
 
-    // 前端：api 文件格式与 Python 一致；页面是 shadcn/ui 新体系（结构同 users 页）
+    // 前端：api 文件格式；页面是 shadcn/ui 新体系（结构同 users 页）
     const api = readFileSync(join(root, 'apps/web/src/modules/admin/api/ck_scaffold_demo.js'), 'utf8')
     expect(api).toContain("const BASE = '/admin/ck-scaffold-demos'")
     const page = readFileSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx'), 'utf8')

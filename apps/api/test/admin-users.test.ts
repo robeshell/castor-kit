@@ -59,7 +59,7 @@ describe('users', () => {
     expect(badRole.json()).toEqual({ error: "角色不存在: [999999, '1']" })
   })
 
-  it('编辑：改密 + 清空角色；不存在 id → 404（先于权限检查）；非数字 id 按 Flask 语义', async () => {
+  it('编辑：改密 + 清空角色；不存在 id → 404（先于权限检查）；非数字 id 不匹配带 id 的路由（405）', async () => {
     const [u] = await handle.db.select().from(admin_users).where(eq(admin_users.username, `${P}a`))
     const res = await s.inject({ method: 'PUT', url: `/api/admin/users/${u!.id}`, payload: { password: 'newpass', role_ids: [] } })
     expect(res.statusCode).toBe(200)

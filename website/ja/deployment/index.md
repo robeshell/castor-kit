@@ -24,7 +24,7 @@ cp .env.example .env.production
 SECRET_KEY=a-random-string-of-64-or-more-characters   # 必須 — セッション暗号化キー
 ADMIN_PASSWORD=your-admin-password                   # 必須 — 管理者の初期パスワード
 POSTGRES_PASSWORD=your-db-password                   # 必須 — PostgreSQL のパスワード
-POSTGRES_RO_PASSWORD=your-readonly-password          # 必須 — AI SQL 読み取り専用ロール aurastack_ro のパスワード
+POSTGRES_RO_PASSWORD=your-readonly-password          # 必須 — AI SQL 読み取り専用ロール castor_kit_ro のパスワード
 ```
 
 その後、ビルドして起動します：
@@ -91,22 +91,6 @@ docker compose --env-file .env.production up -d --build
 
 ---
 
-## AuraStack からの切り替え
-
-castor-kit は AuraStack の Node.js リライト版で、同じデータベーススキーマを使用します。すでに Docker で AuraStack を運用しているサーバーでは、castor-kit は既存のボリュームを再利用できます：
-
-```bash
-COMPOSE_DB_VOLUME=aurastack_postgres_data \
-COMPOSE_INSTANCE_VOLUME=aurastack_app_instance \
-docker compose --env-file .env.production up -d --build
-```
-
-- 初回起動時、ベースラインマイグレーションは適用済みとしてマークされるだけで、既存のテーブルは一切変更されず、`alembic_version` テーブルにも手を加えません
-- パスワードハッシュは互換性があるためアカウントはそのまま使えますが、セッション Cookie は互換性がありません——切り替え後、すべてのユーザーは一度ログインし直す必要があります
-- `.env.production` 内の古い `FLASK_ENV` エントリは使用されなくなりました。compose が `NODE_ENV=production` を設定します
-
----
-
 ## 手動サーバーデプロイ
 
 Docker を使わない VPS やベアメタルサーバー向けです。Node 22+、pnpm、PostgreSQL 14+ が必要です。
@@ -131,10 +115,10 @@ cp .env.example .env.production
 
 ```env
 SECRET_KEY=your-strong-random-secret
-DATABASE_URL=postgresql://user:password@localhost/aurastack
+DATABASE_URL=postgresql://user:password@localhost/castor_kit
 ADMIN_PASSWORD=your-admin-password
 POSTGRES_RO_PASSWORD=your-readonly-password
-AI_SQL_DATABASE_URL=postgresql://aurastack_ro:your-readonly-password@localhost/aurastack
+AI_SQL_DATABASE_URL=postgresql://castor_kit_ro:your-readonly-password@localhost/castor_kit
 ```
 
 ### 3. データベースを初期化
@@ -143,7 +127,7 @@ AI_SQL_DATABASE_URL=postgresql://aurastack_ro:your-readonly-password@localhost/a
 NODE_ENV=production node apps/api/dist/setup-once.js
 ```
 
-マイグレーションを実行し、RBAC データを同期し、`POSTGRES_RO_PASSWORD` を使って読み取り専用ロール `aurastack_ro` を作成します。
+マイグレーションを実行し、RBAC データを同期し、`POSTGRES_RO_PASSWORD` を使って読み取り専用ロール `castor_kit_ro` を作成します。
 
 ### 4. サーバーを起動
 

@@ -1,20 +1,20 @@
 /**
- * scripts/setup-once.ts + scripts/init-ro-role.ts：对齐 AuraStack run_setup_once.py / init_ai_sql_ro_role.py
+ * scripts/setup-once.ts + scripts/init-ro-role.ts
  *
- * 在临时库（castor_seed_*）上验证：空库全流程、并发两次（advisory lock 串行化）、幂等、
- * AuraStack 现库（有 alembic_version、无 Drizzle 记录）只标记 baseline 不执行 DDL、只读角色授权范围。
- * 只读角色是集群级对象：测试用独立角色名 ck_test_r8_ro，结束时 DROP OWNED + DROP ROLE，不碰共用的 aurastack_ro。
+ * 在临时库（castor_seed_*）上验证：空库全流程、并发两次（advisory lock 串行化）、幂等、只读角色授权范围。
+ * 只读角色是集群级对象：测试用独立角色名 ck_test_r8_ro，结束时 DROP OWNED + DROP ROLE，不碰共用的只读角色。
  */
 
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { initRoRole, isVisibleTable, RO_ROLE } from '../scripts/init-ro-role'
 import { ADVISORY_LOCK_KEY, runSetupOnce } from '../scripts/setup-once'
-import { BASELINE_ALEMBIC_REVISION, runMigrations } from '../src/db/migrate'
+import { MENUS_DATA } from '../scripts/seed-rbac'
+import { readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { TEST_DATABASE_URL } from './helpers'
 
 const EMPTY_DB = 'castor_seed_vt_r8_setup'
-const LEGACY_DB = 'castor_seed_vt_r8_legacy'
 const TEST_ROLE = 'ck_test_r8_ro'
 const quiet = () => {}
 
@@ -39,7 +39,7 @@ const adminSql = (sql: string) => query(urlForDatabase('postgres'), sql)
 async function dropTestRole(): Promise<void> {
   const exists = await adminSql(`SELECT 1 FROM pg_roles WHERE rolname = '${TEST_ROLE}'`)
   if (exists.length === 0) return
-  for (const db of [EMPTY_DB, LEGACY_DB]) {
+  for (const db of [EMPTY_DB]) {
     const dbExists = await adminSql(`SELECT 1 FROM pg_database WHERE datname = '${db}'`)
     if (dbExists.length > 0) await query(urlForDatabase(db), `DROP OWNED BY ${TEST_ROLE}`)
   }
@@ -59,7 +59,7 @@ async function rbacSnapshot(url: string) {
 
 beforeAll(async () => {
   await dropTestRole()
-  for (const db of [EMPTY_DB, LEGACY_DB]) {
+  for (const db of [EMPTY_DB]) {
     await adminSql(`DROP DATABASE IF EXISTS ${db} WITH (FORCE)`)
     await adminSql(`CREATE DATABASE ${db}`)
   }
@@ -67,21 +67,25 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await dropTestRole()
-  for (const db of [EMPTY_DB, LEGACY_DB]) await adminSql(`DROP DATABASE IF EXISTS ${db} WITH (FORCE)`)
+  for (const db of [EMPTY_DB]) await adminSql(`DROP DATABASE IF EXISTS ${db} WITH (FORCE)`)
 })
 
-describe('isVisibleTable（同 ai_sql_engine.is_visible_table）', () => {
+describe('isVisibleTable（与 AI SQL 的表可见范围同一套规则）', () => {
   it('精确排除 RBAC 表、前缀排除 admin_/audit_/scheduled_task、后缀排除 _logs', () => {
     for (const name of ['roles', 'menus', 'user_roles', 'role_menus', 'admin_users', 'audit_x', 'scheduled_tasks', 'scheduled_task_runs', 'login_logs', 'operation_logs', 'ADMIN_USERS', '']) {
       expect(isVisibleTable(name), name).toBe(name === '')
     }
-    for (const name of ['list_page_items', 'dict_types', 'notifications', 'alembic_version', 'log_entries', 'user_roles_x']) {
+    for (const name of ['list_page_items', 'dict_types', 'notifications', 'migrations_x', 'log_entries', 'user_roles_x']) {
       expect(isVisibleTable(name), name).toBe(true)
     }
     expect(isVisibleTable(null)).toBe(true)
-    expect(RO_ROLE).toBe('aurastack_ro')
+    expect(RO_ROLE).toBe('castor_kit_ro')
   })
 })
+
+const DRIZZLE_DIR = resolve(__dirname, '../drizzle')
+/** 仓库当前的迁移条数（随新增功能增长） */
+const MIGRATION_COUNT = (JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta/_journal.json'), 'utf8')) as { entries: unknown[] }).entries.length
 
 describe('setup-once', () => {
   const url = urlForDatabase(EMPTY_DB)
@@ -125,11 +129,11 @@ describe('setup-once', () => {
     expect(events.filter((e) => e.startsWith(second))).toHaveLength(6)
 
     const snap = await rbacSnapshot(url)
-    expect(snap.menus).toHaveLength(120)
+    expect(snap.menus).toHaveLength(MENUS_DATA.length)
     expect(snap.roles).toEqual([{ id: 1, code: 'super_admin' }])
     expect(snap.users.map((u) => u.username)).toEqual(['admin'])
-    expect(snap.roleMenus).toHaveLength(120)
-    expect(snap.migrations).toHaveLength(1)
+    expect(snap.roleMenus).toHaveLength(MENUS_DATA.length)
+    expect(snap.migrations).toHaveLength(MIGRATION_COUNT)
     const locks = await query<{ n: number }>(url, `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND objid = ${ADVISORY_LOCK_KEY}`)
     expect(locks[0]!.n).toBe(0)
   })
@@ -184,37 +188,5 @@ describe('setup-once', () => {
     expect(await initRoRole({ databaseUrl: url, roPassword: '   ', log: (m) => log.push(m) })).toEqual({ skipped: true, granted: 0 })
     expect(log).toEqual(['未配置 POSTGRES_RO_PASSWORD，跳过 AI SQL 只读角色初始化'])
     await expect(initRoRole({ databaseUrl: url, roPassword: 'x', roleName: 'bad; drop', log: quiet })).rejects.toThrow('非法角色名')
-  })
-
-  it('AuraStack 现库（有 alembic_version、无 Drizzle 记录）：只标记 baseline，不执行 DDL，保留已有数据', async () => {
-    const legacyUrl = urlForDatabase(LEGACY_DB)
-    // 构造一个“Alembic 建好的现库”：先建表，再抹掉 Drizzle 记录并写入 alembic_version
-    await runMigrations(legacyUrl, quiet)
-    await query(legacyUrl, `
-      DROP SCHEMA drizzle CASCADE;
-      CREATE TABLE alembic_version (version_num varchar(32) NOT NULL PRIMARY KEY);
-      INSERT INTO alembic_version VALUES ('${BASELINE_ALEMBIC_REVISION}');
-      INSERT INTO admin_users (username, password_hash, created_at) VALUES ('ck_test_r8_user', 'x', now());
-      -- 模拟 Alembic 迁移用显式 id 插入演示数据、未 setval：序列落后于 MAX(id)
-      INSERT INTO cc_gantt_tasks (id, title, start_date, end_date) VALUES (500, 'ck_test_r8_gantt', '2026-01-01', '2026-01-02');
-    `)
-    const log: string[] = []
-    await runSetupOnce({ databaseUrl: legacyUrl, adminPassword: 'x', roPassword: '', log: (m) => log.push(m) })
-    expect(log.some((m) => m.includes('baseline 已标记为已应用，未执行 DDL'))).toBe(true)
-    const snap = await rbacSnapshot(legacyUrl)
-    expect(snap.migrations).toHaveLength(1)
-    expect(snap.users.map((u) => u.username)).toEqual(['ck_test_r8_user', 'admin'])
-    expect(snap.menus).toHaveLength(120)
-    // 落后的序列被推进到 MAX(id)，接管后新增不会撞主键
-    expect(log.some((m) => m.startsWith('已同步落后的自增序列') && m.includes('cc_gantt_tasks'))).toBe(true)
-    const [inserted] = await query<{ id: number }>(
-      legacyUrl,
-      `INSERT INTO cc_gantt_tasks (title, start_date, end_date) VALUES ('ck_test_r8_next', '2026-01-01', '2026-01-02') RETURNING id`,
-    )
-    expect(inserted!.id).toBe(501)
-
-    const again = await rbacSnapshot(legacyUrl)
-    await runSetupOnce({ databaseUrl: legacyUrl, adminPassword: 'x', roPassword: '', log: quiet })
-    expect(await rbacSnapshot(legacyUrl)).toEqual(again)
   })
 })

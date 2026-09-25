@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_PER_PAGE, MAX_PER_PAGE, parsePagination } from '@/common/pagination'
 
-describe('parsePagination（对齐 backend/tests/test_pagination.py）', () => {
+describe('parsePagination', () => {
   it('默认值', () => {
     expect(parsePagination({})).toEqual({ page: 1, per_page: DEFAULT_PER_PAGE })
   })

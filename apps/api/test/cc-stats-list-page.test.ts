@@ -152,7 +152,7 @@ describe('stats-list-page', () => {
 
     const a = (await rowByCode(`${P}a`))!
     expect(a.amount).toBe('12.35')
-    // 12.35 不能被二进制浮点精确表示 → Python 认为值变化，发 UPDATE
+    // 12.35 不能被二进制浮点精确表示 → 视为值变化，发 UPDATE
     const bumped = await s.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: { amount: 12.35 } })
     expect(bumped.json().amount).toBe(12.35)
     expect((await rowByCode(`${P}a`))!.updated_at).not.toBe(a.updated_at)
@@ -195,7 +195,7 @@ describe('stats-list-page', () => {
     }
   })
 
-  it('pyRound2 对齐 Python round(x, 2)', () => {
+  it('pyRound2 按 round(x, 2) 语义', () => {
     expect(pyRound2(0.125)).toBe(0.12)
     expect(pyRound2(0.375)).toBe(0.38)
     expect(pyRound2(-0.125)).toBe(-0.12)

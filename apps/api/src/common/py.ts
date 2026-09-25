@@ -1,7 +1,7 @@
 /**
- * Python 语义的基础工具：移植 service/schema 时用来复刻 `str()` / `int()` / `float()` / 真值判断，
+ * Python 语义的基础工具：在 service/schema 里按 Python `str()` / `int()` / `float()` / 真值判断的规则转换值，
  * 避免 JS 的隐式转换悄悄改变边缘输入的行为。各模块自己的 parse_bool/parse_int 等在模块 schema.ts 里
- * 按 Python 原样实现（不同模块接受的取值不完全一样，不要合并）。
+ * 各自实现（不同模块接受的取值不完全一样，不要合并）。
  */
 
 /** Python 真值：None / '' / 0 / False / 空 list / 空 dict 为假 */
@@ -38,7 +38,7 @@ export function pyStr(value: unknown): string {
   return String(value)
 }
 
-/** Python `str(x or '').strip()` —— 移植代码里最常见的写法 */
+/** Python `str(x or '').strip()`：假值 → ''，其余转字符串后去首尾空白 */
 export function pyStrOrEmpty(value: unknown): string {
   return pyTruthy(value) ? pyStr(value).trim() : ''
 }

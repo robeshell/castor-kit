@@ -7,6 +7,7 @@
  * 一个请求一次提交：多步写操作放进 inTx（db.transaction），失败整体回滚。
  */
 
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyStr, pyTruthy } from '@/common/py'
@@ -14,7 +15,7 @@ import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type
 import type { Db } from '@/db/client'
 import { <resource>ToDict, type <Resource> } from '@/db/schema'
 import { <Resource>Repository } from './repository'
-import { buildErrorRow, buildValues, EXPORT_FIELD_MAP, IMPORT_HEADER_MAP, type ErrorRow } from './schema'
+import { buildErrorRow, buildValues, EXPORT_FIELD_MAP, fieldLabel, IMPORT_HEADER_MAP, type ErrorRow } from './schema'
 
 type Data = Record<string, unknown>
 
@@ -30,7 +31,8 @@ export class <Resource>Service {
       return await this.db.transaction((tx) => fn(new <Resource>Repository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      // 唯一冲突 / 超长 / 数值溢出等输入问题 → 400；其余 → 500
+      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
 
@@ -79,10 +81,14 @@ export class <Resource>Service {
       pyTruthy(data.ids) && Array.isArray(data.ids) ? data.ids.filter((v): v is number => Number.isInteger(v)) : null
 
     const items = await this.repo.listForExport(ids)
-    const headers = fields.map((f) => EXPORT_FIELD_MAP[f] ?? f)
+    const headers = fields.map((f) => fieldLabel(f))
     const rows = items.map((item) => {
       const dict: Record<string, unknown> = <resource>ToDict(item)
-      return fields.map((f) => (f in dict ? dict[f] : ''))
+      return fields.map((f) => {
+        const column = EXPORT_FIELD_MAP[f]
+        if (Array.isArray(column)) return column[1](item)
+        return f in dict ? dict[f] : ''
+      })
     })
     return buildTable(headers, rows, '<resource>_export', fileType)
   }
@@ -124,7 +130,15 @@ export class <Resource>Service {
           errors.push(buildErrorRow(line, err.message, row))
           continue
         }
-        await repo.insert({ ...values, name: (row[requiredHeader] ?? '').trim() })
+        try {
+          await repo.insert({ ...values, name: (row[requiredHeader] ?? '').trim() })
+        } catch (err) {
+          // 数据库拒绝这一行（唯一冲突、超长等）：事务已中止，带上已发现的错误行一起返回
+          const rowError = dbConstraintError(err)
+          if (!rowError) throw err
+          errors.push(buildErrorRow(line, rowError.message, row))
+          throw new ServiceError('导入失败，存在错误数据', 400, { error_rows: errors.slice(0, 500), error_count: errors.length })
+        }
         created += 1
       }
       if (errors.length > 0) {

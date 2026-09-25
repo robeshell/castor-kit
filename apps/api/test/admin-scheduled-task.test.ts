@@ -1,5 +1,5 @@
 /**
- * 定时任务接口（对齐 AuraStack backend/app/admin/api/scheduled_task.py）
+ * 定时任务接口
  */
 
 import { eq, like, sql } from 'drizzle-orm'
@@ -169,7 +169,7 @@ describe('新增', () => {
     expect(new Date(Date.UTC(y, m - 1, 1)).getUTCDay()).toBe(1)
   })
 
-  it('校验失败 400（文案与 Python 一致）', async () => {
+  it('校验失败 400 与错误文案', async () => {
     const cases: Array<[Record<string, unknown>, string]> = [
       [{ name: '' }, '任务名称不能为空'],
       [{ task_code: '  ' }, '任务编码不能为空'],
@@ -190,7 +190,7 @@ describe('新增', () => {
     }
   })
 
-  it('请求地址不合法：400 + 具体原因（有意偏离 Flask 的 500；校验在名称 / 编码 / Cron 之后）', async () => {
+  it('请求地址不合法：400 + 具体原因（校验在名称 / 编码 / Cron 之后）', async () => {
     // 期望文案；RegExp 用于 localhost（不同机器先解析出 ::1 或 127.0.0.1）
     const cases: Array<[unknown, string | RegExp]> = [
       [undefined, '请求地址不能为空'],
@@ -251,7 +251,7 @@ describe('详情 / 编辑 / 删除', () => {
     expect(keep.json()).toMatchObject({ is_active: false, timeout_seconds: 1 })
   })
 
-  it('编辑：值没变化时不发 UPDATE（updated_at 不变，对齐 SQLAlchemy onupdate）', async () => {
+  it('编辑：值没变化时不发 UPDATE（updated_at 不变）', async () => {
     const task = await seedTask({ task_code: `${P}edit_noop`, remark: 'r', updated_at: '2026-01-01 00:00:00' })
     const res = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { remark: '  r  ', is_active: false, name: task.name } })
     expect(res.json().updated_at).toBe('2026-01-01T00:00:00')
@@ -281,7 +281,7 @@ describe('详情 / 编辑 / 删除', () => {
     }
     // 自己的编码不算重复
     expect((await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { task_code: task.task_code } })).statusCode).toBe(200)
-    // urlsplit ValueError：400「请求地址格式不合法」（有意偏离 Flask 的 500）
+    // urlsplit ValueError：400「请求地址格式不合法」
     const bad = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { request_url: 'http://[::1/x' } })
     expect([bad.statusCode, bad.json()]).toEqual([400, { error: '请求地址格式不合法' }])
   })
@@ -307,7 +307,7 @@ describe('详情 / 编辑 / 删除', () => {
 })
 
 describe('手动执行 / 执行记录', () => {
-  it('执行：403 先于 404（Flask 该路由先查权限）', async () => {
+  it('执行：403 先于 404（该路由先查权限）', async () => {
     const denied = await nobody.inject({ method: 'POST', url: `${T}/99999999/run` })
     expect([denied.statusCode, denied.json()]).toEqual([403, { error: '无权限执行定时任务' }])
     expect((await s.inject({ method: 'POST', url: `${T}/99999999/run` })).json()).toEqual({ error: '资源不存在' })

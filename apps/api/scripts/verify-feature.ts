@@ -1,5 +1,5 @@
 /**
- * castor-kit 功能验证门禁（对齐 AuraStack backend/scripts/verify_feature.py）
+ * castor-kit 功能验证门禁
  *
  * 用法：
  *   pnpm verify -- --module customer
@@ -22,8 +22,9 @@
  *  13. RBAC 种子（scripts/seed-rbac.ts）包含菜单 component 或权限编码
  *  14. 前端构建通过（可选，--skip-build 跳过）
  *  15. 前端 Vitest 通过（可选，--skip-frontend-tests 跳过）
+ *  16. 后端 Vitest 通过（可选，--skip-api-tests 跳过；约 45s，需要测试库）
  *
- * JSON 输出结构与 Python 版一致：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
+ * JSON 输出结构：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
  */
 
 import { spawnSync, type SpawnSyncOptions } from 'node:child_process'
@@ -152,7 +153,7 @@ interface JournalEntry {
 
 /**
  * 迁移链完整性：journal 的 idx 连续、when 严格递增、tag 唯一；每条有 SQL 与 snapshot；
- * snapshot 的 prevId 首尾相接（等价 Alembic 的单根线性、无分叉）；drizzle/ 下没有游离（手写）SQL。
+ * snapshot 的 prevId 首尾相接（单根线性、无分叉）；drizzle/ 下没有游离（手写）SQL。
  */
 export function checkMigrationChain(ctx: VerifyContext): CheckResult {
   const dir = join(ctx.apiDir, 'drizzle')
@@ -294,7 +295,7 @@ export async function checkMigrationApplied(
 
 /**
  * OpenAPI 文档同步度（告警性质，不阻断门禁）：调用 generate-openapi.ts --dry-run（只统计不写回），
- * 有未入文档的路由、或详细路径覆盖率 < 80%（骨架路径不计入，与 Python 同一口径）时告警。
+ * 有未入文档的路由、或详细路径覆盖率 < 80%（骨架路径不计入）时告警。
  */
 export function checkOpenapiSync(ctx: VerifyContext): CheckResult {
   const name = 'openapi_sync'
@@ -599,12 +600,21 @@ export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResu
   return { name: 'frontend_tests', passed: true }
 }
 
+/** 后端单元测试：新功能常会让 seed / 迁移相关测试变化，门禁必须覆盖 */
+export function checkApiTests(ctx: VerifyContext, skip: boolean): CheckResult {
+  if (skip) return { name: 'api_tests', passed: true, skipped: true }
+  const { code, output } = run([...bin(ctx.apiDir, 'vitest'), 'run'], ctx.apiDir)
+  if (code !== 0) return { name: 'api_tests', passed: false, error: output.slice(-1500) }
+  return { name: 'api_tests', passed: true }
+}
+
 // ─── 主流程 ────────────────────────────────────────────────────────────────────
 
 export interface VerifyOptions {
   module?: string
   skipBuild?: boolean
   skipFrontendTests?: boolean
+  skipApiTests?: boolean
   skipDb?: boolean
   runRbacSync?: boolean
   strictDocs?: boolean
@@ -680,6 +690,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
   // 前端构建 + 测试
   step('frontend_build', () => checkFrontendBuild(ctx, options.skipBuild ?? false))
   step('frontend_tests', () => checkFrontendTests(ctx, options.skipFrontendTests ?? false))
+  step('api_tests', () => checkApiTests(ctx, options.skipApiTests ?? false))
 
   // 汇总
   const passed = results.every((r) => r.passed)
@@ -713,6 +724,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       module: { type: 'string' },
       'skip-build': { type: 'boolean', default: false },
       'skip-frontend-tests': { type: 'boolean', default: false },
+      'skip-api-tests': { type: 'boolean', default: false },
       'skip-db': { type: 'boolean', default: false },
       'strict-docs': { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
@@ -731,6 +743,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     module: values.module,
     skipBuild: values['skip-build'],
     skipFrontendTests: values['skip-frontend-tests'],
+    skipApiTests: values['skip-api-tests'],
     skipDb: values['skip-db'],
     strictDocs: values['strict-docs'],
     runRbacSync: values['run-rbac-sync'],

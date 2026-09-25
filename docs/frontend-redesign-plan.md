@@ -69,14 +69,16 @@ apps/web/src/
 
 ## 5. 公共组件约定（页面必须复用，不各写一套）
 
-- `PageHeader`：标题、描述、右侧操作区。
-- `ListToolbar`：搜索框 + 筛选项 + 查询/重置；
-- `DataTable`：列定义（TanStack），`loading` 骨架、空态、分页（total/page/perPage）、行选择、行 hover 操作。
-- `FormDialog` / `FormSheet`：新建/编辑表单容器（react-hook-form），提交 loading、错误提示。
-- `ConfirmButton`：删除等危险操作的确认弹层（替代 Popconfirm）。
-- `ImportDialog` / `ExportDialog`：替代 ImportCsvModal / ExportFieldsModal，接口与原组件 props 对齐，只支持 csv/xlsx。
-- `PermissionGate` / `useAuth().hasPermission`：按钮权限。
-- `toast.success / toast.error`：统一反馈；后端 `{error}` 文案直接展示。
+组件都在 `apps/web/src/shared/components/`，完整用法见 `.claude/skills/shadcn-ui-skills/COMPONENTS.md`。
+
+- `PageHeader`：标题 + 右侧操作区（description 只放数据类信息）。
+- `Filters`（`FilterBar` / `SearchInput` / `FilterSelect`）：搜索框 + 筛选项 + 查询/重置。
+- `DataTable`：自研表格（非 TanStack），列定义 `{ key, title, dataIndex, render, … }`；`loading` 骨架、空态、分页（total/page/perPage）、行选择。
+- `FormDialog` / `FormSheet` + `FormFields`：新建/编辑表单容器（react-hook-form），提交 loading、错误提示。
+- `ConfirmAction`：删除等危险操作的确认弹层；`RowActions`：行操作。
+- `data-transfer/ImportDialog` / `ExportDialog`：导入导出，只支持 csv/xlsx。
+- `useAuth().hasPermission(code)`：按钮权限（`@/context/AuthContext`）。
+- `toast.success / toast.error / toast.apiError`（`@/lib/toast`）：统一反馈；后端 `{error}` 文案直接展示。
 
 ## 6. 实施步骤
 
@@ -121,7 +123,7 @@ apps/web/src/
 
 ### 遗留
 
-- 后端遗留（定时任务新增 500、菜单 / 树形列表编辑与导入成环、菜单树搜索、现库序列落后）已于 2026-09-25 修复，见 `docs/rewrite-plan.md`「与方案/Flask 有意不同」。
+- 后端遗留（定时任务新增 500、菜单 / 树形列表编辑与导入成环、菜单树搜索）已于 2026-09-25 修复，见 `docs/architecture.md`「设计决定」。
   说明：「新建与执行校验不一致」并非代码问题——本机代理为 fake-ip 模式，域名都解析到 198.18.0.0/15（禁止网段），`https://1.1.1.1/` 执行时 301 到 one.one.one.one 后被连接阶段复检拦下，属预期的防重定向绕过。
 - 共享组件可继续沉淀：可勾选树（父子联动/半选）、DataTable 树形行与右侧固定列、FormCombobox、取色字段、步骤表单弹窗、
   树选择器、可排序字段数组编辑器、勾选提示条、可由下拉菜单项打开的受控确认框。

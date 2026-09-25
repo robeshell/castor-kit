@@ -1,5 +1,5 @@
 /**
- * 一级路由装配（对齐 AuraStack backend/app/router.py）
+ * 一级路由装配
  * 新增域必须在这里注册，同时在 db/schema/index.ts 导出表定义。
  */
 

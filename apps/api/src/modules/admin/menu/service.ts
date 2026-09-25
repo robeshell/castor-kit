@@ -1,5 +1,5 @@
 /**
- * 菜单模块 service 层（对齐 AuraStack backend/app/admin/service/menu.py）
+ * 菜单模块 service 层
  */
 
 import { wouldCreateCycle } from '@/common/tree'
@@ -43,7 +43,7 @@ type Data = Record<string, unknown>
 const TEXT_FIELDS = new Set<MenuMutableField>(['name', 'code', 'icon', 'path', 'component', 'menu_type', 'description'])
 const INT_FIELDS = new Set<MenuMutableField>(['parent_id', 'sort_order'])
 
-/** 按列类型把请求体原始值转换成写库值（等价 SQLAlchemy + psycopg2 的实际行为，非法值 → 500） */
+/** 按列类型把请求体原始值转换成写库值（非法值 → 500） */
 function adaptField(field: MenuMutableField, value: unknown): unknown {
   if (TEXT_FIELDS.has(field)) return adaptText(value)
   if (INT_FIELDS.has(field)) return adaptInt(value)
@@ -88,7 +88,7 @@ export class MenuService {
 
   /** `Menu.to_dict(include_children=True)`：子节点逐层查询，按 sort_order 排序 */
   private async toDictWithChildren(menu: Menu, visiting: Set<number> = new Set()): Promise<MenuDict> {
-    // parent_id 指向自身/成环时 Python 无限递归（RecursionError → 500）
+    // parent_id 指向自身/成环时视为递归过深 → 500
     if (visiting.has(menu.id)) throw internalError('maximum recursion depth exceeded')
     visiting.add(menu.id)
     const dict = menuToDict(menu)
@@ -113,7 +113,7 @@ export class MenuService {
   }
 
   /**
-   * 树形搜索（有意偏离 Flask 的「search 只过滤根节点」——搜子菜单永远搜不到）：
+   * 树形搜索（不只过滤根节点，否则子菜单永远搜不到）：
    * 保留匹配节点及其祖先路径；匹配节点的子树完整返回，祖先只保留通向匹配节点的分支。
    */
   private async searchTree(search: string): Promise<MenuDict[]> {
@@ -158,7 +158,7 @@ export class MenuService {
     return this.toDictWithChildren(menu)
   }
 
-  /** `build_menu_entity`：值为 None 的列走模型默认值（SQLAlchemy 实测行为） */
+  /** `build_menu_entity`：值为 None 的列走模型默认值 */
   private buildMenuValues(data: Data, code: string): NewMenuValues {
     return {
       name: adaptText(data.name)!,
@@ -185,7 +185,7 @@ export class MenuService {
 
   async createMenu(data: Data): Promise<MenuDict> {
     validateCreatePayload(data)
-    // 非字符串 code：Python `menus.code = 5` 在 PG 报 operator does not exist → 500
+    // 非字符串 code：按 `menus.code = 5` 查询时 PG 报 operator does not exist → 500
     if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
     const code = data.code
     if (await this.repo.getByCode(code)) throw new ServiceError(`菜单编码 ${code} 已存在`, 400)
@@ -213,13 +213,13 @@ export class MenuService {
       if (await this.repo.getByCode(data.code)) throw new ServiceError(`菜单编码 ${data.code} 已存在`, 400)
     }
 
-    // SQLAlchemy 只 UPDATE 值真正变化的列；没有变化就不发 UPDATE，updated_at 也不变
+    // 只 UPDATE 值真正变化的列；没有变化就不发 UPDATE，updated_at 也不变
     const changed = MENU_MUTABLE_FIELDS.filter((f) => f in data && !pyEq(data[f], menu[f]))
     if (changed.length === 0) return menuToDict(menu)
 
     return this.inTx(async (repo, tx) => {
       const values = Object.fromEntries(changed.map((f) => [f, adaptField(f, data[f])])) as MenuUpdateValues
-      // 有意偏离 Flask：父级改成自身或子孙会成环，之后菜单树接口无限递归（500），菜单管理与侧边栏全部不可用
+      // 设计说明：父级改成自身或子孙会成环，之后菜单树接口无限递归（500），菜单管理与侧边栏全部不可用，所以这里拦截
       const newParent = values.parent_id
       if (typeof newParent === 'number' && (await wouldCreateCycle(tx, 'menus', menu.id, newParent))) {
         throw new ServiceError('父级菜单不能是自身或其子菜单', 400)
@@ -264,7 +264,7 @@ export class MenuService {
   }
 
   /**
-   * 当前用户可见菜单树。注意与 Python 保持一致：
+   * 当前用户可见菜单树。注意（保持既有接口行为）：
    * - 没有 super_admin 短路，只看角色实际分配的菜单
    * - 只有“启用且可见”的菜单作为起点，其祖先无条件加入
    * - 叶子节点没有 children 键（不是 children: []）
@@ -410,7 +410,7 @@ export class MenuService {
         state.current.parent_id = parent.original!.id
       }
 
-      // 有意偏离 Flask：按导入后的最终父子关系检查成环（A→B、B→A 这类），成环的行记为错误、整批回滚
+      // 设计说明：按导入后的最终父子关系检查成环（A→B、B→A 这类），成环的行记为错误、整批回滚
       const parentOf = new Map<number, number | null>()
       for (const st of cache.values()) if (st.original) parentOf.set(st.original.id, st.current.parent_id ?? null)
       for (const [state, parentCode, line, row] of pending) {

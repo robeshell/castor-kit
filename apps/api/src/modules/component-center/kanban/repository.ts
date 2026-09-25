@@ -1,5 +1,5 @@
 /**
- * 看板页 repository 层（对齐 AuraStack backend/app/component_center/crud/kanban_page.py）
+ * 看板页 repository 层
  */
 
 import { asc, eq, inArray, sql } from 'drizzle-orm'
@@ -9,7 +9,7 @@ import { kanban_boards, kanban_cards, type KanbanBoard, type KanbanCard } from '
 const INT32_MIN = -2_147_483_648
 const INT32_MAX = 2_147_483_647
 
-/** 超出 integer 范围的 id 在 Python 侧按 bigint 比较、查不到；这里直接视为不存在（避免驱动报 out of range） */
+/** 超出 integer 范围的 id 直接视为不存在（避免驱动报 out of range） */
 export function isInt32(id: number): boolean {
   return Number.isInteger(id) && id >= INT32_MIN && id <= INT32_MAX
 }
@@ -28,7 +28,7 @@ export class KanbanRepository {
     return this.db.select().from(kanban_boards).orderBy(asc(kanban_boards.sort_order))
   }
 
-  /** `board.cards.order_by(KanbanCard.sort_order)`（逐列查询，与 Python 的查询形状一致） */
+  /** 某个 board（看板列）的卡片，按 sort_order 排序（逐列查询） */
   async cardsOfBoard(boardId: number): Promise<KanbanCard[]> {
     return this.db
       .select()

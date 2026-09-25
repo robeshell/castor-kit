@@ -1,5 +1,5 @@
 /**
- * 菜单模块 repository 层（对齐 AuraStack backend/app/admin/crud/menu.py）
+ * 菜单模块 repository 层
  */
 
 import { and, asc, count, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
@@ -16,7 +16,7 @@ export class MenuRepository {
     return search ? or(ilike(menus.name, `%${search}%`), ilike(menus.code, `%${search}%`)) : undefined
   }
 
-  /** 给定菜单 id 及其全部祖先 id（递归 CTE，替代 Python 逐级访问 menu.parent 的 N 次查询） */
+  /** 给定菜单 id 及其全部祖先 id（递归 CTE 一次查出，避免逐级访问父级的 N 次查询） */
   async listIdsWithAncestors(ids: number[]): Promise<number[]> {
     if (ids.length === 0) return []
     const result = await this.db.execute<{ id: number }>(sql`
@@ -30,7 +30,7 @@ export class MenuRepository {
     return result.rows.map((r) => r.id)
   }
 
-  /** 按 id 取菜单，排序 sort_order ASC, id ASC（与 Python 一致，NULL sort_order 排最后） */
+  /** 按 id 取菜单，排序 sort_order ASC, id ASC（NULL sort_order 排最后） */
   async listByIdsOrdered(ids: number[]): Promise<Menu[]> {
     if (ids.length === 0) return []
     return this.db
@@ -54,8 +54,8 @@ export class MenuRepository {
   }
 
   /**
-   * `menu.children.order_by('sort_order')`：只按 sort_order 排序（同值的先后由 PG 执行计划决定），
-   * 所以逐节点执行与 SQLAlchemy 同形状的查询，而不是一次取全表后在内存里排序。
+   * 某菜单的直接子菜单：只按 sort_order 排序（同值的先后由 PG 执行计划决定），
+   * 所以逐节点执行固定形状的查询以保持既有顺序，而不是一次取全表后在内存里排序。
    */
   async listChildrenPyOrder(parentId: number): Promise<Menu[]> {
     return this.db.select().from(menus).where(eq(menus.parent_id, parentId)).orderBy(asc(menus.sort_order))

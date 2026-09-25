@@ -1,11 +1,11 @@
 /**
- * 树形列表页 service 层（对齐 AuraStack backend/app/component_center/service/tree_list_page.py）
+ * 树形列表页 service 层
  *
- * 与 SQLAlchemy 行为对齐的要点：
+ * 写入行为要点：
  * - 更新只写真正变化的列；没有变化时不发 UPDATE，updated_at 保持不变（onupdate 语义）
  * - 编辑时校验父节点的查询会先 autoflush 前面已赋值的字段（因此数据库错误先于“父节点不存在”暴露）
  * - 删除时子节点先被置空 parent_id（见 repository.deleteWithChildrenDetached）
- * - 导入沿用 Session autoflush 时机：上一行的写入在下一行 get_by_code 查询前才落库，最后一行在提交时落库；
+ * - 导入的落库时机：上一行的写入在下一行 get_by_code 查询前才落库，最后一行在提交时落库；
  *   有错误行时直接回滚，未落库的写入不会触发数据库错误
  */
 
@@ -50,7 +50,7 @@ function nodeTypeOf(value: unknown): string {
   return pyStrOrEmpty(value) || 'category'
 }
 
-/** 只保留与当前行不同的列（SQLAlchemy 属性历史：值相等则不算变更） */
+/** 只保留与当前行不同的列（值相等则不算变更） */
 function changedValues(item: TreeNode, next: TreeNodeUpdate): TreeNodeUpdate {
   const changes: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(next)) {
@@ -122,7 +122,7 @@ export class TreeListPageService {
 
     let parentId: number | null = null
     if (data.parent_id !== null && data.parent_id !== undefined) parentId = tryInt(data.parent_id)
-    // `if parent_id:` —— 0 跳过校验并原样写入（外键不成立 → 数据库错误 → 500，与 Python 一致）
+    // parent_id 为假值（含 0）时跳过校验并原样写入（0 的外键不成立 → 数据库错误 → 500）
     if (parentId && !(await this.repo.exists(parentId))) throw new ServiceError('父节点不存在', 400)
 
     const status = TreeListPageService.normalizeStatus(data.status, 'active')
@@ -144,7 +144,7 @@ export class TreeListPageService {
   async updateItem(item: TreeNode, data: Data) {
     if (has(data, 'name') && !pyStrOrEmpty(data.name)) throw new ServiceError('节点名称不能为空', 400)
     if (has(data, 'node_code')) {
-      // 与 Python 一致：只校验，不在 update_map 里（node_code 实际不会被修改）
+      // 只校验，不在 update_map 里（node_code 实际不会被修改）
       const nextCode = pyStrOrEmpty(data.node_code)
       if (!nextCode) throw new ServiceError('节点编码不能为空', 400)
       if (await this.repo.existsOtherWithCode(nextCode, item.id)) throw new ServiceError('节点编码已存在', 400)
@@ -184,7 +184,7 @@ export class TreeListPageService {
           pendingFirst = {}
         }
         if (!(await repo.exists(parentAction.pid))) throw new ServiceError('父节点不存在', 400)
-        // 有意偏离 Flask：Python 只排除「等于自身」，移到自己的子孙下会成环（前端能拦，但接口直调会写进库）
+        // 除了不能等于自身，还要防止移到自己的子孙下成环（前端能拦，但接口直调会写进库）
         if (await wouldCreateCycle(tx, 'tree_nodes', item.id, parentAction.pid)) {
           throw new ServiceError('不能将节点移动到自身或其子节点下', 400)
         }
@@ -238,7 +238,7 @@ export class TreeListPageService {
 
     let items: TreeNode[]
     if (exportMode === 'filtered') {
-      // Python: filters.get(...)；非 dict（如 list/str）没有 .get → AttributeError → 500
+      // filters 不是对象（如 list/str）时返回 500
       if (!isPlainObject(filters)) throw new ServiceError("'filters' object has no attribute 'get'", 500)
       items = await this.repo.listAllOrdered({
         search: pyStrOrEmpty(filters.search),
@@ -343,7 +343,7 @@ export class TreeListPageService {
       }
 
       await flush()
-      // 有意偏离 Flask：导入的 parent_id 可能让节点成为自己的祖先（含指向自身），成环的行记为错误、整批回滚
+      // 导入的 parent_id 可能让节点成为自己的祖先（含指向自身），成环的行记为错误、整批回滚
       if (errors.length === 0) {
         for (const item of withParent) {
           const node = await repo.getByCode(item.nodeCode)

@@ -1,5 +1,5 @@
 /**
- * web 进程入口（对齐 AuraStack app.py 的 __main__）
+ * web 进程入口
  * 用法：`pnpm dev` / `node dist/main.js [port]`
  */
 

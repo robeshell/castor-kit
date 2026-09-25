@@ -3,12 +3,12 @@
  *
  * 在临时目录里搭一个最小仓库骨架（模块文件、router、schema、seed、drizzle journal、前端文件、AGENTS.md），
  * 前端页面额外检查不得残留旧 UI 体系（@douyinfe/*、var(--semi-*)），
- * 逐项验证各检查的通过 / 失败分支，以及 --json 输出结构（与 Python verify_feature.py 一致）。
+ * 逐项验证各检查的通过 / 失败分支，以及 --json 输出结构。
  * migration_applied 连真实测试库（TEST_DATABASE_URL）。
  */
 
 import { spawnSync } from 'node:child_process'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -56,6 +56,16 @@ function writeJournal(entries: { idx: number; when: number; tag: string }[]): vo
   )
 }
 
+/** 只保留 baseline 迁移：测试不随仓库里新增的功能迁移变化 */
+function trimDrizzleToBaseline(dir: string): void {
+  const journalPath = join(dir, 'meta', '_journal.json')
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
+  const [baseline] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
+}
+
 function baseFixture(): void {
   // 后端模块 ck_widget（admin 域，目录用连字符）
   put('apps/api/src/modules/admin/ck-widget/routes.ts', "import { hasMenuPermission } from '@/common/auth'\n")
@@ -74,6 +84,7 @@ function baseFixture(): void {
   )
   // drizzle：复用真实 baseline（hash 与测试库里记录的一致）
   cpSync(join(API_DIR, 'drizzle'), join(root, 'apps/api/drizzle'), { recursive: true })
+  trimDrizzleToBaseline(join(root, 'apps/api/drizzle'))
   // 前端
   put('apps/web/src/modules/admin/api/ck_widget.js', '')
   put('apps/web/src/modules/admin/pages/ck_widget/index.jsx', '')
@@ -295,7 +306,7 @@ describe('verify-feature 全局检查', () => {
     expect(isRepoPathRef('apps/api/src/router.ts', new Set())).toBe(true)
     expect(isRepoPathRef('frontend/', new Set())).toBe(true)
     expect(isRepoPathRef('apps/web', new Set(['apps']))).toBe(true)
-    expect(isRepoPathRef('robeshell/AuraStack', new Set(['apps']))).toBe(false)
+    expect(isRepoPathRef('robeshell/other-repo', new Set(['apps']))).toBe(false)
     for (const ref of ['<name>/routes.ts', '/abs/x.ts', '@/common/auth', 'a/b c.ts', 'apps/api/.env.development', 'http://x/y.md']) {
       expect(isRepoPathRef(ref, new Set(['apps'])), ref).toBe(false)
     }
@@ -313,8 +324,8 @@ describe('verify-feature 全局检查', () => {
 })
 
 describe('verify-feature 汇总与 CLI', () => {
-  it('verify()：JSON 结构、检查顺序、summary 与 Python 一致', async () => {
-    const report = await verify({ root, module: 'ck_widget', skipBuild: true, skipFrontendTests: true, skipDb: true })
+  it('verify()：JSON 结构、检查顺序、summary', async () => {
+    const report = await verify({ root, module: 'ck_widget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(Object.keys(report)).toEqual(['passed', 'module', 'checks', 'summary'])
     expect(report.module).toBe('ck_widget')
     expect(report.checks.map((c) => c.name)).toEqual([
@@ -333,33 +344,34 @@ describe('verify-feature 汇总与 CLI', () => {
       'rbac_seed',
       'frontend_build',
       'frontend_tests',
+      'api_tests',
     ])
     expect(report.passed).toBe(true)
-    expect(report.summary).toBe('15/15 项通过')
+    expect(report.summary).toBe('16/16 项通过')
     expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true })
 
-    const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipDb: true })
+    const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(failing.passed).toBe(false)
-    expect(failing.summary).toBe('10/15 项通过')
+    expect(failing.summary).toBe('11/16 项通过')
   })
 
   it('CLI --json：stdout 只有 JSON，失败时退出码 1；无 --module 时只跑全局检查', () => {
     const run = (args: string[]) =>
       spawnSync(TSX, ['scripts/verify-feature.ts', '--', ...args], { cwd: API_DIR, encoding: 'utf8', timeout: 120_000 })
 
-    const bad = run(['--module', 'ck_gadget', '--json', '--skip-build', '--skip-frontend-tests', '--skip-db', '--root', root])
+    const bad = run(['--module', 'ck_gadget', '--json', '--skip-build', '--skip-frontend-tests', '--skip-api-tests', '--skip-db', '--root', root])
     expect(bad.status).toBe(1)
     const parsed = JSON.parse(bad.stdout)
     expect(parsed).toMatchObject({ passed: false, module: 'ck_gadget' })
     expect(parsed.checks.find((c: { name: string }) => c.name === 'router_registration').passed).toBe(false)
 
-    const global = run(['--json', '--skip-build', '--skip-frontend-tests', '--skip-db', '--root', root])
+    const global = run(['--json', '--skip-build', '--skip-frontend-tests', '--skip-api-tests', '--skip-db', '--root', root])
     expect(global.status).toBe(0)
     const g = JSON.parse(global.stdout)
     expect(g.module).toBeNull()
     expect(g.checks.map((c: { name: string }) => c.name)).not.toContain('backend_file')
 
-    const human = run(['--module', 'ck_widget', '--skip-build', '--skip-frontend-tests', '--skip-db', '--root', root])
+    const human = run(['--module', 'ck_widget', '--skip-build', '--skip-frontend-tests', '--skip-api-tests', '--skip-db', '--root', root])
     expect(human.status).toBe(0)
     expect(human.stdout).toContain('== castor-kit 功能验证 ==')
     expect(human.stdout).toContain('✅ 全部检查通过，功能可交付！')

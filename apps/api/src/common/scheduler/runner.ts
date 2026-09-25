@@ -1,7 +1,7 @@
 /**
- * 后台定时任务调度器（对齐 AuraStack backend/common/scheduler.py 的 ScheduledTaskRunner）
+ * 后台定时任务调度器（ScheduledTaskRunner）
  *
- * 租约模型（rewrite-plan §5.6），多个调度进程可以同时运行而不重复执行：
+ * 租约模型，多个调度进程可以同时运行而不重复执行：
  * - claim：`next_run_at` 仍等于读到的值时置空并标 running，UPDATE 命中 1 行才算抢到
  * - 过期回收：running 且 next_run_at 为空、updated_at 早于 now - lease 的任务重置为 idle 并立即到期
  * - 执行崩溃（execute_task 抛异常）：按 cron 排下一次（cron 非法则 5 分钟后），标 failed
@@ -36,7 +36,7 @@ export interface ScheduledTaskRunnerOptions {
 
 const silentLogger: SchedulerLogger = { info() {}, warn() {}, error() {} }
 
-/** Python `int(x or default)` */
+/** 取整数配置：缺省或为 0 时用默认值 */
 function intOr(value: number | undefined, fallback: number): number {
   return Math.trunc(value || fallback)
 }
@@ -70,7 +70,7 @@ export class ScheduledTaskRunner {
     this.loopPromise = this.loop()
   }
 
-  /** 停止循环；最多等待当前一轮 3 秒（对齐 Python thread.join(timeout=3)） */
+  /** 停止循环；最多等待当前一轮 3 秒 */
   async stop(): Promise<void> {
     this.stopped = true
     if (this.sleepTimer) clearTimeout(this.sleepTimer)
@@ -140,7 +140,7 @@ export class ScheduledTaskRunner {
 }
 
 /**
- * 对齐 init_scheduled_task_runner：ENABLE_TASK_SCHEDULER 关闭时不启动（返回 null）。
+ * 启动调度器：ENABLE_TASK_SCHEDULER 关闭时不启动（返回 null）。
  * 调用方负责在关闭时 `await runner.stop()`。
  */
 export function startScheduledTaskRunner(db: Db, config: AppConfig, logger?: SchedulerLogger): ScheduledTaskRunner | null {

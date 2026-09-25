@@ -1,6 +1,5 @@
 /**
- * 定时任务 repository 层（对齐 AuraStack backend/app/admin/crud/scheduled_task.py，
- * 以及 backend/common/scheduler.py 里调度器直接写的租约 SQL）
+ * 定时任务 repository 层（含调度器的租约 SQL）
  */
 
 import { and, asc, count, desc, eq, ilike, isNotNull, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -115,7 +114,7 @@ export class ScheduledTaskRepository {
     return row!
   }
 
-  /** 只写有变化的列（updated_at 由 schema 的 $onUpdateFn 刷新，对应 SQLAlchemy onupdate） */
+  /** 只写有变化的列（updated_at 由 schema 的 $onUpdateFn 刷新） */
   async updateTask(id: number, changes: TaskChanges): Promise<ScheduledTask | null> {
     const [row] = await this.db.update(scheduled_tasks).set(changes).where(eq(scheduled_tasks.id, id)).returning()
     return row ?? null
@@ -143,7 +142,7 @@ export class ScheduledTaskRepository {
     return row ?? null
   }
 
-  // ---- 调度器租约（backend/common/scheduler.py） ----
+  // ---- 调度器租约 ----
 
   /** 到期任务：is_active 且 next_run_at <= now，按 next_run_at 升序取 20 条 */
   async listDueTasks(limit = 20): Promise<ScheduledTask[]> {

@@ -1,5 +1,5 @@
 /**
- * 通知消息 schema 层（对齐 AuraStack backend/app/admin/service/notification.py 里的请求归一化）
+ * 通知消息 schema 层：请求归一化
  */
 
 import { ServiceError } from '@/common/errors'
@@ -9,7 +9,7 @@ export const NOTI_TYPES = ['info', 'warning', 'success', 'error'] as const
 
 /**
  * `(data.get(key) or '').strip()`：假值 → ''；真值必须是字符串，
- * 否则 Python 抛 AttributeError（未捕获 → 全局 500）。
+ * 否则抛错（未捕获 → 全局 500）。
  */
 export function stripOrEmpty(value: unknown): string {
   if (!pyTruthy(value)) return ''

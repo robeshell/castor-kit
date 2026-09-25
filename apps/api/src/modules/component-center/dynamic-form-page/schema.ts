@@ -1,5 +1,5 @@
 /**
- * 动态表单页 schema 层（对齐 AuraStack backend/app/component_center/schema/dynamic_form_page.py）
+ * 动态表单页 schema 层
  */
 
 import { z } from 'zod'
@@ -8,7 +8,7 @@ import { isPlainObject, pyInt, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { DynamicFormRecord } from '@/db/schema'
 
-/** 移植期请求体：loose + 全可选，归一化在 service 里做 */
+/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
 export const dynamicFormBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 /** 导出行：记录 + 字段数（对应 `item.fields.count()`） */
@@ -79,9 +79,9 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   return { line, reason, row }
 }
 
-// ---------------------------------------------------------------- Python 语义辅助
+// ---------------------------------------------------------------- 值处理辅助
 
-/** Python `len(x)`：list / str / dict；其余（数字、bool）TypeError → 500 */
+/** 长度：list / str（按字符）/ dict（键数）；其余（数字、bool）→ 500 */
 export function pyLen(value: unknown): number {
   if (Array.isArray(value)) return value.length
   if (typeof value === 'string') return Array.from(value).length
@@ -90,8 +90,8 @@ export function pyLen(value: unknown): number {
 }
 
 /**
- * Python `for f in x`：list → 元素，str → 字符，dict → 键；
- * 其余真值（数字 / True）不可迭代 → TypeError → 500。
+ * 按可迭代语义展开 x：list → 元素，str → 字符，dict → 键；
+ * 其余真值（数字 / true）不可迭代 → 500。
  */
 export function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
@@ -100,7 +100,7 @@ export function pyIterate(value: unknown): unknown[] {
   throw new ServiceError(`'${typeof value}' object is not iterable`, 500)
 }
 
-/** Python `f in EXPORT_FIELD_MAP`：list/dict 不可哈希 → TypeError → 500 */
+/** 判断 f 是否为可导出字段；f 为 list/dict（不能作为字段名）时返回 500 */
 export function isExportField(field: unknown): field is string {
   if (field !== null && typeof field === 'object') throw new ServiceError('unhashable type', 500)
   return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
@@ -110,7 +110,7 @@ const PG_INT_MIN = -2_147_483_648
 const PG_INT_MAX = 2_147_483_647
 
 /**
- * SQLAlchemy `id.in_(ids)`（psycopg2 客户端插值）在 PostgreSQL 上的效果：
+ * ids 中各元素内联进 `id IN (...)` 后在 PostgreSQL 上的效果：
  * - 整数 → 匹配；非整数/超出 int4 的数字 → 与 integer 比较不会命中（不报错）；None → 不命中
  * - 字符串 → 按 int4 输入解析（'2' 可命中，'abc'/超范围 → 数据库报错 → 500）
  * - bool / list / dict → 类型错误 → 500

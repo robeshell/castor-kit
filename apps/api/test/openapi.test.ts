@@ -1,9 +1,9 @@
 /**
  * scripts/generate-openapi.ts + scripts/import-apifox.ts
  *
- * - 移植 AuraStack backend/tests/test_openapi_doc.py（骨架识别）
+ * - 骨架识别
  * - 文档覆盖所有已注册的 /api 路由（按路径形状比较，`{int:x}` 与 `{x}` 等价）
- * - 写回格式与 Python json.dumps(indent=2, ensure_ascii=False) 逐字节一致
+ * - 写回格式同 json.dumps(indent=2, ensure_ascii=False)，逐字节稳定
  * - Apifox 推送：用本地假服务校验 URL / 头 / 体与退出码，不向 Apifox 发真实请求
  */
 
@@ -34,7 +34,7 @@ afterAll(() => rmSync(workDir, { recursive: true, force: true }))
 
 const config = () => ({ ...testConfig(), enableTaskScheduler: false })
 
-describe('骨架识别（test_openapi_doc.py）', () => {
+describe('骨架识别', () => {
   it('生成的骨架是骨架', () => {
     expect(isStubEntry({ GET: { summary: 'GET /x', responses: { '200': { description: '成功' } } } })).toBe(true)
   })
@@ -82,7 +82,7 @@ describe('路径转换', () => {
     expect(findMissingRoutes({ '/api/a/{int:item_id}': {} }, routes)).toEqual([['/api/b', ['GET', 'POST']]])
   })
 
-  it('骨架条目格式与 Python 一致（方法大写、同一路径的方法合并）', () => {
+  it('骨架条目格式（方法大写、同一路径的方法合并）', () => {
     expect(buildStubEntry('/api/b', ['GET', 'POST'])).toEqual({
       GET: {
         summary: 'GET /api/b',
@@ -204,7 +204,7 @@ describe('import-apifox（本地假服务）', () => {
     return { code, out, err }
   }
 
-  it('默认读取 docs 下的文档：URL / 头 / 体与 Python requests 一致', async () => {
+  it('默认读取 docs 下的文档：URL / 头 / 体', async () => {
     received.length = 0
     reply = [200, '{"data": {"counters": {"endpointCreated": 3, "endpointFailed": 0}, "errors": []}}']
     const { code, out } = await run([], { APIFOX_PROJECT_ID: 'p1', APIFOX_ACCESS_TOKEN: 't1' })

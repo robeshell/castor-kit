@@ -3,7 +3,7 @@
  *
  * TODO: 替换 <Resource> 为类型名（大驼峰），<resource> 为资源名（下划线）
  *
- * 职责：纯数据库读写（Drizzle 查询），对应 Python crud 层。不含业务逻辑、不碰 HTTP。
+ * 职责：纯数据库读写（Drizzle 查询）。不含业务逻辑、不碰 HTTP。
  * 构造参数是 Executor：普通连接或事务都能传（需要事务时由 service 用 db.transaction 传 tx 进来）。
  */
 

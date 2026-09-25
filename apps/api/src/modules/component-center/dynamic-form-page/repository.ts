@@ -1,6 +1,5 @@
 /**
- * 动态表单页 repository 层（对齐 AuraStack backend/app/component_center/crud/dynamic_form_page.py
- * 以及 service/model 里直接拼的查询）
+ * 动态表单页 repository 层（含 service/model 里直接拼的查询）
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, or, sql, type SQL } from 'drizzle-orm'
@@ -97,7 +96,7 @@ export class DynamicFormPageRepository {
     return row!
   }
 
-  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新，对齐 SQLAlchemy onupdate） */
+  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新） */
   async update(id: number, values: DynamicFormRecordUpdate): Promise<void> {
     await this.db.update(dynamic_form_records).set(values).where(eq(dynamic_form_records.id, id))
   }
@@ -115,9 +114,8 @@ export class DynamicFormPageRepository {
   }
 
   /**
-   * `record.fields.order_by(DynamicFormField.sort_order)`：关系定义里已有 order_by=sort_order，再叠加一次，
-   * SQLAlchemy 实际发出 `ORDER BY sort_order, sort_order`。这里原样照搬（不加 id 作为次序键），
-   * 让 sort_order 相同的字段顺序与 Python 完全由 PostgreSQL 同一查询决定。
+   * 记录的动态字段，`ORDER BY sort_order, sort_order`（不加 id 作为次序键，
+   * sort_order 相同的字段顺序由 PostgreSQL 决定；保持既有查询形状，避免改变已有数据的字段顺序）。
    */
   async listFields(recordId: number): Promise<DynamicFormField[]> {
     return this.db

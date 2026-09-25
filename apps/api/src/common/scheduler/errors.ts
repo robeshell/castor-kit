@@ -1,7 +1,7 @@
 /**
- * 定时任务 schema 层异常（对齐 AuraStack backend/app/admin/schema/scheduled_task.py 的 ScheduledTaskSchemaError）
+ * 定时任务 schema 层异常
  *
- * cron 解析、JSON 解析、URL 校验不合法时抛出；service 层按 Python 的 try/except 位置决定转成 400 还是 500。
+ * cron 解析、JSON 解析、URL 校验不合法时抛出；service 层按调用位置决定转成 400 还是 500。
  */
 
 export class ScheduledTaskSchemaError extends Error {
@@ -12,8 +12,8 @@ export class ScheduledTaskSchemaError extends Error {
 }
 
 /**
- * Python 侧未被捕获的 ValueError / OverflowError 等（例如 urlparse 抛的 "Invalid IPv6 URL"）。
- * Flask 里会冒泡成 500，Node 侧由 service 转成 ServiceError(500)。
+ * 不属于校验失败的内部错误（例如 URL 拆分时的 "Invalid IPv6 URL"、数值溢出）。
+ * 由 service 转成 ServiceError(500)。
  */
 export class PyUncaughtError extends Error {
   constructor(message: string) {

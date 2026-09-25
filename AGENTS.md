@@ -4,7 +4,7 @@
 > 实现任何新功能前必须完整阅读本文件。AI 应从本文件自行推断所有技术决策，无需向 PM 询问技术细节。
 >
 > 各工具专属配置：`CLAUDE.md`（Claude Code）| `CODEX.md`（Codex CLI）| `.cursor/rules/`（Cursor）| `.github/copilot-instructions.md`（Copilot）| `.windsurfrules`（Windsurf）| `llms.txt`（入口索引）
-> 重写方案与验收基线：`docs/rewrite-plan.md`（§2 兼容契约、§4 分层与反模式、§7 工具链）。
+> 架构说明：`docs/architecture.md`（技术栈、分层与反模式、横切约定、迁移、工具链、部署、设计决定）。
 > 前端 UI 方案：`docs/frontend-redesign-plan.md`（Semi Design → shadcn/ui + Tailwind CSS v4 + motion，设计 tokens 与公共组件约定）。
 
 ---
@@ -15,7 +15,7 @@
 
 目标：PM 用自然语言描述业务意图 → AI Agent 自动推断技术决策 → 展示业务预览供确认 → 端到端交付符合规范的新功能模块（数据表、接口、页面、权限、迁移）。
 
-castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端换成 Node，数据库不动，API 契约兼容**；前端的路由机制、API 层与页面功能沿用 AuraStack，UI 已从 Semi Design 整体迁移到 **shadcn/ui + Tailwind CSS v4 + motion**（见 `docs/frontend-redesign-plan.md`）。原项目在本机 `/Users/wangwenyu/Documents/Code/AuraStack`（GitHub `robeshell/AuraStack`），移植或排查行为差异时以那里的 Python 实现为行为基准。
+castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle + PostgreSQL），前端 `apps/web`（React 19 + **shadcn/ui + Tailwind CSS v4 + motion**，见 `docs/frontend-redesign-plan.md`），`apps/mcp` 把 scaffold / verify / seed / 迁移等工具链暴露给 MCP Client。整体架构与设计决定见 `docs/architecture.md`。
 
 ---
 
@@ -50,10 +50,10 @@ castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端�
 
 **开发环境：**
 - 端口：api 5001、web 5173（Vite proxy 把 `/api`、`/ws` 转发到 5001）；测试环境 5002；生产 5000
-- 数据库：`postgresql://wangwenyu@localhost/aurastack`（与 AuraStack 共用，写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`；未设置时默认 `postgresql://localhost/aurastack_dev`）
+- 数据库：`postgresql://wangwenyu@localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`；未设置时默认 `postgresql://localhost/castor_kit_dev`）
 - 本地配置：`apps/api/.env.development`（参考 `apps/api/.env.example`，已被 gitignore；仓库根目录的 `.env.<NODE_ENV>` 也会被读取）
 - 默认账号：`admin` / `admin123`
-- 测试库：`createdb -T aurastack aurastack_test`（克隆）或 `createdb aurastack_test`（空库，测试会自动跑 baseline）；`pnpm test`
+- 测试库：`createdb -T castor_kit castor_kit_test`（克隆）或 `createdb castor_kit_test`（空库，测试会自动执行迁移）；`pnpm test`
 
 ---
 
@@ -79,15 +79,16 @@ castor-kit/
 │   │   │   │   ├── errors.ts          # ServiceError + 统一错误处理器
 │   │   │   │   ├── http.ts            # intParam / parseIntParam / jsonBody / queryString / getUploadedFile
 │   │   │   │   ├── pagination.ts      # parsePagination（MAX_PER_PAGE=200，默认 20）
-│   │   │   │   ├── serialize.ts       # toIso() 等，对齐 Python isoformat 输出
+│   │   │   │   ├── serialize.ts       # toIso() 等，统一时间输出格式
 │   │   │   │   ├── tabular.ts         # csv/xlsx 读写 + 公式注入防护 + 5MB 上限
 │   │   │   │   ├── request-meta.ts    # clientIp / userAgent / safePayload（脱敏）
-│   │   │   │   ├── password.ts        # werkzeug pbkdf2:sha256 哈希兼容
+│   │   │   │   ├── password.ts        # pbkdf2:sha256 密码哈希
 │   │   │   │   └── scheduler/         # 定时任务 runner（租约模型）+ cron 匹配器 + SSRF 防护
 │   │   │   ├── db/
 │   │   │   │   ├── client.ts          # pg Pool + drizzle 实例 + 类型解析器
 │   │   │   │   ├── readonly.ts        # AI SQL 专用只读 Pool
-│   │   │   │   ├── migrate.ts         # 迁移执行器（含 baseline 逻辑）
+│   │   │   │   ├── migrate.ts         # 迁移执行器（drizzle-orm migrator）
+│   │   │   │   ├── migrate-cli.ts     # pnpm db:migrate 入口
 │   │   │   │   └── schema/            # ← model 层：Drizzle 表定义 + toDict
 │   │   │   │       ├── columns.ts     # createdAt() / updatedAt()
 │   │   │   │       ├── admin/         # rbac / audit-logs / dicts / scheduled-task / notification / announcement
@@ -105,7 +106,7 @@ castor-kit/
 │   │   │               ai-chat/ ai-prompt/ ai-sql/ devtools/
 │   │   ├── drizzle/                   # SQL 迁移 + meta/_journal.json（drizzle-kit 生成）
 │   │   ├── scripts/                   # 工具链：scaffold / verify-feature / seed-rbac / setup-once /
-│   │   │                              #         init-ro-role / generate-openapi / import-apifox / shadow-diff
+│   │   │                              #         init-ro-role / generate-openapi / import-apifox
 │   │   ├── test/                      # Vitest（真实 PostgreSQL）
 │   │   └── drizzle.config.ts
 │   ├── web/                           # @castor-kit/web —— React 19 + shadcn/ui + Tailwind v4（JSX）
@@ -132,7 +133,7 @@ castor-kit/
 │   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ …
 │   └── mcp/                           # @castor-kit/mcp —— MCP Server（src/index.ts）
 ├── docs/
-│   ├── rewrite-plan.md                # 重写方案
+│   ├── architecture.md                # 架构说明
 │   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
 │   ├── apifox-full.openapi.json       # OpenAPI 文档（pnpm openapi:generate 补齐）
 │   └── templates/                     # 代码骨架模板（AI 临摹用）
@@ -142,7 +143,7 @@ castor-kit/
 └── Dockerfile / docker-compose.yml / docker-entrypoint.sh / setup.sh
 ```
 
-> 命名：后端目录与文件名一律小写连字符（`component-center`、`scheduled-task`、`customer-order.ts`）；表名、前端目录、菜单 `component` 保持下划线（`component_center/admin/list_page`），与现库和前端路由兼容。
+> 命名：后端目录与文件名一律小写连字符（`component-center`、`scheduled-task`、`customer-order.ts`）；表名、前端目录、菜单 `component` 保持下划线（`component_center/admin/list_page`），与数据库和前端路由保持一致。
 
 ---
 
@@ -258,11 +259,11 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 在已有域（admin / component_center）内新增模块时，`pnpm scaffold` 会自动完成两处注册（`db/schema/index.ts` + `modules/<domain>/router.ts`）；手写时照 `docs/templates/backend/README.md` 操作。
 
-### 横切约定（移植期契约，见 `docs/rewrite-plan.md` §2）
+### 横切约定（详见 `docs/architecture.md`「横切约定」）
 
 - **时间**：pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（`YYYY-MM-DDTHH:mm:ss[.ffffff]`，无 `Z`）。**禁止** `Date#toISOString()`
 - **数值**：`numeric` 列保持字符串（如 `"12.50"`），`toDict()` 里不要 `parseFloat`
-- **请求校验**：移植期请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
+- **请求校验**：请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
 - **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON
 - **操作日志**：由 logs 模块注册的全局 `onResponse` hook 集中写 `operation_logs`，不要在 service 里散写
 - **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
@@ -271,7 +272,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 ## 前端架构约定
 
-前端路由机制、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面的功能沿用 AuraStack；UI 按 `docs/frontend-redesign-plan.md` 重写为 **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言保持 JavaScript（JSX），文案保持中文。
+前端由动态路由（`App.jsx`）、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面组成；UI 体系见 `docs/frontend-redesign-plan.md`：**shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言为 JavaScript（JSX），文案中文。
 
 ### 动态路由机制
 
@@ -333,7 +334,7 @@ export const importItems = (file) => {
 **页面结构（列表页照 users 页）：**
 
 ```
-PageHeader（标题 + 描述 + 右侧操作：导入 / 导出 outline，新增 variant="brand"，每页最多一个 brand 按钮）
+PageHeader（标题 + 右侧操作：导入 / 导出 outline，新增 variant="brand"，每页最多一个 brand 按钮；标题下不写功能介绍）
 → FilterBar（SearchInput / FilterSelect，查询 + 重置）
 → DataTable（分页 page/perPage/total、勾选 selectable、行操作 ghost 按钮 + ConfirmAction 删除）
 → FormDialog / FormSheet（react-hook-form + FormFields，提交失败 toast.apiError 后 throw 保持弹窗）
@@ -345,7 +346,7 @@ PageHeader（标题 + 描述 + 右侧操作：导入 / 导出 outline，新增 v
 
 | 组件 | 用途 |
 |---|---|
-| `PageHeader` / `Panel` | 页头（title / description / actions）/ 卡片分区（`padded={false}` 贴边） |
+| `PageHeader` / `Panel` | 页头（title / actions；description 只放数据类信息，如「4 列 · 8 张卡片」）/ 卡片分区（`padded={false}` 贴边） |
 | `DataTable` + `DataPagination` | 列定义 `{ key, title, dataIndex, width, align, className, ellipsis, render(value, row, index) }`；`pagination={{ page, perPage, total, onChange }}`；`selectable` / `selectedKeys` / `onSelectionChange`；`loading` 骨架与空态内置 |
 | `Filters`：`FilterBar` / `SearchInput` / `FilterSelect` | 筛选栏；`FilterSelect` 的 `''` 表示全部；防抖用 `@/shared/hooks/useDebouncedValue` |
 | `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | 新建编辑弹窗 / 侧边抽屉 / 只读详情抽屉 / 键值列表 |
@@ -374,7 +375,7 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 **设计 tokens 与动效**（详见 `docs/frontend-redesign-plan.md` §3）：
 
 - 颜色一律用语义类：`bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`；只用语义类，暗色模式（`<html class="dark">`）天然正确
-- 中性灰为底，Ocean 渐变（blue → sky → cyan）是唯一强调色，只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`；不用紫色
+- 中性灰为底，Ocean 渐变（blue → sky → cyan）是唯一强调色，只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`（只用于小块装饰，不铺在内容区大背景上，浅色下像污渍）；不用紫色
 - 间距用 Tailwind（`space-y-4` / `gap-4`），数字 `tabular-nums`；移动端（<768px）不能横向撑破（表格容器横向滚动）
 - 动效克制：交互 150–250ms ease-out；列表错峰入场、指示条 layoutId、数字滚动、弹层进出已由公共组件提供；`prefers-reduced-motion` 已全局处理
 
@@ -413,7 +414,7 @@ component_center/dataviz/realtime_chart_page
   - `readTableFile(file)` → `{ fieldnames, rows, fileType }`（rows 带行号，5MB 上限，csv 自动去 BOM）
   - `normalizeTableFileType(raw, fallback)` → 标准化文件类型；`sanitizeFormula()` 做公式注入防护
   - 上传文件用 `getUploadedFile(request)`（`@/common/http`）
-- 在 `modules/<domain>/<name>/schema.ts` 定义 `EXPORT_FIELD_MAP`（字段 → [中文表头, 取值函数]）和 `IMPORT_HEADER_MAP`（中文表头 → 字段）
+- 在 `modules/<domain>/<name>/schema.ts` 定义 `EXPORT_FIELD_MAP`（字段 → 中文表头，值取 toDict 的同名字段；需要转换时写成 `[中文表头, 取值函数]`，如枚举显示中文）和 `IMPORT_HEADER_MAP`（中文表头 → 字段）
 - 导入整批一个事务：有错误行时抛 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` 整体回滚
 - 路由：`POST /export`、`GET /template`、`POST /import`（挂在资源路径下）；权限编码 `<perm>_export` / `<perm>_import`
 - 参考实现：`apps/api/src/modules/admin/users/`
@@ -454,16 +455,21 @@ user_roles：用户-角色 多对多（复合主键）
 ### 菜单 ID 分配规则
 
 ```
-系统管理域（parent_id=2）：    ID 21-39（已用到 32；消息通知/公告为历史遗留 100002/100003）
+系统管理域（parent_id=2）：    ID 21-39（消息通知/公告为历史遗留 100002/100003）
 组件示例中心（parent_id=3）：  ID 40-499
-  管理系统（parent_id=40）：   ID 401-409（已用到 404；列表/统计/卡片/树形/动态表单为历史遗留 31/33/34/35/36）
-  数据可视化（parent_id=41）： ID 411-419（已用到 413；数据大屏为历史遗留 37）
-  3D/创意（parent_id=42）：    ID 421-429（已用到 424）
-  AI 应用（parent_id=44）：    ID 441-449（已用到 443）
-  编辑器（parent_id=45）：     ID 451-459（已用到 454）
-  工具类（parent_id=46）：     ID 461-469（已用到 464）
+  管理系统（parent_id=40）：   ID 401-409
+  数据可视化（parent_id=41）： ID 411-419
+  3D/创意（parent_id=42）：    ID 421-429
+  AI 应用（parent_id=44）：    ID 441-449
+  编辑器（parent_id=45）：     ID 451-459
+  工具类（parent_id=46）：     ID 461-469
 新业务域菜单：                  从 1000 开始
 ```
+
+> **取 ID 前先查实际占用**，不要按「区间里的下一个数」推算——区间里夹着历史遗留 ID：31、33–37 属于组件示例中心，32 是定时任务，都落在系统管理的 21–39 区间里。
+> ```bash
+> grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
+> ```
 
 > 注：`31/33/34/35/36/37`（组件页）与 `100002/100003`（系统管理）为历史遗留 ID，与现行区间不符但已入库并被 role_menus 引用，勿重排；新菜单请严格遵循上述区间。按钮权限 ID 在 `MENUS_DATA` 中写死，规则为「菜单 ID × 10 + 序号」（如用户管理 21 → 211 新增 / 212 编辑 / 213 删除 / 214 导出 / 215 导入；拖拽看板 401 → 4011…；消息通知 100002 → 1000021…）。
 
@@ -494,6 +500,8 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 | 图片、头像、封面 | `str500` | `varchar({ length: 500 })` | 存 URL |
 | 内容、正文、详情 | `text` | `text()` | 富文本 |
 | 标签、tags | `text` | `text()` | JSON 字符串 |
+
+**scaffold 的已知限制**（详见 `new-feature-autopilot` 技能 4a）：`--fields` 表达不了必填 / 唯一 / 默认值——用 `--skip-migration` 生成后改 `db/schema` 再 `pnpm db:generate`，一张表只出一个迁移，违反约束自动返回 400（`common/db-errors.ts`）；生成的标签是英文占位；`bool` 列可为空；枚举字段按 `str20` 生成，存英文代码、界面显示中文需手写映射；表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。
 
 ---
 
@@ -548,18 +556,21 @@ Step 4  执行实现
         → 若之后又改了表结构：pnpm db:generate --name <描述>（注意这里没有 --）
         → 在 seed-rbac.ts 添加菜单 + 按钮权限（_add/_edit/_delete/_export/_import），运行 pnpm seed:rbac -- --incremental
         → 审查 apps/api/drizzle/ 下新生成的 SQL，运行 pnpm db:migrate
+        → 在本文件「当前菜单树」补上新菜单
+        → pnpm openapi:generate，在 docs/apifox-full.openapi.json 补全新接口 schema（建议项，verify 只提醒）
 
 Step 5  验证门禁（强制，不得跳过）
-        → pnpm verify -- --module <name>
+        → pnpm verify -- --module <name>（含前端构建与前后端单元测试；调试中途可 --skip-build / --skip-api-tests）
         → 如有失败项，自动修复后重新验证
         → 全部通过后输出交付报告
 ```
 
 > **迁移必须落库（强制）**：生成 / 修改迁移后，仅靠静态检查（verify 的 `migration_chain`）**不算完成**。必须实际执行并确认：
-> 1. 写操作前记录当前版本：`psql -d aurastack -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
+> 0. 库名以 `apps/api/.env.development` 的 `DEV_DATABASE_URL` 为准（本地默认 `castor_kit`，下面的命令按实际库名替换）
+> 1. 写操作前记录当前版本：`psql -d castor_kit -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
 > 2. `pnpm db:migrate` 应用变更
-> 3. 涉及新表 / 索引 / 字段时，用 `psql -d aurastack -c '\d <table>'` 确认对象真实存在
-> 4. `pnpm verify -- --module <name>` 的 `migration_applied` 项通过（它会比对 journal 与 `drizzle.__drizzle_migrations`，并用 `to_regclass` 确认模块表存在），其 detail 形如「已迁移至 0001_customer（aurastack）」
+> 3. 涉及新表 / 索引 / 字段时，用 `psql -d castor_kit -c '\d <table>'` 确认对象真实存在
+> 4. `pnpm verify -- --module <name>` 的 `migration_applied` 项通过（它会比对 journal 与 `drizzle.__drizzle_migrations`，并用 `to_regclass` 确认模块表存在），其 detail 形如「已迁移至 0001_customer（castor_kit）」
 > 5. 交付报告中注明「已迁移至 <tag>」（tag 即 `apps/api/drizzle/` 下的迁移名，如 `0001_customer`）
 
 **交付报告格式：**
@@ -570,11 +581,12 @@ Step 5  验证门禁（强制，不得跳过）
   后端：apps/api/src/db/schema/<domain>/<name>.ts
         apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
         apps/api/src/db/schema/index.ts、apps/api/src/modules/<domain>/router.ts（注册）
+        apps/api/test/<admin|cc>-<name>.test.ts（接口测试，已按业务规则更新）
   前端：apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
         apps/web/src/modules/<module>/api/<name>.js
   RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）
   迁移：apps/api/drizzle/<tag>.sql —— 已迁移至 <tag>（psql \d <table> 已确认）
-  门禁：pnpm verify -- --module <name> 全部通过
+  门禁：pnpm verify -- --module <name> 全部通过（含前后端单元测试）
 
 用户下一步操作：
   1. 刷新页面，在 <位置> 找到 <功能名>
@@ -597,14 +609,14 @@ pnpm --filter @castor-kit/api worker   # 独立调度器进程（RUN_SCHEDULER_I
 
 # 质量
 pnpm typecheck               # tsc --noEmit（api / mcp）
-pnpm test                    # vitest（需要 aurastack_test 库）+ web 单测
+pnpm test                    # vitest（需要 castor_kit_test 库）+ web 单测
 pnpm lint
 pnpm build                   # web(vite) + api(tsup) + mcp
 
 # 数据库迁移（Drizzle）
 pnpm db:generate --name <描述>          # drizzle-kit generate，生成 apps/api/drizzle/<nnnn>_<描述>.sql
-pnpm db:migrate                         # 应用迁移（现库只标记 baseline，记录在 drizzle.__drizzle_migrations）
-psql -d aurastack -c '\d <table>'       # 实证落库
+pnpm db:migrate                         # 应用迁移（记录在 drizzle.__drizzle_migrations）
+psql -d castor_kit -c '\d <table>'       # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
 
 # RBAC（菜单变更后必跑）
 pnpm seed:rbac -- --incremental         # 增量 upsert，不删除
@@ -612,13 +624,13 @@ pnpm seed:rbac                          # 全量重建（仅空库初始化）
 
 # 一次性初始化（迁移 + RBAC 增量 + AI SQL 只读账号，advisory lock 保证并发安全）
 pnpm setup-once
-pnpm --filter @castor-kit/api init-ro-role   # 单独创建只读账号 aurastack_ro（需 POSTGRES_RO_PASSWORD）
+pnpm --filter @castor-kit/api init-ro-role   # 单独创建只读账号 castor_kit_ro（需 POSTGRES_RO_PASSWORD）
 
 # 验证门禁
 pnpm verify -- --module <name>                 # 全部检查（含 vite build）
 pnpm verify -- --module <name> --skip-build    # 跳过前端构建
 pnpm verify -- --module <name> --json          # 结构化 JSON（stdout 只有 JSON，供 AI/MCP 读取）
-#   其他参数：--skip-frontend-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
+#   其他参数：--skip-frontend-tests --skip-api-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
 
 # 代码骨架生成
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
@@ -632,10 +644,6 @@ pnpm openapi:apifox                      # 推送到 Apifox（APIFOX_PROJECT_ID 
 
 # MCP Server
 pnpm mcp
-
-# 与 Flask oracle 对照（移植期）
-pnpm shadow-diff -- --flask http://localhost:5003 --node http://localhost:5001 [--only users]
-bash apps/api/scripts/shadow-all.sh   # 集成对照：全部模块按组在 aurastack_test / aurastack_t1..t7 上对 Flask(production) 跑一遍
 ```
 
 ---
@@ -658,7 +666,7 @@ Claude Desktop 配置（`claude_desktop_config.json`）：
 
 ## 当前菜单树（ID 参考）
 
-> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（45 个菜单 + 按钮权限；ID 与 AuraStack 逐条一致）
+> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（菜单 + 按钮权限）。新增功能菜单后同步补到下面；有出入时以 seed-rbac.ts 为准。
 
 ```
 ID=1   首页 (dashboard) → /dashboard → admin/dashboard
@@ -714,51 +722,12 @@ ID=3   组件示例中心 (component_center)
 
 - 项目名 `castor-kit`；命名一律小写连字符，不用驼峰、不用 Stack 后缀
 - 后端：Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino；不用 NestJS
-- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 从 Semi Design 整体迁移（`docs/frontend-redesign-plan.md`）；路由机制、API 层、页面功能与 AuraStack 保持一致
-- 数据库：直连现有 PostgreSQL（同库同表同列），不做数据迁移；`alembic_version` 表保留（Drizzle 不建模它）
+- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-redesign-plan.md`
 - `.xls` 不支持，只支持 csv / xlsx
-- 密码哈希必须兼容 werkzeug `pbkdf2:sha256:<iter>$<salt>$<hex>`，并行期新哈希也写此格式
-- 会话：`@fastify/secure-session`，cookie 名 `castor_session`，密钥用 HKDF 从 `SECRET_KEY` 派生；从 AuraStack 切换时所有用户需重新登录一次
-- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，Python 固定 6 位；P0 shadow-diff 实测）
-- cron 匹配器从 AuraStack 原样移植（日/周为 AND 语义），不用 `cron-parser`
-- 移植期请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里照搬
+- 密码哈希格式 `pbkdf2:sha256:<iter>$<salt>$<hex>`（`common/password.ts`，异步 pbkdf2）
+- 会话：`@fastify/secure-session`，cookie 名 `castor_session`，密钥用 HKDF 从 `SECRET_KEY` 派生
+- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，补齐后格式稳定）
+- cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
+- 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
 - 操作日志用全局 `onResponse` hook 集中写，不散到 service
-- 环境变量名沿用 AuraStack，仅 `FLASK_ENV` → `NODE_ENV`；生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 拒绝启动
-
----
-
-## 移植期实测事实与已知差异
-
-### P0 实施中确认的事实（shadow-diff 对 Flask 实测，覆盖方案里的推测）
-
-- 404/405：Flask 的 SPA catch-all 对任意路径接受 GET，所以**未命中的 GET/HEAD → 404（/api）或 SPA，未命中的其他方法一律 405**（含未知路径的 POST；“只注册了 POST 的路径被 GET”是 404 不是 405）
-- CSRF 检查挂 `preValidation`：被拒请求的请求体仍要进操作日志（Flask 的 after_request 会记）；未命中路由的已登录写请求也先 403
-- `created_at/updated_at` 在现库没有 DB DEFAULT（是 SQLAlchemy 应用侧默认），Node 插入用 `db/schema/columns.ts` 的 `createdAt()/updatedAt()`（`timezone('utc', now())`）
-- `menu_codes` 与角色顺序在 Python 侧不保证，契约比较按集合
-- `my-menus` 没有 super_admin 短路；叶子节点没有 `children` 键
-- Flask 实际响应是 `ensure_ascii` + 排序键 + debug 缩进的 JSON；Node 输出 UTF-8 紧凑 JSON。二者 JSON 语义一致（shadow-diff 按解析后比较），字节不同
-
-### P1 注意
-
-- `pyJsonDumps` 把 `1.0` 输出成 `1`（Python 保留 `1.0`），只影响浮点请求体写进 `operation_logs.payload` 的文本
-- 非 `/api` 路径的未命中写请求返回 JSON 405，Flask 是 Werkzeug HTML 405（前端不会触发）
-- 非 P0 表的 `toDict` 与应用侧默认值（`createdAt()` 等）在移植对应模块时按 Python 模型补齐
-
-### 工具链与 AuraStack 的有意差异
-
-- `setup-once` 里的 RBAC 同步用增量模式（Python 版实际走了全量重建，会清空账号与角色）
-- `generate-openapi` 输出标准 OpenAPI 路径参数（`{user_id}`），同一路径的多个方法合并生成
-- AI SQL 只读账号名仍为 `aurastack_ro`，advisory lock key 仍为 `0x41555341`（与现库和 AuraStack 部署兼容）
-
-### 与 Flask oracle 对照（移植期）
-
-Flask 跑 5003 作参考，Node 跑 5001（或并行验证期的 5002），两者连同一个库：
-
-```bash
-# 在 AuraStack 仓库
-FLASK_ENV=development ENABLE_TASK_SCHEDULER=false venv/bin/python app.py 5003
-# 在 castor-kit 仓库
-pnpm shadow-diff -- --flask http://localhost:5003 --node http://localhost:5001
-```
-
-用例在 `apps/api/scripts/shadow-cases/`（按模块一个文件）；写接口用例会真实写库，只在测试库上跑。
+- 运行环境由 `NODE_ENV` 决定；生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 拒绝启动

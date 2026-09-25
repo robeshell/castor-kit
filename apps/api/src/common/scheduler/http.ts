@@ -1,7 +1,7 @@
 /**
- * 定时任务 HTTP 执行（对应 AuraStack service/scheduled_task.py 里的 `requests.request(...)`）
+ * 定时任务 HTTP 执行（行为与 Python requests 库的 `requests.request(...)` 保持一致）
  *
- * 在 Python 行为之上加了连接级 SSRF 防护（rewrite-plan §5.6）：
+ * 带连接级 SSRF 防护：
  * - 每次执行新建一个 undici Agent，自定义 connect：IP 直连先判定；主机名走自定义 lookup，
  *   解析结果全部复检后把“这一次解析到的地址”直接交给 socket（钉死），DNS rebinding 无法在校验与连接之间换地址
  * - 重定向手动跟随，每一跳都经过同一个 Agent，所以重定向到内网同样会被拦
@@ -19,7 +19,7 @@ import { BLOCKED_ADDRESS_MESSAGE, blockedHostMessage, isBlockedIp } from './ssrf
 export interface HttpRequestSpec {
   method: string
   url: string
-  /** 已按 Python `{str(k): str(v)}` 归一化 */
+  /** 键和值都已转成字符串 */
   headers: Record<string, string>
   /** json：requests 的 `json=`（自动补 Content-Type）；data：`data=str`（UTF-8，无 Content-Type） */
   body: { kind: 'json' | 'data'; text: string } | null

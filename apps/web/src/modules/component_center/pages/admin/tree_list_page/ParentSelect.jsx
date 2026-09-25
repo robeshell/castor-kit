@@ -17,7 +17,7 @@ function flatten(nodes, excludeIds, depth = 0, path = [], out = []) {
 }
 
 /**
- * 树形父节点选择（替代 Semi TreeSelect）：可搜索、按层级缩进、可清空（清空 = 作为根节点）。
+ * 树形父节点选择：可搜索、按层级缩进、可清空（清空 = 作为根节点）。
  * value 为节点 id（number）或 null；excludeId 用于编辑时排除自身及其子孙，防止形成环。
  */
 export default function ParentSelect({ value, onChange, tree = [], excludeId, placeholder = '不选则作为根节点', disabled }) {

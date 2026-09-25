@@ -1,7 +1,7 @@
 /**
- * 数据字典路由（对齐 AuraStack backend/app/admin/api/dicts.py）
+ * 数据字典路由
  *
- * 与 Flask 一致：带 id 的路由先 get_or_404，再做权限检查。
+ * 带 id 的路由先 get_or_404，再做权限检查。
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'

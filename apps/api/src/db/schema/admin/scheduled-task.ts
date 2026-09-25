@@ -1,8 +1,7 @@
 /**
  * scheduled_tasks / scheduled_task_runs
- * 对齐 AuraStack backend/app/admin/model/entities_scheduled_task.py
  *
- * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（对应 SQLAlchemy `default=` / `onupdate=`），不进 DDL。
+ * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL。
  */
 
 import { relations } from 'drizzle-orm'
@@ -70,7 +69,7 @@ export const scheduled_task_runs_relations = relations(scheduled_task_runs, ({ o
 export type ScheduledTask = typeof scheduled_tasks.$inferSelect
 export type ScheduledTaskRun = typeof scheduled_task_runs.$inferSelect
 
-/** ScheduledTask.to_dict() */
+/** 定时任务输出 */
 export function scheduledTaskToDict(task: ScheduledTask) {
   return {
     id: task.id,
@@ -95,7 +94,7 @@ export function scheduledTaskToDict(task: ScheduledTask) {
   }
 }
 
-/** ScheduledTaskRun.to_dict()：task 为关联任务（run.task），不存在时 task_name / task_code 为 null */
+/** 执行记录输出：task 为关联任务，不存在时 task_name / task_code 为 null */
 export function scheduledTaskRunToDict(run: ScheduledTaskRun, task: Pick<ScheduledTask, 'name' | 'task_code'> | null) {
   return {
     id: run.id,

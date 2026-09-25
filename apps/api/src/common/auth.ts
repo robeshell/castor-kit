@@ -1,5 +1,5 @@
 /**
- * 认证与权限（对齐 AuraStack backend/common/auth.py）
+ * 认证与权限
  *
  * routes 里的权限判断一律 import 自这里，禁止在模块内自定义 hasPermission。
  */
@@ -57,7 +57,7 @@ function flattenAdmin(row: AdminRowWithRelations): AdminUserWithRoles {
 }
 
 /**
- * 按用户名加载用户并一次查询预加载 roles → menus（对应 Python 的 joinedload(roles).joinedload(menus)）
+ * 按用户名加载用户并一次查询预加载 roles → menus
  */
 export async function loadAdminWithRoles(db: Executor, username: string): Promise<AdminUserWithRoles | null> {
   const row = await findAdminRow(db, eq(admin_users.username, username))
@@ -94,7 +94,7 @@ export async function hasAnyMenuPermission(request: FastifyRequest, ...menuCodes
   return false
 }
 
-/** 菜单权限校验 preHandler（基于菜单 code），对齐 menu_permission_required */
+/** 菜单权限校验 preHandler（基于菜单 code） */
 export function menuPermissionRequired(menuCode: string): preHandlerAsyncHookHandler {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const api = isApiRequest(request)

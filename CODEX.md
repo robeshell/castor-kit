@@ -24,7 +24,7 @@ pnpm dev
 # 数据库迁移（Drizzle）
 pnpm db:generate --name <描述>        # 注意：db:generate 后面不能写 --
 pnpm db:migrate
-psql -d aurastack -c '\d <table>'     # 实证落库
+psql -d castor_kit -c '\d <table>'     # 实证落库
 
 # RBAC 同步（菜单变更后必跑）
 pnpm seed:rbac -- --incremental
@@ -48,7 +48,7 @@ pnpm verify -- --module <name> --skip-build
    （自动注册 router.ts + db/schema/index.ts，并生成 Drizzle 迁移）
 5. 按 db/schema → schema → repository → service → routes 补充业务逻辑（含导入导出）
 6. 在 apps/api/scripts/seed-rbac.ts 添加菜单 + 按钮权限，运行 pnpm seed:rbac -- --incremental
-7. 审查 apps/api/drizzle/ 新 SQL → pnpm db:migrate → psql -d aurastack -c '\d <table>' 确认落库
+7. 审查 apps/api/drizzle/ 新 SQL → pnpm db:migrate → psql -d castor_kit -c '\d <table>' 确认落库
 8. pnpm verify -- --module <name> --skip-build（必须通过；交付报告注明「已迁移至 <tag>」）
 ```
 

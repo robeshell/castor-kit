@@ -1,5 +1,5 @@
 /**
- * AI 数据查询：移植 AuraStack backend/tests/test_ai_sql_safety.py 全部用例，
+ * AI 数据查询：SQL 安全校验全部用例，
  * 并在真实 PostgreSQL 上验证只读引擎、LIMIT 包裹、敏感表过滤、字面量剥离、写操作被拒与路由各分支。
  * 需要 AI 的 generate 用本地假上游（test/cc-ai-fake-upstream.ts），不调用真实 AI 服务。
  */
@@ -35,9 +35,9 @@ const SCHEMA = '/api/admin/component-center/ai/sql/schema'
 const EXEC_ERROR = 'SQL 执行错误，请检查语法或表权限'
 const INTERNAL = '服务器内部错误，请稍后重试'
 
-// ---- test_ai_sql_safety.py ----
+// ---- SQL 安全校验 ----
 
-describe('is_safe_sql（test_ai_sql_safety.py）', () => {
+describe('isSafeSql', () => {
   it('allows basic select / with cte / trailing semicolon', () => {
     expect(isSafeSql('SELECT * FROM kanban_boards')[0]).toBe(true)
     expect(isSafeSql('WITH x AS (SELECT 1) SELECT * FROM x')[0]).toBe(true)
@@ -90,7 +90,7 @@ describe('is_safe_sql（test_ai_sql_safety.py）', () => {
   })
 
   it('ai sql engine fail-closed in production', () => {
-    expect(() => loadConfig({ NODE_ENV: 'production', SECRET_KEY: 's', ADMIN_PASSWORD: 'p', DATABASE_URL: 'postgresql://superuser:pw@db/aurastack' })).toThrow(
+    expect(() => loadConfig({ NODE_ENV: 'production', SECRET_KEY: 's', ADMIN_PASSWORD: 'p', DATABASE_URL: 'postgresql://superuser:pw@db/castor_kit' })).toThrow(
       /AI_SQL_DATABASE_URL/,
     )
   })
@@ -100,19 +100,19 @@ describe('is_safe_sql（test_ai_sql_safety.py）', () => {
       NODE_ENV: 'production',
       SECRET_KEY: 's',
       ADMIN_PASSWORD: 'p',
-      DATABASE_URL: 'postgresql://superuser:pw@db/aurastack',
-      AI_SQL_DATABASE_URL: 'postgresql://aurastack_ro:pw@db/aurastack',
+      DATABASE_URL: 'postgresql://superuser:pw@db/castor_kit',
+      AI_SQL_DATABASE_URL: 'postgresql://castor_kit_ro:pw@db/castor_kit',
     })
-    expect(config.aiSqlDatabaseUrl.startsWith('postgresql://aurastack_ro')).toBe(true)
+    expect(config.aiSqlDatabaseUrl.startsWith('postgresql://castor_kit_ro')).toBe(true)
   })
 
   it('ai sql engine dev fallback to main db', () => {
-    const config = loadConfig({ NODE_ENV: 'development', DEV_DATABASE_URL: 'postgresql://superuser:pw@db/aurastack' })
-    expect(config.aiSqlDatabaseUrl).toContain('@db/aurastack')
+    const config = loadConfig({ NODE_ENV: 'development', DEV_DATABASE_URL: 'postgresql://superuser:pw@db/castor_kit' })
+    expect(config.aiSqlDatabaseUrl).toContain('@db/castor_kit')
   })
 })
 
-describe('is_safe_sql 细节（Python re 语义）', () => {
+describe('isSafeSql 细节', () => {
   it('各拦截原因文案', () => {
     expect(isSafeSql('UPDATE t SET a = 1')).toEqual([false, '只允许 SELECT 查询语句'])
     expect(isSafeSql("SELECT ';'")).toEqual([false, '仅允许单条语句，不能包含分号'])
@@ -142,7 +142,7 @@ describe('is_safe_sql 细节（Python re 语义）', () => {
   })
 })
 
-describe('Python 值转换（expected 取自 Flask/psycopg2 实测）', () => {
+describe('Python 值转换', () => {
   it('Decimal / float repr / str repr', () => {
     expect(decimalStr('1.50')).toBe('1.50')
     expect(decimalStr('0.00000012')).toBe('1.2E-7')
@@ -162,7 +162,7 @@ describe('Python 值转换（expected 取自 Flask/psycopg2 实测）', () => {
     expect(pyStrRepr('\x01\x7f\x85\xa0\u200b\u2028 é😀')).toBe("'\\x01\\x7f\\x85\\xa0\\u200b\\u2028 é😀'")
   })
 
-  it('interval → str(timedelta)（psycopg2：年=365 天、月=30 天）', () => {
+  it('interval → str(timedelta)（年=365 天、月=30 天）', () => {
     const iv = (text: string) => toResponseValue(pgToPy(text, 1186))
     expect(iv('1 day 02:00:00')).toBe('1 day, 2:00:00')
     expect(iv('-1 days +02:03:04.5')).toBe('-1 day, 2:03:04.500000')
@@ -209,7 +209,7 @@ describe('ReadonlyDb（只读引擎）', () => {
     await ro.close()
   })
 
-  it('连接级 + 事务级强制只读：绕过 is_safe_sql 的写语句也被数据库拒绝', async () => {
+  it('连接级 + 事务级强制只读：绕过 isSafeSql 的写语句也被数据库拒绝', async () => {
     await expect(ro.query(`CREATE TABLE ${P}should_not_exist (id int)`)).rejects.toThrow(/read-only transaction/)
     const opts = await ro.query("SELECT current_setting('default_transaction_read_only'), current_setting('transaction_read_only')")
     expect(opts.rows[0]).toEqual(['on', 'on'])
@@ -307,7 +307,7 @@ describe('AI SQL 路由', () => {
     }
   })
 
-  it('schema：敏感表不出现在 tables 与 schema 文本里；类型名按 SQLAlchemy 反射写法', async () => {
+  it('schema：敏感表不出现在 tables 与 schema 文本里；类型名为大写 SQL 类型写法', async () => {
     const res = await s.inject({ url: SCHEMA })
     expect(res.statusCode).toBe(200)
     const body = res.json() as { tables: string[]; schema: string }
@@ -355,7 +355,7 @@ describe('AI SQL 路由', () => {
       expect(res.statusCode).toBe(400)
       expect(res.json()).toEqual({ error: 'SQL 不能为空' })
     }
-    // Python：非字符串真值 .strip() 抛 AttributeError → 全局 500 通用文案
+    // 非字符串真值 → 全局 500 通用文案
     for (const sql of [5, ['SELECT 1'], { a: 1 }, true]) {
       const res = await s.inject({ method: 'POST', url: EXECUTE, payload: { sql } })
       expect(res.statusCode).toBe(500)
@@ -378,7 +378,7 @@ describe('AI SQL 路由', () => {
     }
   })
 
-  it('execute：通过 is_safe_sql 但会写库的语句由只读事务拦下', async () => {
+  it('execute：通过 isSafeSql 但会写库的语句由只读事务拦下', async () => {
     const res = await s.inject({ method: 'POST', url: EXECUTE, payload: { sql: `SELECT nextval('${TABLE}_id_seq')` } })
     expect(res.statusCode).toBe(400)
     expect(res.json()).toEqual({ error: EXEC_ERROR, sql: `SELECT nextval('${TABLE}_id_seq')` })
@@ -424,7 +424,7 @@ describe('AI SQL 路由', () => {
     expect(dup.rows).toEqual([{ a: 2 }])
   })
 
-  it('execute：LIKE 里的 % 正常执行（Flask 版被 psycopg2 当作占位符而报错，属有意修正）', async () => {
+  it('execute：LIKE 里的 % 正常执行（不被当作占位符）', async () => {
     const res = await s.inject({ method: 'POST', url: EXECUTE, payload: { sql: "SELECT 1 AS a WHERE 'abc' LIKE '%b%'" } })
     expect(res.statusCode).toBe(200)
     expect(res.json().rows).toEqual([{ a: 1 }])

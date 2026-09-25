@@ -1,7 +1,7 @@
 /**
- * 首页仪表盘路由（对齐 AuraStack backend/app/admin/api/dashboard.py）
+ * 首页仪表盘路由
  *
- * 只要求登录，不校验菜单权限（与 Flask 一致）。
+ * 只要求登录，不校验菜单权限。
  */
 
 import type { FastifyInstance } from 'fastify'

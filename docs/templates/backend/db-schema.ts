@@ -35,7 +35,7 @@ export const <resource>s = pgTable('<resource>s', {
 export type <Resource> = typeof <resource>s.$inferSelect
 export type New<Resource> = typeof <resource>s.$inferInsert
 
-/** 对应 Python to_dict()；多词资源命名为 camelCase（customerOrderToDict） */
+/** 序列化为 API 输出；多词资源命名为 camelCase（customerOrderToDict） */
 export function <resource>ToDict(item: <Resource>) {
   return {
     id: item.id,

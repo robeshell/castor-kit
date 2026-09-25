@@ -1,5 +1,5 @@
 /**
- * component_center 域路由装配（对齐 AuraStack backend/app/component_center/api/router.py）
+ * component_center 域路由装配
  */
 
 import type { FastifyInstance } from 'fastify'

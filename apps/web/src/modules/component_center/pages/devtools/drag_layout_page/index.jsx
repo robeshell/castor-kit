@@ -14,8 +14,8 @@ import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
 import './drag-layout.css'
 
-// 保留旧键名，已保存的布局不会丢失
-const STORAGE_KEY = 'aurastack_drag_layout_v1'
+// 布局保存在 localStorage，按版本号区分格式
+const STORAGE_KEY = 'castor_kit_drag_layout_v1'
 
 // ── 默认布局 ──────────────────────────────────────────────────────────
 const DEFAULT_LAYOUT = [

@@ -1,6 +1,5 @@
 /**
  * query_managements / query_management_versions
- * 对齐 AuraStack backend/app/component_center/model/entities_list_page.py
  *
  * 由 drizzle-kit pull 生成后整理。`$default` / `createdAt()` / `updatedAt()` 只在运行时生效，不进 DDL。
  */
@@ -78,7 +77,7 @@ export const query_management_versions_relations = relations(query_management_ve
 export type QueryManagement = typeof query_managements.$inferSelect
 export type QueryManagementVersion = typeof query_management_versions.$inferSelect
 
-// ---- toDict（对齐 Python to_dict 的键与值） ----
+// ---- toDict（接口输出的键与值） ----
 
 /** 模型内的 parse_json_url_list：空值 → []；JSON 数组 → 逐项 str().strip() 去空；其余 → [] */
 function parseJsonUrlList(raw: string | null): string[] {

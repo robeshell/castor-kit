@@ -50,7 +50,7 @@ const convertToTreeData = (menus = []) =>
 const collectDescendants = (node) => (node.children || []).flatMap((child) => [child.key, ...collectDescendants(child)])
 
 /**
- * 父子联动勾选（对齐原 Semi Tree multiple + autoMergeValue=false）：
+ * 父子联动勾选（多选）：
  * - 选中集合包含所有“完全选中”的节点（含父节点），半选父节点不在集合里
  * - 父节点在集合中 → 其全部子孙视为选中
  * - 父节点当且仅当所有子节点选中时为选中

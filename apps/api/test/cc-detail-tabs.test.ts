@@ -31,7 +31,7 @@ beforeAll(async () => {
   app = await buildTestApp()
   s = await superAdminSession(app, handle)
   await cleanup()
-  // 克隆出来的测试库主键序列可能落后于 MAX(id)（该模块的 Python 实现没有序列自愈逻辑），先同步
+  // 克隆出来的测试库主键序列可能落后于 MAX(id)，先同步
   await handle.pool.query(
     "SELECT setval(pg_get_serial_sequence('cc_detail_members', 'id'), COALESCE((SELECT MAX(id) FROM cc_detail_members), 0) + 1, false)",
   )

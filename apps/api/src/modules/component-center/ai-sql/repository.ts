@@ -1,9 +1,9 @@
 /**
  * AI SQL 数据访问：全部走只读连接池（db/readonly.ts），不碰业务主连接。
  *
- * 表结构读取用 information_schema（替代 SQLAlchemy inspector）：
- * - 表：当前 schema 下的 BASE TABLE（inspector.get_table_names() 的范围）
- * - 列：按 ordinal_position；类型名按 SQLAlchemy 反射后 `str(col['type'])` 的写法还原（见 sqlalchemyTypeName）
+ * 表结构读取用 information_schema：
+ * - 表：当前 schema 下的 BASE TABLE
+ * - 列：按 ordinal_position；类型名输出为大写的 SQL 类型写法（如 `VARCHAR(50)`、`NUMERIC(10, 2)`，见 sqlTypeName）
  */
 
 import type { ReadonlyDb, ReadonlyResult } from '@/db/readonly'
@@ -34,8 +34,7 @@ SELECT table_name FROM information_schema.tables
  WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'`
 
 /**
- * udt_name → SQLAlchemy 2.0 PG 方言反射出的类型 `str()`（按其 ischema_names 实测；
- * 不在表里的类型反射为 NullType → 'NULL'，如 xml / point / tsquery）
+ * udt_name → 输出的类型名（不在表里的类型输出 'NULL'，如 xml / point / tsquery）
  */
 const SIMPLE_TYPES: Record<string, string> = {
   int2: 'SMALLINT',
@@ -94,9 +93,9 @@ interface ColumnRow {
   enum_max_length: string | null
 }
 
-export function sqlalchemyTypeName(row: ColumnRow): string {
+export function sqlTypeName(row: ColumnRow): string {
   const udt = row.udt_name
-  // 域类型反射为 DOMAIN（str() 即 'DOMAIN'），不看底层类型
+  // 域类型统一输出 'DOMAIN'，不看底层类型
   if (row.domain_name) return 'DOMAIN'
   if (row.data_type === 'ARRAY') return 'ARRAY'
   if (udt === 'varchar') return row.character_maximum_length ? `VARCHAR(${row.character_maximum_length})` : 'VARCHAR'
@@ -104,7 +103,7 @@ export function sqlalchemyTypeName(row: ColumnRow): string {
   if (udt === 'numeric') {
     return row.numeric_precision !== null ? `NUMERIC(${row.numeric_precision}, ${row.numeric_scale ?? 0})` : 'NUMERIC'
   }
-  // 枚举：反射为 ENUM，str() 走通用方言编译成 VARCHAR(最长标签长度)
+  // 枚举：输出 VARCHAR(最长标签长度)
   if (row.enum_max_length !== null) return `VARCHAR(${row.enum_max_length})`
   return SIMPLE_TYPES[udt] ?? 'NULL'
 }
@@ -127,7 +126,7 @@ export class AiSqlRepository {
       return {
         table: table!,
         name: name!,
-        type: sqlalchemyTypeName({
+        type: sqlTypeName({
           data_type: dataType!,
           udt_name: udtName!,
           character_maximum_length: charLen ?? null,

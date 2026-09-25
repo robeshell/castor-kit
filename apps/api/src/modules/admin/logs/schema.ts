@@ -1,5 +1,5 @@
 /**
- * 日志模块 schema 层（对齐 AuraStack backend/app/admin/schema/logs.py）
+ * 日志模块 schema 层
  */
 
 import { pyInt } from '@/common/py'
@@ -109,7 +109,7 @@ export function resolveModuleAndAction(path: string, method: string): { module: 
 // ---------------------------------------------------------------- parse_datetime
 
 /**
- * `datetime.fromisoformat(text)` 的解析结果（CPython 3.13 C 实现 `_datetimemodule.c` 的移植）。
+ * 按 `fromisoformat` 规则解析 ISO 8601 日期时间的结果。
  * `offsetSeconds` 为 null 表示 naive；否则为带时区（秒，可含小数）。
  */
 export interface ParsedDateTime {

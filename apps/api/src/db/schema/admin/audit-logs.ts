@@ -1,6 +1,5 @@
 /**
  * 审计日志表：login_logs / operation_logs
- * 对齐 AuraStack backend/app/admin/model/entities_audit_logs.py
  */
 
 import { foreignKey, index, integer, pgTable, serial, text, varchar } from 'drizzle-orm/pg-core'

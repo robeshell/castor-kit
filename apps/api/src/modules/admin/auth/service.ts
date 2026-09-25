@@ -1,5 +1,5 @@
 /**
- * 认证模块 service 层（对齐 AuraStack backend/app/admin/service/auth.py）
+ * 认证模块 service 层
  *
  * 会话读写属于 HTTP 层，由 routes 负责；这里只返回结果或抛 ServiceError。
  */
@@ -41,7 +41,7 @@ export class AuthService {
     return false
   }
 
-  /** 审计写入失败不影响主流程（对应 Python 的 try/except + rollback） */
+  /** 审计写入失败不影响主流程（记录警告后吞掉异常） */
   private async bestEffort(what: string, fn: () => Promise<void>): Promise<void> {
     try {
       await fn()
@@ -123,7 +123,7 @@ export class AuthService {
     }
 
     try {
-      // 并行运行期新哈希也写 werkzeug 格式，保证 Flask 端可验（rewrite-plan §2.3）
+      // 新哈希沿用既有的 `pbkdf2:sha256:<iterations>$<salt>$<hex>` 格式，与库中存量哈希兼容
       await this.repo.updatePasswordHash(admin.id, await generatePasswordHash(String(data?.new_password)))
     } catch (err) {
       throw new ServiceError(err instanceof Error ? err.message : String(err), 500)

@@ -1,5 +1,5 @@
 /**
- * 数据字典 service 层（对齐 AuraStack backend/app/admin/service/dicts.py）
+ * 数据字典 service 层
  */
 
 import { ServiceError } from '@/common/errors'
@@ -42,7 +42,7 @@ const ITEM_UPDATE_BINDERS: Record<string, (v: unknown) => unknown> = {
 
 /**
  * `for field in fields: if field in data: setattr(item, field, data[field])` + commit：
- * 只有值变化（Python `==`）的列才进 UPDATE；全部未变化时 SQLAlchemy 不发 UPDATE（updated_at 不变）。
+ * 只有值变化（`==` 语义）的列才进 UPDATE；全部未变化时不发 UPDATE（updated_at 不变）。
  */
 function collectChanges<T extends object>(
   current: T,

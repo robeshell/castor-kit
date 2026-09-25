@@ -15,17 +15,15 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: aurastack_test
+          POSTGRES_DB: castor_kit_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U postgres -d aurastack_test"
+          --health-cmd "pg_isready -U postgres -d castor_kit_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       NODE_ENV: test
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aurastack_test
-      DEV_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aurastack_test
-      # werkzeug 互验用例在 CI 里没有 AuraStack venv，会自动跳过
-      WERKZEUG_PYTHON: /nonexistent
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/castor_kit_test
+      DEV_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/castor_kit_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -44,7 +42,7 @@ jobs:
       - name: Unit & contract tests
         run: pnpm --filter @castor-kit/api test
       - name: Feature gate
-        run: pnpm verify -- --skip-build
+        run: pnpm verify -- --skip-build --skip-api-tests  # 上一步已跑过后端测试
 
   web:
     name: Web build + tests
