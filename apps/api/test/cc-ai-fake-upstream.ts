@@ -140,6 +140,10 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
       res.writeHead(500)
       return res.end('boom')
     }
+    if (q === 'q:status429') {
+      res.writeHead(429)
+      return res.end('RESOURCE_EXHAUSTED')
+    }
     if (q === 'q:notjson') {
       res.writeHead(200)
       return res.end('not json')

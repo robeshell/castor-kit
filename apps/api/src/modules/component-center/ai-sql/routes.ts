@@ -66,6 +66,10 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
     } catch (err) {
       request.log.warn({ err }, 'ai_sql generate failed')
       if (err instanceof LlmConfigError) {
+        // Show the model API's status so quota (429), auth (401/403) and model-name (404) problems are told apart
+        const status = err.upstreamStatus
+        if (status === 429) return reply.status(500).send({ error: 'AI 生成失败：模型服务的调用次数已达上限（429），请稍后再试' })
+        if (status) return reply.status(500).send({ error: `AI 生成失败（模型服务返回 ${status}），请检查模型配置后重试` })
         return reply.status(500).send({ error: 'AI 生成失败，请检查模型配置后重试' })
       }
       return reply.status(500).send({ error: 'AI 生成失败' })

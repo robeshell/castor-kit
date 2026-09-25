@@ -15,7 +15,15 @@ import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schem
 import { pgToPy, toResponseValue } from './pg-values'
 
 /** LLM config / upstream response problems */
-export class LlmConfigError extends Error {}
+/** Model call failed in a way the operator can fix (config, quota, model name); upstreamStatus is the model API's HTTP status */
+export class LlmConfigError extends Error {
+  constructor(
+    message: string,
+    readonly upstreamStatus?: number,
+  ) {
+    super(message)
+  }
+}
 
 const LLM_TIMEOUT_MS = 30_000
 
@@ -115,7 +123,7 @@ export class AiSqlService {
     })
     if (resp.status !== 200) {
       const text = await resp.text().catch(() => '')
-      throw new LlmConfigError(`LLM 接口错误 (${resp.status}): ${text.slice(0, 300)}`)
+      throw new LlmConfigError(`LLM 接口错误 (${resp.status}): ${text.slice(0, 300)}`, resp.status)
     }
     let data: unknown
     try {
