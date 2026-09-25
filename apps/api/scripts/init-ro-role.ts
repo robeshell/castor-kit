@@ -10,10 +10,10 @@
  */
 
 import pg from 'pg'
-import { loadConfig, loadEnvFiles, type AppEnv } from '../src/config'
+import { loadConfig, loadEnvFiles, type AppEnv, RO_ROLE_NAME } from '../src/config'
 import { isVisibleTable } from '../src/modules/component-center/ai-sql/schema'
 
-export const RO_ROLE = 'castor_kit_ro'
+export const RO_ROLE = RO_ROLE_NAME
 const SAFE_TABLE_NAME = /^[a-z0-9_]+$/
 const SAFE_ROLE_NAME = /^[a-z_][a-z0-9_]*$/
 

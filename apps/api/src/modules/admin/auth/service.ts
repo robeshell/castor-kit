@@ -23,7 +23,7 @@ export class AuthService {
 
   constructor(
     private readonly db: Db,
-    private readonly config: Pick<AppConfig, 'loginMaxFailures' | 'loginLockoutMinutes'>,
+    private readonly config: Pick<AppConfig, 'loginMaxFailures' | 'loginLockoutMinutes'> & Partial<Pick<AppConfig, 'demoMode'>>,
     private readonly log: { warn: (obj: unknown, msg: string) => void } = console,
   ) {
     this.repo = new AuthRepository(db)
@@ -33,11 +33,13 @@ export class AuthService {
    * Recent-window failure count from login_logs; lock out once over the threshold. Two dimensions (either one blocks):
    * - IP: guards against distributed credential stuffing across many usernames
    * - Username: guards against one account being tried from rotating IPs
+   * In DEMO_MODE the username dimension is skipped: the demo credentials are public, so anyone could otherwise lock
+   * the shared account for everyone by typing a wrong password on purpose.
    */
   private async isLoginBlocked(username: string, ip: string): Promise<boolean> {
     const { loginMaxFailures: max, loginLockoutMinutes: minutes } = this.config
     if (ip && (await this.repo.countRecentFailures({ ip }, minutes)) >= max) return true
-    if (username && (await this.repo.countRecentFailures({ username }, minutes)) >= max) return true
+    if (username && !this.config.demoMode && (await this.repo.countRecentFailures({ username }, minutes)) >= max) return true
     return false
   }
 

@@ -17,7 +17,11 @@ services:
       retries: 10
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # npm mirror for faster installs in mainland China; override with NPM_REGISTRY in .env.production
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:5000"

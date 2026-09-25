@@ -10,6 +10,7 @@ export * from './admin/dicts'
 export * from './admin/scheduled-task'
 export * from './admin/notification'
 export * from './admin/announcement'
+export * from './admin/app-state'
 
 // component_center
 export * from './component-center/list-page'

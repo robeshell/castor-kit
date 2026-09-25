@@ -81,6 +81,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '请填写完整信息': { 'en-US': 'Please fill in all fields', 'ja-JP': 'すべての項目を入力してください' },
   '新密码长度至少6位': { 'en-US': 'New password must be at least 6 characters', 'ja-JP': '新しいパスワードは6文字以上で入力してください' },
   '登录失败次数过多，请稍后再试': { 'en-US': 'Too many failed sign-in attempts. Please try again later.', 'ja-JP': 'ログインの失敗回数が上限に達しました。しばらくしてから再度お試しください。' },
+  '演示环境不允许此操作': { 'en-US': 'This action is disabled in the demo.', 'ja-JP': 'デモ環境ではこの操作はできません。' },
   '登录成功': { 'en-US': 'Signed in', 'ja-JP': 'ログインしました' },
   '用户名或密码错误': { 'en-US': 'Incorrect username or password', 'ja-JP': 'ユーザー名またはパスワードが正しくありません' },
   '已退出登录': { 'en-US': 'Signed out', 'ja-JP': 'ログアウトしました' },

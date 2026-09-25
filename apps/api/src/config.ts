@@ -38,6 +38,12 @@ export interface AppConfig {
   /** Runtime data dir (instance/; uploads live in instance/uploads/...) */
   instanceDir: string
 
+  // ---- Public demo ----
+  /** DEMO_MODE: system management becomes read-only, the demo account is shown on the login page, sample data resets periodically */
+  demoMode: boolean
+  /** DEMO_RESET_HOURS: how often the demo data is restored (checked at startup and hourly) */
+  demoResetHours: number
+
   // ---- Scheduled tasks ----
   enableTaskScheduler: boolean
   taskSchedulerIntervalSeconds: number
@@ -49,7 +55,11 @@ export interface AppConfig {
   aiApiBase: string
   aiApiKey: string
   aiModel: string
-  /** Read-only connection string for AI SQL; required in production (fail-closed), falls back to the main DB URL in development (connection params still force read-only) */
+  /**
+   * Read-only connection string for AI SQL. Production: AI_SQL_DATABASE_URL, or derived from DATABASE_URL with the
+   * castor_kit_ro role when POSTGRES_RO_PASSWORD is set; otherwise startup fails (fail-closed).
+   * Development falls back to the main DB URL (connection params still force read-only).
+   */
   aiSqlDatabaseUrl: string
   aiSqlStatementTimeoutMs: number
   /** Used by init-ro-role: read-only role password; skipped if not set */
@@ -83,6 +93,8 @@ const envSchema = z.object({
   LOGIN_LOCKOUT_MINUTES: intFromEnv(15),
   WEB_DIST_DIR: z.string().optional(),
   INSTANCE_DIR: z.string().optional(),
+  DEMO_MODE: z.string().optional().default('false'),
+  DEMO_RESET_HOURS: intFromEnv(24),
   ENABLE_TASK_SCHEDULER: z.string().optional().default('true'),
   TASK_SCHEDULER_INTERVAL_SECONDS: intFromEnv(20),
   TASK_SCHEDULER_LEASE_SECONDS: intFromEnv(1800),
@@ -124,9 +136,21 @@ function required(name: string, value: string | undefined, env: AppEnv, devFallb
   return devFallback
 }
 
-function resolveAiSqlUrl(raw: string | undefined, env: AppEnv, mainUrl: string): string {
+/** Read-only role created by scripts/init-ro-role.ts */
+export const RO_ROLE_NAME = 'castor_kit_ro'
+
+/** Same host / database / query string as the main URL, but signed in as the read-only role */
+export function deriveReadonlyUrl(mainUrl: string, roPassword: string): string {
+  const url = new URL(mainUrl)
+  url.username = RO_ROLE_NAME
+  url.password = roPassword
+  return url.toString()
+}
+
+function resolveAiSqlUrl(raw: string | undefined, env: AppEnv, mainUrl: string, roPassword: string): string {
   const value = (raw ?? '').trim()
   if (value) return value
+  if (env === 'production' && roPassword) return deriveReadonlyUrl(mainUrl, roPassword)
   if (env === 'production') {
     throw new Error('生产环境必须设置 AI_SQL_DATABASE_URL（指向非超级用户只读账号 castor_kit_ro），拒绝回退到主库连接')
   }
@@ -164,6 +188,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     loginLockoutMinutes: parsed.LOGIN_LOCKOUT_MINUTES,
     webDistDir: parsed.WEB_DIST_DIR ? resolve(parsed.WEB_DIST_DIR) : resolve(REPO_ROOT, 'apps/web/dist'),
     instanceDir: parsed.INSTANCE_DIR ? resolve(parsed.INSTANCE_DIR) : resolve(API_ROOT, 'instance'),
+    demoMode: isTruthy(parsed.DEMO_MODE),
+    demoResetHours: Math.max(1, parsed.DEMO_RESET_HOURS),
     enableTaskScheduler: isTruthy(parsed.ENABLE_TASK_SCHEDULER),
     taskSchedulerIntervalSeconds: parsed.TASK_SCHEDULER_INTERVAL_SECONDS,
     taskSchedulerLeaseSeconds: parsed.TASK_SCHEDULER_LEASE_SECONDS,
@@ -171,7 +197,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     aiApiBase: parsed.AI_API_BASE,
     aiApiKey: parsed.AI_API_KEY,
     aiModel: parsed.AI_MODEL,
-    aiSqlDatabaseUrl: resolveAiSqlUrl(parsed.AI_SQL_DATABASE_URL, env, databaseUrl),
+    aiSqlDatabaseUrl: resolveAiSqlUrl(parsed.AI_SQL_DATABASE_URL, env, databaseUrl, parsed.POSTGRES_RO_PASSWORD.trim()),
     aiSqlStatementTimeoutMs: parsed.AI_SQL_STATEMENT_TIMEOUT_MS,
     postgresRoPassword: parsed.POSTGRES_RO_PASSWORD.trim(),
     apifoxProjectId: parsed.APIFOX_PROJECT_ID,

@@ -268,6 +268,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 - **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON
 - **操作日志**：由 logs 模块注册的全局 `onResponse` hook 集中写 `operation_logs`，不要在 service 里散写
 - **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
+- **公开演示（`DEMO_MODE`）**：`common/demo.ts` 的白名单之外的写请求一律 403——目前只放行登录 / 登出、`/api/admin/component-center/*`、通知已读；新增的业务域在演示环境默认只读，需要演示可写时把路径加进 `DEMO_WRITABLE`，并在 `src/demo/fixtures.ts` 补示例数据（恢复逻辑见 `src/demo/reset.ts`）
 
 ---
 

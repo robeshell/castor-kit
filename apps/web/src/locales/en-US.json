@@ -163,5 +163,9 @@
   "关闭全部": "Close all",
   "标签页操作": "Tab actions",
   "标签栏": "Tabs bar",
-  "切换标签时保留页面状态": "Keeps page state when switching tabs"
+  "切换标签时保留页面状态": "Keeps page state when switching tabs",
+  "演示环境：系统管理为只读，数据每 {{hours}} 小时自动恢复": "Demo: system settings are read-only, and data resets every {{hours}} hours",
+  "在 GitHub 上查看": "View on GitHub",
+  "演示账号": "Demo account",
+  "一键登录": "Sign in"
 }

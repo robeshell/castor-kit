@@ -69,6 +69,10 @@ bash setup.sh
 
 セットアップウィザードで管理者パスワードとポート（既定は `5000`）を設定します。完了したら `http://localhost:5000` を開き、`admin` でサインインしてください。
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
+
+**無料のオンラインデモ**：ワンクリックで Render にデプロイし、データベースは Neon の無料プランを使います（システム管理は読み取り専用、データは毎日リセット）。手順は [Render + Neon](website/ja/deploy/index.md) を参照してください。
+
 <details>
 <summary><b>ローカル開発</b>（Node.js 22 以上、pnpm、PostgreSQL 14 以上）</summary>
 

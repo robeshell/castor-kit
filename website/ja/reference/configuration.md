@@ -44,7 +44,7 @@ castor-kit は環境変数で設定します。バックエンドの変数は `a
 | `SESSION_TTL_HOURS` | セッションの有効期間（時間） | `8` |
 | `SESSION_COOKIE_SECURE` | cookie の `Secure` フラグ：`true` / `false` で強制。空にするとリクエストのプロトコルから自動判定（HTTPS の場合のみ付与） | 空（自動） |
 | `CORS_ORIGINS` | クロスオリジンを許可するオリジン。カンマ区切り。WebSocket ハンドシェイクの Origin 許可リストにも使用 | 空 |
-| `LOGIN_MAX_FAILURES` | ログイン失敗回数の上限（IP とユーザー名でそれぞれカウント） | `10` |
+| `LOGIN_MAX_FAILURES` | ログイン失敗回数の上限（IP とユーザー名でそれぞれカウント。デモモードでは IP のみ） | `10` |
 | `LOGIN_LOCKOUT_MINUTES` | ログイン失敗のカウント期間とロック時間（分） | `15` |
 | `MAX_CONTENT_LENGTH` | リクエストボディのサイズ上限（バイト）。超えると 413 を返す | `16777216`（16MB） |
 
@@ -54,6 +54,15 @@ castor-kit は環境変数で設定します。バックエンドの変数は `a
 |---|---|---|
 | `WEB_DIST_DIR` | フロントエンドのビルド成果物のディレクトリ。バックエンドはここから静的ファイルと SPA を配信 | `apps/web/dist` |
 | `INSTANCE_DIR` | 実行時データのディレクトリ。アップロードされたファイルはその下の `uploads/` に保存 | `apps/api/instance` |
+
+### 公開デモ {#public-demo}
+
+| 変数 | 役割 | デフォルト値 |
+|---|---|---|
+| `DEMO_MODE` | 公開デモモード。ログイン画面にデモアカウントを表示し、ワンクリックでログインできます。ログイン、コンポーネント例、通知の既読化以外の書き込みはすべて 403 を返します（システム管理は読み取り専用で、パスワードも変更できません）。ログインのロックは IP のみでカウントし、サンプルデータは定期的に復元されます | `false` |
+| `DEMO_RESET_HOURS` | デモデータを復元する間隔（時間）。起動時と、その後 1 時間ごとに確認し、前回の復元からこの時間を過ぎていれば復元します。すぐに復元するには `pnpm demo:reset` を実行します | `24` |
+
+デモデータの内容は `apps/api/src/demo/fixtures.ts`、復元の処理は `apps/api/src/demo/reset.ts` にあります。復元の対象はコンポーネント例、お知らせ、データ辞書、定期タスク、通知、ログだけで、アカウント・ロール・メニューには触れません。
 
 ### 定期タスク
 
@@ -73,7 +82,7 @@ castor-kit は環境変数で設定します。バックエンドの変数は `a
 | `AI_API_BASE` | OpenAI 互換 API の Base URL（例：`https://api.openai.com/v1`） | 空 |
 | `AI_API_KEY` | API Key | 空 |
 | `AI_MODEL` | モデル名 | 空 |
-| `AI_SQL_DATABASE_URL` | AI データ検索で使う読み取り専用の接続。スーパーユーザーではない読み取り専用アカウントを指すこと | 開発 / テストではメインのデータベース接続にフォールバック（読み取り専用は引き続き強制）。**本番では必須** |
+| `AI_SQL_DATABASE_URL` | AI データ検索で使う読み取り専用の接続。スーパーユーザーではない読み取り専用アカウントを指すこと | 開発 / テストではメインのデータベース接続にフォールバック（読み取り専用は引き続き強制）。本番で未設定の場合、`POSTGRES_RO_PASSWORD` が設定されていれば `DATABASE_URL` から導出（`castor_kit_ro` アカウントに置き換え）し、どちらもなければ起動を拒否 |
 | `AI_SQL_STATEMENT_TIMEOUT_MS` | AI データ検索の 1 文あたりのタイムアウト（ミリ秒） | `5000` |
 | `POSTGRES_RO_PASSWORD` | 読み取り専用アカウント `castor_kit_ro` のパスワード。`setup-once` / `init-ro-role` がこれを使ってアカウントを作成する。未設定の場合はスキップ | 空 |
 
@@ -93,7 +102,7 @@ AI チャット、AI プロンプト工房、AI データ検索は、`AI_API_*` 
 
 - `SECRET_KEY`
 - `ADMIN_PASSWORD`
-- `AI_SQL_DATABASE_URL`
+- `AI_SQL_DATABASE_URL`、または `POSTGRES_RO_PASSWORD`（これと `DATABASE_URL` から読み取り専用の接続を導出）
 
 `docker-compose.yml` でデプロイする場合、`AI_SQL_DATABASE_URL` は compose が自動で組み立てるため、手動で設定する必要はありません。
 
@@ -123,6 +132,7 @@ AI チャット、AI プロンプト工房、AI データ検索は、`AI_API_*` 
 | `SECRET_KEY` | 前述のとおり | **必須** |
 | `ADMIN_PASSWORD` | 前述のとおり | **必須** |
 | `POSTGRES_RO_PASSWORD` | AI SQL 用読み取り専用アカウントのパスワード | **必須** |
+| `NPM_REGISTRY` | イメージのビルド時に依存関係をインストールする npm レジストリ（ビルド引数） | `https://registry.npmmirror.com` |
 | `APP_PORT` | ホストにマッピングするポート（コンテナ内は 5000 で固定） | `8080`（`setup.sh` が生成する設定ではデフォルトで `5000`） |
 | `ENABLE_TASK_SCHEDULER` | 前述のとおり | `true` |
 | `RUN_SCHEDULER_IN_WEB` | 前述のとおり。compose でのデフォルトは `true` で、バックエンド自体のデフォルト値とは異なる | `true` |
@@ -145,7 +155,7 @@ compose は上記の変数をもとに、次の変数を自動で設定します
 
 ### イメージに組み込まれた変数
 
-`Dockerfile` で設定されており、通常は変更する必要はありません。
+`Dockerfile` で設定されており、通常は変更する必要はありません。ビルド引数 `NPM_REGISTRY` のデフォルトは `https://registry.npmjs.org` です。compose でビルドする場合は、デフォルトで中国本土のミラーを使います（上の表を参照）。
 
 | 変数 | 値 |
 |---|---|

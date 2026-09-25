@@ -264,6 +264,59 @@
         }
       }
     },
+    "/api/admin/app-info": {
+      "GET": {
+        "summary": "应用信息（公开）",
+        "description": "无需登录。DEMO_MODE 开启时返回演示账号与数据重置间隔，供登录页和演示提示条使用；未开启时只返回 demo_mode: false。",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "demo_mode": {
+                      "type": "boolean"
+                    },
+                    "demo_reset_hours": {
+                      "type": "integer",
+                      "description": "演示数据重置间隔（小时），仅演示模式"
+                    },
+                    "demo_account": {
+                      "type": "object",
+                      "description": "演示账号，仅演示模式",
+                      "properties": {
+                        "username": {
+                          "type": "string"
+                        },
+                        "password": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "demo_mode"
+                  ]
+                },
+                "example": {
+                  "demo_mode": true,
+                  "demo_reset_hours": 24,
+                  "demo_account": {
+                    "username": "admin",
+                    "password": "castor-demo"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务器内部错误"
+          }
+        }
+      }
+    },
     "/api/admin/change-password": {
       "post": {
         "tags": [

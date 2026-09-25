@@ -19,7 +19,8 @@
     "openapi:apifox": "tsx scripts/import-apifox.ts",
     "scaffold": "tsx scripts/scaffold.ts",
     "verify": "tsx scripts/verify-feature.ts",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "demo:reset": "tsx scripts/demo-reset.ts"
   },
   "dependencies": {
     "@fastify/compress": "^9.2.0",

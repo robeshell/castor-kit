@@ -1,0 +1,33 @@
+# Render Blueprint: a public castor-kit demo on Render's free plan, with PostgreSQL on Neon.
+# Walkthrough: website/deploy/index.md ("Render + Neon").
+#
+# DATABASE_URL is asked for when you create the Blueprint: paste Neon's *direct* (non-pooled) connection string —
+# startup uses a session-level advisory lock, which a transaction pooler doesn't keep.
+services:
+  - type: web
+    name: castor-kit-demo
+    runtime: docker
+    plan: free
+    # Same region as the Neon project (AWS US East 2 / Ohio) to keep database round trips short
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      # Shown on the login page in demo mode; system management is read-only there, so it can't be changed
+      - key: ADMIN_PASSWORD
+        value: castor-demo
+      # Password for the read-only role used by AI SQL (created at startup; the URL is derived from DATABASE_URL)
+      - key: POSTGRES_RO_PASSWORD
+        generateValue: true
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_RESET_HOURS
+        value: "24"
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: RUN_SCHEDULER_IN_WEB
+        value: "true"

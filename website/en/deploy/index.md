@@ -15,7 +15,7 @@ The docs site is the exception: `.github/workflows/docs.yml` builds it and publi
 | `db` | Image `postgres:alpine`; the database name and user are both `castor_kit`; data lives in the `postgres_data` volume |
 | `app` | Built from the `Dockerfile` in the repo root; listens on port 5000 inside the container; uploaded files live in the `app_instance` volume (mounted at `/app/instance`) |
 
-The image is built in two stages. The first stage, based on `node:22-alpine`, installs dependencies, builds the frontend (Vite) and backend (tsup), then prunes down to production dependencies. The second stage is the runtime image: it runs as a non-root user (uid 10001) and has a health check on `/health`.
+The image is built in two stages, both based on `node:22-bookworm-slim` (glibc: native modules such as `sodium-native` only ship prebuilt binaries for glibc, so Alpine can't be used). The first stage installs dependencies, builds the frontend (Vite) and backend (tsup), then prunes down to production dependencies. The second stage is the runtime image: it runs as a non-root user (uid 10001) and has a health check on `/health`.
 
 On container start, `docker-entrypoint.sh` runs, in order:
 
@@ -78,6 +78,58 @@ By default compose only reads `.env`, not `.env.production`. Without `--env-file
 
 ::: warning ADMIN_PASSWORD only applies the first time
 The `admin` account is only created if it doesn't exist. Changing `ADMIN_PASSWORD` after the first start won't change the existing account's password; sign in and change it in the UI.
+:::
+
+## Option 3: Render + Neon (free demo)
+
+Run the app on a free [Render](https://render.com) web service and keep the data in a free [Neon](https://neon.tech) PostgreSQL database — a good fit for a public online demo. The `render.yaml` at the repository root has the configuration and turns on [demo mode](/en/reference/configuration#public-demo):
+
+- The login page shows the demo account (`admin` / `castor-demo`) with one-click sign-in
+- System management is read-only and passwords can't be changed; the component gallery is fully editable
+- Sample data is restored every 24 hours
+
+::: warning Free-plan limits
+These were the free tiers at the time of writing; check each provider's site before you sign up:
+- A free Render instance sleeps after 15 minutes without traffic, and the next visit waits tens of seconds for it to start; scheduled tasks don't run while it sleeps
+- A free Neon database suspends compute when idle and wakes up on the next connection
+:::
+
+### 1. Create the Neon database
+
+1. Sign up for Neon and create a project. Pick **AWS US East 2 (Ohio)** to match `region: ohio` of the Render service in `render.yaml`; if you choose another region, keep both sides in the same one
+2. On the project dashboard click **Connect**, **turn off "Connection pooling"**, and copy the direct connection string, e.g. `postgresql://<user>:<password>@ep-xxx.<region>.aws.neon.tech/neondb?sslmode=require`
+
+::: tip Why a direct connection
+Startup initialization (migrations, RBAC sync, demo data restore) uses a session-level advisory lock to stay safe with concurrent instances, and a transaction pooler doesn't keep that lock. You can keep or remove `channel_binding=require` in the connection string.
+:::
+
+### 2. Deploy on Render
+
+1. Sign up for Render with your GitHub account. If the repository isn't under your account, fork it first
+2. In the Render dashboard choose **New → Blueprint** and select the repository; Render reads `render.yaml`
+3. When prompted, enter `DATABASE_URL` (the connection string from the previous step); every other variable is set in `render.yaml` or generated
+4. Click **Apply**. The first build takes about 5–10 minutes. Once the status is **Live**, open the service URL (`https://<service-name>.onrender.com`) and the login page shows the demo account
+
+The **Deploy to Render** button in the README does the same thing.
+
+### 3. Maintenance
+
+- `render.yaml` leaves auto-deploy on: every push to main triggers a rebuild, and failed builds are emailed to you. Turn off Auto-Deploy under the service's **Settings → Build & Deploy** if you don't want that
+- The demo account's password is `ADMIN_PASSWORD` in `render.yaml`. It only applies when the account is first created, so change it before the first deploy
+- To restore the demo data right away, run `node dist/demo-reset.js` in the Render service's **Shell**, or run `pnpm demo:reset` locally against the same database
+
+::: details Startup fails to create the read-only account
+Startup creates the read-only account `castor_kit_ro` used by AI Data Query. If Neon refuses, run this in Neon's SQL Editor:
+
+```sql
+CREATE ROLE castor_kit_ro LOGIN PASSWORD '<value of POSTGRES_RO_PASSWORD in Render>';
+```
+
+Then redeploy on Render. Initialization updates the password of the existing account and grants its permissions.
+:::
+
+::: tip Running production on Render
+Set `DEMO_MODE` to `false` and replace `ADMIN_PASSWORD` with a strong password. A free instance still sleeps and scheduled tasks won't run on time, so for real use pick a paid instance or deploy to your own server with option 1 or 2.
 :::
 
 ## Common operations
