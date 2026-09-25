@@ -13,6 +13,7 @@ import { Agent, fetch } from 'undici'
 import { pyTruthy } from '@/common/py'
 import { translateMessage, type Language } from '@/common/i18n'
 import { pyJsonDumps } from '@/common/request-meta'
+import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
 import { pyStrip } from '../ai-sql/schema'
 
@@ -49,7 +50,7 @@ export const SYSTEM_PROMPT = {
     '- 权限检查：hasMenuPermission(request, code) / menuPermissionRequired(code)（common/auth.ts）\n' +
     '- 默认账号：admin（密码以部署配置为准）\n' +
     '- 开发端口：后端 5001，前端 5173（Vite）\n\n' +
-    '请用中文回答，回答要结合 castor-kit 的实际技术栈和实现方式。',
+    '请使用用户提问所用的语言回答（中文提问用中文，English questions in English，日本語の質問には日本語で），回答要结合 castor-kit 的实际技术栈和实现方式。',
 }
 
 /** `data: {json.dumps(obj, ensure_ascii=False)}\n\n` (obj has a single key) */
@@ -111,16 +112,20 @@ async function* iterLines(body: AsyncIterable<Uint8Array>): AsyncGenerator<strin
 
 export interface ChatStreamOptions {
   timeoutMs?: number
+  /** Server-side log for upstream failures (the client only ever sees a generic message) */
+  log?: { warn: (obj: unknown, msg: string) => void }
 }
 
 export class AiChatService {
   private readonly dispatcher: Agent
+  private readonly log: ChatStreamOptions['log']
 
   constructor(
-    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'>,
+    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
     options: ChatStreamOptions = {},
   ) {
     const timeout = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS
+    this.log = options.log
     this.dispatcher = new Agent({ connect: { timeout }, headersTimeout: timeout, bodyTimeout: timeout })
   }
 
@@ -144,14 +149,21 @@ export class AiChatService {
       const resp = await fetch(`${aiApiBase}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: aiModel, messages: fullMessages, stream: true }),
+        body: JSON.stringify({
+          model: aiModel,
+          messages: fullMessages,
+          stream: true,
+          ...(this.config.demoMode ? { max_tokens: DEMO_MAX_OUTPUT_TOKENS.chat } : {}),
+        }),
         dispatcher: this.dispatcher,
         signal,
       })
 
       if (resp.status !== 200) {
-        // Don't pass the upstream response body through to the client (it may contain internal info); only a generic error code
-        await resp.body?.cancel().catch(() => {})
+        // Don't pass the upstream response body through to the client (it may contain internal info); only a generic error code.
+        // Log the start of it server-side so the cause (bad model name, quota, overload...) is visible in the logs.
+        const detail = await resp.text().catch(() => '')
+        this.log?.warn({ status: resp.status, body: detail.slice(0, 500) }, 'AI 上游返回错误')
         yield event('error', translateMessage(`AI 服务暂时不可用（${resp.status}），请稍后重试`, lang))
         yield DONE_EVENT
         return

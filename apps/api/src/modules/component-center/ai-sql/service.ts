@@ -8,6 +8,7 @@
  */
 
 import { Agent, fetch } from 'undici'
+import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
 import { AiSqlRepository, type ColumnInfo } from './repository'
 import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schema'
@@ -35,7 +36,7 @@ export class AiSqlService {
 
   constructor(
     repo: AiSqlRepository,
-    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'>,
+    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
     options: { llmTimeoutMs?: number } = {},
   ) {
     this.repo = repo
@@ -105,7 +106,11 @@ export class AiSqlService {
     const resp = await fetch(parsed, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [systemMsg, userMsg] }),
+      body: JSON.stringify({
+        model,
+        messages: [systemMsg, userMsg],
+        ...(this.config.demoMode ? { max_tokens: DEMO_MAX_OUTPUT_TOKENS.sql } : {}),
+      }),
       dispatcher: this.dispatcher,
     })
     if (resp.status !== 200) {

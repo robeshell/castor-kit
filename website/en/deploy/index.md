@@ -118,6 +118,15 @@ The **Deploy to Render** button in the README does the same thing.
 - The demo account's password is `ADMIN_PASSWORD` in `render.yaml`. It only applies when the account is first created, so change it before the first deploy
 - To restore the demo data right away, run `node dist/demo-reset.js` in the Render service's **Shell**, or run `pnpm demo:reset` locally against the same database
 
+### 4. Connect AI (optional)
+
+The demo can use Google Gemini's free tier to show AI chat and AI Data Query:
+
+1. Create an API key with your Google account in [Google AI Studio](https://aistudio.google.com)
+2. In the Render service's **Environment**, set `AI_API_KEY` (that key) and `AI_MODEL` (a Flash model name listed in AI Studio); `AI_API_BASE` is already set to Gemini's OpenAI-compatible endpoint in `render.yaml`. Saving restarts the service
+
+Demo mode rate-limits AI: 20 calls per IP per hour, 300 per day for the whole site, at most 4000 characters per request, and a capped reply length. Adjust with the `DEMO_AI_*` variables (see [Configuration](/en/reference/configuration#public-demo)). Free-tier requests may be used by the provider to improve its products, so don't enter sensitive data in the demo.
+
 ::: details Startup fails to create the read-only account
 Startup creates the read-only account `castor_kit_ro` used by AI Data Query. If Neon refuses, run this in Neon's SQL Editor:
 

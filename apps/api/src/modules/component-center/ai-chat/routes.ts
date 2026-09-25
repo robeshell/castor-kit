@@ -22,7 +22,7 @@ const PERMISSION = 'cc_ai_chat'
 export const CHAT_TIMINGS = { upstreamTimeoutMs: 60_000 }
 
 export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> {
-  const service = new AiChatService(app.config, { timeoutMs: CHAT_TIMINGS.upstreamTimeoutMs })
+  const service = new AiChatService(app.config, { timeoutMs: CHAT_TIMINGS.upstreamTimeoutMs, log: app.log })
   app.addHook('onClose', async () => service.close())
 
   app.post(
