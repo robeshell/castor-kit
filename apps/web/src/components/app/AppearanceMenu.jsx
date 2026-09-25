@@ -1,6 +1,7 @@
 import { Check, Palette, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useTheme } from '@/context/ThemeContext'
 import { ACCENTS, CONTENT_WIDTHS, DEFAULT_APPEARANCE, NAV_MODES, SIDEBAR_VARIANTS } from '@/lib/appearance'
@@ -59,13 +60,14 @@ function OptionGroup({ value, options, onChange, disabled }) {
 /** Top-bar popover for accent color and layout; choices apply instantly and persist in this browser */
 export default function AppearanceMenu() {
   const { t } = useTranslation()
-  const { accent, navMode, sidebarVariant, contentWidth, setAppearance } = useTheme()
+  const { accent, navMode, sidebarVariant, contentWidth, tagsView, setAppearance } = useTheme()
   const current = ACCENTS.find((a) => a.id === accent)
   const isDefault =
     accent === DEFAULT_APPEARANCE.accent &&
     navMode === DEFAULT_APPEARANCE.navMode &&
     sidebarVariant === DEFAULT_APPEARANCE.sidebarVariant &&
-    contentWidth === DEFAULT_APPEARANCE.contentWidth
+    contentWidth === DEFAULT_APPEARANCE.contentWidth &&
+    tagsView === DEFAULT_APPEARANCE.tagsView
 
   return (
     <Popover>
@@ -143,6 +145,14 @@ export default function AppearanceMenu() {
         <Section title={t('内容宽度')}>
           <OptionGroup value={contentWidth} options={CONTENT_WIDTHS} onChange={(next) => setAppearance({ contentWidth: next })} />
         </Section>
+
+        <label className="flex cursor-pointer items-center justify-between gap-3">
+          <span className="grid gap-0.5">
+            <span className="text-[13px] font-medium">{t('标签栏')}</span>
+            <span className="text-muted-foreground text-xs">{t('切换标签时保留页面状态')}</span>
+          </span>
+          <Switch checked={tagsView} onCheckedChange={(checked) => setAppearance({ tagsView: checked })} />
+        </label>
       </PopoverContent>
     </Popover>
   )

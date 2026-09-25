@@ -1,5 +1,5 @@
 /**
- * Appearance options (single source of truth): accent presets and layout choices.
+ * Appearance options (single source of truth): accent presets, layout choices and the tags view switch.
  * Labels are the Chinese source text used as i18n keys; accent colors live in index.css under [data-accent='<id>'].
  * The choice is stored per browser in localStorage('appearance').
  */
@@ -32,7 +32,8 @@ export const CONTENT_WIDTHS = [
   { id: 'fluid', label: '流式' },
 ]
 
-export const DEFAULT_APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'boxed' }
+/** tagsView: show the tabs bar of opened pages (and keep those pages alive) */
+export const DEFAULT_APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'boxed', tagsView: true }
 
 const OPTIONS = { accent: ACCENTS, navMode: NAV_MODES, sidebarVariant: SIDEBAR_VARIANTS, contentWidth: CONTENT_WIDTHS }
 const STORAGE_KEY = 'appearance'
@@ -44,6 +45,7 @@ export function normalizeAppearance(value) {
   for (const [key, options] of Object.entries(OPTIONS)) {
     if (options.some((o) => o.id === value[key])) result[key] = value[key]
   }
+  if (typeof value.tagsView === 'boolean') result.tagsView = value.tagsView
   return result
 }
 

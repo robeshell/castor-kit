@@ -20,13 +20,12 @@ import NotificationBell from '@/components/app/NotificationBell'
 import ThemeToggle from '@/components/app/ThemeToggle'
 import TopNav from '@/components/app/TopNav'
 import { UserMenuCompact } from '@/components/app/UserMenu'
-import { findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
+import { STATIC_TITLES, findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
 import LanguageSwitcher from '@/components/app/LanguageSwitcher'
 import { menuLabel } from '@/lib/menu-label'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
-const STATIC_TITLES = { '/profile': '个人设置', '/403': '无访问权限' }  // The Chinese source text is the i18n key
 
 /**
  * Top bar. Desktop content depends on the nav mode: breadcrumbs (sidebar), brand + full menu (top),

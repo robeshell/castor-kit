@@ -376,6 +376,7 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 
 - 颜色一律用语义类：`bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`；只用语义类，暗色模式（`<html class="dark">`）天然正确
 - 强调色可由用户在顶栏「外观设置」切换（预设见 `src/lib/appearance.js`，默认 Ocean；`index.css` 的 `[data-accent]` 预设只定义 `--brand-from/via/to`，`--primary`、`--ring`、图表色、`brand-soft/glow/shadow` 都由这三个派生）。页面里一律用 `primary` / `brand-*` 语义类，不要写死某个强调色，否则切换后不跟随。导航模式（侧边栏 / 顶部 / 混合）、侧边栏样式、内容宽度也在同一面板，由 `AppLayout` 处理，页面无需关心
+- 标签栏（默认开启，外观设置可关）：打开过的页面以标签保留，状态在 `src/context/TagsViewContext.jsx`。开启时每个标签页用 React `<Activity>` 保活：切走时页面 state（筛选、分页、表单输入）保留，但 effect 会被清理、切回时重新执行（`useEffect` 里的请求会重新拉一次数据，定时器 / 轮询 / WebSocket 在隐藏期间自动停止）。所以页面的副作用必须写在 effect 里并正确清理，不要在模块级或渲染中启动定时器
 - 中性灰为底，强调色（默认 Ocean 渐变 blue → sky → cyan）只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`（只用于小块装饰，不铺在内容区大背景上，浅色下像污渍）；不用紫色
 - 间距用 Tailwind（`space-y-4` / `gap-4`），数字 `tabular-nums`；移动端（<768px）不能横向撑破（表格容器横向滚动）
 - 动效克制：交互 150–250ms ease-out；列表错峰入场、指示条 layoutId、数字滚动、弹层进出已由公共组件提供；`prefers-reduced-motion` 已全局处理
