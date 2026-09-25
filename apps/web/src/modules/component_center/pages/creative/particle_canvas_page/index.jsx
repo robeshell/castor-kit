@@ -1,18 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MousePointer2, Pause, Play, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
+import { mixHex, useChartColors } from '@/lib/chart-theme'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 
-// Canvas-only colors (Ocean blue / cyan family), independent of the page theme; labels are translated when rendered
+// Canvas-only palettes; labels are translated when rendered. "accent" (the default) is built from the site accent color
 const THEMES = {
+  accent: { label: '跟随强调色' },
   ocean: { label: '海洋蓝', bg: '#040b18', colors: ['#2563eb', '#0ea5e9', '#22d3ee', '#60a5fa'] },
   glacier: { label: '冰川青', bg: '#03111a', colors: ['#22d3ee', '#67e8f9', '#0891b2', '#a5f3fc'] },
   abyss: { label: '深海蓝', bg: '#020617', colors: ['#1d4ed8', '#3b82f6', '#1e40af', '#93c5fd'] },
   lagoon: { label: '潟湖绿', bg: '#021312', colors: ['#14b8a6', '#2dd4bf', '#22d3ee', '#5eead4'] },
+}
+
+/** Dark canvas palette derived from the accent stops (brand-from / via / to) */
+function accentPalette(c) {
+  return {
+    bg: mixHex(c['brand-from'], '#020617', 0.08),
+    colors: [c['brand-from'], c['brand-via'], c['brand-to'], mixHex(c['brand-to'], '#ffffff', 0.6)],
+  }
 }
 
 function ControlSlider({ label, value, display, min, max, step, onChange }) {
@@ -33,17 +43,20 @@ export default function ParticleCanvasPage() {
   const particlesRef = useRef([])
   const mouseRef = useRef({ x: -9999, y: -9999 })
   const pausedRef = useRef(false)
-  const settingsRef = useRef({ count: 120, linkDist: 130, theme: 'ocean', speed: 1 })
+  const settingsRef = useRef({ count: 120, linkDist: 130, theme: 'accent', speed: 1 })
+  const chartColors = useChartColors()
+  const accent = useMemo(() => accentPalette(chartColors), [chartColors])
+  const accentRef = useRef(accent) // read by the animation loop
 
   const [paused, setPaused] = useState(false)
-  const [theme, setTheme] = useState('ocean')
+  const [theme, setTheme] = useState('accent')
   const [count, setCount] = useState(120)
   const [linkDist, setLinkDist] = useState(130)
   const [speed, setSpeed] = useState(1)
 
   const initParticles = useCallback((canvas) => {
     const { count, theme } = settingsRef.current
-    const colors = THEMES[theme].colors
+    const colors = (theme === 'accent' ? accentRef.current : THEMES[theme]).colors
     const particles = []
     for (let i = 0; i < count; i++) {
       particles.push({
@@ -66,7 +79,7 @@ export default function ParticleCanvasPage() {
     const draw = () => {
       const ctx = canvas.getContext('2d')
       const { theme, linkDist, speed } = settingsRef.current
-      const { bg } = THEMES[theme]
+      const { bg } = theme === 'accent' ? accentRef.current : THEMES[theme]
       const mouse = mouseRef.current
       const particles = particlesRef.current
 
@@ -170,6 +183,15 @@ export default function ParticleCanvasPage() {
     }
   }, [initParticles])
 
+  // Accent switched: recolor the particles in place (positions and velocities are kept)
+  useEffect(() => {
+    accentRef.current = accent
+    if (settingsRef.current.theme !== 'accent') return
+    particlesRef.current.forEach((p, i) => {
+      p.color = accent.colors[i % accent.colors.length]
+    })
+  }, [accent])
+
   const handleMouseMove = (e) => {
     const rect = canvasRef.current.getBoundingClientRect()
     mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
@@ -224,18 +246,21 @@ export default function ParticleCanvasPage() {
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs">{t('主题')}</span>
           <Select value={theme} onValueChange={applyTheme}>
-            <SelectTrigger size="sm" className="h-8 w-[112px] text-[13px]">
+            <SelectTrigger size="sm" className="h-8 w-[136px] text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(THEMES).map(([key, item]) => (
-                <SelectItem key={key} value={key}>
-                  <span className="flex items-center gap-2">
-                    <span className="size-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${item.colors[0]}, ${item.colors[2]})` }} />
-                    {t(item.label)}
-                  </span>
-                </SelectItem>
-              ))}
+              {Object.entries(THEMES).map(([key, item]) => {
+                const { colors } = key === 'accent' ? accent : item
+                return (
+                  <SelectItem key={key} value={key}>
+                    <span className="flex items-center gap-2">
+                      <span className="size-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[2]})` }} />
+                      {t(item.label)}
+                    </span>
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </div>

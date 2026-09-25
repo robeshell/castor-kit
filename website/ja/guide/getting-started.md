@@ -1,25 +1,15 @@
-# はじめる
+# クイックスタート
 
-## 環境要件
+castor-kit の実行方法は 2 通りあります。
 
-利用シーンに合わせてセットアップ方法を選択してください：
+| 方法 | 用途 | 必要な環境 |
+|---|---|---|
+| Docker でワンステップ起動 | お試し、デモ、デプロイ | Docker（`docker compose` プラグインを含む） |
+| ローカル開発 | ソースコードの変更、AI による新機能の開発 | Node 22+、pnpm、PostgreSQL 14+ |
 
-| 方法 | 要件 |
-|---|---|
-| **Docker（推奨）** | [Docker Desktop](https://www.docker.com/products/docker-desktop/) をインストールするだけ — 他のツール不要 |
-| **ローカル開発** | Node 22+、pnpm（`corepack enable` だけで OK）、PostgreSQL 14+ |
+## Docker でワンステップ起動
 
----
-
-## Docker クイックスタート（推奨）
-
-Docker は castor-kit を最速で実行する方法です。セットアップウィザードがすべてを自動で設定します。
-
-### 1. Docker Desktop をインストール
-
-[Docker Desktop](https://www.docker.com/products/docker-desktop/) をダウンロードしてインストール。左下のステータスアイコンが緑色（"Running"）になったら次へ進んでください。
-
-### 2. リポジトリをクローンしてセットアップウィザードを実行
+### 1. リポジトリをクローンしてセットアップウィザードを実行する
 
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
@@ -27,222 +17,136 @@ cd castor-kit
 bash setup.sh
 ```
 
-対話式ウィザードが管理者パスワード、ポート、AI 機能の設定（任意）を尋ね、`SECRET_KEY`、データベースパスワード、AI SQL 読み取り専用パスワードを生成して `.env.production` に書き込みます。初回起動は全体で約 3〜5 分かかります。
+`setup.sh` は次の処理を順番に行います。
 
-### 3. アプリにアクセス
+1. Docker と `docker compose` が使えるかを確認します。
+2. 管理者パスワード（Enter で `admin123`）、アクセスポート（Enter で `5000`）、AI 機能を設定するかどうか（OpenAI 互換 API の API Key、Base URL、モデル名）を尋ねます。
+3. `SECRET_KEY`、データベースのパスワード、AI SQL 用の読み取り専用アカウントのパスワードをランダムに生成し、リポジトリのルートにある `.env.production` に書き込みます。このファイルがすでに存在する場合は、設定し直すかどうかを先に確認します。
+4. `docker compose --env-file .env.production up -d --build` を実行してサービスをビルド・起動します。
+5. サービスの準備ができるまで `http://localhost:<ポート>/health` をポーリングします。
 
-**http://localhost:5000**（ウィザードで選択したポート、デフォルトは 5000）を開き、以下でログインしてください：
+初回は依存関係のダウンロードとイメージのビルドが必要なため、通常数分かかります。
 
-- **ユーザー名：** `admin`
-- **パスワード：** セットアップ時に設定したパスワード（デフォルト：`admin123`）
-
-::: tip 手動 Docker 起動（ウィザードなし）
-手動で設定したい場合：
-
-```bash
-cp .env.example .env.production
-# .env.production を編集 — 最低限以下を設定：
-#   SECRET_KEY / ADMIN_PASSWORD / POSTGRES_PASSWORD / POSTGRES_RO_PASSWORD
-docker compose --env-file .env.production up -d --build
-```
-
-`APP_PORT` を設定しない場合、アプリはポート **8080** で公開されます。
+::: warning setup.sh は Docker の設定を変更します
+Docker の `daemon.json` にまだ `registry-mirrors` がない場合、スクリプトはミラーのアドレスを書き込み、Docker を再起動します。ミラーが不要な場合はウィザードを使わず、[デプロイガイド](/ja/deploy/) に従って手動で設定・起動してください。
 :::
 
----
+### 2. ログインする
 
-## ローカル開発環境
+`http://localhost:5000`（またはウィザードで設定したポート）を開き、次のアカウントでログインします。
 
-ソースコードを変更してリアルタイムで確認したい場合に使用します。castor-kit は pnpm モノレポです——すべてのコマンドはリポジトリのルートで実行してください。
+- ユーザー名：`admin`
+- パスワード：ウィザードで設定したパスワード（デフォルトは `admin123`）
 
-### 1. リポジトリをクローンして依存関係をインストール
+### 3. よく使う操作
+
+`docker compose` コマンドにはすべて `--env-file .env.production` を付けてください。付けないと compose が必須の変数を読み込めず、そのままエラーになります。
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
-corepack enable        # package.json で固定された pnpm バージョンを有効化
+docker compose --env-file .env.production logs -f app   # アプリケーションのログを表示
+docker compose --env-file .env.production down          # サービスを停止（データボリュームは保持）
+docker compose --env-file .env.production up -d         # 再起動
+```
+
+そのほかの内容（手動設定、アップデート、リバースプロキシ）は [デプロイガイド](/ja/deploy/) を参照してください。
+
+## ローカル開発
+
+コマンドはすべてリポジトリのルートで実行します。
+
+### 1. 環境を用意する
+
+- Node 22 以上（リポジトリのルートにある `.nvmrc` は `22`）
+- pnpm（バージョンはルートの `package.json` の `packageManager` フィールドを参照。`corepack enable` で有効化できます）
+- ローカルの PostgreSQL 14 以上。`createdb` / `psql` で接続できること
+
+### 2. 依存関係をインストールする
+
+```bash
 pnpm install
 ```
 
-### 2. 環境変数を設定
+### 3. データベース接続を設定する
 
 ```bash
 cp apps/api/.env.example apps/api/.env.development
 ```
 
-`apps/api/.env.development` を開き、最低限データベース接続を設定します：
+`apps/api/.env.development` は gitignore 済みです。サンプルファイルの `DEV_DATABASE_URL` は `postgresql://localhost/castor_kit` になっているので、ユーザー名、パスワード、データベース名を環境に合わせて変更してください。そのほかの任意の設定は [設定](/ja/reference/configuration) を参照してください。
 
-```env
-DEV_DATABASE_URL=postgresql://youruser@localhost/castor_kit
-```
-
-開発環境では `NODE_ENV` のデフォルトは `development` です。`SECRET_KEY` と `ADMIN_PASSWORD` は空のままでも構いません（組み込みの開発用キーと `admin123` が使われます）。
-
-### 3. データベースを初期化
-
-```bash
-# データベースを作成
-createdb castor_kit
-
-# Drizzle マイグレーションを実行（空のデータベースには全テーブルが作成されます）
-pnpm db:migrate
-
-# RBAC データをシード（メニュー、スーパー管理者ロール、管理者アカウント）
-pnpm seed:rbac
-```
-
-::: warning フラグなしの seed:rbac は完全な再構築
-フラグなしの `pnpm seed:rbac` はアカウント・ロール・メニューを削除して再作成します——初回の初期化時にのみ使用してください。以降のメニュー変更には `pnpm seed:rbac -- --incremental` を使用してください。
+::: tip 設定ファイルの読み込み順
+バックエンドは `NODE_ENV`（デフォルトは `development`）に応じて `.env.<NODE_ENV>` を読み込みます。まず `apps/api/`、次にリポジトリのルートの順で読み込み、すでに存在する環境変数は上書きしません。
 :::
 
-### 4. 開発サーバーを起動
+### 4. データベースを作成して初期化する
+
+```bash
+createdb castor_kit
+pnpm db:migrate      # Drizzle のマイグレーションを実行し、すべてのテーブルを作成
+pnpm seed:rbac       # メニュー、スーパー管理者ロール、admin アカウントを書き込む
+```
+
+マイグレーションと RBAC 同期を 1 つのコマンドで行うこともできます。
+
+```bash
+pnpm setup-once      # マイグレーション + RBAC の増分同期 + AI SQL 用読み取り専用アカウント（POSTGRES_RO_PASSWORD が未設定ならスキップ）
+```
+
+::: warning pnpm seed:rbac は全件再構築です
+引数なしの `pnpm seed:rbac` は、ユーザー、ロール、メニューとその関連データをすべて削除してから書き込み直すため、空のデータベースの初期化にしか使えません。データが入っているデータベースでは `pnpm seed:rbac -- --incremental` を使ってください。詳しくは [権限（RBAC）](/ja/guide/rbac) を参照してください。
+:::
+
+### 5. 開発サーバーを起動する
 
 ```bash
 pnpm dev
 ```
 
-Fastify バックエンド（ポート 5001、`tsx watch` によるホットリロード）と Vite フロントエンド（ポート 5173、`/api` と `/ws` はバックエンドにプロキシ）が起動します。`pnpm dev:api` と `pnpm dev:web` で 2 つのターミナルに分けて個別に起動することもできます。
+次のサービスが同時に起動します。
 
-**http://localhost:5173** を開き、`admin` / `admin123` でログインしてください。
+| サービス | アドレス | 説明 |
+|---|---|---|
+| バックエンド | `http://localhost:5001` | `tsx watch` によるホットリロード |
+| フロントエンド | `http://localhost:5173` | Vite 開発サーバー。`/api` と `/ws` は 5001 にプロキシ |
 
-::: tip macOS のダブルクリック起動
-データベースの初期化が済んでいれば、プロジェクトルートの **`启动castor-kit.command`** をダブルクリックするだけで起動できます。`pnpm install`、`pnpm setup-once`、`pnpm dev` が順に実行されます。
+`http://localhost:5173` を開き、`admin` / `admin123` でログインします。
+
+`pnpm dev:api`、`pnpm dev:web` で個別に起動することもできます。
+
+::: tip デフォルトアカウント
+開発環境で `ADMIN_PASSWORD` を設定していない場合、初期パスワードは `admin123` です。`admin` アカウントは存在しないときにだけ作成されるため、後から `ADMIN_PASSWORD` を変更しても既存アカウントのパスワードは変わりません。パスワードは画面上で変更してください。
 :::
 
----
+### 6. テストを実行する（任意）
 
-## AI ツールのセットアップ
-
-castor-kit にはすべての主要 AI コーディングツール向けのコンテキストが事前設定されています。クローン後すぐに作業を始められます——追加設定は不要です。
-
-### Claude Code（推奨）
+バックエンドのテストは実際の PostgreSQL テスト用データベース（デフォルトは `postgresql://localhost/castor_kit_test`。`TEST_DATABASE_URL` で上書き可能）に接続し、テスト開始前にマイグレーションを自動で実行します。
 
 ```bash
-# インストール
-npm install -g @anthropic-ai/claude-code
-
-# プロジェクトディレクトリで起動
-cd castor-kit
-claude
+createdb castor_kit_test      # または開発用データベースを複製：createdb -T castor_kit castor_kit_test
+pnpm test
 ```
 
-Claude Code は起動時に `CLAUDE.md` と `AGENTS.md` を自動で読み込みます。内蔵スキルを使用：
+## 任意：AI 機能
 
-```
-/new-feature-autopilot
-```
-
-### Cursor
-
-1. [Cursor](https://cursor.sh) をダウンロード・インストール
-2. Cursor でプロジェクトフォルダを開く
-3. `.cursor/rules/` のルールが自動読み込み — チャットパネルで要件を説明するだけ
-
-### GitHub Copilot
-
-1. VS Code に **GitHub Copilot** 拡張機能をインストール
-2. VS Code でプロジェクトフォルダを開く
-3. `.github/copilot-instructions.md` がプロジェクトコンテキストとして自動注入
-4. Copilot Chat（`Ctrl+Shift+I`）で要件を説明
-
-### Windsurf
-
-1. [Windsurf](https://codeium.com/windsurf) をダウンロード・インストール
-2. Windsurf でプロジェクトフォルダを開く
-3. `.windsurfrules` が自動読み込み — Cascade で要件を説明
-
-### Codex CLI
+コンポーネント例の AI チャット、AI プロンプト工房、AI データ検索には OpenAI 互換の API が必要です。`apps/api/.env.development` に次のように設定します。
 
 ```bash
-# インストール
-npm install -g @openai/codex
-
-# プロジェクトディレクトリで実行
-cd castor-kit
-codex "顧客管理ページを作成。フィールド：氏名、電話、会社名、ステータス"
+AI_API_BASE=https://api.openai.com/v1
+AI_API_KEY=<あなたの API Key>
+AI_MODEL=<モデル名>
 ```
 
-Codex CLI は `AGENTS.md` をネイティブに読み込みます。`CODEX.md` にはコマンドと権限に関する補足があります。
+未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
 
-### MCP クライアント（Claude Desktop など）
+## 任意：ローカルで定期タスクを実行する
 
-castor-kit には MCP サーバー（`apps/mcp`）が含まれており、スキャフォールド、検証ゲート、RBAC 同期、マイグレーションを MCP ツールとして公開します。`claude_desktop_config.json` に追加してください：
+開発環境では、web プロセスはデフォルトで定期タスクのスケジューラーを起動しません。タスクを cron どおりに実行させたい場合は、次のどちらかを選びます。
 
-```json
-{
-  "mcpServers": {
-    "castor-kit": {
-      "command": "pnpm",
-      "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
-    }
-  }
-}
-```
+- `apps/api/.env.development` に `RUN_SCHEDULER_IN_WEB=true` を設定する
+- 別のターミナルで独立したスケジューラープロセスを実行する：`pnpm --filter @castor-kit/api worker`
 
----
+## 次のステップ
 
-## AI 開発ワークフロー
-
-Claude Code を例にした、エンドツーエンドの完全なフロー：
-
-### 1. 要件を説明
-
-```
-/new-feature-autopilot
-
-顧客管理ページを作成。フィールド：氏名、電話、会社名、ステータス（有効/無効）
-```
-
-### 2. AI が技術仕様を自動推論
-
-AI が `AGENTS.md` と `docs/templates/` を読み込み、以下を推論します：
-
-- テーブルのカラム型（Drizzle の書き方）
-- API ルートの命名
-- フロントエンドのページパス
-- RBAC 権限コードとメニュー ID
-
-**技術的な質問への回答は不要です。**
-
-### 3. ビジネスプレビューを確認
-
-コードに手を付ける前に、AI がわかりやすい言葉でプレビューを表示します：
-
-```
-📋 顧客管理
-
-場所：システム管理 → 顧客管理
-操作：一覧、新規作成、編集、削除、インポート、エクスポート
-フィールド：
-  · 氏名（必須）
-  · 電話
-  · 会社名
-  · ステータス
-
-この内容で進めますか？それとも調整が必要ですか？
-```
-
-### 4. 完全なモジュールを自動生成
-
-確認後、AI が `pnpm scaffold` を実行し、ビジネスロジックを埋めていきます：
-
-| ファイル | 内容 |
-|---|---|
-| `apps/api/src/db/schema/admin/customer.ts` | Drizzle テーブル定義 + `toDict` |
-| `apps/api/src/modules/admin/customer/schema.ts` | Zod バリデーション、インポート/エクスポートのフィールドマッピング |
-| `apps/api/src/modules/admin/customer/repository.ts` | データベースアクセス |
-| `apps/api/src/modules/admin/customer/service.ts` | ビジネスロジック |
-| `apps/api/src/modules/admin/customer/routes.ts` | Fastify ルート + 権限チェック |
-| `apps/web/src/modules/admin/pages/customer/index.jsx` | React リストページ（インポート/エクスポート付き） |
-| `apps/api/drizzle/` | Drizzle SQL マイグレーション |
-| `apps/api/scripts/seed-rbac.ts` | メニュー + ボタン権限エントリ |
-
-続いて `pnpm seed:rbac -- --incremental` を実行し、`pnpm setup-once` でマイグレーションを適用し、`psql \d` でテーブルの存在を確認します。
-
-### 5. 検証
-
-```bash
-pnpm verify -- --module customer
-```
-
-すべてのチェックが通れば、機能はリリース可能です。
+- [プロジェクト構成](/ja/guide/project-structure)
+- [AI 駆動開発](/ja/guide/ai-workflow)：AI で最初の機能を納品する
+- [コマンド一覧](/ja/reference/commands)

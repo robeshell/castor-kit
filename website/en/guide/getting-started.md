@@ -1,25 +1,15 @@
-# Getting Started
+# Quick start
 
-## Prerequisites
+There are two ways to run castor-kit:
 
-Choose the setup path that fits your situation:
+| Option | Use it for | Requirements |
+|---|---|---|
+| One-command Docker setup | Trying it out, demos, deployment | Docker (with the `docker compose` plugin) |
+| Local development | Changing the source, building new features with AI | Node 22+, pnpm, PostgreSQL 14+ |
 
-| Path | Requirements |
-|---|---|
-| **Docker (recommended)** | [Docker Desktop](https://www.docker.com/products/docker-desktop/) — no other tooling needed |
-| **Local development** | Node 22+, pnpm (`corepack enable` is enough), PostgreSQL 14+ |
+## One-command Docker setup
 
----
-
-## Quick Start — Docker (Recommended)
-
-Docker is the fastest way to run castor-kit. The setup wizard handles everything automatically.
-
-### 1. Install Docker Desktop
-
-Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/). Wait until the bottom-left status icon turns green ("Running") before continuing.
-
-### 2. Clone and run the setup wizard
+### 1. Clone the repo and run the setup wizard
 
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
@@ -27,222 +17,136 @@ cd castor-kit
 bash setup.sh
 ```
 
-The interactive wizard asks for your admin password, the port, and optional AI settings, then generates `SECRET_KEY`, the database password and the AI SQL read-only password into `.env.production`. The entire process takes about 3–5 minutes on first run.
+`setup.sh` does the following, in order:
 
-### 3. Access the application
+1. Checks that Docker and `docker compose` are available.
+2. Asks for the admin password (press Enter for `admin123`), the port (press Enter for `5000`), and whether to configure the AI features (API key, base URL and model name of an OpenAI-compatible API).
+3. Generates a random `SECRET_KEY`, database password and AI SQL read-only account password, and writes them to `.env.production` in the repo root. If the file already exists, it first asks whether to reconfigure.
+4. Runs `docker compose --env-file .env.production up -d --build` to build and start the services.
+5. Polls `http://localhost:<port>/health` until the service is ready.
 
-Open **http://localhost:5000** (the port you chose in the wizard, 5000 by default) and log in with:
+The first run downloads dependencies and builds the image, which usually takes a few minutes.
 
-- **Username:** `admin`
-- **Password:** the password you set during setup (default: `admin123`)
-
-::: tip Manual Docker start (no wizard)
-If you prefer to configure things manually:
-
-```bash
-cp .env.example .env.production
-# Edit .env.production — set at least:
-#   SECRET_KEY / ADMIN_PASSWORD / POSTGRES_PASSWORD / POSTGRES_RO_PASSWORD
-docker compose --env-file .env.production up -d --build
-```
-
-Without `APP_PORT` the app is exposed on port **8080**.
+::: warning setup.sh modifies your Docker configuration
+If Docker's `daemon.json` has no `registry-mirrors` entry, the script adds a registry mirror and restarts Docker. If you don't need a mirror, skip the wizard and follow the [Deployment guide](/en/deploy/) to configure and start everything manually.
 :::
 
----
+### 2. Sign in
 
-## Local Development Setup
+Open `http://localhost:5000` (or the port you chose in the wizard) and sign in with:
 
-Use this path when you want to modify the source code and see changes live. castor-kit is a pnpm monorepo — run every command from the repository root.
+- Username: `admin`
+- Password: the password you set in the wizard (default `admin123`)
 
-### 1. Clone and install dependencies
+### 3. Common commands
+
+Every `docker compose` command needs `--env-file .env.production`; without it, compose can't find the required variables and fails immediately:
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
-corepack enable        # activates the pnpm version pinned in package.json
+docker compose --env-file .env.production logs -f app   # Follow the app logs
+docker compose --env-file .env.production down          # Stop the services (volumes are kept)
+docker compose --env-file .env.production up -d         # Start again
+```
+
+For more (manual configuration, updates, reverse proxy), see the [Deployment guide](/en/deploy/).
+
+## Local development
+
+Run all commands from the repo root.
+
+### 1. Prerequisites
+
+- Node 22 or later (the repo's `.nvmrc` is `22`)
+- pnpm (the version is in the `packageManager` field of the root `package.json`; enable it with `corepack enable`)
+- A local PostgreSQL 14 or later that you can reach with `createdb` / `psql`
+
+### 2. Install dependencies
+
+```bash
 pnpm install
 ```
 
-### 2. Configure environment variables
+### 3. Configure the database connection
 
 ```bash
 cp apps/api/.env.example apps/api/.env.development
 ```
 
-Open `apps/api/.env.development` and set at least the database connection:
+`apps/api/.env.development` is gitignored. In the example file, `DEV_DATABASE_URL` is `postgresql://localhost/castor_kit`; adjust the user, password and database name to match your machine. For other optional settings, see [Configuration](/en/reference/configuration).
 
-```env
-DEV_DATABASE_URL=postgresql://youruser@localhost/castor_kit
-```
-
-In development `NODE_ENV` defaults to `development`; `SECRET_KEY` and `ADMIN_PASSWORD` may be left empty (a built-in dev key and `admin123` are used).
-
-### 3. Initialize the database
-
-```bash
-# Create the database
-createdb castor_kit
-
-# Run the Drizzle migrations (an empty database gets every table)
-pnpm db:migrate
-
-# Seed RBAC data (menus, super-admin role, admin account)
-pnpm seed:rbac
-```
-
-::: warning seed:rbac without flags is a full rebuild
-Plain `pnpm seed:rbac` wipes and recreates accounts, roles and menus — use it only for the first initialization. For later menu changes use `pnpm seed:rbac -- --incremental`.
+::: tip Config file load order
+The backend loads `.env.<NODE_ENV>` based on `NODE_ENV` (default `development`): first from `apps/api/`, then from the repo root. Environment variables that are already set are never overridden.
 :::
 
-### 4. Start the dev servers
+### 4. Create and initialize the database
+
+```bash
+createdb castor_kit
+pnpm db:migrate      # Run the Drizzle migrations to create all tables
+pnpm seed:rbac       # Write the menus, the super admin role and the admin account
+```
+
+Or run migrations and RBAC sync with a single command:
+
+```bash
+pnpm setup-once      # Migrations + incremental RBAC sync + AI SQL read-only account (skipped if POSTGRES_RO_PASSWORD is not set)
+```
+
+::: warning pnpm seed:rbac is a full rebuild
+`pnpm seed:rbac` without arguments wipes users, roles, menus and their relations, then rewrites them. Use it only to initialize an empty database. For a database that already has data, use `pnpm seed:rbac -- --incremental`. See [Permissions (RBAC)](/en/guide/rbac).
+:::
+
+### 5. Start the dev servers
 
 ```bash
 pnpm dev
 ```
 
-This starts the Fastify backend (port 5001, hot reload via `tsx watch`) and the Vite frontend (port 5173, `/api` and `/ws` are proxied to the backend). You can also start them separately in two terminals with `pnpm dev:api` and `pnpm dev:web`.
+This starts both:
 
-Open **http://localhost:5173** and log in with `admin` / `admin123`.
+| Service | URL | Notes |
+|---|---|---|
+| Backend | `http://localhost:5001` | Hot reload via `tsx watch` |
+| Frontend | `http://localhost:5173` | Vite dev server; `/api` and `/ws` are proxied to 5001 |
 
-::: tip macOS double-click launcher
-Once the database is initialized you can simply double-click **`启动castor-kit.command`** in the project root; it runs `pnpm install`, `pnpm setup-once` and `pnpm dev`.
+Open `http://localhost:5173` and sign in with `admin` / `admin123`.
+
+You can also start them separately: `pnpm dev:api`, `pnpm dev:web`.
+
+::: tip Default account
+In development, if `ADMIN_PASSWORD` is not set, the initial password is `admin123`. The `admin` account is only created when it doesn't exist, so changing `ADMIN_PASSWORD` later won't change the existing account's password. Change it in the UI instead.
 :::
 
----
+### 6. Run tests (optional)
 
-## AI Tools Setup
-
-castor-kit ships with pre-configured context for all major AI coding tools. Clone the repo and start working immediately — no extra setup required.
-
-### Claude Code (Recommended)
+Backend tests run against a real PostgreSQL test database (default `postgresql://localhost/castor_kit_test`, override with `TEST_DATABASE_URL`). Migrations are applied automatically before the tests start:
 
 ```bash
-# Install
-npm install -g @anthropic-ai/claude-code
-
-# Start in the project directory
-cd castor-kit
-claude
+createdb castor_kit_test      # Or clone the dev database: createdb -T castor_kit castor_kit_test
+pnpm test
 ```
 
-Claude Code automatically reads `CLAUDE.md` and `AGENTS.md` on startup. Use the built-in skill:
+## Optional: AI features
 
-```
-/new-feature-autopilot
-```
-
-### Cursor
-
-1. Download and install [Cursor](https://cursor.sh)
-2. Open the project folder in Cursor
-3. Rules in `.cursor/rules/` load automatically — describe your feature in the chat panel
-
-### GitHub Copilot
-
-1. Install the **GitHub Copilot** extension in VS Code
-2. Open the project folder in VS Code
-3. `.github/copilot-instructions.md` is injected as project context automatically
-4. Use Copilot Chat (`Ctrl+Shift+I`) to describe your feature
-
-### Windsurf
-
-1. Download and install [Windsurf](https://codeium.com/windsurf)
-2. Open the project folder in Windsurf
-3. `.windsurfrules` loads automatically — use Cascade to describe your feature
-
-### Codex CLI
+AI Chat, AI Prompt Studio and AI Data Query in the Component Gallery need an OpenAI-compatible API. Set the following in `apps/api/.env.development`:
 
 ```bash
-# Install
-npm install -g @openai/codex
-
-# Run in the project directory
-cd castor-kit
-codex "Create a customer management page with fields: name, phone, company, status"
+AI_API_BASE=https://api.openai.com/v1
+AI_API_KEY=<your API key>
+AI_MODEL=<model name>
 ```
 
-Codex CLI reads `AGENTS.md` natively; `CODEX.md` adds command and permission notes.
+Without this configuration, those pages show a "not configured" notice; everything else works as usual.
 
-### MCP clients (Claude Desktop, etc.)
+## Optional: run scheduled tasks locally
 
-castor-kit includes an MCP server (`apps/mcp`) that exposes scaffolding, the verification gate, RBAC sync and migrations as MCP tools. Add it to `claude_desktop_config.json`:
+In development, the web process does not start the task scheduler by default. To have tasks run on their cron schedule, pick one:
 
-```json
-{
-  "mcpServers": {
-    "castor-kit": {
-      "command": "pnpm",
-      "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
-    }
-  }
-}
-```
+- Set `RUN_SCHEDULER_IN_WEB=true` in `apps/api/.env.development`
+- Run the standalone scheduler process in another terminal: `pnpm --filter @castor-kit/api worker`
 
----
+## Next steps
 
-## AI Development Workflow
-
-Using Claude Code as an example, here's the full end-to-end flow:
-
-### 1. Describe your feature
-
-```
-/new-feature-autopilot
-
-Create a customer management page with fields: name, phone, company, status (active/inactive)
-```
-
-### 2. AI infers the technical spec
-
-The AI reads `AGENTS.md` and `docs/templates/` to infer:
-
-- Table column types (Drizzle syntax)
-- API route naming
-- Frontend page path
-- RBAC permission codes and menu ID
-
-**You don't need to answer any technical questions.**
-
-### 3. Confirm the business preview
-
-The AI shows you a plain-language preview before touching any code:
-
-```
-📋 Customer Management
-
-Location: System → Customer Management
-Actions: list, create, edit, delete, import, export
-Fields:
-  · Name (required)
-  · Phone
-  · Company
-  · Status
-
-Proceed, or anything to adjust?
-```
-
-### 4. Full module is generated
-
-After confirmation, the AI runs `pnpm scaffold` and fills in the business logic:
-
-| File | Contents |
-|---|---|
-| `apps/api/src/db/schema/admin/customer.ts` | Drizzle table definition + `toDict` |
-| `apps/api/src/modules/admin/customer/schema.ts` | Zod validation, import/export field maps |
-| `apps/api/src/modules/admin/customer/repository.ts` | Database access |
-| `apps/api/src/modules/admin/customer/service.ts` | Business logic |
-| `apps/api/src/modules/admin/customer/routes.ts` | Fastify routes + permission checks |
-| `apps/web/src/modules/admin/pages/customer/index.jsx` | React list page (with import/export) |
-| `apps/api/drizzle/` | Drizzle SQL migration |
-| `apps/api/scripts/seed-rbac.ts` | Menu + button permission entries |
-
-It then runs `pnpm seed:rbac -- --incremental`, applies the migration with `pnpm setup-once`, and confirms the table exists with `psql \d`.
-
-### 5. Verify
-
-```bash
-pnpm verify -- --module customer
-```
-
-All checks pass — your feature is ready to ship.
+- [Project structure](/en/guide/project-structure)
+- [AI-driven workflow](/en/guide/ai-workflow): ship your first feature with AI
+- [Commands](/en/reference/commands)

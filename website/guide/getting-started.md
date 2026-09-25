@@ -1,25 +1,15 @@
 # 快速开始
 
-## 环境要求
+castor-kit 有两种运行方式：
 
-根据你的使用场景选择对应的方式：
+| 方式 | 适用场景 | 环境要求 |
+|---|---|---|
+| Docker 一键启动 | 体验、演示、部署 | Docker（含 `docker compose` 插件） |
+| 本地开发 | 修改源码、用 AI 开发新功能 | Node 22+、pnpm、PostgreSQL 14+ |
 
-| 方式 | 环境要求 |
-|---|---|
-| **Docker（推荐）** | 安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/) 即可，无需其他依赖 |
-| **本地开发** | Node 22+、pnpm（`corepack enable` 即可）、PostgreSQL 14+ |
+## Docker 一键启动
 
----
-
-## Docker 一键启动（推荐）
-
-Docker 是运行 castor-kit 最快的方式，安装向导会自动完成所有配置。
-
-### 1. 安装 Docker Desktop
-
-下载并安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)，等待左下角状态图标变为绿色（"Running"）后继续。
-
-### 2. 克隆仓库并运行安装向导
+### 1. 克隆仓库并运行安装向导
 
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
@@ -27,222 +17,136 @@ cd castor-kit
 bash setup.sh
 ```
 
-向导会引导你设置管理员密码、访问端口，以及可选的 AI 功能配置，并自动生成 `SECRET_KEY`、数据库密码和 AI SQL 只读账号密码，写入 `.env.production`。首次运行大约需要 3–5 分钟。
+`setup.sh` 会依次完成：
 
-### 3. 访问应用
+1. 检查 Docker 与 `docker compose` 是否可用。
+2. 询问管理员密码（回车使用 `admin123`）、访问端口（回车使用 `5000`），以及是否配置 AI 功能（OpenAI 兼容接口的 API Key、Base URL、模型名）。
+3. 随机生成 `SECRET_KEY`、数据库密码和 AI SQL 只读账号密码，写入仓库根目录的 `.env.production`。如果该文件已存在，会先询问是否重新配置。
+4. 执行 `docker compose --env-file .env.production up -d --build` 构建并启动服务。
+5. 轮询 `http://localhost:<端口>/health`，直到服务就绪。
 
-打开 **http://localhost:5000**（向导中设置的端口，默认 5000），使用以下账号登录：
+首次运行需要下载依赖和构建镜像，通常需要几分钟。
 
-- **用户名：** `admin`
-- **密码：** 安装时设置的密码（默认：`admin123`）
-
-::: tip 手动 Docker 启动
-如果不想使用向导，可以手动配置：
-
-```bash
-cp .env.example .env.production
-# 编辑 .env.production，至少设置：
-#   SECRET_KEY / ADMIN_PASSWORD / POSTGRES_PASSWORD / POSTGRES_RO_PASSWORD
-docker compose --env-file .env.production up -d --build
-```
-
-未设置 `APP_PORT` 时对外端口为 **8080**。
+::: warning setup.sh 会修改 Docker 配置
+如果 Docker 的 `daemon.json` 里还没有 `registry-mirrors`，脚本会写入一个镜像加速地址并重启 Docker。不需要镜像加速时，可以跳过向导，按 [部署指南](/deploy/) 手动配置并启动。
 :::
 
----
+### 2. 登录
 
-## 本地开发环境
+打开 `http://localhost:5000`（或向导中设置的端口），使用以下账号登录：
 
-适合需要修改源码、实时查看改动效果的场景。castor-kit 是 pnpm monorepo，所有命令都在仓库根目录执行。
+- 用户名：`admin`
+- 密码：向导中设置的密码（默认 `admin123`）
 
-### 1. 克隆仓库并安装依赖
+### 3. 常用操作
+
+所有 `docker compose` 命令都要带上 `--env-file .env.production`，否则 compose 读不到必填变量会直接报错：
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
-corepack enable        # 启用 package.json 中锁定的 pnpm 版本
+docker compose --env-file .env.production logs -f app   # 查看应用日志
+docker compose --env-file .env.production down          # 停止服务（保留数据卷）
+docker compose --env-file .env.production up -d         # 重新启动
+```
+
+更多内容（手动配置、更新、反向代理）见 [部署指南](/deploy/)。
+
+## 本地开发
+
+所有命令都在仓库根目录执行。
+
+### 1. 准备环境
+
+- Node 22 及以上（仓库根目录的 `.nvmrc` 为 `22`）
+- pnpm（版本见根目录 `package.json` 的 `packageManager` 字段，可用 `corepack enable` 启用）
+- 本机 PostgreSQL 14 及以上，并能用 `createdb` / `psql` 连接
+
+### 2. 安装依赖
+
+```bash
 pnpm install
 ```
 
-### 2. 配置环境变量
+### 3. 配置数据库连接
 
 ```bash
 cp apps/api/.env.example apps/api/.env.development
 ```
 
-编辑 `apps/api/.env.development`，至少填写数据库连接：
+`apps/api/.env.development` 已被 gitignore。示例文件中的 `DEV_DATABASE_URL` 为 `postgresql://localhost/castor_kit`，按本机情况修改用户名、密码和库名。其他可选配置见 [配置项](/reference/configuration)。
 
-```env
-DEV_DATABASE_URL=postgresql://用户名@localhost/castor_kit
-```
-
-开发环境下 `NODE_ENV` 默认为 `development`，`SECRET_KEY` 与 `ADMIN_PASSWORD` 可以不填（分别使用内置的开发密钥和 `admin123`）。
-
-### 3. 初始化数据库
-
-```bash
-# 创建数据库
-createdb castor_kit
-
-# 执行 Drizzle 迁移（空库会建出全部表）
-pnpm db:migrate
-
-# 初始化 RBAC 数据（菜单、超级管理员角色、管理员账号）
-pnpm seed:rbac
-```
-
-::: warning seed:rbac 只在空库上全量执行
-不带参数的 `pnpm seed:rbac` 会清空并重建账号、角色和菜单，只用于首次初始化。之后菜单变更请用 `pnpm seed:rbac -- --incremental`。
+::: tip 配置文件的加载顺序
+后端按 `NODE_ENV`（默认 `development`）加载 `.env.<NODE_ENV>`：先读 `apps/api/`，再读仓库根目录；已经存在的环境变量不会被覆盖。
 :::
 
-### 4. 启动前后端服务
+### 4. 创建数据库并初始化
+
+```bash
+createdb castor_kit
+pnpm db:migrate      # 执行 Drizzle 迁移，创建所有表
+pnpm seed:rbac       # 写入菜单、超级管理员角色和 admin 账号
+```
+
+也可以用一条命令完成迁移和 RBAC 同步：
+
+```bash
+pnpm setup-once      # 迁移 + RBAC 增量同步 + AI SQL 只读账号（未设置 POSTGRES_RO_PASSWORD 时跳过）
+```
+
+::: warning pnpm seed:rbac 是全量重建
+不带参数的 `pnpm seed:rbac` 会清空用户、角色、菜单及其关联后重新写入，只适合空库初始化。已有数据的库请使用 `pnpm seed:rbac -- --incremental`，详见 [权限 RBAC](/guide/rbac)。
+:::
+
+### 5. 启动开发服务
 
 ```bash
 pnpm dev
 ```
 
-它会同时启动 Fastify 后端（端口 5001，`tsx watch` 热重载）和 Vite 前端（端口 5173，`/api`、`/ws` 请求自动转发到后端）。也可以分别用 `pnpm dev:api`、`pnpm dev:web` 在两个终端启动。
+这会同时启动：
 
-打开 **http://localhost:5173**，使用 `admin` / `admin123` 登录。
+| 服务 | 地址 | 说明 |
+|---|---|---|
+| 后端 | `http://localhost:5001` | `tsx watch` 热重载 |
+| 前端 | `http://localhost:5173` | Vite 开发服务器，`/api` 和 `/ws` 代理到 5001 |
 
-::: tip macOS 双击启动
-数据库初始化完成后，也可以直接双击项目根目录下的 **`启动castor-kit.command`**，它会依次执行 `pnpm install`、`pnpm setup-once`、`pnpm dev`。
+打开 `http://localhost:5173`，用 `admin` / `admin123` 登录。
+
+也可以分别启动：`pnpm dev:api`、`pnpm dev:web`。
+
+::: tip 默认账号
+开发环境未设置 `ADMIN_PASSWORD` 时，初始密码为 `admin123`。`admin` 账号只在不存在时创建，之后修改 `ADMIN_PASSWORD` 不会改变已有账号的密码，请在界面上修改。
 :::
 
----
+### 6. 运行测试（可选）
 
-## AI 工具准备
-
-castor-kit 已为所有主流 AI 编码工具预配置上下文，clone 之后开箱即用。选择你习惯的工具即可。
-
-### Claude Code（推荐）
+后端测试连接真实的 PostgreSQL 测试库（默认 `postgresql://localhost/castor_kit_test`，可用 `TEST_DATABASE_URL` 覆盖），测试开始前会自动执行迁移：
 
 ```bash
-# 安装
-npm install -g @anthropic-ai/claude-code
-
-# 在项目目录启动
-cd castor-kit
-claude
+createdb castor_kit_test      # 或者克隆开发库：createdb -T castor_kit castor_kit_test
+pnpm test
 ```
 
-启动后 Claude Code 会自动读取 `CLAUDE.md` 和 `AGENTS.md`，无需额外配置。使用内置技能：
+## 可选：AI 功能
 
-```
-/new-feature-autopilot
-```
-
-### Cursor
-
-1. 下载安装 [Cursor](https://cursor.sh)
-2. 用 Cursor 打开项目目录
-3. `.cursor/rules/` 中的规则会自动加载，直接在对话框描述需求即可
-
-### GitHub Copilot
-
-1. 在 VS Code 中安装 **GitHub Copilot** 扩展
-2. 用 VS Code 打开项目目录
-3. `.github/copilot-instructions.md` 会自动注入项目上下文
-4. 使用 Copilot Chat（`Ctrl+Shift+I`）描述需求
-
-### Windsurf
-
-1. 下载安装 [Windsurf](https://codeium.com/windsurf)
-2. 用 Windsurf 打开项目目录
-3. `.windsurfrules` 自动加载，在 Cascade 中描述需求
-
-### Codex CLI
+组件示例中心的 AI 对话、AI 提示词工坊、AI 数据查询需要一个 OpenAI 兼容接口。在 `apps/api/.env.development` 中设置：
 
 ```bash
-# 安装
-npm install -g @openai/codex
-
-# 在项目目录使用
-cd castor-kit
-codex "创建一个客户管理页面，字段：姓名、电话、公司、状态"
+AI_API_BASE=https://api.openai.com/v1
+AI_API_KEY=<你的 API Key>
+AI_MODEL=<模型名>
 ```
 
-Codex CLI 原生读取 `AGENTS.md`，`CODEX.md` 提供额外的命令与权限说明。
+未配置时这些页面会提示未配置，其他功能不受影响。
 
-### MCP 客户端（Claude Desktop 等）
+## 可选：本地运行定时任务
 
-castor-kit 自带 MCP Server（`apps/mcp`），把脚手架、验证门禁、RBAC 同步、迁移等工具暴露给 MCP 客户端。在 `claude_desktop_config.json` 中添加：
+开发环境下 web 进程默认不启动定时任务调度器。需要让任务按 cron 执行时，二选一：
 
-```json
-{
-  "mcpServers": {
-    "castor-kit": {
-      "command": "pnpm",
-      "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
-    }
-  }
-}
-```
+- 在 `apps/api/.env.development` 中设置 `RUN_SCHEDULER_IN_WEB=true`
+- 另开终端运行独立调度进程：`pnpm --filter @castor-kit/api worker`
 
----
+## 下一步
 
-## AI 开发流程
-
-以 Claude Code 为例，完整流程如下：
-
-### 1. 描述需求
-
-```
-/new-feature-autopilot
-
-创建一个客户管理页面，字段：姓名、电话、公司、状态（启用/禁用）
-```
-
-### 2. AI 自动推断技术规格
-
-AI 会读取 `AGENTS.md` 和 `docs/templates/`，自动推断：
-
-- 数据表字段类型（Drizzle 写法）
-- API 路由命名
-- 前端页面路径
-- RBAC 权限编码与菜单 ID
-
-**无需你回答任何技术问题。**
-
-### 3. 确认业务预览
-
-AI 展示将要创建的内容供你确认，例如：
-
-```
-📋 客户管理
-
-位置：系统管理 → 客户管理
-功能：列表查看、新增、编辑、删除、导入、导出
-字段：
-  · 姓名（必填）
-  · 电话
-  · 公司
-  · 状态
-
-确认这样做吗？或者需要调整什么？
-```
-
-### 4. 自动生成完整模块
-
-确认后 AI 运行 `pnpm scaffold` 并补全业务逻辑，依次生成：
-
-| 文件 | 内容 |
-|---|---|
-| `apps/api/src/db/schema/admin/customer.ts` | Drizzle 表定义 + `toDict` |
-| `apps/api/src/modules/admin/customer/schema.ts` | Zod 校验、导入导出字段映射 |
-| `apps/api/src/modules/admin/customer/repository.ts` | 数据库读写 |
-| `apps/api/src/modules/admin/customer/service.ts` | 业务逻辑 |
-| `apps/api/src/modules/admin/customer/routes.ts` | Fastify 路由 + 权限检查 |
-| `apps/web/src/modules/admin/pages/customer/index.jsx` | React 列表页（含导入导出） |
-| `apps/api/drizzle/` | Drizzle SQL 迁移文件 |
-| `apps/api/scripts/seed-rbac.ts` | 菜单 + 按钮权限条目 |
-
-随后执行 `pnpm seed:rbac -- --incremental` 同步权限、`pnpm setup-once` 应用迁移，并用 `psql \d` 确认表已真实落库。
-
-### 5. 验证
-
-```bash
-pnpm verify -- --module customer
-```
-
-全部通过后，功能即可上线。
+- [项目结构](/guide/project-structure)
+- [AI 驱动开发](/guide/ai-workflow)：用 AI 交付第一个功能
+- [命令速查](/reference/commands)

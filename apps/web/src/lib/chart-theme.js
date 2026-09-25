@@ -88,3 +88,13 @@ export function hexToRgba(hex, alpha) {
   const n = parseInt(h, 16)
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`
 }
+
+/** Mix two #rrggbb colors: weight is the share of `a` (0..1); returns #rrggbb. For canvas / WebGL code that can't use color-mix() */
+export function mixHex(a, b, weight) {
+  const parse = (hex) => {
+    const n = parseInt(String(hex || '').replace('#', ''), 16)
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  }
+  const [ca, cb] = [parse(a), parse(b)]
+  return `#${ca.map((v, i) => Math.round(v * weight + cb[i] * (1 - weight)).toString(16).padStart(2, '0')).join('')}`
+}

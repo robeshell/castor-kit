@@ -196,7 +196,7 @@ echo ""
 
 if ! curl -sf "http://localhost:${APP_PORT}/health" &>/dev/null; then
     warn "服务尚未响应，可能需要更长时间启动。"
-    warn "运行以下命令查看日志：docker compose logs -f app"
+    warn "运行以下命令查看日志：docker compose --env-file .env.production logs -f app"
 else
     info "服务已就绪"
 fi
@@ -213,7 +213,7 @@ echo "  账号：    ${BOLD}admin${NC}"
 echo "  密码：    ${BOLD}${ADMIN_PASSWORD}${NC}"
 echo ""
 echo "  常用命令："
-echo "    停止服务：  docker compose down"
-echo "    查看日志：  docker compose logs -f app"
-echo "    重新启动：  docker compose up -d"
+echo "    停止服务：  docker compose --env-file .env.production down"
+echo "    查看日志：  docker compose --env-file .env.production logs -f app"
+echo "    重新启动：  docker compose --env-file .env.production up -d"
 echo ""

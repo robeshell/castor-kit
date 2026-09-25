@@ -23,7 +23,7 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 
 | 层 | 技术 | 版本 |
 |---|---|---|
-| 运行时 | Node + TypeScript（strict） | Node 22（`.nvmrc`），TS 7 |
+| 运行时 | Node + TypeScript（strict） | Node 22（`.nvmrc`），TypeScript 5 |
 | 包管理 | pnpm workspaces（monorepo） | pnpm 11 |
 | 后端框架 | Fastify + `fastify-type-provider-zod` | 5.x |
 | 校验 / 类型 | Zod | 4.x |
@@ -456,7 +456,7 @@ user_roles：用户-角色 多对多（复合主键）
 
 ### 超级管理员
 
-`code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/menus/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
+`code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
 
 ### 菜单变更流程
 
@@ -608,6 +608,13 @@ Step 5  验证门禁（强制，不得跳过）
 ```
 
 ---
+
+## 文档站与开源规范文件
+
+- 文档站与官网在 `website/`（VitePress，独立 npm 项目，不在 pnpm workspace 内）：中文是根语言（`website/guide/…`），英文 `website/en/`、日文 `website/ja/`，三种语言页面一一对应；首页是 `.vitepress/theme/components/Landing.vue`，文案在 `landing-content.js`
+- 落地页与 README 的界面图都是真实截图（`website/public/screenshots/`、`.github/assets/screenshot-*.webp`），由 `npm --prefix website run screenshots` 在 `pnpm dev` 运行时自动截取（会提示输入 admin 密码）；界面外观有明显变化时重新截图
+- 功能行为、命令、环境变量有变化时，同一个 PR 里同步更新三种语言的文档；本地预览 `npm --prefix website run dev`，提交前 `npm --prefix website run build`（会检查死链）
+- 仓库根目录的 `README.md`（英文）/ `README_CN.md` / `README.ja.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 面向外部贡献者；用户可见的变化记到 `CHANGELOG.md` 的 `[Unreleased]`
 
 ## 常用命令速查
 
