@@ -97,7 +97,7 @@ compose がデフォルトで読み込むのは `.env` だけで、`.env.product
 ### 1. Neon でデータベースを作成する
 
 1. Neon に登録してプロジェクトを作成します。リージョンは **AWS US East 2 (Ohio)** を選び、`render.yaml` にある Render サービスの `region: ohio` と揃えます。別のリージョンにする場合も両方を同じにしてください
-2. プロジェクトのダッシュボードで **Connect** をクリックし、**「Connection pooling」をオフ**にして、直接接続の接続文字列をコピーします。形式は `postgresql://<ユーザー>:<パスワード>@ep-xxx.<リージョン>.aws.neon.tech/neondb?sslmode=require` です
+2. プロジェクトのダッシュボードで **Connect** をクリックし、**「Connection pooling」をオフ**にして、直接接続の接続文字列をコピーします。形式は `postgresql://<ユーザー>:<パスワード>@ep-xxx.<リージョン>.aws.neon.tech/neondb?sslmode=require` です。**ホスト名に `-pooler` を含めないでください**。含まれていると AI データ検索がエラーになるので、ホスト名から `-pooler` を削除してください
 
 ::: tip 直接接続を使う理由
 起動時の初期化（マイグレーション、RBAC の同期、デモデータの復元）は、並行実行を防ぐためにセッション単位の advisory lock を使います。トランザクション単位のコネクションプールではこのロックを保持できません。接続文字列の `channel_binding=require` は残しても削除してもかまいません。

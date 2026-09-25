@@ -34,6 +34,11 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'))
 
 await app.listen({ host: '0.0.0.0', port })
 app.log.info(`castor-kit 启动｜环境 ${config.env}｜端口 ${port}`)
+// Neon pooler endpoints reject the startup options the AI SQL read-only pool relies on, and don't keep the session-level
+// advisory lock used at startup: point this out instead of letting AI SQL fail with a generic error
+if (/-pooler\./.test(config.databaseUrl)) {
+  app.log.warn('DATABASE_URL 指向 Neon 连接池（主机名带 -pooler），AI 数据查询与启动初始化需要直连地址：请去掉主机名中的 -pooler')
+}
 
 // Public demo: besides the check at startup (setup-once), look again every hour so a long-running instance also resets
 if (config.demoMode) {
