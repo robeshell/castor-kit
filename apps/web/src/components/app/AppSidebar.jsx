@@ -34,7 +34,7 @@ import { useTranslation } from 'react-i18next'
  * - Left axis 16px: the left edges of the logo, group titles, menu icons and avatar are all at x=16; submenu text and top-level menu text are both at x=40
  * - Right edge is uniformly x=248 (top-level and child backgrounds have the same width)
  * - Row height is uniformly 36px with 2px spacing; when collapsed, the 32px button is centered in the 48px rail
- * - Selected = gray background + dark text + blue icon; hover = lighter gray, so a hovered item never looks more "selected" than the selected one
+ * - Selected = raised chip (sidebar-accent + hairline ring) + dark text + accent icon; hover = faint gray, so a hovered item never looks more "selected" than the selected one
  */
 const ITEM = 'h-9 gap-2.5 text-sidebar-foreground hover:bg-black/[0.035] dark:hover:bg-white/[0.045] data-[state=open]:hover:bg-black/[0.035] dark:data-[state=open]:hover:bg-white/[0.045]'
 
@@ -44,7 +44,7 @@ function ActivePill() {
     <motion.span
       layoutId="sidebar-active-pill"
       transition={layoutSpring}
-      className="bg-sidebar-accent absolute inset-0 -z-10 rounded-md"
+      className="bg-sidebar-accent absolute inset-0 -z-10 rounded-md shadow-[0_0_0_1px_var(--sidebar-border),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-none"
     />
   )
 }
