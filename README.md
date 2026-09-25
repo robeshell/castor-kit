@@ -6,9 +6,9 @@
 </p>
 
 <p align="center">
-  <strong>The AI-first full-stack admin scaffold.</strong><br>
-  Describe a feature in plain language and get a complete, verified module:<br>
-  table, API, page, permissions and migration.
+  <strong>A ready-made admin panel. New features? Just ask AI.</strong><br>
+  Users, roles, permissions, menus and logs are already built.<br>
+  Describe a new page, and AI generates the table, API and UI — then checks that it all works.
 </p>
 
 <p align="center">

@@ -104,7 +104,7 @@ const ICONS = {
             </div>
           </li>
         </ol>
-        <a class="more" :href="href('/guide/ai-workflow')">{{ c.ai.kicker }} →</a>
+        <a class="more" :href="href('/guide/ai-workflow')">{{ c.ai.more }} →</a>
       </div>
       <AiTerminal :prompt="c.ai.prompt" :script="c.ai.script" />
     </section>
@@ -270,7 +270,7 @@ const ICONS = {
   color: var(--vp-c-text-1);
 }
 .lead {
-  max-width: 680px;
+  max-width: 620px;
   margin: 24px auto 0;
   font-size: 17px;
   line-height: 1.7;
