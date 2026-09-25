@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { CircleCheck, Download, FileSpreadsheet, TriangleAlert, UploadCloud, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { useTx } from '@/i18n'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { downloadErrorRowsCsv } from '@/shared/utils/file'
@@ -35,7 +37,7 @@ export default function ImportDialog({
   templateFormatOptions = DEFAULT_TEMPLATE_OPTIONS,
   defaultTemplateFormat = 'xlsx',
 }) {
-  // 状态放在 ImportBody 里：Radix 在关闭时卸载 DialogContent，重新打开即是全新状态
+  // State lives in ImportBody: Radix unmounts DialogContent on close, so reopening starts fresh
   const [busy, setBusy] = useState(false)
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange?.(next)}>
@@ -71,6 +73,8 @@ function ImportBody({
   onBusyChange,
   onClose,
 }) {
+  const { t } = useTranslation()
+  const tx = useTx()
   const inputRef = useRef(null)
   const timerRef = useRef(null)
   const [file, setFile] = useState(null)
@@ -93,7 +97,7 @@ function ImportBody({
     if (!raw) return
     const ext = (raw.name || '').toLowerCase().split('.').pop()
     if (!formats.includes(ext)) {
-      toast.error(`仅支持 ${hint} 文件`)
+      toast.error(t('仅支持 {{formats}} 文件', { formats: hint }))
       return
     }
     setFile(raw)
@@ -138,12 +142,15 @@ function ImportBody({
   return (
     <>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{targetLabel ? `导入到：${targetLabel}。` : null}支持 {hint}，单个文件不超过 5MB。</DialogDescription>
+          <DialogTitle>{tx(title)}</DialogTitle>
+          <DialogDescription>
+            {targetLabel ? t('导入到：{{target}}。', { target: tx(targetLabel) }) : null}
+            {t('支持 {{formats}}，单个文件不超过 5MB。', { formats: hint })}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="bg-muted/50 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5">
-          <span className="text-muted-foreground text-xs">先下载模板，按表头填写后上传</span>
+          <span className="text-muted-foreground text-xs">{t('先下载模板，按表头填写后上传')}</span>
           <div className="flex items-center gap-2">
             <Select value={templateType} onValueChange={setTemplateType} disabled={importing}>
               <SelectTrigger size="sm" className="h-8 w-32 text-xs">
@@ -159,7 +166,7 @@ function ImportBody({
             </Select>
             <Button size="sm" variant="outline" className="h-8" disabled={importing || !onDownloadTemplate} onClick={() => onDownloadTemplate?.(templateType)}>
               <Download />
-              下载模板
+              {t('下载模板')}
             </Button>
           </div>
         </div>
@@ -199,7 +206,7 @@ function ImportBody({
           <span className="bg-brand-soft text-primary flex size-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:-translate-y-0.5">
             <UploadCloud className="size-5" />
           </span>
-          <span className="text-sm font-medium">拖拽文件到这里，或点击选择</span>
+          <span className="text-sm font-medium">{t('拖拽文件到这里，或点击选择')}</span>
           <span className="text-muted-foreground text-xs">{hint}</span>
         </button>
 
@@ -218,7 +225,7 @@ function ImportBody({
                   <div className="text-muted-foreground text-xs">{(file.size / 1024).toFixed(1)} KB</div>
                 </div>
                 {!importing ? (
-                  <Button variant="ghost" size="icon" className="size-7" aria-label="移除文件" onClick={() => setFile(null)}>
+                  <Button variant="ghost" size="icon" className="size-7" aria-label={t('移除文件')} onClick={() => setFile(null)}>
                     <X />
                   </Button>
                 ) : null}
@@ -226,7 +233,7 @@ function ImportBody({
               {importing || progress > 0 ? (
                 <div className="mt-3 space-y-1.5">
                   <Progress value={progress} className="h-1.5" />
-                  <div className="text-muted-foreground text-xs">{importing ? '正在导入…' : progress >= 100 ? '导入完成' : ''}</div>
+                  <div className="text-muted-foreground text-xs">{importing ? t('正在导入…') : progress >= 100 ? t('导入完成') : ''}</div>
                 </div>
               ) : null}
             </motion.div>
@@ -236,28 +243,28 @@ function ImportBody({
         {result ? (
           <div className="bg-success-soft text-success flex items-center gap-2 rounded-lg px-3 py-2.5 text-[13px]">
             <CircleCheck className="size-4" />
-            导入完成：新增 {result.created || 0} 条，更新 {result.updated || 0} 条
+            {t('导入完成：新增 {{created}} 条，更新 {{updated}} 条', { created: result.created || 0, updated: result.updated || 0 })}
           </div>
         ) : null}
         {!result && errorRows.length > 0 ? (
           <div className="bg-danger-soft flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px]">
             <span className="text-danger flex items-center gap-2">
               <TriangleAlert className="size-4" />
-              共 {errorRows.length} 行数据有误，未导入任何数据
+              {t('共 {{count}} 行数据有误，未导入任何数据', { count: errorRows.length })}
             </span>
             <Button size="sm" variant="outline" className="h-7" onClick={() => downloadErrorRowsCsv(errorRows, errorExportFileName)}>
-              下载失败明细
+              {t('下载失败明细')}
             </Button>
           </div>
         ) : null}
 
         <DialogFooter>
           <Button variant="outline" disabled={importing} onClick={onClose}>
-            关闭
+            {t('关闭')}
           </Button>
           <Button disabled={!file || importing} onClick={run}>
             {importing ? <Spinner /> : null}
-            开始导入
+            {t('开始导入')}
           </Button>
         </DialogFooter>
     </>

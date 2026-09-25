@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Check, Copy } from 'lucide-react'
@@ -17,6 +18,7 @@ function readCode(children) {
 }
 
 function CopyButton({ text }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const timerRef = useRef(null)
   useEffect(() => () => clearTimeout(timerRef.current), [])
@@ -39,7 +41,7 @@ function CopyButton({ text }) {
       className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] transition-colors duration-150"
     >
       {copied ? <Check className="text-success size-3" /> : <Copy className="size-3" />}
-      {copied ? '已复制' : '复制'}
+      {copied ? t('已复制') : t('复制')}
     </button>
   )
 }

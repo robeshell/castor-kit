@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { formatRelative } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { getNotifications, getUnreadCount, markAllAsRead, markAsRead } from '@/modules/admin/api/notifications'
+import { useTranslation } from 'react-i18next'
 
 const DOT = {
   info: 'bg-info',
@@ -17,6 +18,7 @@ const DOT = {
 }
 
 export default function NotificationBell() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -80,7 +82,7 @@ export default function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative size-8" aria-label="消息通知">
+        <Button variant="ghost" size="icon" className="relative size-8" aria-label={t('消息通知')}>
           <Bell className="size-4" />
           {unread > 0 ? (
             <span className="bg-brand-gradient-strong ring-background absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-medium text-white ring-2">
@@ -91,17 +93,17 @@ export default function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-[360px] p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <span className="text-sm font-medium">消息通知</span>
+          <span className="text-sm font-medium">{t('消息通知')}</span>
           <Button variant="ghost" size="sm" className="text-muted-foreground h-7 px-2 text-xs" onClick={readAll}>
             <CheckCheck className="size-3.5" />
-            全部已读
+            {t('全部已读')}
           </Button>
         </div>
         <ScrollArea className="max-h-[380px]">
           {items.length === 0 ? (
             <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 py-10 text-sm">
               <Bell className="size-5 opacity-50" />
-              暂无通知
+              {t('暂无通知')}
             </div>
           ) : (
             <ul className="py-1">
@@ -138,7 +140,7 @@ export default function NotificationBell() {
               navigate('/system/notifications')
             }}
           >
-            查看全部通知
+            {t('查看全部通知')}
           </Button>
         </div>
       </PopoverContent>

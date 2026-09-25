@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { toast } from '@/lib/toast'
+import i18n from '@/i18n'
 
 const parseExtensions = (accept = '') =>
   String(accept)
@@ -30,15 +31,15 @@ export function useUploader({ fileList, onFileListChange, uploadApi, limit, acce
   const addFiles = (files) => {
     const room = Math.max(0, limit - listRef.current.length)
     const picked = Array.from(files || []).slice(0, room)
-    if (files && files.length > room) toast.warning(`最多上传 ${limit} 个${kind}`)
+    if (files && files.length > room) toast.warning(i18n.t('最多上传 {{limit}} 个{{kind}}', { limit, kind: i18n.t(kind) }))
     picked.forEach((file) => {
       const name = String(file.name || '').toLowerCase()
       if (extensions.length && !extensions.some((ext) => name.endsWith(ext))) {
-        toast.warning(`${kind}类型不支持`)
+        toast.warning(i18n.t('{{kind}}类型不支持', { kind: i18n.t(kind) }))
         return
       }
       if ((file.size || 0) > maxSizeMB * 1024 * 1024) {
-        toast.warning(`${kind}不能超过 ${maxSizeMB}MB`)
+        toast.warning(i18n.t('{{kind}}不能超过 {{size}}MB', { kind: i18n.t(kind), size: maxSizeMB }))
         return
       }
       const uid = nextUid()
@@ -51,7 +52,7 @@ export function useUploader({ fileList, onFileListChange, uploadApi, limit, acce
           const url = res?.url || ''
           if (!url) throw new Error('上传成功但未返回文件地址')
           update(uid, { status: 'success', url, response: res })
-          toast.success(`${kind}上传成功`)
+          toast.success(i18n.t('{{kind}}上传成功', { kind: i18n.t(kind) }))
         })
         .catch((err) => {
           update(uid, { status: 'error' })

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import i18n from '@/i18n'
 
 const request = axios.create({
   baseURL: '/api',
@@ -14,6 +15,9 @@ export const setCsrfToken = (token) => {
 export const getCsrfToken = () => _csrfToken
 
 request.interceptors.request.use((config) => {
+  config.headers = config.headers || {}
+  // 后端按这个头翻译报错与提示文案
+  config.headers['Accept-Language'] = i18n.language
   if (_csrfToken && ['post', 'put', 'patch', 'delete'].includes((config.method || '').toLowerCase())) {
     config.headers = config.headers || {}
     config.headers['X-CSRF-Token'] = _csrfToken

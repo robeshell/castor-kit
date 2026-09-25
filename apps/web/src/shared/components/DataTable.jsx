@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import EmptyState from '@/shared/components/EmptyState'
 
@@ -46,6 +48,7 @@ export default function DataTable({
   className,
   minWidth,
 }) {
+  const tx = useTx()
   const getKey = (row, index) => (typeof rowKey === 'function' ? rowKey(row, index) : row?.[rowKey] ?? index)
   const keySet = useMemo(() => new Set(selectedKeys), [selectedKeys])
   const pageKeys = data.map(getKey)
@@ -81,7 +84,7 @@ export default function DataTable({
               {selectable ? (
                 <th className="w-10 px-3">
                   <Checkbox
-                    aria-label="全选"
+                    aria-label={tx('全选')}
                     checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                     onCheckedChange={(v) => toggleAll(v === true)}
                   />
@@ -98,7 +101,7 @@ export default function DataTable({
                     col.headerClassName,
                   )}
                 >
-                  {col.title}
+                  {tx(col.title)}
                 </th>
               ))}
             </tr>
@@ -140,7 +143,7 @@ export default function DataTable({
                       {selectable ? (
                         <td className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
-                            aria-label="选择"
+                            aria-label={tx('选择')}
                             checked={selected}
                             onCheckedChange={(v) => toggleOne(row, index, v === true)}
                           />
@@ -199,13 +202,14 @@ function pageList(page, totalPages) {
 
 /** 分页条：共 N 条 · 页码 · 上一页/下一页 */
 export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, loading = false, className }) {
+  const { t } = useTranslation()
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const from = total === 0 ? 0 : (page - 1) * perPage + 1
   const to = Math.min(page * perPage, total)
   return (
     <div className={cn('flex items-center justify-between gap-3 border-t px-3 py-2.5 text-xs', className)}>
       <span className="text-muted-foreground tabular-nums">
-        {loading ? '\u00a0' : total === 0 ? '共 0 条' : `第 ${from}–${to} 条，共 ${total} 条`}
+        {loading ? '\u00a0' : total === 0 ? t('共 0 条') : t('第 {{from}}–{{to}} 条，共 {{total}} 条', { from, to, total })}
       </span>
       <div className="flex items-center gap-1">
         <Button
@@ -214,7 +218,7 @@ export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, lo
           className="size-7"
           disabled={page <= 1}
           onClick={() => onChange?.(page - 1)}
-          aria-label="上一页"
+          aria-label={t('上一页')}
         >
           <ChevronLeft />
         </Button>
@@ -243,7 +247,7 @@ export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, lo
           className="size-7"
           disabled={page >= totalPages}
           onClick={() => onChange?.(page + 1)}
-          aria-label="下一页"
+          aria-label={t('下一页')}
         >
           <ChevronRight />
         </Button>

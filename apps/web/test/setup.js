@@ -6,6 +6,25 @@ import { expect } from 'vitest'
 
 expect.extend(matchers)
 
+// Node 25 ships a global localStorage stub without methods that shadows jsdom's; fall back to an in-memory Storage
+if (typeof globalThis.localStorage?.setItem !== 'function') {
+  const store = new Map()
+  const storage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, String(value)),
+    removeItem: (key) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index) => [...store.keys()][index] ?? null,
+    get length() {
+      return store.size
+    },
+  }
+  Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true, writable: true })
+}
+
+// Test assertions are written in Chinese: pin the UI language (jsdom's navigator.language is en-US)
+localStorage.setItem('lang', 'zh-CN')
+
 // jsdom 缺少的浏览器 API（Radix / motion 组件会用到）
 class ResizeObserverStub {
   observe() {}

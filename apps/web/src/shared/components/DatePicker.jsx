@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { format, isValid, parse } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 import { CalendarDays, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { useTx } from '@/i18n'
+import { dateLocale } from '@/i18n/date-locale'
+import { useTranslation } from 'react-i18next'
 
 function toDate(value) {
   if (!value || typeof value !== 'string') return undefined
@@ -16,6 +18,8 @@ function toDate(value) {
 
 /** 日期选择：value / onChange 使用 'YYYY-MM-DD' 字符串（空为 ''） */
 export function DatePicker({ value, onChange, placeholder = '选择日期', disabled, className, clearable = true }) {
+  const { i18n } = useTranslation()
+  const tx = useTx()
   const [open, setOpen] = useState(false)
   const selected = toDate(value)
   return (
@@ -32,12 +36,12 @@ export function DatePicker({ value, onChange, placeholder = '选择日期', disa
           )}
         >
           <CalendarDays className="text-muted-foreground" />
-          <span className="flex-1 truncate">{selected ? format(selected, 'yyyy-MM-dd') : placeholder}</span>
+          <span className="flex-1 truncate">{selected ? format(selected, 'yyyy-MM-dd') : tx(placeholder)}</span>
           {clearable && selected && !disabled ? (
             <span
               role="button"
               tabIndex={-1}
-              aria-label="清空"
+              aria-label={tx('清空')}
               onClick={(e) => {
                 e.stopPropagation()
                 onChange?.('')
@@ -52,7 +56,7 @@ export function DatePicker({ value, onChange, placeholder = '选择日期', disa
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          locale={zhCN}
+          locale={dateLocale(i18n.language)}
           selected={selected}
           defaultMonth={selected}
           captionLayout="dropdown"

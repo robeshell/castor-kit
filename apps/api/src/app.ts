@@ -18,6 +18,7 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
+import { registerResponseTranslation } from './common/i18n'
 import { utcNowIso } from './common/serialize'
 import type { AppConfig } from './config'
 import { createDb, type DbHandle } from './db/client'
@@ -98,6 +99,8 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   })
 
   registerErrorHandler(app)
+  // Translate response messages for en-US / ja-JP requests (Accept-Language)
+  registerResponseTranslation(app)
 
   const spaIndex = join(config.webDistDir, 'index.html')
   const hasSpa = existsSync(spaIndex)

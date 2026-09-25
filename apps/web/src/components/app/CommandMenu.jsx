@@ -14,10 +14,13 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
+import { menuLabel } from '@/lib/menu-label'
 import { flattenMenus, navigablePages } from '@/components/app/menu-tree'
+import { useTranslation } from 'react-i18next'
 
 /** ⌘K 命令面板：跳转页面、切换主题、个人设置、退出登录 */
 export default function CommandMenu({ open, onOpenChange }) {
+  const { t } = useTranslation()
   const { menus, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -37,12 +40,12 @@ export default function CommandMenu({ open, onOpenChange }) {
   const groups = useMemo(() => {
     const map = new Map()
     pages.forEach((page) => {
-      const label = page.parents.length ? page.parents.map((p) => p.name).join(' / ') : '常用'
+      const label = page.parents.length ? page.parents.map((p) => menuLabel(p)).join(' / ') : t('常用')
       if (!map.has(label)) map.set(label, [])
       map.get(label).push(page)
     })
     return Array.from(map.entries())
-  }, [pages])
+  }, [pages, t])
 
   const run = (fn) => {
     onOpenChange(false)
@@ -50,10 +53,10 @@ export default function CommandMenu({ open, onOpenChange }) {
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title="搜索" description="跳转页面或执行操作">
-      <CommandInput placeholder="搜索页面或操作…" />
+    <CommandDialog open={open} onOpenChange={onOpenChange} title={t('搜索')} description={t('跳转页面或执行操作')}>
+      <CommandInput placeholder={t('搜索页面或操作…')} />
       <CommandList className="max-h-[420px]">
-        <CommandEmpty>没有匹配的结果</CommandEmpty>
+        <CommandEmpty>{t('没有匹配的结果')}</CommandEmpty>
         {groups.map(([label, items]) => (
           <CommandGroup key={label} heading={label}>
             {items.map((page) => {
@@ -61,11 +64,11 @@ export default function CommandMenu({ open, onOpenChange }) {
               return (
                 <CommandItem
                   key={page.id}
-                  value={`${page.name} ${page.path} ${label}`}
+                  value={`${menuLabel(page)} ${page.name} ${page.path} ${label}`}
                   onSelect={() => run(() => navigate(page.path))}
                 >
                   <Icon />
-                  {page.name}
+                  {menuLabel(page)}
                   <CommandShortcut className="font-mono text-[11px] tracking-normal">{page.path}</CommandShortcut>
                 </CommandItem>
               )
@@ -73,17 +76,17 @@ export default function CommandMenu({ open, onOpenChange }) {
           </CommandGroup>
         ))}
         <CommandSeparator />
-        <CommandGroup heading="操作">
-          <CommandItem value="toggle theme 主题" onSelect={() => run(toggleTheme)}>
+        <CommandGroup heading={t('操作')}>
+          <CommandItem value={`toggle theme ${t('切换深色模式')} ${t('切换浅色模式')}`} onSelect={() => run(toggleTheme)}>
             {isDark ? <Sun /> : <Moon />}
-            {isDark ? '切换浅色模式' : '切换深色模式'}
+            {isDark ? t('切换浅色模式') : t('切换深色模式')}
           </CommandItem>
-          <CommandItem value="profile 个人设置" onSelect={() => run(() => navigate('/profile'))}>
+          <CommandItem value={`profile ${t('个人设置')}`} onSelect={() => run(() => navigate('/profile'))}>
             <UserRound />
-            个人设置
+            {t('个人设置')}
           </CommandItem>
           <CommandItem
-            value="logout 退出登录"
+            value={`logout ${t('退出登录')}`}
             onSelect={() =>
               run(async () => {
                 await logout()
@@ -92,7 +95,7 @@ export default function CommandMenu({ open, onOpenChange }) {
             }
           >
             <LogOut />
-            退出登录
+            {t('退出登录')}
           </CommandItem>
         </CommandGroup>
       </CommandList>

@@ -1,6 +1,7 @@
 import { useEffect, useId } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /** 数字滚动（尊重 reduced motion 由全局 CSS 处理动画，这里用 motion 的数值插值） */
@@ -61,6 +62,7 @@ export function Sparkline({ points = [], width = 96, height = 32, className }) {
  * loading 为 true 时数字与徽章位置显示骨架（不要用 0 占位，看起来像真实数据是 0）。
  */
 export default function StatCard({ label, value, suffix, decimals = 0, delta, deltaTone = 'success', trend, hint, icon: Icon, loading = false, className, onClick }) {
+  const tx = useTx()
   const toneClass = deltaTone === 'danger' ? 'bg-danger-soft text-danger' : deltaTone === 'neutral' ? 'bg-muted text-muted-foreground' : 'bg-success-soft text-success'
   return (
     <div
@@ -74,7 +76,7 @@ export default function StatCard({ label, value, suffix, decimals = 0, delta, de
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground flex items-center gap-2 text-[13px]">
           {Icon ? <Icon className="size-3.5" /> : null}
-          {label}
+          {tx(label)}
         </span>
         {delta && !loading ? <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-medium', toneClass)}>{delta}</span> : null}
       </div>
@@ -85,13 +87,13 @@ export default function StatCard({ label, value, suffix, decimals = 0, delta, de
           ) : (
             <>
               <CountUp value={value} decimals={decimals} className="text-[26px] leading-none font-semibold tracking-tight" />
-              {suffix ? <span className="text-muted-foreground text-xs">{suffix}</span> : null}
+              {suffix ? <span className="text-muted-foreground text-xs">{tx(suffix)}</span> : null}
             </>
           )}
         </div>
         {trend ? <Sparkline points={trend} /> : null}
       </div>
-      {hint ? <div className="text-muted-foreground -mt-1 truncate text-xs">{hint}</div> : null}
+      {hint ? <div className="text-muted-foreground -mt-1 truncate text-xs">{tx(hint)}</div> : null}
     </div>
   )
 }

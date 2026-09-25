@@ -1,3 +1,4 @@
+import { useTx } from '@/i18n'
 import { useState } from 'react'
 import {
   AlertDialog,
@@ -28,6 +29,7 @@ export default function ConfirmAction({
   children,
   disabled,
 }) {
+  const tx = useTx()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -50,14 +52,14 @@ export default function ConfirmAction({
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent className="sm:max-w-[420px]">
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description ? <AlertDialogDescription>{description}</AlertDialogDescription> : null}
+          <AlertDialogTitle>{tx(title)}</AlertDialogTitle>
+          {description ? <AlertDialogDescription>{tx(description)}</AlertDialogDescription> : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{tx(cancelText)}</AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm} disabled={loading} variant={destructive ? 'destructive' : 'default'}>
             {loading ? <Spinner /> : null}
-            {confirmText}
+            {tx(confirmText)}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

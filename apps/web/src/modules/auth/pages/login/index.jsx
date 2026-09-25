@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, User } from 'lucide-react'
 import BrandMark from '@/components/app/BrandMark'
+import LanguageSwitcher from '@/components/app/LanguageSwitcher'
 import ThemeToggle from '@/components/app/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,7 @@ import { toast } from '@/lib/toast'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { login } from '@/modules/admin/api/auth'
+import { useTranslation } from 'react-i18next'
 
 /** 背景：以表单卡片为中心的细网格 + 卡片身后的一圈 Ocean 光晕，只做烘托，不抢表单 */
 function Backdrop() {
@@ -43,6 +45,7 @@ function IconInput({ icon: Icon, invalid, className, ...props }) {
 }
 
 export default function Login() {
+  const { t } = useTranslation()
   const { user, login: setAuth, loading } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -56,8 +59,8 @@ export default function Login() {
   const submit = async (event) => {
     event.preventDefault()
     const nextErrors = {}
-    if (!username.trim()) nextErrors.username = '请输入用户名'
-    if (!password) nextErrors.password = '请输入密码'
+    if (!username.trim()) nextErrors.username = t('请输入用户名')
+    if (!password) nextErrors.password = t('请输入密码')
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setSubmitting(true)
@@ -79,7 +82,10 @@ export default function Login() {
 
       <header className="relative flex items-center justify-between px-5 py-4 sm:px-8">
         <BrandMark />
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="relative flex flex-1 items-center justify-center px-4 py-10">
@@ -99,13 +105,13 @@ export default function Login() {
               <div className="bg-brand-gradient-strong shadow-brand flex size-11 items-center justify-center rounded-xl text-lg font-semibold text-white">
                 C
               </div>
-              <h1 className="mt-5 text-[22px] font-semibold tracking-tight">登录 castor-kit</h1>
+              <h1 className="mt-5 text-[22px] font-semibold tracking-tight">{t('登录 castor-kit')}</h1>
             </div>
 
             <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
               <div className="space-y-1.5">
                 <Label htmlFor="username" className="text-[13px]">
-                  用户名
+                  {t('用户名')}
                 </Label>
                 <IconInput
                   id="username"
@@ -122,7 +128,7 @@ export default function Login() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-[13px]">
-                  密码
+                  {t('密码')}
                 </Label>
                 <div className="relative">
                   <IconInput
@@ -132,14 +138,14 @@ export default function Login() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="请输入密码"
+                    placeholder={t('请输入密码')}
                     invalid={Boolean(errors.password)}
                     className="pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                    aria-label={showPassword ? t('隐藏密码') : t('显示密码')}
                     className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md transition-colors"
                   >
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -150,14 +156,14 @@ export default function Login() {
 
               <Button type="submit" variant="brand" disabled={submitting} className="group mt-2 h-10 w-full">
                 {submitting ? <Spinner /> : null}
-                登录
+                {t('登录')}
                 {!submitting ? <ArrowRight className="transition-transform duration-200 group-hover:translate-x-0.5" /> : null}
               </Button>
             </form>
 
             <div className="text-muted-foreground mt-6 flex items-center justify-center gap-1.5 border-t pt-5 text-xs">
               <ShieldCheck className="size-3.5 shrink-0" />
-              <span>默认管理员账号 admin，密码以部署配置为准</span>
+              <span>{t('默认管理员账号 admin，密码以部署配置为准')}</span>
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -6,14 +7,15 @@ import { cn } from '@/lib/utils'
  *   <Panel padded={false}> 表格等需要贴边的内容 </Panel>
  */
 export default function Panel({ title, description, actions, padded = true, className, bodyClassName, children, ...props }) {
+  const tx = useTx()
   const hasHeader = title || description || actions
   return (
     <section className={cn('surface-card overflow-hidden', className)} {...props}>
       {hasHeader ? (
         <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
           <div className="min-w-0 space-y-0.5">
-            {title ? <h3 className="text-sm font-medium">{title}</h3> : null}
-            {description ? <p className="text-muted-foreground text-xs">{description}</p> : null}
+            {title ? <h3 className="text-sm font-medium">{tx(title)}</h3> : null}
+            {description ? <p className="text-muted-foreground text-xs">{tx(description)}</p> : null}
           </div>
           {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
         </div>

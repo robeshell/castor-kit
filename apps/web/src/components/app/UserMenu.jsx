@@ -12,6 +12,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
+import { useTranslation } from 'react-i18next'
 
 export function UserAvatar({ name, className = 'size-8' }) {
   return (
@@ -24,11 +25,12 @@ export function UserAvatar({ name, className = 'size-8' }) {
 }
 
 export default function UserMenu() {
+  const { t } = useTranslation()
   const { user, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
-  const roleName = user?.roles?.[0]?.name || '成员'
+  const roleName = user?.roles?.[0]?.name || t('成员')
 
   const handleLogout = async () => {
     await logout()
@@ -69,17 +71,17 @@ export default function UserMenu() {
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => navigate('/profile')}>
                 <UserRound />
-                个人设置
+                {t('个人设置')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={toggleTheme}>
                 {isDark ? <Sun /> : <Moon />}
-                {isDark ? '切换浅色模式' : '切换深色模式'}
+                {isDark ? t('切换浅色模式') : t('切换深色模式')}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
               <LogOut />
-              退出登录
+              {t('退出登录')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

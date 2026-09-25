@@ -13,8 +13,10 @@ import { FormInput } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { useTranslation } from 'react-i18next'
 
 export default function Profile() {
+  const { t } = useTranslation()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const form = useForm({ defaultValues: { old_password: '', new_password: '', confirm_password: '' } })
@@ -57,7 +59,7 @@ export default function Profile() {
             items={[
               { label: '账号 ID', value: user?.id },
               { label: '创建时间', value: formatDateTime(user?.created_at) },
-              { label: '权限点', value: `${user?.menu_codes?.length ?? 0} 项` },
+              { label: '权限点', value: t('{{count}} 项', { count: user?.menu_codes?.length ?? 0 }) },
             ]}
           />
         </div>
@@ -99,7 +101,7 @@ export default function Profile() {
             <div className="flex justify-end pt-1">
               <Button type="submit" variant="brand" disabled={submitting}>
                 {submitting ? <Spinner /> : <KeyRound />}
-                修改密码
+                {t('修改密码')}
               </Button>
             </div>
           </form>

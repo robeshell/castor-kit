@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronRight } from 'lucide-react'
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -19,6 +20,7 @@ export default function TreeView({
   onExpandedChange,
   className,
 }) {
+  const tx = useTx()
   const collectKeys = (list) => list.flatMap((n) => [n.key, ...collectKeys(n.children || [])])
   const [innerExpanded, setInnerExpanded] = useState(() => new Set(defaultExpandAll ? collectKeys(nodes) : []))
   const expanded = controlledExpanded ? new Set(controlledExpanded) : innerExpanded
@@ -53,7 +55,7 @@ export default function TreeView({
           >
             <button
               type="button"
-              aria-label={open ? '收起' : '展开'}
+              aria-label={open ? tx('收起') : tx('展开')}
               onClick={(e) => {
                 e.stopPropagation()
                 if (hasChildren) toggle(node.key)

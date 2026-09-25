@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTx } from '@/i18n'
 
 /** 标签输入：回车 / 逗号添加，退格删除最后一个；value 为字符串数组 */
 export default function TagInput({ value = [], onChange, placeholder = '输入后回车添加', disabled, className }) {
+  const tx = useTx()
   const [draft, setDraft] = useState('')
   const add = () => {
     const parts = draft
@@ -27,7 +29,7 @@ export default function TagInput({ value = [], onChange, placeholder = '输入�
           {!disabled ? (
             <button
               type="button"
-              aria-label={`移除 ${tag}`}
+              aria-label={tx('移除 {{name}}', { name: tag })}
               onClick={() => onChange?.(value.filter((t) => t !== tag))}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -49,7 +51,7 @@ export default function TagInput({ value = [], onChange, placeholder = '输入�
           }
         }}
         onBlur={add}
-        placeholder={value.length ? '' : placeholder}
+        placeholder={value.length ? '' : tx(placeholder)}
         className="placeholder:text-muted-foreground min-w-24 flex-1 bg-transparent py-0.5 outline-none"
       />
     </div>

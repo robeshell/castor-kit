@@ -21,11 +21,13 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useAuth } from '@/context/AuthContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
+import { menuLabel } from '@/lib/menu-label'
 import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import BrandMark from '@/components/app/BrandMark'
 import UserMenu from '@/components/app/UserMenu'
 import { findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/components/app/menu-tree'
+import { useTranslation } from 'react-i18next'
 
 /*
  * 侧栏对齐规则（展开 256px / 折叠 48px 共用一条轴）：
@@ -54,13 +56,13 @@ function MenuLeaf({ menu, activeId, onNavigate }) {
       <SidebarMenuButton
         asChild
         isActive={active}
-        tooltip={menu.name}
+        tooltip={menuLabel(menu)}
         className={cn(ITEM, 'relative z-0 data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-foreground')}
       >
         <Link to={menu.path || '#'} onClick={onNavigate}>
           {active ? <ActivePill /> : null}
           {createElement(resolveMenuIcon(menu), { className: cn(active && 'text-primary') })}
-          <span>{menu.name}</span>
+          <span>{menuLabel(menu)}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -77,10 +79,10 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
     <Collapsible asChild open={open} onOpenChange={() => toggleOpen(menu.id)} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={menu.name} className={cn(ITEM, 'relative z-0')}>
+          <SidebarMenuButton tooltip={menuLabel(menu)} className={cn(ITEM, 'relative z-0')}>
             {holdsActive ? <ActivePill /> : null}
             {createElement(resolveMenuIcon(menu), { className: cn(holdsActive && 'text-primary') })}
-            <span>{menu.name}</span>
+            <span>{menuLabel(menu)}</span>
             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
@@ -97,7 +99,7 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
                   >
                     <Link to={child.path || '#'} onClick={onNavigate}>
                       {active ? <ActivePill /> : null}
-                      <span>{child.name}</span>
+                      <span>{menuLabel(child)}</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
@@ -111,6 +113,8 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
 }
 
 export default function AppSidebar() {
+  // 订阅语言变化：切换语言时重新渲染菜单名（menuLabel 直接读 i18n）
+  useTranslation()
   const { menus } = useAuth()
   const location = useLocation()
   const { isMobile, setOpenMobile } = useSidebar()
@@ -169,7 +173,7 @@ export default function AppSidebar() {
         {groupRoots.map((group) => (
           <SidebarGroup key={group.id}>
             <SidebarGroupLabel className="text-muted-foreground text-xs font-normal">
-              {group.name}
+              {menuLabel(group)}
             </SidebarGroupLabel>
             <SidebarMenu className="gap-0.5">
               {visibleChildren(group).map((menu) =>

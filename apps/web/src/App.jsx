@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Login from '@/modules/auth/pages/login'
 import Profile from '@/modules/admin/pages/profile'
+import { useTranslation } from 'react-i18next'
 
 // 非 eager：页面组件按需懒加载（React.lazy），避免首屏全量下载 three/echarts/monaco 等重型依赖
 const PAGE_MODULES = import.meta.glob('./modules/**/pages/**/index.jsx')
@@ -80,6 +81,7 @@ function normalizeRoutePath(pathname = '') {
 }
 
 function AppRoutes() {
+  const { t } = useTranslation()
   const { menus } = useAuth()
 
   const routeMenus = useMemo(() => {
@@ -114,7 +116,7 @@ function AppRoutes() {
       >
         <Route index element={defaultPath ? <Navigate to={defaultPath} replace /> : <NoPermissionPage />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="403" element={<ErrorPage code="403" title="无访问权限" description="您没有权限访问该页面，请联系管理员。" />} />
+        <Route path="403" element={<ErrorPage code="403" title={t('无访问权限')} description={t('您没有权限访问该页面，请联系管理员。')} />} />
         {routeMenus.map((menu) => {
           const Component = resolvePageComponent(menu.component)
           return (
@@ -130,7 +132,7 @@ function AppRoutes() {
             />
           )
         })}
-        <Route path="*" element={<ErrorPage code="404" title="页面不存在" description="您访问的页面不存在或已被移除。" />} />
+        <Route path="*" element={<ErrorPage code="404" title={t('页面不存在')} description={t('您访问的页面不存在或已被移除。')} />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
