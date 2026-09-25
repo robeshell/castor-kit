@@ -1,12 +1,49 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Hand, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { mixHex, useChartColors } from '@/lib/chart-theme'
 import { cn } from '@/lib/utils'
 import PageHeader from '@/shared/components/PageHeader'
 import { CITIES } from '@/modules/component_center/pages/creative/threejs_globe_page/demo-content'
 
 const ARC_PAIRS = [[0,1],[0,4],[1,2],[2,3],[3,7],[4,5],[5,6],[6,8],[7,9],[8,0]]
+
+/** Scene colors derived from the accent stops (brand-from / via / to); the scene itself stays dark in both themes */
+function globePalette(c) {
+  const [from, via, to] = [c['brand-from'], c['brand-via'], c['brand-to']]
+  return {
+    background: mixHex(from, '#020617', 0.06),
+    globe: mixHex(from, '#020617', 0.2),
+    globeEmissive: mixHex(from, '#000000', 0.1),
+    globeSpecular: mixHex(via, '#020617', 0.45),
+    grid: via,
+    atmosphere: from,
+    atmosphereEmissive: mixHex(from, '#000000', 0.12),
+    city: to,
+    arc: mixHex(via, to, 0.5),
+    ambient: mixHex(from, '#1e293b', 0.25),
+    sun: mixHex(from, '#ffffff', 0.55),
+    backLight: mixHex(from, '#000000', 0.12),
+  }
+}
+
+/** Recolor an existing scene (called on mount and whenever the accent changes) */
+function applyPalette(parts, p) {
+  parts.renderer.setClearColor(p.background)
+  parts.globeMat.color.set(p.globe)
+  parts.globeMat.emissive.set(p.globeEmissive)
+  parts.globeMat.specular.set(p.globeSpecular)
+  parts.gridMat.color.set(p.grid)
+  parts.atmosphereMat.color.set(p.atmosphere)
+  parts.atmosphereMat.emissive.set(p.atmosphereEmissive)
+  parts.dotMat.color.set(p.city)
+  parts.ringMats.forEach((m) => m.color.set(p.city))
+  parts.arcMats.forEach((m) => m.color.set(p.arc))
+  parts.ambient.color.set(p.ambient)
+  parts.sun.color.set(p.sun)
+  parts.backLight.color.set(p.backLight)
+}
 
 function latLonToVec3(lat, lon, r = 1) {
   const phi   = (90 - lat)  * (Math.PI / 180)
@@ -23,6 +60,9 @@ export default function ThreejsGlobePage() {
   const mountRef   = useRef(null)
   const hoveredRef = useRef(null)
   const [hovered, setHovered] = useState(null)
+  const chartColors = useChartColors()
+  const palette = useMemo(() => globePalette(chartColors), [chartColors])
+  const partsRef = useRef(null) // materials / lights that follow the accent
 
   useEffect(() => {
     const mount = mountRef.current
@@ -32,7 +72,6 @@ export default function ThreejsGlobePage() {
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(W, H)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setClearColor(0x020817)
     mount.appendChild(renderer.domElement)
 
     /* ── scene / camera ── */
@@ -61,35 +100,22 @@ export default function ThreejsGlobePage() {
     scene.add(globeGroup)
 
     // Sphere
-    const globeMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 64, 64),
-      new THREE.MeshPhongMaterial({
-        color:     0x0b1f3d,
-        emissive:  0x06142b,
-        specular:  0x1e4a73,
-        shininess: 12,
-      })
-    )
+    // Colors are filled in by applyPalette
+    const globeMat = new THREE.MeshPhongMaterial({ shininess: 12 })
+    const globeMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), globeMat)
     globeGroup.add(globeMesh)
 
     // Lat / lon grid
-    globeGroup.add(new THREE.Mesh(
-      new THREE.SphereGeometry(1.003, 36, 18),
-      new THREE.MeshBasicMaterial({ color: 0x0ea5e9, wireframe: true, transparent: true, opacity: 0.12 })
-    ))
+    const gridMat = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.12 })
+    globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(1.003, 36, 18), gridMat))
 
     // Atmosphere (single-sided, slightly larger, facing outward)
-    globeGroup.add(new THREE.Mesh(
-      new THREE.SphereGeometry(1.08, 64, 64),
-      new THREE.MeshPhongMaterial({
-        color: 0x1d4ed8, emissive: 0x001133,
-        transparent: true, opacity: 0.12, side: THREE.FrontSide, depthWrite: false,
-      })
-    ))
+    const atmosphereMat = new THREE.MeshPhongMaterial({ transparent: true, opacity: 0.12, side: THREE.FrontSide, depthWrite: false })
+    globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(1.08, 64, 64), atmosphereMat))
 
     /* ── city dots + pulse rings (children of globeGroup) ── */
     const dotGeo  = new THREE.SphereGeometry(0.013, 8, 8)
-    const dotMat  = new THREE.MeshBasicMaterial({ color: 0x22d3ee })
+    const dotMat  = new THREE.MeshBasicMaterial()
     const ringGeo = new THREE.RingGeometry(0.018, 0.03, 24)
     const rings   = []
 
@@ -103,7 +129,7 @@ export default function ThreejsGlobePage() {
 
       const ring = new THREE.Mesh(
         ringGeo,
-        new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
       )
       ring.position.copy(pos)
       // Face away from the globe center
@@ -114,27 +140,33 @@ export default function ThreejsGlobePage() {
     }
 
     /* ── arc lines ── */
+    const arcMats = []
     for (const [a, b] of ARC_PAIRS) {
       const p1  = latLonToVec3(CITIES[a].lat, CITIES[a].lon, 1.0)
       const p2  = latLonToVec3(CITIES[b].lat, CITIES[b].lon, 1.0)
       const mid = p1.clone().add(p2).multiplyScalar(0.5).normalize().multiplyScalar(1.4)
       const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2)
       const arcGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(60))
-      globeGroup.add(new THREE.Line(
-        arcGeo,
-        new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35 })
-      ))
+      const arcMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.35 })
+      arcMats.push(arcMat)
+      globeGroup.add(new THREE.Line(arcGeo, arcMat))
     }
 
     /* ── lights ── */
-    scene.add(new THREE.AmbientLight(0x33456b, 3.5))
-    const sun = new THREE.DirectionalLight(0x60a5fa, 1.5)
+    const ambient = new THREE.AmbientLight(0xffffff, 3.5)
+    scene.add(ambient)
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5)
     sun.position.set(4, 2, 4)
     scene.add(sun)
     // Back light (keeps the dark side from going fully black)
-    const backLight = new THREE.DirectionalLight(0x001133, 0.8)
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.8)
     backLight.position.set(-3, -1, -3)
     scene.add(backLight)
+
+    partsRef.current = {
+      renderer, globeMat, gridMat, atmosphereMat, dotMat, arcMats, ambient, sun, backLight,
+      ringMats: rings.map((r) => r.material),
+    }
 
     /* ── drag ── */
     let dragging = false, prevX = 0, prevY = 0, velX = 0, velY = 0
@@ -222,8 +254,14 @@ export default function ThreejsGlobePage() {
       renderer.domElement.removeEventListener('mousemove', onPointerMove)
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
       renderer.dispose()
+      partsRef.current = null
     }
   }, [])
+
+  // Runs after the scene effect above on mount, and again whenever the accent (or light / dark) changes
+  useEffect(() => {
+    if (partsRef.current) applyPalette(partsRef.current, palette)
+  }, [palette])
 
   return (
     <div className="space-y-5">
