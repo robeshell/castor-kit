@@ -79,8 +79,8 @@ When the navigation mode is Top, there is no sidebar, so this option is disabled
 
 | ID | Name | Description |
 |---|---|---|
-| `boxed` | Fixed (default) | Content area centered, max width 1600px |
-| `fluid` | Fluid | Content area fills the available width |
+| `boxed` | Fixed | Content area centered, max width 1600px |
+| `fluid` | Fluid (default) | Content area fills the available width |
 
 ## Mobile
 

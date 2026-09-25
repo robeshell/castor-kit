@@ -20,6 +20,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- The default content width is now fluid (full width); fixed width stays available in the appearance menu.
 - The 3D globe and particle demos follow the accent color.
 - Light-mode sidebar uses a cool off-white with a raised selection chip; pagination follows the accent color.
 - Loading skeletons fade in late and shimmer instead of flashing ([#4]).

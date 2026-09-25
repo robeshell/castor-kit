@@ -33,7 +33,7 @@ export const CONTENT_WIDTHS = [
 ]
 
 /** tagsView: show the tabs bar of opened pages (and keep those pages alive) */
-export const DEFAULT_APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'boxed', tagsView: true }
+export const DEFAULT_APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'fluid', tagsView: true }
 
 const OPTIONS = { accent: ACCENTS, navMode: NAV_MODES, sidebarVariant: SIDEBAR_VARIANTS, contentWidth: CONTENT_WIDTHS }
 const STORAGE_KEY = 'appearance'
