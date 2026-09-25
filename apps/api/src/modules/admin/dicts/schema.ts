@@ -1,5 +1,5 @@
 /**
- * 数据字典 schema 层
+ * Data dictionary schema layer
  */
 
 import { pyInt, pyStr, pyStrOrEmpty } from '@/common/py'
@@ -29,7 +29,7 @@ export const ITEM_TABLE_HEADERS = ['字典标签', '字典值', '标签颜色', 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', '是', '启用'])
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off', '否', '停用'])
 
-/** parse_bool：None / '' → null；bool 原样；其余按字符串集合判断，无法识别 → null */
+/** parse_bool: None / '' → null; bools pass through; anything else is matched against the string sets, unrecognized → null */
 export function parseBool(value: unknown): boolean | null {
   if (value === null || value === undefined || value === '') return null
   if (typeof value === 'boolean') return value

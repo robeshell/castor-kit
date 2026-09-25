@@ -1,7 +1,7 @@
 /**
- * 迁移执行器：按 drizzle/ 目录下的迁移依次执行（drizzle-orm migrator，记录在 drizzle.__drizzle_migrations）。
+ * Migration runner: applies migrations under drizzle/ in order (drizzle-orm migrator, tracked in drizzle.__drizzle_migrations).
  *
- * 命令行入口见 migrate-cli.ts（`pnpm db:migrate` / `node dist/migrate.js`）
+ * CLI entry point: see migrate-cli.ts (`pnpm db:migrate` / `node dist/migrate.js`)
  */
 
 import { existsSync } from 'node:fs'
@@ -14,8 +14,8 @@ const MIGRATIONS_SCHEMA = 'drizzle'
 const MIGRATIONS_TABLE = '__drizzle_migrations'
 
 /**
- * 迁移目录：优先 MIGRATIONS_DIR；否则从当前文件向上找含 meta/_journal.json 的 drizzle 目录。
- * 源码（src/db/）、tsup 产物（dist/db/ 或打进 dist/chunk-*.js）、Docker 镜像布局都能找到。
+ * Migrations directory: MIGRATIONS_DIR if set; otherwise walk up from this file to the drizzle directory containing meta/_journal.json.
+ * Works for source (src/db/), tsup output (dist/db/ or bundled into dist/chunk-*.js), and the Docker image layout.
  */
 export function resolveMigrationsFolder(): string {
   if (process.env.MIGRATIONS_DIR) return resolve(process.env.MIGRATIONS_DIR)

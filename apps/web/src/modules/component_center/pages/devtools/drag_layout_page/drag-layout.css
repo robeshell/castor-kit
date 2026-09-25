@@ -1,4 +1,4 @@
-/* 拖拽布局页：把 react-grid-layout 默认的红色占位 / 黑色缩放角换成主题色（亮暗自适应） */
+/* Drag layout page: swap react-grid-layout's default red placeholder / black resize handle for theme colors (light and dark) */
 .drag-layout .react-grid-item.react-grid-placeholder {
   background: var(--primary);
   opacity: 0.12;

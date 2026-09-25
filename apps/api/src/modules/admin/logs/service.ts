@@ -1,5 +1,5 @@
 /**
- * 日志模块 service 层
+ * Logs module service layer
  */
 
 import { ServiceError } from '@/common/errors'
@@ -32,7 +32,7 @@ export interface OperationContext {
   method: string
   path: string
   username: string | undefined
-  /** request.get_json(silent=True) 的等价物：非 JSON 请求为 null */
+  /** Equivalent of request.get_json(silent=True): null for non-JSON requests */
   jsonBody: unknown
   ip: string
   userAgent: string
@@ -44,7 +44,7 @@ type Data = Record<string, unknown>
 const RECORDED_METHODS = new Set(['POST', 'PUT', 'DELETE'])
 const FAILED_STATUSES = new Set(['failed', 'fail', '失败'])
 
-/** `parse_datetime(raw, default=utcnow()) or utcnow()` → 写库值 */
+/** `parse_datetime(raw, default=utcnow()) or utcnow()` → value to write to the DB */
 function importedCreatedAt(raw: unknown) {
   const parsed = parseDatetime(raw)
   if (parsed === 'default' || parsed === null) return utcNow()
@@ -185,7 +185,7 @@ export class LogsService {
 
   private static failIfErrors(errors: ErrorRow[]): void {
     if (errors.length > 0) {
-      // 抛错让事务整体回滚
+      // Throw so the whole transaction rolls back
       throw new ServiceError('导入失败，存在错误数据', 400, {
         error_rows: errors.slice(0, 500),
         error_count: errors.length,

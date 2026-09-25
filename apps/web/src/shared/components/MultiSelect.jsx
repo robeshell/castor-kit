@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { useTx } from '@/i18n'
 
 /**
- * 多选（可搜索）：options = [{ label, value }]，value 为数组（保持原始类型，数字还是数字）。
+ * Multi-select (searchable): options = [{ label, value }], value is an array (original types are kept; numbers stay numbers).
  */
 export default function MultiSelect({ value = [], onChange, options = [], placeholder = '请选择', disabled, className, maxShown = 3 }) {
+  const tx = useTx()
   const [open, setOpen] = useState(false)
   const selected = options.filter((o) => value.some((v) => String(v) === String(o.value)))
   const toggle = (opt) => {
@@ -26,14 +28,14 @@ export default function MultiSelect({ value = [], onChange, options = [], placeh
           className={cn('h-auto min-h-9 w-full justify-between px-2 py-1 font-normal', className)}
         >
           <span className="flex flex-1 flex-wrap items-center gap-1">
-            {selected.length === 0 ? <span className="text-muted-foreground px-1">{placeholder}</span> : null}
+            {selected.length === 0 ? <span className="text-muted-foreground px-1">{tx(placeholder)}</span> : null}
             {selected.slice(0, maxShown).map((opt) => (
               <Badge key={String(opt.value)} variant="secondary" className="gap-1 rounded-md pr-1 font-normal">
-                {opt.label}
+                {tx(opt.label)}
                 <span
                   role="button"
                   tabIndex={-1}
-                  aria-label={`移除 ${opt.label}`}
+                  aria-label={tx('移除 {{name}}', { name: tx(opt.label) })}
                   onClick={(e) => {
                     e.stopPropagation()
                     toggle(opt)
@@ -55,9 +57,9 @@ export default function MultiSelect({ value = [], onChange, options = [], placeh
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
         <Command>
-          <CommandInput placeholder="搜索…" />
+          <CommandInput placeholder={tx('搜索…')} />
           <CommandList>
-            <CommandEmpty>没有匹配项</CommandEmpty>
+            <CommandEmpty>{tx('没有匹配项')}</CommandEmpty>
             <CommandGroup>
               {options.map((opt) => {
                 const active = value.some((v) => String(v) === String(opt.value))
@@ -71,7 +73,7 @@ export default function MultiSelect({ value = [], onChange, options = [], placeh
                     >
                       {active ? <Check className="size-3 text-current" /> : null}
                     </span>
-                    {opt.label}
+                    {tx(opt.label)}
                   </CommandItem>
                 )
               })}

@@ -1,6 +1,6 @@
 /**
- * cron 匹配器快照：期望值为固定快照（2026-09-24 生成），保证已有任务的 next_run_at 计算结果不变。
- * 每行：[表达式, base_time, 期望]；期望以 '!' 开头表示 ScheduledTaskSchemaError 的 message。
+ * cron matcher snapshot: expected values are a fixed snapshot (generated 2026-09-24), ensuring next_run_at results for existing tasks don't change.
+ * Each row: [expression, base_time, expected]; an expected value starting with '!' is the message of a ScheduledTaskSchemaError.
  */
 
 import { describe, expect, it } from 'vitest'

@@ -1,12 +1,12 @@
 /**
- * Python `json.loads` / `json.dumps` / `str()` 的最小复刻，只服务定时任务的请求头与请求体：
+ * Minimal replica of Python `json.loads` / `json.dumps` / `str()`, only for scheduled-task request headers and bodies:
  *
- * - 保留 Python 的数字语义：`1.0` 是 float（dumps 仍输出 `1.0`），超过 2^53 的整数不丢精度，
- *   接受 `NaN` / `Infinity` / `-Infinity`
- * - 对象用 Map 保序（JS 对象会把 "1" 这类整数键提到前面，Python dict 保持插入顺序）
- * - dumps 默认分隔符 `, ` / `: `；ensure_ascii 控制非 ASCII 是否转义
+ * - Keeps Python number semantics: `1.0` is a float (dumps still emits `1.0`), integers beyond 2^53 keep full precision,
+ *   and `NaN` / `Infinity` / `-Infinity` are accepted
+ * - Objects use Map to preserve order (JS objects hoist integer-like keys such as "1"; Python dicts keep insertion order)
+ * - dumps uses default separators `, ` / `: `; ensure_ascii controls whether non-ASCII is escaped
  *
- * 请求体里已经被 Fastify JSON.parse 过的值（普通 JS 对象 / number）同样可以 dumps，但 1.0 与 1 已无法区分。
+ * Values already JSON.parse'd by Fastify from the request body (plain JS objects / numbers) can also be dumped, but 1.0 and 1 are no longer distinguishable.
  */
 
 export class PyFloat {
@@ -19,7 +19,7 @@ export class PyJsonDecodeError extends Error {}
 
 const WS = new Set([' ', '\t', '\n', '\r'])
 
-/** Python `json.loads(text)`（C scanner 语义：只认 ASCII 数字，strict 模式禁止字符串里的控制字符） */
+/** Python `json.loads(text)` (C scanner semantics: ASCII digits only; strict mode forbids control characters in strings) */
 export function pyJsonLoads(text: string): PyJson {
   let i = 0
 
@@ -165,7 +165,7 @@ export function pyFloatRepr(x: number): string {
   if (Number.isNaN(x)) return 'nan'
   if (!Number.isFinite(x)) return x > 0 ? 'inf' : '-inf'
   if (x === 0) return Object.is(x, -0) ? '-0.0' : '0.0'
-  // toExponential() 不带参数给出最短往返位数，与 Python repr 的有效数字一致
+  // toExponential() without arguments gives the shortest round-trip digits, matching Python repr's significant digits
   const [mantissa, expText] = x.toExponential().split('e') as [string, string]
   const exp = Number(expText)
   const negative = mantissa.startsWith('-')
@@ -189,7 +189,7 @@ export function pyFloatRepr(x: number): string {
 function numberText(value: number | bigint | PyFloat): string {
   if (value instanceof PyFloat) return pyFloatRepr(value.value)
   if (typeof value === 'bigint') return value.toString()
-  // 来自 JSON.parse 的 number：整数按 int 输出，其余按 float
+  // number from JSON.parse: integers are emitted as int, everything else as float
   return Number.isInteger(value) ? String(value) : pyFloatRepr(value)
 }
 
@@ -214,8 +214,8 @@ function encodeString(text: string, ensureAscii: boolean): string {
 export class PyJsonEncodeError extends Error {}
 
 /**
- * Python `json.dumps(value, ensure_ascii=..., allow_nan=...)`（默认分隔符）。
- * allow_nan=False 时遇到 nan/inf 抛错（requests 的 `json=` 就是这样调用的）。
+ * Python `json.dumps(value, ensure_ascii=..., allow_nan=...)` (default separators).
+ * With allow_nan=False, nan/inf raise (this is how requests' `json=` calls it).
  */
 export function pyJsonDumps(value: unknown, { ensureAscii = true, allowNan = true } = {}): string {
   const enc = (v: unknown): string => {
@@ -239,12 +239,12 @@ export function pyJsonDumps(value: unknown, { ensureAscii = true, allowNan = tru
   return enc(value)
 }
 
-/** Python str.isprintable() 为假的字符类别（空格除外） */
+/** Character categories for which Python str.isprintable() is false (except space) */
 const NON_PRINTABLE = /^[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\p{Zl}\p{Zp}\p{Zs}]$/u
 
 function pyRepr(value: unknown): string {
   if (typeof value === 'string') {
-    // Python repr：优先单引号；字符串里有单引号且没有双引号时用双引号
+    // Python repr: prefer single quotes; use double quotes when the string contains a single quote but no double quote
     const useDouble = value.includes("'") && !value.includes('"')
     const quote = useDouble ? '"' : "'"
     let out = ''
@@ -265,7 +265,7 @@ function pyRepr(value: unknown): string {
   return pyValueStr(value)
 }
 
-/** Python `str(value)`（value 是 json.loads 的结果或 JS JSON 值） */
+/** Python `str(value)` (value is a json.loads result or a JS JSON value) */
 export function pyValueStr(value: unknown): string {
   if (value === null || value === undefined) return 'None'
   if (value === true) return 'True'

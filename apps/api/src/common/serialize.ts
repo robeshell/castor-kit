@@ -1,12 +1,12 @@
 /**
- * 时间输出格式：`YYYY-MM-DDTHH:mm:ss[.ffffff]`，无 `Z`，UTC 值，
- * 微秒为 0 时不带小数部分（变长格式）。
+ * Timestamp output format: `YYYY-MM-DDTHH:mm:ss[.ffffff]`, no `Z`, UTC value,
+ * with no fractional part when microseconds are 0 (variable-length format).
  *
- * 数据库里的 timestamp 由驱动原样返回文本（见 db/client.ts 的类型解析器与 schema 的 mode:'string'），
- * `toIso()` 只做两件事，不经过 JS `Date`（时区与微秒精度问题）：
- * - 日期与时间之间的空格换成 `T`
- * - 小数秒右补 0 到 6 位：PostgreSQL 文本输出会去掉末尾的 0（`.68794`），接口固定输出 6 位（`.687940`）
- * 禁止在响应里使用 `Date#toISOString()`。
+ * DB timestamps come back from the driver as raw text (see the type parsers in db/client.ts and mode:'string' in the schema);
+ * `toIso()` does only two things, without JS `Date` (time zone and microsecond precision issues):
+ * - replaces the space between date and time with `T`
+ * - right-pads fractional seconds to 6 digits: PostgreSQL text output drops trailing zeros (`.68794`), the API always emits 6 (`.687940`)
+ * Never use `Date#toISOString()` in responses.
  */
 
 export function toIso(value: string | null | undefined): string | null {
@@ -19,8 +19,8 @@ function pad(n: number, width = 2): string {
 }
 
 /**
- * 应用侧生成的当前 UTC 时间，格式同 toIso()。
- * JS 只有毫秒精度，微秒部分补 000；毫秒为 0 时省略小数。
+ * Current UTC time generated app-side, same format as toIso().
+ * JS only has millisecond precision, so microseconds are padded with 000; the fraction is omitted when milliseconds are 0.
  */
 export function utcNowIso(now: Date = new Date()): string {
   const base =
@@ -30,12 +30,12 @@ export function utcNowIso(now: Date = new Date()): string {
   return ms === 0 ? base : `${base}.${pad(ms, 3)}000`
 }
 
-/** 格式化为 `YYYY-MM-DD HH:mm:ss`（输入为数据库原样返回的 timestamp 文本），空值返回 '' */
+/** Format as `YYYY-MM-DD HH:mm:ss` (input is raw timestamp text from the DB); empty values return '' */
 export function formatDateTime(value: string | null | undefined): string {
   return value ? value.replace('T', ' ').slice(0, 19) : ''
 }
 
-/** 格式化为 `YYYY-MM-DD`，空值返回 '' */
+/** Format as `YYYY-MM-DD`; empty values return '' */
 export function formatDate(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : ''
 }

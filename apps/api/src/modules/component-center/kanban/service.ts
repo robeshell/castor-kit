@@ -1,5 +1,5 @@
 /**
- * 看板页 service 层
+ * Kanban page service layer
  */
 
 import { randomUUID } from 'node:crypto'
@@ -28,7 +28,7 @@ function uuidHex(n: number): string {
   return randomUUID().replace(/-/g, '').slice(0, n)
 }
 
-/** 取驱动层的 pg 错误（drizzle 会把它包在 cause 里） */
+/** Get the driver-level pg error (drizzle wraps it in cause) */
 function pgErrorOf(err: unknown): { code?: string; constraint?: string } | null {
   let cur: unknown = err
   for (let i = 0; i < 5 && cur && typeof cur === 'object'; i += 1) {
@@ -40,7 +40,7 @@ function pgErrorOf(err: unknown): { code?: string; constraint?: string } | null 
   return null
 }
 
-/** `_is_sequence_conflict`：主键冲突（duplicate key ... <constraint>） */
+/** `_is_sequence_conflict`: primary key conflict (duplicate key ... <constraint>) */
 function isSequenceConflict(err: unknown, constraint: string): boolean {
   const pgErr = pgErrorOf(err)
   return pgErr?.code === '23505' && pgErr.constraint === constraint
@@ -69,7 +69,7 @@ export class KanbanService {
     return kanbanBoardToDict(board, await this.repo.cardsOfBoard(board.id), true)
   }
 
-  // ── 看板列 ──────────────────────────────────────────────────────────
+  // ── Kanban columns ──────────────────────────────────────────────────────────
 
   async getAllBoards() {
     const boards = await this.repo.allBoards()
@@ -128,7 +128,7 @@ export class KanbanService {
     return { message: '删除成功' }
   }
 
-  // ── 卡片 ────────────────────────────────────────────────────────────
+  // ── Cards ────────────────────────────────────────────────────────────
 
   async createCard(data: Data) {
     const title = strOrEmpty(data.title)
@@ -197,13 +197,13 @@ export class KanbanService {
     return { message: '删除成功' }
   }
 
-  /** 批量更新卡片的 board_id 和 sort_order（事务内，一次批量查询） */
+  /** Batch-update cards' board_id and sort_order (in a transaction, one batch query) */
   async reorderCards(items: unknown) {
     if (!Array.isArray(items)) throw new ServiceError('参数格式错误，需要数组')
     try {
       return await this.db.transaction(async (tx) => {
         const repo = new KanbanRepository(tx)
-        // 元素不是对象时返回 500
+        // Return 500 when an element is not an object
         const get = (item: unknown, key: string): unknown => {
           if (!isPlainObject(item)) throw new ServiceError(`'${typeof item}' object has no attribute 'get'`, 500)
           return item[key]
@@ -218,7 +218,7 @@ export class KanbanService {
           if (boardIds.some((id) => !existing.has(id))) throw new ServiceError('目标列不存在')
         }
 
-        // 同一张卡片出现多次时以最后一次为准（对应 ORM 对象上的多次赋值、commit 时一次 flush）
+        // If the same card appears multiple times the last one wins (like repeated assignments on an ORM object flushed once at commit)
         const finalPatch = new Map<number, KanbanCardPatch>()
         for (const item of items) {
           const cardId = parseIntOr(get(item, 'id'), 0)

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Compass, LayoutDashboard, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTranslation } from 'react-i18next'
 
 function Shell({ icon: Icon, code, title, description, children }) {
   return (
@@ -22,49 +23,53 @@ function Shell({ icon: Icon, code, title, description, children }) {
 
 export function ErrorPage({ code, title, description }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <Shell code={code} title={title} description={description}>
       <Button variant="outline" onClick={() => navigate(-1)}>
         <ArrowLeft />
-        返回上一页
+        {t('返回上一页')}
       </Button>
       <Button onClick={() => navigate('/')}>
         <LayoutDashboard />
-        回到首页
+        {t('回到首页')}
       </Button>
     </Shell>
   )
 }
 
 export function NoPermissionPage() {
+  const { t } = useTranslation()
   return (
     <Shell
       icon={ShieldAlert}
-      title="暂无可访问页面"
-      description="当前账号没有分配可见菜单，请联系管理员分配权限。"
+      title={t('暂无可访问页面')}
+      description={t('当前账号没有分配可见菜单，请联系管理员分配权限。')}
     />
   )
 }
 
 export function RouteNotConfigured({ path, component }) {
+  const { t } = useTranslation()
   return (
     <Shell
       icon={Compass}
-      title="页面未配置"
-      description={`菜单路径 ${path} 对应的组件 ${component || '(空)'} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.jsx 对齐，例如 admin/users。`}
+      title={t('页面未配置')}
+      description={t('菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.jsx 对齐，例如 admin/users。', { path, component: component || t('(空)') })}
     />
   )
 }
 
 /**
- * 页面代码首次加载时的占位：形状对齐标准列表页（标题 + 右侧按钮、筛选栏、表格卡片），
- * 与 DataTable 自己的行骨架一致，页面出来时不跳。只在登录后打开第一个页面时可能看到——
- * 之后切页由 AppLayout 的 Suspense + 路由 transition 保留旧页面，直到新页面代码就绪。
+ * Placeholder while page code loads for the first time: shaped like a standard list page (title + right-side button, filter bar, table card),
+ * matching DataTable's own row skeleton so nothing jumps when the page appears. Only likely seen on the first page opened after login;
+ * after that, page switches keep the old page via AppLayout's Suspense + route transition until the new page code is ready.
  */
 export function PageLoading() {
+  const { t } = useTranslation()
   const widths = ['w-2/3', 'w-1/2', 'w-3/4', 'w-2/5', 'w-3/5']
   return (
-    <div aria-busy="true" aria-label="加载中">
+    <div aria-busy="true" aria-label={t('加载中')}>
       <div className="mb-6 flex items-end justify-between gap-4">
         <Skeleton className="h-7 w-36" />
         <div className="hidden gap-2 sm:flex">

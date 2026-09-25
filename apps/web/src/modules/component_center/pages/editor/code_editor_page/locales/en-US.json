@@ -1,0 +1,18 @@
+{
+  "Shift+Alt+F 格式化 · Ctrl+Z 撤销 · Ctrl+/ 注释": "Shift+Alt+F format · Ctrl+Z undo · Ctrl+/ comment",
+  "主题": "Theme",
+  "代码已复制到剪贴板": "Code copied to clipboard",
+  "代码已格式化": "Code formatted",
+  "代码编辑器": "Code Editor",
+  "复制代码": "Copy code",
+  "字符 <0>{{count}}</0>": "Characters <0>{{count}}</0>",
+  "已恢复示例代码": "Sample code restored",
+  "支持智能补全 · 错误提示 · 括号匹配 · 多光标编辑": "IntelliSense · Error hints · Bracket matching · Multi-cursor editing",
+  "格式化代码": "Format code",
+  "浅色 (vs)": "Light (vs)",
+  "深色 (vs-dark)": "Dark (vs-dark)",
+  "示例代码": "Sample code",
+  "行数 <0>{{count}}</0>": "Lines <0>{{count}}</0>",
+  "语言": "Language",
+  "跟随界面主题": "Match app theme"
+}

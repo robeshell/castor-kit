@@ -1,7 +1,7 @@
 /**
- * buildApp()：注册插件 / 路由 / 错误处理 / 静态资源
+ * buildApp(): registers plugins / routes / error handling / static assets
  *
- * 插件顺序有依赖：cookie → secure-session → CSRF（要读 session）→ 路由 → 404/405/SPA。
+ * Plugin order matters: cookie → secure-session → CSRF (reads the session) → routes → 404/405/SPA.
  */
 
 import { hkdfSync } from 'node:crypto'
@@ -18,6 +18,7 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
+import { registerResponseTranslation } from './common/i18n'
 import { utcNowIso } from './common/serialize'
 import type { AppConfig } from './config'
 import { createDb, type DbHandle } from './db/client'
@@ -26,7 +27,7 @@ import { registerRoutes } from './router'
 export const SESSION_COOKIE_NAME = 'castor_session'
 const STATIC_EXTENSIONS = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.otf']
 
-/** secure-session 需要 32 字节密钥；SECRET_KEY 是任意长度字符串，用 HKDF 派生而不是截断 */
+/** secure-session needs a 32-byte key; SECRET_KEY is an arbitrary-length string, so derive it with HKDF instead of truncating */
 export function deriveSessionKey(secretKey: string): Buffer {
   return Buffer.from(hkdfSync('sha256', secretKey, '', 'castor-kit-session', 32))
 }
@@ -34,14 +35,14 @@ export function deriveSessionKey(secretKey: string): Buffer {
 export interface BuildAppOptions {
   config: AppConfig
   logger?: FastifyServerOptions['logger']
-  /** 测试可注入已有连接；默认按 config.databaseUrl 新建并在 onClose 时关闭 */
+  /** Tests may inject an existing connection; by default one is created from config.databaseUrl and closed in onClose */
   dbHandle?: DbHandle
 }
 
 export async function buildApp({ config, logger = false, dbHandle }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger,
-    // 只信任最近一跳反代（X-Forwarded-For / X-Forwarded-Proto），request.ip / protocol 即真实值
+    // Trust only the nearest reverse-proxy hop (X-Forwarded-For / X-Forwarded-Proto) so request.ip / protocol are the real values
     trustProxy: (_address: string, hop: number) => hop < 1,
     bodyLimit: config.maxContentLength,
   })
@@ -54,7 +55,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
 
-  // ---- 会话 ----
+  // ---- Session ----
   const ttlSeconds = config.sessionTtlHours * 3600
   await app.register(cookie)
   await app.register(secureSession, {
@@ -65,12 +66,12 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
-      // 默认 auto：TLS（含反代 X-Forwarded-Proto=https）才打 Secure，裸 HTTP 部署不被 Secure cookie 弄挂
+      // Default auto: set Secure only over TLS (incl. proxy X-Forwarded-Proto=https) so plain-HTTP deployments aren't broken by Secure cookies
       secure: config.sessionCookieSecure,
       maxAge: ttlSeconds,
     },
   })
-  // 滑动过期：已登录会话每次请求都续期
+  // Sliding expiration: logged-in sessions are renewed on every request
   app.addHook('onRequest', async (request) => {
     if (request.session.get('logged_in')) request.session.touch()
   })
@@ -78,15 +79,15 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   registerCsrfProtection(app)
 
   await app.register(compress, { threshold: 500 })
-  // 上传上限取 MAX_CONTENT_LENGTH（超限 413）；按字段取文件见 common/http.getUploadedFile
+  // Upload limit is MAX_CONTENT_LENGTH (413 when exceeded); see common/http.getUploadedFile for per-field file access
   await app.register(multipart, { limits: { fileSize: config.maxContentLength } })
-  // /ws/devtools 用（component-center/devtools）；会话 cookie 在 upgrade 请求的 onRequest 阶段照常解析
+  // Used by /ws/devtools (component-center/devtools); the session cookie is parsed as usual in the upgrade request's onRequest phase
   await app.register(websocket)
   if (config.corsOrigins.length > 0) {
     await app.register(cors, { origin: config.corsOrigins, credentials: true })
   }
 
-  // 静态资源长缓存（按路径后缀加头，对所有路径生效）
+  // Long-lived caching for static assets (header set by path extension, applies to all paths)
   app.addHook('onSend', async (request, reply, payload) => {
     const path = requestPath(request)
     if (STATIC_EXTENSIONS.some((ext) => path.endsWith(ext))) {
@@ -98,18 +99,20 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   })
 
   registerErrorHandler(app)
+  // Translate response messages for en-US / ja-JP requests (Accept-Language)
+  registerResponseTranslation(app)
 
   const spaIndex = join(config.webDistDir, 'index.html')
   const hasSpa = existsSync(spaIndex)
-  // 始终注册（提供 reply.sendFile，上传文件回读等也要用）；没有前端产物时不挂静态路由
+  // Always registered (provides reply.sendFile, also used to serve uploaded files back); static routes are skipped when there is no frontend build
   await app.register(
     fastifyStatic,
     hasSpa ? { root: config.webDistDir, wildcard: true } : { root: config.instanceDir, serve: false },
   )
 
-  // 404 / 405 语义：SPA catch-all 对任意路径都接受 GET，
-  // 所以未命中的 GET/HEAD 是 404（/api）或 SPA（其他），而任何未命中的非 GET 方法都是 405 ——
-  // 包括“路径存在但只注册了 POST 时的 GET”也是 404 而不是 405（保持既有接口行为）。
+  // 404 / 405 semantics: the SPA catch-all accepts GET on any path,
+  // so an unmatched GET/HEAD is 404 (/api) or the SPA (elsewhere), while any unmatched non-GET method is 405 —
+  // and "GET on a path that only registers POST" is also 404 rather than 405 (keeps existing API behavior).
   app.setNotFoundHandler(async (request, reply) => {
     const isRead = request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS'
     if (!isRead) return reply.status(405).send({ error: '请求方法不允许' })
@@ -120,7 +123,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
     return { message: 'castor-kit API', status: 'running' }
   })
 
-  // ---- 内置路由 ----
+  // ---- Built-in routes ----
   app.get('/health', async (request, reply) => {
     try {
       await handle.pool.query('SELECT 1')

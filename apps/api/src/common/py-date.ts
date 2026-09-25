@@ -1,14 +1,14 @@
 /**
- * 按 Python 3.13 `date.fromisoformat()`（C 实现 `_datetimemodule.c`）规则解析日期，
- * 供 kanban / detail-tabs / gantt / advanced-table 四个模块的日期解析（`parseLooseDate`）共用。
- * （建议后续挪到 common/py.ts；当前按文件归属放在这里。）
+ * Parses dates by the rules of Python 3.13 `date.fromisoformat()` (C implementation `_datetimemodule.c`),
+ * shared by the date parsing (`parseLooseDate`) of four modules: kanban / detail-tabs / gantt / advanced-table.
+ * (Consider moving this to common/py.ts later; it lives here for now per file ownership.)
  *
- * 规则要点（与“只认 YYYY-MM-DD”不同）：
- * - 长度按 UTF-8 字节计，必须是 7 / 8 / 10
- * - 支持 `YYYY-MM-DD`、`YYYYMMDD`、ISO 周 `YYYY-Www[-D]` / `YYYYWww[D]`
- * - 解析完不检查是否耗尽：`20240101ab` → 2024-01-01
- * - 年 1..9999、月 1..12、日按月份校验；周 1..52（有 53 周的年份允许 53）、周内日 1..7
- * 纯日历计算，不经过 JS `Date`。
+ * Key rules (unlike a "YYYY-MM-DD only" parser):
+ * - length is counted in UTF-8 bytes and must be 7 / 8 / 10
+ * - supports `YYYY-MM-DD`, `YYYYMMDD`, ISO week `YYYY-Www[-D]` / `YYYYWww[D]`
+ * - no check that the input is fully consumed: `20240101ab` → 2024-01-01
+ * - year 1..9999, month 1..12, day validated per month; week 1..52 (53 allowed in 53-week years), weekday 1..7
+ * Pure calendar arithmetic, no JS `Date` involved.
  */
 
 import { pyStr, pyTruthy } from '@/common/py'
@@ -68,7 +68,7 @@ const CH_0 = 0x30
 const CH_DASH = 0x2d
 const CH_W = 0x57
 
-/** C `parse_digits`：读 n 位 ASCII 数字；越界（含读到末尾）返回 null */
+/** C `parse_digits`: read n ASCII digits; returns null when out of bounds (incl. reaching the end) */
 function parseDigits(buf: Buffer, pos: number, n: number): [number, number] | null {
   let v = 0
   for (let i = 0; i < n; i += 1) {
@@ -138,9 +138,9 @@ function pad(n: number, width: number): string {
   return String(n).padStart(width, '0')
 }
 
-/** 等价 Python `date.fromisoformat(text)`；不合法返回 null（Python 抛 ValueError） */
+/** Equivalent to Python `date.fromisoformat(text)`; returns null when invalid (Python raises ValueError) */
 export function pyDateFromIsoformat(text: string): string | null {
-  if (/\p{Cs}/u.test(text)) return null // 孤立代理项：PyUnicode_AsUTF8AndSize 失败
+  if (/\p{Cs}/u.test(text)) return null // lone surrogate: PyUnicode_AsUTF8AndSize fails
   const buf = Buffer.from(text, 'utf8')
   if (buf.length !== 7 && buf.length !== 8 && buf.length !== 10) return null
   const ymd = parseIsoformatDate(buf)
@@ -153,13 +153,13 @@ export function pyDateFromIsoformat(text: string): string | null {
 }
 
 /**
- * 四个模块共同的 `_parse_date(value)`：
+ * The `_parse_date(value)` shared by the four modules:
  * ```python
  * if not value: return None
  * try: return date.fromisoformat(str(value)[:10])
  * except ValueError: return None
  * ```
- * 返回 'YYYY-MM-DD' 文本或 null。
+ * Returns 'YYYY-MM-DD' text or null.
  */
 export function parseLooseDate(value: unknown): string | null {
   if (!pyTruthy(value)) return null

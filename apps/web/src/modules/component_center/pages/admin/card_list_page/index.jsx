@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { Download, Eye, LayoutGrid, Pencil, Plus, Trash2, Upload, UserRound } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -100,7 +101,7 @@ const mapStatusMeta = (value) => {
   return { label: '草稿', tone: 'info' }
 }
 
-/* ─── 卡片 ─────────────────────────────────────────────────────────────── */
+/* ─── Card ─────────────────────────────────────────────────────────────── */
 
 function CardCover({ src, alt, className, iconClassName }) {
   const [failed, setFailed] = useState(false)
@@ -125,6 +126,7 @@ function CardCover({ src, alt, className, iconClassName }) {
 }
 
 function ItemCard({ record, onView, onEdit, onDelete }) {
+  const { t } = useTranslation()
   const statusMeta = mapStatusMeta(record.status)
   const categoryTone = CATEGORY_TONE_MAP[record.category] || 'brand'
   const categoryLabel = CATEGORY_LABEL_MAP[record.category] || record.category
@@ -134,7 +136,7 @@ function ItemCard({ record, onView, onEdit, onDelete }) {
       variants={stagger.item}
       className="group surface-card hover:ring-foreground/15 hover:ring-1 flex min-w-0 flex-col overflow-hidden transition-[translate,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/[0.04] dark:hover:shadow-black/30"
     >
-      <button type="button" onClick={() => onView(record)} className="block text-left" aria-label={`查看 ${record.title}`}>
+      <button type="button" onClick={() => onView(record)} className="block text-left" aria-label={t('查看 {{title}}', { title: record.title })}>
         <CardCover key={record.cover_url} src={record.cover_url} alt={record.title} className="h-36 border-b" />
       </button>
 
@@ -144,7 +146,7 @@ function ItemCard({ record, onView, onEdit, onDelete }) {
           <StatusBadge tone={statusMeta.tone} dot>
             {statusMeta.label}
           </StatusBadge>
-          {!record.is_active ? <StatusBadge tone="neutral">停用</StatusBadge> : null}
+          {!record.is_active ? <StatusBadge tone="neutral">{t('停用')}</StatusBadge> : null}
           {record.tag ? (
             <span className="text-muted-foreground inline-flex h-5 items-center rounded-md border px-1.5 text-xs">{record.tag}</span>
           ) : null}
@@ -173,16 +175,16 @@ function ItemCard({ record, onView, onEdit, onDelete }) {
       <div className="flex items-center justify-end gap-0.5 border-t px-2 py-1.5">
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => onView(record)}>
           <Eye />
-          查看
+          {t('查看')}
         </Button>
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => onEdit(record)}>
           <Pencil />
-          编辑
+          {t('编辑')}
         </Button>
         <ConfirmAction title="确认删除该卡片？" description="删除后不可恢复" confirmText="删除" onConfirm={() => onDelete(record)}>
           <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
             <Trash2 />
-            删除
+            {t('删除')}
           </Button>
         </ConfirmAction>
       </div>
@@ -213,9 +215,10 @@ function CardSkeleton() {
   )
 }
 
-/* ─── 页面 ─────────────────────────────────────────────────────────────── */
+/* ─── Page ─────────────────────────────────────────────────────────────── */
 
 export default function CardListPage() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getCardListPageList(params).catch(() => {
@@ -245,7 +248,7 @@ export default function CardListPage() {
 
   useEffect(() => {
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首屏加载一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on first render
   }, [])
 
   const handleSearch = () => {
@@ -332,15 +335,15 @@ export default function CardListPage() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建卡片
+              {t('新建卡片')}
             </Button>
           </>
         }
@@ -352,7 +355,11 @@ export default function CardListPage() {
         extra={
           total > 0 ? (
             <span className="text-muted-foreground text-xs">
-              共 <span className="text-foreground font-medium tabular-nums">{total}</span> 条
+              <Trans
+                i18nKey="共 <0>{{count}}</0> 条"
+                values={{ count: total }}
+                components={[<span key="count" className="text-foreground font-medium tabular-nums" />]}
+              />
             </span>
           ) : null
         }
@@ -400,12 +407,12 @@ export default function CardListPage() {
         </div>
       ) : null}
 
-      {/* ── 新建 / 编辑 ── */}
+      {/* ── Create / edit ── */}
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editRecord?.id ? '编辑卡片' : '新建卡片'}
-        description={editRecord?.id ? `正在编辑 ${editRecord.title}` : undefined}
+        description={editRecord?.id ? t('正在编辑 {{name}}', { name: editRecord.title }) : undefined}
         form={form}
         onSubmit={handleSubmit}
         size="lg"
@@ -434,8 +441,8 @@ export default function CardListPage() {
           label="封面图地址"
           render={({ field }) => (
             <div className="flex items-center gap-3">
-              <Input {...field} value={field.value ?? ''} placeholder="输入图片 URL" className="h-9 min-w-0 flex-1" />
-              <CardCover key={coverUrl} src={coverUrl} alt="封面预览" className="h-9 w-14 shrink-0 rounded-md border" iconClassName="size-4" />
+              <Input {...field} value={field.value ?? ''} placeholder={t('输入图片 URL')} className="h-9 min-w-0 flex-1" />
+              <CardCover key={coverUrl} src={coverUrl} alt={t('封面预览')} className="h-9 w-14 shrink-0 rounded-md border" iconClassName="size-4" />
             </div>
           )}
         />
@@ -444,7 +451,7 @@ export default function CardListPage() {
           control={form.control}
           name="description"
           label="描述"
-          rules={{ maxLength: { value: DESCRIPTION_MAX, message: `描述不能超过 ${DESCRIPTION_MAX} 字` } }}
+          rules={{ maxLength: { value: DESCRIPTION_MAX, message: t('描述不能超过 {{max}} 字', { max: DESCRIPTION_MAX }) } }}
           render={({ field }) => (
             <div className="relative">
               <Textarea
@@ -487,13 +494,13 @@ export default function CardListPage() {
         }
         onImport={(file) => importCardListPage(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="card_list_page_import_error_rows.csv"
       />
 
-      {/* ── 详情 ── */}
+      {/* ── Details ── */}
       <DetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}
@@ -502,7 +509,7 @@ export default function CardListPage() {
         footer={
           <>
             <Button variant="outline" onClick={() => setDetailOpen(false)}>
-              关闭
+              {t('关闭')}
             </Button>
             <Button
               onClick={() => {
@@ -511,7 +518,7 @@ export default function CardListPage() {
               }}
             >
               <Pencil />
-              编辑
+              {t('编辑')}
             </Button>
           </>
         }
@@ -576,7 +583,7 @@ export default function CardListPage() {
             />
             {detailRecord.description ? (
               <section className="space-y-2 border-t pt-5">
-                <h3 className="text-[13px] font-medium">描述</h3>
+                <h3 className="text-[13px] font-medium">{t('描述')}</h3>
                 <p className="text-muted-foreground text-[13px] leading-relaxed break-words whitespace-pre-wrap">{detailRecord.description}</p>
               </section>
             ) : null}

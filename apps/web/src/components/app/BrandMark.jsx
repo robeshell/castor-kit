@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-/** 品牌标识：渐变方块 + 字标 */
+/** Brand mark: gradient tile + wordmark */
 export default function BrandMark({ className, showText = true, subtitle }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>

@@ -18,7 +18,7 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
-        // castor-kit：主操作按钮（品牌渐变 + 柔和辉光），每个页面最多一个
+        // castor-kit: primary action button (brand gradient + soft glow), at most one per page
         brand:
           "bg-brand-gradient-strong text-white shadow-brand hover:brightness-110 active:scale-[0.98]",
       },

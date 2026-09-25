@@ -28,6 +28,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { downloadBlobFile } from '@/shared/utils/file'
+import { Trans, useTranslation } from 'react-i18next'
 
 const MENU_TYPE_OPTIONS = [
   { label: '目录', value: 'directory' },
@@ -67,16 +68,17 @@ const DEFAULT_VALUES = {
 }
 const normalizeFileType = (raw) => (['csv', 'xls', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
-// 递归压平树，用于父菜单选择器
+// Recursively flatten the tree for the parent menu picker.
+// The label is a ReactNode, not a string, so FormSelect shows the stored menu name as-is instead of translating it.
 const flattenTree = (menus, depth = 0) =>
   menus.flatMap((m) => [
-    { label: '\u00a0\u00a0\u00a0\u00a0'.repeat(depth) + m.name, value: m.id },
+    { label: <>{'\u00a0\u00a0\u00a0\u00a0'.repeat(depth) + m.name}</>, value: m.id },
     ...(m.children?.length ? flattenTree(m.children, depth + 1) : []),
   ])
 
 const collectParentIds = (menus) => menus.flatMap((m) => (m.children?.length ? [m.id, ...collectParentIds(m.children)] : []))
 
-// 树 → 表格行（带层级深度）；expanded 为 null 表示平铺全部
+// Tree -> table rows (with depth); expanded = null means show everything flat
 const toRows = (menus, expanded, depth = 0) =>
   menus.flatMap((m) => {
     const hasChildren = Boolean(m.children?.length)
@@ -95,19 +97,22 @@ function YesNo({ value }) {
 }
 
 function IconButton({ label, onClick, children }) {
+  const { t } = useTranslation()
+  const text = t(label)
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-muted-foreground size-7" aria-label={label} onClick={onClick}>
+        <Button variant="ghost" size="icon" className="text-muted-foreground size-7" aria-label={text} onClick={onClick}>
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>{text}</TooltipContent>
     </Tooltip>
   )
 }
 
 export default function Menus() {
+  const { t } = useTranslation()
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -127,7 +132,7 @@ export default function Menus() {
       .then((res) => {
         const list = Array.isArray(res) ? res : []
         setData(list)
-        // 与原页面 expandAllRows 一致：每次加载后默认全部展开
+        // Same as the old page's expandAllRows: expand everything after each load
         setExpanded(new Set(collectParentIds(list)))
       })
       .catch(() => toast.error('加载失败'))
@@ -253,7 +258,7 @@ export default function Menus() {
             {view === 'tree' ? (
               <button
                 type="button"
-                aria-label={expanded.has(row.id) ? '收起' : '展开'}
+                aria-label={expanded.has(row.id) ? t('收起') : t('展开')}
                 onClick={() => toggleExpand(row.id)}
                 className={cn(
                   'text-muted-foreground hover:bg-muted flex size-5 shrink-0 items-center justify-center rounded transition-colors',
@@ -281,7 +286,7 @@ export default function Menus() {
       dataIndex: 'menu_type',
       width: 76,
       render: (v) => (
-        <StatusBadge tone={MENU_TYPE_TONE[v] || 'neutral'}>{MENU_TYPE_OPTIONS.find((t) => t.value === v)?.label || v}</StatusBadge>
+        <StatusBadge tone={MENU_TYPE_TONE[v] || 'neutral'}>{MENU_TYPE_OPTIONS.find((o) => o.value === v)?.label || v}</StatusBadge>
       ),
     },
     { key: 'path', title: '路径', dataIndex: 'path', width: 180, ellipsis: true, className: 'font-mono text-xs' },
@@ -298,10 +303,10 @@ export default function Menus() {
       render: (_, record) => (
         <div className="flex items-center justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openCreate(record.id)}>
-            添加子项
+            {t('添加子项')}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <IconButton label="上移" onClick={() => handleSort(record.id, 'up')}>
             <ArrowUp />
@@ -311,7 +316,7 @@ export default function Menus() {
           </IconButton>
           <ConfirmAction title="确认删除该菜单？" description="有子菜单时无法删除" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -327,15 +332,15 @@ export default function Menus() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={() => openCreate()}>
               <Plus />
-              新建菜单
+              {t('新建菜单')}
             </Button>
           </>
         }
@@ -354,7 +359,7 @@ export default function Menus() {
                 onClick={() => setExpanded(allExpanded ? new Set() : new Set(allParentIds))}
               >
                 {allExpanded ? <ChevronsDownUp /> : <ChevronsUpDown />}
-                {allExpanded ? '全部收起' : '全部展开'}
+                {allExpanded ? t('全部收起') : t('全部展开')}
               </Button>
             ) : null}
             <SegmentedTabs variant="pill" value={view} onChange={setView} items={VIEW_ITEMS} />
@@ -374,11 +379,15 @@ export default function Menus() {
           >
             <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
               <span>
-                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                <Trans
+                  i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                  values={{ count: selectedKeys.length }}
+                  components={[<span key="count" className="font-medium tabular-nums" />]}
+                />
               </span>
               <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                 <X />
-                清空勾选
+                {t('清空勾选')}
               </Button>
             </div>
           </motion.div>
@@ -402,7 +411,7 @@ export default function Menus() {
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing ? '编辑菜单' : '新建菜单'}
-        description={editing ? `正在编辑 ${editing.name}` : undefined}
+        description={editing ? t('正在编辑 {{name}}', { name: editing.name }) : undefined}
         form={form}
         onSubmit={submit}
         footerExtra={
@@ -410,11 +419,11 @@ export default function Menus() {
             <TooltipTrigger asChild>
               <span className="text-muted-foreground inline-flex cursor-help items-center gap-1 text-xs">
                 <Info className="size-3.5" />
-                动态路由模式下，菜单的路径和组件名都需要配置
+                {t('动态路由模式下，菜单的路径和组件名都需要配置')}
               </span>
             </TooltipTrigger>
             <TooltipContent className="max-w-72">
-              组件名需对应 src/modules/**/pages/**/index.jsx，例如 admin/users → /modules/admin/pages/users/index.jsx
+              {t('组件名需对应 src/modules/**/pages/**/index.jsx，例如 admin/users → /modules/admin/pages/users/index.jsx')}
             </TooltipContent>
           </Tooltip>
         }
@@ -447,7 +456,7 @@ export default function Menus() {
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="菜单导出字段"
-        ruleHint={selectedKeys.length ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将导出当前列表全部结果'}
+        ruleHint={selectedKeys.length ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: selectedKeys.length }) : '未勾选数据时，将导出当前列表全部结果'}
         fieldOptions={MENU_EXPORT_FIELDS}
         defaultFields={['name', 'code', 'menu_type', 'path', 'component', 'parent_code', 'sort_order']}
         onConfirm={handleExport}
@@ -468,7 +477,7 @@ export default function Menus() {
         }
         onImport={(file) => importMenus(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="menus_import_error_rows.csv"

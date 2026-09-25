@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react"
+import i18n from "@/i18n"
 import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 import { Controller, FormProvider, useFormContext, useFormState } from "react-hook-form";
@@ -122,7 +123,9 @@ function FormMessage({
   ...props
 }) {
   const { error, formMessageId } = useFormField()
-  const body = error ? String(error?.message ?? "") : props.children
+  // Local change: validation messages come from react-hook-form rules written as Chinese source text,
+  // translate them here (see src/i18n). Re-running `shadcn add form` overwrites this.
+  const body = error ? i18n.t(String(error?.message ?? "")) : props.children
 
   if (!body) {
     return null

@@ -1,4 +1,4 @@
-/** 动态字段子表常量（页面与 FieldRowsEditor 共用） */
+/** Dynamic-field sub-table constants (shared by the page and FieldRowsEditor) */
 export const MAX_FIELDS = 20
 export const EMPTY_FIELD_ROW = { field_key: '', field_value: '', field_type: 'text', remark: '' }
 export const FIELD_TYPE_OPTIONS = [

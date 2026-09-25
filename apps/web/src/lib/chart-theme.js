@@ -9,7 +9,7 @@ function readVars() {
 }
 
 /**
- * ECharts 主题色：从 CSS 变量读取当前主题（亮/暗）的实际色值，主题切换时自动重算。
+ * ECharts theme colors: reads the actual color values of the current theme (light/dark) from CSS variables, recomputed automatically on theme switch.
  *   const c = useChartColors()
  *   const option = { ...chartBase(c), series: [{ type: 'line', color: c['brand-from'], areaStyle: brandArea(c) }] }
  */
@@ -19,7 +19,7 @@ export function useChartColors() {
   return useMemo(() => readVars(), [theme])
 }
 
-/** 坐标轴 / 网格 / 提示框的统一中性样式 */
+/** Shared neutral styling for axes / grid / tooltip */
 export function chartBase(c) {
   return {
     color: [c['chart-1'], c['chart-2'], c['chart-3'], c['chart-4'], c['chart-5']],
@@ -49,7 +49,7 @@ export function chartBase(c) {
   }
 }
 
-/** 品牌渐变面积填充 */
+/** Brand gradient area fill */
 export function brandArea(c, opacity = 0.22) {
   return {
     color: {
@@ -66,7 +66,7 @@ export function brandArea(c, opacity = 0.22) {
   }
 }
 
-/** 品牌渐变线条（横向 blue → cyan） */
+/** Brand gradient line (horizontal blue → cyan) */
 export function brandLine(c) {
   return {
     type: 'linear',

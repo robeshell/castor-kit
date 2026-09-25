@@ -1,7 +1,7 @@
 /**
  * tree_nodes
  *
- * parent_id 外键 ON DELETE SET NULL；children/parent 自引用关系见下方 relations。
+ * parent_id has an ON DELETE SET NULL foreign key; see relations below for the children/parent self-reference.
  */
 
 import { relations } from 'drizzle-orm'
@@ -57,7 +57,7 @@ export function treeNodeToDict(node: TreeNode) {
   }
 }
 
-/** 树节点输出：toDict + 直接子节点数（childrenCount 由调用方查询） */
+/** Tree node output: toDict + direct child count (childrenCount is queried by the caller) */
 export function treeNodeToTreeDict(node: TreeNode, childrenCount: number) {
   return { ...treeNodeToDict(node), children_count: childrenCount }
 }

@@ -1,5 +1,5 @@
 /**
- * 带统计的列表页 repository 层（含 service 里直接拼的查询）
+ * List page with stats repository layer (includes queries the service builds directly)
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -20,7 +20,7 @@ export type StatsItemUpdate = Partial<Omit<StatsItemInsert, 'id' | 'created_at' 
 export class StatsListPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** 对应 service._build_list_query */
+  /** Equivalent of service._build_list_query */
   private listWhere(f: StatsListFilters): SQL | undefined {
     const conds: (SQL | undefined)[] = []
     if (f.search) {
@@ -85,7 +85,7 @@ export class StatsListPageRepository {
     return row!
   }
 
-  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新） */
+  /** Only called when some column changed (updated_at is refreshed automatically by $onUpdateFn) */
   async update(id: number, values: StatsItemUpdate): Promise<void> {
     await this.db.update(stats_items).set(values).where(eq(stats_items.id, id))
   }
@@ -94,7 +94,7 @@ export class StatsListPageRepository {
     await this.db.delete(stats_items).where(eq(stats_items.id, id))
   }
 
-  /** 统计接口的各项聚合（数值列保留 numeric 文本，由 service 转换成浮点数） */
+  /** Aggregates for the stats endpoint (numeric columns stay as numeric text; the service converts them to floats) */
   async aggregate() {
     const [counts] = await this.db
       .select({
@@ -107,7 +107,7 @@ export class StatsListPageRepository {
         avg: sql<string | null>`avg(${stats_items.amount})`,
       })
       .from(stats_items)
-    // GROUP BY 不带 ORDER BY（行序由 PostgreSQL 决定）
+    // GROUP BY without ORDER BY (row order is decided by PostgreSQL)
     const categoryRows = await this.db
       .select({
         category: stats_items.category,

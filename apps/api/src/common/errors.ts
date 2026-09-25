@@ -1,7 +1,7 @@
 /**
- * 业务异常与统一错误处理（ServiceError 定义 + 全局错误处理器）
+ * Business exceptions and unified error handling (ServiceError definition + global error handler)
  *
- * 响应形状只有一种：`{ error: string, ...payload }`。5xx 一律返回通用文案，不透传内部信息。
+ * There is a single response shape: `{ error: string, ...payload }`. 5xx always returns a generic message and never leaks internal details.
  */
 
 import type { FastifyError, FastifyInstance } from 'fastify'
@@ -40,7 +40,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
       return reply.status(400).send({ error: first?.message ?? '请求参数不合法' })
     }
 
-    // Fastify 自身的 4xx（JSON 解析失败、请求体过大等）
+    // Fastify's own 4xx errors (JSON parse failure, body too large, etc.)
     const status = error.statusCode
     if (status !== undefined && status >= 400 && status < 500) {
       const message =

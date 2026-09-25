@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 // -*- coding: utf-8 -*-
 /**
- * 将 frontend/src 下所有 JS/JSX 的相对导入（./ 或 ../ 开头）统一转换为 @/ 别名。
+ * Convert all relative imports (starting with ./ or ../) in JS/JSX under frontend/src to the @/ alias.
  *
- * 规则：
- *  - 只处理 .js/.jsx 模块导入；CSS / 图片等资源导入（./x.css 等）保持相对路径，
- *    符合同目录资源引用惯例（Vite 也能正确处理）。
- *  - import.meta.glob(...) 等 glob 调用不改动。
- *  - 转换后目标必须位于 src 根内，否则报错退出（防止误改跨目录）。
+ * Rules:
+ *  - Only .js/.jsx module imports are handled; asset imports like CSS / images (./x.css etc.) stay relative,
+ *    following the convention for same-directory asset references (Vite handles them correctly too).
+ *  - Glob calls such as import.meta.glob(...) are left untouched.
+ *  - The converted target must be inside the src root, otherwise exit with an error (prevents accidental cross-directory rewrites).
  *
- * 用法：
- *   node scripts/align-imports.mjs            # 直接改写文件
- *   node scripts/align-imports.mjs --dry-run  # 只打印统计，不改写
+ * Usage:
+ *   node scripts/align-imports.mjs            # rewrite files in place
+ *   node scripts/align-imports.mjs --dry-run  # print stats only, no rewrite
  */
 import { readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname, relative, sep } from 'node:path'
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'src')
 const dryRun = process.argv.includes('--dry-run')
 
-// 匹配 from '...' / from "..." / import '...'，捕获路径
+// Match from '...' / from "..." / import '...', capturing the path
 const SPECIFIER_RE = /(?:from\s*|import\s*)['"]([^'"]+)['"]/g
 
 function collectFiles(dir, out = []) {
@@ -47,16 +47,16 @@ function convertFile(file, stats) {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    // 跳过 import.meta.glob / import( 动态调用
+    // Skip import.meta.glob / import( dynamic calls
     if (line.includes('import.meta.glob') || /import\s*\(/.test(line)) {
       continue
     }
     lines[i] = line.replace(SPECIFIER_RE, (match, spec) => {
       if (!spec.startsWith('./') && !spec.startsWith('../')) {
-        return match // 包名或 @/ 已别名，不动
+        return match // Package name or already @/ aliased, leave as is
       }
       if (isResourceImport(spec)) {
-        return match // 资源相对导入保持
+        return match // Keep relative asset imports
       }
       const target = join(dir, spec)
       const rel = relative(root, target)

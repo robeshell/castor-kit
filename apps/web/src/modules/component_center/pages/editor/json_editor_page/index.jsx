@@ -1,74 +1,19 @@
 import { useState } from 'react'
 import Editor from '@monaco-editor/react'
 import { AlertTriangle, Braces, ChevronRight, Minimize2, Sparkles, WandSparkles } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useMonacoTheme } from '@/lib/monaco-theme'
+import { EXAMPLE_JSON } from '@/modules/component_center/pages/editor/json_editor_page/demo-content'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useIsMobile } from '@/shared/hooks/useIsMobile'
 
-const EXAMPLE_JSON = {
-  project: {
-    name: 'castor-kit',
-    version: '2.0.0',
-    description: 'Fastify + React + RBAC AI-First 脚手架',
-    active: true,
-    stars: 1024,
-    license: null,
-    tags: ['fastify', 'typescript', 'react', 'rbac', 'ai', 'scaffold'],
-    author: {
-      name: '研发团队',
-      email: 'dev@castor-kit.dev',
-      roles: ['maintainer', 'committer'],
-    },
-    dependencies: {
-      backend: {
-        node: '22.x',
-        fastify: '5.x',
-        drizzle: '0.x',
-        postgresql: '15+',
-      },
-      frontend: {
-        react: '19.x',
-        vite: '5.x',
-        tailwindcss: '4.x',
-        shadcn: 'new-york',
-      },
-    },
-    features: [
-      {
-        id: 1,
-        name: 'RBAC 权限',
-        enabled: true,
-        config: { strict: true, superAdmin: 'super_admin' },
-      },
-      {
-        id: 2,
-        name: '组件示例中心',
-        enabled: true,
-        config: { modules: 12, categories: 6 },
-      },
-      {
-        id: 3,
-        name: 'AI 集成',
-        enabled: false,
-        config: null,
-      },
-    ],
-    stats: {
-      totalUsers: 256,
-      activeUsers: 128,
-      dailyRequests: 50000,
-      uptime: 99.9,
-    },
-  },
-}
-
-// 类型配色：只用语义色（亮/暗自动适配）
+// Type colors: semantic colors only (adapt to light / dark automatically)
 const TYPE_CLASS = {
   string: 'text-success',
   number: 'text-primary',
@@ -85,7 +30,7 @@ const LEGEND = [
   { label: '键 / 对象 / 数组', className: TYPE_CLASS.key },
 ]
 
-// ── 递归 JSON 树节点 ──────────────────────────────────────────────────────────
+// ── Recursive JSON tree node ─────────────────────────────────────────────────
 
 function NodeKey({ nodeKey }) {
   if (nodeKey === undefined) return null
@@ -148,27 +93,30 @@ function JsonNode({ nodeKey, value, depth = 0 }) {
   )
 }
 
+// title is Chinese source text, translated here
 function PaneHeader({ icon: Icon, title, extra }) {
+  const { t } = useTranslation()
   return (
     <div className="bg-muted/40 flex h-10 shrink-0 items-center justify-between gap-3 border-b px-4">
       <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
         <Icon className="size-3.5" />
-        {title}
+        {t(title)}
       </span>
       {extra}
     </div>
   )
 }
 
-// ── 主页面 ────────────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JsonEditorPage() {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
   const monacoTheme = useMonacoTheme()
   const [jsonText, setJsonText] = useState(JSON.stringify(EXAMPLE_JSON, null, 2))
   const [parsedJson, setParsedJson] = useState(EXAMPLE_JSON)
   const [parseError, setParseError] = useState(null)
-  // 树形预览在“加载示例/格式化”后重建，展开状态回到默认
+  // The tree preview is rebuilt after "load sample / format" so expansion resets to the default
   const [treeVersion, setTreeVersion] = useState(0)
 
   const parseJson = (text) => {
@@ -225,12 +173,12 @@ export default function JsonEditorPage() {
   const status = parseError ? (
     <StatusBadge tone="danger" dot className="max-w-[260px] sm:max-w-[360px]">
       <span className="truncate" title={parseError}>
-        JSON 错误：{parseError}
+        {t('JSON 错误：{{message}}', { message: parseError })}
       </span>
     </StatusBadge>
   ) : parsedJson !== null ? (
     <StatusBadge tone="success" dot>
-      JSON 有效
+      {t('JSON 有效')}
     </StatusBadge>
   ) : null
 
@@ -242,15 +190,15 @@ export default function JsonEditorPage() {
           <>
             <Button variant="outline" size="sm" onClick={handleExample}>
               <Sparkles />
-              示例数据
+              {t('示例数据')}
             </Button>
             <Button variant="outline" size="sm" onClick={handleMinify}>
               <Minimize2 />
-              压缩
+              {t('压缩')}
             </Button>
             <Button variant="brand" size="sm" onClick={handleFormat}>
               <WandSparkles />
-              格式化
+              {t('格式化')}
             </Button>
           </>
         }
@@ -291,23 +239,23 @@ export default function JsonEditorPage() {
                 <div className="bg-danger-soft text-danger flex size-10 items-center justify-center rounded-xl">
                   <AlertTriangle className="size-[18px]" />
                 </div>
-                <p className="text-danger font-sans text-sm font-medium">JSON 解析失败</p>
+                <p className="text-danger font-sans text-sm font-medium">{t('JSON 解析失败')}</p>
                 <p className="text-muted-foreground max-w-sm text-xs break-all">{parseError}</p>
               </div>
             ) : parsedJson !== null ? (
               <JsonNode key={treeVersion} value={parsedJson} depth={0} />
             ) : (
-              <p className="text-muted-foreground mt-10 text-center font-sans text-[13px]">输入 JSON 后在此展示树形结构</p>
+              <p className="text-muted-foreground mt-10 text-center font-sans text-[13px]">{t('输入 JSON 后在此展示树形结构')}</p>
             )}
           </div>
         </Panel>
       </div>
 
       <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <span>点击树节点可展开 / 折叠子节点 · 颜色区分类型：</span>
+        <span>{t('点击树节点可展开 / 折叠子节点 · 颜色区分类型：')}</span>
         {LEGEND.map((item) => (
           <span key={item.label} className={cn('not-italic', item.className)}>
-            {item.label}
+            {t(item.label)}
           </span>
         ))}
       </div>

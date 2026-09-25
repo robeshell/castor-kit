@@ -1,9 +1,9 @@
 /**
- * 多环境配置
+ * Multi-environment configuration
  *
- * - 运行环境由 `NODE_ENV` 决定（development / test / production）
- * - 启动时加载 `.env.<NODE_ENV>`（apps/api 目录优先，其次仓库根目录；已有环境变量不覆盖）
- * - fail-closed：production 缺 SECRET_KEY / ADMIN_PASSWORD 直接抛错退出
+ * - the runtime environment is determined by `NODE_ENV` (development / test / production)
+ * - loads `.env.<NODE_ENV>` at startup (apps/api first, then the repo root; existing env vars are not overridden)
+ * - fail-closed: production throws and exits if SECRET_KEY / ADMIN_PASSWORD is missing
  */
 
 import { existsSync } from 'node:fs'
@@ -25,34 +25,34 @@ export interface AppConfig {
   secretKey: string
   adminUsername: string
   adminPassword: string
-  /** 请求体上限（字节），MAX_CONTENT_LENGTH */
+  /** Request body limit (bytes), MAX_CONTENT_LENGTH */
   maxContentLength: number
   sessionTtlHours: number
-  /** SESSION_COOKIE_SECURE：true/false 强制；留空 = auto（按请求协议，TLS 才打 Secure） */
+  /** SESSION_COOKIE_SECURE: true/false forces it; empty = auto (by request protocol, Secure only over TLS) */
   sessionCookieSecure: boolean | 'auto'
   corsOrigins: string[]
   loginMaxFailures: number
   loginLockoutMinutes: number
-  /** 前端构建产物目录（apps/web/dist），不存在时 SPA fallback 返回 JSON 提示 */
+  /** Frontend build output dir (apps/web/dist); if missing, the SPA fallback returns a JSON hint */
   webDistDir: string
-  /** 运行时数据目录（instance/，上传文件在 instance/uploads/...） */
+  /** Runtime data dir (instance/; uploads live in instance/uploads/...) */
   instanceDir: string
 
-  // ---- 定时任务 ----
+  // ---- Scheduled tasks ----
   enableTaskScheduler: boolean
   taskSchedulerIntervalSeconds: number
   taskSchedulerLeaseSeconds: number
-  /** true 时 web 进程内启动调度循环；否则用 `node dist/worker.js` 独立进程 */
+  /** When true, run the scheduler loop inside the web process; otherwise use the standalone `node dist/worker.js` process */
   runSchedulerInWeb: boolean
 
-  // ---- AI（OpenAI 兼容接口） ----
+  // ---- AI (OpenAI-compatible API) ----
   aiApiBase: string
   aiApiKey: string
   aiModel: string
-  /** AI SQL 只读连接串；生产必填（fail-closed），开发回退主库 URL（连接参数仍强制只读） */
+  /** Read-only connection string for AI SQL; required in production (fail-closed), falls back to the main DB URL in development (connection params still force read-only) */
   aiSqlDatabaseUrl: string
   aiSqlStatementTimeoutMs: number
-  /** init-ro-role 用：只读角色密码，未配置则跳过 */
+  /** Used by init-ro-role: read-only role password; skipped if not set */
   postgresRoPassword: string
 
   // ---- Apifox ----
@@ -98,7 +98,7 @@ const envSchema = z.object({
   APIFOX_API_VERSION: z.string().optional().default('2024-03-28'),
 })
 
-/** 环境变量布尔解析：'1' / 'true' / 'yes' / 'on' 为真（忽略大小写与首尾空白） */
+/** Boolean env var parsing: '1' / 'true' / 'yes' / 'on' are true (case-insensitive, whitespace-trimmed) */
 export function isTruthy(value: unknown): boolean {
   return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
 }

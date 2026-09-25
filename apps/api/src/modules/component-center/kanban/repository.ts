@@ -1,5 +1,5 @@
 /**
- * 看板页 repository 层
+ * Kanban page repository layer
  */
 
 import { asc, eq, inArray, sql } from 'drizzle-orm'
@@ -9,7 +9,7 @@ import { kanban_boards, kanban_cards, type KanbanBoard, type KanbanCard } from '
 const INT32_MIN = -2_147_483_648
 const INT32_MAX = 2_147_483_647
 
-/** 超出 integer 范围的 id 直接视为不存在（避免驱动报 out of range） */
+/** Ids outside the integer range are treated as nonexistent (avoids the driver's out-of-range error) */
 export function isInt32(id: number): boolean {
   return Number.isInteger(id) && id >= INT32_MIN && id <= INT32_MAX
 }
@@ -28,7 +28,7 @@ export class KanbanRepository {
     return this.db.select().from(kanban_boards).orderBy(asc(kanban_boards.sort_order))
   }
 
-  /** 某个 board（看板列）的卡片，按 sort_order 排序（逐列查询） */
+  /** Cards of one board (kanban column), ordered by sort_order (queried per column) */
   async cardsOfBoard(boardId: number): Promise<KanbanCard[]> {
     return this.db
       .select()
@@ -98,7 +98,7 @@ export class KanbanRepository {
     await this.db.delete(kanban_cards).where(eq(kanban_cards.id, id))
   }
 
-  /** `_sync_postgres_id_sequence`：主键序列落后时同步到 MAX(id)+1（表名来自白名单） */
+  /** `_sync_postgres_id_sequence`: when the PK sequence lags behind, sync it to MAX(id)+1 (table name comes from an allowlist) */
   async syncIdSequence(table: 'kanban_boards' | 'kanban_cards'): Promise<void> {
     await this.db.execute(
       sql.raw(

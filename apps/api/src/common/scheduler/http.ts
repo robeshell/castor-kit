@@ -1,14 +1,14 @@
 /**
- * 定时任务 HTTP 执行（行为与 Python requests 库的 `requests.request(...)` 保持一致）
+ * Scheduled-task HTTP execution (behaves like Python requests' `requests.request(...)`)
  *
- * 带连接级 SSRF 防护：
- * - 每次执行新建一个 undici Agent，自定义 connect：IP 直连先判定；主机名走自定义 lookup，
- *   解析结果全部复检后把“这一次解析到的地址”直接交给 socket（钉死），DNS rebinding 无法在校验与连接之间换地址
- * - 重定向手动跟随，每一跳都经过同一个 Agent，所以重定向到内网同样会被拦
- * - 超时用 AbortSignal.timeout（1–120 秒，覆盖整次执行含重定向）
+ * With connection-level SSRF protection:
+ * - A fresh undici Agent per execution with a custom connect: IP literals are checked up front; hostnames go through a custom lookup,
+ *   every resolved address is re-checked and exactly those addresses are handed to the socket (pinned), so DNS rebinding can't swap addresses between check and connect
+ * - Redirects are followed manually and every hop goes through the same Agent, so redirects to internal addresses are blocked too
+ * - Timeout via AbortSignal.timeout (1–120 s, covering the whole execution including redirects)
  *
- * 与 requests 对齐的部分：最多 30 次重定向与 301/302/303 的方法改写和请求体丢弃、跨主机去掉 Authorization、
- * 响应文本按 requests 的 `response.text` 规则解码（charset / text/* → latin-1 / json → utf-8）。
+ * Matches requests on: at most 30 redirects, method rewriting and body dropping for 301/302/303, stripping Authorization across hosts,
+ * and decoding response text per requests' `response.text` rules (charset / text/* → latin-1 / json → utf-8).
  */
 
 import dns from 'node:dns'
@@ -19,16 +19,16 @@ import { BLOCKED_ADDRESS_MESSAGE, blockedHostMessage, isBlockedIp } from './ssrf
 export interface HttpRequestSpec {
   method: string
   url: string
-  /** 键和值都已转成字符串 */
+  /** Keys and values already converted to strings */
   headers: Record<string, string>
-  /** json：requests 的 `json=`（自动补 Content-Type）；data：`data=str`（UTF-8，无 Content-Type） */
+  /** json: requests' `json=` (adds Content-Type automatically); data: `data=str` (UTF-8, no Content-Type) */
   body: { kind: 'json' | 'data'; text: string } | null
   timeoutSeconds: number
 }
 
 export interface HttpResponse {
   status: number
-  /** 已按 requests 规则解码的响应文本（最多读取 MAX_BODY_BYTES 字节，足够截取前 2000 个字符） */
+  /** Response text decoded per requests' rules (reads at most MAX_BODY_BYTES, enough to take the first 2000 characters) */
   text: string
 }
 
@@ -38,7 +38,7 @@ const MAX_REDIRECTS = 30
 const MAX_BODY_BYTES = 64 * 1024
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 
-/** 解析并复检：任一地址落在禁止网段即拒绝；通过后把本次解析结果原样交给 socket */
+/** Resolve and re-check: reject if any address is in a blocked range; on success hand exactly these results to the socket */
 const guardedLookup: net.LookupFunction = (hostname, options, callback) => {
   dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
     if (err) return callback(err, '', 0)
@@ -54,7 +54,7 @@ const guardedLookup: net.LookupFunction = (hostname, options, callback) => {
   })
 }
 
-/** 每次执行一个独立 Agent（不复用连接池，避免跨任务复用已建立的连接） */
+/** One dedicated Agent per execution (no pooled connections, so established connections are never reused across tasks) */
 export function createGuardedAgent(): Agent {
   const baseConnect = buildConnector({ lookup: guardedLookup } as buildConnector.BuildOptions)
   return new Agent({
@@ -94,7 +94,7 @@ function encodingFromHeaders(contentType: string | undefined): string | null {
   return null
 }
 
-/** `str(content, encoding, errors='replace')`；未知编码回落 UTF-8（requests 的 apparent_encoding 这里按 UTF-8 近似） */
+/** `str(content, encoding, errors='replace')`; unknown encodings fall back to UTF-8 (requests' apparent_encoding is approximated as UTF-8) */
 function decodeBody(buf: Buffer, encoding: string | null): string {
   if (buf.length === 0) return ''
   const label = (encoding ?? 'utf-8').trim().toLowerCase()
@@ -131,7 +131,7 @@ function shouldStripAuth(oldUrl: URL, newUrl: URL): boolean {
   return oldPort !== newPort || oldUrl.protocol !== newUrl.protocol
 }
 
-/** 默认执行器：带连接级 SSRF 复检的 undici 请求 */
+/** Default executor: undici request with connection-level SSRF re-checks */
 export const executeHttpRequest: HttpExecutor = async (spec) => {
   const agent = createGuardedAgent()
   const signal = AbortSignal.timeout(spec.timeoutSeconds * 1000)

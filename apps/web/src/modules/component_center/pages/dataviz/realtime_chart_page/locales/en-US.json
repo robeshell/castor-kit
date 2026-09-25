@@ -1,0 +1,15 @@
+{
+  "0.5× 慢速": "0.5× Slow",
+  "1× 正常": "1× Normal",
+  "2× 快速": "2× Fast",
+  "传感器曲线": "Sensor readings",
+  "压力": "Pressure",
+  "实时折线图": "Real-time line chart",
+  "暂停": "Pause",
+  "最近 {{count}} 个采样点": "Last {{count}} samples",
+  "最近 {{count}} 个采样点_one": "Last {{count}} sample",
+  "流量": "Flow rate",
+  "温度": "Temperature",
+  "湿度": "Humidity",
+  "继续": "Resume"
+}

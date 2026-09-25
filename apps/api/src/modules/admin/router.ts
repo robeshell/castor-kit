@@ -1,5 +1,5 @@
 /**
- * admin 域路由装配
+ * admin domain router assembly
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -15,7 +15,7 @@ import { registerScheduledTaskRoutes } from './scheduled-task/routes'
 import { registerUserRoutes } from './users/routes'
 
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
-  // logs 先注册：它挂的是全局 onResponse 审计 hook
+  // Register logs first: it installs the global onResponse audit hook
   await registerLogsRoutes(app)
   await registerAuthRoutes(app)
   await registerUserRoutes(app)

@@ -1,7 +1,7 @@
 /**
  * scheduled_tasks / scheduled_task_runs
  *
- * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL。
+ * `.$default()` / createdAt() / updatedAt() are app-side defaults only (no DB DEFAULT) and don't go into the DDL.
  */
 
 import { relations } from 'drizzle-orm'
@@ -69,7 +69,7 @@ export const scheduled_task_runs_relations = relations(scheduled_task_runs, ({ o
 export type ScheduledTask = typeof scheduled_tasks.$inferSelect
 export type ScheduledTaskRun = typeof scheduled_task_runs.$inferSelect
 
-/** 定时任务输出 */
+/** Scheduled task output */
 export function scheduledTaskToDict(task: ScheduledTask) {
   return {
     id: task.id,
@@ -94,7 +94,7 @@ export function scheduledTaskToDict(task: ScheduledTask) {
   }
 }
 
-/** 执行记录输出：task 为关联任务，不存在时 task_name / task_code 为 null */
+/** Execution log output: task is the related task; task_name / task_code are null when it doesn't exist */
 export function scheduledTaskRunToDict(run: ScheduledTaskRun, task: Pick<ScheduledTask, 'name' | 'task_code'> | null) {
   return {
     id: run.id,

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { motion } from 'motion/react'
 import { Gauge, RefreshCw, ShoppingCart, UserPlus, Wallet } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { brandArea, brandLine, chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
 import { toast } from '@/lib/toast'
@@ -10,8 +11,9 @@ import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatCard from '@/shared/components/StatCard'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { PROGRESS_DATA, RECENT_EVENTS } from '@/modules/component_center/pages/dataviz/dashboard_page/demo-content'
 
-// ── 静态数据 ──────────────────────────────────────────────────────────
+// ── Static data (labels keep the Chinese source text and are translated when rendered) ──────────────────────────────────────────────────────────
 const KPI_DATA = [
   { title: '今日订单', value: 2847, unit: '单', trend: 12.3, up: true, goodWhenUp: true, icon: ShoppingCart, spark: [40, 55, 48, 62, 58, 70, 75, 68, 80, 85, 78, 92] },
   { title: '今日营收', value: 183920, unit: '元', trend: 8.7, up: true, goodWhenUp: true, icon: Wallet, spark: [60, 55, 70, 65, 80, 75, 90, 85, 100, 95, 110, 115] },
@@ -39,23 +41,6 @@ const PIE_DATA = [
 const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
 const THIS_YEAR = [820, 932, 901, 934, 1290, 1330, 1320, 1100, 1280, 1400, 1450, 1680]
 const LAST_YEAR = [620, 712, 801, 704, 990, 1030, 1020, 900, 980, 1100, 1150, 1280]
-
-const PROGRESS_DATA = [
-  { label: '华东大区', value: 84 },
-  { label: '华南大区', value: 67 },
-  { label: '华北大区', value: 72 },
-  { label: '华中大区', value: 58 },
-  { label: '西南大区', value: 45 },
-]
-
-const RECENT_EVENTS = [
-  { id: 1, time: '14:32:10', type: '订单', level: 'success', content: '用户 u_88231 完成支付，金额 ¥2,380', region: '华东' },
-  { id: 2, time: '14:28:45', type: '告警', level: 'warning', content: '数据库连接池使用率超过 80%', region: '系统' },
-  { id: 3, time: '14:25:12', type: '用户', level: 'info', content: '新用户注册：u_98422，渠道：微信小程序', region: '华南' },
-  { id: 4, time: '14:20:01', type: '订单', level: 'success', content: '批量发货完成，共 128 单', region: '华北' },
-  { id: 5, time: '14:15:33', type: '系统', level: 'error', content: '第三方支付接口超时，已触发降级', region: '系统' },
-  { id: 6, time: '14:10:07', type: '用户', level: 'info', content: '管理员 admin 登录系统', region: '华中' },
-]
 
 const LEVEL_META = {
   success: { label: '成功', tone: 'success' },
@@ -85,8 +70,9 @@ const EVENT_COLUMNS = [
   { key: 'region', title: '区域', dataIndex: 'region', width: 72, render: (v) => <span className="text-muted-foreground text-xs">{v}</span> },
 ]
 
-// ── 子组件 ────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 function BarChartCard({ c }) {
+  const { t } = useTranslation()
   const option = useMemo(() => {
     const base = chartBase(c)
     const colorOf = (weekend) => (weekend ? c['chart-3'] : c['chart-1'])
@@ -94,7 +80,7 @@ function BarChartCard({ c }) {
       ...base,
       tooltip: { ...base.tooltip, axisPointer: { type: 'shadow', shadowStyle: { color: hexToRgba(c['muted-foreground'], 0.08) } } },
       grid: { ...base.grid, top: 24 },
-      xAxis: { ...base.xAxis, type: 'category', data: WEEK_DAYS.map((d) => d.label) },
+      xAxis: { ...base.xAxis, type: 'category', data: WEEK_DAYS.map((d) => t(d.label)) },
       yAxis: {
         ...base.yAxis,
         type: 'value',
@@ -102,7 +88,7 @@ function BarChartCard({ c }) {
       },
       series: [
         {
-          name: '订单量',
+          name: t('订单量'),
           type: 'bar',
           barMaxWidth: 32,
           itemStyle: {
@@ -129,7 +115,7 @@ function BarChartCard({ c }) {
       animationDuration: 800,
       animationEasing: 'cubicOut',
     }
-  }, [c])
+  }, [c, t])
 
   return (
     <Panel
@@ -138,11 +124,11 @@ function BarChartCard({ c }) {
         <div className="text-muted-foreground flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5">
             <span className="bg-chart-1 size-2 rounded-full" />
-            工作日
+            {t('工作日')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="bg-chart-3 size-2 rounded-full" />
-            周末
+            {t('周末')}
           </span>
         </div>
       }
@@ -154,8 +140,10 @@ function BarChartCard({ c }) {
 }
 
 function PieChartCard({ c }) {
+  const { t } = useTranslation()
   const option = useMemo(() => {
     const base = chartBase(c)
+    const data = PIE_DATA.map((d) => ({ ...d, name: t(d.name) }))
     return {
       color: base.color,
       textStyle: base.textStyle,
@@ -169,7 +157,7 @@ function PieChartCard({ c }) {
         itemGap: 14,
         icon: 'circle',
         formatter: (name) => {
-          const item = PIE_DATA.find((d) => d.name === name)
+          const item = data.find((d) => d.name === name)
           return `{name|${name}}  {val|${item?.value ?? 0}%}`
         },
         textStyle: {
@@ -193,11 +181,11 @@ function PieChartCard({ c }) {
             scaleSize: 5,
             label: { show: true, fontSize: 13, fontWeight: 600, color: c.foreground, formatter: '{b}\n{c}%' },
           },
-          data: PIE_DATA,
+          data,
         },
       ],
     }
-  }, [c])
+  }, [c, t])
 
   return (
     <Panel title="流量来源分布" className="h-full">
@@ -207,6 +195,7 @@ function PieChartCard({ c }) {
 }
 
 function LineChartCard({ c }) {
+  const { t } = useTranslation()
   const option = useMemo(() => {
     const base = chartBase(c)
     return {
@@ -220,11 +209,11 @@ function LineChartCard({ c }) {
         itemHeight: 4,
         textStyle: { color: c['muted-foreground'], fontSize: 12 },
       },
-      xAxis: { ...base.xAxis, type: 'category', data: MONTHS, boundaryGap: false },
+      xAxis: { ...base.xAxis, type: 'category', data: MONTHS.map((m) => t(m)), boundaryGap: false },
       yAxis: { ...base.yAxis, type: 'value' },
       series: [
         {
-          name: '本年',
+          name: t('本年'),
           type: 'line',
           smooth: 0.4,
           data: THIS_YEAR,
@@ -237,7 +226,7 @@ function LineChartCard({ c }) {
           areaStyle: brandArea(c),
         },
         {
-          name: '去年',
+          name: t('去年'),
           type: 'line',
           smooth: 0.4,
           data: LAST_YEAR,
@@ -252,7 +241,7 @@ function LineChartCard({ c }) {
       animationDuration: 900,
       animationEasing: 'cubicOut',
     }
-  }, [c])
+  }, [c, t])
 
   return (
     <Panel title="全年订单趋势对比" className="h-full">
@@ -286,8 +275,9 @@ function ProgressListCard() {
   )
 }
 
-// ── 主组件 ────────────────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const { t } = useTranslation()
   const c = useChartColors()
   const [lastUpdated, setLastUpdated] = useState(() => new Date())
 
@@ -306,14 +296,14 @@ export default function DashboardPage() {
               <span className="relative flex size-1.5 rounded-full bg-success">
                 <span className="bg-success absolute inset-0 animate-ping rounded-full opacity-60" />
               </span>
-              更新于
+              {t('更新于')}
               <span className="font-mono tabular-nums">
                 {lastUpdated.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             </span>
             <Button size="sm" variant="outline" onClick={handleRefresh}>
               <RefreshCw />
-              刷新
+              {t('刷新')}
             </Button>
           </>
         }
@@ -360,7 +350,7 @@ export default function DashboardPage() {
         padded={false}
         actions={
           <StatusBadge tone="brand" dot>
-            实时
+            {t('实时')}
           </StatusBadge>
         }
       >

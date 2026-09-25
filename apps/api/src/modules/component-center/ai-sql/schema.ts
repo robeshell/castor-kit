@@ -1,20 +1,20 @@
 /**
- * AI SQL 纯函数：SQL 清洗与安全判定、表可见性（isVisibleTable）、只读查询包装
+ * AI SQL pure functions: SQL cleanup and safety checks, table visibility (isVisibleTable), read-only query wrapping
  *
- * 正则按 Unicode 语义实现：
- * - `\b` 的单词字符是 Unicode 字母/数字/下划线（JS 不带 u 的 `\b` 只认 ASCII，这里用环视模拟）
- * - 空白字符集合见 PY_WS_CLASS（Unicode 空白，含 \x1c-\x1f、\x85，不含 U+FEFF）
+ * Regexes follow Unicode semantics:
+ * - `\b` word characters are Unicode letters/digits/underscore (JS `\b` without the u flag is ASCII-only, so lookarounds emulate it)
+ * - whitespace set: see PY_WS_CLASS (Unicode whitespace, incl. \x1c-\x1f and \x85, excl. U+FEFF)
  */
 
-/** 单次查询最多返回行数 */
+/** Max rows returned per query */
 export const MAX_SQL_ROWS = 200
 
-// ---- 敏感表：AI SQL 既不让 LLM/前端看到 schema，也不给只读账号授权 ----
+// ---- Sensitive tables: AI SQL neither shows their schema to the LLM/frontend nor grants them to the read-only role ----
 const SENSITIVE_EXACT = new Set(['roles', 'menus', 'user_roles', 'role_menus'])
 const SENSITIVE_PREFIX = ['admin_', 'audit_', 'scheduled_task']
 const SENSITIVE_SUFFIX = ['_logs']
 
-/** 业务表才可见/可授权；含凭据或内部信息的表一律排除 */
+/** Only business tables are visible/grantable; tables holding credentials or internal info are always excluded */
 export function isVisibleTable(tableName: string | null | undefined): boolean {
   const name = (tableName || '').toLowerCase()
   if (SENSITIVE_EXACT.has(name)) return false
@@ -22,45 +22,45 @@ export function isVisibleTable(tableName: string | null | undefined): boolean {
   return true
 }
 
-// ---- 空白 / 单词字符 ----
+// ---- Whitespace / word characters ----
 
 const PY_WS_CLASS = '\\t\\n\\v\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000'
 const PY_WORD_CLASS = '\\p{L}\\p{N}_'
 const LEADING_WS = new RegExp(`^[${PY_WS_CLASS}]+`, 'u')
 const TRAILING_WS = new RegExp(`[${PY_WS_CLASS}]+$`, 'u')
 
-/** 去掉首尾空白（空白集合见 PY_WS_CLASS） */
+/** Trim leading and trailing whitespace (whitespace set: see PY_WS_CLASS) */
 export function pyStrip(text: string): string {
   return pyRstrip(text.replace(LEADING_WS, ''))
 }
 
-/** 去掉尾部空白 */
+/** Trim trailing whitespace */
 export function pyRstrip(text: string): string {
   return text.replace(TRAILING_WS, '')
 }
 
-/** 去掉尾部分号 */
+/** Strip trailing semicolons */
 function rstripSemicolons(text: string): string {
   return text.replace(/;+$/, '')
 }
 
-/** 按单词边界匹配 pattern（`\b` 用 Unicode 单词字符的环视实现；pattern 由单词字符组成） */
+/** Match pattern at word boundaries (`\b` emulated with Unicode word-character lookarounds; pattern consists of word characters) */
 function wordRegex(pattern: string): RegExp {
   return new RegExp(`(?<![${PY_WORD_CLASS}])${pattern}(?![${PY_WORD_CLASS}])`, 'u')
 }
 
-// ---- SQL 安全判定 ----
+// ---- SQL safety checks ----
 
-// 单引号字符串字面量（含 '' 转义与双引号标识符）；剥离后做关键字判定，避免
-// SELECT 'delete' / "DROP" 这类字面量/标识符触发误杀。真实拦截仍由只读引擎兜底。
+// Single-quoted string literals (incl. '' escapes and double-quoted identifiers); keywords are checked after stripping them so
+// literals/identifiers like SELECT 'delete' / "DROP" don't cause false positives. The read-only engine is still the real backstop.
 const STRING_LITERAL_RE = /'(?:''|[^'])*'|"(?:""|[^"])*"/gs
 
-/** 移除字符串/标识符字面量，返回用于关键字判定的残影文本 */
+/** Remove string/identifier literals, returning the residual text used for keyword checks */
 export function stripLiterals(sql: string): string {
   return sql.replace(STRING_LITERAL_RE, ' ')
 }
 
-// DML / DDL / 控制语句关键字（禁 SET 封死 SET ROLE / SET ... read_only=off）
+// DML / DDL / control-statement keywords (banning SET blocks SET ROLE / SET ... read_only=off)
 const CONTROL_KEYWORDS = [
   'ALTER', 'CREATE', 'DROP', 'TRUNCATE', 'GRANT', 'REVOKE',
   'DELETE', 'UPDATE', 'INSERT', 'INTO', 'MERGE', 'CALL', 'DO',
@@ -73,7 +73,7 @@ const FOR_LOCK_RE = new RegExp(
   'u',
 )
 
-// 高危函数调用（仅拦截真实函数调用，列名等不受影响）
+// Dangerous function calls (only real function calls are blocked; column names etc. are unaffected)
 const DANGEROUS_FUNCS = [
   'pg_read_file', 'pg_read_binary_file', 'pg_write_file', 'pg_ls_dir',
   'pg_ls_logdir', 'pg_ls_waldir', 'pg_stat_file', 'pg_relation_filepath',
@@ -88,12 +88,12 @@ const DANGEROUS_FUNCS = [
 
 export type SafeResult = [true, null] | [false, string]
 
-/** 只允许单条 SELECT / WITH（CTE）查询；拦截写操作、DDL、控制语句与高危函数 */
+/** Only a single SELECT / WITH (CTE) query is allowed; blocks writes, DDL, control statements and dangerous functions */
 export function isSafeSql(sql: string): SafeResult {
-  // 去除注释，避免注释内容干扰判定
+  // Strip comments so their content can't affect the check
   let stripped = sql.replace(/--[^\n]*/g, ' ')
   stripped = stripped.replace(/\/\*.*?\*\//gs, ' ')
-  // 去尾部分号（LLM 可能输出结尾 ;）
+  // Strip trailing semicolons (the LLM may end with ;)
   stripped = pyRstrip(rstripSemicolons(pyRstrip(stripped)))
   const clean = pyStrip(stripped).toUpperCase()
 
@@ -104,7 +104,7 @@ export function isSafeSql(sql: string): SafeResult {
     return [false, '仅允许单条语句，不能包含分号']
   }
 
-  // 关键字/函数判定在剥离字面量后进行，避免字符串内容误杀（真实防护由只读引擎兜底）
+  // Keyword/function checks run after stripping literals so string contents can't cause false positives (the read-only engine is the real protection)
   const code = stripLiterals(clean).toUpperCase()
 
   for (const [kw, re] of CONTROL_KEYWORDS) {
@@ -124,7 +124,7 @@ const FENCE_SQL_START = new RegExp(`^\`\`\`sql${PY_WS_RUN}`, 'iu')
 const FENCE_START = new RegExp(`^\`\`\`${PY_WS_RUN}`, 'u')
 const FENCE_END = new RegExp(`${PY_WS_RUN}\`\`\`$`, 'u')
 
-/** 去除 LLM 可能输出的 markdown 代码块包装 */
+/** Strip the markdown code-fence wrapper the LLM may output */
 export function cleanSql(raw: string): string {
   let sql = pyStrip(raw)
   sql = sql.replace(FENCE_SQL_START, '')
@@ -133,7 +133,7 @@ export function cleanSql(raw: string): string {
   return pyStrip(sql)
 }
 
-/** 只读执行前：去尾部分号与空白后包裹 LIMIT，强制服务端行数上限（多取 1 行用于判断 truncated） */
+/** Before read-only execution: strip trailing semicolons and whitespace, then wrap with LIMIT to enforce a server-side row cap (fetch 1 extra row to detect truncated) */
 export function wrapReadonlySql(sql: string): string {
   const body = pyRstrip(rstripSemicolons(pyRstrip(sql)))
   return 'SELECT * FROM (' + body + ') AS _q LIMIT ' + String(MAX_SQL_ROWS + 1)

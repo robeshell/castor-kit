@@ -1,12 +1,12 @@
 /**
- * 密码哈希，存储格式：`pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`
+ * Password hashing; storage format: `pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`
  *
- * - salt 是 16 位 [A-Za-z0-9] 字符串，按 UTF-8 字节参与计算（不做 base64/hex 解码）
- * - 派生长度 = 摘要长度（sha256 为 32 字节），输出小写 hex
- * - method 里省略迭代次数时按默认值 1_000_000 处理
+ * - salt is a 16-char [A-Za-z0-9] string, used as UTF-8 bytes (no base64/hex decoding)
+ * - derived length = digest length (32 bytes for sha256), output as lowercase hex
+ * - when method omits the iteration count, the default 1_000_000 is used
  *
- * 新哈希一律写成该格式，与库中已有的密码哈希保持可互验。
- * 一律使用异步 pbkdf2：100 万次迭代同步执行会阻塞事件循环约 0.3–0.5s。
+ * New hashes are always written in this format so they stay mutually verifiable with existing password hashes in the DB.
+ * Always use async pbkdf2: running 1M iterations synchronously would block the event loop for ~0.3–0.5s.
  */
 
 import { pbkdf2, randomInt, timingSafeEqual } from 'node:crypto'
@@ -59,7 +59,7 @@ export async function generatePasswordHash(
   return `pbkdf2:sha256:${iterations}$${salt}$${hash.toString('hex')}`
 }
 
-/** 校验失败（含格式不识别、非字符串密码）一律返回 false，不抛异常。 */
+/** Any verification failure (incl. unrecognized format or non-string password) returns false; never throws. */
 export async function checkPasswordHash(pwhash: string | null | undefined, password: unknown): Promise<boolean> {
   if (typeof pwhash !== 'string' || typeof password !== 'string') return false
   const parts = pwhash.split('$')

@@ -16,18 +16,22 @@ import { useAuth } from '@/context/AuthContext'
 import NotificationBell from '@/components/app/NotificationBell'
 import ThemeToggle from '@/components/app/ThemeToggle'
 import { findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
+import LanguageSwitcher from '@/components/app/LanguageSwitcher'
+import { menuLabel } from '@/lib/menu-label'
+import { useTranslation } from 'react-i18next'
 
-const STATIC_TITLES = { '/profile': '个人设置', '/403': '无访问权限' }
+const STATIC_TITLES = { '/profile': '个人设置', '/403': '无访问权限' }  // The Chinese source text is the i18n key
 
 export default function TopBar({ onOpenSearch }) {
+  const { t } = useTranslation()
   const { menus } = useAuth()
   const location = useLocation()
   const trail = useMemo(() => {
     const active = findActiveMenu(flattenMenus(menus), location.pathname)
-    if (active) return [...active.parents.map((p) => ({ name: p.name })), { name: active.name, current: true }]
+    if (active) return [...active.parents.map((p) => ({ name: menuLabel(p) })), { name: menuLabel(active), current: true }]
     const title = STATIC_TITLES[location.pathname]
-    return title ? [{ name: title, current: true }] : []
-  }, [menus, location.pathname])
+    return title ? [{ name: t(title), current: true }] : []
+  }, [menus, location.pathname, t])
 
   return (
     <header className="bg-background/80 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur-md md:px-6">
@@ -37,7 +41,7 @@ export default function TopBar({ onOpenSearch }) {
         <BreadcrumbList className="flex-nowrap">
           <BreadcrumbItem className="hidden shrink-0 whitespace-nowrap sm:inline-flex">
             <BreadcrumbLink asChild>
-              <Link to="/">工作台</Link>
+              <Link to="/">{t('工作台')}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           {trail.map((item, index) => (
@@ -60,19 +64,20 @@ export default function TopBar({ onOpenSearch }) {
         className="bg-card text-muted-foreground hover:text-foreground hidden h-8 w-64 items-center gap-2 rounded-lg px-2.5 text-[13px] shadow-[0_0_0_1px_var(--border)] transition-colors md:flex"
       >
         <Search className="size-3.5" />
-        <span className="flex-1 text-left">搜索或跳转…</span>
+        <span className="flex-1 text-left">{t('搜索或跳转…')}</span>
         <Kbd>⌘K</Kbd>
       </button>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={onOpenSearch}
-          aria-label="搜索"
+          aria-label={t('搜索')}
           className="hover:bg-accent flex size-8 items-center justify-center rounded-md md:hidden"
         >
           <Search className="size-4" />
         </button>
         <NotificationBell />
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
     </header>

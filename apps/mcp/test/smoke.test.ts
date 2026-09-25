@@ -1,8 +1,8 @@
 /**
- * MCP 冒烟测试：用 SDK 的 Client + StdioClientTransport 真实拉起 src/index.ts，走一遍 stdio 协议。
+ * MCP smoke test: actually launches src/index.ts with the SDK's Client + StdioClientTransport and exercises the stdio protocol.
  *
- * 运行：pnpm --filter @castor-kit/mcp test
- * get_menu_tree 需要数据库：设置 TEST_DATABASE_URL 时以 NODE_ENV=test 连该库，否则跳过。
+ * Run: pnpm --filter @castor-kit/mcp test
+ * get_menu_tree needs a database: when TEST_DATABASE_URL is set it connects to that DB with NODE_ENV=test, otherwise it is skipped.
  */
 
 import assert from 'node:assert/strict'

@@ -1,5 +1,5 @@
 /**
- * 定时任务接口
+ * Scheduled task API
  */
 
 import { eq, like, sql } from 'drizzle-orm'
@@ -24,7 +24,7 @@ const T = '/api/admin/scheduled-tasks'
 let app: FastifyInstance
 let handle: DbHandle
 let s: AuthedSession
-/** 没有任何定时任务权限的用户 */
+/** A user with no scheduled task permissions */
 let nobody: AuthedSession
 
 async function seedTask(values: Partial<typeof scheduled_tasks.$inferInsert> = {}): Promise<ScheduledTask> {
@@ -63,7 +63,7 @@ beforeAll(async () => {
   handle = openTestDb()
   await handle.db.delete(scheduled_tasks).where(like(scheduled_tasks.task_code, `${P}%`))
   app = await buildTestApp()
-  // createFixture 会先清理所有 ck_test_ 用户（含 super 账号），所以先建夹具再登录 super
+  // createFixture first cleans up all ck_test_ users (including the super account), so create fixtures before logging in as super
   await createFixture(handle)
   nobody = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD)
   s = await superAdminSession(app, handle)
@@ -163,7 +163,7 @@ describe('新增', () => {
     expect(body.timeout_seconds).toBe(10)
     expect(body.is_active).toBe(true)
     expect(body.request_headers).toBe('{"b": 1.0, "a": [1, "x"]}')
-    // “日”与“周”AND：下一个既是 1 号又是周一的日子
+    // Day-of-month and day-of-week are ANDed: the next day that is both the 1st and a Monday
     expect(body.next_run_at).toMatch(/^\d{4}-\d{2}-01T00:00:00$/)
     const [y, m] = body.next_run_at.split('-').map(Number)
     expect(new Date(Date.UTC(y, m - 1, 1)).getUTCDay()).toBe(1)
@@ -191,7 +191,7 @@ describe('新增', () => {
   })
 
   it('请求地址不合法：400 + 具体原因（校验在名称 / 编码 / Cron 之后）', async () => {
-    // 期望文案；RegExp 用于 localhost（不同机器先解析出 ::1 或 127.0.0.1）
+    // Expected message; RegExp is for localhost (different machines resolve ::1 or 127.0.0.1 first)
     const cases: Array<[unknown, string | RegExp]> = [
       [undefined, '请求地址不能为空'],
       ['', '请求地址不能为空'],
@@ -207,7 +207,7 @@ describe('新增', () => {
       if (error instanceof RegExp) expect(res.json().error).toMatch(error)
       else expect(res.json()).toEqual({ error })
     }
-    // 空 body：先报名称（与表单字段顺序一致）
+    // Empty body: the name error is reported first (same order as the form fields)
     const empty = await s.inject({ method: 'POST', url: T, payload: {} })
     expect([empty.statusCode, empty.json()]).toEqual([400, { error: '任务名称不能为空' }])
     expect(await handle.db.select().from(scheduled_tasks).where(eq(scheduled_tasks.task_code, `${P}create_url`))).toHaveLength(0)
@@ -246,7 +246,7 @@ describe('详情 / 编辑 / 删除', () => {
 
     const off = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { is_active: false } })
     expect(off.json().next_run_at).toBeNull()
-    // 非法 is_active / timeout 回落当前值
+    // Invalid is_active / timeout fall back to the current value
     const keep = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { is_active: 'maybe', timeout_seconds: 'x' } })
     expect(keep.json()).toMatchObject({ is_active: false, timeout_seconds: 1 })
   })
@@ -279,9 +279,9 @@ describe('详情 / 编辑 / 删除', () => {
       const res = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload })
       expect([res.statusCode, res.json()]).toEqual([400, { error }])
     }
-    // 自己的编码不算重复
+    // Its own code doesn't count as a duplicate
     expect((await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { task_code: task.task_code } })).statusCode).toBe(200)
-    // urlsplit ValueError：400「请求地址格式不合法」
+    // urlsplit ValueError: 400 "请求地址格式不合法"
     const bad = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { request_url: 'http://[::1/x' } })
     expect([bad.statusCode, bad.json()]).toEqual([400, { error: '请求地址格式不合法' }])
   })
@@ -353,7 +353,7 @@ describe('手动执行 / 执行记录', () => {
     )
     expect(body.items[1].started_at).toBe('2026-09-01T00:00:00.100000')
     expect((await s.inject({ url: `${T}/runs?task_id=${task.id}&status=success` })).json().total).toBe(1)
-    // task_id 非法 → 不过滤
+    // Invalid task_id → no filtering
     expect((await s.inject({ url: `${T}/runs?task_id=abc&per_page=1` })).json().per_page).toBe(1)
     const denied = await nobody.inject({ url: `${T}/runs` })
     expect([denied.statusCode, denied.json()]).toEqual([403, { error: '无权限查看执行记录' }])

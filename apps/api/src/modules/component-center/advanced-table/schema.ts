@@ -1,7 +1,7 @@
 /**
- * 高级表格页 schema 层
+ * Advanced table page schema layer
  *
- * 注意这里的 parse_bool 与 kanban/detail_tabs 的不同：认 on/off/是/否，未知值回落默认值。
+ * Note this parse_bool differs from kanban/detail_tabs: it accepts on/off/'是'/'否' and falls back to the default for unknown values.
  */
 
 import { pyFloat, pyInt, pyStr, pyTruthy } from '@/common/py'
@@ -54,8 +54,8 @@ export function hasKey(data: Record<string, unknown>, key: string): boolean {
 }
 
 /**
- * 浮点数 → numeric 参数文本：`String(number)` 为最短往返表示（NaN/±Infinity 用 PG 的字面量），
- * 数据库按 numeric(7,2) 舍入。
+ * Float → numeric parameter text: `String(number)` is the shortest round-trip representation (NaN/±Infinity use PG literals);
+ * the DB rounds to numeric(7,2).
  */
 export function floatToNumericParam(value: number): string {
   if (Number.isNaN(value)) return 'NaN'
@@ -71,7 +71,7 @@ function stripDecimal(text: string): string {
   return t === '0' ? '0' : `${neg ? '-' : ''}${t}`
 }
 
-/** numeric 与浮点数按精确值比较（'0.10' 不等于 0.1） */
+/** Compare numeric and float by exact value ('0.10' is not equal to 0.1) */
 export function numericEqualsFloat(numeric: string | null, value: number): boolean {
   if (numeric === null || numeric === 'NaN' || !Number.isFinite(value) || Math.abs(value) >= 1e21) return false
   const exact = stripDecimal(value.toFixed(100))
@@ -79,13 +79,13 @@ export function numericEqualsFloat(numeric: string | null, value: number): boole
   return exact === stripDecimal(numeric)
 }
 
-/** 保留 2 位小数，Python `round(x, 2)` 语义：按精确二进制值舍入，恰好一半时取偶 */
+/** Round to 2 decimals with Python `round(x, 2)` semantics: rounds the exact binary value, ties go to even */
 export function pyRound2(x: number): number {
   if (!Number.isFinite(x)) return x
   const t = x * 8
-  // 恰好落在 .xx5 上的 double 只有 m/8（m 为奇数）这一类
+  // Only doubles of the form m/8 (m odd) land exactly on .xx5
   if (Number.isInteger(t) && Math.abs(t) % 2 === 1) {
-    const mag = Math.abs(x) * 100 // m*12.5，精确
+    const mag = Math.abs(x) * 100 // m*12.5, exact
     const lower = Math.floor(mag)
     const n = lower % 2 === 0 ? lower : lower + 1
     return (x < 0 ? -n : n) / 100

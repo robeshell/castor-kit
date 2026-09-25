@@ -1,11 +1,11 @@
 /**
- * 迁移链完整性
+ * Migration chain integrity
  *
- * 并行生成迁移会让链分叉；Drizzle 迁移链需满足：
- * - meta/_journal.json 的 entries：idx 从 0 连续递增、tag 唯一且以 4 位 idx 开头、when 严格递增
- *   （migrator 只执行 folderMillis 大于库中最后一条记录的迁移，when 乱序 = 迁移被静默跳过）
- * - 每条 entry 有 <tag>.sql 与 meta/<idx>_snapshot.json；drizzle/ 下没有未登记的 .sql
- * - snapshot 的 prevId 串成单链（首条 prevId 为全 0 UUID）：两人并行 generate 会得到同一个 prevId → 分叉
+ * Generating migrations in parallel forks the chain; a Drizzle migration chain must satisfy:
+ * - meta/_journal.json entries: idx increments continuously from 0, tags are unique and start with the 4-digit idx, when is strictly increasing
+ *   (the migrator only runs migrations whose folderMillis is greater than the last record in the database; out-of-order when = migrations silently skipped)
+ * - every entry has <tag>.sql and meta/<idx>_snapshot.json; no unregistered .sql under drizzle/
+ * - snapshot prevIds form a single chain (the first prevId is the all-zero UUID): two people running generate in parallel get the same prevId → fork
  */
 
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -51,7 +51,7 @@ function checkMigrationChain(drizzleDir: string): ChainResult {
     .filter((f) => !tags.includes(f.replace(/\.sql$/, '')))
   if (orphanSql.length) details.push(`SQL 文件未登记到 journal: ${orphanSql.join(', ')}`)
 
-  // snapshot prevId 链：每个 snapshot 指向上一个，首尾相接成单链
+  // snapshot prevId chain: each snapshot points to the previous one, forming a single linked chain
   const snapshots: Array<{ id: string; prevId: string; tag: string }> = []
   for (const entry of entries) {
     const file = join(drizzleDir, 'meta', `${String(entry.idx).padStart(4, '0')}_snapshot.json`)
@@ -82,7 +82,7 @@ function checkMigrationChain(drizzleDir: string): ChainResult {
   return { passed: true, head: entries[entries.length - 1]!.tag }
 }
 
-// ---- 夹具 ----
+// ---- Fixtures ----
 
 const tmpDirs: string[] = []
 afterEach(() => {

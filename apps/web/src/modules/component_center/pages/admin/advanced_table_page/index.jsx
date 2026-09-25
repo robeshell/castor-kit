@@ -19,6 +19,7 @@ import {
   Undo2,
   X,
 } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -96,7 +97,7 @@ const ALL_COLUMNS = [
   { key: 'updated_at', label: '更新时间' },
 ]
 
-// 操作列固定在右侧：横向滚动时保持不透明底色，并与行 hover / 选中态同色
+// Actions column is pinned right: keeps an opaque background while scrolling horizontally and matches row hover / selected colors
 const STICKY_CELL =
   'sticky right-0 z-[1] bg-card shadow-[inset_1px_0_0_var(--border),-10px_0_12px_-12px_rgba(15,23,42,0.28)] transition-colors duration-150 group-hover/row:bg-[color-mix(in_srgb,var(--muted)_40%,var(--card))] group-data-[state=selected]/row:bg-[color-mix(in_srgb,var(--primary)_9%,var(--card))]'
 const STICKY_HEAD = 'sticky right-0 z-[1] bg-[color-mix(in_srgb,var(--muted)_40%,var(--card))] shadow-[inset_1px_0_0_var(--border)]'
@@ -122,6 +123,7 @@ function NumberCell({ value, onChange }) {
 }
 
 function SortableItem({ item, index }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   return (
     <div
@@ -140,12 +142,13 @@ function SortableItem({ item, index }) {
       <span className="text-muted-foreground w-5 text-right text-xs tabular-nums">{index + 1}</span>
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{item.name}</span>
       <span className="text-muted-foreground rounded-md border px-1.5 font-mono text-[11px]">{item.row_code}</span>
-      <span className="text-muted-foreground w-20 text-right text-xs tabular-nums">排序值: {item.sort_order}</span>
+      <span className="text-muted-foreground w-20 text-right text-xs tabular-nums">{t('排序值: {{value}}', { value: item.sort_order })}</span>
     </div>
   )
 }
 
 export default function AdvancedTablePage() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getAdvancedTableRows(params).catch((err) => {
@@ -187,14 +190,14 @@ export default function AdvancedTablePage() {
   useEffect(() => {
     fetchStats()
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load only
   }, [])
 
   const onSearch = () => {
     list.handleSearch({ search: search.trim(), category, pinned_only: pinnedOnly })
   }
 
-  // ── 行内编辑 ─────────────────────────────────────────────
+  // ── Inline editing ───────────────────────────────────────
   const setDraft = (key) => (value) => setEditingDraft((prev) => ({ ...prev, [key]: value }))
 
   const openInlineEdit = (record) => {
@@ -272,7 +275,7 @@ export default function AdvancedTablePage() {
     }
   }
 
-  // ── 拖拽排序 ─────────────────────────────────────────────
+  // ── Drag-and-drop sorting ────────────────────────────────
   const openSortSheet = () => {
     setSortItems([...data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map((item) => ({ ...item })))
     setSortSheetVisible(true)
@@ -291,7 +294,7 @@ export default function AdvancedTablePage() {
       .finally(() => setSortSaving(false))
   }
 
-  // ── 批量操作 ─────────────────────────────────────────────
+  // ── Batch actions ────────────────────────────────────────
   const warnEmpty = () => toast.warning('请先勾选数据')
 
   const doBatchSetStatus = (nextStatus) => {
@@ -324,6 +327,7 @@ export default function AdvancedTablePage() {
     const safeSortOrder = Math.floor(Date.now() / 1000)
     setCreating(true)
     createAdvancedTableRow({
+      // i18n-ignore-next-line: default content of the demo record saved to the database
       name: `新记录-${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`,
       row_code: rowCode,
       category: 'general',
@@ -332,10 +336,12 @@ export default function AdvancedTablePage() {
       priority: 50,
       progress: 0,
       score: 0,
+      // i18n-ignore-next-line: default content of the demo record saved to the database
       tags: '新建',
       is_active: true,
       is_pinned: false,
       sort_order: safeSortOrder,
+      // i18n-ignore-next-line: default content of the demo record saved to the database
       remark: '可立即进行行内编辑',
     })
       .then(() => {
@@ -348,7 +354,7 @@ export default function AdvancedTablePage() {
       .finally(() => setCreating(false))
   }
 
-  // ── 列定义 ───────────────────────────────────────────────
+  // ── Column definitions ───────────────────────────────────
   const isEditing = (record) => editingRowId === record.id
   const columnDefs = {
     row_code: {
@@ -375,7 +381,7 @@ export default function AdvancedTablePage() {
       title: '分类',
       dataIndex: 'category',
       width: 110,
-      render: (value) => CATEGORY_MAP[value] || value || '-',
+      render: (value) => (CATEGORY_MAP[value] ? t(CATEGORY_MAP[value]) : value || '-'),
     },
     owner: {
       title: '负责人',
@@ -401,7 +407,7 @@ export default function AdvancedTablePage() {
             <SelectContent>
               {STATUS_OPTIONS.map((o) => (
                 <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+                  {t(o.label)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -469,7 +475,7 @@ export default function AdvancedTablePage() {
       dataIndex: 'is_active',
       width: 80,
       render: (value, record) => (
-        <Switch size="sm" checked={Boolean(value)} onCheckedChange={(checked) => toggleField(record, 'is_active', checked)} aria-label="启用" />
+        <Switch size="sm" checked={Boolean(value)} onCheckedChange={(checked) => toggleField(record, 'is_active', checked)} aria-label={t('启用')} />
       ),
     },
     is_pinned: {
@@ -477,7 +483,7 @@ export default function AdvancedTablePage() {
       dataIndex: 'is_pinned',
       width: 80,
       render: (value, record) => (
-        <Switch size="sm" checked={Boolean(value)} onCheckedChange={(checked) => toggleField(record, 'is_pinned', checked)} aria-label="置顶" />
+        <Switch size="sm" checked={Boolean(value)} onCheckedChange={(checked) => toggleField(record, 'is_pinned', checked)} aria-label={t('置顶')} />
       ),
     },
     updated_at: {
@@ -503,20 +509,20 @@ export default function AdvancedTablePage() {
           <div className="flex justify-end gap-1">
             <Button size="sm" className="h-7 px-2.5" disabled={savingRowId === record.id} onClick={() => saveInlineEdit(record)}>
               {savingRowId === record.id ? <Spinner /> : null}
-              保存
+              {t('保存')}
             </Button>
             <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingRowId(null)}>
-              取消
+              {t('取消')}
             </Button>
           </div>
         ) : (
           <div className="flex justify-end gap-0.5">
             <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openInlineEdit(record)}>
-              行内编辑
+              {t('行内编辑')}
             </Button>
             <ConfirmAction title="确认删除该记录？" description={record.name} confirmText="删除" onConfirm={() => removeRow(record)}>
               <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-                删除
+                {t('删除')}
               </Button>
             </ConfirmAction>
           </div>
@@ -542,19 +548,19 @@ export default function AdvancedTablePage() {
               }}
             >
               <RefreshCw />
-              刷新
+              {t('刷新')}
             </Button>
             <Button variant="outline" size="sm" onClick={openSortSheet}>
               <ArrowUpDown />
-              拖拽排序
+              {t('拖拽排序')}
             </Button>
             <Button variant="outline" size="sm" disabled={!lastSnapshot} onClick={undoLastEdit}>
               <Undo2 />
-              撤销上次编辑
+              {t('撤销上次编辑')}
             </Button>
             <Button size="sm" variant="brand" onClick={() => setCreateVisible(true)}>
               <Plus />
-              新增
+              {t('新增')}
             </Button>
           </>
         }
@@ -576,14 +582,14 @@ export default function AdvancedTablePage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8">
                   <Columns3 />
-                  列设置
+                  {t('列设置')}
                   <span className="text-muted-foreground tabular-nums">
                     {visibleColumns.length}/{ALL_COLUMNS.length}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">显示列</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">{t('显示列')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {ALL_COLUMNS.map((item) => (
                   <DropdownMenuCheckboxItem
@@ -598,7 +604,7 @@ export default function AdvancedTablePage() {
                       )
                     }
                   >
-                    {item.label}
+                    {t(item.label)}
                   </DropdownMenuCheckboxItem>
                 ))}
               </DropdownMenuContent>
@@ -609,7 +615,7 @@ export default function AdvancedTablePage() {
           <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" />
           <label className="text-muted-foreground flex h-8 cursor-pointer items-center gap-2 rounded-md border px-2.5 text-[13px]">
             <Switch size="sm" checked={pinnedOnly} onCheckedChange={setPinnedOnly} />
-            仅看置顶
+            {t('仅看置顶')}
           </label>
         </FilterBar>
 
@@ -630,10 +636,16 @@ export default function AdvancedTablePage() {
                   transition={{ duration: 0.18 }}
                   className="bg-brand-soft text-primary inline-flex h-8 items-center gap-1.5 rounded-md pr-1 pl-2.5 text-xs"
                 >
-                  已勾选 <span className="font-medium tabular-nums">{selectedRowKeys.length}</span> 条
+                  <span>
+                    <Trans
+                      i18nKey="已勾选 <0>{{count}}</0> 条"
+                      values={{ count: selectedRowKeys.length }}
+                      components={[<span key="count" className="font-medium tabular-nums" />]}
+                    />
+                  </span>
                   <button
                     type="button"
-                    aria-label="清空勾选"
+                    aria-label={t('清空勾选')}
                     onClick={() => setSelectedRowKeys([])}
                     className="hover:bg-primary/10 flex size-6 items-center justify-center rounded"
                   >
@@ -644,15 +656,15 @@ export default function AdvancedTablePage() {
             </AnimatePresence>
             <Button variant="outline" size="sm" className="h-8" onClick={() => doBatchSetStatus('published')}>
               <Send />
-              批量发布
+              {t('批量发布')}
             </Button>
             <Button variant="outline" size="sm" className="h-8" onClick={() => doBatchSetStatus('archived')}>
               <Archive />
-              批量归档
+              {t('批量归档')}
             </Button>
             <ConfirmAction
               title="确认批量删除选中记录？"
-              description={`将删除已勾选的 ${selectedRowKeys.length} 条记录，删除后不可恢复。`}
+              description={t('将删除已勾选的 {{count}} 条记录，删除后不可恢复。', { count: selectedRowKeys.length })}
               confirmText="删除"
               disabled={!selectedRowKeys.length}
               onConfirm={doBatchDelete}
@@ -664,7 +676,7 @@ export default function AdvancedTablePage() {
                 onClick={selectedRowKeys.length ? undefined : warnEmpty}
               >
                 <Trash2 />
-                批量删除
+                {t('批量删除')}
               </Button>
             </ConfirmAction>
           </div>
@@ -685,32 +697,35 @@ export default function AdvancedTablePage() {
         />
       </div>
 
-      {/* 新增确认 */}
+      {/* Create confirmation */}
       <Dialog open={createVisible} onOpenChange={(next) => !creating && setCreateVisible(next)}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>新增记录</DialogTitle>
-            <DialogDescription>将创建一条可直接行内编辑的默认记录。</DialogDescription>
+            <DialogTitle>{t('新增记录')}</DialogTitle>
+            <DialogDescription>{t('将创建一条可直接行内编辑的默认记录。')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" disabled={creating} onClick={() => setCreateVisible(false)}>
-              取消
+              {t('取消')}
             </Button>
             <Button disabled={creating} onClick={createRow}>
               {creating ? <Spinner /> : null}
-              确定
+              {t('确定')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 拖拽排序 */}
+      {/* Drag-and-drop sorting */}
       <Sheet open={sortSheetVisible} onOpenChange={(next) => !sortSaving && setSortSheetVisible(next)}>
         <SheetContent className="gap-0 p-0 sm:max-w-none" style={{ width: 'min(520px, 100vw)' }}>
           <SheetHeader className="border-b px-6 py-4">
-            <SheetTitle>拖拽排序</SheetTitle>
+            <SheetTitle>{t('拖拽排序')}</SheetTitle>
             <SheetDescription>
-              拖动条目后保存，系统会更新 <code className="bg-muted rounded px-1 font-mono text-xs">sort_order</code>，表格将按新顺序展示。
+              <Trans
+                i18nKey="拖动条目后保存，系统会更新 <0>sort_order</0>，表格将按新顺序展示。"
+                components={[<code key="field" className="bg-muted rounded px-1 font-mono text-xs" />]}
+              />
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="min-h-0 flex-1">
@@ -738,17 +753,17 @@ export default function AdvancedTablePage() {
                   </SortableContext>
                 </DndContext>
               ) : (
-                <p className="text-muted-foreground py-10 text-center text-[13px]">当前页暂无数据</p>
+                <p className="text-muted-foreground py-10 text-center text-[13px]">{t('当前页暂无数据')}</p>
               )}
             </div>
           </ScrollArea>
           <SheetFooter className="flex-row justify-end gap-2 border-t px-6 py-4">
             <Button variant="outline" disabled={sortSaving} onClick={() => setSortSheetVisible(false)}>
-              取消
+              {t('取消')}
             </Button>
             <Button disabled={sortSaving} onClick={saveSort}>
               {sortSaving ? <Spinner /> : null}
-              保存排序
+              {t('保存排序')}
             </Button>
           </SheetFooter>
         </SheetContent>

@@ -1,9 +1,10 @@
 import { useEffect, useId } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
-/** 数字滚动（尊重 reduced motion 由全局 CSS 处理动画，这里用 motion 的数值插值） */
+/** Rolling number (reduced motion for animations is handled by global CSS; here we use motion's value interpolation) */
 export function CountUp({ value = 0, decimals = 0, className }) {
   const mv = useMotionValue(0)
   const text = useTransform(mv, (v) =>
@@ -16,10 +17,10 @@ export function CountUp({ value = 0, decimals = 0, className }) {
   return <motion.span className={cn('tabular-nums', className)}>{text}</motion.span>
 }
 
-/** 迷你趋势线（渐变面积） */
+/** Mini trend line (gradient area) */
 export function Sparkline({ points = [], width = 96, height = 32, className }) {
   const id = useId().replace(/:/g, '')
-  // 有效点不足 2 个时画出来只是一条平线 + 末尾尖刺，不如不画
+  // With fewer than 2 valid points it would just draw a flat line + a spike at the end; better not to draw it
   if (points.filter((p) => Number(p) > 0).length < 2) return null
   const max = Math.max(...points)
   const min = Math.min(...points)
@@ -55,12 +56,13 @@ export function Sparkline({ points = [], width = 96, height = 32, className }) {
 }
 
 /**
- * 指标卡：标签 + 大数字（滚动）+ 变化徽章 + 迷你趋势
+ * Stat card: label + big number (rolling) + delta badge + mini trend
  *   <StatCard label="注册用户" value={128} suffix="人" delta="+12%" trend={[…]} hint="较上周 +3" icon={Users} />
- * trend 只在数据真有走势时传；否则用 hint 放一句说明文字。
- * loading 为 true 时数字与徽章位置显示骨架（不要用 0 占位，看起来像真实数据是 0）。
+ * Only pass trend when the data actually has a trend; otherwise put a line of explanatory text in hint.
+ * When loading is true, the number and badge areas show skeletons (don't use 0 as a placeholder; it looks like the real data is 0).
  */
 export default function StatCard({ label, value, suffix, decimals = 0, delta, deltaTone = 'success', trend, hint, icon: Icon, loading = false, className, onClick }) {
+  const tx = useTx()
   const toneClass = deltaTone === 'danger' ? 'bg-danger-soft text-danger' : deltaTone === 'neutral' ? 'bg-muted text-muted-foreground' : 'bg-success-soft text-success'
   return (
     <div
@@ -74,7 +76,7 @@ export default function StatCard({ label, value, suffix, decimals = 0, delta, de
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground flex items-center gap-2 text-[13px]">
           {Icon ? <Icon className="size-3.5" /> : null}
-          {label}
+          {tx(label)}
         </span>
         {delta && !loading ? <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-medium', toneClass)}>{delta}</span> : null}
       </div>
@@ -85,13 +87,13 @@ export default function StatCard({ label, value, suffix, decimals = 0, delta, de
           ) : (
             <>
               <CountUp value={value} decimals={decimals} className="text-[26px] leading-none font-semibold tracking-tight" />
-              {suffix ? <span className="text-muted-foreground text-xs">{suffix}</span> : null}
+              {suffix ? <span className="text-muted-foreground text-xs">{tx(suffix)}</span> : null}
             </>
           )}
         </div>
         {trend ? <Sparkline points={trend} /> : null}
       </div>
-      {hint ? <div className="text-muted-foreground -mt-1 truncate text-xs">{hint}</div> : null}
+      {hint ? <div className="text-muted-foreground -mt-1 truncate text-xs">{tx(hint)}</div> : null}
     </div>
   )
 }

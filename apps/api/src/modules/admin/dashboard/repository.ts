@@ -1,7 +1,7 @@
 /**
- * 首页仪表盘 repository 层（只读）
+ * Home dashboard repository layer (read-only)
  *
- * “今天”按 UTC 日期计算，全部下推到 SQL（不经过 JS Date）。
+ * "Today" is the UTC date, computed entirely in SQL (never via JS Date).
  */
 
 import { count, sql } from 'drizzle-orm'
@@ -36,7 +36,7 @@ export class DashboardRepository {
     return row?.n ?? 0
   }
 
-  /** 近 7 天（含今天，按日期升序）每日操作日志数与 `MM/DD` 标签 */
+  /** Daily operation log counts and `MM/DD` labels for the last 7 days (including today, ascending by date) */
   async weekLogCounts(): Promise<{ label: string; count: number }[]> {
     const result = await this.db.execute<{ label: string; cnt: number }>(sql`
       SELECT to_char(d.day, 'MM/DD') AS label, COALESCE(c.cnt, 0)::int AS cnt

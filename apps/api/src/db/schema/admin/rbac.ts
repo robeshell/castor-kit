@@ -1,5 +1,5 @@
 /**
- * RBAC 表：admin_users / roles / menus / user_roles / role_menus
+ * RBAC tables: admin_users / roles / menus / user_roles / role_menus
  */
 
 import { relations } from 'drizzle-orm'
@@ -111,7 +111,7 @@ export const role_menus = pgTable(
   ],
 )
 
-// ---- relations（只做显式查询，不做隐式懒加载：roles / menus / children） ----
+// ---- relations (explicit queries only, no implicit lazy loading: roles / menus / children) ----
 
 export const admin_users_relations = relations(admin_users, ({ many }) => ({
   user_roles: many(user_roles),
@@ -138,17 +138,17 @@ export const role_menus_relations = relations(role_menus, ({ one }) => ({
   menu: one(menus, { fields: [role_menus.menu_id], references: [menus.id] }),
 }))
 
-// ---- 类型 ----
+// ---- Types ----
 
 export type AdminUser = typeof admin_users.$inferSelect
 export type Role = typeof roles.$inferSelect
 export type Menu = typeof menus.$inferSelect
 
 export type RoleWithMenus = Role & { menus: Menu[] }
-/** 已预加载 roles → menus 的用户 */
+/** User with roles → menus preloaded */
 export type AdminUserWithRoles = AdminUser & { roles: RoleWithMenus[] }
 
-// ---- toDict（接口输出的键与值） ----
+// ---- toDict (API output keys and values) ----
 
 export function roleToDict(role: Role | RoleWithMenus, includeMenus = false) {
   const result: Record<string, unknown> = {
@@ -200,7 +200,7 @@ export interface MenuDict {
   children?: MenuDict[]
 }
 
-/** 菜单输出（不含 children）；带 children 的树由调用方显式查询后组装 */
+/** Menu output (without children); trees with children are assembled by the caller after explicit queries */
 export function menuToDict(menu: Menu): MenuDict {
   return {
     id: menu.id,

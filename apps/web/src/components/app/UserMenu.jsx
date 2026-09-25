@@ -12,6 +12,8 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
+import { roleName } from '@/lib/role-label'
+import { useTranslation } from 'react-i18next'
 
 export function UserAvatar({ name, className = 'size-8' }) {
   return (
@@ -24,11 +26,13 @@ export function UserAvatar({ name, className = 'size-8' }) {
 }
 
 export default function UserMenu() {
+  const { t } = useTranslation()
   const { user, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
-  const roleName = user?.roles?.[0]?.name || '成员'
+  const role = user?.roles?.[0]
+  const roleText = role ? roleName(role) : t('成员')
 
   const handleLogout = async () => {
     await logout()
@@ -47,7 +51,7 @@ export default function UserMenu() {
               <UserAvatar name={user?.username} />
               <div className="grid flex-1 text-left leading-tight">
                 <span className="truncate text-[13px] font-medium">{user?.username}</span>
-                <span className="text-muted-foreground truncate text-[11px]">{roleName}</span>
+                <span className="text-muted-foreground truncate text-[11px]">{roleText}</span>
               </div>
               <ChevronsUpDown className="text-muted-foreground ml-auto size-4" />
             </SidebarMenuButton>
@@ -62,24 +66,24 @@ export default function UserMenu() {
               <UserAvatar name={user?.username} />
               <div className="grid leading-tight">
                 <span className="text-sm font-medium">{user?.username}</span>
-                <span className="text-muted-foreground text-xs">{roleName}</span>
+                <span className="text-muted-foreground text-xs">{roleText}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => navigate('/profile')}>
                 <UserRound />
-                个人设置
+                {t('个人设置')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={toggleTheme}>
                 {isDark ? <Sun /> : <Moon />}
-                {isDark ? '切换浅色模式' : '切换深色模式'}
+                {isDark ? t('切换浅色模式') : t('切换深色模式')}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
               <LogOut />
-              退出登录
+              {t('退出登录')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

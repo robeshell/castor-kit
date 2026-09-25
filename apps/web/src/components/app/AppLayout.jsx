@@ -8,7 +8,7 @@ import { PageLoading } from '@/components/app/StatusPages'
 import CommandMenu from '@/components/app/CommandMenu'
 import TopBar from '@/components/app/TopBar'
 
-/** 应用外壳：侧边栏 + 顶栏 + 内容区（每次路由切换做一次轻量入场动画） */
+/** App shell: sidebar + top bar + content area (a light entrance animation on every route change) */
 export default function AppLayout() {
   const outlet = useOutlet()
   const location = useLocation()

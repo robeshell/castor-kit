@@ -28,6 +28,8 @@
 
 > **加载态：** 用 `<Skeleton>`（200ms 后才淡入、带扫光），不要手写 `animate-pulse`；骨架形状对齐真实内容，指标卡传 `loading`，不要用 0 占位。
 
+> **多语言：** 公共组件会把收到的字符串属性（title / label / placeholder / options[].label / 列 title / rules 文案 / StatusBadge 文字等）按当前语言自动翻译，页面里直接写中文原文并在页面目录 `locales/en-US.json`、`ja-JP.json` 补译文；JSX 里直接写的中文、原生元素属性、带变量文案用 `const { t } = useTranslation()` 的 `t('… {{x}} …', { x })`。菜单名用 `menuLabel(menu)`（`@/lib/menu-label`）。详见 AGENTS.md「多语言（i18n）与代码注释」。
+
 > **文案原则：不写没用的描述。** 页面标题下不放功能介绍；Panel / 弹窗 / 指标卡的描述只在带信息时才写——
 > 数据（「共 N 条」「最近 60 个采样点」）、当前对象（「正在编辑 X」）、约束与后果（「删除后不可恢复」「编码创建后不可修改」）、
 > 快捷键、空状态的下一步。复述标题、介绍功能或技术栈、宣传语一律不写。

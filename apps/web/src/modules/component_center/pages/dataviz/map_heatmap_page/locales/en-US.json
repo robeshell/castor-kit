@@ -1,0 +1,15 @@
+{
+  "Top 10 省份排行": "Top 10 provinces",
+  "{{error}}（地图加载失败时，仅显示排行榜）": "{{error}} (only the ranking is shown when the map fails to load)",
+  "{{value}} 亿元": "{{value}} × 100M CNY",
+  "{{value}}万亿": "CNY {{value}}T",
+  "共 {{count}} 个省级行政区": "{{count}} provincial regions",
+  "刷新数据": "Refresh data",
+  "地图数据加载失败": "Failed to load map data",
+  "地图数据加载失败，请检查本地数据文件": "Failed to load map data. Check the local data file.",
+  "地图热力图": "Map heatmap",
+  "模拟数据": "Mock data",
+  "省级分布": "Distribution by province",
+  "获取地图数据失败": "Failed to load map data",
+  "请检查本地数据文件": "Check the local data file"
+}

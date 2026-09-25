@@ -44,7 +44,7 @@ beforeAll(async () => {
   handle = openTestDb()
   instanceDir = mkdtempSync(join(tmpdir(), 'ck-r3-instance-'))
   app = await buildTestApp({ instanceDir })
-  // createFixture 会先清理所有 ck_test_ 用户，必须在 superAdminSession 之前
+  // createFixture first cleans up all ck_test_ users, so it must run before superAdminSession
   await createFixture(handle)
   s = await superAdminSession(app, handle)
   noPerm = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD)
@@ -193,7 +193,7 @@ describe('list-page CRUD', () => {
       ['GET', `${B}/image/x.png`, '无权限查看图片'],
       ['GET', `${B}/file/x.pdf`, '无权限查看附件'],
       ['POST', `${B}/run-preview`, '无权限执行数据预览'],
-      // versions / rollback：先权限后 404
+      // versions / rollback: permission check before 404
       ['GET', `${B}/99999999/versions`, '无权限查看版本历史'],
       ['POST', `${B}/99999999/versions/1/rollback`, '无权限回滚版本'],
     ]
@@ -253,7 +253,7 @@ describe('list-page CRUD', () => {
     const wrong = await s.inject({ method: 'POST', url: `${B}/${b!.id}/versions/${aVersions[0].id}/rollback` })
     expect(wrong.json()).toEqual({ error: '版本不属于当前记录' })
 
-    // 把 b 的编码改掉，再回滚到 v1（快照里的旧编码被 c 占用）→ 冲突
+    // Change b's code, then roll back to v1 (the old code in the snapshot is taken by c) → conflict
     await s.inject({ method: 'PUT', url: `${B}/${b!.id}`, payload: { query_code: `${P}b2` } })
     await create({ name: 'C', query_code: `${P}b` })
     const conflict = await s.inject({ method: 'POST', url: `${B}/${b!.id}/versions/${v1.id}/rollback` })
@@ -384,7 +384,7 @@ describe('list-page 导入导出', () => {
     expect(i1!.published_at).not.toBeNull()
     const [e1] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}e1`))
     expect(e1).toMatchObject({ name: '改名', version: 2, priority: 0, image_urls: null, keyword: null })
-    // 更新路径不动条件配置
+    // The update path leaves the condition config untouched
     expect(e1!.conditions_json).toContain('"v,1"')
     const [v] = await handle.db
       .select()
@@ -475,7 +475,7 @@ describe('list-page 上传与回读', () => {
     expect((await s.inject({ url: `${B}/image/nope.png` })).json()).toEqual({ error: '资源不存在' })
     expect((await s.inject({ url: `${B}/image/` })).statusCode).toBe(404)
     expect((await s.inject({ url: `${B}/image/%E4%B8%AD` })).json()).toEqual({ error: '无效的图片文件名' })
-    // ../../ 被规整成 “x.txt” 之类的纯文件名，只能读上传目录内的文件
+    // ../../ is normalized to a bare file name like "x.txt", so only files inside the upload directory can be read
     const traversal = await s.inject({ url: `${B}/file/..%2F..%2Fpackage.json` })
     expect(traversal.statusCode).toBe(404)
     expect((await s.inject({ method: 'POST', url: `${B}/image/a.png` })).statusCode).toBe(405)

@@ -167,7 +167,7 @@ describe('notification', () => {
     const hidden = await u.inject({ method: 'DELETE', url: `/api/admin/notifications/${toSuperId}` })
     expect([hidden.statusCode, hidden.json()]).toEqual([404, { error: '通知不存在或无权限' }])
     expect((await u.inject({ method: 'DELETE', url: `/api/admin/notifications/${toFixtureId}` })).json()).toEqual({ success: true })
-    // 已读记录随通知级联删除
+    // Read records are cascade-deleted along with the notification
     expect(await handle.db.select().from(notification_reads).where(eq(notification_reads.notification_id, toFixtureId))).toHaveLength(0)
     expect((await s.inject({ method: 'DELETE', url: `/api/admin/notifications/${globalId}` })).json()).toEqual({ success: true })
     expect((await s.inject({ method: 'DELETE', url: `/api/admin/notifications/${toSuperId}` })).json()).toEqual({ success: true })

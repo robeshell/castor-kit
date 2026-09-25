@@ -1,10 +1,10 @@
 #!/bin/bash
-# castor-kit 一键安装脚本
-# 用法：bash setup.sh
+# castor-kit one-step installer
+# Usage: bash setup.sh
 
 set -e
 
-# ── 颜色 ──────────────────────────────────────────────────────
+# ── Colors ────────────────────────────────────────────────────
 GREEN=$'\033[0;32m'
 YELLOW=$'\033[1;33m'
 RED=$'\033[0;31m'
@@ -16,7 +16,7 @@ warn()    { echo "${YELLOW}!${NC} $1"; }
 error()   { echo "${RED}✗ 错误：$1${NC}"; exit 1; }
 heading() { echo ""; echo "${BOLD}$1${NC}"; }
 
-# ── 欢迎 ──────────────────────────────────────────────────────
+# ── Welcome ───────────────────────────────────────────────────
 clear 2>/dev/null || true
 echo "${BOLD}"
 echo "  ╔══════════════════════════════════════╗"
@@ -27,7 +27,7 @@ echo "  本脚本将自动完成所有配置并启动应用。"
 echo "  全程约 3-5 分钟（取决于网速）。"
 echo ""
 
-# ── 检查 Docker ───────────────────────────────────────────────
+# ── Check Docker ──────────────────────────────────────────────
 heading "第一步：检查运行环境"
 
 if ! command -v docker &>/dev/null; then
@@ -44,10 +44,10 @@ fi
 
 info "Docker 已就绪"
 
-# ── 配置 ──────────────────────────────────────────────────────
+# ── Configuration ─────────────────────────────────────────────
 heading "第二步：初始化配置"
 
-# 如果已有配置，询问是否重新配置
+# If a config already exists, ask whether to reconfigure
 if [ -f ".env.production" ]; then
     echo ""
     read -p "  检测到已有配置文件，是否重新配置？[y/N] " RECONFIG
@@ -65,13 +65,13 @@ if [ -z "$SKIP_CONFIG" ]; then
     echo ""
     ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
 
-    # 询问端口
+    # Ask for the port
     echo ""
     echo "  请设置访问端口（直接回车使用默认端口 5000）："
     read -p "  端口：" APP_PORT
     APP_PORT=${APP_PORT:-5000}
 
-    # 询问 AI 功能
+    # Ask about AI features
     echo ""
     echo "  是否配置 AI 功能（AI 对话、AI 提示词工坊）？"
     read -p "  需要配置 AI？[y/N] " SETUP_AI
@@ -88,11 +88,11 @@ if [ -z "$SKIP_CONFIG" ]; then
         read -p "  模型名称（如 gpt-4o）：" AI_MODEL
     fi
 
-    # 生成随机 SECRET_KEY 与只读账号密码
+    # Generate a random SECRET_KEY and read-only account password
     SECRET_KEY=$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*' < /dev/urandom | head -c 64 2>/dev/null || openssl rand -base64 48)
     POSTGRES_RO_PASSWORD=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24 2>/dev/null || openssl rand -base64 18)
 
-    # 写入配置文件
+    # Write the config file
     cat > .env.production <<EOF
 # castor-kit 生产环境配置
 # 此文件由 setup.sh 自动生成，请勿手动修改 SECRET_KEY
@@ -113,14 +113,14 @@ EOF
     info "配置文件已生成（.env.production）"
 fi
 
-# 加载配置
+# Load the config
 set -a
 # shellcheck disable=SC1091
 source .env.production
 set +a
 APP_PORT=${APP_PORT:-5000}
 
-# ── 配置镜像加速（如 daemon.json 未配置）─────────────────────────
+# ── Configure registry mirrors (if daemon.json has none) ─────────
 configure_mirrors() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         local cfg="$HOME/.docker/daemon.json"
@@ -128,7 +128,7 @@ configure_mirrors() {
         local cfg="/etc/docker/daemon.json"
     fi
 
-    # 已配置则跳过
+    # Skip if already configured
     if [[ -f "$cfg" ]] && grep -q "registry-mirrors" "$cfg" 2>/dev/null; then
         return 0
     fi
@@ -138,7 +138,7 @@ configure_mirrors() {
     mkdir -p "$(dirname "$cfg")"
 
     if [[ -f "$cfg" ]]; then
-        # 合并到已有配置
+        # Merge into the existing config
         python3 -c "
 import json, sys
 with open('$cfg') as f:
@@ -151,7 +151,7 @@ with open('$cfg', 'w') as f:
         echo "{\"registry-mirrors\": $mirrors}" > "$cfg"
     fi
 
-    # 重启 Docker 使配置生效
+    # Restart Docker to apply the config
     if [[ "$OSTYPE" == "darwin"* ]]; then
         osascript -e 'quit app "Docker"' 2>/dev/null || true
         sleep 2
@@ -170,7 +170,7 @@ with open('$cfg', 'w') as f:
 
 configure_mirrors
 
-# ── 启动 ──────────────────────────────────────────────────────
+# ── Start ─────────────────────────────────────────────────────
 heading "第三步：构建并启动应用"
 echo ""
 echo "  正在构建镜像并启动服务，请稍候..."
@@ -179,7 +179,7 @@ echo ""
 
 docker compose --env-file .env.production up -d --build
 
-# ── 等待健康检查 ───────────────────────────────────────────────
+# ── Wait for health check ──────────────────────────────────────
 heading "第四步：等待服务就绪"
 
 echo ""
@@ -201,7 +201,7 @@ else
     info "服务已就绪"
 fi
 
-# ── 完成 ──────────────────────────────────────────────────────
+# ── Done ──────────────────────────────────────────────────────
 echo ""
 echo "${BOLD}${GREEN}"
 echo "  ╔══════════════════════════════════════╗"

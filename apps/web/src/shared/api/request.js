@@ -1,4 +1,5 @@
 import axios from 'axios'
+import i18n from '@/i18n'
 
 const request = axios.create({
   baseURL: '/api',
@@ -6,7 +7,7 @@ const request = axios.create({
   timeout: 10000,
 })
 
-// CSRF token：登录/getMe 响应会携带，状态变更请求自动附加 X-CSRF-Token 头
+// CSRF token: returned by the login/getMe responses; state-changing requests automatically attach the X-CSRF-Token header
 let _csrfToken = ''
 export const setCsrfToken = (token) => {
   _csrfToken = token || ''
@@ -14,6 +15,9 @@ export const setCsrfToken = (token) => {
 export const getCsrfToken = () => _csrfToken
 
 request.interceptors.request.use((config) => {
+  config.headers = config.headers || {}
+  // The backend translates error and message text based on this header
+  config.headers['Accept-Language'] = i18n.language
   if (_csrfToken && ['post', 'put', 'patch', 'delete'].includes((config.method || '').toLowerCase())) {
     config.headers = config.headers || {}
     config.headers['X-CSRF-Token'] = _csrfToken
@@ -29,7 +33,7 @@ request.interceptors.response.use(
     return res.data
   },
   (err) => {
-    // 401 = 未登录/会话过期：统一整页跳转登录页（登录页本身的 401，如密码错误，除外）
+    // 401 = not logged in / session expired: always do a full-page redirect to the login page (except 401s from the login page itself, e.g. wrong password)
     const status = err.response?.status
     if (status === 401 && window.location.pathname !== '/login') {
       window.location.replace('/login')

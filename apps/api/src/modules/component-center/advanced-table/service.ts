@@ -1,5 +1,5 @@
 /**
- * 高级表格页 service 层
+ * Advanced table page service layer
  */
 
 import { ServiceError } from '@/common/errors'
@@ -54,7 +54,7 @@ export function normalizeSortOrder(value: unknown, fallback = 0): number {
   return sortOrder
 }
 
-/** 只保留与当前行不同的字段（只对值真正变化的字段发 UPDATE；score 按 numeric 与浮点数的精确值比较） */
+/** Keep only fields that differ from the current row (UPDATE only fields whose value actually changed; score compares numeric and float by exact value) */
 function changedFields(row: AdvancedTableRow, patch: AdvancedTableRowPatch, newScore?: number): AdvancedTableRowPatch {
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(patch)) {
@@ -67,7 +67,7 @@ function changedFields(row: AdvancedTableRow, patch: AdvancedTableRowPatch, newS
   return out as AdvancedTableRowPatch
 }
 
-/** `except Exception as e: rollback; raise ServiceError(str(e), 500)`：事务内的一切异常（含 400 业务错误）都变成 500 */
+/** `except Exception as e: rollback; raise ServiceError(str(e), 500)`: every exception in the transaction (including 400 business errors) becomes a 500 */
 function as500(err: unknown): ServiceError {
   return new ServiceError(err instanceof Error ? err.message : String(err), 500)
 }
@@ -111,7 +111,7 @@ export class AdvancedTableService {
     if (!rowCode) throw new ServiceError('编码不能为空')
     if (await this.repo.getByCode(rowCode)) throw new ServiceError('编码已存在')
 
-    // 字段按下列顺序校验：status 的校验先于 sort_order（同时非法时先报 status 的错）
+    // Fields are validated in this order: status before sort_order (if both are invalid, the status error is reported first)
     const values = {
       name,
       row_code: rowCode,
@@ -181,7 +181,7 @@ export class AdvancedTableService {
   async reorderRows(items: unknown) {
     if (!Array.isArray(items)) throw new ServiceError('参数格式错误，需要数组')
     return this.inTx(async (repo) => {
-      // identity map：同一行多次出现时以最后一次为准，commit 时与原值比较
+      // identity map: when the same row appears multiple times the last one wins; compared with the original value on commit
       const loaded = new Map<number, AdvancedTableRow | null>()
       const finalSort = new Map<number, number>()
       for (const item of items) {

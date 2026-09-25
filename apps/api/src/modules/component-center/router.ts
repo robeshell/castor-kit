@@ -1,5 +1,5 @@
 /**
- * component_center 域路由装配
+ * component_center domain route wiring
  */
 
 import type { FastifyInstance } from 'fastify'

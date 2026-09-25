@@ -1,5 +1,5 @@
 /**
- * 工程工具：perf-stats（REST）+ /ws/devtools（真实 ws 连接）
+ * Dev tools: perf-stats (REST) + /ws/devtools (real ws connection)
  */
 
 import { totalmem } from 'node:os'
@@ -73,7 +73,7 @@ describe('perf-stats', () => {
     expect(body.mem_used).toBeLessThanOrEqual(body.mem_total!)
     expect(Number.isInteger(body.ts)).toBe(true)
     expect(Math.abs(body.ts! - Date.now())).toBeLessThan(10_000)
-    // 小数位：MB 1 位、GB 与网络 MB 2 位
+    // Decimal places: 1 for MB, 2 for GB and network MB
     for (const key of ['mem_used', 'mem_total', 'mem_pct', 'cpu', 'disk_pct']) expect(Math.round(body[key]! * 10) / 10).toBe(body[key])
     for (const key of ['disk_used', 'disk_total', 'net_sent', 'net_recv']) expect(Math.round(body[key]! * 100) / 100).toBe(body[key])
   })
@@ -125,7 +125,7 @@ function connect(session: AuthedSession | null, origin?: string): WebSocket {
   return new WebSocket(`ws://127.0.0.1:${port}/ws/devtools`, { headers })
 }
 
-/** 收集消息直到连接关闭 */
+/** Collect messages until the connection closes */
 function untilClosed(ws: WebSocket, timeoutMs = 5000): Promise<WsResult> {
   const messages: string[] = []
   ws.on('message', (data) => messages.push(data.toString()))
@@ -188,7 +188,7 @@ describe('/ws/devtools', () => {
       const texts: string[] = []
       ws.on('message', (d) => texts.push(d.toString()))
       await opened(ws)
-      // 每次推送都要采集一次系统指标（macOS 上 vm_stat 可能要上百毫秒），不用固定时长，等到 3 条或超时
+      // Every push samples system metrics (vm_stat can take hundreds of ms on macOS), so instead of a fixed duration, wait for 3 messages or a timeout
       const deadline = Date.now() + 5000
       while (texts.length < 3 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50))
       expect(texts.length).toBeGreaterThanOrEqual(3)
@@ -213,7 +213,7 @@ describe('/ws/devtools', () => {
     const text = await nextMessage(ws, (t) => t.includes('"echo"'))
     expect(text).toMatch(/^\{"text": "plain text", "type": "echo", "server_ts": \d+\}$/)
 
-    // 连接一打开就发，服务端此时还在做权限查询
+    // Send as soon as the connection opens, while the server is still doing the permission lookup
     const early = new WebSocket(`ws://127.0.0.1:${port}/ws/devtools`, {
       headers: { cookie: `castor_session=${encodeURIComponent(s.cookie)}` },
     })

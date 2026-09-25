@@ -1,5 +1,5 @@
 /**
- * 高级表格页 repository 层（含 service 里直接拼的查询：列表筛选、统计）
+ * Advanced table page repository layer (also holds the queries the service builds directly: list filters, stats)
  */
 
 import { and, asc, count, desc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -31,7 +31,7 @@ const SORTABLE_FIELDS = {
   id: t.id,
 } as const
 
-/** 内联进 `id IN (...)` 时各元素的字面量；bool / list / dict 会让数据库报错 → 500 */
+/** Literal for each element when inlined into `id IN (...)`; bool / list / dict make the DB raise → 500 */
 function idLiteral(value: unknown): SQL {
   if (value === null || value === undefined) return sql`NULL`
   if (typeof value === 'number' && Number.isFinite(value)) return sql.raw(String(value))
@@ -111,7 +111,7 @@ export class AdvancedTableRepository {
     return row ?? null
   }
 
-  /** `AdvancedTableRow.id.in_(ids)`：ids 是请求体里的原始 JSON 值 */
+  /** `AdvancedTableRow.id.in_(ids)`: ids are the raw JSON values from the request body */
   async listByIds(ids: unknown[]): Promise<AdvancedTableRow[]> {
     const literals = ids.map(idLiteral)
     return this.db

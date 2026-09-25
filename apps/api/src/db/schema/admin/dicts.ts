@@ -1,8 +1,8 @@
 /**
  * dict_types / dict_items
  *
- * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL。
- * 注意插入时值为 null 的列要转成 undefined（省略该列）才会触发应用侧默认值。
+ * `.$default()` / createdAt() / updatedAt() are app-side defaults only (no DB DEFAULT) and don't go into the DDL.
+ * Note: columns whose insert value is null must be converted to undefined (omitted) to trigger the app-side default.
  */
 
 import { relations } from 'drizzle-orm'
@@ -56,7 +56,7 @@ export const dict_items_relations = relations(dict_items, ({ one }) => ({
 export type DictType = typeof dict_types.$inferSelect
 export type DictItem = typeof dict_items.$inferSelect
 
-/** 字典项输出：传入 dictType 时带 dict_type_code / dict_type_name */
+/** Dict item output: includes dict_type_code / dict_type_name when dictType is passed */
 export function dictItemToDict(item: DictItem, dictType?: Pick<DictType, 'code' | 'name'> | null) {
   const data: Record<string, unknown> = {
     id: item.id,
@@ -78,7 +78,7 @@ export function dictItemToDict(item: DictItem, dictType?: Pick<DictType, 'code' 
   return data
 }
 
-/** 字典类型输出：item_count 由调用方查好传入；传入 items（已按 sort_order, id 升序）时附带 items */
+/** Dict type output: item_count is queried and passed in by the caller; includes items when passed (already sorted by sort_order, id ascending) */
 export function dictTypeToDict(type: DictType, itemCount: number, items?: DictItem[]) {
   const data: Record<string, unknown> = {
     id: type.id,

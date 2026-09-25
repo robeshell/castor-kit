@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ReactECharts from 'echarts-for-react'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import {
   Activity,
   ArrowDownRight,
@@ -43,6 +44,7 @@ const QUICK_LINKS = [
 
 const STACK = ['Node.js 22', 'Fastify 5', 'TypeScript', 'Drizzle ORM', 'PostgreSQL', 'React 19', 'shadcn/ui', 'Tailwind CSS', 'Motion', 'ECharts']
 
+// Returns the Chinese source text; translated with t() where it is rendered
 function greeting(hour) {
   if (hour < 6) return '夜深了'
   if (hour < 12) return '早上好'
@@ -74,6 +76,7 @@ function HealthBar({ label, value }) {
 }
 
 function SystemHealth() {
+  const { t } = useTranslation()
   const [stats, setStats] = useState(null)
   const [online, setOnline] = useState(true)
 
@@ -106,15 +109,15 @@ function SystemHealth() {
           <span className={cn('relative flex size-1.5 rounded-full', online ? 'bg-success' : 'bg-muted-foreground')}>
             {online ? <span className="bg-success absolute inset-0 animate-ping rounded-full opacity-60" /> : null}
           </span>
-          {online ? '运行正常' : '连接失败'}
+          {online ? t('运行正常') : t('连接失败')}
         </span>
       }
       className="h-full"
     >
       <div className="space-y-4">
         <HealthBar label="CPU" value={stats?.cpu} />
-        <HealthBar label="内存" value={stats?.mem_pct} />
-        <HealthBar label="磁盘" value={stats?.disk_pct} />
+        <HealthBar label={t('内存')} value={stats?.mem_pct} />
+        <HealthBar label={t('磁盘')} value={stats?.disk_pct} />
         <div className="grid grid-cols-2 gap-2 pt-1">
           {[
             { label: '网络发送', value: stats?.net_sent_mb, icon: ArrowUpRight },
@@ -123,7 +126,7 @@ function SystemHealth() {
             <div key={item.label} className="bg-muted/50 rounded-lg px-3 py-2.5">
               <div className="text-muted-foreground flex items-center gap-1 text-[11px]">
                 <item.icon className="size-3" />
-                {item.label}
+                {t(item.label)}
               </div>
               <div className="mt-1 text-sm font-medium tabular-nums">
                 {(item.value ?? 0).toFixed(2)}
@@ -138,6 +141,7 @@ function SystemHealth() {
 }
 
 function ActivityChart({ stats }) {
+  const { t } = useTranslation()
   const c = useChartColors()
   const [range, setRange] = useState('7d')
   const option = useMemo(() => {
@@ -151,7 +155,7 @@ function ActivityChart({ stats }) {
       yAxis: { ...base.yAxis, type: 'value', minInterval: 1, splitNumber: 4 },
       series: [
         {
-          name: '操作日志',
+          name: t('操作日志'),
           type: 'bar',
           data: values,
           barMaxWidth: 36,
@@ -175,13 +179,13 @@ function ActivityChart({ stats }) {
       animationDuration: 900,
       animationEasing: 'cubicOut',
     }
-  }, [c, stats])
+  }, [c, stats, t])
 
   const total = (stats?.week_log_counts || []).reduce((a, b) => a + b, 0)
   return (
     <Panel
       title="系统活跃度"
-      description={`近 7 天操作日志，共 ${total} 条`}
+      description={t('近 7 天操作日志，共 {{count}} 条', { count: total })}
       actions={<SegmentedTabs variant="pill" value={range} onChange={setRange} items={[{ value: '7d', label: '7 天' }]} />}
       className="h-full"
     >
@@ -191,6 +195,7 @@ function ActivityChart({ stats }) {
 }
 
 function RecentActivity() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -208,7 +213,7 @@ function RecentActivity() {
       padded={false}
       actions={
         <Button variant="ghost" size="sm" className="text-primary h-7 px-2 text-xs" onClick={() => navigate('/system/logs')}>
-          查看审计日志
+          {t('查看审计日志')}
           <ArrowRight />
         </Button>
       }
@@ -220,7 +225,7 @@ function RecentActivity() {
           ))}
         </div>
       ) : logs.length === 0 ? (
-        <div className="text-muted-foreground px-5 pb-8 text-center text-sm">暂无操作记录</div>
+        <div className="text-muted-foreground px-5 pb-8 text-center text-sm">{t('暂无操作记录')}</div>
       ) : (
         <motion.ul variants={stagger.container} initial="hidden" animate="show">
           {logs.map((log) => (
@@ -253,6 +258,7 @@ function RecentActivity() {
 }
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const now = new Date()
@@ -266,7 +272,7 @@ export default function Dashboard() {
       .catch(() => setStats({}))
   }, [])
 
-  const dateText = now.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })
+  const dateText = new Intl.DateTimeFormat(i18n.language, { month: 'long', day: 'numeric', weekday: 'long' }).format(now)
 
   return (
     <div className="space-y-5">
@@ -274,20 +280,20 @@ export default function Dashboard() {
         <div className="space-y-1">
           <p className="text-muted-foreground text-[13px]">{dateText}</p>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {greeting(now.getHours())}，{user?.username}
+            {t('{{greeting}}，{{name}}', { greeting: t(greeting(now.getHours())), name: user?.username })}
           </h1>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
             <Link to="/system/logs">
               <FileText />
-              审计日志
+              {t('审计日志')}
             </Link>
           </Button>
           <Button size="sm" variant="brand" asChild>
             <Link to="/component-center/ai/chat">
               <Sparkles />
-              问问 AI
+              {t('问问 AI')}
             </Link>
           </Button>
         </div>
@@ -324,8 +330,8 @@ export default function Dashboard() {
                     <item.icon className="size-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[13px] font-medium">{item.label}</span>
-                    <span className="text-muted-foreground block truncate text-[11px]">{item.desc}</span>
+                    <span className="block text-[13px] font-medium">{t(item.label)}</span>
+                    <span className="text-muted-foreground block truncate text-[11px]">{t(item.desc)}</span>
                   </span>
                 </Link>
               ))}

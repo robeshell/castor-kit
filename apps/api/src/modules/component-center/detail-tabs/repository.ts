@@ -1,5 +1,5 @@
 /**
- * 详情标签页 repository 层
+ * Detail tabs page repository layer
  */
 
 import { asc, eq, ilike, or } from 'drizzle-orm'

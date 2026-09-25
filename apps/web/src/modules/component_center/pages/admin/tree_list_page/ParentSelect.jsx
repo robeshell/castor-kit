@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, ChevronsUpDown, CornerDownRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-/** 平铺树（深度优先），用于下拉缩进展示；excludeIds 命中的节点连同整棵子树一起跳过 */
+/** Flatten the tree depth-first for the indented dropdown; nodes in excludeIds are skipped along with their whole subtree */
 function flatten(nodes, excludeIds, depth = 0, path = [], out = []) {
   for (const node of nodes || []) {
     if (excludeIds.has(node.id)) continue
@@ -17,10 +18,11 @@ function flatten(nodes, excludeIds, depth = 0, path = [], out = []) {
 }
 
 /**
- * 树形父节点选择：可搜索、按层级缩进、可清空（清空 = 作为根节点）。
- * value 为节点 id（number）或 null；excludeId 用于编辑时排除自身及其子孙，防止形成环。
+ * Tree parent picker: searchable, indented by depth, clearable (cleared = root node).
+ * value is a node id (number) or null; excludeId excludes a node and its descendants while editing, to prevent cycles.
  */
 export default function ParentSelect({ value, onChange, tree = [], excludeId, placeholder = '不选则作为根节点', disabled }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const options = useMemo(() => flatten(tree, new Set(excludeId ? [excludeId] : [])), [tree, excludeId])
   const current = options.find((o) => o.id === value)
@@ -37,13 +39,13 @@ export default function ParentSelect({ value, onChange, tree = [], excludeId, pl
           disabled={disabled}
           className={cn('h-9 w-full justify-between px-3 font-normal', !hasValue && 'text-muted-foreground')}
         >
-          <span className="min-w-0 truncate">{hasValue ? current?.path || `节点 #${value}` : placeholder}</span>
+          <span className="min-w-0 truncate">{hasValue ? current?.path || t('节点 #{{id}}', { id: value }) : t(placeholder)}</span>
           <span className="flex shrink-0 items-center gap-1">
             {hasValue && !disabled ? (
               <span
                 role="button"
                 tabIndex={-1}
-                aria-label="清空"
+                aria-label={t('清空')}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation()
@@ -60,19 +62,19 @@ export default function ParentSelect({ value, onChange, tree = [], excludeId, pl
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
         <Command>
-          <CommandInput placeholder="搜索节点名称 / 编码" className="h-9 text-[13px]" />
+          <CommandInput placeholder={t('搜索节点名称 / 编码')} className="h-9 text-[13px]" />
           <CommandList className="max-h-64">
-            <CommandEmpty>没有匹配的节点</CommandEmpty>
+            <CommandEmpty>{t('没有匹配的节点')}</CommandEmpty>
             <CommandGroup>
               <CommandItem
-                value="__root__ 根节点"
+                value={`__root__ ${t('根节点')}`}
                 onSelect={() => {
                   onChange?.(null)
                   setOpen(false)
                 }}
                 className="text-[13px]"
               >
-                <span className="text-muted-foreground flex-1">（无）作为根节点</span>
+                <span className="text-muted-foreground flex-1">{t('（无）作为根节点')}</span>
                 {!hasValue ? <Check className="size-3.5" /> : null}
               </CommandItem>
               {options.map((opt) => (

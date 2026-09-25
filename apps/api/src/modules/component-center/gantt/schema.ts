@@ -1,5 +1,5 @@
 /**
- * 甘特图页 schema 层
+ * Gantt page schema layer
  */
 
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
@@ -32,7 +32,7 @@ export function colorOrDefault(value: unknown): string {
   return (pyTruthy(value) ? pyStr(value) : '#4080FF').trim() || '#4080FF'
 }
 
-/** `str(v or fallback).strip()`，不在枚举内回落 fallback */
+/** `str(v or fallback).strip()`; falls back to fallback when not in the enum */
 export function normalizeEnum(value: unknown, allowed: Set<string>, fallback: string): string {
   const s = (pyTruthy(value) ? pyStr(value) : fallback).trim()
   return allowed.has(s) ? s : fallback
@@ -47,7 +47,7 @@ export function hasKey(data: Record<string, unknown>, key: string): boolean {
   return Object.hasOwn(data, key)
 }
 
-/** 只保留与当前行不同的字段（只对值真正变化的字段发 UPDATE） */
+/** Keep only fields that differ from the current row (UPDATE only fields whose value actually changed) */
 export function changedFields<R extends Record<string, unknown>, P extends Partial<R>>(row: R, patch: P): P {
   const out: Partial<R> = {}
   for (const [k, v] of Object.entries(patch)) {

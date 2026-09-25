@@ -12,7 +12,7 @@ describe('pbkdf2:sha256 密码哈希', () => {
       "SELECT password_hash FROM admin_users WHERE username = 'admin'",
     )
     await client.end()
-    // 空库（只跑过 baseline、未 seed）没有 admin，跳过
+    // An empty DB (only baseline run, not seeded) has no admin, so skip
     if (rows.length === 0) return
     const hash = rows[0]!.password_hash
     expect(hash.startsWith('pbkdf2:sha256:')).toBe(true)

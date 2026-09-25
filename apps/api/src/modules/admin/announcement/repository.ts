@@ -1,5 +1,5 @@
 /**
- * 公告管理 repository 层
+ * Announcement management repository layer
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm'

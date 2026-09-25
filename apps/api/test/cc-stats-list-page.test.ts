@@ -44,7 +44,7 @@ beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
   await cleanup()
-  // createFixture 会清理所有 ck_test_ 用户（含 super），所以先建夹具再登录 super
+  // createFixture removes all ck_test_ users (including super), so create fixtures before logging in as super
   const fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)
@@ -152,7 +152,7 @@ describe('stats-list-page', () => {
 
     const a = (await rowByCode(`${P}a`))!
     expect(a.amount).toBe('12.35')
-    // 12.35 不能被二进制浮点精确表示 → 视为值变化，发 UPDATE
+    // 12.35 can't be represented exactly in binary floating point → treated as a value change, so an UPDATE is issued
     const bumped = await s.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: { amount: 12.35 } })
     expect(bumped.json().amount).toBe(12.35)
     expect((await rowByCode(`${P}a`))!.updated_at).not.toBe(a.updated_at)

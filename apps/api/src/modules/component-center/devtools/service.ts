@@ -1,15 +1,15 @@
 /**
- * 系统指标快照（基于 systeminformation 采集）
+ * System metrics snapshot (collected via systeminformation)
  *
- * 字段与单位（统计口径参照 psutil）：
- * - cpu：全局 CPU 使用率（%，1 位小数；与 psutil.cpu_percent(interval=None) 一样是“距上次调用”的区间值）
- * - mem_used / mem_total：MB（1 位小数）；mem_pct：%（1 位）
- *     psutil 口径：Linux used = total - free - buffers - (Cached + SReclaimable)，
+ * Fields and units (measured the same way as psutil):
+ * - cpu: overall CPU usage (%, 1 decimal; like psutil.cpu_percent(interval=None), the value over the interval since the previous call)
+ * - mem_used / mem_total: MB (1 decimal); mem_pct: % (1 decimal)
+ *     psutil definition: Linux used = total - free - buffers - (Cached + SReclaimable),
  *     macOS used = active + wired；percent = (total - available) / total
- * - disk_used / disk_total：GB（2 位小数），disk_pct：%（1 位），根分区 '/'；
- *     percent = used / (used + avail)（psutil 口径，与 df 一致）
- * - net_sent / net_recv：MB（2 位小数），开机以来所有网卡（含回环）的累计收发字节
- * - ts：毫秒时间戳
+ * - disk_used / disk_total: GB (2 decimals), disk_pct: % (1 decimal), root partition '/';
+ *     percent = used / (used + avail) (psutil definition, matches df)
+ * - net_sent / net_recv: MB (2 decimals), cumulative bytes sent/received on all NICs (incl. loopback) since boot
+ * - ts: millisecond timestamp
  */
 
 import { execFile } from 'node:child_process'
@@ -31,7 +31,7 @@ export interface SystemSnapshot {
   ts: number
 }
 
-/** 保留 n 位小数：按浮点数的精确十进制值舍入（toFixed） */
+/** Round to n decimals: rounds the float's exact decimal value (toFixed) */
 function round(value: number, digits: number): number {
   if (!Number.isFinite(value)) return 0
   return Number(value.toFixed(digits))
@@ -47,8 +47,8 @@ interface MemUsage {
 }
 
 /**
- * macOS：psutil 用 host_statistics64：used = active + wired，available = inactive + free_count；
- * vm_stat 的 "Pages free" 已减去 speculative（free_count - speculative_count），所以要加回来
+ * macOS: psutil uses host_statistics64: used = active + wired, available = inactive + free_count;
+ * vm_stat's "Pages free" already excludes speculative (free_count - speculative_count), so add it back
  */
 async function darwinMemory(total: number): Promise<MemUsage> {
   const { stdout } = await execFileAsync('vm_stat')
@@ -65,7 +65,7 @@ async function memoryUsage(): Promise<MemUsage> {
     try {
       return await darwinMemory(mem.total)
     } catch {
-      /* vm_stat 不可用时退回通用口径 */
+      /* fall back to the generic definition when vm_stat is unavailable */
     }
   }
   let used = mem.total - mem.free - mem.buffers - mem.cached - (mem.reclaimable || 0)
@@ -93,7 +93,7 @@ async function networkTotals(): Promise<{ sent: number; recv: number }> {
   return { sent, recv }
 }
 
-/** 采集当前系统指标 */
+/** Collect current system metrics */
 export async function systemSnapshot(): Promise<SystemSnapshot> {
   const [load, mem, disk, net] = await Promise.all([si.currentLoad(), memoryUsage(), diskUsage(), networkTotals()])
   return {
@@ -113,20 +113,20 @@ export async function systemSnapshot(): Promise<SystemSnapshot> {
 let warmedUp: Promise<void> | undefined
 
 /**
- * 预热：systeminformation 的 currentLoad 首次调用要建立基线（且较慢），networkStats 首次调用
- * 要枚举网卡；进程内只做一次
+ * Warm-up: systeminformation's currentLoad has to establish a baseline on its first call (and is slow); networkStats' first call
+ * enumerates NICs; done only once per process
  */
 export function warmUp(): Promise<void> {
   warmedUp ??= Promise.allSettled([si.currentLoad(), si.networkStats('*')]).then(() => undefined)
   return warmedUp
 }
 
-/** 指标值（非负、至多 2 位小数）的文本形式：整数值带 `.0` */
+/** Text form of a metric value (non-negative, at most 2 decimals): integral values get `.0` */
 function pyFloatText(n: number): string {
   return Number.isInteger(n) ? `${n}.0` : String(n)
 }
 
-/** `json.dumps({**snapshot, 'type': 'metric'}, ensure_ascii=False)` 的逐字文本 */
+/** Verbatim text of `json.dumps({**snapshot, 'type': 'metric'}, ensure_ascii=False)` */
 export function metricMessage(snapshot: SystemSnapshot): string {
   const parts = (Object.keys(snapshot) as (keyof SystemSnapshot)[]).map((key) => {
     const value = snapshot[key]

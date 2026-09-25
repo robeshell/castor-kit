@@ -2,9 +2,10 @@ import { useRef } from 'react'
 import { ImagePlus, X } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
+import { useTx } from '@/i18n'
 import { useUploader } from '@/shared/components/upload/useUploader'
 
-/** 图片上传：缩略图网格 + 点击放大预览 */
+/** Image upload: thumbnail grid + click to enlarge preview */
 export default function ImageUpload({
   fileList = [],
   onFileListChange,
@@ -17,6 +18,7 @@ export default function ImageUpload({
   disabled,
 }) {
   const inputRef = useRef(null)
+  const tx = useTx()
   const { addFiles, remove } = useUploader({ fileList, onFileListChange, uploadApi, limit, accept, maxSizeMB, kind: '图片' })
   const box = { width: imageSize, height: imageSize }
   return (
@@ -48,12 +50,12 @@ export default function ImageUpload({
                 </div>
               ) : null}
               {f.status === 'error' ? (
-                <div className="bg-danger-soft text-danger absolute inset-x-0 bottom-0 py-0.5 text-center text-[10px]">上传失败</div>
+                <div className="bg-danger-soft text-danger absolute inset-x-0 bottom-0 py-0.5 text-center text-[10px]">{tx('上传失败')}</div>
               ) : null}
               {!disabled ? (
                 <button
                   type="button"
-                  aria-label="移除图片"
+                  aria-label={tx('移除图片')}
                   onClick={() => remove(f.uid)}
                   className="bg-background/90 absolute top-1 right-1 flex size-5 items-center justify-center rounded-full opacity-0 shadow transition-opacity group-hover:opacity-100"
                 >
@@ -73,7 +75,7 @@ export default function ImageUpload({
             )}
           >
             <ImagePlus className="size-5" />
-            上传
+            {tx('上传')}
           </button>
         ) : null}
       </div>

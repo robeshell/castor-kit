@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
+import { useTx } from '@/i18n'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -12,10 +13,10 @@ const DEFAULT_FILE_TYPES = [
 ]
 
 /**
- * 导出弹窗（替代 ExportFieldsModal，props 对齐，visible → open）：
+ * Export dialog (replaces ExportFieldsModal with matching props, visible → open):
  *   <ExportDialog open={open} onOpenChange={setOpen} fieldOptions={FIELDS} defaultFields={[…]}
  *     ruleHint="已勾选 3 条" onConfirm={async ({ fields, fileType }) => …} />
- * onConfirm 可返回 Promise；成功后由调用方关闭弹窗。
+ * onConfirm may return a Promise; the caller closes the dialog on success.
  */
 export default function ExportDialog({
   open,
@@ -28,7 +29,7 @@ export default function ExportDialog({
   defaultFileType = 'xlsx',
   onConfirm,
 }) {
-  // 状态放在 ExportBody 里：关闭即卸载，重新打开按默认字段初始化
+  // State lives in ExportBody: closing unmounts it, and reopening re-initializes from the default fields
   const [busy, setBusy] = useState(false)
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange?.(next)}>
@@ -50,6 +51,7 @@ export default function ExportDialog({
 }
 
 function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOptions, defaultFileType, onConfirm, onBusyChange, onClose }) {
+  const tx = useTx()
   const [fields, setFields] = useState(() => (defaultFields?.length ? defaultFields : fieldOptions.map((o) => o.value)))
   const [fileType, setFileType] = useState(
     () => fileTypeOptions.find((o) => o.value === defaultFileType)?.value || fileTypeOptions[0]?.value || 'xlsx',
@@ -79,12 +81,12 @@ function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOpti
   return (
     <>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {ruleHint ? <DialogDescription>{ruleHint}</DialogDescription> : null}
+          <DialogTitle>{tx(title)}</DialogTitle>
+          {ruleHint ? <DialogDescription>{tx(ruleHint)}</DialogDescription> : null}
         </DialogHeader>
 
         <div className="space-y-2">
-          <div className="text-[13px] font-medium">文件格式</div>
+          <div className="text-[13px] font-medium">{tx('文件格式')}</div>
           <div className="grid grid-cols-2 gap-2">
             {fileTypeOptions.map((opt) => (
               <button
@@ -96,8 +98,8 @@ function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOpti
                   fileType === opt.value ? 'border-primary bg-brand-soft ring-primary/20 ring-2' : 'hover:bg-muted/50',
                 )}
               >
-                <span className="font-medium">{opt.label}</span>
-                <span className="text-muted-foreground font-mono text-xs">{opt.description || `.${opt.value}`}</span>
+                <span className="font-medium">{tx(opt.label)}</span>
+                <span className="text-muted-foreground font-mono text-xs">{tx(opt.description) || `.${opt.value}`}</span>
               </button>
             ))}
           </div>
@@ -106,14 +108,14 @@ function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOpti
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[13px] font-medium">
-              导出字段 <span className="text-muted-foreground font-normal">({fields.length}/{fieldOptions.length})</span>
+              {tx('导出字段')} <span className="text-muted-foreground font-normal">({fields.length}/{fieldOptions.length})</span>
             </span>
             <div className="flex gap-1">
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setFields(fieldOptions.map((o) => o.value))}>
-                全选
+                {tx('全选')}
               </Button>
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setFields([])}>
-                清空
+                {tx('清空')}
               </Button>
             </div>
           </div>
@@ -121,7 +123,7 @@ function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOpti
             {fieldOptions.map((opt) => (
               <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-[13px]">
                 <Checkbox checked={fields.includes(opt.value)} onCheckedChange={(c) => toggle(opt.value, c === true)} />
-                <span className="truncate">{opt.label}</span>
+                <span className="truncate">{tx(opt.label)}</span>
               </label>
             ))}
           </div>
@@ -129,11 +131,11 @@ function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOpti
 
         <DialogFooter>
           <Button variant="outline" disabled={exporting} onClick={onClose}>
-            取消
+            {tx('取消')}
           </Button>
           <Button onClick={submit} disabled={exporting}>
             {exporting ? <Spinner /> : null}
-            导出
+            {tx('导出')}
           </Button>
         </DialogFooter>
     </>

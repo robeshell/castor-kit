@@ -1,7 +1,7 @@
 /**
- * AI 提示词工坊路由
+ * AI prompt workshop routes
  *
- * 检查顺序（保持既有接口行为）：先权限检查（403），再查模板（404 `模板不存在`）。
+ * Check order (preserves existing API behavior): permission check first (403), then template lookup (404 `模板不存在`).
  */
 
 import type { FastifyInstance, FastifyReply } from 'fastify'
@@ -13,7 +13,7 @@ const BASE = '/api/admin/component-center/ai/prompt'
 
 type IdParams = { template_id: string }
 
-/** 保存/删除失败：原样返回带具体文案的 500 */
+/** Save/delete failure: return the 500 with its specific message as-is */
 async function withPersistError<T>(reply: FastifyReply, fn: () => Promise<T>): Promise<T | FastifyReply> {
   try {
     return await fn()

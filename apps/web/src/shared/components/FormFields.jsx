@@ -5,19 +5,21 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { DatePicker, DateTimePicker } from '@/shared/components/DatePicker'
 import MultiSelect from '@/shared/components/MultiSelect'
 import TagInput from '@/shared/components/TagInput'
 
 /**
- * react-hook-form 表单字段（输入框 / 下拉选择 …）。
- * 用法：const form = useForm({ defaultValues })，放进 <FormDialog form={form} …> 或 <Form {...form}> 里：
+ * react-hook-form form fields (input / select …).
+ * Usage: const form = useForm({ defaultValues }), placed inside <FormDialog form={form} …> or <Form {...form}>:
  *   <FormInput control={form.control} name="username" label="用户名" rules={{ required: '请输入用户名' }} />
- * rules 与 react-hook-form register 规则一致（required / minLength / pattern / validate …）。
+ * rules match react-hook-form register rules (required / minLength / pattern / validate …).
  */
 
 function Field({ control, name, label, description, rules, className, required, children, layout = 'vertical' }) {
+  const tx = useTx()
   const isRequired = required ?? Boolean(rules?.required)
   return (
     <FormField
@@ -34,14 +36,14 @@ function Field({ control, name, label, description, rules, className, required, 
           {label ? (
             <div className={cn(layout === 'inline' && 'space-y-0.5')}>
               <FormLabel className="text-[13px] font-medium">
-                {label}
+                {tx(label)}
                 {isRequired ? <span className="text-destructive -ml-1">*</span> : null}
               </FormLabel>
-              {layout === 'inline' && description ? <FormDescription className="text-xs">{description}</FormDescription> : null}
+              {layout === 'inline' && description ? <FormDescription className="text-xs">{tx(description)}</FormDescription> : null}
             </div>
           ) : null}
           {children(field, fieldState)}
-          {layout !== 'inline' && description ? <FormDescription className="text-xs">{description}</FormDescription> : null}
+          {layout !== 'inline' && description ? <FormDescription className="text-xs">{tx(description)}</FormDescription> : null}
           <FormMessage className="text-xs" />
         </FormItem>
       )}
@@ -50,6 +52,7 @@ function Field({ control, name, label, description, rules, className, required, 
 }
 
 export function FormInput({ placeholder, type = 'text', disabled, autoComplete, inputClassName, ...rest }) {
+  const tx = useTx()
   return (
     <Field {...rest}>
       {(field) => (
@@ -58,7 +61,7 @@ export function FormInput({ placeholder, type = 'text', disabled, autoComplete, 
             {...field}
             value={field.value ?? ''}
             type={type}
-            placeholder={placeholder}
+            placeholder={tx(placeholder)}
             disabled={disabled}
             autoComplete={autoComplete}
             className={cn('h-9', inputClassName)}
@@ -70,6 +73,7 @@ export function FormInput({ placeholder, type = 'text', disabled, autoComplete, 
 }
 
 export function FormTextarea({ placeholder, rows = 3, disabled, inputClassName, ...rest }) {
+  const tx = useTx()
   return (
     <Field {...rest}>
       {(field) => (
@@ -78,9 +82,9 @@ export function FormTextarea({ placeholder, rows = 3, disabled, inputClassName, 
             {...field}
             value={field.value ?? ''}
             rows={rows}
-            placeholder={placeholder}
+            placeholder={tx(placeholder)}
             disabled={disabled}
-            // 基础 Textarea 是 field-sizing-content（按内容撑高，rows 失效）；表单里固定为 rows 行，可手动拖高
+            // The base Textarea uses field-sizing-content (grows with content, rows has no effect); in forms it's fixed to rows lines and can be resized manually
             className={cn('field-sizing-fixed min-h-0 resize-y', inputClassName)}
           />
         </FormControl>
@@ -89,8 +93,9 @@ export function FormTextarea({ placeholder, rows = 3, disabled, inputClassName, 
   )
 }
 
-/** 数字输入：空值为 null；其余转为 Number */
+/** Number input: empty value is null; anything else is converted to Number */
 export function FormNumber({ placeholder, min, max, step, disabled, ...rest }) {
+  const tx = useTx()
   return (
     <Field {...rest}>
       {(field) => (
@@ -106,7 +111,7 @@ export function FormNumber({ placeholder, min, max, step, disabled, ...rest }) {
             min={min}
             max={max}
             step={step}
-            placeholder={placeholder}
+            placeholder={tx(placeholder)}
             disabled={disabled}
             className="h-9 tabular-nums"
           />
@@ -116,8 +121,9 @@ export function FormNumber({ placeholder, min, max, step, disabled, ...rest }) {
   )
 }
 
-/** 单选下拉：options = [{ label, value }]，保持 value 原始类型；clearable 时可以选“不选择” */
+/** Single select: options = [{ label, value }], keeps value's original type; when clearable, "none" can be selected */
 export function FormSelect({ options = [], placeholder = '请选择', disabled, clearable = false, ...rest }) {
+  const tx = useTx()
   const NONE = '__none__'
   return (
     <Field {...rest}>
@@ -133,14 +139,14 @@ export function FormSelect({ options = [], placeholder = '请选择', disabled, 
         >
           <FormControl>
             <SelectTrigger className="h-9 w-full">
-              <SelectValue placeholder={placeholder} />
+              <SelectValue placeholder={tx(placeholder)} />
             </SelectTrigger>
           </FormControl>
           <SelectContent>
-            {clearable ? <SelectItem value={NONE}>{placeholder}</SelectItem> : null}
+            {clearable ? <SelectItem value={NONE}>{tx(placeholder)}</SelectItem> : null}
             {options.map((opt) => (
               <SelectItem key={String(opt.value)} value={String(opt.value)} disabled={opt.disabled}>
-                {opt.label}
+                {tx(opt.label)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -162,7 +168,7 @@ export function FormMultiSelect({ options = [], placeholder, disabled, ...rest }
   )
 }
 
-/** 开关：默认行内卡片布局（label 左、开关右） */
+/** Switch: inline card layout by default (label left, switch right) */
 export function FormSwitch({ disabled, layout = 'inline', ...rest }) {
   return (
     <Field layout={layout} {...rest}>
@@ -176,6 +182,7 @@ export function FormSwitch({ disabled, layout = 'inline', ...rest }) {
 }
 
 export function FormRadioGroup({ options = [], disabled, direction = 'horizontal', ...rest }) {
+  const tx = useTx()
   return (
     <Field {...rest}>
       {(field) => (
@@ -192,7 +199,7 @@ export function FormRadioGroup({ options = [], disabled, direction = 'horizontal
             {options.map((opt) => (
               <label key={String(opt.value)} className="flex cursor-pointer items-center gap-2 text-[13px]">
                 <RadioGroupItem value={String(opt.value)} />
-                {opt.label}
+                {tx(opt.label)}
               </label>
             ))}
           </RadioGroup>
@@ -203,6 +210,7 @@ export function FormRadioGroup({ options = [], disabled, direction = 'horizontal
 }
 
 export function FormCheckboxGroup({ options = [], disabled, columns = 2, ...rest }) {
+  const tx = useTx()
   return (
     <Field {...rest}>
       {(field) => {
@@ -220,7 +228,7 @@ export function FormCheckboxGroup({ options = [], disabled, columns = 2, ...rest
                       field.onChange(c ? [...value, opt.value] : value.filter((v) => String(v) !== String(opt.value)))
                     }
                   />
-                  {opt.label}
+                  {tx(opt.label)}
                 </label>
               )
             })}
@@ -267,12 +275,12 @@ export function FormTags({ placeholder, disabled, ...rest }) {
   )
 }
 
-/** 自定义控件：render({ value, onChange, field, fieldState }) */
+/** Custom control: render({ value, onChange, field, fieldState }) */
 export function FormCustom({ render, ...rest }) {
   return <Field {...rest}>{(field, fieldState) => render({ value: field.value, onChange: field.onChange, field, fieldState })}</Field>
 }
 
-/** 两列布局容器（移动端自动单列） */
+/** Two-column layout container (automatically single column on mobile) */
 export function FormGrid({ columns = 2, className, children }) {
   return (
     <div className={cn('grid gap-4', columns === 2 && 'sm:grid-cols-2', columns === 3 && 'sm:grid-cols-3', className)}>

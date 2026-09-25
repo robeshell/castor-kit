@@ -1,5 +1,5 @@
 /**
- * 定时任务 repository 层（含调度器的租约 SQL）
+ * Scheduled task repository layer (includes the scheduler's lease SQL)
  */
 
 import { and, asc, count, desc, eq, ilike, isNotNull, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -27,13 +27,13 @@ export interface RunWithTask {
   task: Pick<ScheduledTask, 'name' | 'task_code'>
 }
 
-/** 崩溃回收时的下次执行时间：cron 算出的时间 / 当前时间 / 当前时间 + 5 分钟 */
+/** Next run time when reclaiming after a crash: cron-computed time / now / now + 5 minutes */
 export type CrashNextRun = { at: string } | 'now' | 'now+5m'
 
 export class ScheduledTaskRepository {
   constructor(private readonly db: Executor) {}
 
-  /** 数据库当前 UTC 时间文本（等价 datetime.utcnow()；clock_timestamp 在事务里也取真实时间） */
+  /** Current DB UTC time as text (equivalent to datetime.utcnow(); clock_timestamp returns real time even inside a transaction) */
   async utcNow(): Promise<string> {
     const res = await this.db.execute<{ now: string }>(sql`SELECT timezone('utc', clock_timestamp()) AS now`)
     return res.rows[0]!.now
@@ -114,7 +114,7 @@ export class ScheduledTaskRepository {
     return row!
   }
 
-  /** 只写有变化的列（updated_at 由 schema 的 $onUpdateFn 刷新） */
+  /** Write only changed columns (updated_at is refreshed by the schema's $onUpdateFn) */
   async updateTask(id: number, changes: TaskChanges): Promise<ScheduledTask | null> {
     const [row] = await this.db.update(scheduled_tasks).set(changes).where(eq(scheduled_tasks.id, id)).returning()
     return row ?? null
@@ -129,7 +129,7 @@ export class ScheduledTaskRepository {
     return row!
   }
 
-  /** execute_task 的任务状态回写；run_count 在 SQL 里自增 */
+  /** Task status write-back for execute_task; run_count is incremented in SQL */
   async recordTaskResult(
     id: number,
     result: { last_status: string; last_error: string | null; last_duration_ms: number; last_run_at: string; next_run_at: string | null },
@@ -142,9 +142,9 @@ export class ScheduledTaskRepository {
     return row ?? null
   }
 
-  // ---- 调度器租约 ----
+  // ---- Scheduler lease ----
 
-  /** 到期任务：is_active 且 next_run_at <= now，按 next_run_at 升序取 20 条 */
+  /** Due tasks: is_active and next_run_at <= now, 20 rows ascending by next_run_at */
   async listDueTasks(limit = 20): Promise<ScheduledTask[]> {
     return this.db
       .select()
@@ -161,8 +161,8 @@ export class ScheduledTaskRepository {
   }
 
   /**
-   * 抢占：`next_run_at` 仍等于读到的值才置空并标 running。
-   * 多个调度进程并发时只有一个 UPDATE 命中（rowCount === 1）。
+   * Claim: only if `next_run_at` still equals the value read, clear it and mark running.
+   * With multiple concurrent scheduler processes only one UPDATE hits (rowCount === 1).
    */
   async claim(id: number, nextRunAt: string): Promise<boolean> {
     const rows = await this.db
@@ -173,7 +173,7 @@ export class ScheduledTaskRepository {
     return rows.length === 1
   }
 
-  /** 过期租约回收：running 且 next_run_at 为空、updated_at 早于 now - lease 的任务重置为 idle 并立即到期 */
+  /** Expired lease reclaim: tasks that are running with next_run_at empty and updated_at older than now - lease are reset to idle and made due immediately */
   async recoverStaleClaims(leaseSeconds: number): Promise<number> {
     const rows = await this.db
       .update(scheduled_tasks)
@@ -196,7 +196,7 @@ export class ScheduledTaskRepository {
     return rows.length
   }
 
-  /** 执行器崩溃：仍处于已抢占状态（next_run_at 为空）时标 failed 并排下一次 */
+  /** Executor crash: if still claimed (next_run_at empty), mark failed and schedule the next run */
   async markCrashed(id: number, next: CrashNextRun): Promise<void> {
     const nextRunAt = next === 'now' ? utcNow() : next === 'now+5m' ? sql`${utcNow()} + interval '5 minutes'` : next.at
     await this.db

@@ -1,0 +1,22 @@
+{
+  "例如 zhangsan": "e.g. jsmith",
+  "删除用户 {{name}}？": "Delete user {{name}}?",
+  "导入用户": "Import users",
+  "导出用户": "Export users",
+  "搜索用户名": "Search username",
+  "新建用户": "Add user",
+  "未勾选数据时，按当前查询条件导出全部结果。": "With nothing selected, all results matching the current filters are exported.",
+  "正在编辑 {{name}}": "Editing {{name}}",
+  "没有找到用户": "No users found",
+  "点击右上角「新建用户」添加第一个账号": "Click \"Add user\" in the top right to create the first account",
+  "用户已创建": "User created",
+  "用户已删除": "User deleted",
+  "用户已更新": "User updated",
+  "用户管理": "Users",
+  "留空则不修改": "Leave blank to keep the current password",
+  "编辑用户": "Edit user",
+  "角色": "Roles",
+  "角色名称": "Role name",
+  "角色编码": "Role code",
+  "选择角色": "Select roles"
+}

@@ -36,6 +36,7 @@ export const downloadErrorRowsCsv = (errorRows, fileName = 'import_error_rows.cs
     })
   })
 
+  // i18n-ignore-next-line: file headers stay Chinese so exported files re-import in any UI language
   const headers = ['行号', '失败原因', ...sourceHeaders]
   const lines = [headers.map(escapeCsvValue).join(',')]
 

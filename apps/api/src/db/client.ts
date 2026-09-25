@@ -1,9 +1,9 @@
 /**
- * pg Pool + Drizzle 实例
+ * pg Pool + Drizzle instance
  *
- * 类型解析器：`timestamp without time zone`(1114) 与 `date`(1082) 原样保留文本。pg 默认会按本地时区
- * 解析成 `Date`（偏移 8 小时且丢微秒），无法输出带微秒的 UTC 时间文本（见 common/serialize.toIso）。
- * Drizzle 自己的查询在 schema 里已声明 mode:'string'；这里的全局设置覆盖裸 `pool.query()`。
+ * Type parsers: `timestamp without time zone` (1114) and `date` (1082) are kept as raw text. By default pg parses them
+ * into `Date` in the local time zone (8-hour offset, microseconds lost), making UTC text with microseconds impossible (see common/serialize.toIso).
+ * Drizzle's own queries already declare mode:'string' in the schema; this global setting covers raw `pool.query()`.
  */
 
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
@@ -14,9 +14,9 @@ pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, (v) => v)
 pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v)
 
 export type Db = NodePgDatabase<typeof schema>
-/** db.transaction 回调里的事务对象 */
+/** Transaction object inside a db.transaction callback */
 export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
-/** repository 方法接受普通连接或事务（需要事务时由 service 传入 tx） */
+/** Repository methods accept a plain connection or a transaction (the service passes tx when a transaction is needed) */
 export type Executor = Db | Tx
 
 export interface DbHandle {

@@ -3,10 +3,10 @@ import { useMonaco } from '@monaco-editor/react'
 import { useTheme } from '@/context/ThemeContext'
 
 /**
- * Monaco 主题跟随应用亮/暗主题：以内置 vs / vs-dark 为底，编辑区背景、行号、当前行等
- * 从 CSS 变量读取（与卡片底色一致），主题切换后重新定义。
- *   const monacoTheme = useMonacoTheme()            // 跟随应用主题
- *   const monacoTheme = useMonacoTheme('dark')      // 固定深色（内置 vs-dark）
+ * Monaco theme follows the app's light/dark theme: based on the built-in vs / vs-dark, with editor background, line numbers, current line, etc.
+ * read from CSS variables (matching the card background), redefined after the theme switches.
+ *   const monacoTheme = useMonacoTheme()            // follow the app theme
+ *   const monacoTheme = useMonacoTheme('dark')      // always dark (built-in vs-dark)
  *   <Editor theme={monacoTheme} … />
  */
 function readVars() {
@@ -47,7 +47,7 @@ export function useMonacoTheme(mode = 'auto') {
 
   useEffect(() => {
     if (!monaco || mode !== 'auto') return undefined
-    // ThemeProvider 在父级 effect 里才切换 <html class="dark">，等下一帧再读变量
+    // ThemeProvider toggles <html class="dark"> only in a parent effect, so wait a frame before reading the variables
     const frame = requestAnimationFrame(() => {
       const name = defineAppTheme(monaco, isDark)
       monaco.editor.setTheme(name)

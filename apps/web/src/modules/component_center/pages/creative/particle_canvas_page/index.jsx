@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MousePointer2, Pause, Play, RotateCcw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 
-// Canvas 内部着色（Ocean 蓝青系），不参与页面主题
+// Canvas-only colors (Ocean blue / cyan family), independent of the page theme; labels are translated when rendered
 const THEMES = {
   ocean: { label: '海洋蓝', bg: '#040b18', colors: ['#2563eb', '#0ea5e9', '#22d3ee', '#60a5fa'] },
   glacier: { label: '冰川青', bg: '#03111a', colors: ['#22d3ee', '#67e8f9', '#0891b2', '#a5f3fc'] },
@@ -26,6 +27,7 @@ function ControlSlider({ label, value, display, min, max, step, onChange }) {
 }
 
 export default function ParticleCanvasPage() {
+  const { t } = useTranslation()
   const canvasRef = useRef(null)
   const animRef = useRef(null)
   const particlesRef = useRef([])
@@ -158,7 +160,7 @@ export default function ParticleCanvasPage() {
       initParticles(canvas)
     }
     resize()
-    // 侧边栏折叠等也会改变画布尺寸，用 ResizeObserver 统一处理
+    // Sidebar collapse etc. also resize the canvas, so a ResizeObserver handles every case
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
     animRef.current = requestAnimationFrame(draw)
@@ -208,11 +210,11 @@ export default function ParticleCanvasPage() {
           <>
             <Button size="sm" variant="outline" onClick={togglePause}>
               {paused ? <Play /> : <Pause />}
-              {paused ? '继续' : '暂停'}
+              {paused ? t('继续') : t('暂停')}
             </Button>
             <Button size="sm" variant="ghost" onClick={handleRefresh}>
               <RotateCcw />
-              重置
+              {t('重置')}
             </Button>
           </>
         }
@@ -220,26 +222,26 @@ export default function ParticleCanvasPage() {
 
       <Panel bodyClassName="flex flex-wrap items-center gap-x-6 gap-y-4 p-4">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-xs">主题</span>
+          <span className="text-muted-foreground text-xs">{t('主题')}</span>
           <Select value={theme} onValueChange={applyTheme}>
             <SelectTrigger size="sm" className="h-8 w-[112px] text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(THEMES).map(([key, t]) => (
+              {Object.entries(THEMES).map(([key, item]) => (
                 <SelectItem key={key} value={key}>
                   <span className="flex items-center gap-2">
-                    <span className="size-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${t.colors[0]}, ${t.colors[2]})` }} />
-                    {t.label}
+                    <span className="size-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${item.colors[0]}, ${item.colors[2]})` }} />
+                    {t(item.label)}
                   </span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <ControlSlider label="粒子" value={count} min={30} max={300} step={10} onChange={applyCount} />
-        <ControlSlider label="连线" value={linkDist} min={60} max={250} step={10} onChange={applyLinkDist} />
-        <ControlSlider label="速度" value={speed} display={`${speed.toFixed(1)}x`} min={0.2} max={3} step={0.2} onChange={applySpeed} />
+        <ControlSlider label={t('粒子')} value={count} min={30} max={300} step={10} onChange={applyCount} />
+        <ControlSlider label={t('连线')} value={linkDist} min={60} max={250} step={10} onChange={applyLinkDist} />
+        <ControlSlider label={t('速度')} value={speed} display={`${speed.toFixed(1)}x`} min={0.2} max={3} step={0.2} onChange={applySpeed} />
       </Panel>
 
       <section className="surface-card relative overflow-hidden">
@@ -251,7 +253,7 @@ export default function ParticleCanvasPage() {
         />
         <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-1.5 rounded-md bg-white/5 px-2 py-1 text-[11px] text-white/60 ring-1 ring-white/10 backdrop-blur-sm">
           <MousePointer2 className="size-3" />
-          移动鼠标，粒子会被推开
+          {t('移动鼠标，粒子会被推开')}
         </div>
       </section>
     </div>

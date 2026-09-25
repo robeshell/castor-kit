@@ -44,7 +44,7 @@ async function menuIdsOf(roleId: number) {
 beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
-  // createFixture 会清理所有 ck_test_ 前缀数据，必须先于本文件自己的数据创建
+  // createFixture cleans up all ck_test_-prefixed data, so it must run before this file creates its own data
   const fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)
@@ -84,7 +84,7 @@ describe('roles 列表 / 新增', () => {
     expect(res.statusCode).toBe(201)
     const body = res.json()
     expect(body).toMatchObject({ name: '测试角色', code: `${P}a`, description: '5' })
-    // (sort_order, id)：B(10) < C(10, id 更大) < A(30)
+    // (sort_order, id): B(10) < C(10, larger id) < A(30)
     expect(body.menu_ids).toEqual([menuB, menuC, menuA])
 
     const dict = await s.inject({ method: 'POST', url: '/api/admin/roles', payload: { name: ['x', 'y z'], code: `${P}b`, menu_ids: { [menuA]: true } } })
@@ -129,7 +129,7 @@ describe('roles 列表 / 新增', () => {
     expect((await post([])).json()).toEqual({ error: '角色名称不能为空' })
     expect((await post(0)).json()).toEqual({ error: '角色名称不能为空' })
     const role = await roleByCode(`${P}a`)
-    // update_role 只用 `'key' in data`：list 恒为 False → 原样返回
+    // update_role only uses `'key' in data`: a list always yields False → returned unchanged
     const put = (payload: unknown) =>
       s.inject({ method: 'PUT', url: `/api/admin/roles/${role.id}`, payload: JSON.stringify(payload), headers: json })
     expect((await put([1])).json()).toMatchObject({ id: role.id, code: `${P}a` })

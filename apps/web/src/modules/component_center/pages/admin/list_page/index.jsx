@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
+import { Trans, useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Braces,
@@ -26,6 +27,7 @@ import { toast } from '@/lib/toast'
 import { formatDateTime } from '@/lib/format'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import i18n from '@/i18n'
 import {
   createListPage,
   deleteListPage,
@@ -194,7 +196,7 @@ const normalizeUrlList = (raw) => {
         return parsed.map((item) => String(item || '').trim()).filter(Boolean)
       }
     } catch {
-      // 非 JSON 数组，按分隔符切分
+      // Not a JSON array: split on separators
     }
     return value
       .replaceAll('，', ',')
@@ -207,10 +209,10 @@ const normalizeUrlList = (raw) => {
   return []
 }
 
-const buildUploadFileList = (urls = [], seed = 'default', namePrefix = '资源') =>
+const buildUploadFileList = (urls = [], seed = 'default', nameOf = (n) => i18n.t('资源 {{n}}', { n })) =>
   normalizeUrlList(urls).map((url, index) => ({
     uid: `query-upload-${seed}-${index + 1}`,
-    name: `${namePrefix}${index + 1}`,
+    name: nameOf(index + 1),
     status: 'success',
     preview: true,
     url,
@@ -258,7 +260,7 @@ const buildConditionPayload = (items = []) => ({
     .filter((item) => item.field && item.operator),
 })
 
-/** 返回 JSON 解析错误信息；合法时返回 null（空文本按 '{}' 处理，与旧页面一致） */
+/** Returns the JSON parse error message, or null when valid (empty text is treated as '{}', same as the old page) */
 const jsonError = (text) => {
   try {
     JSON.parse(text || '{}')
@@ -268,7 +270,7 @@ const jsonError = (text) => {
   }
 }
 
-/* ─── 表单分区 ─────────────────────────────────────────────────────────── */
+/* ─── Form section ─────────────────────────────────────────────────────── */
 
 function EditorSection({ icon: Icon, title, description, actions, children }) {
   return (
@@ -289,6 +291,7 @@ function EditorSection({ icon: Icon, title, description, actions, children }) {
 }
 
 function MiniSelect({ value, onChange, options, placeholder, className, ariaLabel }) {
+  const { t } = useTranslation()
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger size="sm" aria-label={ariaLabel} className={cn('h-8 w-full text-[13px]', className)}>
@@ -297,7 +300,7 @@ function MiniSelect({ value, onChange, options, placeholder, className, ariaLabe
       <SelectContent>
         {options.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
+            {t(opt.label)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -305,25 +308,26 @@ function MiniSelect({ value, onChange, options, placeholder, className, ariaLabe
   )
 }
 
-/* ─── 条件构建器 ───────────────────────────────────────────────────────── */
+/* ─── Condition builder ───────────────────────────────────────────────────── */
 
 function ConditionEditor({ items, fieldOptions, onChange, onRemove }) {
+  const { t } = useTranslation()
   if (!items.length) {
     return (
       <div className="text-muted-foreground flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-8 text-center text-xs">
         <Filter className="size-4 opacity-70" />
-        暂无条件，点击“新增条件”开始配置
+        {t('暂无条件，点击“新增条件”开始配置')}
       </div>
     )
   }
   return (
     <div className="space-y-2">
       <div className="text-muted-foreground hidden grid-cols-[88px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.3fr)_32px] gap-2 px-1 text-xs md:grid">
-        <span>逻辑</span>
-        <span>字段</span>
-        <span>操作符</span>
-        <span>值</span>
-        <span className="sr-only">操作</span>
+        <span>{t('逻辑')}</span>
+        <span>{t('字段')}</span>
+        <span>{t('操作符')}</span>
+        <span>{t('值')}</span>
+        <span className="sr-only">{t('操作')}</span>
       </div>
       <AnimatePresence initial={false}>
         {items.map((item, index) => (
@@ -338,29 +342,29 @@ function ConditionEditor({ items, fieldOptions, onChange, onRemove }) {
           >
             <div className="bg-muted/30 grid grid-cols-2 items-center gap-2 rounded-lg border p-2 md:grid-cols-[88px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.3fr)_32px] md:border-0 md:bg-transparent md:p-0">
               <MiniSelect
-                ariaLabel={`第 ${index + 1} 条条件逻辑`}
+                ariaLabel={t('第 {{n}} 条条件逻辑', { n: index + 1 })}
                 value={item.logic}
                 options={CONDITION_LOGIC_OPTIONS}
                 onChange={(next) => onChange(item.uid, { logic: next })}
                 className="font-mono text-xs"
               />
               <MiniSelect
-                ariaLabel={`第 ${index + 1} 条条件字段`}
+                ariaLabel={t('第 {{n}} 条条件字段', { n: index + 1 })}
                 value={item.field}
                 options={fieldOptions}
-                placeholder="选择字段"
+                placeholder={t('选择字段')}
                 onChange={(next) => onChange(item.uid, { field: next })}
               />
               <MiniSelect
-                ariaLabel={`第 ${index + 1} 条条件操作符`}
+                ariaLabel={t('第 {{n}} 条条件操作符', { n: index + 1 })}
                 value={item.operator}
                 options={CONDITION_OPERATOR_OPTIONS}
                 onChange={(next) => onChange(item.uid, { operator: next })}
               />
               <Input
-                aria-label={`第 ${index + 1} 条条件值`}
+                aria-label={t('第 {{n}} 条条件值', { n: index + 1 })}
                 value={String(item.value ?? '')}
-                placeholder="输入条件值"
+                placeholder={t('输入条件值')}
                 onChange={(e) => onChange(item.uid, { value: e.target.value })}
                 className="h-8 text-[13px]"
               />
@@ -368,12 +372,12 @@ function ConditionEditor({ items, fieldOptions, onChange, onRemove }) {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="删除条件"
+                aria-label={t('删除条件')}
                 onClick={() => onRemove(item.uid)}
                 className="text-muted-foreground hover:text-danger col-span-2 w-full md:col-span-1 md:w-8"
               >
                 <Trash2 />
-                <span className="md:hidden">删除</span>
+                <span className="md:hidden">{t('删除')}</span>
               </Button>
             </div>
           </motion.div>
@@ -383,9 +387,10 @@ function ConditionEditor({ items, fieldOptions, onChange, onRemove }) {
   )
 }
 
-/* ─── 页面 ─────────────────────────────────────────────────────────────── */
+/* ─── Page ─────────────────────────────────────────────────────────── */
 
 export default function ListPage() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getListPageList(params).catch(() => {
@@ -431,7 +436,7 @@ export default function ListPage() {
 
   useEffect(() => {
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首屏加载一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on first render
   }, [])
 
   const handleSearch = () => {
@@ -478,8 +483,8 @@ export default function ListPage() {
       data_source: String(record?.data_source || '').trim(),
       schema_config: String(record?.schema_config || '{}'),
     })
-    setImageFileList(buildUploadFileList(record?.image_urls || record?.image_url, `img-${record?.id || 'edit'}`, '图片'))
-    setAttachmentFileList(buildUploadFileList(record?.file_urls || record?.file_url, `file-${record?.id || 'edit'}`, '附件'))
+    setImageFileList(buildUploadFileList(record?.image_urls || record?.image_url, `img-${record?.id || 'edit'}`, (n) => t('图片 {{n}}', { n })))
+    setAttachmentFileList(buildUploadFileList(record?.file_urls || record?.file_url, `file-${record?.id || 'edit'}`, (n) => t('附件 {{n}}', { n })))
     setConditionLogic(String(record?.condition_logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND')
     setConditionItems(normalizeConditionItems(record?.conditions))
     setFormOpen(true)
@@ -513,7 +518,7 @@ export default function ListPage() {
   const handleValidateSchemaJson = () => {
     const message = jsonError(form.getValues('schema_config'))
     if (message) {
-      toast.error(`JSON 校验失败：${message}`)
+      toast.error(t('JSON 校验失败：{{message}}', { message }))
       form.trigger('schema_config')
     } else {
       toast.success('JSON 校验通过')
@@ -631,7 +636,7 @@ export default function ListPage() {
       title: '分类',
       dataIndex: 'category',
       width: 88,
-      render: (value) => mapCategoryLabel(value),
+      render: (value) => t(mapCategoryLabel(value)),
     },
     {
       key: 'status',
@@ -647,7 +652,7 @@ export default function ListPage() {
             </StatusBadge>
             {record.is_active === false ? (
               <StatusBadge tone="warning" variant="plain" dot className="whitespace-nowrap">
-                停用
+                {t('停用')}
               </StatusBadge>
             ) : null}
           </div>
@@ -678,14 +683,14 @@ export default function ListPage() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(record)}>
-            查看
+            {t('查看')}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该记录？" description="删除后不可恢复" confirmText="删除" onConfirm={() => handleDelete(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -703,15 +708,15 @@ export default function ListPage() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建记录
+              {t('新建记录')}
             </Button>
           </>
         }
@@ -731,8 +736,8 @@ export default function ListPage() {
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSearch()
           }}
-          placeholder="负责人"
-          aria-label="负责人"
+          placeholder={t('负责人')}
+          aria-label={t('负责人')}
           className="h-8 w-full text-[13px] sm:w-32"
         />
         <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" className="w-[calc(50%-4px)] sm:w-32" />
@@ -751,16 +756,20 @@ export default function ListPage() {
           >
             <div className="bg-brand-soft mb-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
               <span>
-                已勾选 <span className="font-medium tabular-nums">{selectedRowKeys.length}</span> 条，将优先导出勾选数据
+                <Trans
+                  i18nKey="已勾选 <0>{{count}}</0> 条，将优先导出勾选数据"
+                  values={{ count: selectedRowKeys.length }}
+                  components={[<span key="count" className="font-medium tabular-nums" />]}
+                />
               </span>
               <div className="ml-auto flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-7" onClick={() => setExportOpen(true)}>
                   <Download />
-                  导出勾选
+                  {t('导出勾选')}
                 </Button>
                 <Button variant="ghost" size="sm" className="h-7" onClick={() => setSelectedRowKeys([])}>
                   <X />
-                  清空勾选
+                  {t('清空勾选')}
                 </Button>
               </div>
             </div>
@@ -781,12 +790,12 @@ export default function ListPage() {
         emptyDescription={hasFilters ? '没有符合条件的记录，换个筛选条件试试' : '点击右上角「新建记录」创建第一条数据'}
       />
 
-      {/* ── 新建 / 编辑 ── */}
+      {/* ── Create / edit ── */}
       <FormSheet
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editRecord?.id ? '编辑记录' : '新建记录'}
-        description={editRecord?.id ? `正在编辑 ${editRecord.name || editRecord.query_code}（v${editRecord.version || 1}）` : undefined}
+        description={editRecord?.id ? t('正在编辑 {{name}}（v{{version}}）', { name: editRecord.name || editRecord.query_code, version: editRecord.version || 1 }) : undefined}
         form={form}
         onSubmit={handleSubmit}
         submitText={watchedStatus === 'published' ? '保存并发布' : '保存草稿'}
@@ -815,7 +824,7 @@ export default function ListPage() {
             control={form.control}
             name="description"
             label="描述"
-            rules={{ maxLength: { value: DESCRIPTION_MAX, message: `描述不能超过 ${DESCRIPTION_MAX} 字` } }}
+            rules={{ maxLength: { value: DESCRIPTION_MAX, message: t('描述不能超过 {{max}} 字', { max: DESCRIPTION_MAX }) } }}
             render={({ field }) => (
               <div className="relative">
                 <Textarea
@@ -840,12 +849,12 @@ export default function ListPage() {
         <EditorSection
           icon={SlidersHorizontal}
           title="条件构建器"
-          description={currentDataSource ? `字段来自 ${mapDataSourceLabel(currentDataSource)}` : '未选数据源时可选全部字段'}
+          description={currentDataSource ? t('字段来自 {{source}}', { source: t(mapDataSourceLabel(currentDataSource)) }) : '未选数据源时可选全部字段'}
           actions={
             <>
-              <span className="text-muted-foreground text-xs">全局逻辑</span>
+              <span className="text-muted-foreground text-xs">{t('全局逻辑')}</span>
               <MiniSelect
-                ariaLabel="全局逻辑"
+                ariaLabel={t('全局逻辑')}
                 value={conditionLogic}
                 options={CONDITION_LOGIC_OPTIONS}
                 onChange={setConditionLogic}
@@ -853,7 +862,7 @@ export default function ListPage() {
               />
               <Button type="button" variant="outline" size="sm" onClick={handleAddCondition}>
                 <Plus />
-                新增条件
+                {t('新增条件')}
               </Button>
             </>
           }
@@ -873,11 +882,11 @@ export default function ListPage() {
             <>
               <Button type="button" variant="ghost" size="sm" onClick={handleFormatSchemaJson}>
                 <Wand2 />
-                格式化 JSON
+                {t('格式化 JSON')}
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={handleValidateSchemaJson}>
                 <CheckCircle2 />
-                校验 JSON
+                {t('校验 JSON')}
               </Button>
             </>
           }
@@ -886,7 +895,7 @@ export default function ListPage() {
             control={form.control}
             name="schema_config"
             label="Schema 配置"
-            rules={{ validate: (value) => (jsonError(value) ? `JSON 格式错误：${jsonError(value)}` : true) }}
+            rules={{ validate: (value) => (jsonError(value) ? t('JSON 格式错误：{{message}}', { message: jsonError(value) }) : true) }}
             render={({ field, fieldState }) => (
               <div className="bg-muted/30 focus-within:border-ring focus-within:ring-ring/50 overflow-hidden rounded-lg border transition-[box-shadow,border-color] focus-within:ring-[3px] aria-invalid:border-destructive" aria-invalid={Boolean(fieldState.error)}>
                 <div className="text-muted-foreground flex items-center justify-between border-b px-3 py-1.5 text-[11px]">
@@ -899,7 +908,7 @@ export default function ListPage() {
                   {...field}
                   value={field.value ?? ''}
                   spellCheck={false}
-                  placeholder="输入 JSON Schema 配置"
+                  placeholder={t('输入 JSON Schema 配置')}
                   className="field-sizing-fixed h-52 resize-y rounded-none border-0 bg-transparent font-mono text-xs leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent"
                 />
               </div>
@@ -909,7 +918,7 @@ export default function ListPage() {
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-[13px] font-medium">
               <ImageIcon className="text-muted-foreground size-3.5" />
-              图片
+              {t('图片')}
             </div>
             <ImageUpload
               fileList={imageFileList}
@@ -918,7 +927,7 @@ export default function ListPage() {
               limit={MAX_QUERY_IMAGE_COUNT}
               accept=".jpg,.jpeg,.png,.gif,.webp"
               maxSizeMB={5}
-              promptText={`照片墙上传，最多 ${MAX_QUERY_IMAGE_COUNT} 张，支持 JPG/PNG/GIF/WEBP，最大 5MB`}
+              promptText={t('照片墙上传，最多 {{limit}} 张，支持 JPG/PNG/GIF/WEBP，最大 5MB', { limit: MAX_QUERY_IMAGE_COUNT })}
               imageSize={96}
             />
           </div>
@@ -926,7 +935,7 @@ export default function ListPage() {
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-[13px] font-medium">
               <Paperclip className="text-muted-foreground size-3.5" />
-              附件
+              {t('附件')}
             </div>
             <FileUpload
               fileList={attachmentFileList}
@@ -935,7 +944,7 @@ export default function ListPage() {
               limit={MAX_QUERY_FILE_COUNT}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.zip,.rar,.7z,.json,.ppt,.pptx"
               maxSizeMB={20}
-              promptText={`最多 ${MAX_QUERY_FILE_COUNT} 个附件，支持文档/表格/压缩包，最大 20MB`}
+              promptText={t('最多 {{limit}} 个附件，支持文档/表格/压缩包，最大 20MB', { limit: MAX_QUERY_FILE_COUNT })}
               triggerText="上传附件"
             />
           </div>
@@ -946,7 +955,7 @@ export default function ListPage() {
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="列表页导出字段"
-        ruleHint={selectedRowKeys.length > 0 ? `已勾选 ${selectedRowKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将按当前筛选条件导出'}
+        ruleHint={selectedRowKeys.length > 0 ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: selectedRowKeys.length }) : '未勾选数据时，将按当前筛选条件导出'}
         fieldOptions={QUERY_EXPORT_FIELDS}
         defaultFields={['name', 'query_code', 'category', 'owner', 'status', 'version', 'updated_at']}
         onConfirm={handleExport}
@@ -967,23 +976,23 @@ export default function ListPage() {
         }
         onImport={(file) => importListPage(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="list_page_import_error_rows.csv"
       />
 
-      {/* ── 详情 ── */}
+      {/* ── Detail ── */}
       <DetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}
         title="记录详情"
-        description={detailRecord ? `v${detailRecord.version || 1} · 更新于 ${formatDateTime(detailRecord.updated_at)}` : undefined}
+        description={detailRecord ? t('v{{version}} · 更新于 {{time}}', { version: detailRecord.version || 1, time: formatDateTime(detailRecord.updated_at) }) : undefined}
         width={540}
         footer={
           <>
             <Button variant="outline" onClick={() => setDetailOpen(false)}>
-              关闭
+              {t('关闭')}
             </Button>
             <Button
               onClick={() => {
@@ -992,7 +1001,7 @@ export default function ListPage() {
               }}
             >
               <Pencil />
-              编辑
+              {t('编辑')}
             </Button>
           </>
         }
@@ -1020,7 +1029,7 @@ export default function ListPage() {
                 { label: 'ID', value: <span className="tabular-nums">{detailRecord.id}</span> },
                 { label: '名称', value: detailRecord.name },
                 { label: '编码', value: <span className="font-mono text-xs">{detailRecord.query_code}</span> },
-                { label: '分类', value: mapCategoryLabel(detailRecord.category) },
+                { label: '分类', value: t(mapCategoryLabel(detailRecord.category)) },
                 {
                   label: '发布状态',
                   value: (
@@ -1050,7 +1059,7 @@ export default function ListPage() {
 
             {detailRecord.description ? (
               <section className="space-y-2 border-t pt-5">
-                <h3 className="text-[13px] font-medium">描述</h3>
+                <h3 className="text-[13px] font-medium">{t('描述')}</h3>
                 <p className="text-muted-foreground text-[13px] leading-relaxed break-words whitespace-pre-wrap">{detailRecord.description}</p>
               </section>
             ) : null}
@@ -1058,7 +1067,7 @@ export default function ListPage() {
             {detailRecord.image_urls?.length > 0 ? (
               <section className="space-y-2 border-t pt-5">
                 <h3 className="text-[13px] font-medium">
-                  图片 <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.image_urls.length}</span>
+                  {t('图片')} <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.image_urls.length}</span>
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {detailRecord.image_urls.map((url, i) => (
@@ -1069,7 +1078,7 @@ export default function ListPage() {
                       rel="noreferrer"
                       className="group bg-muted ring-border block size-20 overflow-hidden rounded-lg ring-1"
                     >
-                      <img src={url} alt={`图片${i + 1}`} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <img src={url} alt={t('图片 {{n}}', { n: i + 1 })} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     </a>
                   ))}
                 </div>
@@ -1079,7 +1088,7 @@ export default function ListPage() {
             {detailRecord.file_urls?.length > 0 ? (
               <section className="space-y-2 border-t pt-5">
                 <h3 className="text-[13px] font-medium">
-                  附件 <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.file_urls.length}</span>
+                  {t('附件')} <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.file_urls.length}</span>
                 </h3>
                 <ul className="divide-y rounded-lg border">
                   {detailRecord.file_urls.map((url, i) => (
@@ -1091,7 +1100,7 @@ export default function ListPage() {
                         className="hover:bg-muted/50 hover:text-primary flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors"
                       >
                         <FileText className="text-muted-foreground size-4 shrink-0" />
-                        附件 {i + 1}
+                        {t('附件 {{n}}', { n: i + 1 })}
                       </a>
                     </li>
                   ))}

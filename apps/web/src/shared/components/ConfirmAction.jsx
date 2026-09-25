@@ -1,3 +1,4 @@
+import { useTx } from '@/i18n'
 import { useState } from 'react'
 import {
   AlertDialog,
@@ -13,9 +14,9 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 /**
- * 危险操作二次确认。onConfirm 可返回 Promise，期间按钮 loading、弹窗不关闭。
+ * Confirmation for dangerous actions. onConfirm may return a Promise; meanwhile the button shows loading and the dialog stays open.
  *   <ConfirmAction title="删除该用户？" description="删除后不可恢复。" onConfirm={() => remove(id)}>
- *     <Button variant="ghost" size="sm">删除</Button>
+ *     <Button variant="ghost" size="sm">{t('删除')}</Button>
  *   </ConfirmAction>
  */
 export default function ConfirmAction({
@@ -28,6 +29,7 @@ export default function ConfirmAction({
   children,
   disabled,
 }) {
+  const tx = useTx()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -38,7 +40,7 @@ export default function ConfirmAction({
       await onConfirm?.()
       setOpen(false)
     } catch {
-      /* 错误提示由调用方处理，弹窗保持打开 */
+      /* Errors are handled by the caller; the dialog stays open */
     } finally {
       setLoading(false)
     }
@@ -50,14 +52,14 @@ export default function ConfirmAction({
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent className="sm:max-w-[420px]">
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description ? <AlertDialogDescription>{description}</AlertDialogDescription> : null}
+          <AlertDialogTitle>{tx(title)}</AlertDialogTitle>
+          {description ? <AlertDialogDescription>{tx(description)}</AlertDialogDescription> : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{tx(cancelText)}</AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm} disabled={loading} variant={destructive ? 'destructive' : 'default'}>
             {loading ? <Spinner /> : null}
-            {confirmText}
+            {tx(confirmText)}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

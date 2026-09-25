@@ -1,12 +1,12 @@
 /**
- * 用户模块 schema 层
+ * Users module schema layer
  */
 
 import { z } from 'zod'
 import { formatDateTime } from '@/common/serialize'
 import type { AdminUserWithRoles } from '@/db/schema'
 
-/** 请求体：loose + 全可选，归一化在 service 里做 */
+/** Request body: loose + all optional; normalization happens in the service */
 export const userBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: AdminUserWithRoles) => unknown]> = {

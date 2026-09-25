@@ -1,4 +1,5 @@
 import { useFieldArray, useWatch } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import {
   DndContext,
   KeyboardSensor,
@@ -20,15 +21,17 @@ import { EMPTY_FIELD_ROW, FIELD_TYPE_OPTIONS, MAX_FIELDS } from '@/modules/compo
 import { DatePicker } from '@/shared/components/DatePicker'
 
 const GRID = 'sm:grid-cols-[20px_minmax(0,3fr)_minmax(0,4fr)_minmax(0,2fr)_minmax(0,3fr)_56px]'
+// i18n-ignore-next-line: accepted truthy input tokens, not UI copy
 const TRUE_VALUES = new Set(['true', '1', 'yes', 'y', 'on', '是'])
 
-/** 字段值输入：按类型切换控件，值统一存为字符串（与后端 field_value 文本列一致） */
+/** Field value input: the control switches by type; values are always stored as strings (matches the backend field_value text column) */
 function ValueInput({ type, field, invalid }) {
+  const { t } = useTranslation()
   if (type === 'boolean') {
     const checked = TRUE_VALUES.has(String(field.value ?? '').trim().toLowerCase())
     return (
       <div className="flex h-9 items-center gap-2 px-1">
-        <Switch checked={checked} onCheckedChange={(v) => field.onChange(v ? 'true' : 'false')} aria-label="字段值" />
+        <Switch checked={checked} onCheckedChange={(v) => field.onChange(v ? 'true' : 'false')} aria-label={t('字段值')} />
         <span className="text-muted-foreground font-mono text-xs">{checked ? 'true' : 'false'}</span>
       </div>
     )
@@ -41,7 +44,7 @@ function ValueInput({ type, field, invalid }) {
       {...field}
       value={field.value ?? ''}
       inputMode={type === 'number' ? 'decimal' : undefined}
-      placeholder={type === 'number' ? '数字' : '字段值'}
+      placeholder={t(type === 'number' ? '数字' : '字段值')}
       aria-invalid={invalid || undefined}
       className={cn('h-9', type === 'number' && 'font-mono tabular-nums')}
     />
@@ -49,6 +52,7 @@ function ValueInput({ type, field, invalid }) {
 }
 
 function SortableRow({ id, index, count, control, onRemove, onMove }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
   const type = useWatch({ control, name: `fields.${index}.field_type` })
 
@@ -67,7 +71,7 @@ function SortableRow({ id, index, count, control, onRemove, onMove }) {
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        aria-label={`拖动排序第 ${index + 1} 行`}
+        aria-label={t('拖动排序第 {{n}} 行', { n: index + 1 })}
         className="text-muted-foreground hover:text-foreground row-span-4 flex h-9 cursor-grab touch-none items-center justify-center rounded active:cursor-grabbing sm:row-span-1"
       >
         <GripVertical className="size-4" />
@@ -80,7 +84,7 @@ function SortableRow({ id, index, count, control, onRemove, onMove }) {
         render={({ field, fieldState }) => (
           <FormItem className="gap-1">
             <FormControl>
-              <Input {...field} value={field.value ?? ''} placeholder="字段键" aria-invalid={fieldState.invalid || undefined} className="h-9 font-mono" />
+              <Input {...field} value={field.value ?? ''} placeholder={t('字段键')} aria-invalid={fieldState.invalid || undefined} className="h-9 font-mono" />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -112,14 +116,14 @@ function SortableRow({ id, index, count, control, onRemove, onMove }) {
           <FormItem className="gap-1">
             <Select value={field.value || 'text'} onValueChange={field.onChange}>
               <FormControl>
-                <SelectTrigger className="h-9 w-full" aria-label="字段类型">
+                <SelectTrigger className="h-9 w-full" aria-label={t('字段类型')}>
                   <SelectValue />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {FIELD_TYPE_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                    {t(o.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -134,20 +138,20 @@ function SortableRow({ id, index, count, control, onRemove, onMove }) {
         render={({ field }) => (
           <FormItem className="gap-1">
             <FormControl>
-              <Input {...field} value={field.value ?? ''} placeholder="备注" className="h-9" />
+              <Input {...field} value={field.value ?? ''} placeholder={t('备注')} className="h-9" />
             </FormControl>
           </FormItem>
         )}
       />
 
       <div className="col-start-2 flex items-center justify-end gap-0.5 sm:col-start-auto sm:h-9">
-        <Button type="button" variant="ghost" size="icon" className="size-7 sm:hidden" disabled={index === 0} onClick={() => onMove(index, index - 1)} aria-label="上移">
+        <Button type="button" variant="ghost" size="icon" className="size-7 sm:hidden" disabled={index === 0} onClick={() => onMove(index, index - 1)} aria-label={t('上移')}>
           <ArrowUp className="size-3.5" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" className="size-7 sm:hidden" disabled={index === count - 1} onClick={() => onMove(index, index + 1)} aria-label="下移">
+        <Button type="button" variant="ghost" size="icon" className="size-7 sm:hidden" disabled={index === count - 1} onClick={() => onMove(index, index + 1)} aria-label={t('下移')}>
           <ArrowDown className="size-3.5" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-danger size-7" onClick={() => onRemove(index)} aria-label="移除" title="移除">
+        <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-danger size-7" onClick={() => onRemove(index)} aria-label={t('移除')} title={t('移除')}>
           <Trash2 className="size-3.5" />
         </Button>
       </div>
@@ -156,10 +160,12 @@ function SortableRow({ id, index, count, control, onRemove, onMove }) {
 }
 
 /**
- * 动态字段子表编辑器（react-hook-form useFieldArray）：增删、拖拽 / 键盘排序（手柄聚焦后空格 + 方向键）、按类型切换值控件。
- * 提交时由页面按当前顺序写入 sort_order。
+ * Dynamic-field sub-table editor (react-hook-form useFieldArray): add / remove, drag or keyboard reordering
+ * (focus the handle, then Space + arrow keys), and a value control that switches by type.
+ * On submit the page writes sort_order from the current order.
  */
 export default function FieldRowsEditor({ control }) {
+  const { t } = useTranslation()
   const { fields, append, remove, move } = useFieldArray({ control, name: 'fields' })
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -178,14 +184,14 @@ export default function FieldRowsEditor({ control }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">动态字段</span>
+          <span className="text-sm font-medium">{t('动态字段')}</span>
           <span className={cn('rounded-md px-1.5 text-xs leading-5 tabular-nums', full ? 'bg-warning-soft text-warning' : 'bg-muted text-muted-foreground')}>
             {fields.length} / {MAX_FIELDS}
           </span>
         </div>
         <Button type="button" variant="outline" size="sm" className="h-8" disabled={full} onClick={() => append({ ...EMPTY_FIELD_ROW })}>
           <Plus />
-          添加字段
+          {t('添加字段')}
         </Button>
       </div>
 
@@ -194,11 +200,11 @@ export default function FieldRowsEditor({ control }) {
           <div className={cn('text-muted-foreground bg-muted/40 hidden gap-x-2 border-b px-1.5 py-2 text-xs sm:grid', GRID)}>
             <span />
             <span>
-              字段键 <span className="text-destructive">*</span>
+              {t('字段键')} <span className="text-destructive">*</span>
             </span>
-            <span>字段值</span>
-            <span>类型</span>
-            <span>备注</span>
+            <span>{t('字段值')}</span>
+            <span>{t('类型')}</span>
+            <span>{t('备注')}</span>
             <span />
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -218,7 +224,7 @@ export default function FieldRowsEditor({ control }) {
           className="text-muted-foreground hover:border-primary/60 hover:bg-muted/40 hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-6 text-[13px] transition-colors"
         >
           <Plus className="size-4" />
-          点击添加第一个字段
+          {t('点击添加第一个字段')}
         </button>
       )}
     </div>

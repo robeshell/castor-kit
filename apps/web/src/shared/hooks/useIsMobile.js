@@ -1,8 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
 /**
- * 响应式断点 hook
- * @param {number} breakpoint - 默认 768px
+ * Responsive breakpoint hook
+ * @param {number} breakpoint - defaults to 768px
  * @returns {boolean} isMobile
  */
 export function useIsMobile(breakpoint = 768) {

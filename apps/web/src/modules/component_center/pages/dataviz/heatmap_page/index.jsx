@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Activity, CalendarCheck, Flame, Trophy, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
 import PageHeader from '@/shared/components/PageHeader'
@@ -8,7 +9,7 @@ import Panel from '@/shared/components/Panel'
 import StatCard from '@/shared/components/StatCard'
 import StatusBadge from '@/shared/components/StatusBadge'
 
-// ── 日历热力图数据（近 1 年） ──────────────────────────────────────────
+// ── Calendar heatmap data (past year) ──────────────────────────────────────────
 function generateCalendarData() {
   const data = []
   const now = new Date()
@@ -16,7 +17,7 @@ function generateCalendarData() {
     const d = new Date(now)
     d.setDate(d.getDate() - i)
     const dateStr = d.toISOString().slice(0, 10)
-    // 工作日多，周末少；模拟提交/活跃记录
+    // More on weekdays, less on weekends; simulated commit / activity records
     const isWeekend = d.getDay() === 0 || d.getDay() === 6
     const base = isWeekend ? 2 : 8
     const value = Math.random() < 0.25 ? 0 : Math.floor(Math.random() * base + Math.random() * 10)
@@ -25,8 +26,8 @@ function generateCalendarData() {
   return data
 }
 
-// ── 时段 × 星期热力数据 ────────────────────────────────────────────────
-const HOURS = Array.from({ length: 24 }, (_, h) => `${h}时`)
+// ── Hour × weekday heatmap data ────────────────────────────────────────────────
+// Chinese source text; translated when the chart option is built
 const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 function generateHourData() {
@@ -47,7 +48,7 @@ function generateHourData() {
   return data
 }
 
-// ── 年度统计 ──────────────────────────────────────────────────────────
+// ── Yearly stats ──────────────────────────────────────────────────────────
 function calcStats(calData) {
   const total = calData.reduce((s, [, v]) => s + v, 0)
   const activeDays = calData.filter(([, v]) => v > 0).length
@@ -61,7 +62,18 @@ function calcStats(calData) {
   return { total, activeDays, maxDay, streak }
 }
 
-/** 由主题色生成的顺序色阶：中性 → Ocean 蓝 */
+/** Calendar month / weekday labels in the UI language (weekdays are Sunday-first, as ECharts expects) */
+function calendarLabels(lang) {
+  const month = new Intl.DateTimeFormat(lang, { month: 'short' })
+  const weekday = new Intl.DateTimeFormat(lang, { weekday: 'narrow' })
+  return {
+    months: Array.from({ length: 12 }, (_, i) => month.format(new Date(2024, i, 1))),
+    // 2024-01-07 is a Sunday
+    days: Array.from({ length: 7 }, (_, i) => weekday.format(new Date(2024, 0, 7 + i))),
+  }
+}
+
+/** Sequential ramp from theme colors: neutral → Ocean blue */
 function brandRamp(c) {
   return [
     hexToRgba(c['muted-foreground'], 0.12),
@@ -73,6 +85,8 @@ function brandRamp(c) {
 }
 
 export default function HeatmapPage() {
+  const { t, i18n } = useTranslation()
+  const lang = i18n.language
   const c = useChartColors()
   const [calData, setCalData] = useState(() => generateCalendarData())
   const [hourData, setHourData] = useState(() => generateHourData())
@@ -87,12 +101,13 @@ export default function HeatmapPage() {
 
   const calOption = useMemo(() => {
     const base = chartBase(c)
+    const labels = calendarLabels(lang)
     return {
       textStyle: base.textStyle,
       tooltip: {
         ...base.tooltip,
         trigger: 'item',
-        formatter: (p) => `${p.data[0]}<br/>活跃度：<b>${p.data[1]}</b>`,
+        formatter: (p) => `${p.data[0]}<br/>${t('活跃度：{{value}}', { value: `<b>${p.data[1]}</b>` })}`,
       },
       visualMap: { min: 0, max: 18, show: false, inRange: { color: ramp } },
       calendar: {
@@ -106,39 +121,41 @@ export default function HeatmapPage() {
         yearLabel: { show: false },
         dayLabel: {
           firstDay: 1,
-          nameMap: ['日', '一', '二', '三', '四', '五', '六'],
+          nameMap: labels.days,
           color: c['muted-foreground'],
           fontSize: 11,
         },
-        monthLabel: { color: c['muted-foreground'], fontSize: 11 },
+        monthLabel: { nameMap: labels.months, color: c['muted-foreground'], fontSize: 11 },
       },
       series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: calData }],
     }
-  }, [c, ramp, calData])
+  }, [c, ramp, calData, lang, t])
 
   const hourOption = useMemo(() => {
     const base = chartBase(c)
     const maxVal = Math.max(...hourData.map((d) => d[2]), 1)
+    const hours = Array.from({ length: 24 }, (_, h) => t('{{h}}时', { h }))
+    const days = DAYS.map((d) => t(d))
     return {
       textStyle: base.textStyle,
       tooltip: {
         ...base.tooltip,
         trigger: 'item',
         position: 'top',
-        formatter: (p) => `${DAYS[p.data[1]]} ${HOURS[p.data[0]]}<br/>活跃度：<b>${p.data[2]}</b>`,
+        formatter: (p) => `${days[p.data[1]]} ${hours[p.data[0]]}<br/>${t('活跃度：{{value}}', { value: `<b>${p.data[2]}</b>` })}`,
       },
       grid: { top: 8, left: 8, right: 56, bottom: 8, containLabel: true },
       xAxis: {
         ...base.xAxis,
         type: 'category',
-        data: HOURS,
+        data: hours,
         axisLabel: { ...base.xAxis.axisLabel, fontSize: 10, interval: 1 },
         splitArea: { show: false },
       },
       yAxis: {
         ...base.yAxis,
         type: 'category',
-        data: DAYS,
+        data: days,
         splitLine: { show: false },
         axisLabel: { ...base.yAxis.axisLabel, fontSize: 12, color: c.foreground },
       },
@@ -156,7 +173,7 @@ export default function HeatmapPage() {
       },
       series: [
         {
-          name: '活跃度',
+          name: t('活跃度'),
           type: 'heatmap',
           data: hourData,
           label: { show: false },
@@ -165,7 +182,7 @@ export default function HeatmapPage() {
         },
       ],
     }
-  }, [c, ramp, hourData])
+  }, [c, ramp, hourData, t])
 
   return (
     <div className="space-y-5">
@@ -174,7 +191,7 @@ export default function HeatmapPage() {
         actions={
           <Button size="sm" variant="outline" onClick={handleRefresh}>
             <RefreshCw />
-            刷新数据
+            {t('刷新数据')}
           </Button>
         }
       />
@@ -189,18 +206,18 @@ export default function HeatmapPage() {
       <Panel
         title={
           <span className="flex items-center gap-2">
-            年度活跃日历
-            <StatusBadge tone="brand">GitHub 贡献图风格</StatusBadge>
+            {t('年度活跃日历')}
+            <StatusBadge tone="brand">{t('GitHub 贡献图风格')}</StatusBadge>
           </span>
         }
         description="近 365 天每日活跃度"
         actions={
           <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
-            <span>少</span>
+            <span>{t('少')}</span>
             {ramp.map((color) => (
               <span key={color} className="size-3 rounded-[3px]" style={{ background: color }} />
             ))}
-            <span>多</span>
+            <span>{t('多')}</span>
           </div>
         }
       >
@@ -212,7 +229,7 @@ export default function HeatmapPage() {
       <Panel
         title={
           <span className="flex items-center gap-2">
-            全周活跃热力矩阵
+            {t('全周活跃热力矩阵')}
             <StatusBadge tone="info">24h × 7days</StatusBadge>
           </span>
         }

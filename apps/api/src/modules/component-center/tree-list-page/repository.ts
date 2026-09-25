@@ -1,5 +1,5 @@
 /**
- * 树形列表页 repository 层（含 service 里直接拼的查询）
+ * Tree list page repository layer (includes queries the service builds directly)
  */
 
 import { and, asc, count, eq, ilike, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -19,7 +19,7 @@ export interface TreeListFilters {
 export type TreeNodeInsert = typeof tree_nodes.$inferInsert
 export type TreeNodeUpdate = Partial<Omit<TreeNodeInsert, 'id' | 'created_at' | 'updated_at'>>
 
-/** `parent_id == n`：超出 int4 的整数不会命中 */
+/** `parent_id == n`: integers outside int4 never match */
 function parentEquals(parentId: number): SQL {
   return isPgInt(parentId) ? eq(tree_nodes.parent_id, parentId) : sql`false`
 }
@@ -27,7 +27,7 @@ function parentEquals(parentId: number): SQL {
 export class TreeListPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** 对应 service._build_flat_query */
+  /** Equivalent of service._build_flat_query */
   private flatWhere(f: TreeListFilters): SQL[] {
     const conds: SQL[] = []
     if (f.search) {
@@ -46,7 +46,7 @@ export class TreeListPageRepository {
     return conds
   }
 
-  /** 左侧树：按 sort_order、id 升序的平铺节点 */
+  /** Left-side tree: flat nodes ordered by sort_order, id ascending */
   async listForTree(filters: TreeListFilters): Promise<TreeNode[]> {
     const conds = this.flatWhere(filters)
     return this.db
@@ -56,7 +56,7 @@ export class TreeListPageRepository {
       .orderBy(asc(tree_nodes.sort_order), asc(tree_nodes.id))
   }
 
-  /** 右侧表格：parentId 为 'root' 取根节点，为数字取该父节点下的子节点，为 null 不限 */
+  /** Right-side table: parentId 'root' → root nodes; a number → children of that parent; null → no filter */
   async listPage(page: number, perPage: number, filters: TreeListFilters, parentId: 'root' | number | null) {
     const conds = this.flatWhere(filters)
     if (parentId === 'root') conds.push(isNull(tree_nodes.parent_id))
@@ -117,14 +117,14 @@ export class TreeListPageRepository {
     return row!
   }
 
-  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新） */
+  /** Only called when some column changed (updated_at is refreshed automatically by $onUpdateFn) */
   async update(id: number, values: TreeNodeUpdate): Promise<void> {
     await this.db.update(tree_nodes).set(values).where(eq(tree_nodes.id, id))
   }
 
   /**
-   * 删除节点：DELETE 前先把子节点逐个 `UPDATE parent_id = NULL`（子节点 updated_at 随之刷新），
-   * 库里的 ON DELETE SET NULL 兜底。
+   * Delete a node: before the DELETE, children are detached one by one via `UPDATE parent_id = NULL` (refreshing their updated_at);
+   * the DB's ON DELETE SET NULL acts as a fallback.
    */
   async deleteWithChildrenDetached(id: number): Promise<void> {
     await this.db

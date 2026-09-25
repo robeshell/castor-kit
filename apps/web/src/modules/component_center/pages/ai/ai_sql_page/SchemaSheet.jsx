@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, Database, Play, RefreshCw, Table2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,7 +12,7 @@ import { SearchInput } from '@/shared/components/Filters'
 import { DetailSheet } from '@/shared/components/FormDialog'
 
 /**
- * 后端 schema 文本 → [{ name, columns: [{ name, type, notNull, defaultValue }] }]
+ * Backend schema text -> [{ name, columns: [{ name, type, notNull, defaultValue }] }]
  *   TABLE users (
  *     id  integer NOT NULL DEFAULT nextval(...),
  *     username  character varying NOT NULL
@@ -41,6 +42,7 @@ function parseSchema(schemaText, tableNames = []) {
 }
 
 function TableItem({ table, onQuery }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border">
@@ -51,9 +53,9 @@ function TableItem({ table, onQuery }) {
           />
           <Table2 className="text-muted-foreground size-3.5 shrink-0" />
           <span className="truncate font-mono text-[13px]">{table.name}</span>
-          <span className="text-muted-foreground ml-auto shrink-0 text-[11px] tabular-nums">{table.columns.length} 列</span>
+          <span className="text-muted-foreground ml-auto shrink-0 text-[11px] tabular-nums">{t('{{count}} 列', { count: table.columns.length })}</span>
         </CollapsibleTrigger>
-        <Button variant="ghost" size="icon-xs" aria-label={`查询 ${table.name}`} title="填入查询语句" onClick={() => onQuery(table.name)}>
+        <Button variant="ghost" size="icon-xs" aria-label={t('查询 {{name}}', { name: table.name })} title={t('填入查询语句')} onClick={() => onQuery(table.name)}>
           <Play />
         </Button>
       </div>
@@ -74,8 +76,9 @@ function TableItem({ table, onQuery }) {
   )
 }
 
-/** 表结构浏览（数据来自 GET /ai/sql/schema，敏感表后端已过滤） */
+/** Schema browser (data from GET /ai/sql/schema; sensitive tables are filtered out by the backend) */
 export default function SchemaSheet({ open, onOpenChange, onQueryTable }) {
+  const { t } = useTranslation()
   const [tables, setTables] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -84,7 +87,7 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }) {
 
   const applySchema = (res) => setTables(parseSchema(res?.schema, Array.isArray(res?.tables) ? res.tables : []))
 
-  // 首次打开时加载一次
+  // Load once, the first time the sheet opens
   useEffect(() => {
     if (!open || requestedRef.current) return
     requestedRef.current = true
@@ -114,7 +117,7 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }) {
     const kw = keyword.trim().toLowerCase()
     if (!tables) return []
     if (!kw) return tables
-    return tables.filter((t) => t.name.toLowerCase().includes(kw) || t.columns.some((c) => c.name.toLowerCase().includes(kw)))
+    return tables.filter((table) => table.name.toLowerCase().includes(kw) || table.columns.some((c) => c.name.toLowerCase().includes(kw)))
   }, [tables, keyword])
 
   return (
@@ -127,7 +130,7 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }) {
       footer={
         <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
           <RefreshCw className={cn(loading && 'animate-spin')} />
-          刷新
+          {t('刷新')}
         </Button>
       }
     >
@@ -143,9 +146,9 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }) {
           <EmptyState icon={Database} title={tables?.length ? '没有匹配的表' : '暂无可查询的表'} />
         ) : (
           <div className="space-y-1.5">
-            <p className="text-muted-foreground text-xs tabular-nums">共 {filtered.length} 张表</p>
-            {filtered.map((t) => (
-              <TableItem key={t.name} table={t} onQuery={onQueryTable} />
+            <p className="text-muted-foreground text-xs tabular-nums">{t('共 {{count}} 张表', { count: filtered.length })}</p>
+            {filtered.map((table) => (
+              <TableItem key={table.name} table={table} onQuery={onQueryTable} />
             ))}
           </div>
         )}

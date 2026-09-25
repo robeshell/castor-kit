@@ -1,6 +1,6 @@
 /**
- * 动效预设（motion）。时长 150–350ms，曲线见 index.css 的 --ease-*。
- * 用法：<motion.div {...fadeUp}> / <motion.ul variants={stagger.container} initial="hidden" animate="show">
+ * Motion presets (motion). Durations 150–350ms; easing curves are the --ease-* vars in index.css.
+ * Usage: <motion.div {...fadeUp}> / <motion.ul variants={stagger.container} initial="hidden" animate="show">
  */
 export const EASE_OUT = [0.2, 0.8, 0.2, 1]
 export const EASE_SPRING = [0.32, 0.72, 0, 1]
@@ -29,5 +29,5 @@ export const stagger = {
   },
 }
 
-/** 滑动指示条等 layout 动画用的弹簧 */
+/** Spring for layout animations such as sliding indicators */
 export const layoutSpring = { type: 'spring', stiffness: 500, damping: 40, mass: 0.8 }

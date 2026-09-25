@@ -1,14 +1,14 @@
 /**
- * 通过 Apifox 开放 API 导入 OpenAPI/Swagger
+ * Import OpenAPI/Swagger via the Apifox open API
  *
- * 默认对匹配到的接口/数据模型“覆盖已有”。
+ * By default, matched endpoints/schemas "overwrite existing".
  *
- * 用法：
+ * Usage:
  *   pnpm openapi:apifox -- [--project-id ID] [--access-token TOKEN] [--spec-file PATH | --input-url URL] ...
- * 环境变量：APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN / APIFOX_API_VERSION（默认 2024-03-28）
+ * Environment variables: APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN / APIFOX_API_VERSION (default 2024-03-28)
  *
- * 退出码：参数错误 2；输入/请求失败或 HTTP >= 400 为 1；返回 errors 或 *Failed 计数 > 0 为 2；成功 0。
- * 请求体按 Python requests 的 `json=` 方式编码（ensure_ascii + ', '/': ' 分隔符）。
+ * Exit codes: 2 for argument errors; 1 for input/request failures or HTTP >= 400; 2 when errors or any *Failed count > 0 is returned; 0 on success.
+ * The request body is encoded like Python requests' `json=` (ensure_ascii + ', '/': ' separators).
  */
 
 import { existsSync, readFileSync } from 'node:fs'
@@ -45,10 +45,10 @@ export interface ImportArgs {
   timeout: number
 }
 
-/** 参数错误：打印 usage 与错误后以 2 退出 */
+/** Argument error: print usage and the error, then exit with 2 */
 export class ArgumentError extends Error {}
 
-/** Python int()：允许首尾空白、正负号、数字间下划线 */
+/** Python int(): allows leading/trailing whitespace, a sign, and underscores between digits */
 function parsePyInt(option: string, raw: string): number {
   if (!/^\s*[+-]?\d+(?:_\d+)*\s*$/.test(raw)) {
     throw new ArgumentError(`argument --${option}: invalid int value: '${raw}'`)
@@ -104,7 +104,7 @@ export function parseImportArgs(argv: string[], env: NodeJS.ProcessEnv = process
   return {
     projectId: str('project-id') ?? env.APIFOX_PROJECT_ID,
     accessToken: str('access-token') ?? env.APIFOX_ACCESS_TOKEN,
-    // os.getenv('APIFOX_API_VERSION', DEFAULT)：变量存在但为空时就是空串
+    // os.getenv('APIFOX_API_VERSION', DEFAULT): if the variable exists but is empty, the result is an empty string
     apiVersion: str('api-version') ?? env.APIFOX_API_VERSION ?? DEFAULT_API_VERSION,
     locale: str('locale') ?? 'zh-CN',
     specFile: str('spec-file') ?? resolve(REPO_ROOT, 'docs/apifox-full.openapi.json'),
@@ -191,7 +191,7 @@ function asMap(value: OrderedJson | undefined): Map<string, OrderedJson> | null 
   return value instanceof Map ? value : null
 }
 
-/** 把保序 JSON 值转成 Python str() 的结果（计数 / 错误信息打印用） */
+/** Convert an order-preserving JSON value to the result of Python str() (for printing counts / error messages) */
 function pyStrOf(value: OrderedJson | undefined): string {
   if (value === undefined) return ''
   if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Map)) {
@@ -200,7 +200,7 @@ function pyStrOf(value: OrderedJson | undefined): string {
   return pyStr(JSON.parse(JSON.stringify(value, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v))))
 }
 
-/** OrderedJson 数字/字符串 → Python int(x or 0)；无法转换时抛错（以 1 退出） */
+/** OrderedJson number/string → Python int(x or 0); throws when it can't convert (exits with 1) */
 function pyIntOf(value: OrderedJson | undefined): number {
   if (value === undefined || value === null || value === false || value === '') return 0
   if (value === true) return 1
@@ -240,7 +240,7 @@ function isTruthyJson(value: OrderedJson | undefined): boolean {
 
 export interface RunImportOptions {
   env?: NodeJS.ProcessEnv
-  /** 仅测试用：替换 Apifox 地址 */
+  /** Test only: override the Apifox base URL */
   baseUrl?: string
   out?: (line: string) => void
   err?: (line: string) => void

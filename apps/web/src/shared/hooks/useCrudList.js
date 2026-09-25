@@ -1,19 +1,19 @@
 import { useCallback, useRef, useState } from 'react'
 
 /**
- * CRUD 列表页通用状态机：分页 + 搜索 + 重置 + 加载态。
+ * Generic state machine for CRUD list pages: pagination + search + reset + loading state.
  *
- * 各列表页过去各自复制一套 fetchData/search/reset 状态机，行为容易漂移。
- * 新页面应优先复用本 hook：
+ * List pages used to each copy their own fetchData/search/reset state machine, and the behavior tended to drift.
+ * New pages should reuse this hook first:
  *   const list = useCrudList((params) => listApi(params), { defaultPerPage: 20 })
  *   // list = { data, total, page, perPage, loading, filters,
  *   //          fetchData, handleSearch, handleReset, handlePageChange }
  *
- * fetcher 接收 { page, per_page, ...filters } 并返回 { items, total, ... }。
- * 依赖 request.js 的统一 401/CSRF 处理，无需在页面内重复实现。
+ * The fetcher receives { page, per_page, ...filters } and returns { items, total, ... }.
+ * Relies on request.js for unified 401/CSRF handling, so pages don't need to reimplement it.
  *
- * 页码收敛：当请求结果为空页但 total > 0（典型场景是删除末页最后一条），
- * 自动回退到上一页重新拉取，避免停留在越界空页。
+ * Page clamping: when the result is an empty page but total > 0 (typically after deleting the last row on the last page),
+ * automatically step back one page and refetch, instead of staying on an out-of-range empty page.
  */
 export function useCrudList(fetcher, { defaultPerPage = 20 } = {}) {
   const [data, setData] = useState([])
@@ -22,7 +22,7 @@ export function useCrudList(fetcher, { defaultPerPage = 20 } = {}) {
   const [perPage] = useState(defaultPerPage)
   const [loading, setLoading] = useState(false)
   const [filters, setFilters] = useState({})
-  // 回退中标记：防止回退拉取再次触发回退形成递归
+  // Step-back-in-progress flag: prevents the step-back fetch from triggering another step-back recursively
   const recoveringRef = useRef(false)
 
   const fetchData = useCallback(async (nextPage = page, nextFilters = filters) => {
@@ -30,7 +30,7 @@ export function useCrudList(fetcher, { defaultPerPage = 20 } = {}) {
     try {
       const res = await fetcher({ page: nextPage, per_page: perPage, ...nextFilters })
 
-      // 删除末页最后一条后页码越界：items 为空、total > 0 且不在首页 → 回退一页
+      // Page out of range after deleting the last row on the last page: items empty, total > 0 and not on the first page → step back one page
       const emptyOvershoot =
         !(res?.items && res.items.length > 0) &&
         (res?.total || 0) > 0 &&

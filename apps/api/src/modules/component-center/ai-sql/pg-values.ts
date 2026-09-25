@@ -1,20 +1,20 @@
 /**
- * 按 OID 把只读查询返回的 PostgreSQL 文本值转换成接口输出的 JSON 值。
+ * Converts PostgreSQL text values returned by read-only queries into the API's JSON output values, by OID.
  *
- * 先把列值解析成 Python 风格的值模型（int / float / Decimal / date / datetime / time / timedelta / Range / list / dict …），
- * 再按以下规则序列化（toResponseValue）：
- *   null → null；date/datetime/time → ISO 格式；int/float/bool → 原值；其余 → Python `str()` 的文本写法
- * 所以 numeric → Decimal 文本（如 `1.2E-7`）、json 对象/数组 → Python repr（`{'a': 1}`）、
- * 数组 → Python list repr（`[Decimal('1.5'), None]`）、interval → timedelta 文本（`1 day, 2:00:00`）。
+ * Column values are first parsed into a Python-style value model (int / float / Decimal / date / datetime / time / timedelta / Range / list / dict …),
+ * then serialized with these rules (toResponseValue):
+ *   null → null; date/datetime/time → ISO format; int/float/bool → as-is; everything else → Python `str()` text
+ * So numeric → Decimal text (e.g. `1.2E-7`), json object/array → Python repr (`{'a': 1}`),
+ * array → Python list repr (`[Decimal('1.5'), None]`), interval → timedelta text (`1 day, 2:00:00`).
  *
- * 特殊处理：
- * - bytea：输出 PG 的 hex 文本
- * - float 的 NaN/±Infinity：输出 null（`NaN`/`Infinity` 不是合法 JSON 字面量，前端无法解析）
+ * Special cases:
+ * - bytea: output as PG hex text
+ * - float NaN/±Infinity: output null (`NaN`/`Infinity` are not valid JSON literals and the frontend can't parse them)
  */
 
 export class PyConvertError extends Error {}
 
-// ---- 值模型（Python 风格，用于生成 repr / str 文本） ----
+// ---- Value model (Python style, used to produce repr / str text) ----
 
 interface PyInt {
   t: 'int'
@@ -44,7 +44,7 @@ interface PyTime {
   M: number
   S: number
   us: number
-  /** UTC 偏移秒数；null = naive */
+  /** UTC offset in seconds; null = naive */
   tz: number | null
 }
 interface PyDateTime {
@@ -76,7 +76,7 @@ interface PyDict {
   t: 'dict'
   entries: [string, PyValue][]
 }
-/** 范围类型：NumericRange / DateRange / DateTimeRange / DateTimeTZRange */
+/** Range types: NumericRange / DateRange / DateTimeRange / DateTimeTZRange */
 interface PyRange {
   t: 'range'
   cls: string
@@ -128,7 +128,7 @@ export function pyStrRepr(s: string): string {
   return out + quote
 }
 
-/** Python `repr(float)`：最短往返表示；指数 < -4 或 >= 16 时用科学计数法（`1e-05`、`1e+16`） */
+/** Python `repr(float)`: shortest round-trip representation; scientific notation when exponent < -4 or >= 16 (`1e-05`, `1e+16`) */
 export function pyFloatRepr(n: number): string {
   if (Number.isNaN(n)) return 'nan'
   if (!Number.isFinite(n)) return n > 0 ? 'inf' : '-inf'
@@ -150,7 +150,7 @@ export function pyFloatRepr(n: number): string {
   return sign + text
 }
 
-/** Python `str(Decimal(text))`，text 为 PostgreSQL numeric 的文本输出（无指数） */
+/** Python `str(Decimal(text))`, where text is PostgreSQL numeric text output (no exponent) */
 export function decimalStr(text: string): string {
   if (text === 'NaN' || text === 'Infinity' || text === '-Infinity') return text
   const m = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(text)
@@ -198,7 +198,7 @@ function dateIso(y: number, m: number, d: number): string {
   return `${String(y).padStart(4, '0')}-${p2(m)}-${p2(d)}`
 }
 
-/** timedelta 的规范化（days 任意符号，0 <= seconds < 86400，0 <= us < 1e6） */
+/** timedelta normalization (days of any sign, 0 <= seconds < 86400, 0 <= us < 1e6) */
 function makeTimedelta(totalMicros: bigint): PyTimedelta {
   const DAY = 86_400_000_000n
   let days = totalMicros / DAY
@@ -284,7 +284,7 @@ export function pyRepr(value: PyValue): string {
   }
 }
 
-/** Python `str(value)` 用于 Range 的上下界（datetime 的 str 是空格分隔的 isoformat） */
+/** Python `str(value)` for Range bounds (datetime's str is the space-separated isoformat) */
 function pyScalarStr(value: PyValue): string {
   if (value === null) return 'None'
   if (typeof value === 'boolean' || Array.isArray(value)) return pyRepr(value)
@@ -300,7 +300,7 @@ function pyScalarStr(value: PyValue): string {
   }
 }
 
-/** Python `str(value)` 的文本写法（只用于 toResponseValue 的“其余类型”分支） */
+/** Python `str(value)` text form (only used by the "everything else" branch of toResponseValue) */
 function pyStrOf(value: Exclude<PyValue, null | boolean>): string {
   if (Array.isArray(value)) return pyRepr(value)
   switch (value.t) {
@@ -323,13 +323,13 @@ function pyStrOf(value: Exclude<PyValue, null | boolean>): string {
 
 type JsonRaw = { rawJSON: (text: string) => unknown }
 
-/** int → JSON 数字；超出 JS 安全整数的值用 JSON.rawJSON 保留精确位数（不丢精度） */
+/** int → JSON number; values beyond JS safe integers use JSON.rawJSON to keep exact digits (no precision loss) */
 function intJson(v: bigint): unknown {
   const n = Number(v)
   return Number.isSafeInteger(n) ? n : (JSON as unknown as JsonRaw).rawJSON(v.toString())
 }
 
-/** 只读查询结果的逐值序列化规则 */
+/** Per-value serialization rules for read-only query results */
 export function toResponseValue(value: PyValue): unknown {
   if (value === null || typeof value === 'boolean') return value
   if (Array.isArray(value)) return pyRepr(value)
@@ -349,7 +349,7 @@ export function toResponseValue(value: PyValue): unknown {
   }
 }
 
-// ---- PostgreSQL 文本 → 值模型 ----
+// ---- PostgreSQL text → value model ----
 
 function parseFraction(frac: string | undefined): number {
   if (!frac) return 0
@@ -381,7 +381,7 @@ function parseDate(text: string): PyDate {
 function parseTime(text: string, withTz: boolean): PyTime {
   const m = /^(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([+-][\d:]+)?$/.exec(text)
   if (!m) throw new PyConvertError(`bad time: ${text}`)
-  // 24:00:00 折回 00:00:00
+  // 24:00:00 wraps back to 00:00:00
   const H = Number(m[1]) % 24
   return { t: 'time', H, M: Number(m[2]), S: Number(m[3]), us: parseFraction(m[4]), tz: withTz ? parseOffset(m[5]) : null }
 }
@@ -407,7 +407,7 @@ function parseTimestamp(text: string, withTz: boolean): PyDateTime {
   }
 }
 
-/** 解析 interval 文本的状态机（IntervalStyle=postgres；年 = 365 天、月 = 30 天） */
+/** State machine for parsing interval text (IntervalStyle=postgres; year = 365 days, month = 30 days) */
 function parseInterval(text: string): PyTimedelta {
   const INT_MAX = 2_147_483_647
   let v = 0
@@ -499,7 +499,7 @@ function parseInterval(text: string): PyTimedelta {
   return makeTimedelta(totalDays * 86_400_000_000n + totalSeconds * 1_000_000n + totalMicrosPart)
 }
 
-/** 保序 JSON 解析（整数不丢精度，对象键保持文档顺序，重复键取最后一个值） */
+/** Order-preserving JSON parse (integers keep precision, object keys keep document order, duplicate keys take the last value) */
 export function parseJsonPy(text: string): PyValue {
   let i = 0
   const ws = () => {
@@ -600,11 +600,11 @@ export function parseJsonPy(text: string): PyValue {
   return value
 }
 
-/** PostgreSQL 数组文本（`{1,2}`、`{{1,2},{3,4}}`、`{"a,b",NULL}`）→ 嵌套数组，元素为原始文本或 null */
+/** PostgreSQL array text (`{1,2}`, `{{1,2},{3,4}}`, `{"a,b",NULL}`) → nested array whose elements are raw text or null */
 type RawArray = (string | null | RawArray)[]
 export function parsePgArray(text: string): RawArray {
   let i = 0
-  // 带显式下标的输出 `[0:1]={...}`
+  // Output with explicit bounds `[0:1]={...}`
   if (text.startsWith('[')) {
     const eq = text.indexOf('=')
     if (eq >= 0) i = eq + 1
@@ -651,7 +651,7 @@ export function parsePgArray(text: string): RawArray {
 
 type Scalar = (text: string) => PyValue
 
-/** PostgreSQL range 文本（`[1,5)`、`empty`、`(,5]`、`["2024-01-01 00:00:00","2024-01-02 00:00:00")`） */
+/** PostgreSQL range text (`[1,5)`, `empty`, `(,5]`, `["2024-01-01 00:00:00","2024-01-02 00:00:00")`) */
 function parseRange(text: string, cls: string, element: Scalar): PyRange {
   if (text === 'empty') return { t: 'range', cls, bounds: null, lower: null, upper: null }
   let i = 1
@@ -700,7 +700,7 @@ const intOf: Scalar = (s) => ({ t: 'int', v: BigInt(s) })
 const floatOf: Scalar = (s) => ({ t: 'float', v: s === 'NaN' ? Number.NaN : Number(s) })
 const strOf: Scalar = (s) => ({ t: 'str', v: s })
 
-/** 标量类型 OID → 转换函数（未列出的类型按字符串原样返回） */
+/** Scalar type OID → converter (unlisted types are returned as the raw string) */
 const SCALARS: Record<number, Scalar> = {
   16: (s) => s === 't',
   20: intOf,
@@ -733,7 +733,7 @@ const SCALARS: Record<number, Scalar> = {
   3910: (s) => parseRange(s, 'DateTimeTZRange', (v) => parseTimestamp(v, true)),
 }
 
-/** 数组类型 OID → 元素类型 OID（未列出的数组类型按字符串原样返回） */
+/** Array type OID → element type OID (unlisted array types are returned as the raw string) */
 const ARRAYS: Record<number, number> = {
   1000: 16,
   1005: 21,
@@ -758,7 +758,7 @@ const ARRAYS: Record<number, number> = {
   3807: 3802,
   2951: 2950,
   1001: 17,
-  // 这几种数组按字符串数组解析（元素类型本身没有转换函数）
+  // These array types are parsed as string arrays (the element type itself has no converter)
   1041: 25,
   651: 25,
   1040: 25,
@@ -776,7 +776,7 @@ function convertArray(raw: RawArray, element: Scalar): PyValue[] {
   return raw.map((item) => (item === null ? null : Array.isArray(item) ? convertArray(item, element) : element(item)))
 }
 
-/** 一列原始文本 → 值模型 */
+/** One column's raw text → value model */
 export function pgToPy(text: string | null, oid: number): PyValue {
   if (text === null) return null
   const scalar = SCALARS[oid]

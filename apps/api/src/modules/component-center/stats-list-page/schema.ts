@@ -1,5 +1,5 @@
 /**
- * 带统计的列表页 schema 层
+ * List page with stats schema layer
  */
 
 import { z } from 'zod'
@@ -8,7 +8,7 @@ import { ServiceError } from '@/common/errors'
 import { formatDateTime } from '@/common/serialize'
 import { numericToFloat, type StatsItem } from '@/db/schema'
 
-/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
+/** Loose request-body validation: any keys, all optional; normalization happens in the service */
 export const statsItemBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 export const STATUS_VALUES = new Set(['draft', 'published', 'archived'])
@@ -84,9 +84,9 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   return { line, reason, row }
 }
 
-// ---------------------------------------------------------------- 值处理辅助
+// ---------------------------------------------------------------- Value helpers
 
-/** 浮点数 → numeric 参数文本（最短往返表示；NaN/±Infinity 用 PG 的字面量） */
+/** Float → numeric parameter text (shortest round-trip representation; NaN/±Infinity use PG literals) */
 export function floatToNumericParam(value: number): string {
   if (Number.isNaN(value)) return 'NaN'
   if (!Number.isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity'
@@ -94,19 +94,19 @@ export function floatToNumericParam(value: number): string {
 }
 
 /**
- * 浮点数与 numeric 值按精确值比较（判断字段是否变更用）。
- * numeric(14,2) 的值只有 x.00/.25/.50/.75 才可能与二进制浮点精确相等。
+ * Compare a float and a numeric value exactly (used to detect whether a field changed).
+ * A numeric(14,2) value can only equal a binary float exactly when it is x.00/.25/.50/.75.
  */
 export function floatEqualsNumeric(value: number, stored: string | null): boolean {
   if (stored === null || !Number.isFinite(value)) return false
   return Number.isInteger(value * 4) && Number(stored) === value
 }
 
-/** 保留 2 位小数，Python `round(x, 2)` 语义（浮点、银行家舍入只在二进制精确的 .xx5 上生效） */
+/** Round to 2 decimals with Python `round(x, 2)` semantics (float-based; banker's rounding only applies to binary-exact .xx5 values) */
 export function pyRound2(x: number): number {
   if (!Number.isFinite(x) || Math.abs(x) >= 1e21) return x
   if (Number.isInteger(x * 8) && !Number.isInteger(x * 4)) {
-    // 精确的 .xx5：round-half-even
+    // Exact .xx5: round-half-even
     const lo = Math.floor(x * 100)
     const n = ((lo % 2) + 2) % 2 === 0 ? lo : lo + 1
     return n / 100
@@ -115,8 +115,8 @@ export function pyRound2(x: number): number {
 }
 
 /**
- * 遍历 fields（POST 导出的 fields 可能不是列表）：list → 元素，str → 字符，dict → 键；
- * 其余真值（数字 / true）不可迭代 → 500。
+ * Iterate fields (fields in a POST export may not be a list): list → elements, str → characters, dict → keys;
+ * other truthy values (numbers / true) are not iterable → 500.
  */
 export function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
@@ -125,7 +125,7 @@ export function pyIterate(value: unknown): unknown[] {
   throw new ServiceError(`'${typeof value}' object is not iterable`, 500)
 }
 
-/** 判断 f 是否为可导出字段；f 为 list/dict（不能作为字段名）时返回 500 */
+/** Whether f is an exportable field; returns 500 when f is a list/dict (not usable as a field name) */
 export function isExportField(field: unknown): field is string {
   if (field !== null && typeof field === 'object') throw new ServiceError('unhashable type', 500)
   return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
@@ -135,10 +135,10 @@ const PG_INT_MIN = -2_147_483_648
 const PG_INT_MAX = 2_147_483_647
 
 /**
- * ids 中各元素内联进 `id IN (...)` 后在 PostgreSQL 上的效果：
- * - 整数 → 匹配；非整数/超出 int4 的数字 → 与 integer 比较不会命中（不报错）；None → 不命中
- * - 字符串 → 按 int4 输入解析（'2' 可命中，'abc'/超范围 → 数据库报错 → 500）
- * - bool / list / dict → 类型错误 → 500
+ * How each element of ids behaves on PostgreSQL once inlined into `id IN (...)`:
+ * - integer → matches; non-integer / out-of-int4 numbers → never match against integer (no error); None → no match
+ * - string → parsed as int4 input ('2' can match; 'abc' / out of range → DB error → 500)
+ * - bool / list / dict → type error → 500
  */
 export function resolveIdList(ids: unknown[]): number[] {
   const result: number[] = []

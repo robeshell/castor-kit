@@ -1,8 +1,8 @@
 /**
- * 列表页 schema 层
+ * List page schema layer
  *
- * 另含 service 里用到的字符串小工具（secure_filename / str.title / json.dumps(indent=2) 的等价实现），
- * 只服务本模块，不要合并到 common。
+ * Also holds small string helpers used by the service (equivalents of secure_filename / str.title /
+ * json.dumps(indent=2)). They serve this module only; do not merge them into common.
  */
 
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { pyInt, PyValueError, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { QueryManagement } from '@/db/schema'
 
-/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
+/** Loose request-body validation: any keys, all optional; normalization happens in the service */
 export const listPageBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 function exportUrlList(raw: string | null, single: string | null): string {
@@ -101,7 +101,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', '是', '启用'])
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off', '否', '停用'])
 
-/** 解析布尔值：空值返回 defaultValue；字符串按 TRUE_VALUES / FALSE_VALUES 识别，无法识别也返回 defaultValue */
+/** Parse a boolean: empty values return defaultValue; strings are matched against TRUE_VALUES / FALSE_VALUES, and unrecognized values also return defaultValue */
 export function parseBool<D>(value: unknown, defaultValue: D): boolean | D {
   if (value === null || value === undefined || value === '') return defaultValue
   if (typeof value === 'boolean') return value
@@ -111,7 +111,7 @@ export function parseBool<D>(value: unknown, defaultValue: D): boolean | D {
   return defaultValue
 }
 
-/** 按 pyInt 规则解析整数，值无法解析（PyValueError）时返回 defaultValue */
+/** Parse an integer using pyInt rules; returns defaultValue when the value can't be parsed (PyValueError) */
 export function parseIntOr<D>(value: unknown, defaultValue: D): number | D {
   try {
     return pyInt(value)
@@ -135,13 +135,13 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   }
 }
 
-// ---------------------------------------------------------------- 字符串小工具
+// ---------------------------------------------------------------- String helpers
 
-/** 把上传文件名清洗成安全文件名（secure_filename 规则）：NFKD 后去掉非 ASCII，路径分隔符与空白折成 `_`，只保留 [A-Za-z0-9_.-]，去掉首尾的 `.`/`_`（按 POSIX 处理，不做 Windows 设备名处理） */
+/** Sanitize an uploaded filename (secure_filename rules): NFKD then drop non-ASCII, collapse path separators and whitespace into `_`, keep only [A-Za-z0-9_.-], strip leading/trailing `.`/`_` (POSIX semantics; no Windows device-name handling) */
 export function secureFilename(filename: string): string {
   let name = filename.normalize('NFKD').replace(/[^\x00-\x7f]/g, '')
   name = name.replace(/\//g, ' ')
-  // str.split()：按 ASCII 空白切分（非 ASCII 已在上一步去掉）
+  // str.split(): split on ASCII whitespace (non-ASCII was already removed in the previous step)
   name = name
     .split(/[ \t\n\r\x0b\x0c\x1c\x1d\x1e\x1f]+/)
     .filter(Boolean)
@@ -150,7 +150,7 @@ export function secureFilename(filename: string): string {
   return name.replace(/^[._]+/, '').replace(/[._]+$/, '')
 }
 
-/** titlecase 与 uppercase 不同的字符（str.title 语义用 titlecase 映射） */
+/** Characters whose titlecase differs from uppercase (str.title semantics use the titlecase mapping) */
 const TITLECASE_MAP: Record<string, string> = {
   Ǆ: 'ǅ', ǅ: 'ǅ', ǆ: 'ǅ', Ǉ: 'ǈ', ǈ: 'ǈ', ǉ: 'ǈ', Ǌ: 'ǋ', ǋ: 'ǋ', ǌ: 'ǋ', Ǳ: 'ǲ', ǲ: 'ǲ', ǳ: 'ǲ',
   ß: 'Ss', ﬀ: 'Ff', ﬁ: 'Fi', ﬂ: 'Fl', ﬃ: 'Ffi', ﬄ: 'Ffl', ﬅ: 'St', ﬆ: 'St',
@@ -160,7 +160,7 @@ function isCased(ch: string): boolean {
   return ch.toLowerCase() !== ch.toUpperCase()
 }
 
-/** Python `str.title()` 语义：前一个字符不是“有大小写”的字符时大写，否则小写（数字也算分隔） */
+/** Python `str.title()` semantics: uppercase when the previous character is not cased, otherwise lowercase (digits also count as separators) */
 export function pyTitle(text: string): string {
   let out = ''
   let previousCased = false
@@ -172,7 +172,7 @@ export function pyTitle(text: string): string {
   return out
 }
 
-/** `json.dumps(value, ensure_ascii=False, indent=2)`（仅 dict 调用；键分隔 ': '，项分隔 ','，与 JSON.stringify 缩进格式一致） */
+/** `json.dumps(value, ensure_ascii=False, indent=2)` (only called with dicts; key separator ': ', item separator ',', same indented format as JSON.stringify) */
 export function pyJsonDumpsIndent2(value: Record<string, unknown>): string {
   return JSON.stringify(value, null, 2)
 }

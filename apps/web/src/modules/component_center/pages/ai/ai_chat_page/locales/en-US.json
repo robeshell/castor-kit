@@ -1,0 +1,19 @@
+{
+  "AI 助手": "AI assistant",
+  "AI 对话": "AI Chat",
+  "AI 正在思考": "AI is thinking",
+  "Enter 发送 · Shift + Enter 换行": "Enter to send · Shift + Enter for a new line",
+  "上下文已清除，之后的对话不再携带之前的消息": "Context cleared. Earlier messages won't be sent from here on.",
+  "你好！我是 castor-kit AI 助手。\n\n请从下方选择提示词，或直接输入你的问题。": "Hi! I'm the castor-kit AI assistant.\n\nPick a prompt below, or type your question.",
+  "停止生成": "Stop generating",
+  "发送": "Send",
+  "回到底部": "Scroll to bottom",
+  "已停止生成": "Generation stopped",
+  "我": "You",
+  "清除上下文": "Clear context",
+  "网络错误，请重试": "Network error. Please try again.",
+  "请求失败：{{message}}": "Request failed: {{message}}",
+  "输入消息": "Message",
+  "输入消息，Enter 发送...": "Type a message, press Enter to send...",
+  "重新生成": "Regenerate"
+}

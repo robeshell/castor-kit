@@ -1,19 +1,19 @@
 /**
- * 看板页 schema 层
+ * Kanban page schema layer
  */
 
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
 
 export const PRIORITY_VALUES = new Set(['low', 'medium', 'high', 'urgent'])
 
-/** `parse_bool(value, default=True)`：None → default；bool 原样；否则 str(value).lower() in (...) */
+/** `parse_bool(value, default=True)`: None → default; bool as-is; otherwise str(value).lower() in (...) */
 export function parseBool<T>(value: unknown, fallback: T): boolean | T {
   if (value === null || value === undefined) return fallback
   if (typeof value === 'boolean') return value
   return ['true', '1', 'yes', '启用'].includes(pyStr(value).toLowerCase())
 }
 
-/** `parse_int(value, default=0)`：int(value)，TypeError/ValueError 时回落默认值 */
+/** `parse_int(value, default=0)`: int(value), falling back to the default on TypeError/ValueError */
 export function parseIntOr<T>(value: unknown, fallback: T): number | T {
   try {
     return pyInt(value)
@@ -42,7 +42,7 @@ export function colorOrDefault(value: unknown): string {
   return strOrFallback(value, '#4080FF') || '#4080FF'
 }
 
-/** `str(v or 'medium').strip()`，不在枚举内回落 'medium' */
+/** `str(v or 'medium').strip()`, falling back to 'medium' when not in the enum */
 export function normalizePriority(value: unknown): string {
   const p = strOrFallback(value, 'medium')
   return PRIORITY_VALUES.has(p) ? p : 'medium'
@@ -54,8 +54,8 @@ export function hasKey(data: Record<string, unknown>, key: string): boolean {
 }
 
 /**
- * 只对“值真的变了”的字段发 UPDATE（updated_at 也只在发 UPDATE 时刷新）：
- * 过滤掉与当前行相同的字段，返回空对象时调用方不应发 UPDATE。
+ * Only send an UPDATE for fields whose value actually changed (updated_at is refreshed only when an UPDATE is sent):
+ * filters out fields equal to the current row; when the result is empty the caller should not send an UPDATE.
  */
 export function changedFields<R extends Record<string, unknown>, P extends Partial<R>>(row: R, patch: P): P {
   const out: Partial<R> = {}

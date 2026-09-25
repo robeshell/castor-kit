@@ -1,15 +1,15 @@
 /**
- * 定时任务 service 层
+ * Scheduled task service layer
  *
- * 有意保留的接口行为（见各处注释）：
- * - 手动执行失败时返回 500，但响应体是完整的 {message, task, run, error}（不是通用错误文案）
+ * Intentionally preserved API behavior (see inline comments):
+ * - A failed manual run returns 500, but the body is the full {message, task, run, error} (not a generic error message)
  *
- * 设计说明：
- * - 新增时请求地址不合法返回 400 + 具体原因（而不是 500 通用文案），
- *   校验顺序放在名称 / 编码 / Cron 之后，与表单字段顺序一致
- * - 地址格式错误（URL 解析失败，如 `http://[::1/x`）新增、编辑都返回 400「请求地址格式不合法」
+ * Design notes:
+ * - On create, an invalid request URL returns 400 + the specific reason (not a generic 500),
+ *   validated after name / code / Cron to match the form field order
+ * - A malformed URL (URL parse failure, e.g. `http://[::1/x`) returns 400 "请求地址格式不合法" on both create and update
  *
- * “当前时间”一律取数据库 UTC 时间文本（不经过 JS Date），cron 以它为基准计算。
+ * "Now" is always the DB UTC time text (never JS Date), and cron is computed from it.
  */
 
 import { ServiceError } from '@/common/errors'
@@ -38,15 +38,15 @@ import {
 type Data = Record<string, unknown>
 
 export interface ScheduledTaskServiceOptions {
-  /** HTTP 执行器（默认带连接级 SSRF 复检的 undici 实现；测试可注入） */
+  /** HTTP executor (defaults to an undici implementation with connection-level SSRF re-checks; injectable for tests) */
   httpExecutor?: HttpExecutor
-  /** URL 校验时的 DNS 解析（默认 dns.lookup；测试可注入） */
+  /** DNS resolution for URL validation (defaults to dns.lookup; injectable for tests) */
   lookup?: HostLookup
 }
 
 const RESPONSE_BODY_LIMIT = 2000
 
-/** ScheduledTaskSchemaError → schemaStatus（默认 400）；地址格式错误 → 400；其他未预期错误 → 500 */
+/** ScheduledTaskSchemaError → schemaStatus (default 400); malformed URL → 400; other unexpected errors → 500 */
 function toServiceError(err: unknown, schemaStatus = 400): never {
   if (err instanceof ServiceError) throw err
   if (err instanceof ScheduledTaskSchemaError) throw new ServiceError(err.message, schemaStatus)
@@ -54,7 +54,7 @@ function toServiceError(err: unknown, schemaStatus = 400): never {
   throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
 }
 
-/** `(text or '')[:2000]`：按码点截断 */
+/** `(text or '')[:2000]`: truncated by code point */
 function truncateText(text: string, limit = RESPONSE_BODY_LIMIT): string {
   if (text.length <= limit) return text
   let out = ''
@@ -186,7 +186,7 @@ export class ScheduledTaskService {
       toServiceError(err)
     }
 
-    // 按固定字段顺序逐个赋值
+    // Assign fields one by one in a fixed order
     const next: ScheduledTask = { ...task }
     try {
       if (has('name')) next.name = pyText(data.name)
@@ -200,7 +200,7 @@ export class ScheduledTaskService {
       if (has('is_active')) next.is_active = parseBool(data.is_active, task.is_active)
       if (has('remark')) next.remark = normalizeText(data.remark)
     } catch (err) {
-      // 前面已校验过，这里理论上不会失败；万一失败按 500 处理
+      // Already validated above, so this shouldn't fail; if it somehow does, treat it as a 500
       toServiceError(err, 500)
     }
 
@@ -210,7 +210,7 @@ export class ScheduledTaskService {
       toServiceError(err)
     }
 
-    // 只对真正变化的列发 UPDATE（也只有这时才刷新 updated_at）
+    // Only send an UPDATE for columns that actually changed (updated_at is refreshed only then)
     const fields = [
       'name', 'task_code', 'cron_expression', 'request_method', 'request_url', 'request_headers',
       'request_body', 'timeout_seconds', 'is_active', 'remark', 'next_run_at',
@@ -265,8 +265,8 @@ export class ScheduledTaskService {
   }
 
   /**
-   * execute_task：执行一次 HTTP 请求并写执行记录。
-   * 请求失败 / HTTP >= 400 记为 failed（不抛错）；请求头非法抛 ServiceError(400)；写库失败抛 ServiceError(500)。
+   * execute_task: perform one HTTP request and write a run record.
+   * Request failures / HTTP >= 400 are recorded as failed (no throw); invalid headers throw ServiceError(400); DB write failures throw ServiceError(500).
    */
   async executeTask(task: ScheduledTask, triggerType: 'scheduled' | 'manual' = 'scheduled') {
     const startedAt = await this.repo.utcNow()
@@ -293,7 +293,7 @@ export class ScheduledTaskService {
     try {
       let body: HttpRequestSpec['body'] = null
       if (parsedBody !== undefined) {
-        // requests：dict/list → json=（json.dumps(allow_nan=False)）；其他 → data=str(parsed)
+        // requests: dict/list → json= (json.dumps(allow_nan=False)); anything else → data=str(parsed)
         body =
           Array.isArray(parsedBody) || isPyDict(parsedBody)
             ? { kind: 'json', text: pyJsonDumps(parsedBody, { ensureAscii: true, allowNan: false }) }

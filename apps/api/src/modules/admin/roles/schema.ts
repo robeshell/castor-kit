@@ -1,11 +1,11 @@
 /**
- * 角色模块 schema 层
+ * Roles module schema layer
  */
 
 import { formatDateTime } from '@/common/serialize'
 import type { Menu, Role } from '@/db/schema'
 
-/** 导出行：角色 + 按角色菜单实际加载顺序排列的菜单 */
+/** Export row: role + its menus in the order they were actually loaded */
 export type RoleExportItem = Role & { menus: Menu[] }
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: RoleExportItem) => unknown]> = {

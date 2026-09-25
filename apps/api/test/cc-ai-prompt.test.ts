@@ -30,7 +30,7 @@ async function cleanupRows() {
 beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
-  // createFixture 会先清理所有 ck_test_ 用户，必须在 superAdminSession 之前
+  // createFixture first cleans up all ck_test_ users, so it must run before superAdminSession
   await createFixture(handle)
   s = await superAdminSession(app, handle)
   noPerm = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD)
@@ -78,7 +78,7 @@ describe('ai-prompt', () => {
       .from(ai_prompt_templates)
       .where(eq(ai_prompt_templates.name, seedName))
     expect(row!.v).toEqual(['meeting_topic', 'participants', 'meeting_time', 'raw_notes'])
-    // 不重复插入
+    // No duplicate insert
     const again = (await s.inject({ url: `${B}/templates` })).json()
     expect(again.total).toBe(body.total)
 

@@ -1,8 +1,8 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  // 命名入口：产物平铺在 dist/ 下（dist/main.js、dist/worker.js、dist/migrate.js、dist/setup-once.js），
-  // 不随源文件所在目录（src/ 与 scripts/）变化。
+  // Named entries: output is flattened under dist/ (dist/main.js, dist/worker.js, dist/migrate.js, dist/setup-once.js),
+  // regardless of which directory the source file lives in (src/ or scripts/).
   entry: {
     main: 'src/main.ts',
     worker: 'src/worker.ts',
@@ -15,6 +15,6 @@ export default defineConfig({
   outDir: 'dist',
   clean: true,
   sourcemap: true,
-  // 依赖保持 external，由 node_modules 提供；只把 @/ 别名打进产物
+  // Dependencies stay external and are provided by node_modules; only the @/ alias is bundled into the output
   skipNodeModulesBundle: true,
 })

@@ -1,19 +1,19 @@
 /**
- * routes 层模板 → apps/api/src/modules/<domain>/<resource>/routes.ts
+ * routes layer template → apps/api/src/modules/<domain>/<resource>/routes.ts
  *
- * TODO: 替换 <Resource> 为类型名（大驼峰），<resource> 为资源名（URL 用连字符复数，如 customer-orders）
- * TODO: 替换 <domain_resource> 为权限编码前缀（如 system_customer；component_center 域用 cc_ 前缀）
- * TODO: 在 apps/api/src/modules/<domain>/router.ts 中注册：
+ * TODO: replace <Resource> with the type name (PascalCase), <resource> with the resource name (URLs use hyphenated plural, e.g. customer-orders)
+ * TODO: replace <domain_resource> with the permission code prefix (e.g. system_customer; the component_center domain uses the cc_ prefix)
+ * TODO: register in apps/api/src/modules/<domain>/router.ts:
  *         import { register<Resource>Routes } from './<resource>/routes'
  *         await register<Resource>Routes(app)
  *
- * 权限编码：<domain_resource>（查看 / 模板）、<domain_resource>_add、<domain_resource>_edit、
- *          <domain_resource>_delete、<domain_resource>_export、<domain_resource>_import
- * 约定：
- * - 权限判断一律 import 自 common/auth（禁止在这里自定义 hasPermission）
- * - 不直接写 SQL（经 service → repository）
- * - 带 id 的路由先 get_or_404（404）再做权限检查（403）
- * - 业务错误由 service 抛 ServiceError，全局错误处理器转成 { error, ...payload }
+ * Permission codes: <domain_resource> (view / template), <domain_resource>_add, <domain_resource>_edit,
+ *          <domain_resource>_delete, <domain_resource>_export, <domain_resource>_import
+ * Conventions:
+ * - Permission checks are always imported from common/auth (never define a custom hasPermission here)
+ * - No raw SQL here (go through service → repository)
+ * - Routes with an id do get_or_404 (404) first, then the permission check (403)
+ * - Business errors are thrown by the service as ServiceError; the global error handler turns them into { error, ...payload }
  */
 
 import type { FastifyInstance } from 'fastify'

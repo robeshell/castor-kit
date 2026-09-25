@@ -1,5 +1,6 @@
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTx } from '@/i18n'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +10,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 /**
- * 行操作：常用操作平铺为文字按钮，更多操作收进 “…” 菜单。
+ * Row actions: common actions are laid out as text buttons, the rest go into a "…" menu.
  *   <RowActions actions={[
  *     { label: '编辑', onClick: () => edit(row), hidden: !canEdit },
  *     { label: '删除', danger: true, confirm: { title: '删除该用户？' }, onClick: () => remove(row) },
  *   ]} inline={2} />
- * 需要二次确认的操作（confirm）请平铺并用 ConfirmAction 包裹，见 users 页面。
+ * Actions that need confirmation (confirm) should be laid out inline and wrapped in ConfirmAction; see the users page.
  */
 export default function RowActions({ actions = [], inline = 2, children }) {
+  const tx = useTx()
   const visible = actions.filter((a) => a && !a.hidden)
   const flat = visible.slice(0, inline)
   const more = visible.slice(inline)
@@ -27,14 +29,14 @@ export default function RowActions({ actions = [], inline = 2, children }) {
           <span key={a.label}>{a.render()}</span>
         ) : (
           <Button
-            key={a.label}
+            key={tx(a.label)}
             variant="ghost"
             size="sm"
             className={a.danger ? 'text-danger hover:text-danger h-7 px-2' : 'h-7 px-2'}
             disabled={a.disabled}
             onClick={a.onClick}
           >
-            {a.label}
+            {tx(a.label)}
           </Button>
         ),
       )}
@@ -42,7 +44,7 @@ export default function RowActions({ actions = [], inline = 2, children }) {
       {more.length ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7" aria-label="更多操作">
+            <Button variant="ghost" size="icon" className="size-7" aria-label={tx('更多操作')}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
@@ -52,7 +54,7 @@ export default function RowActions({ actions = [], inline = 2, children }) {
                 {a.danger && i > 0 ? <DropdownMenuSeparator /> : null}
                 <DropdownMenuItem variant={a.danger ? 'destructive' : 'default'} disabled={a.disabled} onSelect={a.onClick}>
                   {a.icon ? <a.icon /> : null}
-                  {a.label}
+                  {tx(a.label)}
                 </DropdownMenuItem>
               </div>
             ))}

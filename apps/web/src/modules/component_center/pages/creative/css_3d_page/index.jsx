@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Atom, Bot, Database, Layers, Lock, Palette, Rocket, Server, Zap } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import './css-3d.css'
 
+// Card copy keeps the Chinese source text and is translated when rendered
 const CARDS = [
   {
     icon: Atom,
@@ -61,6 +63,7 @@ const CUBE_FACES = [
 ]
 
 function FlipCard({ card }) {
+  const { t } = useTranslation()
   const [flipped, setFlipped] = useState(false)
   const Icon = card.icon
   return (
@@ -68,7 +71,7 @@ function FlipCard({ card }) {
       className="h-60 cursor-pointer [perspective:1000px]"
       onPointerEnter={(e) => e.pointerType === 'mouse' && setFlipped(true)}
       onPointerLeave={(e) => e.pointerType === 'mouse' && setFlipped(false)}
-      // 触屏没有 hover，点按切换
+      // Touch screens have no hover, so a tap toggles
       onPointerUp={(e) => e.pointerType !== 'mouse' && setFlipped((v) => !v)}
     >
       <div
@@ -77,24 +80,24 @@ function FlipCard({ card }) {
           flipped && '[transform:rotateY(180deg)]',
         )}
       >
-        {/* 正面 */}
+        {/* Front */}
         <div className="surface-card absolute inset-0 flex flex-col items-center justify-center gap-4 [backface-visibility:hidden]">
           <span className="bg-brand-soft text-primary flex size-14 items-center justify-center rounded-2xl">
             <Icon className="size-7" strokeWidth={1.6} />
           </span>
           <div className="text-center">
             <div className="text-base font-semibold tracking-tight">{card.title}</div>
-            <div className="text-muted-foreground mt-0.5 text-xs">{card.sub}</div>
+            <div className="text-muted-foreground mt-0.5 text-xs">{t(card.sub)}</div>
           </div>
           <span className="bg-brand-gradient h-0.5 w-10 rounded-full opacity-70" />
         </div>
-        {/* 背面 */}
+        {/* Back */}
         <div className="bg-brand-gradient-strong shadow-brand absolute inset-0 flex flex-col justify-between rounded-[14px] p-5 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <p className="text-[13px] leading-relaxed text-white/90">{card.desc}</p>
+          <p className="text-[13px] leading-relaxed text-white/90">{t(card.desc)}</p>
           <div className="flex flex-wrap gap-1.5">
-            {card.tags.map((t) => (
-              <span key={t} className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] ring-1 ring-white/25">
-                {t}
+            {card.tags.map((tag) => (
+              <span key={tag} className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] ring-1 ring-white/25">
+                {t(tag)}
               </span>
             ))}
           </div>
@@ -138,6 +141,7 @@ function ParallaxCard({ children }) {
 }
 
 export default function Css3dPage() {
+  const { t } = useTranslation()
   return (
     <div className="space-y-5">
       <PageHeader title="CSS 3D 交互卡片" />
@@ -165,11 +169,11 @@ export default function Css3dPage() {
                   </span>
                   <div className="text-brand-gradient mb-2 text-xl font-semibold tracking-tight">castor-kit</div>
                   <div className="text-muted-foreground space-y-0.5 text-sm leading-relaxed">
-                    <p>AI-First 企业级脚手架</p>
-                    <p>鼠标移动，感受 3D 视差效果</p>
+                    <p>{t('AI-First 企业级脚手架')}</p>
+                    <p>{t('鼠标移动，感受 3D 视差效果')}</p>
                     <p className="flex items-center gap-1.5">
                       <Layers className="size-3.5" />
-                      纯 CSS transform 实现
+                      {t('纯 CSS transform 实现')}
                     </p>
                   </div>
                 </div>

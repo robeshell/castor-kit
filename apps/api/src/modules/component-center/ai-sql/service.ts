@@ -1,10 +1,10 @@
 /**
- * AI Text-to-SQL 业务逻辑
+ * AI Text-to-SQL business logic
  *
- * 自然语言 → LLM 生成 SQL → 安全校验 → 只读引擎执行。错误分支：
- * - LLM 配置/响应类错误（LlmConfigError：未配置 key、非 200、响应不是 JSON、URL 非法）
+ * Natural language → LLM generates SQL → safety check → run on the read-only engine. Error branches:
+ * - LLM config/response errors (LlmConfigError: key not configured, non-200, response not JSON, invalid URL)
  *   → 500 `AI 生成失败，请检查模型配置后重试`
- * - 其他异常（网络、超时、响应结构不对）→ 500 `AI 生成失败`
+ * - other exceptions (network, timeout, unexpected response shape) → 500 `AI 生成失败`
  */
 
 import { Agent, fetch } from 'undici'
@@ -13,7 +13,7 @@ import { AiSqlRepository, type ColumnInfo } from './repository'
 import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schema'
 import { pgToPy, toResponseValue } from './pg-values'
 
-/** LLM 配置 / 上游响应问题 */
+/** LLM config / upstream response problems */
 export class LlmConfigError extends Error {}
 
 const LLM_TIMEOUT_MS = 30_000
@@ -47,13 +47,13 @@ export class AiSqlService {
     await this.dispatcher.destroy()
   }
 
-  /** 可见业务表名（排序） */
+  /** Visible business table names (sorted) */
   async visibleTables(): Promise<string[]> {
     const names = await this.repo.listTableNames()
     return names.filter(isVisibleTable).sort(codepointCompare)
   }
 
-  /** 读取业务表结构，返回 LLM 可读的文本（敏感表一律不暴露） */
+  /** Read business table structure and return LLM-readable text (sensitive tables are never exposed) */
   async getDbSchema(): Promise<string> {
     const tables = await this.visibleTables()
     const byTable = new Map<string, ColumnInfo[]>()
@@ -74,7 +74,7 @@ export class AiSqlService {
       .join('\n\n')
   }
 
-  /** 调用 LLM 生成 SQL */
+  /** Call the LLM to generate SQL */
   async callLlm(question: string, schema: string): Promise<string> {
     const { aiApiBase: base, aiApiKey: key, aiModel: model } = this.config
     if (!key) throw new LlmConfigError('未配置 AI_API_KEY 环境变量')
@@ -93,7 +93,7 @@ export class AiSqlService {
     const userMsg = { role: 'user', content: `数据库结构如下：\n\n${schema}\n\n问题：${question}` }
 
     const url = `${base}/chat/completions`
-    // requests 对缺 scheme / 非 http(s) / 非法 URL 抛 MissingSchema/InvalidSchema/InvalidURL（都是 ValueError 子类）
+    // requests raises MissingSchema/InvalidSchema/InvalidURL for a missing scheme / non-http(s) / invalid URL (all ValueError subclasses)
     let parsed: URL
     try {
       parsed = new URL(url)
@@ -116,7 +116,7 @@ export class AiSqlService {
     try {
       data = JSON.parse(await resp.text())
     } catch {
-      // requests 的 JSONDecodeError 是 ValueError 子类
+      // requests' JSONDecodeError is a ValueError subclass
       throw new LlmConfigError('LLM 响应不是合法 JSON')
     }
     const rawSql = (data as { choices: { message: { content: unknown } }[] }).choices[0]!.message.content
@@ -124,7 +124,7 @@ export class AiSqlService {
     return cleanSql(rawSql)
   }
 
-  /** 在只读引擎上执行 SQL，返回 columns + rows + truncated */
+  /** Execute SQL on the read-only engine, returning columns + rows + truncated */
   async executeSql(sql: string): Promise<SqlResult> {
     const result = await this.repo.execute(wrapReadonlySql(sql))
     const columns = result.fields.map((f) => f.name)

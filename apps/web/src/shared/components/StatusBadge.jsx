@@ -1,3 +1,4 @@
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 const TONES = {
@@ -18,16 +19,17 @@ const DOTS = {
 }
 
 /**
- * 状态徽章。tone: neutral | brand | info | success | warning | danger
- *   <StatusBadge tone="success" dot>启用</StatusBadge>
- *   <StatusBadge tone="neutral" variant="plain" dot>草稿</StatusBadge>  // 只有圆点 + 文字
+ * Status badge. tone: neutral | brand | info | success | warning | danger
+ *   <StatusBadge tone="success" dot>{t('启用')}</StatusBadge>
+ *   <StatusBadge tone="neutral" variant="plain" dot>{t('草稿')}</StatusBadge>  // dot + text only
  */
 export default function StatusBadge({ tone = 'neutral', dot = false, variant = 'soft', className, children }) {
+  const tx = useTx()
   if (variant === 'plain') {
     return (
       <span className={cn('text-muted-foreground inline-flex items-center gap-1.5 text-xs', className)}>
         <span className={cn('size-1.5 rounded-full', DOTS[tone] || DOTS.neutral)} />
-        {children}
+        {tx(children)}
       </span>
     )
   }
@@ -40,7 +42,7 @@ export default function StatusBadge({ tone = 'neutral', dot = false, variant = '
       )}
     >
       {dot ? <span className={cn('size-1.5 rounded-full', DOTS[tone] || DOTS.neutral)} /> : null}
-      {children}
+      {tx(children)}
     </span>
   )
 }

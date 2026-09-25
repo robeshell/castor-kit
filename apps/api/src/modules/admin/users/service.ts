@@ -1,5 +1,5 @@
 /**
- * 用户模块 service 层
+ * Users module service layer
  */
 
 import { ServiceError } from '@/common/errors'
@@ -32,7 +32,7 @@ export class UserService {
     return user
   }
 
-  /** 校验 role_ids 全部存在，返回角色列表；存在无效 id 时报错 */
+  /** Verify all role_ids exist and return the roles; throws on any invalid id */
   private async resolveRoles(repo: UserRepository, roleIdsRaw: unknown): Promise<Role[]> {
     const ids = pyTruthy(roleIdsRaw) ? roleIdsRaw : []
     if (!Array.isArray(ids)) throw new ServiceError('role_ids 必须是数组', 500)
@@ -187,7 +187,7 @@ export class UserService {
       }
 
       if (errors.length > 0) {
-        // 抛错让事务整体回滚
+        // Throw so the whole transaction rolls back
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,

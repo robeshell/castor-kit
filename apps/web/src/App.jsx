@@ -9,10 +9,11 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Login from '@/modules/auth/pages/login'
 import Profile from '@/modules/admin/pages/profile'
+import { useTranslation } from 'react-i18next'
 
-// 非 eager：页面组件按需懒加载（React.lazy），避免首屏全量下载 three/echarts/monaco 等重型依赖
+// Not eager: page components are lazy-loaded on demand (React.lazy) to avoid downloading heavy deps like three/echarts/monaco on first load
 const PAGE_MODULES = import.meta.glob('./modules/**/pages/**/index.jsx')
-// 按 componentName 缓存 lazy 组件，避免每次渲染重建组件类型导致页面重挂载
+// Cache lazy components by componentName, so re-renders don't recreate the component type and remount the page
 const _lazyPageCache = new Map()
 
 function resolvePageComponent(componentName) {
@@ -29,7 +30,7 @@ function resolvePageComponent(componentName) {
   const componentParts = normalizedComponentName.split('/').filter(Boolean)
   let matchedEntry = null
 
-  // 新规范：component 使用 "<module>/<page_path>"，例如 "admin/roles"
+  // New convention: component uses "<module>/<page_path>", e.g. "admin/roles"
   if (componentParts.length >= 2) {
     const [moduleName, ...pageParts] = componentParts
     const newPathSuffix = `/modules/${moduleName}/pages/${pageParts.join('/')}/index.jsx`
@@ -38,7 +39,7 @@ function resolvePageComponent(componentName) {
     )
   }
 
-  // 兼容旧值，避免历史菜单数据导致页面不可访问
+  // Backward compatible with legacy values, so historical menu data doesn't make pages inaccessible
   if (!matchedEntry) {
     const legacyPathSuffix = `/pages/${normalizedComponentName}/index.jsx`
     matchedEntry = Object.entries(PAGE_MODULES).find(([modulePath]) =>
@@ -80,6 +81,7 @@ function normalizeRoutePath(pathname = '') {
 }
 
 function AppRoutes() {
+  const { t } = useTranslation()
   const { menus } = useAuth()
 
   const routeMenus = useMemo(() => {
@@ -114,14 +116,14 @@ function AppRoutes() {
       >
         <Route index element={defaultPath ? <Navigate to={defaultPath} replace /> : <NoPermissionPage />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="403" element={<ErrorPage code="403" title="无访问权限" description="您没有权限访问该页面，请联系管理员。" />} />
+        <Route path="403" element={<ErrorPage code="403" title={t('无访问权限')} description={t('您没有权限访问该页面，请联系管理员。')} />} />
         {routeMenus.map((menu) => {
           const Component = resolvePageComponent(menu.component)
           return (
             <Route
               key={menu.path}
               path={normalizeRoutePath(menu.path)}
-              // Suspense 在 AppLayout 里（跨路由共用一个边界），切页时保留旧页面直到新页面代码加载完
+              // Suspense lives in AppLayout (one boundary shared across routes), so the old page stays until the new page's code has loaded
               element={Component ? (
                 <Component />
               ) : (
@@ -130,7 +132,7 @@ function AppRoutes() {
             />
           )
         })}
-        <Route path="*" element={<ErrorPage code="404" title="页面不存在" description="您访问的页面不存在或已被移除。" />} />
+        <Route path="*" element={<ErrorPage code="404" title={t('页面不存在')} description={t('您访问的页面不存在或已被移除。')} />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

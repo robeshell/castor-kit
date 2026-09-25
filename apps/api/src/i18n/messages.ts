@@ -1,0 +1,385 @@
+/**
+ * Translations for API response messages (`error`, `message`, `error_rows[].reason`).
+ *
+ * Backend code keeps throwing Chinese messages (the source text doubles as the key); the response hook in
+ * common/i18n.ts translates them for en-US / ja-JP requests. Keep entries grouped by module.
+ * Messages built with template literals go in PATTERNS (regex on the Chinese text, $1… in the translation).
+ * Import/export headers stay Chinese (project decision), so messages quoting a header keep it as-is.
+ * test/i18n-messages.test.ts fails when a user-facing message in src has no entry here.
+ */
+
+export type TranslatedLanguage = 'en-US' | 'ja-JP'
+export type MessageEntry = Record<TranslatedLanguage, string>
+
+export const MESSAGES: Record<string, MessageEntry> = {
+  // framework / common
+  '服务器内部错误，请稍后重试': { 'en-US': 'Internal server error. Please try again later.', 'ja-JP': 'サーバー内部エラーが発生しました。しばらくしてから再度お試しください。' },
+  '资源不存在': { 'en-US': 'Resource not found', 'ja-JP': 'リソースが見つかりません' },
+  '请求方法不允许': { 'en-US': 'Method not allowed', 'ja-JP': '許可されていないリクエストメソッドです' },
+  '请求参数不合法': { 'en-US': 'Invalid request parameters', 'ja-JP': 'リクエストパラメーターが不正です' },
+  '请求体过大': { 'en-US': 'Request body too large', 'ja-JP': 'リクエストボディが大きすぎます' },
+  '请求体格式错误': { 'en-US': 'Malformed request body', 'ja-JP': 'リクエストボディの形式が正しくありません' },
+  'CSRF 校验失败，请刷新页面后重试': { 'en-US': 'CSRF check failed. Please refresh the page and try again.', 'ja-JP': 'CSRF 検証に失敗しました。ページを再読み込みしてから再度お試しください。' },
+  '未登录': { 'en-US': 'Not signed in', 'ja-JP': 'ログインしていません' },
+  '未授权访问': { 'en-US': 'Unauthorized', 'ja-JP': '認証されていません' },
+  '会话异常': { 'en-US': 'Session error', 'ja-JP': 'セッションに異常があります' },
+  '用户不存在': { 'en-US': 'User not found', 'ja-JP': 'ユーザーが存在しません' },
+  '无权限': { 'en-US': 'Permission denied', 'ja-JP': '権限がありません' },
+  '删除成功': { 'en-US': 'Deleted', 'ja-JP': '削除しました' },
+  '导入成功': { 'en-US': 'Imported', 'ja-JP': 'インポートしました' },
+  '导入失败，存在错误数据': { 'en-US': 'Import failed: some rows are invalid', 'ja-JP': 'インポートに失敗しました：不正なデータがあります' },
+
+  // import / export files (common/tabular.ts)
+  '请上传导入文件': { 'en-US': 'Please upload a file to import', 'ja-JP': 'インポートするファイルをアップロードしてください' },
+  '导入文件内容为空': { 'en-US': 'The import file is empty', 'ja-JP': 'インポートファイルが空です' },
+  '仅支持 csv/xlsx 文件': { 'en-US': 'Only csv / xlsx files are supported', 'ja-JP': 'csv / xlsx ファイルのみ対応しています' },
+  '不支持 .xls 格式，请另存为 .xlsx 后重新上传': { 'en-US': '.xls is not supported. Save it as .xlsx and upload again.', 'ja-JP': '.xls 形式には対応していません。.xlsx で保存し直してからアップロードしてください。' },
+  'CSV 编码错误，请使用 UTF-8 编码': { 'en-US': 'Invalid CSV encoding. Please use UTF-8.', 'ja-JP': 'CSV の文字コードが正しくありません。UTF-8 を使用してください。' },
+  'xlsx 文件解析失败，请确认文件格式': { 'en-US': 'Failed to read the xlsx file. Please check the file format.', 'ja-JP': 'xlsx ファイルを読み込めませんでした。ファイル形式を確認してください。' },
+  '文件过大，最大支持 5MB': { 'en-US': 'File too large (max 5 MB)', 'ja-JP': 'ファイルが大きすぎます（最大 5MB）' },
+
+  // database constraint errors (common/db-errors.ts)
+  '数据重复：唯一字段的值已存在': { 'en-US': 'Duplicate data: a unique field value already exists', 'ja-JP': 'データが重複しています：一意の項目の値が既に存在します' },
+  '必填字段不能为空': { 'en-US': 'Required fields cannot be empty', 'ja-JP': '必須項目は空にできません' },
+  '关联的数据不存在或仍被引用': { 'en-US': 'Related data does not exist or is still referenced', 'ja-JP': '関連データが存在しないか、まだ参照されています' },
+  '数据不符合约束条件': { 'en-US': 'Data violates a constraint', 'ja-JP': 'データが制約条件を満たしていません' },
+  '字段长度超出限制': { 'en-US': 'A field exceeds its maximum length', 'ja-JP': '項目の長さが上限を超えています' },
+  '数值超出范围': { 'en-US': 'A number is out of range', 'ja-JP': '数値が範囲外です' },
+  '日期时间格式不正确': { 'en-US': 'Invalid date/time format', 'ja-JP': '日時の形式が正しくありません' },
+  '日期时间超出范围': { 'en-US': 'Date/time out of range', 'ja-JP': '日時が範囲外です' },
+  '字段格式不正确': { 'en-US': 'Invalid field format', 'ja-JP': '項目の形式が正しくありません' },
+
+  // shared by several modules (generic CRUD / import / export)
+  '执行成功': { 'en-US': 'Executed successfully', 'ja-JP': '実行しました' },
+  '标题不能为空': { 'en-US': 'Title is required', 'ja-JP': 'タイトルを入力してください' },
+  '名称不能为空': { 'en-US': 'Name is required', 'ja-JP': '名称を入力してください' },
+  '编码不能为空': { 'en-US': 'Code is required', 'ja-JP': 'コードを入力してください' },
+  '编码已存在': { 'en-US': 'Code already exists', 'ja-JP': 'コードは既に存在します' },
+  '导入内容为空': { 'en-US': 'The import file has no data', 'ja-JP': 'インポートするデータがありません' },
+  '请先勾选要导出的数据': { 'en-US': 'Select the records to export first', 'ja-JP': 'エクスポートするデータを選択してください' },
+  '参数格式错误，需要数组': { 'en-US': 'Invalid parameter: an array is expected', 'ja-JP': 'パラメーターの形式が正しくありません（配列を指定してください）' },
+  '排序已保存': { 'en-US': 'Order saved', 'ja-JP': '並び順を保存しました' },
+  '无权限新增记录': { 'en-US': "You don't have permission to create records", 'ja-JP': 'レコードを追加する権限がありません' },
+  '无权限编辑记录': { 'en-US': "You don't have permission to edit records", 'ja-JP': 'レコードを編集する権限がありません' },
+  '无权限删除记录': { 'en-US': "You don't have permission to delete records", 'ja-JP': 'レコードを削除する権限がありません' },
+  '无权限查看记录详情': { 'en-US': "You don't have permission to view record details", 'ja-JP': 'レコードの詳細を閲覧する権限がありません' },
+  '无权限查看详情': { 'en-US': "You don't have permission to view details", 'ja-JP': '詳細を閲覧する権限がありません' },
+  '无权限查看数据': { 'en-US': "You don't have permission to view data", 'ja-JP': 'データを閲覧する権限がありません' },
+  '无权限导出数据': { 'en-US': "You don't have permission to export data", 'ja-JP': 'データをエクスポートする権限がありません' },
+  '无权限导入数据': { 'en-US': "You don't have permission to import data", 'ja-JP': 'データをインポートする権限がありません' },
+  '无权限下载模板': { 'en-US': "You don't have permission to download the template", 'ja-JP': 'テンプレートをダウンロードする権限がありません' },
+  '无权限下载导入模板': { 'en-US': "You don't have permission to download the import template", 'ja-JP': 'インポートテンプレートをダウンロードする権限がありません' },
+
+  // scaffold-generated modules (scripts/scaffold.ts)
+  '无权限新增': { 'en-US': "You don't have permission to create records", 'ja-JP': '追加する権限がありません' },
+  '无权限编辑': { 'en-US': "You don't have permission to edit records", 'ja-JP': '編集する権限がありません' },
+  '无权限删除': { 'en-US': "You don't have permission to delete records", 'ja-JP': '削除する権限がありません' },
+  '无权限导出': { 'en-US': "You don't have permission to export", 'ja-JP': 'エクスポートする権限がありません' },
+  '无权限导入': { 'en-US': "You don't have permission to import", 'ja-JP': 'インポートする権限がありません' },
+
+  // auth
+  '请填写完整信息': { 'en-US': 'Please fill in all fields', 'ja-JP': 'すべての項目を入力してください' },
+  '新密码长度至少6位': { 'en-US': 'New password must be at least 6 characters', 'ja-JP': '新しいパスワードは6文字以上で入力してください' },
+  '登录失败次数过多，请稍后再试': { 'en-US': 'Too many failed sign-in attempts. Please try again later.', 'ja-JP': 'ログインの失敗回数が上限に達しました。しばらくしてから再度お試しください。' },
+  '登录成功': { 'en-US': 'Signed in', 'ja-JP': 'ログインしました' },
+  '用户名或密码错误': { 'en-US': 'Incorrect username or password', 'ja-JP': 'ユーザー名またはパスワードが正しくありません' },
+  '已退出登录': { 'en-US': 'Signed out', 'ja-JP': 'ログアウトしました' },
+  '旧密码错误': { 'en-US': 'Current password is incorrect', 'ja-JP': '現在のパスワードが正しくありません' },
+  '密码修改成功': { 'en-US': 'Password changed', 'ja-JP': 'パスワードを変更しました' },
+  '登录已失效，请重新登录': { 'en-US': 'Your session has expired. Please sign in again.', 'ja-JP': 'ログインの有効期限が切れました。再度ログインしてください。' },
+
+  // users
+  '无权限查看用户列表': { 'en-US': "You don't have permission to view the user list", 'ja-JP': 'ユーザー一覧を閲覧する権限がありません' },
+  '无权限新增用户': { 'en-US': "You don't have permission to create users", 'ja-JP': 'ユーザーを追加する権限がありません' },
+  '无权限编辑用户': { 'en-US': "You don't have permission to edit users", 'ja-JP': 'ユーザーを編集する権限がありません' },
+  '无权限删除用户': { 'en-US': "You don't have permission to delete users", 'ja-JP': 'ユーザーを削除する権限がありません' },
+  '无权限导出用户': { 'en-US': "You don't have permission to export users", 'ja-JP': 'ユーザーをエクスポートする権限がありません' },
+  '无权限下载用户导入模板': { 'en-US': "You don't have permission to download the user import template", 'ja-JP': 'ユーザーのインポートテンプレートをダウンロードする権限がありません' },
+  '无权限导入用户': { 'en-US': "You don't have permission to import users", 'ja-JP': 'ユーザーをインポートする権限がありません' },
+  '用户名和密码不能为空': { 'en-US': 'Username and password are required', 'ja-JP': 'ユーザー名とパスワードを入力してください' },
+  '用户名已存在': { 'en-US': 'Username already exists', 'ja-JP': 'ユーザー名は既に存在します' },
+  '不能删除当前登录账号': { 'en-US': 'You cannot delete the account you are signed in with', 'ja-JP': 'ログイン中のアカウントは削除できません' },
+  '不能删除最后一个超级管理员': { 'en-US': 'You cannot delete the last super administrator', 'ja-JP': '最後のスーパー管理者は削除できません' },
+  '请先勾选要导出的用户数据': { 'en-US': 'Select the users to export first', 'ja-JP': 'エクスポートするユーザーを選択してください' },
+  '新增用户必须提供密码': { 'en-US': 'A password is required for new users', 'ja-JP': '新規ユーザーにはパスワードを指定してください' },
+
+  // roles
+  '无权限查看角色列表': { 'en-US': "You don't have permission to view the role list", 'ja-JP': 'ロール一覧を閲覧する権限がありません' },
+  '无权限新增角色': { 'en-US': "You don't have permission to create roles", 'ja-JP': 'ロールを追加する権限がありません' },
+  '无权限编辑角色': { 'en-US': "You don't have permission to edit roles", 'ja-JP': 'ロールを編集する権限がありません' },
+  '无权限删除角色': { 'en-US': "You don't have permission to delete roles", 'ja-JP': 'ロールを削除する権限がありません' },
+  '无权限导出角色': { 'en-US': "You don't have permission to export roles", 'ja-JP': 'ロールをエクスポートする権限がありません' },
+  '无权限下载角色导入模板': { 'en-US': "You don't have permission to download the role import template", 'ja-JP': 'ロールのインポートテンプレートをダウンロードする権限がありません' },
+  '无权限导入角色': { 'en-US': "You don't have permission to import roles", 'ja-JP': 'ロールをインポートする権限がありません' },
+  '角色名称不能为空': { 'en-US': 'Role name is required', 'ja-JP': 'ロール名を入力してください' },
+  '角色编码不能为空': { 'en-US': 'Role code is required', 'ja-JP': 'ロールコードを入力してください' },
+  '角色编码已存在': { 'en-US': 'Role code already exists', 'ja-JP': 'ロールコードは既に存在します' },
+  '请先勾选要导出的角色数据': { 'en-US': 'Select the roles to export first', 'ja-JP': 'エクスポートするロールを選択してください' },
+  '导入文件缺少“角色名称/角色编码”列': { 'en-US': 'The import file is missing the "角色名称/角色编码" columns', 'ja-JP': 'インポートファイルに「角色名称/角色编码」列がありません' },
+  '角色名称和编码不能为空': { 'en-US': 'Role name and code are required', 'ja-JP': 'ロール名とロールコードを入力してください' },
+
+  // menus
+  '无权限查看菜单列表': { 'en-US': "You don't have permission to view the menu list", 'ja-JP': 'メニュー一覧を閲覧する権限がありません' },
+  '无权限查看菜单': { 'en-US': "You don't have permission to view menus", 'ja-JP': 'メニューを閲覧する権限がありません' },
+  '无权限新增菜单': { 'en-US': "You don't have permission to create menus", 'ja-JP': 'メニューを追加する権限がありません' },
+  '无权限编辑菜单': { 'en-US': "You don't have permission to edit menus", 'ja-JP': 'メニューを編集する権限がありません' },
+  '无权限删除菜单': { 'en-US': "You don't have permission to delete menus", 'ja-JP': 'メニューを削除する権限がありません' },
+  '无权限排序菜单': { 'en-US': "You don't have permission to reorder menus", 'ja-JP': 'メニューを並べ替える権限がありません' },
+  '无权限导出菜单': { 'en-US': "You don't have permission to export menus", 'ja-JP': 'メニューをエクスポートする権限がありません' },
+  '无权限下载菜单导入模板': { 'en-US': "You don't have permission to download the menu import template", 'ja-JP': 'メニューのインポートテンプレートをダウンロードする権限がありません' },
+  '无权限导入菜单': { 'en-US': "You don't have permission to import menus", 'ja-JP': 'メニューをインポートする権限がありません' },
+  '菜单名称和编码不能为空': { 'en-US': 'Menu name and code are required', 'ja-JP': 'メニュー名とメニューコードを入力してください' },
+  '菜单名称不能为空': { 'en-US': 'Menu name is required', 'ja-JP': 'メニュー名を入力してください' },
+  '菜单编码不能为空': { 'en-US': 'Menu code is required', 'ja-JP': 'メニューコードを入力してください' },
+  '父级菜单不能是自身或其子菜单': { 'en-US': 'The parent menu cannot be the menu itself or one of its submenus', 'ja-JP': '親メニューに自身またはその子メニューは指定できません' },
+  '该菜单下还有子菜单，无法删除': { 'en-US': 'This menu has submenus and cannot be deleted', 'ja-JP': 'このメニューにはサブメニューがあるため削除できません' },
+  'direction 参数必须是 up 或 down': { 'en-US': 'direction must be "up" or "down"', 'ja-JP': 'direction には up または down を指定してください' },
+  '当前层级只有一个菜单，无需排序': { 'en-US': 'This is the only menu at this level, so there is nothing to reorder', 'ja-JP': 'この階層にはメニューが1つしかないため、並べ替えは不要です' },
+  '菜单不存在于当前层级': { 'en-US': 'The menu is not at the current level', 'ja-JP': 'メニューが現在の階層に存在しません' },
+  '当前菜单已在最前': { 'en-US': 'This menu is already at the top', 'ja-JP': 'このメニューは既に先頭にあります' },
+  '当前菜单已在最后': { 'en-US': 'This menu is already at the bottom', 'ja-JP': 'このメニューは既に末尾にあります' },
+  '排序成功': { 'en-US': 'Order updated', 'ja-JP': '並び順を更新しました' },
+  '请先勾选要导出的菜单数据': { 'en-US': 'Select the menus to export first', 'ja-JP': 'エクスポートするメニューを選択してください' },
+  '导入文件缺少“菜单名称/菜单编码”列': { 'en-US': 'The import file is missing the "菜单名称/菜单编码" columns', 'ja-JP': 'インポートファイルに「菜单名称/菜单编码」列がありません' },
+  '父级编码不能等于自身编码': { 'en-US': 'The parent code cannot be the same as the menu code', 'ja-JP': '親コードに自身のメニューコードは指定できません' },
+
+  // logs
+  '无权限访问': { 'en-US': "You don't have access to this page", 'ja-JP': 'アクセスする権限がありません' },
+  '无权限导出日志': { 'en-US': "You don't have permission to export logs", 'ja-JP': 'ログをエクスポートする権限がありません' },
+  '无权限下载日志模板': { 'en-US': "You don't have permission to download the log template", 'ja-JP': 'ログのテンプレートをダウンロードする権限がありません' },
+  '无权限导入日志': { 'en-US': "You don't have permission to import logs", 'ja-JP': 'ログをインポートする権限がありません' },
+  '请先勾选要导出的日志数据': { 'en-US': 'Select the logs to export first', 'ja-JP': 'エクスポートするログを選択してください' },
+  '导入文件缺少“用户名”列': { 'en-US': 'The import file is missing the "用户名" column', 'ja-JP': 'インポートファイルに「用户名」列がありません' },
+  '用户名不能为空': { 'en-US': 'Username is required', 'ja-JP': 'ユーザー名を入力してください' },
+
+  // dictionaries
+  '无权限查看数据字典': { 'en-US': "You don't have permission to view dictionaries", 'ja-JP': '辞書を閲覧する権限がありません' },
+  '无权限新增数据字典': { 'en-US': "You don't have permission to create dictionaries", 'ja-JP': '辞書を追加する権限がありません' },
+  '无权限编辑数据字典': { 'en-US': "You don't have permission to edit dictionaries", 'ja-JP': '辞書を編集する権限がありません' },
+  '无权限删除数据字典': { 'en-US': "You don't have permission to delete dictionaries", 'ja-JP': '辞書を削除する権限がありません' },
+  '无权限查看字典项': { 'en-US': "You don't have permission to view dictionary items", 'ja-JP': '辞書項目を閲覧する権限がありません' },
+  '无权限新增字典项': { 'en-US': "You don't have permission to create dictionary items", 'ja-JP': '辞書項目を追加する権限がありません' },
+  '无权限编辑字典项': { 'en-US': "You don't have permission to edit dictionary items", 'ja-JP': '辞書項目を編集する権限がありません' },
+  '无权限删除字典项': { 'en-US': "You don't have permission to delete dictionary items", 'ja-JP': '辞書項目を削除する権限がありません' },
+  '无权限导出字典项': { 'en-US': "You don't have permission to export dictionary items", 'ja-JP': '辞書項目をエクスポートする権限がありません' },
+  '无权限导入字典项': { 'en-US': "You don't have permission to import dictionary items", 'ja-JP': '辞書項目をインポートする権限がありません' },
+  'codes 参数不能为空': { 'en-US': 'The codes parameter is required', 'ja-JP': 'codes パラメーターを指定してください' },
+  '字典名称不能为空': { 'en-US': 'Dictionary name is required', 'ja-JP': '辞書名を入力してください' },
+  '字典编码不能为空': { 'en-US': 'Dictionary code is required', 'ja-JP': '辞書コードを入力してください' },
+  '字典编码已存在': { 'en-US': 'Dictionary code already exists', 'ja-JP': '辞書コードは既に存在します' },
+  '该字典下仍有字典项，请先清空后再删除': { 'en-US': 'This dictionary still has items. Remove them before deleting it.', 'ja-JP': 'この辞書には項目が残っています。先に項目をすべて削除してください。' },
+  '字典标签不能为空': { 'en-US': 'Item label is required', 'ja-JP': '辞書ラベルを入力してください' },
+  '字典值不能为空': { 'en-US': 'Item value is required', 'ja-JP': '辞書値を入力してください' },
+  '同一字典下字典值不能重复': { 'en-US': 'Item values must be unique within a dictionary', 'ja-JP': '同じ辞書内で辞書値を重複させることはできません' },
+  '字典类型不存在': { 'en-US': 'Dictionary type not found', 'ja-JP': '辞書タイプが存在しません' },
+  '导入文件缺少必填列：字典标签、字典值': { 'en-US': 'The import file is missing required columns: 字典标签, 字典值', 'ja-JP': 'インポートファイルに必須列「字典标签」「字典值」がありません' },
+
+  // notifications
+  '无权限创建通知': { 'en-US': "You don't have permission to create notifications", 'ja-JP': '通知を作成する権限がありません' },
+  '通知不存在或无权限': { 'en-US': 'Notification not found or access denied', 'ja-JP': '通知が存在しないか、アクセスする権限がありません' },
+  '无权限删除全局通知': { 'en-US': "You don't have permission to delete global notifications", 'ja-JP': '全体通知を削除する権限がありません' },
+
+  // announcements
+  '文件为空或格式错误': { 'en-US': 'The file is empty or has an invalid format', 'ja-JP': 'ファイルが空か、形式が正しくありません' },
+
+  // scheduled tasks (incl. common/scheduler cron / URL validation)
+  '无权限查看定时任务列表': { 'en-US': "You don't have permission to view the scheduled task list", 'ja-JP': 'スケジュールタスク一覧を閲覧する権限がありません' },
+  '无权限查看定时任务': { 'en-US': "You don't have permission to view scheduled tasks", 'ja-JP': 'スケジュールタスクを閲覧する権限がありません' },
+  '无权限新增定时任务': { 'en-US': "You don't have permission to create scheduled tasks", 'ja-JP': 'スケジュールタスクを追加する権限がありません' },
+  '无权限编辑定时任务': { 'en-US': "You don't have permission to edit scheduled tasks", 'ja-JP': 'スケジュールタスクを編集する権限がありません' },
+  '无权限删除定时任务': { 'en-US': "You don't have permission to delete scheduled tasks", 'ja-JP': 'スケジュールタスクを削除する権限がありません' },
+  '无权限执行定时任务': { 'en-US': "You don't have permission to run scheduled tasks", 'ja-JP': 'スケジュールタスクを実行する権限がありません' },
+  '无权限查看执行记录': { 'en-US': "You don't have permission to view run history", 'ja-JP': '実行履歴を閲覧する権限がありません' },
+  '任务名称不能为空': { 'en-US': 'Task name is required', 'ja-JP': 'タスク名を入力してください' },
+  '任务编码不能为空': { 'en-US': 'Task code is required', 'ja-JP': 'タスクコードを入力してください' },
+  '任务编码已存在': { 'en-US': 'Task code already exists', 'ja-JP': 'タスクコードは既に存在します' },
+  '请求方法仅支持 GET/POST/PUT/DELETE/PATCH': { 'en-US': 'Request method must be GET, POST, PUT, DELETE or PATCH', 'ja-JP': 'リクエストメソッドは GET/POST/PUT/DELETE/PATCH のみ対応しています' },
+  '请求地址格式不合法': { 'en-US': 'Invalid request URL', 'ja-JP': 'リクエスト URL の形式が正しくありません' },
+  '请求头 JSON 解析失败': { 'en-US': 'Failed to parse the request headers JSON', 'ja-JP': 'リクエストヘッダーの JSON を解析できませんでした' },
+  '请求头必须是 JSON 对象': { 'en-US': 'Request headers must be a JSON object', 'ja-JP': 'リクエストヘッダーは JSON オブジェクトで指定してください' },
+  'JSON 格式不合法': { 'en-US': 'Invalid JSON', 'ja-JP': 'JSON の形式が正しくありません' },
+  'JSON 内容必须是对象': { 'en-US': 'JSON must be an object', 'ja-JP': 'JSON はオブジェクトで指定してください' },
+  '执行失败': { 'en-US': 'Execution failed', 'ja-JP': '実行に失敗しました' },
+  'Cron 表达式不能为空': { 'en-US': 'Cron expression is required', 'ja-JP': 'Cron 式を入力してください' },
+  'Cron 表达式格式错误，应为 5 段: 分 时 日 月 周': { 'en-US': 'Invalid cron expression: expected 5 fields (minute hour day month weekday)', 'ja-JP': 'Cron 式の形式が正しくありません。5 つのフィールド（分 時 日 月 曜日）で指定してください' },
+  'Cron 表达式存在空字段': { 'en-US': 'The cron expression has an empty field', 'ja-JP': 'Cron 式に空のフィールドがあります' },
+  'Cron 字段解析后为空': { 'en-US': 'A cron field matches no values', 'ja-JP': 'Cron フィールドに該当する値がありません' },
+  'Cron 表达式在一年内没有可触发时间，请检查配置': { 'en-US': 'The cron expression never fires within a year. Please check it.', 'ja-JP': 'Cron 式が1年以内に一度も実行されません。設定を確認してください。' },
+  '不允许访问内网地址': { 'en-US': 'Access to internal network addresses is not allowed', 'ja-JP': '内部ネットワークのアドレスにはアクセスできません' },
+  '请求地址不能为空': { 'en-US': 'Request URL is required', 'ja-JP': 'リクエスト URL を入力してください' },
+  '请求地址仅支持 http/https 协议': { 'en-US': 'Request URL must use http or https', 'ja-JP': 'リクエスト URL は http/https のみ対応しています' },
+  '请求地址缺少主机名': { 'en-US': 'Request URL is missing a host name', 'ja-JP': 'リクエスト URL にホスト名がありません' },
+  '请求地址端口不合法': { 'en-US': 'Invalid port in the request URL', 'ja-JP': 'リクエスト URL のポートが正しくありません' },
+  '请求地址无法解析': { 'en-US': 'Cannot resolve the request URL host', 'ja-JP': 'リクエスト URL のホストを名前解決できません' },
+
+  // component center: advanced table / stats list
+  '无权限查看统计数据': { 'en-US': "You don't have permission to view statistics", 'ja-JP': '統計データを閲覧する権限がありません' },
+  '无权限排序': { 'en-US': "You don't have permission to reorder records", 'ja-JP': '並べ替える権限がありません' },
+  '无权限批量更新': { 'en-US': "You don't have permission to bulk update records", 'ja-JP': '一括更新する権限がありません' },
+  '无权限批量删除': { 'en-US': "You don't have permission to bulk delete records", 'ja-JP': '一括削除する権限がありません' },
+  '状态仅支持 draft/published/archived': { 'en-US': 'Status must be draft, published or archived', 'ja-JP': 'ステータスには draft/published/archived のいずれかを指定してください' },
+  '排序值超出范围': { 'en-US': 'Sort order is out of range', 'ja-JP': '並び順の値が範囲外です' },
+  '请先选择要操作的数据': { 'en-US': 'Select the records first', 'ja-JP': '操作するデータを選択してください' },
+  '未找到可更新的数据': { 'en-US': 'No records found to update', 'ja-JP': '更新対象のデータが見つかりません' },
+  '请先选择要删除的数据': { 'en-US': 'Select the records to delete first', 'ja-JP': '削除するデータを選択してください' },
+  '未找到可删除的数据': { 'en-US': 'No records found to delete', 'ja-JP': '削除対象のデータが見つかりません' },
+  '导入文件缺少"名称/编码"列': { 'en-US': 'The import file is missing the "名称/编码" columns', 'ja-JP': 'インポートファイルに「名称/编码」列がありません' },
+  '名称和编码不能为空': { 'en-US': 'Name and code are required', 'ja-JP': '名称とコードを入力してください' },
+
+  // component center: AI chat / prompt / SQL
+  '未配置 AI_API_KEY': { 'en-US': 'AI_API_KEY is not configured', 'ja-JP': 'AI_API_KEY が設定されていません' },
+  // AI chat stream error events (SSE, translated in ai-chat/service.ts)
+  '请求超时，请重试': { 'en-US': 'The request timed out. Please try again.', 'ja-JP': 'リクエストがタイムアウトしました。再度お試しください。' },
+  'AI 响应异常，请稍后重试': { 'en-US': 'The AI response failed. Please try again later.', 'ja-JP': 'AI の応答でエラーが発生しました。しばらくしてから再度お試しください。' },
+  '消息不能为空': { 'en-US': 'Message is required', 'ja-JP': 'メッセージを入力してください' },
+  '无权限新建模板': { 'en-US': "You don't have permission to create templates", 'ja-JP': 'テンプレートを作成する権限がありません' },
+  '无权限编辑模板': { 'en-US': "You don't have permission to edit templates", 'ja-JP': 'テンプレートを編集する権限がありません' },
+  '无权限删除模板': { 'en-US': "You don't have permission to delete templates", 'ja-JP': 'テンプレートを削除する権限がありません' },
+  '模板不存在': { 'en-US': 'Template not found', 'ja-JP': 'テンプレートが存在しません' },
+  '模板名称和内容不能为空': { 'en-US': 'Template name and content are required', 'ja-JP': 'テンプレート名と内容を入力してください' },
+  '模板名称不能为空': { 'en-US': 'Template name is required', 'ja-JP': 'テンプレート名を入力してください' },
+  '模板内容不能为空': { 'en-US': 'Template content is required', 'ja-JP': 'テンプレートの内容を入力してください' },
+  '保存模板失败，请稍后重试': { 'en-US': 'Failed to save the template. Please try again later.', 'ja-JP': 'テンプレートを保存できませんでした。しばらくしてから再度お試しください。' },
+  '删除模板失败，请稍后重试': { 'en-US': 'Failed to delete the template. Please try again later.', 'ja-JP': 'テンプレートを削除できませんでした。しばらくしてから再度お試しください。' },
+  '获取数据库结构失败': { 'en-US': 'Failed to load the database schema', 'ja-JP': 'データベース構造を取得できませんでした' },
+  '问题不能为空': { 'en-US': 'Question is required', 'ja-JP': '質問を入力してください' },
+  'AI 生成失败，请检查模型配置后重试': { 'en-US': 'AI generation failed. Check the model configuration and try again.', 'ja-JP': 'AI による生成に失敗しました。モデルの設定を確認してから再度お試しください。' },
+  'AI 生成失败': { 'en-US': 'AI generation failed', 'ja-JP': 'AI による生成に失敗しました' },
+  'SQL 不能为空': { 'en-US': 'SQL is required', 'ja-JP': 'SQL を入力してください' },
+  'SQL 执行错误，请检查语法或表权限': { 'en-US': 'SQL execution failed. Check the syntax and table permissions.', 'ja-JP': 'SQL の実行に失敗しました。構文とテーブルの権限を確認してください。' },
+  '只允许 SELECT 查询语句': { 'en-US': 'Only SELECT queries are allowed', 'ja-JP': 'SELECT 文のみ実行できます' },
+  '仅允许单条语句，不能包含分号': { 'en-US': 'Only a single statement is allowed; semicolons are not permitted', 'ja-JP': '実行できるのは単一の文のみです。セミコロンは使用できません' },
+  '不允许使用 FOR UPDATE / FOR SHARE': { 'en-US': 'FOR UPDATE / FOR SHARE is not allowed', 'ja-JP': 'FOR UPDATE / FOR SHARE は使用できません' },
+
+  // component center: card list / dynamic form / detail tabs
+  '无权限查看卡片列表页数据': { 'en-US': "You don't have permission to view card list data", 'ja-JP': 'カードリストのデータを閲覧する権限がありません' },
+  '导入文件缺少"标题/编码"列': { 'en-US': 'The import file is missing the "标题/编码" columns', 'ja-JP': 'インポートファイルに「标题/编码」列がありません' },
+  '标题和编码不能为空': { 'en-US': 'Title and code are required', 'ja-JP': 'タイトルとコードを入力してください' },
+  '无权限查看动态表单页数据': { 'en-US': "You don't have permission to view dynamic form data", 'ja-JP': '動的フォームのデータを閲覧する権限がありません' },
+  '记录编码不能为空': { 'en-US': 'Record code is required', 'ja-JP': 'レコードコードを入力してください' },
+  '记录编码已存在': { 'en-US': 'Record code already exists', 'ja-JP': 'レコードコードは既に存在します' },
+  '动态字段最多支持 20 条': { 'en-US': 'Up to 20 dynamic fields are allowed', 'ja-JP': '動的フィールドは最大 20 件までです' },
+  '导入文件缺少"标题/记录编码"列': { 'en-US': 'The import file is missing the "标题/记录编码" columns', 'ja-JP': 'インポートファイルに「标题/记录编码」列がありません' },
+  '标题和记录编码不能为空': { 'en-US': 'Title and record code are required', 'ja-JP': 'タイトルとレコードコードを入力してください' },
+  '无权限新建成员': { 'en-US': "You don't have permission to create members", 'ja-JP': 'メンバーを追加する権限がありません' },
+  '无权限编辑成员': { 'en-US': "You don't have permission to edit members", 'ja-JP': 'メンバーを編集する権限がありません' },
+  '无权限删除成员': { 'en-US': "You don't have permission to delete members", 'ja-JP': 'メンバーを削除する権限がありません' },
+  '姓名不能为空': { 'en-US': 'Name is required', 'ja-JP': '氏名を入力してください' },
+
+  // component center: gantt / kanban
+  '无权限新建任务': { 'en-US': "You don't have permission to create tasks", 'ja-JP': 'タスクを作成する権限がありません' },
+  '无权限编辑任务': { 'en-US': "You don't have permission to edit tasks", 'ja-JP': 'タスクを編集する権限がありません' },
+  '无权限删除任务': { 'en-US': "You don't have permission to delete tasks", 'ja-JP': 'タスクを削除する権限がありません' },
+  '任务标题不能为空': { 'en-US': 'Task title is required', 'ja-JP': 'タスクのタイトルを入力してください' },
+  '开始日期不能为空': { 'en-US': 'Start date is required', 'ja-JP': '開始日を入力してください' },
+  '结束日期不能为空': { 'en-US': 'End date is required', 'ja-JP': '終了日を入力してください' },
+  '无权限新建列': { 'en-US': "You don't have permission to create columns", 'ja-JP': 'カラムを作成する権限がありません' },
+  '无权限编辑列': { 'en-US': "You don't have permission to edit columns", 'ja-JP': 'カラムを編集する権限がありません' },
+  '无权限删除列': { 'en-US': "You don't have permission to delete columns", 'ja-JP': 'カラムを削除する権限がありません' },
+  '无权限新建卡片': { 'en-US': "You don't have permission to create cards", 'ja-JP': 'カードを作成する権限がありません' },
+  '无权限编辑卡片': { 'en-US': "You don't have permission to edit cards", 'ja-JP': 'カードを編集する権限がありません' },
+  '无权限删除卡片': { 'en-US': "You don't have permission to delete cards", 'ja-JP': 'カードを削除する権限がありません' },
+  '列标题不能为空': { 'en-US': 'Column title is required', 'ja-JP': 'カラムのタイトルを入力してください' },
+  '列编码不能为空': { 'en-US': 'Column code is required', 'ja-JP': 'カラムのコードを入力してください' },
+  '列编码已存在': { 'en-US': 'Column code already exists', 'ja-JP': 'カラムのコードは既に存在します' },
+  '卡片标题不能为空': { 'en-US': 'Card title is required', 'ja-JP': 'カードのタイトルを入力してください' },
+  '所属列不存在': { 'en-US': 'Column not found', 'ja-JP': '所属するカラムが存在しません' },
+  '目标列不存在': { 'en-US': 'Target column not found', 'ja-JP': '移動先のカラムが存在しません' },
+
+  // component center: list page (queries, uploads, versions)
+  '无权限查看列表页数据': { 'en-US': "You don't have permission to view list page data", 'ja-JP': 'リストページのデータを閲覧する権限がありません' },
+  '无权限上传图片': { 'en-US': "You don't have permission to upload images", 'ja-JP': '画像をアップロードする権限がありません' },
+  '无权限上传附件': { 'en-US': "You don't have permission to upload attachments", 'ja-JP': '添付ファイルをアップロードする権限がありません' },
+  '无权限查看图片': { 'en-US': "You don't have permission to view images", 'ja-JP': '画像を閲覧する権限がありません' },
+  '无权限查看附件': { 'en-US': "You don't have permission to view attachments", 'ja-JP': '添付ファイルを閲覧する権限がありません' },
+  '无权限执行数据预览': { 'en-US': "You don't have permission to run data previews", 'ja-JP': 'データプレビューを実行する権限がありません' },
+  '无权限查看版本历史': { 'en-US': "You don't have permission to view version history", 'ja-JP': 'バージョン履歴を閲覧する権限がありません' },
+  '无权限回滚版本': { 'en-US': "You don't have permission to roll back versions", 'ja-JP': 'バージョンをロールバックする権限がありません' },
+  'JSON 配置格式错误': { 'en-US': 'Invalid JSON configuration', 'ja-JP': 'JSON 設定の形式が正しくありません' },
+  'JSON 配置必须是对象': { 'en-US': 'JSON configuration must be an object', 'ja-JP': 'JSON 設定はオブジェクトで指定してください' },
+  '状态仅支持 draft/published': { 'en-US': 'Status must be draft or published', 'ja-JP': 'ステータスには draft/published のいずれかを指定してください' },
+  '条件配置 JSON 格式错误': { 'en-US': 'Invalid JSON in the condition settings', 'ja-JP': '条件設定の JSON 形式が正しくありません' },
+  '条件配置必须是对象': { 'en-US': 'Condition settings must be an object', 'ja-JP': '条件設定はオブジェクトで指定してください' },
+  '无效的图片文件名': { 'en-US': 'Invalid image file name', 'ja-JP': '画像ファイル名が正しくありません' },
+  '仅支持 jpg/png/gif/webp 图片': { 'en-US': 'Only jpg, png, gif and webp images are supported', 'ja-JP': 'jpg/png/gif/webp 形式の画像のみ対応しています' },
+  '请先选择图片文件': { 'en-US': 'Please select an image file', 'ja-JP': '画像ファイルを選択してください' },
+  '图片文件不能为空': { 'en-US': 'The image file is empty', 'ja-JP': '画像ファイルが空です' },
+  '图片不能超过 5MB': { 'en-US': 'Images cannot exceed 5 MB', 'ja-JP': '画像は 5MB 以下にしてください' },
+  '上传成功': { 'en-US': 'Uploaded', 'ja-JP': 'アップロードしました' },
+  '请先选择文件': { 'en-US': 'Please select a file', 'ja-JP': 'ファイルを選択してください' },
+  '无效的文件类型': { 'en-US': 'Invalid file type', 'ja-JP': 'ファイル形式が正しくありません' },
+  '仅支持常见文档/压缩包格式': { 'en-US': 'Only common document and archive formats are supported', 'ja-JP': '一般的なドキュメントまたは圧縮ファイル形式のみ対応しています' },
+  '文件不能为空': { 'en-US': 'The file is empty', 'ja-JP': 'ファイルが空です' },
+  '文件不能超过 20MB': { 'en-US': 'Files cannot exceed 20 MB', 'ja-JP': 'ファイルは 20MB 以下にしてください' },
+  '查询名称不能为空': { 'en-US': 'Query name is required', 'ja-JP': 'クエリ名を入力してください' },
+  '查询编码不能为空': { 'en-US': 'Query code is required', 'ja-JP': 'クエリコードを入力してください' },
+  '查询编码已存在': { 'en-US': 'Query code already exists', 'ja-JP': 'クエリコードは既に存在します' },
+  '版本不属于当前记录': { 'en-US': 'This version does not belong to the current record', 'ja-JP': 'このバージョンは現在のレコードのものではありません' },
+  '版本快照无效': { 'en-US': 'Invalid version snapshot', 'ja-JP': 'バージョンのスナップショットが無効です' },
+  '回滚后查询编码冲突': { 'en-US': 'Rolling back would duplicate an existing query code', 'ja-JP': 'ロールバックするとクエリコードが重複します' },
+  '请先勾选要导出的查询数据': { 'en-US': 'Select the queries to export first', 'ja-JP': 'エクスポートするクエリを選択してください' },
+  '导入文件缺少“查询名称/查询编码”列': { 'en-US': 'The import file is missing the "查询名称/查询编码" columns', 'ja-JP': 'インポートファイルに「查询名称/查询编码」列がありません' },
+  '查询名称和查询编码不能为空': { 'en-US': 'Query name and query code are required', 'ja-JP': 'クエリ名とクエリコードを入力してください' },
+
+  // component center: tree list
+  '无权限查看树形数据': { 'en-US': "You don't have permission to view tree data", 'ja-JP': 'ツリーデータを閲覧する権限がありません' },
+  '无权限查看树形列表页数据': { 'en-US': "You don't have permission to view tree list data", 'ja-JP': 'ツリーリストのデータを閲覧する権限がありません' },
+  '无权限新增节点': { 'en-US': "You don't have permission to create nodes", 'ja-JP': 'ノードを追加する権限がありません' },
+  '无权限查看节点详情': { 'en-US': "You don't have permission to view node details", 'ja-JP': 'ノードの詳細を閲覧する権限がありません' },
+  '无权限编辑节点': { 'en-US': "You don't have permission to edit nodes", 'ja-JP': 'ノードを編集する権限がありません' },
+  '无权限删除节点': { 'en-US': "You don't have permission to delete nodes", 'ja-JP': 'ノードを削除する権限がありません' },
+  '状态仅支持 active/inactive/archived': { 'en-US': 'Status must be active, inactive or archived', 'ja-JP': 'ステータスには active/inactive/archived のいずれかを指定してください' },
+  '节点名称不能为空': { 'en-US': 'Node name is required', 'ja-JP': 'ノード名を入力してください' },
+  '节点编码不能为空': { 'en-US': 'Node code is required', 'ja-JP': 'ノードコードを入力してください' },
+  '节点编码已存在': { 'en-US': 'Node code already exists', 'ja-JP': 'ノードコードは既に存在します' },
+  '父节点不存在': { 'en-US': 'Parent node not found', 'ja-JP': '親ノードが存在しません' },
+  '不能将节点移动到自身或其子节点下': { 'en-US': 'A node cannot be moved under itself or its descendants', 'ja-JP': 'ノードを自身またはその子孫ノードの下に移動することはできません' },
+  '导入文件缺少"节点名称/节点编码"列': { 'en-US': 'The import file is missing the "节点名称/节点编码" columns', 'ja-JP': 'インポートファイルに「节点名称/节点编码」列がありません' },
+  '节点名称和编码不能为空': { 'en-US': 'Node name and code are required', 'ja-JP': 'ノード名とノードコードを入力してください' },
+}
+
+/** First match wins: keep specific patterns first and the scaffold catch-alls at the end */
+export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
+  { re: /^AI 服务暂时不可用（(.+)），请稍后重试$/, 'en-US': 'The AI service is temporarily unavailable ($1). Please try again later.', 'ja-JP': 'AI サービスは一時的に利用できません（$1）。しばらくしてから再度お試しください。' },
+  // framework / common
+  { re: /^缺少权限: (.+)$/, 'en-US': 'Missing permission: $1', 'ja-JP': '権限がありません：$1' },
+
+  // users / roles
+  { re: /^角色不存在: (.+)$/, 'en-US': 'Roles not found: $1', 'ja-JP': 'ロールが存在しません：$1' },
+  { re: /^角色编码不存在: (.+)$/, 'en-US': 'Role codes not found: $1', 'ja-JP': 'ロールコードが存在しません：$1' },
+  { re: /^菜单编码不存在: (.+)$/, 'en-US': 'Menu codes not found: $1', 'ja-JP': 'メニューコードが存在しません：$1' },
+
+  // menus
+  { re: /^菜单编码 (.+) 已存在$/, 'en-US': 'Menu code $1 already exists', 'ja-JP': 'メニューコード $1 は既に存在します' },
+  { re: /^类型无效: (.*)$/, 'en-US': 'Invalid type: $1', 'ja-JP': '種別が正しくありません：$1' },
+  { re: /^父级编码不存在: (.+)$/, 'en-US': 'Parent code not found: $1', 'ja-JP': '親コードが存在しません：$1' },
+  { re: /^父级编码 (.+) 会导致成环$/, 'en-US': 'Parent code $1 would create a cycle', 'ja-JP': '親コード $1 を指定すると循環参照になります' },
+
+  // logs
+  { re: /^导入文件缺少必填列: (.+)$/, 'en-US': 'The import file is missing a required column: $1', 'ja-JP': 'インポートファイルに必須列がありません：$1' },
+
+  // dictionaries
+  { re: /^第 (\d+) 行“字典标签\/字典值”不能为空$/, 'en-US': 'Row $1: "字典标签/字典值" cannot be empty', 'ja-JP': '$1 行目：「字典标签/字典值」を入力してください' },
+
+  // scheduled tasks (common/scheduler cron / URL validation)
+  { re: /^Cron 步长不合法: (.+)$/, 'en-US': 'Invalid cron step: $1', 'ja-JP': 'Cron のステップ値が正しくありません：$1' },
+  { re: /^Cron 区间不合法: (.+)$/, 'en-US': 'Invalid cron range: $1', 'ja-JP': 'Cron の範囲指定が正しくありません：$1' },
+  { re: /^Cron 数值不合法: (.+)$/, 'en-US': 'Invalid cron value: $1', 'ja-JP': 'Cron の値が正しくありません：$1' },
+  { re: /^Cron 数值超出范围: (.+)$/, 'en-US': 'Cron value out of range: $1', 'ja-JP': 'Cron の値が範囲外です：$1' },
+  { re: /^不允许访问内网地址（(.+) 解析为 (.+)）$/, 'en-US': 'Access to internal network addresses is not allowed ($1 resolves to $2)', 'ja-JP': '内部ネットワークのアドレスにはアクセスできません（$1 の解決先：$2）' },
+
+  // component center: advanced table
+  { re: /^已更新 (\d+) 条记录$/, 'en-US': '$1 record(s) updated', 'ja-JP': '$1 件のレコードを更新しました' },
+  { re: /^已删除 (\d+) 条记录$/, 'en-US': '$1 record(s) deleted', 'ja-JP': '$1 件のレコードを削除しました' },
+
+  // component center: AI SQL
+  { re: /^SQL 包含不允许的操作关键字：(.+)$/, 'en-US': 'SQL contains a disallowed keyword: $1', 'ja-JP': 'SQL に使用できないキーワードが含まれています：$1' },
+  { re: /^SQL 使用了不允许的函数：(.+)$/, 'en-US': 'SQL uses a disallowed function: $1', 'ja-JP': 'SQL に使用できない関数が含まれています：$1' },
+
+  // component center: tree list
+  { re: /^父节点 (.+) 会导致成环（不能是自身或其子节点）$/, 'en-US': 'Parent node $1 would create a cycle (it cannot be the node itself or a descendant)', 'ja-JP': '親ノード $1 を指定すると循環参照になります（自身またはその子孫ノードは指定できません）' },
+
+  // scaffold-generated modules: $1 is an export header (kept in Chinese); keep these catch-alls last
+  { re: /^(.+)的值无效$/, 'en-US': 'Invalid value for $1', 'ja-JP': '$1の値が正しくありません' },
+  { re: /^(.+)不能为空$/, 'en-US': '$1 is required', 'ja-JP': '$1を入力してください' },
+]

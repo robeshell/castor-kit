@@ -1,5 +1,5 @@
 /**
- * 日志模块 repository 层
+ * Logs module repository layer
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, sql, type SQL } from 'drizzle-orm'
@@ -98,7 +98,7 @@ export class LogsRepository {
   }
 }
 
-/** 导入时的 created_at：naive 按原样写入；带时区的先换算成 UTC 再按会话时区赋给 timestamp 列（等价按 ::timestamptz 写入） */
+/** created_at on import: naive values are written as-is; aware values are converted to UTC and then assigned to the timestamp column in the session time zone (equivalent to writing via ::timestamptz) */
 export function importedTimestamp(naive: string, offsetMicros: number | null): SQL {
   if (offsetMicros === null) return sql`${naive}::timestamp`
   return sql`((${naive}::timestamp - make_interval(secs => ${offsetMicros / 1_000_000})) AT TIME ZONE 'UTC')`

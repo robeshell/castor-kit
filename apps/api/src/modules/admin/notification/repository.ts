@@ -1,5 +1,5 @@
 /**
- * 通知消息 repository 层
+ * Notification repository layer
  */
 
 import { and, count, desc, eq, inArray, notInArray, or, type SQL } from 'drizzle-orm'
@@ -12,7 +12,7 @@ export type NotificationInsert = typeof notifications.$inferInsert
 export class NotificationRepository {
   constructor(private readonly db: Executor) {}
 
-  /** 对 userId 可见：全局 OR 专属 */
+  /** Visible to userId: global OR targeted at the user */
   private visible(userId: number): SQL {
     return or(eq(notifications.is_global, true), eq(notifications.user_id, userId))!
   }
@@ -41,7 +41,7 @@ export class NotificationRepository {
     return { total: totalRow?.n ?? 0, rows }
   }
 
-  /** 本页中已被 userId 读过的通知 id 集合 */
+  /** Set of notification ids on this page already read by userId */
   async readSet(userId: number, ids: number[]): Promise<Set<number>> {
     if (ids.length === 0) return new Set()
     const rows = await this.db
@@ -86,7 +86,7 @@ export class NotificationRepository {
     await this.db.insert(notification_reads).values({ notification_id: notificationId, user_id: userId })
   }
 
-  /** 把 userId 可见且未读的通知全部标记为已读（同一 read_at），返回标记条数 */
+  /** Mark all unread notifications visible to userId as read (same read_at); returns the number marked */
   async markAllRead(userId: number): Promise<number> {
     const unread = await this.db
       .select({ id: notifications.id })

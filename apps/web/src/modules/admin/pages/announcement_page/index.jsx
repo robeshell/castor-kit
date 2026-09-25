@@ -27,6 +27,7 @@ import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
+import { useTranslation } from 'react-i18next'
 
 const TYPE_OPTIONS = [
   { label: '系统公告', value: 'system' },
@@ -58,6 +59,7 @@ const EXPORT_FIELD_OPTIONS = [
 const DEFAULT_VALUES = { title: '', announce_type: 'system', content: '', status: 'draft', is_top: false, sort_order: 0 }
 
 export default function Announcements() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getAnnouncements(params).catch(() => {
@@ -76,7 +78,7 @@ export default function Announcements() {
 
   useEffect(() => {
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
 
   const openCreate = () => {
@@ -178,7 +180,7 @@ export default function Announcements() {
           {record.is_top ? (
             <StatusBadge tone="danger" className="shrink-0">
               <Pin className="size-3" />
-              置顶
+              {t('置顶')}
             </StatusBadge>
           ) : null}
           <span className="truncate font-medium">{v}</span>
@@ -193,11 +195,11 @@ export default function Announcements() {
       render: (v) =>
         v === 'published' ? (
           <StatusBadge tone="success" dot>
-            已发布
+            {t('已发布')}
           </StatusBadge>
         ) : (
           <StatusBadge tone="neutral" dot>
-            草稿
+            {t('草稿')}
           </StatusBadge>
         ),
     },
@@ -227,22 +229,22 @@ export default function Announcements() {
           {record.status === 'draft' ? (
             <ConfirmAction title="确认发布该公告？" confirmText="发布" destructive={false} onConfirm={() => publish(record)}>
               <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 px-2">
-                发布
+                {t('发布')}
               </Button>
             </ConfirmAction>
           ) : (
             <ConfirmAction title="确认撤回该公告？" confirmText="撤回" destructive={false} onConfirm={() => unpublish(record)}>
               <Button variant="ghost" size="sm" className="h-7 px-2">
-                撤回
+                {t('撤回')}
               </Button>
             </ConfirmAction>
           )}
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该公告？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -260,15 +262,15 @@ export default function Announcements() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新增公告
+              {t('新增公告')}
             </Button>
           </>
         }
@@ -278,7 +280,7 @@ export default function Announcements() {
         <SegmentedTabs variant="pill" value={statusFilter} onChange={(val) => handleSearch({ status: val })} items={STATUS_FILTER_ITEMS} />
         <Button variant="ghost" size="sm" className="text-muted-foreground h-8" onClick={() => fetchData()}>
           <RefreshCw className={cn(loading && 'animate-spin')} />
-          刷新
+          {t('刷新')}
         </Button>
       </div>
 
@@ -296,7 +298,7 @@ export default function Announcements() {
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing ? '编辑公告' : '新增公告'}
-        description={editing ? `正在编辑「${editing.title}」` : '保存为草稿后可在列表中发布'}
+        description={editing ? t('正在编辑「{{title}}」', { title: editing.title }) : '保存为草稿后可在列表中发布'}
         form={form}
         onSubmit={submit}
       >

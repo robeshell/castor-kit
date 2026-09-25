@@ -16,6 +16,7 @@ import {
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { AlertTriangle, CalendarDays, Columns3, MoreHorizontal, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,11 +78,11 @@ const PRIORITY_OPTIONS = [
   { value: 'low', label: '低' },
 ]
 
-// 列颜色是持久化到数据库的业务数据（后端默认 #4080FF），不是页面样式
+// Column colors are business data persisted to the database (backend default #4080FF), not page styling
 const COLOR_PALETTE = ['#4080FF', '#00B96B', '#FA8C16', '#06B6D4', '#FF4D4F', '#8C8C8C']
 const DEFAULT_COLOR = COLOR_PALETTE[0]
 
-// 放下时：卡片从“抬起”状态回落到占位处（与弹层同一条 spring 曲线）
+// On drop: the card settles from its "lifted" state back into the placeholder (same spring curve as overlays)
 const DROP_EASING = 'cubic-bezier(.32,.72,0,1)'
 const dropAnimation = {
   duration: 240,
@@ -129,7 +130,7 @@ function todayStr() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/** 指针在卡片上 → 卡片；在列的空白处 → 列；键盘拖拽等无指针时回落到最近角 */
+/** Pointer over a card → the card; over empty column space → the column; no pointer (e.g. keyboard drag) → closest corners */
 function collisionDetection(args) {
   const hits = pointerWithin(args)
   if (hits.length) {
@@ -190,6 +191,7 @@ function CardBody({ card, menu, lifted = false }) {
 }
 
 function CardMenu({ card, onEdit, onDelete }) {
+  const { t } = useTranslation()
   return (
     <div onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       <DropdownMenu modal={false}>
@@ -198,7 +200,7 @@ function CardMenu({ card, onEdit, onDelete }) {
             variant="ghost"
             size="icon"
             className="text-muted-foreground data-[state=open]:bg-accent -mt-1 -mr-1.5 size-6 opacity-0 transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 max-md:opacity-100"
-            aria-label="卡片操作"
+            aria-label={t('卡片操作')}
           >
             <MoreHorizontal />
           </Button>
@@ -206,12 +208,12 @@ function CardMenu({ card, onEdit, onDelete }) {
         <DropdownMenuContent align="end" className="min-w-32">
           <DropdownMenuItem onSelect={() => onEdit(card)}>
             <Pencil />
-            编辑
+            {t('编辑')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => onDelete(card)}>
             <Trash2 />
-            删除
+            {t('删除')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -220,6 +222,7 @@ function CardMenu({ card, onEdit, onDelete }) {
 }
 
 function SortableCard({ card, onEdit, onDelete }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: cardDndId(card.id),
     data: { type: 'card', card },
@@ -230,7 +233,7 @@ function SortableCard({ card, onEdit, onDelete }) {
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      aria-roledescription="可拖拽卡片"
+      aria-roledescription={t('可拖拽卡片')}
       className={cn(
         'group/card relative cursor-grab touch-manipulation rounded-lg outline-none select-none focus-visible:ring-ring/50 focus-visible:ring-[3px]',
         isDragging && 'z-10',
@@ -248,6 +251,7 @@ function SortableCard({ card, onEdit, onDelete }) {
 
 // ─── Column ───────────────────────────────────────────────────────────
 function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCard, onEditCard, onDeleteCard }) {
+  const { t } = useTranslation()
   const cards = board.cards || []
   const wip = board.wip_limit || 0
   const warnWip = wip > 0 && cards.length >= wip
@@ -267,7 +271,7 @@ function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCar
         <div className="flex items-center gap-2">
           <span className="size-2.5 shrink-0 rounded-full" style={{ background: board.color || DEFAULT_COLOR }} />
           <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{board.title}</span>
-          {board.is_active === false ? <StatusBadge>停用</StatusBadge> : null}
+          {board.is_active === false ? <StatusBadge>{t('停用')}</StatusBadge> : null}
           <span
             className={cn(
               'inline-flex h-5 items-center rounded-md px-1.5 text-[11px] font-medium tabular-nums',
@@ -279,19 +283,19 @@ function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCar
           </span>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground -mr-1 size-6" aria-label="列操作">
+              <Button variant="ghost" size="icon" className="text-muted-foreground -mr-1 size-6" aria-label={t('列操作')}>
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-32">
               <DropdownMenuItem onSelect={() => onEditBoard(board)}>
                 <Pencil />
-                编辑列
+                {t('编辑列')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => onDeleteBoard(board)}>
                 <Trash2 />
-                删除列
+                {t('删除列')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -307,7 +311,7 @@ function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCar
         {warnWip ? (
           <p className="text-warning mt-2 flex items-center gap-1 text-xs">
             <AlertTriangle className="size-3.5" />
-            已达 WIP 限制（{wip}）
+            {t('已达 WIP 限制（{{wip}}）', { wip })}
           </p>
         ) : null}
       </div>
@@ -325,7 +329,7 @@ function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCar
               active && 'border-primary/50 text-primary',
             )}
           >
-            拖拽卡片到此处
+            {t('拖拽卡片到此处')}
           </div>
         ) : null}
       </div>
@@ -338,7 +342,7 @@ function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCar
           onClick={() => onAddCard(board.id)}
         >
           <Plus />
-          添加卡片
+          {t('添加卡片')}
         </Button>
       </div>
     </div>
@@ -347,6 +351,7 @@ function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCar
 
 // ─── ColorPicker ──────────────────────────────────────────────────────
 function ColorPicker({ value, onChange }) {
+  const { t } = useTranslation()
   const sel = (value || DEFAULT_COLOR).toUpperCase()
   return (
     <div className="flex items-center gap-2.5">
@@ -356,7 +361,7 @@ function ColorPicker({ value, onChange }) {
           <button
             key={c}
             type="button"
-            aria-label={`颜色 ${c}`}
+            aria-label={t('颜色 {{color}}', { color: c })}
             aria-pressed={selected}
             onClick={() => onChange(c)}
             className={cn(
@@ -372,8 +377,9 @@ function ColorPicker({ value, onChange }) {
   )
 }
 
-// ─── Confirm (受控) ────────────────────────────────────────────────────
+// ─── Confirm (controlled) ─────────────────────────────────────────────
 function ConfirmDialog({ target, onOpenChange }) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const handle = async (e) => {
     e.preventDefault()
@@ -382,7 +388,7 @@ function ConfirmDialog({ target, onOpenChange }) {
       await target?.onConfirm()
       onOpenChange(false)
     } catch {
-      /* 已 toast，保持打开 */
+      /* already toasted; keep the dialog open */
     } finally {
       setLoading(false)
     }
@@ -395,10 +401,10 @@ function ConfirmDialog({ target, onOpenChange }) {
           {target?.description ? <AlertDialogDescription>{target.description}</AlertDialogDescription> : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>取消</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{t('取消')}</AlertDialogCancel>
           <AlertDialogAction onClick={handle} disabled={loading} className={buttonVariants({ variant: 'destructive' })}>
             {loading ? <Spinner /> : null}
-            删除
+            {t('删除')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -423,6 +429,7 @@ function BoardSkeleton() {
 
 // ─── Main Page ────────────────────────────────────────────────────────
 export default function KanbanPage() {
+  const { t } = useTranslation()
   const [boards, setBoards] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCard, setActiveCard] = useState(null)
@@ -441,13 +448,13 @@ export default function KanbanPage() {
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    // 触屏长按 200ms 再拖，保留列表/看板的原生滑动
+    // Touch: long-press 200 ms before dragging so native list / board scrolling still works
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   // ── data ───────────────────────────────────────────────
-  // 首次加载显示骨架；之后的刷新（增删改、拖拽失败回滚）静默进行，避免看板闪烁
+  // Show the skeleton on first load only; later refreshes (CRUD, rollback after a failed drag) run silently to avoid flicker
   const fetchBoards = useCallback(() => {
     return getKanbanBoards()
       .then((res) => setBoards(res || []))
@@ -497,8 +504,8 @@ export default function KanbanPage() {
   }
   const askDeleteBoard = (board) =>
     setConfirmTarget({
-      title: `确定删除列「${board.title}」？`,
-      description: '该列下所有卡片将同步删除，此操作不可恢复。',
+      title: t('确定删除列「{{title}}」？', { title: board.title }),
+      description: t('该列下所有卡片将同步删除，此操作不可恢复。'),
       onConfirm: async () => {
         try {
           await deleteKanbanBoard(board.id)
@@ -556,7 +563,7 @@ export default function KanbanPage() {
   }
   const askDeleteCard = (card) =>
     setConfirmTarget({
-      title: `确定删除卡片「${card.title}」？`,
+      title: t('确定删除卡片「{{title}}」？', { title: card.title }),
       onConfirm: async () => {
         try {
           await deleteKanbanCard(card.id)
@@ -576,7 +583,7 @@ export default function KanbanPage() {
     setActiveCard(active.data.current.card)
   }
 
-  // 跨列：拖动过程中即时把卡片挪进目标列（插到悬停卡片的上/下方），同列内由 SortableContext 负责位移动画
+  // Across columns: move the card into the target column while dragging (above / below the hovered card); within a column SortableContext animates the shift
   const handleDragOver = ({ active, over }) => {
     if (!over || active.data.current?.type !== 'card') return
     const activeId = parseCardDndId(active.id)
@@ -653,13 +660,13 @@ export default function KanbanPage() {
         actions={
           <Button size="sm" variant="brand" onClick={openCreateBoard}>
             <Plus />
-            新建列
+            {t('新建列')}
           </Button>
         }
       >
         {!loading && boards.length ? (
           <p className="text-muted-foreground pt-1 text-xs tabular-nums">
-            {boards.length} 列 · {totalCards} 张卡片
+            {t('{{boards}} 列 · {{cards}} 张卡片', { boards: boards.length, cards: totalCards })}
           </p>
         ) : null}
       </PageHeader>
@@ -675,7 +682,7 @@ export default function KanbanPage() {
             action={
               <Button size="sm" variant="outline" onClick={openCreateBoard}>
                 <Plus />
-                新建列
+                {t('新建列')}
               </Button>
             }
           />
@@ -705,7 +712,7 @@ export default function KanbanPage() {
               ))}
             </div>
           </div>
-          {/* 挂到 body：内容区祖先上的 transform（页面切换动效）会让 fixed 定位的浮层错位 */}
+          {/* Portal to body: a transform on a content ancestor (page transition) would misplace the fixed-position overlay */}
           {createPortal(
             <DragOverlay dropAnimation={dropAnimation} zIndex={60}>
               {activeCard ? (

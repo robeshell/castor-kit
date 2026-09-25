@@ -2,9 +2,9 @@
 /**
  * castor-kit MCP Server
  *
- * 把 castor-kit 开发工具暴露为 MCP 协议，让 Claude Desktop 等 MCP 客户端无需命令行即可驱动完整的功能开发流程。
+ * Exposes the castor-kit dev tooling over the MCP protocol, so MCP clients such as Claude Desktop can drive the full feature-development flow without a command line.
  *
- * 配置到 Claude Desktop（~/Library/Application Support/Claude/claude_desktop_config.json）：
+ * Configure in Claude Desktop (~/Library/Application Support/Claude/claude_desktop_config.json):
  *   {
  *     "mcpServers": {
  *       "castor-kit": {
@@ -13,19 +13,19 @@
  *       }
  *     }
  *   }
- * 或构建后直接用 node：`pnpm --filter @castor-kit/mcp build` → `node /path/to/castor-kit/apps/mcp/dist/index.js`
+ * Or build it and run with node directly: `pnpm --filter @castor-kit/mcp build` → `node /path/to/castor-kit/apps/mcp/dist/index.js`
  *
- * 工具列表：
- *   get_project_context   返回 AGENTS.md + 当前模块树（Step 1 用）
- *   get_menu_tree         返回当前菜单结构（推断 parent_id 用）
- *   scaffold_feature      生成代码骨架文件（pnpm scaffold）
- *   run_verify            运行 pnpm verify --json，返回 JSON
- *   init_rbac             运行 pnpm seed:rbac -- --incremental
+ * Tools:
+ *   get_project_context   returns AGENTS.md + the current module tree (for Step 1)
+ *   get_menu_tree         returns the current menu structure (for inferring parent_id)
+ *   scaffold_feature      generates code skeleton files (pnpm scaffold)
+ *   run_verify            runs pnpm verify --json and returns the JSON
+ *   init_rbac             runs pnpm seed:rbac -- --incremental
  *   run_migration         pnpm db:generate + pnpm db:migrate
- *   list_templates        返回可用模板列表
+ *   list_templates        returns the list of available templates
  *
- * 仓库根目录默认取本文件向上三级（src/ 与 dist/ 同深度），可用 CASTOR_KIT_ROOT 覆盖。
- * 子命令优先用 pnpm；PATH 里没有 pnpm 时直接用 apps/api/node_modules/.bin 下的 tsx / drizzle-kit。
+ * The repo root defaults to three levels above this file (src/ and dist/ are at the same depth); override with CASTOR_KIT_ROOT.
+ * Subcommands prefer pnpm; when pnpm is not on PATH, tsx / drizzle-kit from apps/api/node_modules/.bin are used directly.
  */
 
 import { spawn, spawnSync } from 'node:child_process'
@@ -39,13 +39,13 @@ import { z } from 'zod'
 export const ROOT = resolve(process.env.CASTOR_KIT_ROOT ?? join(dirname(fileURLToPath(import.meta.url)), '../../..'))
 const API_DIR = join(ROOT, 'apps', 'api')
 
-// ─── 子进程 ────────────────────────────────────────────────────────────────────
+// ─── Child processes ──────────────────────────────────────────────────────────
 
 interface RunResult {
   code: number
   stdout: string
   stderr: string
-  /** stdout + stderr（合并输出） */
+  /** stdout + stderr (merged output) */
   output: string
 }
 
@@ -77,7 +77,7 @@ function hasPnpm(): boolean {
   return pnpmAvailable
 }
 
-/** 根 package.json 的脚本 → 无 pnpm 时的等价直接调用（cwd = apps/api） */
+/** Root package.json scripts → equivalent direct invocations when pnpm is unavailable (cwd = apps/api) */
 const SCRIPT_FALLBACK: Record<string, { bin: string; args: string[] }> = {
   scaffold: { bin: 'tsx', args: ['scripts/scaffold.ts'] },
   verify: { bin: 'tsx', args: ['scripts/verify-feature.ts'] },
@@ -87,8 +87,8 @@ const SCRIPT_FALLBACK: Record<string, { bin: string; args: string[] }> = {
 }
 
 /**
- * 运行根 package.json 里的脚本：`pnpm -s <script> -- ...args`。
- * drizzle-kit 不认识 `--`（castor-kit 自己的脚本会忽略它），db:generate 直接跟参数。
+ * Runs a script from the root package.json: `pnpm -s <script> -- ...args`.
+ * drizzle-kit does not understand `--` (castor-kit's own scripts ignore it), so db:generate takes the args directly.
  */
 export function runScript(script: string, args: string[] = []): Promise<RunResult> {
   const dash = script === 'db:generate' ? [] : ['--']
@@ -99,7 +99,7 @@ export function runScript(script: string, args: string[] = []): Promise<RunResul
   return runCommand(bin, [...fallback.args, ...args], API_DIR)
 }
 
-/** 从混有其他输出的 stdout 中取出 JSON 对象 */
+/** Extracts the JSON object from stdout that is mixed with other output */
 export function extractJson(text: string): unknown {
   const trimmed = text.trim()
   try {
@@ -112,7 +112,7 @@ export function extractJson(text: string): unknown {
   }
 }
 
-// ─── 工具实现 ──────────────────────────────────────────────────────────────────
+// ─── Tool implementations ─────────────────────────────────────────────────────
 
 type ToolResult = { content: { type: 'text'; text: string }[] }
 const text = (value: string): ToolResult => ({ content: [{ type: 'text', text: value }] })
@@ -121,7 +121,7 @@ export function projectContext(): string {
   const agentsMd = join(ROOT, 'AGENTS.md')
   const content = existsSync(agentsMd) ? readFileSync(agentsMd, 'utf8') : '（AGENTS.md 不存在）'
 
-  // 当前模块列表：apps/api/src/modules/<domain>/<module>/
+  // Current module list: apps/api/src/modules/<domain>/<module>/
   const modulesDir = join(API_DIR, 'src', 'modules')
   const beDomains: string[] = []
   if (existsSync(modulesDir)) {
@@ -148,7 +148,7 @@ interface MenuRow {
   sort_order: number | null
 }
 
-/** 用 apps/api 的配置（NODE_ENV → .env.<env>）连库查询菜单；在 apps/api 目录里用 tsx 执行以复用其依赖 */
+/** Queries menus using apps/api's config (NODE_ENV → .env.<env>); runs with tsx inside apps/api to reuse its dependencies */
 const MENU_QUERY_SCRIPT = `
 (async () => {
   const pg = (await import('pg')).default
@@ -220,7 +220,7 @@ export function listTemplates(): string {
   return lines.join('\n')
 }
 
-/** 迁移描述 → drizzle-kit --name（只允许小写字母数字下划线） */
+/** Migration description → drizzle-kit --name (only lowercase letters, digits and underscores allowed) */
 export function migrationName(message: string): string {
   const slug = message
     .trim()
@@ -230,7 +230,7 @@ export function migrationName(message: string): string {
   return slug || 'auto_migration'
 }
 
-// ─── 服务器 ────────────────────────────────────────────────────────────────────
+// ─── Server ───────────────────────────────────────────────────────────────────
 
 export function createServer(): McpServer {
   const server = new McpServer({ name: 'castor-kit', version: '0.1.0' })
@@ -339,14 +339,14 @@ export function createServer(): McpServer {
   return server
 }
 
-// ─── 入口 ──────────────────────────────────────────────────────────────────────
+// ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function main(): Promise<void> {
   const server = createServer()
   await server.connect(new StdioServerTransport())
 }
 
-// bin 安装后 argv[1] 可能是符号链接，按真实路径比较
+// After bin install argv[1] may be a symlink, so compare real paths
 const entry = process.argv[1] ? (() => { try { return realpathSync(process.argv[1]!) } catch { return resolve(process.argv[1]!) } })() : null
 const isMain = entry !== null && import.meta.url === pathToFileURL(entry).href
 if (isMain) {

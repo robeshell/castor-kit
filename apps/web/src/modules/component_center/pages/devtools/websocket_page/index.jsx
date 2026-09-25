@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { ArrowDown, ArrowUp, CircleCheck, CircleX, Plug, PlugZap, Radio, Send, Unplug } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +26,7 @@ const STATUS_META = {
   closed: { tone: 'neutral', label: '已断开' },
 }
 
-// 系统消息的图标与颜色
+// Icon and color for system messages
 const SYS_ICON = { ok: CircleCheck, error: CircleX, closed: Plug }
 const SYS_CLASS = { ok: 'text-success', error: 'text-danger', closed: 'text-muted-foreground' }
 
@@ -34,7 +35,7 @@ function getWsUrl() {
   return `${proto}://${location.host}${WS_URL}`
 }
 
-// 服务端消息为 JSON（type: metric / echo），解析失败时按纯文本展示
+// Server messages are JSON (type: metric / echo); anything unparsable is shown as plain text
 function messageType(text) {
   try {
     const obj = JSON.parse(text)
@@ -45,6 +46,7 @@ function messageType(text) {
 }
 
 function MessageRow({ m }) {
+  const { t } = useTranslation()
   const SysIcon = m.dir === 'sys' ? SYS_ICON[m.kind] || Radio : null
   return (
     <motion.div
@@ -73,13 +75,14 @@ function MessageRow({ m }) {
             {m.type}
           </StatusBadge>
         ) : null}
-        <span className={cn(m.dir === 'sys' && 'font-sans', m.dir === 'sys' && SYS_CLASS[m.kind])}>{m.text}</span>
+        <span className={cn(m.dir === 'sys' && 'font-sans', m.dir === 'sys' && SYS_CLASS[m.kind])}>{m.dir === 'sys' ? t(m.text, m.params) : m.text}</span>
       </span>
     </motion.div>
   )
 }
 
 export default function WebSocketPage() {
+  const { t } = useTranslation()
   const c = useChartColors()
   const [status, setStatus] = useState('idle')
   const [messages, setMessages] = useState([])
@@ -93,7 +96,8 @@ export default function WebSocketPage() {
   const logRef = useRef(null)
   const seqRef = useRef(0)
 
-  const addMsg = useCallback((text, dir, kind) => {
+  // System messages keep the Chinese source text plus params and are translated when rendered
+  const addMsg = useCallback((text, dir, kind, params) => {
     seqRef.current += 1
     const id = seqRef.current
     setMessages((prev) => [
@@ -103,6 +107,7 @@ export default function WebSocketPage() {
         text,
         dir,
         kind,
+        params,
         type: dir === 'sys' ? null : messageType(text),
         ts: new Date().toLocaleTimeString('zh', { hour12: false }),
       },
@@ -152,7 +157,7 @@ export default function WebSocketPage() {
     }
 
     ws.onclose = (e) => {
-      addMsg(`连接已关闭 (code: ${e.code})`, 'sys', 'closed')
+      addMsg('连接已关闭 (code: {{code}})', 'sys', 'closed', { code: e.code })
       setStatus('closed')
       clearInterval(rateTimer.current)
       wsRef.current = null
@@ -168,7 +173,7 @@ export default function WebSocketPage() {
     setInput('')
   }, [input, status, addMsg])
 
-  // 新消息到达时平滑滚到底部
+  // Smoothly scroll to the bottom when new messages arrive
   useEffect(() => {
     const el = logRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
@@ -199,10 +204,10 @@ export default function WebSocketPage() {
           areaStyle: brandArea(c),
         },
       ],
-      tooltip: { ...base.tooltip, formatter: (p) => `${p[0].axisValue}<br/>消息: <b>${p[0].value}</b> 条/秒` },
+      tooltip: { ...base.tooltip, formatter: (p) => `${p[0].axisValue}<br/>${t('消息')}: <b>${p[0].value}</b> ${t('条/秒')}` },
       animation: false,
     }
-  }, [c, rateData])
+  }, [c, rateData, t])
 
   const meta = STATUS_META[status]
   const connected = status === 'connected'
@@ -211,7 +216,7 @@ export default function WebSocketPage() {
     <div className="space-y-5">
       <PageHeader title="WebSocket 实时通信" />
 
-      {/* 连接栏 */}
+      {/* Connection bar */}
       <div className="surface-card flex flex-wrap items-center gap-3 px-4 py-3">
         <span className="bg-muted text-muted-foreground flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1 font-mono text-xs">
           <Radio className="size-3.5 shrink-0" />
@@ -224,30 +229,30 @@ export default function WebSocketPage() {
           {connected ? (
             <Button size="sm" variant="outline" className="text-danger hover:text-danger" onClick={disconnect}>
               <Unplug />
-              断开
+              {t('断开')}
             </Button>
           ) : (
             <Button size="sm" variant="brand" onClick={connect} disabled={status === 'connecting'}>
               {status === 'connecting' ? <Spinner /> : <PlugZap />}
-              连接
+              {t('连接')}
             </Button>
           )}
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* 消息日志 */}
+        {/* Message log */}
         <section className="surface-card flex h-[420px] flex-col overflow-hidden md:h-[560px]">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="text-sm font-medium">消息日志</h3>
+            <h3 className="text-sm font-medium">{t('消息日志')}</h3>
             <div className="text-muted-foreground flex gap-4 text-xs">
               <span className="flex items-center gap-1">
                 <ArrowUp className="text-primary size-3" />
-                发送 <b className="text-foreground font-medium tabular-nums">{stats.sent}</b>
+                {t('发送')} <b className="text-foreground font-medium tabular-nums">{stats.sent}</b>
               </span>
               <span className="flex items-center gap-1">
                 <ArrowDown className="text-success size-3" />
-                接收 <b className="text-foreground font-medium tabular-nums">{stats.received}</b>
+                {t('接收')} <b className="text-foreground font-medium tabular-nums">{stats.received}</b>
               </span>
             </div>
           </div>
@@ -267,20 +272,20 @@ export default function WebSocketPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
               }}
-              placeholder={connected ? '发送自定义消息（服务端会 echo 回来）...' : '请先连接'}
+              placeholder={connected ? t('发送自定义消息（服务端会 echo 回来）...') : t('请先连接')}
               disabled={!connected}
               className="h-9 flex-1"
             />
             <Button variant="outline" onClick={handleSend} disabled={!connected || !input.trim()}>
               <Send />
-              发送
+              {t('发送')}
             </Button>
           </div>
         </section>
 
-        {/* 右侧 */}
+        {/* Right column */}
         <div className="space-y-4">
-          <Panel title="消息速率（条/秒）" description={`最近 ${MAX_PTS} 秒`}>
+          <Panel title="消息速率（条/秒）" description={t('最近 {{count}} 秒', { count: MAX_PTS })}>
             <ReactECharts option={chartOption} style={{ height: 150 }} opts={{ renderer: 'canvas' }} />
           </Panel>
 
@@ -294,7 +299,7 @@ export default function WebSocketPage() {
                   <StatusBadge tone="brand" className="font-mono">
                     type: {type}
                   </StatusBadge>
-                  <p className="text-muted-foreground text-xs">{desc}</p>
+                  <p className="text-muted-foreground text-xs">{t(desc)}</p>
                 </div>
               ))}
             </div>
@@ -309,8 +314,8 @@ export default function WebSocketPage() {
                 ['推送', '每 1 秒服务器主动推送'],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground shrink-0">{k}</dt>
-                  <dd className="truncate text-right font-medium">{v}</dd>
+                  <dt className="text-muted-foreground shrink-0">{t(k)}</dt>
+                  <dd className="truncate text-right font-medium">{t(v)}</dd>
                 </div>
               ))}
             </dl>

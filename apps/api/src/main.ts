@@ -1,6 +1,6 @@
 /**
- * web 进程入口
- * 用法：`pnpm dev` / `node dist/main.js [port]`
+ * Web process entry point
+ * Usage: `pnpm dev` / `node dist/main.js [port]`
  */
 
 import { buildApp } from './app'
@@ -19,7 +19,7 @@ const app = await buildApp({
       : { level: 'info' },
 })
 
-// 定时任务：RUN_SCHEDULER_IN_WEB=true 时在 web 进程内跑调度循环（否则用独立 worker：node dist/worker.js）
+// Scheduled tasks: with RUN_SCHEDULER_IN_WEB=true the scheduler loop runs inside the web process (otherwise use the standalone worker: node dist/worker.js)
 let schedulerRunner: ScheduledTaskRunner | null = null
 
 const shutdown = async (signal: string) => {

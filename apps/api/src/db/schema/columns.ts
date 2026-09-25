@@ -1,13 +1,13 @@
 /**
- * 通用列构造器
+ * Shared column builders
  *
- * 时间列的默认值是**应用侧**默认值（库里没有 DEFAULT），所以插入时必须由应用给值。
- * 这里用 `timezone('utc', now())` 让数据库生成 UTC 时间：
- * 保留微秒精度、不经过 JS `Date`。`$defaultFn` 只在运行时生效，不进 DDL，
- * 因而不会让 baseline 与现库产生差异。
+ * Timestamp column defaults are **app-side** defaults (no DB DEFAULT), so the app must supply a value on insert.
+ * `timezone('utc', now())` is used here so the database generates the UTC time:
+ * microsecond precision is kept and JS `Date` is bypassed. `$defaultFn` only applies at runtime and doesn't go into the DDL,
+ * so the baseline doesn't drift from the existing database.
  *
- * 时间列一律 `mode: 'string'`：驱动层原样返回 `YYYY-MM-DD HH:mm:ss[.ffffff]` 文本，由
- * `common/serialize.toIso()` 输出。
+ * Timestamp columns always use `mode: 'string'`: the driver returns `YYYY-MM-DD HH:mm:ss[.ffffff]` text as-is, emitted via
+ * `common/serialize.toIso()`.
  */
 
 import { sql } from 'drizzle-orm'

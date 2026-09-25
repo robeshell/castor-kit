@@ -42,7 +42,7 @@ async function scalar(query: ReturnType<typeof sql>): Promise<string> {
 
 describe('dashboard', () => {
   it('统计：只需登录；计数与数据库一致；近 7 天按 UTC 日期聚合', async () => {
-    // 造两条操作日志：今天（UTC）与 6 天前（UTC），以及一条 7 天前（不计入）
+    // Create two operation logs: today (UTC) and 6 days ago (UTC), plus one 7 days ago (not counted)
     for (const offset of [0, 6, 7]) {
       const [row] = await handle.db
         .insert(operation_logs)

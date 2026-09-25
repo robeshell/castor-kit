@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { AlertCircle, Code2, Copy, Database, Play, Search, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +20,7 @@ import StatusBadge from '@/shared/components/StatusBadge'
 
 const PAGE_SIZE = 20
 
-// 判断列的值是否全为数字
+// Whether every value in the column is numeric
 const isNumericColumn = (rows, col) => {
   if (!rows.length) return false
   return rows.every((r) => {
@@ -28,19 +29,25 @@ const isNumericColumn = (rows, col) => {
   })
 }
 
-// 自动推断是否可以出图（至少 2 列，第二列是数字）
+// Whether the result can be charted (at least 2 columns, the second one numeric)
 const canRenderChart = (columns, rows) => {
   if (!columns || columns.length < 2 || !rows || !rows.length) return false
   return isNumericColumn(rows, columns[1])
 }
 
-// 示例问题
+// Sample questions (demo content, not translated)
 const EXAMPLE_QUESTIONS = [
+  // i18n-ignore-next-line: sample question sent to the AI as-is
   '最近 7 天每天新增的用户数',
+  // i18n-ignore-next-line: sample question sent to the AI as-is
   '每个角色分别有多少用户',
+  // i18n-ignore-next-line: sample question sent to the AI as-is
   '各类型菜单各有多少条',
+  // i18n-ignore-next-line: sample question sent to the AI as-is
   '登录日志中登录失败次数最多的前 10 个用户',
+  // i18n-ignore-next-line: sample question sent to the AI as-is
   '所有定时任务及其状态',
+  // i18n-ignore-next-line: sample question sent to the AI as-is
   '每个月新增用户数趋势（最近 6 个月）',
 ]
 
@@ -88,6 +95,7 @@ function ResultChart({ columns, rows }) {
 }
 
 export default function AiSqlPage() {
+  const { t } = useTranslation()
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null) // { sql, columns, rows, row_count }
@@ -114,7 +122,7 @@ export default function AiSqlPage() {
       setPage(1)
     } catch (e) {
       setError(errorMessage(e, '请求失败'))
-      // 如果有 sql 也展示出来，方便调试
+      // Show the SQL too if there is one, to help debugging
       if (e?.sql) setSqlEditing(e.sql)
     } finally {
       setLoading(false)
@@ -180,12 +188,12 @@ export default function AiSqlPage() {
         actions={
           <Button variant="outline" size="sm" onClick={() => setSchemaOpen(true)}>
             <Database />
-            表结构
+            {t('表结构')}
           </Button>
         }
       />
 
-      {/* 问题输入区 */}
+      {/* Question input */}
       <Panel>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
@@ -196,18 +204,18 @@ export default function AiSqlPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleGenerate()
               }}
-              placeholder="用自然语言描述你想查什么，例如：最近7天每天新增的用户数"
+              placeholder={t('用自然语言描述你想查什么，例如：最近7天每天新增的用户数')}
               className="h-10 pl-9"
             />
           </div>
           <Button variant="brand" className="h-10 px-5" onClick={handleGenerate} disabled={loading}>
             {loading ? <Spinner /> : <Sparkles />}
-            AI 生成
+            {t('AI 生成')}
           </Button>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="text-muted-foreground mr-1 text-xs">示例：</span>
+          <span className="text-muted-foreground mr-1 text-xs">{t('示例：')}</span>
           {EXAMPLE_QUESTIONS.map((q) => (
             <button
               key={q}
@@ -221,7 +229,7 @@ export default function AiSqlPage() {
         </div>
       </Panel>
 
-      {/* 加载中 */}
+      {/* Loading */}
       {loading ? (
         <motion.div {...fadeUp}>
           <Panel>
@@ -229,13 +237,13 @@ export default function AiSqlPage() {
               <div className="bg-brand-soft text-primary flex size-10 items-center justify-center rounded-xl">
                 <Spinner className="size-5" />
               </div>
-              <p className="text-muted-foreground text-[13px]">AI 正在分析数据库结构并生成 SQL…</p>
+              <p className="text-muted-foreground text-[13px]">{t('AI 正在分析数据库结构并生成 SQL…')}</p>
             </div>
           </Panel>
         </motion.div>
       ) : null}
 
-      {/* 错误提示 */}
+      {/* Error */}
       <AnimatePresence>
         {!loading && error ? (
           <motion.div
@@ -252,25 +260,25 @@ export default function AiSqlPage() {
         ) : null}
       </AnimatePresence>
 
-      {/* SQL 展示 + 编辑 */}
+      {/* SQL display + editing */}
       {showSqlPanel ? (
         <motion.div {...fadeUp}>
           <Panel
             title={
               <span className="flex items-center gap-2">
                 <Code2 className="text-primary size-4" />
-                生成的 SQL
-                <StatusBadge tone="brand">可编辑</StatusBadge>
+                {t('生成的 SQL')}
+                <StatusBadge tone="brand">{t('可编辑')}</StatusBadge>
               </span>
             }
             actions={
               <>
-                <Button variant="ghost" size="icon-sm" aria-label="复制 SQL" title="复制 SQL" onClick={handleCopySQL}>
+                <Button variant="ghost" size="icon-sm" aria-label={t('复制 SQL')} title={t('复制 SQL')} onClick={handleCopySQL}>
                   <Copy />
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleExecute} disabled={executing}>
                   {executing ? <Spinner /> : <Play />}
-                  重新执行
+                  {t('重新执行')}
                 </Button>
               </>
             }
@@ -285,23 +293,23 @@ export default function AiSqlPage() {
                 }
               }}
               spellCheck={false}
-              aria-label="SQL 编辑区"
+              aria-label={t('SQL 编辑区')}
               className="bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 min-h-[110px] w-full resize-y rounded-lg border px-3 py-2.5 font-mono text-[13px] leading-relaxed outline-none focus-visible:ring-[3px]"
             />
-            <p className="text-muted-foreground mt-1.5 text-xs">仅允许只读查询 · Ctrl / ⌘ + Enter 执行</p>
+            <p className="text-muted-foreground mt-1.5 text-xs">{t('仅允许只读查询 · Ctrl / ⌘ + Enter 执行')}</p>
           </Panel>
         </motion.div>
       ) : null}
 
-      {/* 结果区 */}
+      {/* Results */}
       {!loading && result ? (
         <motion.div {...fadeUp}>
           <Panel
             padded={false}
             title={
               <span className="flex items-center gap-2">
-                查询结果
-                <StatusBadge tone="success">{result.row_count} 行</StatusBadge>
+                {t('查询结果')}
+                <StatusBadge tone="success">{t('{{count}} 行', { count: result.row_count })}</StatusBadge>
               </span>
             }
             actions={
@@ -340,7 +348,7 @@ export default function AiSqlPage() {
         </motion.div>
       ) : null}
 
-      {/* 空状态引导 */}
+      {/* Empty-state guide */}
       {!loading && !result && !error && !sqlEditing ? (
         <Panel>
           <EmptyState

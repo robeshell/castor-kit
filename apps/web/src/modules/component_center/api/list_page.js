@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 import request from '@/shared/api/request'
 
 export const getListPageList = (params) => request.get('/admin/component-center/list-page', { params })
@@ -26,7 +27,7 @@ export const importListPage = (file) => {
 export const uploadListPageImage = (file) => {
   const uploadFile = file?.fileInstance || file
   if (!uploadFile) {
-    return Promise.reject(new Error('请先选择图片文件'))
+    return Promise.reject(new Error(i18n.t('请先选择图片文件')))
   }
   const formData = new FormData()
   formData.append('file', uploadFile, uploadFile?.name || 'list-page-image')
@@ -38,7 +39,7 @@ export const uploadListPageImage = (file) => {
 export const uploadListPageFile = (file) => {
   const uploadFile = file?.fileInstance || file
   if (!uploadFile) {
-    return Promise.reject(new Error('请先选择文件'))
+    return Promise.reject(new Error(i18n.t('请先选择文件')))
   }
   const formData = new FormData()
   formData.append('file', uploadFile, uploadFile?.name || 'list-page-file')

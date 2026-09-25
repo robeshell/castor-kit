@@ -1,17 +1,17 @@
 /**
- * 自引用树（parent_id 指向同表 id）的公共工具
+ * Shared helpers for self-referencing trees (parent_id points to an id in the same table)
  */
 
 import { sql } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
 
-/** 向上追溯祖先的最大层数：库里已经存在环时也能终止 */
+/** Max depth when walking up ancestors: guarantees termination even if the DB already contains a cycle */
 const MAX_DEPTH = 1000
 
 /**
- * 把 nodeId 的父节点改成 newParentId 是否会成环：newParentId 等于 nodeId，或 nodeId 是 newParentId 的祖先。
- * 做法是从 newParentId 沿 parent_id 向上走，途中遇到 nodeId 即成环。
- * table 必须是代码里的常量表名（不接受用户输入）。
+ * Whether changing nodeId's parent to newParentId creates a cycle: newParentId equals nodeId, or nodeId is an ancestor of newParentId.
+ * Walks up from newParentId along parent_id; meeting nodeId on the way means a cycle.
+ * table must be a constant table name from code (never user input).
  */
 export async function wouldCreateCycle(
   db: Executor,

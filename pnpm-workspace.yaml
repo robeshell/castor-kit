@@ -5,7 +5,7 @@ packages:
 allowBuilds:
   esbuild: true
 
-# apps/web 个别源码直接 import 了传递依赖（如 react-grid-layout 带来的 react-resizable/css）。
-# npm 的扁平 node_modules 能解析，pnpm 严格布局不能，这里定点提升，不改源码。
+# A few apps/web sources import transitive deps directly (e.g. react-resizable/css pulled in by react-grid-layout).
+# npm's flat node_modules resolves them but pnpm's strict layout doesn't, so hoist them here instead of changing the sources.
 publicHoistPattern:
   - react-resizable

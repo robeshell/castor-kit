@@ -1,7 +1,7 @@
 /**
- * AI 数据查询：SQL 安全校验全部用例，
- * 并在真实 PostgreSQL 上验证只读引擎、LIMIT 包裹、敏感表过滤、字面量剥离、写操作被拒与路由各分支。
- * 需要 AI 的 generate 用本地假上游（test/cc-ai-fake-upstream.ts），不调用真实 AI 服务。
+ * AI data query: all SQL safety-check cases,
+ * plus verification on a real PostgreSQL of the read-only engine, LIMIT wrapping, sensitive-table filtering, literal stripping, rejection of writes and every route branch.
+ * generate, which needs AI, uses a local fake upstream (test/cc-ai-fake-upstream.ts) and never calls a real AI service.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -35,7 +35,7 @@ const SCHEMA = '/api/admin/component-center/ai/sql/schema'
 const EXEC_ERROR = 'SQL 执行错误，请检查语法或表权限'
 const INTERNAL = '服务器内部错误，请稍后重试'
 
-// ---- SQL 安全校验 ----
+// ---- SQL safety checks ----
 
 describe('isSafeSql', () => {
   it('allows basic select / with cte / trailing semicolon', () => {
@@ -198,7 +198,7 @@ describe('Python 值转换', () => {
   })
 })
 
-// ---- 只读连接池（真实 PG）----
+// ---- Read-only connection pool (real PG) ----
 
 describe('ReadonlyDb（只读引擎）', () => {
   let ro: ReadonlyDb
@@ -248,7 +248,7 @@ describe('ReadonlyDb（只读引擎）', () => {
   })
 })
 
-// ---- 路由 ----
+// ---- Routes ----
 
 describe('AI SQL 路由', () => {
   let app: FastifyInstance
@@ -263,7 +263,7 @@ describe('AI SQL 路由', () => {
     up = await startFakeUpstream()
     app = await buildTestApp({ aiApiBase: up.url, aiApiKey: 'x', aiModel: 'm' })
     unconfigured = await buildTestApp({ aiApiKey: '' })
-    // createFixture 会先清掉所有 ck_test_ 用户（含 super 测试账号），所以先建夹具再登录 super
+    // createFixture first removes all ck_test_ users (including the super test account), so create fixtures before logging in as super
     await createFixture(handle)
     s = await superAdminSession(app, handle)
     noKey = await loginSession(unconfigured, SUPER_USER, SUPER_PASSWORD)
@@ -355,7 +355,7 @@ describe('AI SQL 路由', () => {
       expect(res.statusCode).toBe(400)
       expect(res.json()).toEqual({ error: 'SQL 不能为空' })
     }
-    // 非字符串真值 → 全局 500 通用文案
+    // Non-string truthy value → global 500 generic message
     for (const sql of [5, ['SELECT 1'], { a: 1 }, true]) {
       const res = await s.inject({ method: 'POST', url: EXECUTE, payload: { sql } })
       expect(res.statusCode).toBe(500)
@@ -489,7 +489,7 @@ describe('AI SQL 路由', () => {
       expect(res.statusCode).toBe(500)
       expect(res.json()).toEqual(expected)
     }
-    // 未配置 AI_API_KEY
+    // AI_API_KEY not configured
     const res = await noKey.inject({ method: 'POST', url: GENERATE, payload: { question: 'x' } })
     expect(res.statusCode).toBe(500)
     expect(res.json()).toEqual(configError)

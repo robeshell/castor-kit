@@ -1,7 +1,7 @@
 /**
  * dynamic_form_records / dynamic_form_fields
  *
- * dynamic_form_fields.record_id 外键 ON DELETE CASCADE；fields/record 关系见下方 relations。
+ * dynamic_form_fields.record_id has an ON DELETE CASCADE foreign key; see relations below for the fields/record relationship.
  */
 
 import { relations } from 'drizzle-orm'
@@ -67,7 +67,7 @@ export function dynamicFormFieldToDict(field: DynamicFormField) {
 }
 
 /**
- * 记录输出：fields_count 为该记录的字段数；传入 fields（已按 sort_order 排序）时附带 fields 键。
+ * Record output: fields_count is the record's field count; includes a fields key when fields are passed (already sorted by sort_order).
  */
 export function dynamicFormRecordToDict(record: DynamicFormRecord, fieldsCount: number, fields?: DynamicFormField[]) {
   const d: Record<string, unknown> = {

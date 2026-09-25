@@ -1,5 +1,5 @@
 /**
- * 地图热力图模拟数据：各省基准值（PROVINCE_DATA）
+ * Map heatmap mock data: per-province base values (PROVINCE_DATA)
  */
 
 export interface ProvincePoint {

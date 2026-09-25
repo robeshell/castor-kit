@@ -1,5 +1,5 @@
 /**
- * 数据字典 service 层
+ * Data dictionary service layer
  */
 
 import { ServiceError } from '@/common/errors'
@@ -42,7 +42,7 @@ const ITEM_UPDATE_BINDERS: Record<string, (v: unknown) => unknown> = {
 
 /**
  * `for field in fields: if field in data: setattr(item, field, data[field])` + commit：
- * 只有值变化（`==` 语义）的列才进 UPDATE；全部未变化时不发 UPDATE（updated_at 不变）。
+ * Only columns whose value changed (`==` semantics) go into the UPDATE; if nothing changed no UPDATE is sent (updated_at stays).
  */
 function collectChanges<T extends object>(
   current: T,
@@ -85,7 +85,7 @@ export class DictsService {
     return dictItemToDict(item, await this.repo.getType(item.dict_type_id))
   }
 
-  // ---------------------------------------------------------------- 查找
+  // ---------------------------------------------------------------- Lookup
 
   async getTypeOr404(id: number): Promise<DictType> {
     const type = await this.repo.getType(id)
@@ -262,7 +262,7 @@ export class DictsService {
     return { message: '删除成功' }
   }
 
-  // ---------------------------------------------------------------- 导入导出
+  // ---------------------------------------------------------------- Import/export
 
   async exportDictItems(type: DictType, fileTypeRaw: unknown) {
     const fileType = normalizeTableFileType(fileTypeRaw, 'csv')

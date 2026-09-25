@@ -1,7 +1,7 @@
 /**
- * 带统计的列表页路由
+ * List page with stats routes
  *
- * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
+ * Routes with an id run get_or_404 first, then check permissions (preserves existing API behavior).
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -14,7 +14,7 @@ import { StatsListPageService } from './service'
 
 const BASE = '/api/admin/component-center/stats-list-page'
 
-/** request.args：每个键取第一个值 */
+/** request.args: take the first value of each key */
 function queryArgs(request: FastifyRequest): Record<string, unknown> {
   const query = (request.query ?? {}) as Record<string, unknown>
   return Object.fromEntries(Object.entries(query).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]))

@@ -1,18 +1,20 @@
+import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
- * 页面标题区：标题 + 描述 + 右侧操作。每个页面顶部统一用它。
- *   <PageHeader title="用户管理" actions={<Button>新建</Button>} />
- * description 只放有信息量的内容（如「4 列 · 8 张卡片」），不要写页面功能介绍。
- * 与下方内容固定间距 24px（mb-6），页面不要再传 mb-* 覆盖：
- * Tailwind v4 的 space-y-* 用零优先级的 :where() 设置间距，className="mb-0" 会把它整个压掉，导致下方卡片贴边。
+ * Page header: title + description + actions on the right. Every page uses it at the top.
+ *   <PageHeader title="用户管理" actions={<Button>{t('新建')}</Button>} />
+ * description holds only informative content (e.g. "4 columns · 8 cards"), not an introduction to the page's features.
+ * Fixed 24px gap (mb-6) to the content below; pages must not pass mb-* to override it:
+ * Tailwind v4's space-y-* sets spacing via zero-specificity :where(), so className="mb-0" wipes it out entirely and the card below ends up flush against it.
  */
 export default function PageHeader({ title, description, actions, className, children }) {
+  const tx = useTx()
   return (
     <div className={cn('mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between', className)}>
       <div className="min-w-0 space-y-1">
-        <h1 className="text-[22px] leading-tight font-semibold tracking-tight md:text-2xl">{title}</h1>
-        {description ? <p className="text-muted-foreground text-[13px]">{description}</p> : null}
+        <h1 className="text-[22px] leading-tight font-semibold tracking-tight md:text-2xl">{tx(title)}</h1>
+        {description ? <p className="text-muted-foreground text-[13px]">{tx(description)}</p> : null}
         {children}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

@@ -1,6 +1,6 @@
-// 本地改动：底色用 foreground 低透明度（亮暗通用、看得清），用一道横向扫光代替整块闪烁（animate-pulse），
-// 并延迟 200ms 淡入（加载很快时根本不出现，避免闪一下）。
-// 重新 `shadcn add skeleton` 会覆盖，需手动保留。
+// Local change: the base color uses a low-opacity foreground (works in light and dark, stays legible), and a horizontal shimmer sweep replaces the whole-block flashing (animate-pulse),
+// and it fades in after a 200ms delay (doesn't appear at all when loading is fast, avoiding a flash).
+// Re-running `shadcn add skeleton` will overwrite this; preserve it manually.
 import { cn } from "@/lib/utils"
 
 function Skeleton({

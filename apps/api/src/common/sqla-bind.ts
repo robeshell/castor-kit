@@ -1,14 +1,14 @@
 /**
- * 把请求体里的原始 JSON 值（不做类型校验）写进列时的绑定规则。
+ * Binding rules for writing raw (unvalidated) JSON request body values into columns.
  *
- * 值按“SQL 字面量 + PG 赋值转换”的效果落库：
- * - `2.5` → integer 列四舍五入成 3，`true` → varchar 列存 'true'，`['a','b']` → varchar 列存 '{a,b}'，
- *   对象（dict）无法适配直接报错；
- * - 布尔列只接受 true/false/null/0/1，其余报错。
- * node-pg 一律按文本参数发送，行为不同，所以这里先把值转好（或抛 500）。
- * 这些错误对外都是通用 500 文案，因此这里统一抛 ServiceError(..., 500)。
+ * Values are persisted to the DB as if by "SQL literal + PG assignment cast":
+ * - `2.5` → rounds to 3 in an integer column, `true` → stored as 'true' in a varchar column, `['a','b']` → stored as '{a,b}' in a varchar column,
+ *   objects (dict) cannot be adapted and error out;
+ * - boolean columns accept only true/false/null/0/1; anything else errors.
+ * node-pg sends every param as text, which behaves differently, so values are converted here first (or a 500 is thrown).
+ * Externally these errors all surface as the generic 500 message, so they uniformly throw ServiceError(..., 500).
  *
- * 目前 dicts / notification / announcement 共用；可考虑上移到 common/py.ts。
+ * Currently shared by dicts / notification / announcement; consider moving up into common/py.ts.
  */
 
 import { ServiceError } from '@/common/errors'
@@ -31,14 +31,14 @@ function pgArrayElement(value: unknown): string {
   return text
 }
 
-/** list 按 ARRAY[...] 处理，赋给文本列后存 PG 数组文本（只支持元素同类型的一维数组） */
+/** A list is treated as ARRAY[...]; assigned to a text column it is stored as PG array text (only 1-D arrays of a single element type) */
 function pgArrayText(values: unknown[]): string {
   const kinds = new Set(values.filter((v) => v !== null && v !== undefined).map((v) => typeof v))
   if (kinds.size > 1 || [...kinds].some((k) => k === 'object')) throw bindError('cannot adapt list')
   return `{${values.map(pgArrayElement).join(',')}}`
 }
 
-/** 文本列（String / Text） */
+/** Text columns (String / Text) */
 export function bindText(value: unknown): string | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'string') return value
@@ -48,7 +48,7 @@ export function bindText(value: unknown): string | null {
   throw bindError("can't adapt type 'dict'")
 }
 
-/** 整数列（Integer）：非整数数值按 PG numeric → integer 赋值转换（四舍五入，远离零） */
+/** Integer columns: non-integer numbers follow the PG numeric → integer assignment cast (rounded half away from zero) */
 export function bindInt(value: unknown): number | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') {
@@ -57,7 +57,7 @@ export function bindInt(value: unknown): number | null {
     return n
   }
   if (typeof value === 'string') {
-    // PG integer 输入：允许首尾空白与正负号
+    // PG integer input: leading/trailing whitespace and a sign are allowed
     const text = value.trim()
     if (!/^[+-]?\d+$/.test(text)) throw bindError(`invalid input syntax for type integer: "${value}"`)
     const n = Number(text)
@@ -67,7 +67,7 @@ export function bindInt(value: unknown): number | null {
   throw bindError('column is of type integer')
 }
 
-/** 布尔列（Boolean）：严格校验，只接受 null/true/false/0/1 */
+/** Boolean columns: strict, only null/true/false/0/1 accepted */
 export function bindBool(value: unknown): boolean | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'boolean') return value
@@ -76,8 +76,8 @@ export function bindBool(value: unknown): boolean | null {
 }
 
 /**
- * 按主键/整数列查找时的原始值（`Model.query.get(raw)` / `filter(col == raw)`）：
- * 返回 null 表示“不可能匹配”（None、非整数数值），不合法的字符串/类型抛 500。
+ * Raw value used for primary-key/integer-column lookups (`Model.query.get(raw)` / `filter(col == raw)`):
+ * Returns null for "can never match" (None, non-integer numbers); invalid strings/types throw 500.
  */
 export function lookupInt(value: unknown): number | null {
   if (value === null || value === undefined) return null
@@ -86,8 +86,8 @@ export function lookupInt(value: unknown): number | null {
 }
 
 /**
- * 判断列值是否变化用的 Python `==`：数值与布尔按数值比较（`1 == True`），
- * 字符串逐字比较，其余类型互不相等。相等时该列不放进 UPDATE。
+ * Python `==` used to detect column value changes: numbers and bools compare numerically (`1 == True`),
+ * strings compare exactly, other types are never equal. Equal columns are left out of the UPDATE.
  */
 export function pyEq(newValue: unknown, current: unknown): boolean {
   const a = newValue === undefined ? null : newValue
@@ -99,7 +99,7 @@ export function pyEq(newValue: unknown, current: unknown): boolean {
   return false
 }
 
-/** INSERT 时跳过值为 null 的列（让应用侧默认值生效）：null → undefined */
+/** Skip null-valued columns on INSERT (so app-side defaults apply): null → undefined */
 export function omitNull<T>(value: T | null): T | undefined {
   return value === null ? undefined : value
 }

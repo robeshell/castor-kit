@@ -1,8 +1,8 @@
 /**
- * 列表页路由
+ * List page routes
  *
- * 检查顺序（保持既有接口行为）：详情 GET/PUT/DELETE 先 get_or_404 再做权限检查；
- * versions / rollback 则是先权限检查再 get_or_404。
+ * Check order (preserves existing API behavior): detail GET/PUT/DELETE run get_or_404 before the permission check;
+ * versions / rollback check permissions first, then get_or_404.
  */
 
 import { stat } from 'node:fs/promises'
@@ -19,7 +19,7 @@ const BASE = '/api/admin/component-center/list-page'
 
 type IdParams = { item_id: string }
 
-/** `request.args.get(key)`：不存在 → undefined（对应 None） */
+/** `request.args.get(key)`: missing → undefined (i.e. None) */
 function queryArg(request: FastifyRequest, key: string): string | undefined {
   const value = (request.query as Record<string, unknown> | undefined)?.[key]
   const first = Array.isArray(value) ? value[0] : value
@@ -121,12 +121,12 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     return service.saveFile(await getUploadedFile(request))
   })
 
-  // 回读：`<path:filename>` → 通配 `*`。reply.sendFile 由 app.ts 全局注册的 @fastify/static 提供。
+  // Read-back: `<path:filename>` → wildcard `*`. reply.sendFile comes from @fastify/static, registered globally in app.ts.
   await app.register(async (scope) => {
 
     /**
-     * 文件名参数至少一个字符且不能以 `/` 开头，否则视为不命中路由（→ 404）。
-     * 文件名经 secure_filename 后只含 [A-Za-z0-9_.-]，再校验解析后的路径仍在上传目录内（防目录穿越）。
+     * The filename param must be at least one character and must not start with `/`; otherwise the route is treated as unmatched (→ 404).
+     * After secure_filename the name contains only [A-Za-z0-9_.-]; the resolved path is also checked to stay inside the upload dir (prevents directory traversal).
      */
     async function sendUpload(reply: FastifyReply, safeName: string, dir: string, asAttachment: boolean) {
       const root = resolve(dir)
@@ -134,7 +134,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
       if (!target.startsWith(root + sep)) throw notFound()
       const info = await stat(target).catch(() => null)
       if (!info || !info.isFile()) throw notFound()
-      // no-cache + inline/attachment（secure_filename 结果全是 token 字符，无需引号）
+      // no-cache + inline/attachment (secure_filename output is all token characters, so no quoting needed)
       reply.header('Cache-Control', 'no-cache')
       reply.header('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename=${safeName}`)
       return reply.sendFile(safeName, root, { cacheControl: false })

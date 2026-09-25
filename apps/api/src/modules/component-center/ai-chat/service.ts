@@ -1,16 +1,17 @@
 /**
- * AI 对话 SSE 流
+ * AI chat SSE stream
  *
- * 上游是 OpenAI 兼容接口（`${AI_API_BASE}/chat/completions`，stream:true）。逐行解析 `data:`，
- * 把 `choices[0].delta.content` 转发为 `data: {"content": "..."}\n\n`，结束发 `data: [DONE]\n\n`。
- * 事件文本按 `json.dumps(..., ensure_ascii=False)` 的格式输出（分隔符 `", "` / `": "`，非 ASCII 原样保留）。
+ * Upstream is an OpenAI-compatible API (`${AI_API_BASE}/chat/completions`, stream:true). Parses `data:` line by line,
+ * forwards `choices[0].delta.content` as `data: {"content": "..."}\n\n`, and ends with `data: [DONE]\n\n`.
+ * Event text follows the `json.dumps(..., ensure_ascii=False)` format (separators `", "` / `": "`, non-ASCII kept as-is).
  *
- * 超时 60 秒：连接/等响应头超时 → `请求超时，请重试`；
- * 读流过程中超时 → 通用文案 `AI 响应异常，请稍后重试`。
+ * 60 s timeout: timeout while connecting / waiting for response headers → `请求超时，请重试`;
+ * timeout while reading the stream → generic message `AI 响应异常，请稍后重试`.
  */
 
 import { Agent, fetch } from 'undici'
 import { pyTruthy } from '@/common/py'
+import { translateMessage, type Language } from '@/common/i18n'
 import { pyJsonDumps } from '@/common/request-meta'
 import type { AppConfig } from '@/config'
 import { pyStrip } from '../ai-sql/schema'
@@ -18,7 +19,7 @@ import { pyStrip } from '../ai-sql/schema'
 const UPSTREAM_TIMEOUT_MS = 60_000
 const DONE_EVENT = 'data: [DONE]\n\n'
 
-/** 注入的系统提示词：介绍 castor-kit 的定位、技术栈、功能模块与开发约定 */
+/** Injected system prompt: describes castor-kit's positioning, tech stack, feature modules and dev conventions */
 export const SYSTEM_PROMPT = {
   role: 'system',
   content:
@@ -51,7 +52,7 @@ export const SYSTEM_PROMPT = {
     '请用中文回答，回答要结合 castor-kit 的实际技术栈和实现方式。',
 }
 
-/** `data: {json.dumps(obj, ensure_ascii=False)}\n\n`（obj 只有一个键） */
+/** `data: {json.dumps(obj, ensure_ascii=False)}\n\n` (obj has a single key) */
 function event(key: string, value: unknown): string {
   return `data: {${JSON.stringify(key)}: ${pyJsonDumps(value)}}\n\n`
 }
@@ -69,8 +70,8 @@ function isRequestTimeout(err: unknown): boolean {
 }
 
 /**
- * 从一行 data: 负载里取 `chunk['choices'][0]['delta'].get('content', '')`；
- * 结构不符（缺字段、类型不对、choices 为空等）返回 undefined → 跳过该行
+ * Extract `chunk['choices'][0]['delta'].get('content', '')` from one data: payload;
+ * returns undefined on a shape mismatch (missing field, wrong type, empty choices, etc.) → the line is skipped
  */
 function extractContent(chunk: unknown): unknown {
   if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) return undefined
@@ -84,7 +85,7 @@ function extractContent(chunk: unknown): unknown {
   return Object.hasOwn(delta, 'content') ? (delta as { content: unknown }).content : ''
 }
 
-/** requests.iter_lines()：按 \r\n / \r / \n 切行（字节层面），每行严格 UTF-8 解码 */
+/** requests.iter_lines(): split lines on \r\n / \r / \n (at the byte level), strictly UTF-8 decoding each line */
 async function* iterLines(body: AsyncIterable<Uint8Array>): AsyncGenerator<string> {
   const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
   let pending = Buffer.alloc(0)
@@ -94,7 +95,7 @@ async function* iterLines(body: AsyncIterable<Uint8Array>): AsyncGenerator<strin
     for (let i = 0; i < pending.length; i++) {
       const b = pending[i]
       if (b !== 0x0a && b !== 0x0d) continue
-      // \r 恰好在块末尾：等下一块确认是不是 \r\n
+      // \r landed exactly at the end of a chunk: wait for the next chunk to tell whether it is \r\n
       if (b === 0x0d && i === pending.length - 1) break
       yield decoder.decode(pending.subarray(start, i))
       if (b === 0x0d && pending[i + 1] === 0x0a) i++
@@ -132,10 +133,11 @@ export class AiChatService {
   }
 
   /**
-   * 产出 SSE 事件文本。messages 为前端传来的完整历史（已校验为非空数组），前面注入系统提示词。
-   * signal 在客户端断开时触发，用于中止上游请求。
+   * Yields SSE event text. messages is the full history from the frontend (already validated as a non-empty array); the system prompt is prepended.
+   * signal fires when the client disconnects and is used to abort the upstream request.
+   * lang translates the error events: SSE bypasses the JSON response translation hook.
    */
-  async *stream(messages: unknown[], signal: AbortSignal): AsyncGenerator<string> {
+  async *stream(messages: unknown[], signal: AbortSignal, lang: Language = 'zh-CN'): AsyncGenerator<string> {
     const { aiApiBase, aiApiKey, aiModel } = this.config
     const fullMessages = [SYSTEM_PROMPT, ...messages]
     try {
@@ -148,9 +150,9 @@ export class AiChatService {
       })
 
       if (resp.status !== 200) {
-        // 不向客户端透传上游响应体（可能含内部信息），仅给通用错误码
+        // Don't pass the upstream response body through to the client (it may contain internal info); only a generic error code
         await resp.body?.cancel().catch(() => {})
-        yield event('error', `AI 服务暂时不可用（${resp.status}），请稍后重试`)
+        yield event('error', translateMessage(`AI 服务暂时不可用（${resp.status}），请稍后重试`, lang))
         yield DONE_EVENT
         return
       }
@@ -177,10 +179,10 @@ export class AiChatService {
     } catch (err) {
       if (signal.aborted) return
       if (isRequestTimeout(err)) {
-        yield event('error', '请求超时，请重试')
+        yield event('error', translateMessage('请求超时，请重试', lang))
       } else {
-        // 不向客户端输出原始异常（可能含内部细节），仅通用文案
-        yield event('error', 'AI 响应异常，请稍后重试')
+        // Don't send the raw exception to the client (it may contain internal details); generic message only
+        yield event('error', translateMessage('AI 响应异常，请稍后重试', lang))
       }
       yield DONE_EVENT
     }

@@ -1,5 +1,5 @@
 // -*- coding: utf-8 -*-
-/** useCrudList hook 行为测试（重点：删除末页最后一条后的页码回退收敛） */
+/** useCrudList hook behavior tests (focus: page number falling back and converging after deleting the last item on the last page) */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useCrudList } from '@/shared/hooks/useCrudList'
@@ -32,7 +32,7 @@ describe('useCrudList', () => {
   })
 
   it('删除末页最后一条后自动回退到上一页（页码收敛）', async () => {
-    // 第 2 页原本有 1 条（第 21 条），删除后为空，但 total 仍 > 0 → 应回退到第 1 页
+    // Page 2 originally had 1 item (the 21st); after deletion it's empty but total is still > 0 → should fall back to page 1
     const fetcher = makeFetcher({
       1: { items: [{ id: 1 }, { id: 2 }], total: 2 },
       2: { items: [], total: 1 },
@@ -42,7 +42,7 @@ describe('useCrudList', () => {
     await act(async () => {
       await result.current.fetchData(2)
     })
-    // 首次请求第 2 页返回空 + total>0 → 应自动改请求第 1 页
+    // First request for page 2 returns empty + total>0 → should automatically re-request page 1
     expect(fetcher).toHaveBeenCalledTimes(2)
     expect(fetcher.calls).toEqual([2, 1])
     expect(result.current.page).toBe(1)

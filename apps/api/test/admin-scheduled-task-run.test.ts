@@ -1,9 +1,9 @@
 /**
- * 手动执行 `/run` 与 `/runs`：真实 HTTP 往返（本地服务作为任务目标）
+ * Manual `/run` and `/runs`: real HTTP round trips (a local server as the task target)
  *
- * 本地服务在 127.0.0.1 上，会被执行阶段的 SSRF 复检拦下。因此打桩：
- * 只替换连接阶段用的 isBlockedIp，让“环回地址”放行；validateRequestUrl 内部仍用真实判定（新增/编辑照样拦 127.0.0.1），
- * 生产代码不做任何放宽。其他内网网段（如 10.x）在这里依然被拦。
+ * The local server is on 127.0.0.1 and would be blocked by the SSRF re-check at execution time. So we stub:
+ * only the isBlockedIp used at the connect stage is replaced to allow loopback; validateRequestUrl still uses the real check internally (create/edit still block 127.0.0.1),
+ * and production code is not loosened at all. Other private ranges (e.g. 10.x) are still blocked here.
  */
 
 import { createServer, type IncomingMessage, type Server } from 'node:http'
@@ -145,7 +145,7 @@ describe('手动执行（真实 HTTP）', () => {
     expect(hit.headers['x-token']).toBe('abc')
     expect(hit.headers['x-num']).toBe('7')
 
-    // 再执行一次：run_count 累加；/runs 能按任务查到两条
+    // Run again: run_count accumulates; /runs returns two records for the task
     await run(task)
     const runs = (await s.inject({ url: `${T}/runs?task_id=${task.id}` })).json()
     expect(runs.total).toBe(2)
@@ -179,7 +179,7 @@ describe('手动执行（真实 HTTP）', () => {
     const text = await seedTask({ request_url: `${base}/echo`, request_method: 'PUT', request_body: '纯文本' })
     expect(JSON.parse((await run(text)).json().run.response_body)).toEqual({ method: 'PUT', ctype: null, body: '纯文本' })
 
-    // 自定义 Content-Type 不被覆盖；GET 也带请求体（requests 行为）
+    // A custom Content-Type is not overridden; GET also carries a body (requests behavior)
     const custom = await seedTask({
       request_url: `${base}/echo`,
       request_headers: '{"content-type": "application/vnd.x+json"}',

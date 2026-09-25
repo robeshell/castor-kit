@@ -33,9 +33,9 @@ import {
 } from 'lucide-react'
 
 /**
- * 菜单图标：menus.icon 字段存的是 IconXxx 形式的图标名（如 IconHome），这里映射到 lucide。
- * 新增图标：在 SEMI_TO_LUCIDE 里加一条「名称 → lucide 组件」映射（按需导入，避免把整个图标库打进包）；
- * 未知名称回退为 List。
+ * Menu icons: the menus.icon field stores icon names in IconXxx form (e.g. IconHome), mapped here to lucide.
+ * To add an icon: add a "name → lucide component" entry to SEMI_TO_LUCIDE (import on demand to avoid bundling the whole icon library);
+ * unknown names fall back to List.
  */
 const SEMI_TO_LUCIDE = {
   IconActivity: Activity,

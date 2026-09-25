@@ -1,7 +1,7 @@
 /**
- * 认证模块 service 层
+ * Auth module service layer
  *
- * 会话读写属于 HTTP 层，由 routes 负责；这里只返回结果或抛 ServiceError。
+ * Session reads/writes belong to the HTTP layer and are handled by routes; this layer only returns results or throws ServiceError.
  */
 
 import { loadAdminWithRoles } from '@/common/auth'
@@ -30,9 +30,9 @@ export class AuthService {
   }
 
   /**
-   * 基于 login_logs 的近窗口失败计数，超过阈值则锁定。双维度（任一命中即拦截）：
-   * - IP 维度：防针对多用户名的分布式撞库
-   * - 用户名维度：防同一账号多 IP 换着试
+   * Recent-window failure count from login_logs; lock out once over the threshold. Two dimensions (either one blocks):
+   * - IP: guards against distributed credential stuffing across many usernames
+   * - Username: guards against one account being tried from rotating IPs
    */
   private async isLoginBlocked(username: string, ip: string): Promise<boolean> {
     const { loginMaxFailures: max, loginLockoutMinutes: minutes } = this.config
@@ -41,7 +41,7 @@ export class AuthService {
     return false
   }
 
-  /** 审计写入失败不影响主流程（记录警告后吞掉异常） */
+  /** Audit write failures don't affect the main flow (log a warning and swallow the error) */
   private async bestEffort(what: string, fn: () => Promise<void>): Promise<void> {
     try {
       await fn()
@@ -50,7 +50,7 @@ export class AuthService {
     }
   }
 
-  /** 成功返回 `{ message, user }`；调用方负责写会话并附加 csrf_token */
+  /** Returns `{ message, user }` on success; the caller writes the session and attaches csrf_token */
   async login(usernameRaw: unknown, password: unknown, meta: ClientMeta) {
     const username = typeof usernameRaw === 'string' ? usernameRaw : ''
     if (await this.isLoginBlocked(username, meta.ip)) {
@@ -69,7 +69,7 @@ export class AuthService {
           user_agent: meta.userAgent,
           message: '登录成功',
         })
-        // 登录成功：清零窗口内失败计数，避免历史误触继续限流
+        // Login succeeded: reset the window's failure count so earlier mistakes don't keep rate limiting
         await this.repo.clearRecentFailures(username, meta.ip, this.config.loginLockoutMinutes)
       })
 
@@ -91,7 +91,7 @@ export class AuthService {
     throw new ServiceError('用户名或密码错误', 401)
   }
 
-  /** 记录登出操作日志；调用方负责清空会话 */
+  /** Record the logout operation log; the caller clears the session */
   async logout(username: string, meta: ClientMeta) {
     const user = username ? await this.repo.getAdminByUsername(username) : null
     await this.bestEffort('记录登出日志', () =>
@@ -123,7 +123,7 @@ export class AuthService {
     }
 
     try {
-      // 新哈希沿用既有的 `pbkdf2:sha256:<iterations>$<salt>$<hex>` 格式，与库中存量哈希兼容
+      // New hashes keep the existing `pbkdf2:sha256:<iterations>$<salt>$<hex>` format, compatible with hashes already stored
       await this.repo.updatePasswordHash(admin.id, await generatePasswordHash(String(data?.new_password)))
     } catch (err) {
       throw new ServiceError(err instanceof Error ? err.message : String(err), 500)

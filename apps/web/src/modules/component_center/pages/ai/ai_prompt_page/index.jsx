@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { Check, Copy, FilePlus2, Plus, Save, Search, Trash2, Variable, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -22,7 +23,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 
-// ── 分类配置 ──────────────────────────────────────────────────────────
+// ── Categories ────────────────────────────────────────────────────────
 const CATEGORY_OPTIONS = [
   { value: 'product', label: '产品', tone: 'brand' },
   { value: 'dev', label: '开发', tone: 'success' },
@@ -36,7 +37,7 @@ const categoryMeta = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c]
 const EMPTY_FORM = { name: '', category: 'custom', content: '' }
 const notBlank = (message) => (v) => Boolean(String(v ?? '').trim()) || message
 
-// ── 从模板内容中提取变量名 ────────────────────────────────────────────
+// ── Extract variable names from the template content ─────────────────
 function extractVars(content) {
   const matches = [...(content || '').matchAll(/\{\{(\w+)\}\}/g)]
   const seen = new Set()
@@ -49,15 +50,16 @@ function extractVars(content) {
     })
 }
 
-// ── 前端实时预览：将变量值代入模板 ────────────────────────────────────
+// ── Live preview: substitute variable values into the template ───────
 function buildPreview(content, varValues) {
   return (content || '').replace(/\{\{(\w+)\}\}/g, (_, key) =>
     varValues[key] !== undefined && varValues[key] !== '' ? varValues[key] : `{{${key}}}`,
   )
 }
 
-// ── 左侧模板卡片 ─────────────────────────────────────────────────────
+// ── Template card (left column) ──────────────────────────────────────
 function TemplateCard({ template, selected, onSelect, onDelete }) {
+  const { t } = useTranslation()
   const meta = categoryMeta[template.category] || categoryMeta.custom
   return (
     <motion.div variants={stagger.item} className="group relative">
@@ -80,12 +82,12 @@ function TemplateCard({ template, selected, onSelect, onDelete }) {
         <span className="mt-1.5 flex items-center gap-2">
           <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
           {template.variables?.length > 0 ? (
-            <span className="text-muted-foreground text-[11px] tabular-nums">{template.variables.length} 个变量</span>
+            <span className="text-muted-foreground text-[11px] tabular-nums">{t('{{count}} 个变量', { count: template.variables.length })}</span>
           ) : null}
         </span>
       </button>
       <ConfirmAction
-        title={`删除模板「${template.name}」？`}
+        title={t('删除模板「{{name}}」？', { name: template.name })}
         description="删除后不可恢复。"
         confirmText="删除"
         onConfirm={() => onDelete(template)}
@@ -93,7 +95,7 @@ function TemplateCard({ template, selected, onSelect, onDelete }) {
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="删除模板"
+          aria-label={t('删除模板')}
           className="text-muted-foreground hover:text-danger absolute top-2 right-2 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 md:opacity-0"
         >
           <Trash2 />
@@ -103,8 +105,9 @@ function TemplateCard({ template, selected, onSelect, onDelete }) {
   )
 }
 
-// ── 右侧预览区 ────────────────────────────────────────────────────────
+// ── Preview (right column) ───────────────────────────────────────────
 function PreviewPanel({ content, varValues }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const copyTimerRef = useRef(null)
   const preview = buildPreview(content, varValues)
@@ -122,7 +125,7 @@ function PreviewPanel({ content, varValues }) {
       .catch(() => toast.error('复制失败'))
   }
 
-  // 未填写的变量高亮显示
+  // Highlight variables that have no value yet
   const parts = preview.split(/(\{\{\w+\}\})/g)
 
   return (
@@ -145,7 +148,7 @@ function PreviewPanel({ content, varValues }) {
               {copied ? <Check className="text-success" /> : <Copy />}
             </motion.span>
           </AnimatePresence>
-          {copied ? '已复制' : '复制提示词'}
+          {copied ? t('已复制') : t('复制提示词')}
         </Button>
       }
     >
@@ -163,26 +166,27 @@ function PreviewPanel({ content, varValues }) {
             ),
           )
         ) : (
-          <span className="text-muted-foreground">请在左侧编辑模板内容，预览将在此处实时显示...</span>
+          <span className="text-muted-foreground">{t('请在左侧编辑模板内容，预览将在此处实时显示...')}</span>
         )}
       </div>
-      <p className="text-muted-foreground text-right text-xs tabular-nums">{preview.length} 字符</p>
+      <p className="text-muted-foreground text-right text-xs tabular-nums">{t('{{count}} 字符', { count: preview.length })}</p>
     </Panel>
   )
 }
 
-// ── 主组件 ────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────
 export default function AiPromptPage() {
+  const { t } = useTranslation()
   const [templates, setTemplates] = useState([])
   const [listLoading, setListLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
 
-  // 当前选中/编辑的模板（null = 新建模式）
+  // Currently selected / edited template (null = create mode)
   const [selectedId, setSelectedId] = useState(null)
   const form = useForm({ defaultValues: EMPTY_FORM })
   const editContent = useWatch({ control: form.control, name: 'content' })
 
-  // 变量值（key: 变量名）；只保留当前内容里识别到的变量
+  // Variable values keyed by name; only variables detected in the current content are kept
   const [rawVarValues, setRawVarValues] = useState({})
   const detectedVars = useMemo(() => extractVars(editContent), [editContent])
   const varValues = useMemo(
@@ -202,7 +206,7 @@ export default function AiPromptPage() {
     }
   }, [])
 
-  // 首次加载（刷新走 loadTemplates）
+  // Initial load (refreshes go through loadTemplates)
   useEffect(() => {
     let cancelled = false
     getPromptTemplates()
@@ -220,11 +224,11 @@ export default function AiPromptPage() {
     }
   }, [])
 
-  // 前端按名称过滤
+  // Filter by name on the client
   const filteredTemplates = useMemo(() => {
     const kw = searchText.trim().toLowerCase()
     if (!kw) return templates
-    return templates.filter((t) => t.name.toLowerCase().includes(kw))
+    return templates.filter((tpl) => tpl.name.toLowerCase().includes(kw))
   }, [templates, searchText])
 
   const handleSelectTemplate = (tpl) => {
@@ -278,13 +282,13 @@ export default function AiPromptPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
-        {/* 左侧：模板库 */}
+        {/* Left: template library */}
         <Panel
           title="模板库"
           actions={
             <Button variant="outline" size="sm" className="h-7" onClick={handleNew}>
               <Plus />
-              新建
+              {t('新建')}
             </Button>
           }
           className="flex max-h-[420px] flex-col md:max-h-none md:w-[260px] md:shrink-0"
@@ -295,13 +299,13 @@ export default function AiPromptPage() {
             <Input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              placeholder="搜索模板名称..."
+              placeholder={t('搜索模板名称...')}
               className="h-8 pr-7 pl-8 text-[13px]"
             />
             {searchText ? (
               <button
                 type="button"
-                aria-label="清空"
+                aria-label={t('清空')}
                 onClick={() => setSearchText('')}
                 className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
               >
@@ -319,7 +323,7 @@ export default function AiPromptPage() {
               </div>
             ) : filteredTemplates.length === 0 ? (
               <p className="text-muted-foreground px-1 py-6 text-center text-xs">
-                {searchText ? '无匹配模板' : '暂无模板，点击「新建」创建'}
+                {searchText ? t('无匹配模板') : t('暂无模板，点击「新建」创建')}
               </p>
             ) : (
               <motion.div variants={stagger.container} initial="hidden" animate="show" className="space-y-1.5">
@@ -337,7 +341,7 @@ export default function AiPromptPage() {
           </div>
         </Panel>
 
-        {/* 中间：编辑区 */}
+        {/* Middle: editor */}
         <Panel
           title={selectedId ? '编辑模板' : '新建模板'}
           
@@ -388,7 +392,7 @@ export default function AiPromptPage() {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="mr-1 flex items-center gap-1 text-[13px] font-medium">
                             <Variable className="text-muted-foreground size-3.5" />
-                            已识别变量
+                            {t('已识别变量')}
                           </span>
                           {detectedVars.map((v) => (
                             <span key={v} className="bg-warning-soft text-warning rounded px-1.5 py-0.5 font-mono text-[11px]">
@@ -404,7 +408,7 @@ export default function AiPromptPage() {
                             <Input
                               value={varValues[v] || ''}
                               onChange={(e) => setRawVarValues((prev) => ({ ...prev, [v]: e.target.value }))}
-                              placeholder={`填写 ${v} 的值...`}
+                              placeholder={t('填写 {{name}} 的值...', { name: v })}
                               className="h-8 flex-1 text-[13px]"
                             />
                           </div>
@@ -418,18 +422,18 @@ export default function AiPromptPage() {
               <div className="mt-4 flex gap-2 border-t pt-4">
                 <Button type="submit" variant="brand" size="sm" disabled={saving}>
                   {saving ? <Spinner /> : <Save />}
-                  {selectedId ? '保存更改' : '创建模板'}
+                  {selectedId ? t('保存更改') : t('创建模板')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={handleNew} disabled={saving}>
                   <FilePlus2 />
-                  新建
+                  {t('新建')}
                 </Button>
               </div>
             </form>
           </Form>
         </Panel>
 
-        {/* 右侧：实时预览 */}
+        {/* Right: live preview */}
         <PreviewPanel content={editContent} varValues={varValues} />
       </div>
     </div>

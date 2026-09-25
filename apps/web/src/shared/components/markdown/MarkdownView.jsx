@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Check, Copy } from 'lucide-react'
@@ -6,7 +7,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import './markdown.css'
 
-/** 从 <pre><code class="language-xx">…</code></pre> 里取语言与纯文本 */
+/** Extract the language and plain text from <pre><code class="language-xx">…</code></pre> */
 function readCode(children) {
   const child = Array.isArray(children) ? children[0] : children
   const className = child?.props?.className || ''
@@ -17,6 +18,7 @@ function readCode(children) {
 }
 
 function CopyButton({ text }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const timerRef = useRef(null)
   useEffect(() => () => clearTimeout(timerRef.current), [])
@@ -39,7 +41,7 @@ function CopyButton({ text }) {
       className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] transition-colors duration-150"
     >
       {copied ? <Check className="text-success size-3" /> : <Copy className="size-3" />}
-      {copied ? '已复制' : '复制'}
+      {copied ? t('已复制') : t('复制')}
     </button>
   )
 }
@@ -74,7 +76,7 @@ const COMPONENTS = {
 const REMARK_PLUGINS = [remarkGfm]
 
 /**
- * Markdown 渲染（react-markdown + GFM）：标题 / 列表 / 表格 / 引用 / 任务列表 / 带复制按钮的代码块。
+ * Markdown rendering (react-markdown + GFM): headings / lists / tables / blockquotes / task lists / code blocks with a copy button.
  *   <MarkdownView>{text}</MarkdownView>
  */
 function MarkdownView({ children, className }) {

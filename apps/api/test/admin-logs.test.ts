@@ -37,7 +37,7 @@ async function cleanup() {
 beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
-  // createFixture 会清理所有 ck_test_ 前缀数据，必须先于本文件自己的数据创建
+  // createFixture cleans up all ck_test_-prefixed data, so it must run before this file creates its own data
   const fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)
@@ -168,7 +168,7 @@ describe('日志导出 / 模板', () => {
       ['ID', '状态码', '操作'],
       [String(opIds[0]), '201', 'create'],
       [String(opIds[1]), '200', 'update'],
-      // 空字符串单元格与 openpyxl 一致：不写入（读回为空）
+      // Empty-string cells match openpyxl: not written (read back as empty)
       [String(opIds[2]), undefined, 'delete'],
     ])
     expect((await s.inject({ method: 'POST', url: '/api/admin/logs/operation/export', payload: {} })).json()).toEqual({
@@ -209,7 +209,7 @@ describe('日志导入', () => {
       ['imp_d', 'success', null],
     ])
     expect(rows[0]!.created_at).toBe('2026-03-01 10:00:00')
-    // 带时区：以 timestamptz 写入，PG 按会话时区换算后存入 timestamp 列
+    // With time zone: written as timestamptz, PG converts by the session time zone and stores it in the timestamp column
     const [{ expected }] = (
       await handle.db.execute<{ expected: string }>(sql`SELECT ('2026-03-01 10:00:00+00:00'::timestamptz)::timestamp::text AS expected`)
     ).rows as [{ expected: string }]
@@ -291,7 +291,7 @@ describe('操作日志 hook', () => {
     const id = res.json().id as number
     await s.inject({ method: 'PUT', url: `/api/admin/menus/${id}`, payload: { name: 'y' } })
     await s.inject({ method: 'POST', url: '/api/admin/menus/export', payload: { ids: [id] } })
-    // onResponse 在响应发送后执行，稍等写入完成
+    // onResponse runs after the response is sent; wait briefly for the write to finish
     await new Promise((r) => setTimeout(r, 200))
     const logs = await handle.db.select().from(operation_logs).where(eq(operation_logs.user_id, s.userId)).orderBy(asc(operation_logs.id))
     const mine = logs.filter((l) => l.path.startsWith('/api/admin/menus'))

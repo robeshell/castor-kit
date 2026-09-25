@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
 /**
- * 主题：light / dark，<html class="dark"> 切换（shadcn / Tailwind 约定）。
- * 偏好存 localStorage('theme')；没有存过则跟随系统。
+ * Theme: light / dark, toggled via <html class="dark"> (shadcn / Tailwind convention).
+ * The preference is stored in localStorage('theme'); if never stored, follow the system.
  */
 const ThemeContext = createContext({ theme: 'light', isDark: false, toggleTheme: () => {}, setTheme: () => {} })
 
@@ -11,14 +11,14 @@ function readInitialTheme() {
     const saved = localStorage.getItem('theme')
     if (saved === 'dark' || saved === 'light') return saved
   } catch {
-    /* 隐私模式等场景 localStorage 不可用 */
+    /* localStorage is unavailable in cases like private browsing */
   }
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 /**
- * 同步写 <html class="dark">：必须在 setState 之前完成，这样本次渲染里读取 CSS 变量的代码
- * （如 useChartColors、Monaco 主题）拿到的已经是新主题的值。
+ * Synchronously write <html class="dark">: this must happen before setState, so code that reads CSS variables during this render
+ * (e.g. useChartColors, the Monaco theme) already gets the new theme's values.
  */
 function applyTheme(theme) {
   const root = document.documentElement
@@ -42,7 +42,7 @@ export function ThemeProvider({ children }) {
   }, [theme])
 
   const setTheme = useCallback((next) => {
-    // 切换时短暂开启全局颜色过渡，切完移除，避免平时的 hover 过渡被拖慢
+    // Briefly enable a global color transition while switching and remove it afterwards, so normal hover transitions aren't slowed down
     const root = document.documentElement
     root.classList.add('theme-transition')
     applyTheme(next)

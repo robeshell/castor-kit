@@ -1,13 +1,14 @@
 /**
- * AI 对话页 API - SSE 流式响应
+ * AI chat page API - SSE streaming response
  *
- * 流式响应用 `reply.send(Readable)`，并对本路由关闭 @fastify/compress（`compress: false`）：
- * - 不压缩 → 不攒缓冲，每个事件产生后立即 write 下发
- * - 不用 reply.hijack()：hijack 会跳过 onSend，secure-session 的会话续期 Set-Cookie 就发不出去；
- *   走正常 send 流程时 onSend / onResponse（全局操作日志 hook）都照常执行
- * 客户端断开（响应 close 且未写完）时中止上游请求。
+ * Streaming responses use `reply.send(Readable)`, with @fastify/compress disabled for this route (`compress: false`):
+ * - no compression → no buffering; each event is written out as soon as it is produced
+ * - no reply.hijack(): hijack skips onSend, so secure-session's session-renewal Set-Cookie would never be sent;
+ *   the normal send flow keeps onSend / onResponse (the global operation-log hook) running as usual
+ * Abort the upstream request when the client disconnects (response closed before it finished).
  */
 
+import { requestLanguage } from '@/common/i18n'
 import { Readable } from 'node:stream'
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
@@ -17,7 +18,7 @@ import { AiChatService } from './service'
 
 const PERMISSION = 'cc_ai_chat'
 
-/** 上游超时（60 秒）；导出仅供测试在 buildApp 之前缩短 */
+/** Upstream timeout (60 s); exported only so tests can shorten it before buildApp */
 export const CHAT_TIMINGS = { upstreamTimeoutMs: 60_000 }
 
 export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> {
@@ -35,13 +36,13 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
         return reply.status(500).send({ error: '未配置 AI_API_KEY' })
       }
 
-      // 前端传来完整的消息历史，格式：[{role, content}, ...]
+      // The frontend sends the full message history, format: [{role, content}, ...]
       const data = jsonBody(request)
       const messages = pyTruthy(data.messages) ? data.messages : []
       if (!pyTruthy(messages)) {
         return reply.status(400).send({ error: '消息不能为空' })
       }
-      // messages 不是数组时返回 500
+      // Return 500 when messages is not an array
       if (!Array.isArray(messages)) {
         throw new TypeError(`can only concatenate list (not "${typeof messages}") to list`)
       }
@@ -55,7 +56,7 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
         .header('Content-Type', 'text/event-stream; charset=utf-8')
         .header('Cache-Control', 'no-cache')
         .header('X-Accel-Buffering', 'no')
-        .send(Readable.from(service.stream(messages, abort.signal)))
+        .send(Readable.from(service.stream(messages, abort.signal, requestLanguage(request))))
     },
   )
 }

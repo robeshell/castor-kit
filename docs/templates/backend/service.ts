@@ -1,10 +1,10 @@
 /**
- * service 层模板 → apps/api/src/modules/<domain>/<resource>/service.ts
+ * Service layer template → apps/api/src/modules/<domain>/<resource>/service.ts
  *
- * TODO: 替换 <Resource> 为类型名（大驼峰），<resource> 为资源名（下划线）
+ * TODO: replace <Resource> with the type name (PascalCase) and <resource> with the resource name (snake_case)
  *
- * 职责：业务逻辑 + 错误处理，抛 ServiceError(message, status, payload)；不碰 reply/session 等 HTTP 对象。
- * 一个请求一次提交：多步写操作放进 inTx（db.transaction），失败整体回滚。
+ * Responsibility: business logic + error handling, throwing ServiceError(message, status, payload); never touches HTTP objects like reply/session.
+ * One commit per request: multi-step writes go inside inTx (db.transaction) and roll back entirely on failure.
  */
 
 import { dbConstraintError } from '@/common/db-errors'
@@ -31,7 +31,7 @@ export class <Resource>Service {
       return await this.db.transaction((tx) => fn(new <Resource>Repository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      // 唯一冲突 / 超长 / 数值溢出等输入问题 → 400；其余 → 500
+      // Input problems like unique conflicts / too long / numeric overflow → 400; everything else → 500
       throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
@@ -53,7 +53,7 @@ export class <Resource>Service {
 
   async createItem(data: Data) {
     if (!pyTruthy(data.name)) throw new ServiceError('名称不能为空', 400)
-    // TODO: 补充唯一性校验（如需要）
+    // TODO: add uniqueness checks (if needed)
     const values = { ...buildValues(data, false), name: pyStr(data.name) }
     const created = await this.inTx((repo) => repo.insert(values))
     return <resource>ToDict(created)
@@ -72,7 +72,7 @@ export class <Resource>Service {
     return { message: '删除成功' }
   }
 
-  /** 导出：fields 缺省为全部导出字段；ids 为空导出全部；默认 xlsx */
+  /** Export: fields defaults to all exportable fields; empty ids exports everything; xlsx by default */
   async exportItems(data: Data) {
     const fileType = normalizeTableFileType(data.file_type, 'xlsx')
     const rawFields = pyTruthy(data.fields) && Array.isArray(data.fields) ? data.fields : Object.keys(EXPORT_FIELD_MAP)
@@ -98,7 +98,7 @@ export class <Resource>Service {
     return buildTable(Object.keys(IMPORT_HEADER_MAP), [], '<resource>_import_template', fileType)
   }
 
-  /** 导入：整批一个事务，存在错误行时整体回滚并返回 400 + error_rows */
+  /** Import: the whole batch is one transaction; if any row has errors, roll back entirely and return 400 + error_rows */
   async importItems(file: UploadedFile | null) {
     let table
     try {
@@ -133,7 +133,7 @@ export class <Resource>Service {
         try {
           await repo.insert({ ...values, name: (row[requiredHeader] ?? '').trim() })
         } catch (err) {
-          // 数据库拒绝这一行（唯一冲突、超长等）：事务已中止，带上已发现的错误行一起返回
+          // The database rejected this row (unique conflict, too long, etc.): the transaction is aborted, so return along with the error rows found so far
           const rowError = dbConstraintError(err)
           if (!rowError) throw err
           errors.push(buildErrorRow(line, rowError.message, row))
@@ -142,7 +142,7 @@ export class <Resource>Service {
         created += 1
       }
       if (errors.length > 0) {
-        // 抛错让事务整体回滚
+        // Throw so the whole transaction rolls back
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,

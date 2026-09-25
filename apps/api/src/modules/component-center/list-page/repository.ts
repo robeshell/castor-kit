@@ -1,5 +1,5 @@
 /**
- * 列表页 repository 层
+ * List page repository layer
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'
@@ -68,7 +68,7 @@ export class ListPageRepository {
     return row ?? null
   }
 
-  /** 除 excludeId 外是否已有该编码 */
+  /** Whether another row (other than excludeId) already has this code */
   async findDuplicateCode(queryCode: string, excludeId: number): Promise<QueryManagement | null> {
     const [row] = await this.db
       .select()

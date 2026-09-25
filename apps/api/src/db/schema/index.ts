@@ -1,6 +1,6 @@
 /**
- * Drizzle schema 汇总导出（drizzle-kit 与 relational query 都从这里读）。
- * 新增域/表必须在这里注册。
+ * Aggregated Drizzle schema exports (both drizzle-kit and relational queries read from here).
+ * New domains/tables must be registered here.
  */
 
 // admin

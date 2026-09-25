@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { List, useListRef } from 'react-window'
 import { ArrowRight, Database, Layers, Timer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -10,7 +11,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useIsMobile } from '@/shared/hooks/useIsMobile'
 
-// 列宽配置
+// Column widths
 const COLUMNS = [
   { title: 'ID', width: 'w-20' },
   { title: '姓名', width: 'w-40' },
@@ -24,9 +25,10 @@ const COLUMNS = [
 const STATUS_TONE = { 在职: 'success', 试用期: 'warning', 离职: 'danger', 休假: 'info' }
 const ROW_HEIGHT = 48
 
-// ── 数据生成（带计时）────────────────────────────────────────────────
+// ── Data generation (timed) ────────────────────────────────────────────────
 function generateData() {
   const t0 = performance.now()
+  // i18n-ignore-next-line: sample department names are demo content
   const depts = ['研发部', '产品部', '市场部', '运营部', '财务部', '人事部']
   const levels = ['P4', 'P5', 'P6', 'P7', 'P8']
   const statuses = ['在职', '试用期', '离职', '休假']
@@ -34,6 +36,7 @@ function generateData() {
   for (let i = 0; i < 100000; i++) {
     data.push({
       id: i + 1,
+      // i18n-ignore-next-line: sample employee names are demo content
       name: `员工_${String(i + 1).padStart(6, '0')}`,
       dept: depts[i % depts.length],
       level: levels[i % levels.length],
@@ -46,20 +49,21 @@ function generateData() {
   return { data, elapsed }
 }
 
-// ── 表头（固定）──────────────────────────────────────────────────────
+// ── Table header (sticky) ──────────────────────────────────────────────────────
 function TableHeader() {
+  const { t } = useTranslation()
   return (
     <div className="bg-muted/40 text-muted-foreground flex h-10 shrink-0 items-center border-y px-4 text-xs font-medium">
       {COLUMNS.map((col) => (
         <div key={col.title} className={cn('shrink-0', col.width)}>
-          {col.title}
+          {t(col.title)}
         </div>
       ))}
     </div>
   )
 }
 
-// ── 行渲染（react-window v2：rowProps 会展开到 rowComponent 的 props）────────
+// ── Row renderer (react-window v2: rowProps are spread into rowComponent props) ────────
 function RowComponent({ index, style, ariaAttributes, itemData }) {
   const row = itemData?.[index]
   if (!row) return null
@@ -88,7 +92,7 @@ function RowComponent({ index, style, ariaAttributes, itemData }) {
   )
 }
 
-// ── 性能指标卡片 ──────────────────────────────────────────────────────
+// ── Metric card ──────────────────────────────────────────────────────
 function MetricCard({ icon: Icon, label, value, desc }) {
   return (
     <div className="surface-card flex items-start gap-3 p-4">
@@ -115,7 +119,7 @@ function useDebounce(initialValue, delay) {
     },
     [delay],
   )
-  // 卸载时清除待触发的定时器，避免对已卸载组件 setState
+  // Clear the pending timer on unmount so we never setState on an unmounted component
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
@@ -124,10 +128,11 @@ function useDebounce(initialValue, delay) {
   return [debounced, update]
 }
 
-// ── 主页面 ────────────────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────────
 export default function VirtualScrollPage() {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
-  // 生成数据（只执行一次）
+  // Generate the data (once)
   const [{ data: ALL_DATA, elapsed }] = useState(generateData)
 
   const [searchInput, setSearchInput] = useState('')
@@ -140,7 +145,7 @@ export default function VirtualScrollPage() {
     setDebouncedSearch(val)
   }
 
-  // 过滤数据
+  // Filter the data
   const filteredData = useMemo(() => {
     if (!debouncedSearch.trim()) return ALL_DATA
     const kw = debouncedSearch.toLowerCase()
@@ -159,25 +164,25 @@ export default function VirtualScrollPage() {
       <PageHeader title="虚拟滚动列表" />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard icon={Database} label="总数据量" value="100,000 条" desc="完整员工数据集，一次性生成" />
-        <MetricCard icon={Layers} label="实际 DOM 节点" value="~15 个" desc="react-window 仅渲染可视区行" />
-        <MetricCard icon={Timer} label="数据生成耗时" value={`${elapsed} ms`} desc="首次渲染时生成一次" />
+        <MetricCard icon={Database} label={t('总数据量')} value={t('{{total}} 条', { total: '100,000' })} desc={t('完整员工数据集，一次性生成')} />
+        <MetricCard icon={Layers} label={t('实际 DOM 节点')} value={t('~{{n}} 个', { n: 15 })} desc={t('react-window 仅渲染可视区行')} />
+        <MetricCard icon={Timer} label={t('数据生成耗时')} value={`${elapsed} ms`} desc={t('首次渲染时生成一次')} />
       </div>
 
       <section className="surface-card overflow-hidden">
-        {/* 工具栏 */}
+        {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
             <SearchInput value={searchInput} onChange={handleSearchChange} placeholder="搜索姓名或部门..." />
             <span className="text-muted-foreground text-[13px] whitespace-nowrap tabular-nums">
               {debouncedSearch
-                ? `匹配 ${filteredData.length.toLocaleString()} / ${ALL_DATA.length.toLocaleString()} 条`
-                : `共 ${ALL_DATA.length.toLocaleString()} 条数据`}
+                ? t('匹配 {{matched}} / {{total}} 条', { matched: filteredData.length.toLocaleString(), total: ALL_DATA.length.toLocaleString() })
+                : t('共 {{total}} 条数据', { total: ALL_DATA.length.toLocaleString() })}
             </span>
           </div>
 
           <div className="flex items-center gap-2 text-[13px]">
-            <span className="text-muted-foreground whitespace-nowrap">跳转到第</span>
+            <span className="text-muted-foreground whitespace-nowrap">{t('跳转到第')}</span>
             <Input
               type="number"
               inputMode="numeric"
@@ -190,15 +195,15 @@ export default function VirtualScrollPage() {
               }}
               className="h-8 w-24 text-[13px] tabular-nums"
             />
-            <span className="text-muted-foreground">行</span>
+            <span className="text-muted-foreground">{t('行')}</span>
             <Button size="sm" variant="brand" onClick={handleJump}>
-              跳转
+              {t('跳转')}
               <ArrowRight />
             </Button>
           </div>
         </div>
 
-        {/* 表头 + 虚拟滚动（窄屏横向可滚动）*/}
+        {/* Header + virtual list (scrolls horizontally on narrow screens) */}
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
             <TableHeader />
@@ -217,13 +222,17 @@ export default function VirtualScrollPage() {
           </div>
         </div>
 
-        {/* 底部信息栏 */}
+        {/* Footer info bar */}
         <div className="bg-muted/30 text-muted-foreground flex flex-wrap items-center gap-x-6 gap-y-1 border-t px-4 py-2.5 text-xs">
           <span>
-            虚拟滚动窗口高度 {listHeight}px，每行高度 {ROW_HEIGHT}px，可视区约 {Math.floor(listHeight / ROW_HEIGHT)}~
-            {Math.ceil(listHeight / ROW_HEIGHT)} 行
+            {t('虚拟滚动窗口高度 {{height}}px，每行高度 {{rowHeight}}px，可视区约 {{min}}~{{max}} 行', {
+              height: listHeight,
+              rowHeight: ROW_HEIGHT,
+              min: Math.floor(listHeight / ROW_HEIGHT),
+              max: Math.ceil(listHeight / ROW_HEIGHT),
+            })}
           </span>
-          <span>实际挂载 DOM 节点数量远少于总数据量，内存占用极低</span>
+          <span>{t('实际挂载 DOM 节点数量远少于总数据量，内存占用极低')}</span>
         </div>
       </section>
     </div>

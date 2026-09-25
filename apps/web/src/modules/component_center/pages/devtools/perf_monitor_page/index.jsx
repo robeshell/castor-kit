@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { motion } from 'motion/react'
 import { AlertTriangle, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
@@ -14,7 +15,7 @@ import request from '@/shared/api/request'
 
 const MAX_PTS = 60
 
-// 占用率分级：<50 正常 / <80 偏高 / 其余告警
+// Usage levels: <50 normal / <80 high / otherwise alert
 function levelFor(pct) {
   return pct < 50 ? 'success' : pct < 80 ? 'warning' : 'danger'
 }
@@ -85,7 +86,7 @@ function readResources() {
       .getEntriesByType('resource')
       .sort((a, b) => b.duration - a.duration)
       .slice(0, 8)
-      // 截断后的文件名可能重复（如多个 index.js），用序号作行 key，避免 React 重复 key 警告
+      // Truncated file names can repeat (e.g. several index.js), so the index is the row key to avoid React duplicate-key warnings
       .map((r, i) => ({
         id: i,
         fullName: r.name,
@@ -109,7 +110,7 @@ function GaugeCard({ label, value, pct, unit, desc, level }) {
         </span>
       </div>
       <div className="bg-muted h-1.5 overflow-hidden rounded-full">
-        {/* 每秒刷新的数值用 CSS 过渡即可，不依赖 rAF */}
+        {/* Values refresh every second, so a CSS transition is enough; no rAF needed */}
         <div
           className={cn('h-full rounded-full transition-[width,background-color] duration-500 ease-out', LEVEL_BAR[level])}
           style={{ width: `${clamped}%` }}
@@ -120,8 +121,9 @@ function GaugeCard({ label, value, pct, unit, desc, level }) {
   )
 }
 
-// memo：避免每秒的 FPS 刷新带动图表重渲染
+// memo: keep the per-second FPS update from re-rendering the charts
 const HistoryChart = memo(function HistoryChart({ label, data, level, c }) {
+  const { t } = useTranslation()
   const option = useMemo(() => {
     const base = chartBase(c)
     const color = c[level] || c['brand-from']
@@ -157,8 +159,8 @@ const HistoryChart = memo(function HistoryChart({ label, data, level, c }) {
     }
   }, [c, data, level])
   return (
-    <Panel title={`${label} (60s)`} bodyClassName="pt-0">
-      {/* 首个数据点到达后再挂载图表，避开 echarts-for-react 初始化期间连续 setOption 的竞态 */}
+    <Panel title={`${t(label)} (60s)`} bodyClassName="pt-0">
+      {/* Mount the chart only after the first data point to avoid an echarts-for-react race with repeated setOption during init */}
       {data.length ? (
         <ReactECharts option={option} style={{ height: 96 }} opts={{ renderer: 'canvas' }} />
       ) : (
@@ -169,11 +171,12 @@ const HistoryChart = memo(function HistoryChart({ label, data, level, c }) {
 })
 
 export default function PerfMonitorPage() {
+  const { t } = useTranslation()
   const c = useChartColors()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [history, setHistory] = useState({ cpu: [], mem: [], disk: [] })
-  // Navigation Timing / 资源耗时：进入页面时读取一次
+  // Navigation Timing / resource timings: read once on page entry
   const [navTiming] = useState(readNavTiming)
   const [resources] = useState(readResources)
   const [fps, setFps] = useState(60)
@@ -181,7 +184,7 @@ export default function PerfMonitorPage() {
   const fpsLast = useRef(0)
   const rafRef = useRef(null)
 
-  // FPS 计数
+  // FPS counter
   useEffect(() => {
     fpsLast.current = performance.now()
     const loop = (now) => {
@@ -197,7 +200,7 @@ export default function PerfMonitorPage() {
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
-  // 轮询后端性能数据
+  // Poll backend performance data
   useEffect(() => {
     let active = true
     const poll = async () => {
@@ -232,7 +235,7 @@ export default function PerfMonitorPage() {
         actions={
           data ? (
             <StatusBadge tone="success" variant="plain" dot>
-              <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString('zh', { hour12: false })}</span> 更新
+              <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString('zh', { hour12: false })}</span> {t('更新')}
             </StatusBadge>
           ) : null
         }
@@ -241,42 +244,42 @@ export default function PerfMonitorPage() {
       {error ? (
         <Alert variant="destructive">
           <AlertTriangle />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{t(error)}</AlertDescription>
         </Alert>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <GaugeCard
-          label="CPU 使用率"
+          label={t('CPU 使用率')}
           value={data?.cpu ?? '—'}
           pct={data?.cpu ?? 0}
           unit="%"
           level={levelFor(data?.cpu ?? 0)}
-          desc={data ? (data.cpu < 40 ? '负载低' : data.cpu < 70 ? '负载中' : '负载高') : '等待数据'}
+          desc={t(data ? (data.cpu < 40 ? '负载低' : data.cpu < 70 ? '负载中' : '负载高') : '等待数据')}
         />
         <GaugeCard
-          label="内存使用"
+          label={t('内存使用')}
           value={data ? data.mem_used.toFixed(0) : '—'}
           pct={data?.mem_pct ?? 0}
           unit="MB"
           level={levelFor(data?.mem_pct ?? 0)}
-          desc={data ? `${data.mem_used.toFixed(0)} / ${data.mem_total.toFixed(0)} MB (${data.mem_pct}%)` : '等待数据'}
+          desc={data ? `${data.mem_used.toFixed(0)} / ${data.mem_total.toFixed(0)} MB (${data.mem_pct}%)` : t('等待数据')}
         />
         <GaugeCard
-          label="磁盘使用"
+          label={t('磁盘使用')}
           value={data ? data.disk_used.toFixed(1) : '—'}
           pct={data?.disk_pct ?? 0}
           unit="GB"
           level={levelFor(data?.disk_pct ?? 0)}
-          desc={data ? `${data.disk_used.toFixed(1)} / ${data.disk_total.toFixed(1)} GB (${data.disk_pct}%)` : '等待数据'}
+          desc={data ? `${data.disk_used.toFixed(1)} / ${data.disk_total.toFixed(1)} GB (${data.disk_pct}%)` : t('等待数据')}
         />
         <GaugeCard
-          label="页面帧率"
+          label={t('页面帧率')}
           value={fps}
           pct={(fps / 120) * 100}
           unit="fps"
           level={fpsLevel}
-          desc={fps >= 55 ? '流畅' : fps >= 30 ? '轻微卡顿' : '卡顿'}
+          desc={t(fps >= 55 ? '流畅' : fps >= 30 ? '轻微卡顿' : '卡顿')}
         />
       </div>
 
@@ -296,7 +299,7 @@ export default function PerfMonitorPage() {
               <div key={item.label} className="bg-muted/50 rounded-lg px-3 py-2.5">
                 <div className="text-muted-foreground flex items-center gap-1 text-[11px]">
                   <item.icon className="size-3" />
-                  {item.label}
+                  {t(item.label)}
                 </div>
                 <div className="mt-1 font-mono text-base font-medium tabular-nums">{item.value}</div>
               </div>
@@ -312,7 +315,7 @@ export default function PerfMonitorPage() {
                 const pct = navTiming.total > 0 ? Math.min(100, (val / navTiming.total) * 100) : 0
                 return (
                   <div key={row.key} className="grid grid-cols-[112px_minmax(0,1fr)_52px] items-center gap-2 text-xs">
-                    <span className="text-muted-foreground truncate">{row.label}</span>
+                    <span className="text-muted-foreground truncate">{t(row.label)}</span>
                     <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                       <motion.div
                         className={cn('h-full rounded-full', row.bar)}
@@ -327,7 +330,7 @@ export default function PerfMonitorPage() {
               })}
             </div>
           ) : (
-            <p className="text-muted-foreground text-[13px]">加载完成后可用</p>
+            <p className="text-muted-foreground text-[13px]">{t('加载完成后可用')}</p>
           )}
         </Panel>
 
