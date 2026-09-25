@@ -26,6 +26,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
+- Docker image crashed at startup: `sodium-native` has no prebuilt binaries for Alpine (musl); the image now uses `node:22-bookworm-slim`, and the npm registry is a build argument.
 - Scheduled-task URL errors, cycle checks when moving tree nodes, menu tree search and legacy sequences ([#3]).
 
 ### Removed

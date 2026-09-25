@@ -1,7 +1,10 @@
+# Debian (glibc) base for both stages: native modules such as sodium-native (session encryption) ship prebuilt binaries
+# for glibc Linux only, so they fail to load on Alpine (musl).
+
 # ─────────────────────────────────────────────────────────────
 # Stage 1: install deps, build the frontend (vite) and backend (tsup), prune to production deps
 # ─────────────────────────────────────────────────────────────
-FROM node:22-alpine AS build
+FROM node:22-bookworm-slim AS build
 
 WORKDIR /repo
 RUN corepack enable
@@ -25,11 +28,13 @@ RUN pnpm --filter @castor-kit/web build && \
 # ─────────────────────────────────────────────────────────────
 # Stage 2: runtime image
 # ─────────────────────────────────────────────────────────────
-FROM node:22-alpine
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /out/package.json ./package.json
 COPY --from=build /out/node_modules ./node_modules
@@ -41,7 +46,7 @@ COPY docker-entrypoint.sh ./
 # Required runtime dirs + non-root user (defense in depth: limits privilege escalation inside the container)
 RUN chmod +x docker-entrypoint.sh && \
     mkdir -p instance && \
-    adduser -D -u 10001 appuser && \
+    useradd --uid 10001 --create-home appuser && \
     chown -R appuser:appuser /app/instance
 
 ENV NODE_ENV=production \

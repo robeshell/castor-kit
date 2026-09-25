@@ -15,7 +15,7 @@ The docs site is the exception: `.github/workflows/docs.yml` builds it and publi
 | `db` | Image `postgres:alpine`; the database name and user are both `castor_kit`; data lives in the `postgres_data` volume |
 | `app` | Built from the `Dockerfile` in the repo root; listens on port 5000 inside the container; uploaded files live in the `app_instance` volume (mounted at `/app/instance`) |
 
-The image is built in two stages. The first stage, based on `node:22-alpine`, installs dependencies, builds the frontend (Vite) and backend (tsup), then prunes down to production dependencies. The second stage is the runtime image: it runs as a non-root user (uid 10001) and has a health check on `/health`.
+The image is built in two stages, both based on `node:22-bookworm-slim` (glibc: native modules such as `sodium-native` only ship prebuilt binaries for glibc, so Alpine can't be used). The first stage installs dependencies, builds the frontend (Vite) and backend (tsup), then prunes down to production dependencies. The second stage is the runtime image: it runs as a non-root user (uid 10001) and has a health check on `/health`.
 
 On container start, `docker-entrypoint.sh` runs, in order:
 

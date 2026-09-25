@@ -15,7 +15,7 @@
 | `db` | 镜像 `postgres:alpine`，库名和用户名均为 `castor_kit`，数据存放在卷 `postgres_data` |
 | `app` | 由仓库根目录的 `Dockerfile` 构建，容器内监听 5000 端口，上传文件存放在卷 `app_instance`（挂载到 `/app/instance`） |
 
-镜像构建分两个阶段：第一阶段基于 `node:22-alpine` 安装依赖并构建前端（Vite）和后端（tsup），再裁剪为生产依赖；第二阶段是运行镜像，以非 root 用户（uid 10001）运行，并配置了基于 `/health` 的健康检查。
+镜像构建分两个阶段：两个阶段都基于 `node:22-bookworm-slim`（glibc；`sodium-native` 等原生模块只提供 glibc 版预编译文件，不能用 Alpine）。第一阶段安装依赖并构建前端（Vite）和后端（tsup），再裁剪为生产依赖；第二阶段是运行镜像，以非 root 用户（uid 10001）运行，并配置了基于 `/health` 的健康检查。
 
 容器启动时，`docker-entrypoint.sh` 依次执行：
 
