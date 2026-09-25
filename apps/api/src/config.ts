@@ -43,6 +43,10 @@ export interface AppConfig {
   demoMode: boolean
   /** DEMO_RESET_HOURS: how often the demo data is restored (checked at startup and hourly) */
   demoResetHours: number
+  /** Demo AI quota (only in DEMO_MODE): calls per IP per hour, calls per day for the whole site, max request size */
+  demoAiHourlyPerIp: number
+  demoAiDaily: number
+  demoAiMaxInputChars: number
 
   // ---- Scheduled tasks ----
   enableTaskScheduler: boolean
@@ -95,6 +99,9 @@ const envSchema = z.object({
   INSTANCE_DIR: z.string().optional(),
   DEMO_MODE: z.string().optional().default('false'),
   DEMO_RESET_HOURS: intFromEnv(24),
+  DEMO_AI_HOURLY_PER_IP: intFromEnv(20),
+  DEMO_AI_DAILY: intFromEnv(300),
+  DEMO_AI_MAX_INPUT_CHARS: intFromEnv(4000),
   ENABLE_TASK_SCHEDULER: z.string().optional().default('true'),
   TASK_SCHEDULER_INTERVAL_SECONDS: intFromEnv(20),
   TASK_SCHEDULER_LEASE_SECONDS: intFromEnv(1800),
@@ -190,6 +197,9 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     instanceDir: parsed.INSTANCE_DIR ? resolve(parsed.INSTANCE_DIR) : resolve(API_ROOT, 'instance'),
     demoMode: isTruthy(parsed.DEMO_MODE),
     demoResetHours: Math.max(1, parsed.DEMO_RESET_HOURS),
+    demoAiHourlyPerIp: Math.max(0, parsed.DEMO_AI_HOURLY_PER_IP),
+    demoAiDaily: Math.max(0, parsed.DEMO_AI_DAILY),
+    demoAiMaxInputChars: Math.max(1, parsed.DEMO_AI_MAX_INPUT_CHARS),
     enableTaskScheduler: isTruthy(parsed.ENABLE_TASK_SCHEDULER),
     taskSchedulerIntervalSeconds: parsed.TASK_SCHEDULER_INTERVAL_SECONDS,
     taskSchedulerLeaseSeconds: parsed.TASK_SCHEDULER_LEASE_SECONDS,

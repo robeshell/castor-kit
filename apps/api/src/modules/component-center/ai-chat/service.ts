@@ -13,6 +13,7 @@ import { Agent, fetch } from 'undici'
 import { pyTruthy } from '@/common/py'
 import { translateMessage, type Language } from '@/common/i18n'
 import { pyJsonDumps } from '@/common/request-meta'
+import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
 import { pyStrip } from '../ai-sql/schema'
 
@@ -49,7 +50,7 @@ export const SYSTEM_PROMPT = {
     '- 权限检查：hasMenuPermission(request, code) / menuPermissionRequired(code)（common/auth.ts）\n' +
     '- 默认账号：admin（密码以部署配置为准）\n' +
     '- 开发端口：后端 5001，前端 5173（Vite）\n\n' +
-    '请用中文回答，回答要结合 castor-kit 的实际技术栈和实现方式。',
+    '请使用用户提问所用的语言回答（中文提问用中文，English questions in English，日本語の質問には日本語で），回答要结合 castor-kit 的实际技术栈和实现方式。',
 }
 
 /** `data: {json.dumps(obj, ensure_ascii=False)}\n\n` (obj has a single key) */
@@ -117,7 +118,7 @@ export class AiChatService {
   private readonly dispatcher: Agent
 
   constructor(
-    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'>,
+    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
     options: ChatStreamOptions = {},
   ) {
     const timeout = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS
@@ -144,7 +145,12 @@ export class AiChatService {
       const resp = await fetch(`${aiApiBase}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: aiModel, messages: fullMessages, stream: true }),
+        body: JSON.stringify({
+          model: aiModel,
+          messages: fullMessages,
+          stream: true,
+          ...(this.config.demoMode ? { max_tokens: DEMO_MAX_OUTPUT_TOKENS.chat } : {}),
+        }),
         dispatcher: this.dispatcher,
         signal,
       })

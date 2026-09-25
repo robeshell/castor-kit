@@ -118,6 +118,15 @@ README の **Deploy to Render** ボタンからでも同じようにデプロイ
 - デモアカウントのパスワードは `render.yaml` の `ADMIN_PASSWORD` です。アカウントを初めて作成するときにだけ使われるので、変更する場合は最初のデプロイ前に変えてください
 - デモデータをすぐに復元するには、Render サービスの **Shell** で `node dist/demo-reset.js` を実行するか、ローカルから同じデータベースに対して `pnpm demo:reset` を実行します
 
+### 4. AI を接続する（任意）
+
+デモでは Google Gemini の無料枠を使って、AI チャットと AI データ検索を試せます。
+
+1. [Google AI Studio](https://aistudio.google.com) で Google アカウントを使って API キーを作成します
+2. Render サービスの **Environment** で `AI_API_KEY`（作成したキー）と `AI_MODEL`（AI Studio に表示される Flash 系のモデル名）を設定します。`AI_API_BASE` は `render.yaml` で Gemini の OpenAI 互換エンドポイントに設定済みです。保存するとサービスが自動で再起動します
+
+デモモードでは AI の呼び出しを制限します。IP ごとに 1 時間 20 回、サイト全体で 1 日 300 回、1 回の入力は 4000 文字まで、さらに返答の長さも制限します。`DEMO_AI_*` の変数で調整できます（[設定](/ja/reference/configuration#public-demo)を参照）。無料枠のリクエストはサービス提供者の製品改善に使われる場合があるため、デモ環境には機密情報を入力しないでください。
+
 ::: details 起動時に読み取り専用アカウントを作成できない
 起動時に、AI データ検索で使う読み取り専用アカウント `castor_kit_ro` を作成します。Neon で作成が拒否される場合は、Neon の SQL Editor で次を実行してください。
 

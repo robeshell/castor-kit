@@ -4,12 +4,13 @@
 import type { FastifyInstance } from 'fastify'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { isDemoWritable } from '@/common/demo'
+import { DemoAiQuota, isDemoWritable } from '@/common/demo'
 import { deriveReadonlyUrl, loadConfig } from '@/config'
 import type { DbHandle } from '@/db/client'
 import { login_logs } from '@/db/schema'
 import { DEMO_FIXTURES } from '@/demo/fixtures'
 import { resetDemoData, resetDemoIfDue, shiftDate } from '@/demo/reset'
+import { startFakeUpstream, type FakeUpstream } from './cc-ai-fake-upstream'
 import {
   buildTestApp,
   cleanupFixture,
@@ -162,5 +163,76 @@ describe('demo data reset', () => {
     } finally {
       await client.end()
     }
+  })
+})
+
+describe('demo AI quota', () => {
+  it('limits calls per IP per hour and per day for the whole site', () => {
+    const quota = new DemoAiQuota({ hourlyPerIp: 2, daily: 3 })
+    const t0 = Date.UTC(2026, 3, 1, 8, 10)
+    expect(quota.take('a', t0)).toEqual({ ok: true })
+    expect(quota.take('a', t0)).toEqual({ ok: true })
+    expect(quota.take('a', t0)).toEqual({ ok: false, reason: 'ip' })
+    expect(quota.take('b', t0)).toEqual({ ok: true })
+    expect(quota.take('c', t0)).toEqual({ ok: false, reason: 'day' })
+    // Next hour the per-IP window resets, but the day is still used up
+    expect(quota.take('a', t0 + 3_600_000)).toEqual({ ok: false, reason: 'day' })
+    // Next day both reset
+    expect(quota.take('a', t0 + 86_400_000)).toEqual({ ok: true })
+  })
+
+  describe('on the AI endpoints', () => {
+    let up: FakeUpstream
+    let app: FastifyInstance
+    let handle: DbHandle
+    let s: AuthedSession
+    const GENERATE = '/api/admin/component-center/ai/sql/generate'
+
+    beforeAll(async () => {
+      handle = openTestDb()
+      up = await startFakeUpstream()
+      app = await buildTestApp({
+        aiApiBase: up.url,
+        aiApiKey: 'x',
+        aiModel: 'm',
+        demoMode: true,
+        demoAiHourlyPerIp: 2,
+        demoAiDaily: 100,
+        demoAiMaxInputChars: 200,
+      })
+      s = await superAdminSession(app, handle)
+    })
+
+    afterAll(async () => {
+      await app.close()
+      await up.close()
+      await handle.pool.end()
+    })
+
+    it('does not count signed-out requests', async () => {
+      const res = await app.inject({ method: 'POST', url: GENERATE, payload: { question: 'x' } })
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('rejects oversized input without using quota', async () => {
+      const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question: 'x'.repeat(300) } })
+      expect(res.statusCode).toBe(400)
+      expect(res.json()).toEqual({ error: '演示环境单次输入过长，请精简后再试' })
+    })
+
+    it('caps the reply length upstream and returns a translated 429 once the hourly quota is used', async () => {
+      const before = up.requests.length
+      expect((await s.inject({ method: 'POST', url: GENERATE, payload: { question: '列出看板' } })).statusCode).not.toBe(429)
+      expect(up.requests[before]!.body).toMatchObject({ max_tokens: 512 })
+      expect((await s.inject({ method: 'POST', url: GENERATE, payload: { question: '列出看板' } })).statusCode).not.toBe(429)
+      const limited = await s.inject({
+        method: 'POST',
+        url: GENERATE,
+        headers: { 'accept-language': 'en-US' },
+        payload: { question: '列出看板' },
+      })
+      expect(limited.statusCode).toBe(429)
+      expect(limited.json()).toEqual({ error: 'Too many AI requests in the demo. Please try again later.' })
+    })
   })
 })

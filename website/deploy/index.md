@@ -118,6 +118,15 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 - 演示账号的密码是 `render.yaml` 里的 `ADMIN_PASSWORD`，只在首次初始化、账号还不存在时生效，要改请在第一次部署前修改
 - 手动立即恢复演示数据：在 Render 服务的 **Shell** 中执行 `node dist/demo-reset.js`，或在本地对同一个数据库执行 `pnpm demo:reset`
 
+### 4. 接入 AI（可选）
+
+演示站可以接入 Google Gemini 的免费额度来演示 AI 对话和 AI 数据查询：
+
+1. 在 [Google AI Studio](https://aistudio.google.com) 用 Google 账号创建 API Key
+2. 在 Render 服务的 **Environment** 中设置 `AI_API_KEY`（上一步的 key）和 `AI_MODEL`（AI Studio 中列出的 Flash 系列模型名）；`AI_API_BASE` 已在 `render.yaml` 中设为 Gemini 的 OpenAI 兼容地址。保存后服务会自动重启
+
+演示模式会限制 AI 调用：每个 IP 每小时 20 次、全站每天 300 次、单次输入最多 4000 字符，并限制回复长度，可用 `DEMO_AI_*` 变量调整（见[配置项](/reference/configuration#公开演示)）。免费档的请求数据可能被服务商用于改进产品，演示环境不要输入敏感信息。
+
 ::: details 启动时报错无法创建只读账号
 启动时会创建 AI 数据查询用的只读账号 `castor_kit_ro`。如果 Neon 拒绝创建，在 Neon 的 SQL Editor 中手动执行：
 
