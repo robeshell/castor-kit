@@ -245,7 +245,7 @@ castor-kit/
 - **docker-compose.yml**：`db`（postgres）+ `app`；`NODE_ENV=production`；`postgres_data` / `app_instance` 两个卷，卷名可用 `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` 覆盖以复用已有卷。
 - **进程模型**：默认单进程；需要多核时用多副本 + `RUN_SCHEDULER_IN_WEB=false` + 单独 worker 服务。
 - **setup.sh**：生成 `.env.production`（随机密钥）并用 compose 启动。
-- **CI**（`.github/workflows/ci.yml`）：`pnpm install` → lint → typecheck → 空库 `setup-once` → api vitest（pg service）→ `pnpm verify --skip-build` → web 单测 → `vite build`。不做自动部署（部署在服务器上手动 `git pull && docker compose up -d --build`）；`docs.yml` 构建文档站。
+- **CI**（`.github/workflows/ci.yml`）：`pnpm install` → lint → typecheck → 空库 `setup-once` → api vitest（pg service）→ `pnpm verify --skip-build` → web 单测 → `vite build`。不做自动部署（部署在服务器上手动 `git pull && docker compose up -d --build`）；文档站（`website/`）不在 CI 里构建或部署。
 
 ### 8.2 测试策略
 - Vitest + 真实 PostgreSQL（本地 `castor_kit_test`，CI 用 `services: postgres`）；`test/global-setup.ts` 在测试库上执行迁移。
