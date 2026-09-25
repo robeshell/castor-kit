@@ -9,14 +9,14 @@ function readVars() {
 }
 
 /**
- * ECharts theme colors: reads the actual color values of the current theme (light/dark) from CSS variables, recomputed automatically on theme switch.
+ * ECharts theme colors: reads the actual color values of the current theme (light/dark) from CSS variables, recomputed automatically on theme / accent switch.
  *   const c = useChartColors()
  *   const option = { ...chartBase(c), series: [{ type: 'line', color: c['brand-from'], areaStyle: brandArea(c) }] }
  */
 export function useChartColors() {
-  const { theme } = useTheme()
+  const { theme, accent } = useTheme()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => readVars(), [theme])
+  return useMemo(() => readVars(), [theme, accent])
 }
 
 /** Shared neutral styling for axes / grid / tooltip */

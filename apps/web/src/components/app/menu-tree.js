@@ -37,3 +37,25 @@ export function findActiveMenu(flat, pathname) {
 export function navigablePages(flat) {
   return flat.filter((menu) => menu.menu_type === 'menu' && typeof menu.path === 'string' && menu.path.startsWith('/'))
 }
+
+/**
+ * Sections for the "mixed" nav mode: every root group is a section; root-level leaf pages (e.g. the dashboard)
+ * share one HOME_SECTION so the sidebar always has something to list.
+ */
+export const HOME_SECTION = 'home'
+
+export function sectionOf(active) {
+  if (!active) return HOME_SECTION
+  const root = active.parents[0] ?? active
+  return visibleChildren(root).length > 0 ? root.id : HOME_SECTION
+}
+
+/** First navigable page inside a menu subtree (where clicking a top-level section lands) */
+export function firstPage(menu) {
+  if (menu.menu_type === 'menu' && typeof menu.path === 'string' && menu.path.startsWith('/')) return menu
+  for (const child of visibleChildren(menu)) {
+    const page = firstPage(child)
+    if (page) return page
+  }
+  return null
+}

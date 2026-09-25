@@ -26,7 +26,7 @@ import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import BrandMark from '@/components/app/BrandMark'
 import UserMenu from '@/components/app/UserMenu'
-import { findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/components/app/menu-tree'
+import { HOME_SECTION, findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/components/app/menu-tree'
 import { useTranslation } from 'react-i18next'
 
 /*
@@ -34,7 +34,7 @@ import { useTranslation } from 'react-i18next'
  * - Left axis 16px: the left edges of the logo, group titles, menu icons and avatar are all at x=16; submenu text and top-level menu text are both at x=40
  * - Right edge is uniformly x=248 (top-level and child backgrounds have the same width)
  * - Row height is uniformly 36px with 2px spacing; when collapsed, the 32px button is centered in the 48px rail
- * - Selected = gray background + dark text + blue icon; hover = lighter gray, so a hovered item never looks more "selected" than the selected one
+ * - Selected = raised chip (sidebar-accent + hairline ring) + dark text + accent icon; hover = faint gray, so a hovered item never looks more "selected" than the selected one
  */
 const ITEM = 'h-9 gap-2.5 text-sidebar-foreground hover:bg-black/[0.035] dark:hover:bg-white/[0.045] data-[state=open]:hover:bg-black/[0.035] dark:data-[state=open]:hover:bg-white/[0.045]'
 
@@ -44,7 +44,7 @@ function ActivePill() {
     <motion.span
       layoutId="sidebar-active-pill"
       transition={layoutSpring}
-      className="bg-sidebar-accent absolute inset-0 -z-10 rounded-md"
+      className="bg-sidebar-accent absolute inset-0 -z-10 rounded-md shadow-[0_0_0_1px_var(--sidebar-border),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-none"
     />
   )
 }
@@ -112,7 +112,11 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
   )
 }
 
-export default function AppSidebar() {
+/**
+ * variant: shadcn sidebar variant (sidebar / floating / inset).
+ * section: mixed nav mode only; limits the menus to one top-level section (a root group id, or HOME_SECTION for root-level pages).
+ */
+export default function AppSidebar({ variant = 'sidebar', section }) {
   // Subscribe to language changes: re-render menu names when the language switches (menuLabel reads i18n directly)
   useTranslation()
   const { menus } = useAuth()
@@ -147,11 +151,11 @@ export default function AppSidebar() {
   }
 
   const roots = (menus || []).filter(isNavVisible)
-  const leafRoots = roots.filter((m) => visibleChildren(m).length === 0)
-  const groupRoots = roots.filter((m) => visibleChildren(m).length > 0)
+  const leafRoots = section && section !== HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length === 0)
+  const groupRoots = section === HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length > 0 && (!section || m.id === section))
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
+    <Sidebar collapsible="icon" variant={variant}>
       <SidebarHeader className="px-2 pt-3 pb-1">
         <Link
           to="/"

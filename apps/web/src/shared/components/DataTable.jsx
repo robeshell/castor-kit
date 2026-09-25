@@ -234,7 +234,7 @@ export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, lo
               onClick={() => onChange?.(p)}
               className={cn(
                 'h-7 min-w-7 rounded-md px-1.5 tabular-nums transition-colors',
-                p === page ? 'bg-foreground text-background font-medium' : 'text-muted-foreground hover:bg-accent',
+                p === page ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:bg-accent',
               )}
             >
               {p}

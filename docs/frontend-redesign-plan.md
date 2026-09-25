@@ -1,7 +1,7 @@
 # castor-kit 前台改造方案：Semi Design → shadcn/ui
 
 > 状态：已完成（2026-09-25），验收结果见第 8 节。视觉方向已确认：简洁、动效丝滑、偏英文 SaaS 风格（Linear / Vercel / Stripe），
-> 中性灰为底，**Ocean 渐变（blue → sky → cyan）**作为唯一强调色，渐变只做点缀，不用紫色。
+> 中性灰为底，**Ocean 渐变（blue → sky → cyan）**作为默认强调色，渐变只做点缀。强调色可在「外观设置」切换为其他预设（`src/lib/appearance.js`），所有强调色 token 由 `--brand-from/via/to` 派生。
 > 参考设计稿：castor-kit admin redesign 画布（Overview / Users / Sign in 三屏）。
 
 ## 1. 目标与边界
