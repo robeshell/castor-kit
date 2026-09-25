@@ -146,7 +146,7 @@ castor-kit/
 
 ### 4.6 权限（RBAC）
 - `common/rbac.ts` 是纯函数（`isSuperAdmin` / 菜单编码收集）；`common/auth.ts` 提供 `hasMenuPermission` / `hasAnyMenuPermission` / `menuPermissionRequired`。
-- `super_admin` 角色短路放行；唯一例外是 `GET /api/admin/menus/my-menus`，它按角色实际授予的菜单返回。
+- `super_admin` 角色短路放行；唯一例外是 `GET /api/admin/my-menus`，它按角色实际授予的菜单返回。
 - `my-menus` 的叶子节点没有 `children` 键；`menu_codes` 与角色顺序不保证，比较时按集合。
 - 菜单 `component` 字段格式 `<module>/<subdir>/<page>`，前端 `App.jsx` 用 `import.meta.glob` 解析。
 - 菜单与权限的唯一事实源是 `apps/api/scripts/seed-rbac.ts`；菜单 ID 不重排（`role_menus` 以 ID 引用）。
@@ -245,7 +245,7 @@ castor-kit/
 - **docker-compose.yml**：`db`（postgres）+ `app`；`NODE_ENV=production`；`postgres_data` / `app_instance` 两个卷，卷名可用 `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` 覆盖以复用已有卷。
 - **进程模型**：默认单进程；需要多核时用多副本 + `RUN_SCHEDULER_IN_WEB=false` + 单独 worker 服务。
 - **setup.sh**：生成 `.env.production`（随机密钥）并用 compose 启动。
-- **CI**（`.github/workflows/ci.yml`）：`pnpm install` → lint → typecheck → 空库 `setup-once` → api vitest（pg service）→ `pnpm verify --skip-build` → web 单测 → `vite build`。不做自动部署（部署在服务器上手动 `git pull && docker compose up -d --build`）；文档站（`website/`）不在 CI 里构建或部署。
+- **CI**（`.github/workflows/ci.yml`）：`pnpm install` → lint → typecheck → 空库 `setup-once` → api vitest（pg service）→ `pnpm verify --skip-build` → web 单测 → `vite build`。不做自动部署（部署在服务器上手动 `git pull && docker compose --env-file .env.production up -d --build`）；文档站（`website/`）不在 CI 里构建或部署。
 
 ### 8.2 测试策略
 - Vitest + 真实 PostgreSQL（本地 `castor_kit_test`，CI 用 `services: postgres`）；`test/global-setup.ts` 在测试库上执行迁移。

@@ -23,7 +23,7 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 
 | 层 | 技术 | 版本 |
 |---|---|---|
-| 运行时 | Node + TypeScript（strict） | Node 22（`.nvmrc`），TS 7 |
+| 运行时 | Node + TypeScript（strict） | Node 22（`.nvmrc`），TypeScript 5 |
 | 包管理 | pnpm workspaces（monorepo） | pnpm 11 |
 | 后端框架 | Fastify + `fastify-type-provider-zod` | 5.x |
 | 校验 / 类型 | Zod | 4.x |
@@ -456,7 +456,7 @@ user_roles：用户-角色 多对多（复合主键）
 
 ### 超级管理员
 
-`code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/menus/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
+`code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
 
 ### 菜单变更流程
 
