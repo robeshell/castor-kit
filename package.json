@@ -22,6 +22,7 @@
     "scaffold": "pnpm --filter @castor-kit/api scaffold",
     "verify": "pnpm --filter @castor-kit/api verify",
     "mcp": "pnpm --filter @castor-kit/mcp start",
-    "lint": "pnpm --filter @castor-kit/api lint"
+    "lint": "pnpm --filter @castor-kit/api lint",
+    "demo:reset": "pnpm --filter @castor-kit/api demo:reset"
   }
 }

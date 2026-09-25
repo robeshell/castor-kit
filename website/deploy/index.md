@@ -80,6 +80,58 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 `admin` 账号只在不存在时创建。首次启动后再修改 `ADMIN_PASSWORD` 不会改变已有账号的密码，请登录后在界面上修改。
 :::
 
+## 方式三：Render + Neon（免费演示）
+
+用 [Render](https://render.com) 的免费 Web 服务运行应用、[Neon](https://neon.tech) 的免费 PostgreSQL 存数据，适合搭一个公开的在线演示。仓库根目录的 `render.yaml` 已写好配置，默认开启[演示模式](/reference/configuration#公开演示)：
+
+- 登录页显示演示账号（`admin` / `castor-demo`），可以一键登录
+- 系统管理只读，不能改密码；组件示例可以随意增删改
+- 示例数据每 24 小时自动恢复
+
+::: warning 免费套餐的限制
+以下是撰写时两家平台的免费额度，开通前请以官网为准：
+- Render 免费实例 15 分钟无人访问会休眠，再次访问需要等待几十秒启动；休眠期间定时任务不运行
+- Neon 免费数据库空闲时会暂停计算，下次连接时自动唤醒
+:::
+
+### 1. 创建 Neon 数据库
+
+1. 注册 Neon，新建一个项目。区域尽量选离 Render 服务近的（例如都选美国东部或新加坡）
+2. 在项目首页点 **Connect**，**关闭「Connection pooling」**，复制直连的连接串，形如 `postgresql://<用户>:<密码>@ep-xxx.<区域>.aws.neon.tech/neondb?sslmode=require`
+
+::: tip 为什么要直连
+启动时的初始化（迁移、RBAC 同步、演示数据恢复）使用会话级的 advisory lock 防止并发，连接池模式下拿不到这把锁。连接串里的 `channel_binding=require` 可以保留，也可以去掉。
+:::
+
+### 2. 在 Render 上部署
+
+1. 用 GitHub 账号注册 Render。如果仓库不在你的账号下，先 Fork 一份
+2. 在 Render 控制台选择 **New → Blueprint**，选中仓库，Render 会读取 `render.yaml`
+3. 按提示填入 `DATABASE_URL`（上一步复制的连接串），其余变量已在 `render.yaml` 中设置或自动生成
+4. 点 **Apply**。首次构建大约需要 5–10 分钟，状态变成 **Live** 后打开服务地址（`https://<服务名>.onrender.com`），登录页就能看到演示账号
+
+也可以直接点击 README 中的 **Deploy to Render** 按钮，效果相同。
+
+### 3. 之后的维护
+
+- `render.yaml` 没有关闭自动部署：推送到 main 后 Render 会自动重新构建，构建失败会发邮件通知。不需要时可以在服务的 **Settings → Build & Deploy** 里关闭 Auto-Deploy
+- 演示账号的密码是 `render.yaml` 里的 `ADMIN_PASSWORD`，只在首次初始化、账号还不存在时生效，要改请在第一次部署前修改
+- 手动立即恢复演示数据：在 Render 服务的 **Shell** 中执行 `node dist/demo-reset.js`，或在本地对同一个数据库执行 `pnpm demo:reset`
+
+::: details 启动时报错无法创建只读账号
+启动时会创建 AI 数据查询用的只读账号 `castor_kit_ro`。如果 Neon 拒绝创建，在 Neon 的 SQL Editor 中手动执行：
+
+```sql
+CREATE ROLE castor_kit_ro LOGIN PASSWORD '<Render 中 POSTGRES_RO_PASSWORD 的值>';
+```
+
+然后在 Render 中重新部署。初始化会为已存在的账号更新密码并授权。
+:::
+
+::: tip 用 Render 部署正式环境
+把 `DEMO_MODE` 改为 `false`，并把 `ADMIN_PASSWORD` 换成强密码即可。但免费实例会休眠、定时任务不会按时运行，正式使用建议选择付费实例，或用方式一、方式二部署到自己的服务器。
+:::
+
 ## 常用运维命令
 
 ```bash

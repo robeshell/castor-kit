@@ -69,6 +69,10 @@ bash setup.sh
 
 The setup wizard asks for an admin password and a port (default `5000`). Then open `http://localhost:5000` and sign in as `admin`.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
+
+**Free online demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/en/deploy/index.md).
+
 <details>
 <summary><b>Local development</b> (Node.js 22+, pnpm, PostgreSQL 14+)</summary>
 

@@ -6,6 +6,7 @@
 import { buildApp } from './app'
 import { startScheduledTaskRunner, type ScheduledTaskRunner } from './common/scheduler/runner'
 import { loadConfig, loadEnvFiles, type AppEnv } from './config'
+import { resetDemoIfDue } from './demo/reset'
 
 loadEnvFiles((process.env.NODE_ENV ?? 'development') as AppEnv)
 const config = loadConfig()
@@ -33,6 +34,15 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'))
 
 await app.listen({ host: '0.0.0.0', port })
 app.log.info(`castor-kit 启动｜环境 ${config.env}｜端口 ${port}`)
+
+// Public demo: besides the check at startup (setup-once), look again every hour so a long-running instance also resets
+if (config.demoMode) {
+  const check = () =>
+    resetDemoIfDue({ databaseUrl: config.databaseUrl, resetHours: config.demoResetHours, log: (msg) => app.log.info(msg) }).catch(
+      (err: unknown) => app.log.error({ err }, '恢复演示数据失败'),
+    )
+  setInterval(check, 3_600_000).unref()
+}
 
 if (config.runSchedulerInWeb) {
   schedulerRunner = startScheduledTaskRunner(app.db, config, app.log)

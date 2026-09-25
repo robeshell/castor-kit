@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, User } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, Sparkles, User } from 'lucide-react'
 import BrandMark from '@/components/app/BrandMark'
 import LanguageSwitcher from '@/components/app/LanguageSwitcher'
 import ThemeToggle from '@/components/app/ThemeToggle'
@@ -15,6 +15,7 @@ import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { login } from '@/modules/admin/api/auth'
 import LoginBackdrop, { LoginCardBorder } from '@/modules/auth/pages/login/LoginBackdrop'
+import { useAppInfo } from '@/shared/hooks/useAppInfo'
 import { useTranslation } from 'react-i18next'
 
 function Halo() {
@@ -45,19 +46,15 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const appInfo = useAppInfo()
+  const demoAccount = appInfo?.demo_mode ? appInfo.demo_account : null
 
   if (!loading && user) return <Navigate to="/" replace />
 
-  const submit = async (event) => {
-    event.preventDefault()
-    const nextErrors = {}
-    if (!username.trim()) nextErrors.username = t('请输入用户名')
-    if (!password) nextErrors.password = t('请输入密码')
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length) return
+  const signIn = async (name, secret) => {
     setSubmitting(true)
     try {
-      const data = await login({ username, password })
+      const data = await login({ username: name, password: secret })
       await setAuth(data.user)
       toast.success('登录成功')
       navigate('/')
@@ -66,6 +63,24 @@ export default function Login() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const submit = (event) => {
+    event.preventDefault()
+    const nextErrors = {}
+    if (!username.trim()) nextErrors.username = t('请输入用户名')
+    if (!password) nextErrors.password = t('请输入密码')
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
+    signIn(username, password)
+  }
+
+  /** Public demo: fill in the demo account and sign in with one click */
+  const demoSignIn = () => {
+    setUsername(demoAccount.username)
+    setPassword(demoAccount.password)
+    setErrors({})
+    signIn(demoAccount.username, demoAccount.password)
   }
 
   return (
@@ -149,10 +164,27 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="text-muted-foreground mt-6 flex items-center justify-center gap-1.5 border-t pt-5 text-xs">
-              <ShieldCheck className="size-3.5 shrink-0" />
-              <span>{t('默认管理员账号 admin，密码以部署配置为准')}</span>
-            </div>
+            {demoAccount ? (
+              <div className="mt-6 border-t pt-5">
+                <div className="bg-brand-soft flex items-center gap-3 rounded-lg px-3.5 py-3">
+                  <Sparkles className="text-primary size-4 shrink-0" />
+                  <div className="min-w-0 flex-1 text-xs leading-relaxed">
+                    <div className="text-foreground font-medium">{t('演示账号')}</div>
+                    <div className="text-muted-foreground font-mono">
+                      {demoAccount.username} / {demoAccount.password}
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" className="h-8 shrink-0" disabled={submitting} onClick={demoSignIn}>
+                    {t('一键登录')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground mt-6 flex items-center justify-center gap-1.5 border-t pt-5 text-xs">
+                <ShieldCheck className="size-3.5 shrink-0" />
+                <span>{t('默认管理员账号 admin，密码以部署配置为准')}</span>
+              </div>
+            )}
           </div>
 
         </motion.div>

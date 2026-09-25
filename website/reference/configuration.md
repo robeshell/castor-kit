@@ -44,7 +44,7 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 | `SESSION_TTL_HOURS` | 会话有效期（小时） | `8` |
 | `SESSION_COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
-| `LOGIN_MAX_FAILURES` | 登录失败次数上限（按 IP 和用户名分别计数） | `10` |
+| `LOGIN_MAX_FAILURES` | 登录失败次数上限（按 IP 和用户名分别计数；演示模式下只按 IP 计数） | `10` |
 | `LOGIN_LOCKOUT_MINUTES` | 登录失败计数窗口与锁定时长（分钟） | `15` |
 | `MAX_CONTENT_LENGTH` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
 
@@ -54,6 +54,15 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 |---|---|---|
 | `WEB_DIST_DIR` | 前端构建产物目录，后端从这里提供静态文件和 SPA | `apps/web/dist` |
 | `INSTANCE_DIR` | 运行时数据目录，上传文件存放在其下的 `uploads/` | `apps/api/instance` |
+
+### 公开演示
+
+| 变量 | 作用 | 默认值 |
+|---|---|---|
+| `DEMO_MODE` | 公开演示模式：登录页显示演示账号并可一键登录；除登录、组件示例、通知已读外的写操作都返回 403（系统管理只读、不能改密码）；登录锁定只按 IP 计数；示例数据按周期自动恢复 | `false` |
+| `DEMO_RESET_HOURS` | 演示数据恢复周期（小时）。服务启动时和运行中每小时检查一次，距上次恢复超过该时长就恢复；也可手动执行 `pnpm demo:reset` | `24` |
+
+演示数据的内容在 `apps/api/src/demo/fixtures.ts`，恢复逻辑在 `apps/api/src/demo/reset.ts`。恢复只涉及组件示例、公告、数据字典、定时任务、通知与日志，不会动账号、角色和菜单。
 
 ### 定时任务
 
@@ -73,7 +82,7 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 | `AI_API_BASE` | OpenAI 兼容接口的 Base URL，例如 `https://api.openai.com/v1` | 空 |
 | `AI_API_KEY` | API Key | 空 |
 | `AI_MODEL` | 模型名称 | 空 |
-| `AI_SQL_DATABASE_URL` | AI 数据查询使用的只读连接，应指向非超级用户的只读账号 | 开发 / 测试回退到主库连接（仍强制只读）；**生产必填** |
+| `AI_SQL_DATABASE_URL` | AI 数据查询使用的只读连接，应指向非超级用户的只读账号 | 开发 / 测试回退到主库连接（仍强制只读）；生产环境未设置时，若设置了 `POSTGRES_RO_PASSWORD`，则由 `DATABASE_URL` 推导（换成 `castor_kit_ro` 账号），否则拒绝启动 |
 | `AI_SQL_STATEMENT_TIMEOUT_MS` | AI 数据查询的单条语句超时（毫秒） | `5000` |
 | `POSTGRES_RO_PASSWORD` | 只读账号 `castor_kit_ro` 的密码，`setup-once` / `init-ro-role` 用它创建账号；未设置时跳过 | 空 |
 
@@ -93,7 +102,7 @@ AI 对话、AI 提示词工坊、AI 数据查询共用 `AI_API_*` 三个变量�
 
 - `SECRET_KEY`
 - `ADMIN_PASSWORD`
-- `AI_SQL_DATABASE_URL`
+- `AI_SQL_DATABASE_URL`，或 `POSTGRES_RO_PASSWORD`（由它和 `DATABASE_URL` 推导出只读连接）
 
 使用 `docker-compose.yml` 部署时，`AI_SQL_DATABASE_URL` 由 compose 自动拼出，不需要手动设置。
 
@@ -123,6 +132,7 @@ AI 对话、AI 提示词工坊、AI 数据查询共用 `AI_API_*` 三个变量�
 | `SECRET_KEY` | 同上文 | **必填** |
 | `ADMIN_PASSWORD` | 同上文 | **必填** |
 | `POSTGRES_RO_PASSWORD` | AI SQL 只读账号密码 | **必填** |
+| `NPM_REGISTRY` | 构建镜像时安装依赖用的 npm 源（构建参数） | `https://registry.npmmirror.com` |
 | `APP_PORT` | 映射到宿主机的端口（容器内固定 5000） | `8080`（`setup.sh` 生成的配置默认写 `5000`） |
 | `ENABLE_TASK_SCHEDULER` | 同上文 | `true` |
 | `RUN_SCHEDULER_IN_WEB` | 同上文。compose 中默认为 `true`，与后端自身的默认值不同 | `true` |
@@ -145,7 +155,7 @@ compose 会根据以上变量自动设置：
 
 ### 镜像内置的变量
 
-`Dockerfile` 中设置，一般不需要修改：
+`Dockerfile` 中设置，一般不需要修改。构建参数 `NPM_REGISTRY` 默认为 `https://registry.npmjs.org`；通过 compose 构建时默认改用国内镜像，见上表。
 
 | 变量 | 值 |
 |---|---|

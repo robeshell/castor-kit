@@ -69,6 +69,10 @@ bash setup.sh
 
 安装向导会让你设置管理员密码和端口（默认 `5000`）。完成后打开 `http://localhost:5000`，用 `admin` 登录。
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
+
+**免费在线演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/deploy/index.md)。
+
 <details>
 <summary><b>本地开发</b>（Node.js 22+、pnpm、PostgreSQL 14+）</summary>
 

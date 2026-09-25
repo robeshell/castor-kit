@@ -13,6 +13,7 @@
 import pg from 'pg'
 import { loadConfig, loadEnvFiles, type AppEnv } from '../src/config'
 import { runMigrations } from '../src/db/migrate'
+import { resetDemoIfDue } from '../src/demo/reset'
 import { initRoRole } from './init-ro-role'
 import { seedRbac } from './seed-rbac'
 
@@ -25,6 +26,8 @@ export interface SetupOnceOptions {
   roPassword: string
   /** Read-only role name, defaults to castor_kit_ro (overridden only by tests) */
   roRoleName?: string
+  /** DEMO_MODE: restore the demo data when it is due (first start or older than resetHours) */
+  demo?: { resetHours: number }
   log?: (msg: string) => void
 }
 
@@ -56,6 +59,11 @@ export async function runSetupOnce(options: SetupOnceOptions): Promise<void> {
       roleName: options.roRoleName,
       log,
     })
+
+    if (options.demo) {
+      log('[setup] 演示模式：检查是否需要恢复演示数据...')
+      await resetDemoIfDue({ databaseUrl: options.databaseUrl, resetHours: options.demo.resetHours, log })
+    }
   } finally {
     // Closing the connection releases the session-level lock; unlock explicitly first, ignoring errors if the connection is already gone
     await lockClient.query(`SELECT pg_advisory_unlock(${ADVISORY_LOCK_KEY})`).catch(() => {})
@@ -74,6 +82,7 @@ if (isMain) {
     databaseUrl: config.databaseUrl,
     adminPassword: config.adminPassword,
     roPassword: config.postgresRoPassword,
+    demo: config.demoMode ? { resetHours: config.demoResetHours } : undefined,
   }).catch((err: unknown) => {
     console.error(err)
     process.exit(1)

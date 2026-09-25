@@ -6,11 +6,14 @@ FROM node:22-alpine AS build
 WORKDIR /repo
 RUN corepack enable
 
+# npm registry for dependency installs; docker-compose.yml passes a mirror, hosted builders (Render etc.) use the default
+ARG NPM_REGISTRY=https://registry.npmjs.org
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/mcp/package.json apps/mcp/
-RUN pnpm config set registry https://registry.npmmirror.com && \
+RUN pnpm config set registry ${NPM_REGISTRY} && \
     CI=true pnpm install --frozen-lockfile
 
 COPY apps/ apps/

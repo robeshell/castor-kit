@@ -17,6 +17,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
+import { registerDemoGuard } from './common/demo'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
 import { registerResponseTranslation } from './common/i18n'
 import { utcNowIso } from './common/serialize'
@@ -99,6 +100,8 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   })
 
   registerErrorHandler(app)
+  // Public demo: system management is read-only (no-op unless DEMO_MODE)
+  registerDemoGuard(app, config)
   // Translate response messages for en-US / ja-JP requests (Accept-Language)
   registerResponseTranslation(app)
 
@@ -124,6 +127,17 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   })
 
   // ---- Built-in routes ----
+  // Public: lets the login page show the demo account and the layout show the demo banner
+  app.get('/api/admin/app-info', async () =>
+    config.demoMode
+      ? {
+          demo_mode: true,
+          demo_reset_hours: config.demoResetHours,
+          demo_account: { username: config.adminUsername, password: config.adminPassword },
+        }
+      : { demo_mode: false },
+  )
+
   app.get('/health', async (request, reply) => {
     try {
       await handle.pool.query('SELECT 1')
