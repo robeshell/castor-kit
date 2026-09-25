@@ -14,6 +14,7 @@ export const CONTENT = {
       lead: '用户、角色、权限、菜单、日志这些后台必备功能已经做好。要加新页面，告诉 AI 你要什么，它会生成数据表、接口和页面，并自动检查能否正常运行。',
       primary: '快速开始',
       secondary: 'GitHub',
+      demo: '在线演示',
       copy: '复制',
       copied: '已复制',
     },
@@ -84,6 +85,7 @@ export const CONTENT = {
       lead: 'Users, roles, permissions, menus and logs are already built. Need a new page? Describe it, and AI generates the table, API and UI — then checks that it all works.',
       primary: 'Get started',
       secondary: 'GitHub',
+      demo: 'Live demo',
       copy: 'Copy',
       copied: 'Copied',
     },
@@ -154,6 +156,7 @@ export const CONTENT = {
       lead: 'ユーザー、ロール、権限、メニュー、ログなどの基本機能は実装済み。新しい画面は要件を伝えるだけで、AI がテーブル・API・画面を作り、動作まで自動でチェックします。',
       primary: 'はじめる',
       secondary: 'GitHub',
+      demo: 'ライブデモ',
       copy: 'コピー',
       copied: 'コピーしました',
     },
@@ -218,5 +221,7 @@ export const CONTENT = {
 }
 
 export const STACK = ['Node.js 22', 'TypeScript', 'Fastify 5', 'Drizzle ORM', 'PostgreSQL', 'Zod', 'React 19', 'shadcn/ui', 'Tailwind CSS v4', 'Motion', 'i18next', 'Vite', 'Vitest', 'Docker', 'MCP']
+
+export const DEMO_URL = 'https://castor-kit-demo.onrender.com'
 
 export const INSTALL = 'git clone https://github.com/robeshell/castor-kit.git && cd castor-kit && bash setup.sh'

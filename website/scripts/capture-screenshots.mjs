@@ -27,7 +27,7 @@ const LANGS = ['zh-CN', 'en-US', 'ja-JP']
 const THEMES = ['light', 'dark']
 const ACCENTS = ['ocean', 'violet', 'emerald', 'rose', 'amber', 'slate']
 const VIEWPORT = { width: 1440, height: 900 }
-const APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'boxed', tagsView: true }
+const APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'fluid', tagsView: true }
 // Pages opened before the shot so the tabs bar looks like real use
 const WARM_UP = ['/system/users', '/system/logs']
 // Label of the appearance button in each language (aria-label)

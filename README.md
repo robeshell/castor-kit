@@ -19,7 +19,7 @@ Describe a new page, and AI generates the table, API and UI — then checks that
 
 **English** · [简体中文](README_CN.md) · [日本語](README.ja.md)
 
-[Documentation](https://robeshell.github.io/castor-kit/en/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
+**[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castor-kit/en/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
@@ -71,7 +71,9 @@ The setup wizard asks for an admin password and a port (default `5000`). Then op
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
 
-**Free online demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/en/deploy/index.md).
+**Try it:** [https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com) — sign in with one click (free instance: the first visit after a while can take ~30 s to wake up).
+
+**Deploy your own demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/en/deploy/index.md).
 
 <details>
 <summary><b>Local development</b> (Node.js 22+, pnpm, PostgreSQL 14+)</summary>
