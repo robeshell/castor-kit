@@ -72,8 +72,8 @@ export default function Login() {
     <div className="bg-sidebar relative flex h-svh flex-col overflow-y-auto">
       <LoginBackdrop />
 
-      {/* The brand lives in the form card; the header only carries the language / theme switches */}
-      <header className="relative flex items-center justify-end px-5 py-4 sm:px-8">
+      <header className="relative flex items-center justify-between px-5 py-4 sm:px-8">
+        <BrandMark />
         <div className="flex items-center gap-1">
           <LanguageSwitcher />
           <ThemeToggle />
@@ -94,10 +94,7 @@ export default function Login() {
             {/* A gradient highlight along the top edge adds a touch of brand */}
             <div className="via-brand-via absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent to-transparent" />
 
-            <div className="flex flex-col items-center text-center">
-              <BrandMark showText={false} imageClassName="size-11" />
-              <h1 className="mt-5 text-[22px] font-semibold tracking-tight">{t('登录 castor-kit')}</h1>
-            </div>
+            <h1 className="text-center text-[22px] font-semibold tracking-tight">{t('登录')}</h1>
 
             <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
               <div className="space-y-1.5">
