@@ -105,37 +105,51 @@ function SystemHealth() {
     <Panel
       title="系统状态"
       actions={
-        <span className={cn('flex items-center gap-1.5 text-xs', online ? 'text-success' : 'text-muted-foreground')}>
-          <span className={cn('relative flex size-1.5 rounded-full', online ? 'bg-success' : 'bg-muted-foreground')}>
-            {online ? <span className="bg-success absolute inset-0 animate-ping rounded-full opacity-60" /> : null}
+        !stats && online ? null : (
+          <span className={cn('flex items-center gap-1.5 text-xs', online ? 'text-success' : 'text-muted-foreground')}>
+            <span className={cn('relative flex size-1.5 rounded-full', online ? 'bg-success' : 'bg-muted-foreground')}>
+              {online ? <span className="bg-success absolute inset-0 animate-ping rounded-full opacity-60" /> : null}
+            </span>
+            {online ? t('运行正常') : t('连接失败')}
           </span>
-          {online ? t('运行正常') : t('连接失败')}
-        </span>
+        )
       }
       className="h-full"
     >
-      <div className="space-y-4">
-        <HealthBar label="CPU" value={stats?.cpu} />
-        <HealthBar label={t('内存')} value={stats?.mem_pct} />
-        <HealthBar label={t('磁盘')} value={stats?.disk_pct} />
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          {[
-            { label: '网络发送', value: stats?.net_sent_mb, icon: ArrowUpRight },
-            { label: '网络接收', value: stats?.net_recv_mb, icon: ArrowDownRight },
-          ].map((item) => (
-            <div key={item.label} className="bg-muted/50 rounded-lg px-3 py-2.5">
-              <div className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                <item.icon className="size-3" />
-                {t(item.label)}
-              </div>
-              <div className="mt-1 text-sm font-medium tabular-nums">
-                {(item.value ?? 0).toFixed(2)}
-                <span className="text-muted-foreground ml-1 text-xs font-normal">MB/s</span>
-              </div>
-            </div>
+      {!stats && online ? (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8" />
           ))}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          <HealthBar label="CPU" value={stats?.cpu} />
+          <HealthBar label={t('内存')} value={stats?.mem_pct} />
+          <HealthBar label={t('磁盘')} value={stats?.disk_pct} />
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {[
+              { label: '网络发送', value: stats?.net_sent_mb, icon: ArrowUpRight },
+              { label: '网络接收', value: stats?.net_recv_mb, icon: ArrowDownRight },
+            ].map((item) => (
+              <div key={item.label} className="bg-muted/50 rounded-lg px-3 py-2.5">
+                <div className="text-muted-foreground flex items-center gap-1 text-[11px]">
+                  <item.icon className="size-3" />
+                  {t(item.label)}
+                </div>
+                <div className="mt-1 text-sm font-medium tabular-nums">
+                  {(item.value ?? 0).toFixed(2)}
+                  <span className="text-muted-foreground ml-1 text-xs font-normal">MB/s</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Panel>
   )
 }
@@ -185,11 +199,15 @@ function ActivityChart({ stats }) {
   return (
     <Panel
       title="系统活跃度"
-      description={t('近 7 天操作日志，共 {{count}} 条', { count: total })}
+      description={stats ? t('近 7 天操作日志，共 {{count}} 条', { count: total }) : '\u00a0'}
       actions={<SegmentedTabs variant="pill" value={range} onChange={setRange} items={[{ value: '7d', label: '7 天' }]} />}
       className="h-full"
     >
-      <ReactECharts option={option} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
+      {stats ? (
+        <ReactECharts option={option} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
+      ) : (
+        <Skeleton className="h-[248px] w-full" />
+      )}
     </Panel>
   )
 }

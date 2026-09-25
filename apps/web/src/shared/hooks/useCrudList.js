@@ -20,7 +20,8 @@ export function useCrudList(fetcher, { defaultPerPage = 20 } = {}) {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [perPage] = useState(defaultPerPage)
-  const [loading, setLoading] = useState(false)
+  // Starts true: pages fetch on mount, and the table should show skeleton rows (not "no data") until the first response
+  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({})
   // Step-back-in-progress flag: prevents the step-back fetch from triggering another step-back recursively
   const recoveringRef = useRef(false)

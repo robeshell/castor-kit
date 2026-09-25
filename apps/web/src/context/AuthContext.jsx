@@ -27,10 +27,13 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const login = (userData) => {
-    setUser(userData)
+  // Menus are fetched before the user is set: once `user` is set the login page redirects to "/", and with an
+  // empty menu list the index route would briefly render the "no accessible pages" screen
+  const login = async (userData) => {
+    const data = await getMyMenus()
+    setMenus(Array.isArray(data) ? data : data.menus || [])
     setMenuCodes(userData.menu_codes || [])
-    return getMyMenus().then((data) => setMenus(Array.isArray(data) ? data : data.menus || []))
+    setUser(userData)
   }
 
   const logout = async () => {
