@@ -65,9 +65,15 @@ afterAll(async () => {
   await admin(`DROP DATABASE IF EXISTS ${TEMP_DB} WITH (FORCE)`)
 })
 
+// 菜单数 / 最大 ID 从 MENUS_DATA 推导：每新增一个功能模块菜单都会变，测试只校验同步逻辑本身
+const MENU_COUNT = MENUS_DATA.length
+const NEXT_MENU_ID = Math.max(...MENUS_DATA.map((m) => m.id)) + 1
+/** 从 AuraStack 移植时的 120 个菜单：新增功能不应改动它们 */
+const LEGACY_MENU_COUNT = 120
+
 describe('MENUS_DATA', () => {
-  it('与 Python 菜单树逐条一致：120 条、ID/编码唯一、父节点先于子节点', () => {
-    expect(MENUS_DATA).toHaveLength(120)
+  it('至少包含移植时的 120 个菜单；ID/编码唯一、父节点先于子节点、历史 ID 不变', () => {
+    expect(MENU_COUNT).toBeGreaterThanOrEqual(LEGACY_MENU_COUNT)
     const ids = MENUS_DATA.map((m) => m.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(new Set(MENUS_DATA.map((m) => m.code)).size).toBe(ids.length)
@@ -97,9 +103,9 @@ describe('MENUS_DATA', () => {
 })
 
 describe('全量重建（空库）', () => {
-  it('写入 120 个菜单 + super_admin + admin，序列与 Python 一致', async () => {
+  it('写入全部菜单 + super_admin + admin，序列与 Python 一致', async () => {
     const result = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'ck_test_r8_pw', log: quiet })
-    expect(result).toEqual({ menusAdded: 120, menusUpdated: 0, superAdminMenuCount: 120, adminCreated: true })
+    expect(result).toEqual({ menusAdded: MENU_COUNT, menusUpdated: 0, superAdminMenuCount: MENU_COUNT, adminCreated: true })
 
     const snap = await snapshot(TEMP_URL)
     expect(snap.menus.map((m) => m.id)).toEqual(MENUS_DATA.map((m) => m.id).sort((a, b) => a - b))
@@ -112,11 +118,11 @@ describe('全量重建（空库）', () => {
       expect(row.description).toBeNull()
     }
     // Python 实测：menus_id_seq = max(id)+1 且 is_called=false；roles / admin_users 各用了一次序列
-    expect(snap.seq).toEqual({ last_value: 1000036, is_called: false })
+    expect(snap.seq).toEqual({ last_value: NEXT_MENU_ID, is_called: false })
     expect(snap.roles).toEqual([{ id: 1, name: '超级管理员', code: 'super_admin', description: '拥有所有权限的超级管理员' }])
     expect(snap.users).toEqual([{ id: 1, username: 'admin' }])
     expect(snap.userRoles).toEqual([{ user_id: 1, role_id: 1 }])
-    expect(snap.roleMenus).toHaveLength(120)
+    expect(snap.roleMenus).toHaveLength(MENU_COUNT)
 
     const [user] = await query<{ password_hash: string }>(TEMP_URL, "SELECT password_hash FROM admin_users WHERE username = 'admin'")
     expect(user!.password_hash).toMatch(/^pbkdf2:sha256:1000000\$[A-Za-z0-9]{16}\$[0-9a-f]{64}$/)
@@ -132,8 +138,8 @@ describe('全量重建（空库）', () => {
     expect(snap.users.map((u) => u.username)).toEqual(['admin'])
     expect(snap.roles[0]!.id).toBe(3)
     expect(snap.users[0]!.id).toBe(3)
-    expect(snap.menus).toHaveLength(120)
-    expect(snap.seq).toEqual({ last_value: 1000036, is_called: false })
+    expect(snap.menus).toHaveLength(MENU_COUNT)
+    expect(snap.seq).toEqual({ last_value: NEXT_MENU_ID, is_called: false })
   })
 })
 
@@ -142,7 +148,7 @@ describe('增量同步', () => {
     const before = await snapshot(TEMP_URL)
     const first = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })
     const second = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })
-    expect(first).toEqual({ menusAdded: 0, menusUpdated: 120, superAdminMenuCount: 120, adminCreated: false })
+    expect(first).toEqual({ menusAdded: 0, menusUpdated: MENU_COUNT, superAdminMenuCount: MENU_COUNT, adminCreated: false })
     expect(second).toEqual(first)
     expect(await snapshot(TEMP_URL)).toEqual(before)
   })
@@ -176,7 +182,7 @@ describe('增量同步', () => {
     const byCode = new Map(rows.map((r) => [r.code, r]))
     expect(byCode.get('system_users')).toMatchObject({ id: 21, name: '用户管理', sort_order: 1 })
     // 4423 被占用 → 走序列（上次 setval 后的下一个值）
-    expect(byCode.get('cc_ai_prompt_delete')!.id).toBe(1000036)
+    expect(byCode.get('cc_ai_prompt_delete')!.id).toBe(NEXT_MENU_ID)
     expect(byCode.get('ck_test_r8_occupier')!.id).toBe(4423)
     // data_management → component_center（沿用原 ID 3）
     expect(byCode.get('component_center')).toMatchObject({ id: 3, name: '组件示例中心' })

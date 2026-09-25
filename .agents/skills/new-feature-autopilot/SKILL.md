@@ -5,72 +5,200 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 
 # New Feature Autopilot
 
-Use this skill when user asks to "做XX功能", "新增模块", "加一个页面/接口", etc.
+使用场景：用户说"做XX功能"、"加一个XX页面"、"新增XX模块"等意图表达时触发。
 
-## Goal
+## 核心原则
 
-Deliver a usable feature from intent only:
+**AI 负责所有技术决策，PM 只需确认业务意图。**
 
-- backend table definition + API module
-- frontend page
-- RBAC/menu wiring
-- Drizzle migration, really applied to the database
-- OpenAPI update
-- verification gate green
+- 路由路径、权限编码、字段类型、文件位置、菜单 ID——全部由 AI 根据 AGENTS.md 约定自行推断
+- 不向 PM 询问任何技术细节
+- 先展示业务预览供确认，再执行实现
+- 所有命令在仓库根目录执行（Node 22 + pnpm）
+- 开发环境配置在 `apps/api/.env.development`（仓库根目录没有 `.env`）；数据库连接取其中的 `DEV_DATABASE_URL`，本地默认库名 `aurastack`
 
-## Execution Steps
+---
 
-1. Identify stack + read references first
-   - This project is castor-kit: pnpm monorepo, Node 22 + TypeScript + Fastify 5 + Zod + Drizzle (`apps/api`), React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion (`apps/web`, JSX; UI migrated from Semi Design, see `docs/frontend-redesign-plan.md`), PostgreSQL.
-   - Read `AGENTS.md` and `docs/templates/backend/README.md` before writing code.
-   - If related MCP docs/skills exist, read them first (UI tasks: shadcn/ui docs or registry — shadcn MCP if available — plus `.agents/skills/shadcn-ui-skills/SKILL.md`).
-2. Understand intent from conversation
-   - Extract actor, main workflow, key entities, and expected admin actions.
-   - Make reasonable defaults for non-critical fields (field type table in `AGENTS.md`).
-3. Scan existing modules
-   - Prefer extending existing modules over creating duplicates.
-   - Reference implementation: `apps/api/src/modules/admin/users/` (backend) and `apps/web/src/modules/admin/pages/users/index.jsx` (frontend).
-4. Scaffold
-   - `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "name:str,status:str20" --dry-run`, then run again without `--dry-run`.
-   - Scaffold writes `db/schema/<domain-dir>/<name>.ts` + `modules/<domain-dir>/<name>/{schema,repository,service,routes}.ts` + frontend api/page, registers them in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts`, and runs `drizzle-kit generate`.
-5. Implement backend
-   - Follow the layered module structure: `db/schema → schema.ts → repository.ts → service.ts → routes.ts`.
-   - If introducing a new first-level domain, wire it in `apps/api/src/router.ts` and `apps/api/src/db/schema/index.ts`.
-   - Use unified permission helpers: `import { hasMenuPermission, loginRequired } from '@/common/auth'` and `await hasMenuPermission(request, code)`; do not create a local `hasPermission` in routes files.
-   - Output times with `toIso()` (never `Date#toISOString()`), keep numeric columns as strings, throw `ServiceError` from services.
-   - If the table shape changes after scaffolding: `pnpm db:generate --name <desc>` (no `--` for this command).
-6. Implement frontend
-   - Page under `apps/web/src/modules/**/pages/**/index.jsx`, API file under `apps/web/src/modules/**/api/`.
-   - Reuse `apps/web/src/shared/api/request.js` and `apps/web/src/shared/utils/file.js`.
-   - Ensure menu `path` + `component` are compatible with dynamic routing (`component` like `admin/users`, `component_center/admin/list_page`).
-   - The scaffolded page already follows the shadcn/ui list pattern (PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog); translate titles/labels to Chinese, add `rules` validation, turn enums into `FormSelect` + `StatusBadge`.
-   - Reuse `apps/web/src/shared/components/` (DataTable, FormDialog, FormFields, ConfirmAction, StatusBadge, `data-transfer/ImportDialog` / `data-transfer/ExportDialog` for csv / xlsx) and Tailwind semantic color classes.
-   - Never import `@douyinfe/*` or use `var(--semi-*)` / hard-coded hex colors (the `frontend_no_legacy_ui` verify check fails on them). Add missing shadcn primitives with `apps/web/scripts/shadcn-add.sh <component>`.
-7. Integrate permissions
-   - Add menu/button permission codes to `MENUS_DATA` in `apps/api/scripts/seed-rbac.ts` (button ID = menu ID × 10 + n).
-   - Always run `pnpm seed:rbac -- --incremental` after permission/menu changes (it refreshes super-admin permissions so new pages are immediately visible).
-8. Apply the migration
-   - Review the new SQL in `apps/api/drizzle/`, run `pnpm db:migrate`, then prove it with `psql -d aurastack -c '\d <table>'`. Static checks alone do not count.
-9. Update API docs
-   - `pnpm openapi:generate`, then fill in request/response schema in `docs/apifox-full.openapi.json`.
-10. Verify
-    - `pnpm verify -- --module <name> --skip-build` (add `--json` for structured output); fix failures and re-run until all green.
-11. Deliver handoff
-    - Report "已迁移至 <tag>" (from the `migration_applied` check) when schema changed.
-    - Always provide a short "next steps" command list for the user (e.g. `pnpm db:migrate && pnpm seed:rbac -- --incremental` for other environments).
+## 执行步骤
 
-## Defaults (when user does not specify)
+### Step 1 — 读取上下文
 
-- List page supports: search + create + edit + delete + import + export.
-- RBAC includes: `<perm>`, `<perm>_add`, `<perm>_edit`, `<perm>_delete`, `<perm>_export`, `<perm>_import` (`<perm>` = `system_<name>` for admin, `cc_<name>` for component_center).
-- New admin routes under `/api/admin/<resource>s`.
-- Use consistent toast UX with existing pages (`toast.success` / `toast.apiError` from `@/lib/toast`).
-- Pagination 20 per page, ordered by id desc.
+```
+必须按顺序读取：
+1. AGENTS.md（项目约定、命名规则、字段类型推断规则、反模式）
+2. docs/templates/backend/（含 README.md 替换规则）和 docs/templates/frontend/（代码骨架模板）
+3. 现有相似模块（后端参考 apps/api/src/modules/admin/users/，前端参考 apps/web/src/modules/admin/pages/users/index.jsx）
+   + 前端约定：AGENTS.md「前端架构约定」、docs/frontend-redesign-plan.md、.claude/skills/shadcn-ui-skills/
+4. apps/api/scripts/seed-rbac.ts（MENUS_DATA：查询当前菜单树，确定 parent_id 与下一个可用 ID）
+5. 先扫一遍现有模块：需求能通过扩展已有模块实现的，优先扩展，不要新建重复模块
+```
 
-## Blocking Questions Only
+菜单 ID 以 `MENUS_DATA` 实际占用为准，AGENTS.md 的区间表只是指引（区间里夹着历史遗留 ID）：
 
-Ask at most 1-2 concise questions only for:
+```bash
+grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
+```
 
-- data model ambiguity with irreversible impact
-- security-sensitive permission boundaries
-- external integration credentials
+### Step 2 — 生成内部 Spec（不展示给 PM）
+
+根据 PM 的业务描述，自动推断并生成技术规格：
+
+```
+推断内容：
+- 资源名（snake_case，如 customer_order）与所属域（admin | component_center）
+- API 路径（/api/admin/<resource>s，多词用连字符，如 /api/admin/customer-orders）
+- 字段名 + scaffold 类型（str/str20/str50/str500/text/int/float/bool/date/datetime，参考 AGENTS.md 字段类型推断规则）
+- 权限编码（admin 域 system_<name>，component_center 域 cc_<name>；按钮 _add/_edit/_delete/_export/_import）
+- 前端文件路径（admin 域 modules/admin/pages/<name>/index.jsx；
+               component_center 域 modules/component_center/pages/admin/<name>_page/index.jsx）
+- 菜单 ID（在 AGENTS.md 的 ID 分配区间里取 `MENUS_DATA` 未占用的 ID；按钮 ID = 菜单 ID × 10 + 序号）
+- 菜单路径（`/system/<资源复数>`，与同级风格一致）、排序（排在同级最后）、图标（沿用 `apps/web/src/lib/menu-icons.js` 映射表里已有的名字）
+- 枚举字段：库里存英文代码（如 `raw_material`），界面 / 导出显示中文，导入中英文都接受
+- parent_id（从菜单树中根据 PM 描述的位置推断）
+- 迁移名称（scaffold 默认用 <name>）
+```
+
+### Step 3 — 展示业务预览，等待确认
+
+仅向 PM 展示业务层面信息，格式如下：
+
+```
+📋 <功能名>
+
+位置：<父菜单> → <功能名>
+功能：列表查看、新增、编辑、删除（按需调整）
+字段：
+  · <中文字段名>（必填）
+  · <中文字段名>
+  · ...
+
+确认这样做吗？或者需要调整什么？
+```
+
+- 如 PM 确认 → 进入 Step 4
+- 如 PM 调整 → 更新内部 Spec，重新展示预览
+
+### Step 4 — 执行实现
+
+**4a. 生成骨架（优先使用 scaffold）**
+
+```bash
+# 先 dry-run 看将生成哪些文件
+pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..." --dry-run
+# 确认后正式生成
+pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..."
+```
+
+scaffold 会：
+- 生成 `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts`（Drizzle 表定义 + toDict）
+- 生成 `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts`
+- 生成前端 `apps/web/src/modules/<module>/api/<name>.js` + 页面 `index.jsx`（shadcn/ui 体系，结构同 users 页：PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog）
+- 自动注册 `apps/api/src/db/schema/index.ts` 与 `apps/api/src/modules/<domain-dir>/router.ts`
+- 自动执行 `drizzle-kit generate --name <name>` 生成迁移 SQL
+
+（`<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 为下划线换连字符。）
+
+scaffold 的已知限制（生成后手工补）：
+
+- `--fields` 表达不了**必填 / 唯一 / 默认值**：改 `db/schema` 加 `.notNull()` / `.unique()` 等后 `pnpm db:generate --name <描述>` 生成增量迁移，service 里补「XX不能为空」「XX已存在」校验（新增、编辑、导入三处）
+- 生成的标题与字段标签是英文占位，要改成中文（表格列、表单、`EXPORT_FIELD_MAP`、`IMPORT_HEADER_MAP`）
+- `bool` 列可为空，请求里不传时写入 null；需要默认值时在 service 里补
+- 权限前缀是单数 `system_<name>` / `cc_<name>`，与路由、verify 保持一致即可，不必改成复数
+
+如 scaffold 不可用，手动临摹 `docs/templates/`（占位符替换规则见 `docs/templates/backend/README.md`），并手动完成上面的注册与 `pnpm db:generate --name <描述>`。
+
+**4b. 补充业务逻辑**
+
+按 db/schema → schema → repository → service → routes 顺序填充实际字段、中文表头（`EXPORT_FIELD_MAP` / `IMPORT_HEADER_MAP`）和业务规则。
+
+- 权限：`import { hasMenuPermission, loginRequired } from '@/common/auth'`，`await hasMenuPermission(request, code)`
+- 时间输出用 `toIso()`，numeric 保持字符串，业务错误抛 `ServiceError`
+- 若在 scaffold 之后又改了表结构：`pnpm db:generate --name <描述>` 生成增量迁移（**不能写 `--`**，drizzle-kit 不认识）
+
+**4b'. 前端页面**
+
+scaffold 生成的页面已可用，按业务打磨：
+
+- 标题与字段标签改成中文（页面标题下**不写描述**，见设计文档「文案」一条）；`rules` 补必填与格式校验（文案与后端一致）；枚举字段改成 `FormSelect` + 表格列 `StatusBadge`
+- 只用 `@/components/ui/*`、`@/shared/components/*`、`lucide-react` 与 Tailwind 语义色类；禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色（verify 的 `frontend_no_legacy_ui` 会拦截）
+- 组件用法查 `.claude/skills/shadcn-ui-skills/SKILL.md`；shadcn 组件 API 查官方文档（有 shadcn MCP 时优先用）；缺原子组件时 `apps/web/scripts/shadcn-add.sh <组件>`
+- 自检：`cd apps/web && npx eslint <页面文件>` 零错误
+
+**4c. RBAC**
+
+在 `apps/api/scripts/seed-rbac.ts` 的 `MENUS_DATA` 中添加菜单条目（`component` 取 scaffold 输出的 Menu component）和按钮权限，然后运行：
+```bash
+pnpm seed:rbac -- --incremental
+```
+
+**4d. 数据库迁移（必须真实落库）**
+
+```bash
+# 审查 apps/api/drizzle/ 下新生成的 SQL 后执行
+pnpm db:migrate
+# 实证：表 / 字段真实存在（库名以 apps/api/.env.development 的 DEV_DATABASE_URL 为准）
+psql -d aurastack -c '\d <name>s'
+```
+
+**4e. API 文档（建议，verify 只提醒不拦截）**
+
+```bash
+pnpm openapi:generate
+```
+
+生成的新路径只是骨架，按实际请求 / 响应在 `docs/apifox-full.openapi.json` 里补全 schema。
+
+### Step 5 — 验证门禁（强制，不得跳过）
+
+```bash
+pnpm verify -- --module <name>
+# 含前端构建、前后端单元测试（后端约 45s）；需要结构化结果时加 --json
+# 调试中途可加 --skip-build / --skip-api-tests 提速，交付前必须跑一次完整的
+```
+
+- 如有失败项 → 自动修复 → 重新运行验证
+- `migration_applied` 项的 detail 形如「已迁移至 0001_<name>（aurastack）」，写进交付报告
+- 全部通过后输出交付报告
+
+---
+
+## 交付报告格式
+
+```
+✅ <功能名> 交付完成
+
+变更文件：
+  后端：apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts
+        apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts
+        apps/api/src/db/schema/index.ts、apps/api/src/modules/<domain-dir>/router.ts（注册）
+  前端：apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
+        apps/web/src/modules/<module>/api/<name>.js
+  RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）
+  迁移：已迁移至 <tag>（psql \d <name>s 已确认）
+  门禁：pnpm verify -- --module <name> 全部通过（含前后端单元测试）
+
+用户下一步操作：
+  1. 刷新页面，在「<父菜单> → <功能名>」找到新功能
+  2. （其他环境部署时）pnpm db:migrate && pnpm seed:rbac -- --incremental
+```
+
+---
+
+## 默认行为（PM 未指定时）
+
+- 列表页标准功能：搜索 + 新增 + 编辑 + 删除 + **导入 + 导出**（csv / xlsx，不支持 .xls）
+- RBAC 按钮权限：`_add` / `_edit` / `_delete` / `_export` / `_import`
+- 新路由前缀：`/api/admin/<resource>s`
+- 导出/导入路由：`POST /api/admin/<resource>s/export`、`GET /template`、`POST /import`
+- 分页：每页 20 条（上限 200）
+- 排序：按 id 倒序
+
+---
+
+## 仅在以下情况提问（最多 1-2 个）
+
+- 数据模型存在不可逆的歧义（如关联关系复杂，影响表结构）
+- 涉及外部系统集成，需要配置项
+- 权限边界有安全影响，需要产品确认
+
+其余所有技术决策，AI 自行做出合理选择并在交付报告中说明假设。

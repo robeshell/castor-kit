@@ -24,7 +24,7 @@
   2. 自动推断技术规格（不向用户询问技术细节）
   3. 展示**业务预览**供确认
   4. `pnpm scaffold` → 填业务 → `seed-rbac` 增量 → `pnpm db:migrate` → `psql \d` 实证
-  5. `pnpm verify -- --module <name>` 门禁全绿后输出交付报告（注明「已迁移至 <tag>」）
+  5. `pnpm verify -- --module <name>` 门禁全绿（含前后端单元测试）后输出交付报告（注明「已迁移至 <tag>」）
 - `shadcn-ui-skills`（`.claude/skills/shadcn-ui-skills/SKILL.md`）：shadcn/ui 组件清单、castor-kit 公共组件用法、设计 tokens、动效规范、常见模式与禁止事项
 
 ### 文档优先规则
@@ -70,7 +70,7 @@
 pnpm dev                                   # api(5001) + web(5173)
 pnpm db:generate --name <描述>              # 生成迁移（注意：这里不能写 --）
 pnpm db:migrate                            # 应用迁移
-psql -d aurastack -c '\d <table>'          # 实证落库
+psql -d aurastack -c '\d <table>'          # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
 pnpm seed:rbac -- --incremental            # RBAC 增量同步
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
 pnpm verify -- --module <name>             # 功能验证门禁（--skip-build 跳过前端构建，--json 结构化输出）
@@ -89,4 +89,4 @@ pnpm openapi:generate && pnpm openapi:apifox
 5. [ ] RBAC：在 `seed-rbac.ts` 中添加菜单 + 按钮权限条目，运行 `pnpm seed:rbac -- --incremental`
 6. [ ] 迁移：审查 `apps/api/drizzle/` 新 SQL → `pnpm db:migrate` → `psql \d` 确认
 7. [ ] OpenAPI：`pnpm openapi:generate`，补充 `docs/apifox-full.openapi.json` 中的 schema
-8. [ ] 门禁：`pnpm verify -- --module <name>` 全部通过
+8. [ ] 门禁：`pnpm verify -- --module <name>` 全部通过（含前后端单元测试）

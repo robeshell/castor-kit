@@ -22,6 +22,7 @@
  *  13. RBAC 种子（scripts/seed-rbac.ts）包含菜单 component 或权限编码
  *  14. 前端构建通过（可选，--skip-build 跳过）
  *  15. 前端 Vitest 通过（可选，--skip-frontend-tests 跳过）
+ *  16. 后端 Vitest 通过（可选，--skip-api-tests 跳过；约 45s，需要测试库）
  *
  * JSON 输出结构与 Python 版一致：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
  */
@@ -599,12 +600,21 @@ export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResu
   return { name: 'frontend_tests', passed: true }
 }
 
+/** 后端单元测试：新功能常会让 seed / 迁移相关测试变化，门禁必须覆盖 */
+export function checkApiTests(ctx: VerifyContext, skip: boolean): CheckResult {
+  if (skip) return { name: 'api_tests', passed: true, skipped: true }
+  const { code, output } = run([...bin(ctx.apiDir, 'vitest'), 'run'], ctx.apiDir)
+  if (code !== 0) return { name: 'api_tests', passed: false, error: output.slice(-1500) }
+  return { name: 'api_tests', passed: true }
+}
+
 // ─── 主流程 ────────────────────────────────────────────────────────────────────
 
 export interface VerifyOptions {
   module?: string
   skipBuild?: boolean
   skipFrontendTests?: boolean
+  skipApiTests?: boolean
   skipDb?: boolean
   runRbacSync?: boolean
   strictDocs?: boolean
@@ -680,6 +690,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
   // 前端构建 + 测试
   step('frontend_build', () => checkFrontendBuild(ctx, options.skipBuild ?? false))
   step('frontend_tests', () => checkFrontendTests(ctx, options.skipFrontendTests ?? false))
+  step('api_tests', () => checkApiTests(ctx, options.skipApiTests ?? false))
 
   // 汇总
   const passed = results.every((r) => r.passed)
@@ -713,6 +724,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       module: { type: 'string' },
       'skip-build': { type: 'boolean', default: false },
       'skip-frontend-tests': { type: 'boolean', default: false },
+      'skip-api-tests': { type: 'boolean', default: false },
       'skip-db': { type: 'boolean', default: false },
       'strict-docs': { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
@@ -731,6 +743,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     module: values.module,
     skipBuild: values['skip-build'],
     skipFrontendTests: values['skip-frontend-tests'],
+    skipApiTests: values['skip-api-tests'],
     skipDb: values['skip-db'],
     strictDocs: values['strict-docs'],
     runRbacSync: values['run-rbac-sync'],

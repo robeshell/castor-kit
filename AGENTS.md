@@ -333,7 +333,7 @@ export const importItems = (file) => {
 **页面结构（列表页照 users 页）：**
 
 ```
-PageHeader（标题 + 描述 + 右侧操作：导入 / 导出 outline，新增 variant="brand"，每页最多一个 brand 按钮）
+PageHeader（标题 + 右侧操作：导入 / 导出 outline，新增 variant="brand"，每页最多一个 brand 按钮；标题下不写功能介绍）
 → FilterBar（SearchInput / FilterSelect，查询 + 重置）
 → DataTable（分页 page/perPage/total、勾选 selectable、行操作 ghost 按钮 + ConfirmAction 删除）
 → FormDialog / FormSheet（react-hook-form + FormFields，提交失败 toast.apiError 后 throw 保持弹窗）
@@ -345,7 +345,7 @@ PageHeader（标题 + 描述 + 右侧操作：导入 / 导出 outline，新增 v
 
 | 组件 | 用途 |
 |---|---|
-| `PageHeader` / `Panel` | 页头（title / description / actions）/ 卡片分区（`padded={false}` 贴边） |
+| `PageHeader` / `Panel` | 页头（title / actions；description 只放数据类信息，如「4 列 · 8 张卡片」）/ 卡片分区（`padded={false}` 贴边） |
 | `DataTable` + `DataPagination` | 列定义 `{ key, title, dataIndex, width, align, className, ellipsis, render(value, row, index) }`；`pagination={{ page, perPage, total, onChange }}`；`selectable` / `selectedKeys` / `onSelectionChange`；`loading` 骨架与空态内置 |
 | `Filters`：`FilterBar` / `SearchInput` / `FilterSelect` | 筛选栏；`FilterSelect` 的 `''` 表示全部；防抖用 `@/shared/hooks/useDebouncedValue` |
 | `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | 新建编辑弹窗 / 侧边抽屉 / 只读详情抽屉 / 键值列表 |
@@ -374,7 +374,7 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 **设计 tokens 与动效**（详见 `docs/frontend-redesign-plan.md` §3）：
 
 - 颜色一律用语义类：`bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`；只用语义类，暗色模式（`<html class="dark">`）天然正确
-- 中性灰为底，Ocean 渐变（blue → sky → cyan）是唯一强调色，只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`；不用紫色
+- 中性灰为底，Ocean 渐变（blue → sky → cyan）是唯一强调色，只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`（只用于小块装饰，不铺在内容区大背景上，浅色下像污渍）；不用紫色
 - 间距用 Tailwind（`space-y-4` / `gap-4`），数字 `tabular-nums`；移动端（<768px）不能横向撑破（表格容器横向滚动）
 - 动效克制：交互 150–250ms ease-out；列表错峰入场、指示条 layoutId、数字滚动、弹层进出已由公共组件提供；`prefers-reduced-motion` 已全局处理
 
@@ -454,16 +454,21 @@ user_roles：用户-角色 多对多（复合主键）
 ### 菜单 ID 分配规则
 
 ```
-系统管理域（parent_id=2）：    ID 21-39（已用到 32；消息通知/公告为历史遗留 100002/100003）
+系统管理域（parent_id=2）：    ID 21-39（消息通知/公告为历史遗留 100002/100003）
 组件示例中心（parent_id=3）：  ID 40-499
-  管理系统（parent_id=40）：   ID 401-409（已用到 404；列表/统计/卡片/树形/动态表单为历史遗留 31/33/34/35/36）
-  数据可视化（parent_id=41）： ID 411-419（已用到 413；数据大屏为历史遗留 37）
-  3D/创意（parent_id=42）：    ID 421-429（已用到 424）
-  AI 应用（parent_id=44）：    ID 441-449（已用到 443）
-  编辑器（parent_id=45）：     ID 451-459（已用到 454）
-  工具类（parent_id=46）：     ID 461-469（已用到 464）
+  管理系统（parent_id=40）：   ID 401-409
+  数据可视化（parent_id=41）： ID 411-419
+  3D/创意（parent_id=42）：    ID 421-429
+  AI 应用（parent_id=44）：    ID 441-449
+  编辑器（parent_id=45）：     ID 451-459
+  工具类（parent_id=46）：     ID 461-469
 新业务域菜单：                  从 1000 开始
 ```
+
+> **取 ID 前先查实际占用**，不要按「区间里的下一个数」推算——区间里夹着历史遗留 ID：31、33–37 属于组件示例中心，32 是定时任务，都落在系统管理的 21–39 区间里。
+> ```bash
+> grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
+> ```
 
 > 注：`31/33/34/35/36/37`（组件页）与 `100002/100003`（系统管理）为历史遗留 ID，与现行区间不符但已入库并被 role_menus 引用，勿重排；新菜单请严格遵循上述区间。按钮权限 ID 在 `MENUS_DATA` 中写死，规则为「菜单 ID × 10 + 序号」（如用户管理 21 → 211 新增 / 212 编辑 / 213 删除 / 214 导出 / 215 导入；拖拽看板 401 → 4011…；消息通知 100002 → 1000021…）。
 
@@ -494,6 +499,8 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 | 图片、头像、封面 | `str500` | `varchar({ length: 500 })` | 存 URL |
 | 内容、正文、详情 | `text` | `text()` | 富文本 |
 | 标签、tags | `text` | `text()` | JSON 字符串 |
+
+**scaffold 的已知限制**（生成后手工补，见 `new-feature-autopilot` 技能 4a）：`--fields` 表达不了必填 / 唯一 / 默认值（改 `db/schema` 后 `pnpm db:generate` 增量迁移，service 在新增 / 编辑 / 导入三处补校验）；生成的标签是英文占位；`bool` 列可为空；枚举字段按 `str20` 生成，存英文代码、界面显示中文需手写映射。
 
 ---
 
@@ -548,14 +555,17 @@ Step 4  执行实现
         → 若之后又改了表结构：pnpm db:generate --name <描述>（注意这里没有 --）
         → 在 seed-rbac.ts 添加菜单 + 按钮权限（_add/_edit/_delete/_export/_import），运行 pnpm seed:rbac -- --incremental
         → 审查 apps/api/drizzle/ 下新生成的 SQL，运行 pnpm db:migrate
+        → 在本文件「当前菜单树」补上新菜单
+        → pnpm openapi:generate，在 docs/apifox-full.openapi.json 补全新接口 schema（建议项，verify 只提醒）
 
 Step 5  验证门禁（强制，不得跳过）
-        → pnpm verify -- --module <name>
+        → pnpm verify -- --module <name>（含前端构建与前后端单元测试；调试中途可 --skip-build / --skip-api-tests）
         → 如有失败项，自动修复后重新验证
         → 全部通过后输出交付报告
 ```
 
 > **迁移必须落库（强制）**：生成 / 修改迁移后，仅靠静态检查（verify 的 `migration_chain`）**不算完成**。必须实际执行并确认：
+> 0. 库名以 `apps/api/.env.development` 的 `DEV_DATABASE_URL` 为准（本地默认 `aurastack`，下面的命令按实际库名替换）
 > 1. 写操作前记录当前版本：`psql -d aurastack -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
 > 2. `pnpm db:migrate` 应用变更
 > 3. 涉及新表 / 索引 / 字段时，用 `psql -d aurastack -c '\d <table>'` 确认对象真实存在
@@ -574,7 +584,7 @@ Step 5  验证门禁（强制，不得跳过）
         apps/web/src/modules/<module>/api/<name>.js
   RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）
   迁移：apps/api/drizzle/<tag>.sql —— 已迁移至 <tag>（psql \d <table> 已确认）
-  门禁：pnpm verify -- --module <name> 全部通过
+  门禁：pnpm verify -- --module <name> 全部通过（含前后端单元测试）
 
 用户下一步操作：
   1. 刷新页面，在 <位置> 找到 <功能名>
@@ -604,7 +614,7 @@ pnpm build                   # web(vite) + api(tsup) + mcp
 # 数据库迁移（Drizzle）
 pnpm db:generate --name <描述>          # drizzle-kit generate，生成 apps/api/drizzle/<nnnn>_<描述>.sql
 pnpm db:migrate                         # 应用迁移（现库只标记 baseline，记录在 drizzle.__drizzle_migrations）
-psql -d aurastack -c '\d <table>'       # 实证落库
+psql -d aurastack -c '\d <table>'       # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
 
 # RBAC（菜单变更后必跑）
 pnpm seed:rbac -- --incremental         # 增量 upsert，不删除
@@ -618,7 +628,7 @@ pnpm --filter @castor-kit/api init-ro-role   # 单独创建只读账号 aurastac
 pnpm verify -- --module <name>                 # 全部检查（含 vite build）
 pnpm verify -- --module <name> --skip-build    # 跳过前端构建
 pnpm verify -- --module <name> --json          # 结构化 JSON（stdout 只有 JSON，供 AI/MCP 读取）
-#   其他参数：--skip-frontend-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
+#   其他参数：--skip-frontend-tests --skip-api-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
 
 # 代码骨架生成
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
@@ -658,7 +668,7 @@ Claude Desktop 配置（`claude_desktop_config.json`）：
 
 ## 当前菜单树（ID 参考）
 
-> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（45 个菜单 + 按钮权限；ID 与 AuraStack 逐条一致）
+> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（移植时 45 个菜单 + 按钮权限，ID 与 AuraStack 一致）。新增功能菜单后同步补到下面；有出入时以 seed-rbac.ts 为准。
 
 ```
 ID=1   首页 (dashboard) → /dashboard → admin/dashboard

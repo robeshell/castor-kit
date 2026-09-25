@@ -44,7 +44,7 @@ jobs:
       - name: Unit & contract tests
         run: pnpm --filter @castor-kit/api test
       - name: Feature gate
-        run: pnpm verify -- --skip-build
+        run: pnpm verify -- --skip-build --skip-api-tests  # 上一步已跑过后端测试
 
   web:
     name: Web build + tests

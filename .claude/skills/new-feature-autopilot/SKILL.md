@@ -15,6 +15,7 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 - 不向 PM 询问任何技术细节
 - 先展示业务预览供确认，再执行实现
 - 所有命令在仓库根目录执行（Node 22 + pnpm）
+- 开发环境配置在 `apps/api/.env.development`（仓库根目录没有 `.env`）；数据库连接取其中的 `DEV_DATABASE_URL`，本地默认库名 `aurastack`
 
 ---
 
@@ -29,6 +30,13 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 3. 现有相似模块（后端参考 apps/api/src/modules/admin/users/，前端参考 apps/web/src/modules/admin/pages/users/index.jsx）
    + 前端约定：AGENTS.md「前端架构约定」、docs/frontend-redesign-plan.md、.claude/skills/shadcn-ui-skills/
 4. apps/api/scripts/seed-rbac.ts（MENUS_DATA：查询当前菜单树，确定 parent_id 与下一个可用 ID）
+5. 先扫一遍现有模块：需求能通过扩展已有模块实现的，优先扩展，不要新建重复模块
+```
+
+菜单 ID 以 `MENUS_DATA` 实际占用为准，AGENTS.md 的区间表只是指引（区间里夹着历史遗留 ID）：
+
+```bash
+grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
 ```
 
 ### Step 2 — 生成内部 Spec（不展示给 PM）
@@ -43,7 +51,9 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 - 权限编码（admin 域 system_<name>，component_center 域 cc_<name>；按钮 _add/_edit/_delete/_export/_import）
 - 前端文件路径（admin 域 modules/admin/pages/<name>/index.jsx；
                component_center 域 modules/component_center/pages/admin/<name>_page/index.jsx）
-- 菜单 ID（按 AGENTS.md 的 ID 分配区间取下一个可用 ID；按钮 ID = 菜单 ID × 10 + 序号）
+- 菜单 ID（在 AGENTS.md 的 ID 分配区间里取 `MENUS_DATA` 未占用的 ID；按钮 ID = 菜单 ID × 10 + 序号）
+- 菜单路径（`/system/<资源复数>`，与同级风格一致）、排序（排在同级最后）、图标（沿用 `apps/web/src/lib/menu-icons.js` 映射表里已有的名字）
+- 枚举字段：库里存英文代码（如 `raw_material`），界面 / 导出显示中文，导入中英文都接受
 - parent_id（从菜单树中根据 PM 描述的位置推断）
 - 迁移名称（scaffold 默认用 <name>）
 ```
@@ -88,6 +98,13 @@ scaffold 会：
 
 （`<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 为下划线换连字符。）
 
+scaffold 的已知限制（生成后手工补）：
+
+- `--fields` 表达不了**必填 / 唯一 / 默认值**：改 `db/schema` 加 `.notNull()` / `.unique()` 等后 `pnpm db:generate --name <描述>` 生成增量迁移，service 里补「XX不能为空」「XX已存在」校验（新增、编辑、导入三处）
+- 生成的标题与字段标签是英文占位，要改成中文（表格列、表单、`EXPORT_FIELD_MAP`、`IMPORT_HEADER_MAP`）
+- `bool` 列可为空，请求里不传时写入 null；需要默认值时在 service 里补
+- 权限前缀是单数 `system_<name>` / `cc_<name>`，与路由、verify 保持一致即可，不必改成复数
+
 如 scaffold 不可用，手动临摹 `docs/templates/`（占位符替换规则见 `docs/templates/backend/README.md`），并手动完成上面的注册与 `pnpm db:generate --name <描述>`。
 
 **4b. 补充业务逻辑**
@@ -102,7 +119,7 @@ scaffold 会：
 
 scaffold 生成的页面已可用，按业务打磨：
 
-- 标题 / 描述 / 字段标签改成中文；`rules` 补必填与格式校验（文案与后端一致）；枚举字段改成 `FormSelect` + 表格列 `StatusBadge`
+- 标题与字段标签改成中文（页面标题下**不写描述**，见设计文档「文案」一条）；`rules` 补必填与格式校验（文案与后端一致）；枚举字段改成 `FormSelect` + 表格列 `StatusBadge`
 - 只用 `@/components/ui/*`、`@/shared/components/*`、`lucide-react` 与 Tailwind 语义色类；禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色（verify 的 `frontend_no_legacy_ui` 会拦截）
 - 组件用法查 `.claude/skills/shadcn-ui-skills/SKILL.md`；shadcn 组件 API 查官方文档（有 shadcn MCP 时优先用）；缺原子组件时 `apps/web/scripts/shadcn-add.sh <组件>`
 - 自检：`cd apps/web && npx eslint <页面文件>` 零错误
@@ -119,16 +136,24 @@ pnpm seed:rbac -- --incremental
 ```bash
 # 审查 apps/api/drizzle/ 下新生成的 SQL 后执行
 pnpm db:migrate
-# 实证：表 / 字段真实存在
+# 实证：表 / 字段真实存在（库名以 apps/api/.env.development 的 DEV_DATABASE_URL 为准）
 psql -d aurastack -c '\d <name>s'
 ```
+
+**4e. API 文档（建议，verify 只提醒不拦截）**
+
+```bash
+pnpm openapi:generate
+```
+
+生成的新路径只是骨架，按实际请求 / 响应在 `docs/apifox-full.openapi.json` 里补全 schema。
 
 ### Step 5 — 验证门禁（强制，不得跳过）
 
 ```bash
-pnpm verify -- --module <name> --skip-build
-# 需要结构化结果时：
-pnpm verify -- --module <name> --skip-build --json
+pnpm verify -- --module <name>
+# 含前端构建、前后端单元测试（后端约 45s）；需要结构化结果时加 --json
+# 调试中途可加 --skip-build / --skip-api-tests 提速，交付前必须跑一次完整的
 ```
 
 - 如有失败项 → 自动修复 → 重新运行验证
@@ -150,7 +175,7 @@ pnpm verify -- --module <name> --skip-build --json
         apps/web/src/modules/<module>/api/<name>.js
   RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）
   迁移：已迁移至 <tag>（psql \d <name>s 已确认）
-  门禁：pnpm verify -- --module <name> --skip-build 全部通过
+  门禁：pnpm verify -- --module <name> 全部通过（含前后端单元测试）
 
 用户下一步操作：
   1. 刷新页面，在「<父菜单> → <功能名>」找到新功能

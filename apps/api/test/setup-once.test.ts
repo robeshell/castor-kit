@@ -10,6 +10,10 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { initRoRole, isVisibleTable, RO_ROLE } from '../scripts/init-ro-role'
 import { ADVISORY_LOCK_KEY, runSetupOnce } from '../scripts/setup-once'
+import { MENUS_DATA } from '../scripts/seed-rbac'
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { BASELINE_ALEMBIC_REVISION, runMigrations } from '../src/db/migrate'
 import { TEST_DATABASE_URL } from './helpers'
 
@@ -83,6 +87,22 @@ describe('isVisibleTable（同 ai_sql_engine.is_visible_table）', () => {
   })
 })
 
+const DRIZZLE_DIR = resolve(__dirname, '../drizzle')
+/** 仓库当前的迁移条数（随新增功能增长） */
+const MIGRATION_COUNT = (JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta/_journal.json'), 'utf8')) as { entries: unknown[] }).entries.length
+
+/** 只含 baseline 的迁移目录：模拟 AuraStack 建好的现库（没有 castor-kit 之后新增的表） */
+function baselineOnlyMigrations(): string {
+  const dir = join(mkdtempSync(join(tmpdir(), 'ck-baseline-')), 'drizzle')
+  cpSync(DRIZZLE_DIR, dir, { recursive: true })
+  const journalPath = join(dir, 'meta/_journal.json')
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
+  const [baseline] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }))
+  return dir
+}
+
 describe('setup-once', () => {
   const url = urlForDatabase(EMPTY_DB)
 
@@ -125,11 +145,11 @@ describe('setup-once', () => {
     expect(events.filter((e) => e.startsWith(second))).toHaveLength(6)
 
     const snap = await rbacSnapshot(url)
-    expect(snap.menus).toHaveLength(120)
+    expect(snap.menus).toHaveLength(MENUS_DATA.length)
     expect(snap.roles).toEqual([{ id: 1, code: 'super_admin' }])
     expect(snap.users.map((u) => u.username)).toEqual(['admin'])
-    expect(snap.roleMenus).toHaveLength(120)
-    expect(snap.migrations).toHaveLength(1)
+    expect(snap.roleMenus).toHaveLength(MENUS_DATA.length)
+    expect(snap.migrations).toHaveLength(MIGRATION_COUNT)
     const locks = await query<{ n: number }>(url, `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND objid = ${ADVISORY_LOCK_KEY}`)
     expect(locks[0]!.n).toBe(0)
   })
@@ -188,8 +208,15 @@ describe('setup-once', () => {
 
   it('AuraStack 现库（有 alembic_version、无 Drizzle 记录）：只标记 baseline，不执行 DDL，保留已有数据', async () => {
     const legacyUrl = urlForDatabase(LEGACY_DB)
-    // 构造一个“Alembic 建好的现库”：先建表，再抹掉 Drizzle 记录并写入 alembic_version
-    await runMigrations(legacyUrl, quiet)
+    // 构造一个“Alembic 建好的现库”：只用 baseline 建表，再抹掉 Drizzle 记录并写入 alembic_version
+    const baselineDir = baselineOnlyMigrations()
+    process.env.MIGRATIONS_DIR = baselineDir
+    try {
+      await runMigrations(legacyUrl, quiet)
+    } finally {
+      delete process.env.MIGRATIONS_DIR
+      rmSync(resolve(baselineDir, '..'), { recursive: true, force: true })
+    }
     await query(legacyUrl, `
       DROP SCHEMA drizzle CASCADE;
       CREATE TABLE alembic_version (version_num varchar(32) NOT NULL PRIMARY KEY);
@@ -202,9 +229,9 @@ describe('setup-once', () => {
     await runSetupOnce({ databaseUrl: legacyUrl, adminPassword: 'x', roPassword: '', log: (m) => log.push(m) })
     expect(log.some((m) => m.includes('baseline 已标记为已应用，未执行 DDL'))).toBe(true)
     const snap = await rbacSnapshot(legacyUrl)
-    expect(snap.migrations).toHaveLength(1)
+    expect(snap.migrations).toHaveLength(MIGRATION_COUNT) // baseline 仅标记，之后的迁移正常执行
     expect(snap.users.map((u) => u.username)).toEqual(['ck_test_r8_user', 'admin'])
-    expect(snap.menus).toHaveLength(120)
+    expect(snap.menus).toHaveLength(MENUS_DATA.length)
     // 落后的序列被推进到 MAX(id)，接管后新增不会撞主键
     expect(log.some((m) => m.startsWith('已同步落后的自增序列') && m.includes('cc_gantt_tasks'))).toBe(true)
     const [inserted] = await query<{ id: number }>(

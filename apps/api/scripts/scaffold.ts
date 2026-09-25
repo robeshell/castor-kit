@@ -65,8 +65,6 @@ export function fieldSpec(type: string): FieldTypeSpec {
   return FIELD_TYPE_MAP[type] ?? FIELD_TYPE_MAP.str!
 }
 
-const STR_TYPES = new Set(['str', 'str50', 'str20', 'str100'])
-
 export type Field = [name: string, type: string]
 
 // ─── 命名工具 ──────────────────────────────────────────────────────────────────
@@ -134,9 +132,11 @@ export interface ScaffoldSpec {
 
 export function buildSpec(name: string, domain: 'admin' | 'component_center', fields: Field[]): ScaffoldSpec {
   const domainPrefix = domain === 'admin' ? 'system' : 'cc'
-  // 找第一个 str 类型字段作为 name 字段（Python 同款规则）
-  const nameField = fields.find(([, t]) => ['str', 'str50', 'str100'].includes(t))?.[0] ?? fields[0]?.[0] ?? 'name'
-  const importFields = fields.slice(0, 3).filter(([, t]) => STR_TYPES.has(t))
+  // 名称字段（搜索、导入必填列）：第一个 str / str50 字段；str20（编码、电话、状态）与 str500（链接）不算
+  const nameField = fields.find(([, t]) => t === 'str' || t === 'str50')?.[0] ?? fields[0]?.[0] ?? 'name'
+  // 导入 / 导出 / 表格列覆盖全部字段（AuraStack 只取前 3 / 前 4 个，是为了与 Python 输出逐字一致，已不需要）；
+  // 必填列（name 字段）排第一，非字符串字段由 buildValues 转换，转换失败记为错误行
+  const importFields = [...fields.filter(([f]) => f === nameField), ...fields.filter(([f]) => f !== nameField)]
   return {
     name,
     domain,
@@ -151,8 +151,7 @@ export function buildSpec(name: string, domain: 'admin' | 'component_center', fi
     menuComponent: domain === 'admin' ? `admin/${name}` : `component_center/admin/${name}_page`,
     apiBase: `/api/admin/${toKebab(name)}s`,
     nameField,
-    exportFields: fields.slice(0, 4),
-    // 没有可导入的字符串字段时退回 name 字段（Python 同款）
+    exportFields: fields,
     importFields: importFields.length > 0 ? importFields : [[nameField, 'str']],
   }
 }
@@ -224,8 +223,8 @@ function toNumeric(field: string, value: unknown): string | null {
   if (typeof value === 'boolean') return value
   if (value === 1 || value === 0) return value === 1
   const text = String(value).trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on'].includes(text)) return true
-  if (['0', 'false', 'no', 'off'].includes(text)) return false
+  if (['1', 'true', 'yes', 'on', '是'].includes(text)) return true
+  if (['0', 'false', 'no', 'off', '否'].includes(text)) return false
   throw invalid(field)
 }`,
   toDate: `/** 'YYYY-MM-DD'（也接受带时间的 ISO 字符串，取日期部分） */
@@ -764,7 +763,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
  * ${title} 列表页（由 scripts/scaffold.ts 生成，结构同 apps/web/src/modules/admin/pages/users/index.jsx）
  *
  * PageHeader → FilterBar → DataTable（分页 / 勾选 / 行操作）→ FormDialog（react-hook-form）
- * → ImportDialog / ExportDialog。标题、描述与字段标签是英文占位，按业务改成中文，并在 rules 里补必填校验。
+ * → ImportDialog / ExportDialog。标题与字段标签是英文占位，按业务改成中文，并在 rules 里补必填校验。
  */
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'

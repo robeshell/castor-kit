@@ -8,7 +8,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -76,9 +76,9 @@ describe('scaffold 纯函数', () => {
       webModule: 'admin',
       nameField: 'name', // 第一个 str/str50 字段
     })
-    expect(admin.exportFields.map(([f]) => f)).toEqual(['amount', 'name', 'phone', 'memo'])
-    // 导入：前 3 个字段里的字符串字段
-    expect(admin.importFields.map(([f]) => f)).toEqual(['name', 'phone'])
+    // 导出 / 表格列：全部字段；导入：全部字段，名称字段排第一（必填列）
+    expect(admin.exportFields.map(([f]) => f)).toEqual(['amount', 'name', 'phone', 'memo', 'level'])
+    expect(admin.importFields.map(([f]) => f)).toEqual(['name', 'amount', 'phone', 'memo', 'level'])
 
     const cc = buildSpec('order_item', 'component_center', parseFields('qty:int,price:float'))
     expect(cc).toMatchObject({
@@ -89,7 +89,8 @@ describe('scaffold 纯函数', () => {
       webModule: 'component_center',
       nameField: 'qty', // 没有字符串字段时取第一个字段
     })
-    expect(cc.importFields).toEqual([['qty', 'str']])
+    // 没有字符串字段：按原类型导入全部字段（不再像 Python 那样把第一个字段当 str）
+    expect(cc.importFields).toEqual([['qty', 'int'], ['price', 'float']])
   })
 
   it('前端页面：只导入用到的组件，@/ 导入在 apps/web/src 都存在，apps/web 的 eslint 零错误零告警', () => {
@@ -168,6 +169,16 @@ describe('scaffold 纯函数', () => {
   })
 })
 
+/** 只保留 baseline 迁移：测试不随仓库里新增的功能迁移变化 */
+function trimDrizzleToBaseline(dir: string): void {
+  const journalPath = join(dir, 'meta', '_journal.json')
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
+  const [baseline] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
+}
+
 describe('scaffold CLI（临时目录副本）', () => {
   let root: string
   const name = 'ck_scaffold_demo'
@@ -180,6 +191,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     for (const entry of ['src', 'drizzle', 'drizzle.config.ts', 'tsconfig.json', 'package.json']) {
       cpSync(join(API_DIR, entry), join(api, entry), { recursive: true })
     }
+    trimDrizzleToBaseline(join(api, 'drizzle'))
     symlinkSync(join(API_DIR, 'node_modules'), join(api, 'node_modules'), 'dir')
     mkdirSync(join(root, 'apps', 'web', 'src', 'modules'), { recursive: true })
   })
