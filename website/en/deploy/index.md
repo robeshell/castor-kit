@@ -3,7 +3,9 @@
 The recommended way to deploy is Docker Compose. One compose stack contains two services: PostgreSQL (`db`) and the Node app (`app`). The app process serves both the backend API and the built frontend.
 
 ::: info No automatic deployment
-The project has no CI-driven deployment. `.github/workflows/ci.yml` only runs lint, type checks, tests, the gate and the frontend build on pushes and pull requests. Deployment is done by hand on the server; see the update process below.
+The app has no CI-driven deployment. `.github/workflows/ci.yml` only runs lint, type checks, tests, the gate and the frontend build on pushes and pull requests. Deployment is done by hand on the server; see the update process below.
+
+The docs site is the exception: `.github/workflows/docs.yml` builds it and publishes it to GitHub Pages whenever changes under `website/` land on main (set Settings → Pages → Source to GitHub Actions in the repository). Pull requests only build it and check for dead links.
 :::
 
 ## Architecture overview

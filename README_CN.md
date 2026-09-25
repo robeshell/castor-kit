@@ -19,7 +19,7 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md)
 
-[文档](website/guide/index.md) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
+[文档](https://robeshell.github.io/castor-kit/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
@@ -133,7 +133,7 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 | 专题 | [权限 RBAC](website/guide/rbac.md) · [多语言](website/guide/i18n.md) · [主题与布局](website/guide/appearance.md) |
 | 参考 | [命令速查](website/reference/commands.md) · [配置项](website/reference/configuration.md) · [部署指南](website/deploy/index.md) |
 
-本地浏览文档站：`npm --prefix website install && npm --prefix website run dev`。
+在线阅读：**[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
 
 ## 参与贡献
 

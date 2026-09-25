@@ -2,8 +2,10 @@
 
 推荐使用 Docker Compose 部署。一套 compose 包含两个服务：PostgreSQL（`db`）和 Node 应用（`app`）。应用进程同时提供后端接口和构建好的前端页面。
 
-::: info 没有自动部署
-项目不做 CI 自动部署。`.github/workflows/ci.yml` 只在推送和 Pull Request 时运行 lint、类型检查、测试、门禁和前端构建。部署在服务器上手动完成，更新流程见下文。
+::: info 应用不做自动部署
+应用不做 CI 自动部署。`.github/workflows/ci.yml` 只在推送和 Pull Request 时运行 lint、类型检查、测试、门禁和前端构建。部署在服务器上手动完成，更新流程见下文。
+
+文档站是例外：`.github/workflows/docs.yml` 在 `website/` 有改动合入 main 时自动构建并发布到 GitHub Pages（需在仓库 Settings → Pages 中把 Source 设为 GitHub Actions），Pull Request 只构建、检查死链。
 :::
 
 ## 架构概览

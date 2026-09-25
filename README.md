@@ -19,7 +19,7 @@ Describe a new page, and AI generates the table, API and UI — then checks that
 
 **English** · [简体中文](README_CN.md) · [日本語](README.ja.md)
 
-[Documentation](website/en/guide/index.md) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
+[Documentation](https://robeshell.github.io/castor-kit/en/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
@@ -133,7 +133,7 @@ AGENTS.md     conventions shared by people and AI tools
 | Topics | [Permissions](website/en/guide/rbac.md) · [i18n](website/en/guide/i18n.md) · [Theme & layout](website/en/guide/appearance.md) |
 | Reference | [Commands](website/en/reference/commands.md) · [Configuration](website/en/reference/configuration.md) · [Deployment](website/en/deploy/index.md) |
 
-To browse the docs site locally: `npm --prefix website install && npm --prefix website run dev`.
+Read it online at **[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/en/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
 
 ## Contributing
 

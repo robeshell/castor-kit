@@ -109,4 +109,7 @@ The docs site in `website/` is a standalone npm project and is not part of the p
 |---|---|
 | `npm --prefix website install` | Install the docs site dependencies |
 | `npm --prefix website run dev` | Preview the docs site locally |
-| `npm --prefix website run build` | Build the docs site |
+| `npm --prefix website run build` | Build the docs site (fails on dead links) |
+| `npm --prefix website run screenshots` | Recapture the landing page and README screenshots from the running app (run `pnpm dev` first; prompts for the admin password) |
+
+Once merged to main, the site is published to GitHub Pages by `.github/workflows/docs.yml`.
