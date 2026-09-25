@@ -25,19 +25,74 @@ export function UserAvatar({ name, className = 'size-8' }) {
   )
 }
 
-export default function UserMenu() {
+function useUserMenu() {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
-  const { isDark, toggleTheme } = useTheme()
-  const { isMobile } = useSidebar()
   const navigate = useNavigate()
   const role = user?.roles?.[0]
   const roleText = role ? roleName(role) : t('成员')
-
   const handleLogout = async () => {
     await logout()
     navigate('/login')
   }
+  return { user, roleText, handleLogout }
+}
+
+/** Dropdown items shared by the sidebar footer menu and the compact top-bar menu */
+function UserMenuItems({ user, roleText, onLogout }) {
+  const { t } = useTranslation()
+  const { isDark, toggleTheme } = useTheme()
+  const navigate = useNavigate()
+  return (
+    <>
+      <DropdownMenuLabel className="flex items-center gap-2.5 py-2 font-normal">
+        <UserAvatar name={user?.username} />
+        <div className="grid leading-tight">
+          <span className="text-sm font-medium">{user?.username}</span>
+          <span className="text-muted-foreground text-xs">{roleText}</span>
+        </div>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuItem onSelect={() => navigate('/profile')}>
+          <UserRound />
+          {t('个人设置')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={toggleTheme}>
+          {isDark ? <Sun /> : <Moon />}
+          {isDark ? t('切换浅色模式') : t('切换深色模式')}
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem variant="destructive" onSelect={onLogout}>
+        <LogOut />
+        {t('退出登录')}
+      </DropdownMenuItem>
+    </>
+  )
+}
+
+/** Avatar-only user menu for the top bar (used when the layout has no sidebar) */
+export function UserMenuCompact() {
+  const { t } = useTranslation()
+  const { user, roleText, handleLogout } = useUserMenu()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" aria-label={t('个人设置')} className="ml-1 flex rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <UserAvatar name={user?.username} className="size-7" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="min-w-56" align="end" sideOffset={8}>
+        <UserMenuItems user={user} roleText={roleText} onLogout={handleLogout} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+export default function UserMenu() {
+  const { isMobile } = useSidebar()
+  const { user, roleText, handleLogout } = useUserMenu()
 
   return (
     <SidebarMenu>
@@ -62,29 +117,7 @@ export default function UserMenu() {
             align="end"
             sideOffset={8}
           >
-            <DropdownMenuLabel className="flex items-center gap-2.5 py-2 font-normal">
-              <UserAvatar name={user?.username} />
-              <div className="grid leading-tight">
-                <span className="text-sm font-medium">{user?.username}</span>
-                <span className="text-muted-foreground text-xs">{roleText}</span>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => navigate('/profile')}>
-                <UserRound />
-                {t('个人设置')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={toggleTheme}>
-                {isDark ? <Sun /> : <Moon />}
-                {isDark ? t('切换浅色模式') : t('切换深色模式')}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
-              <LogOut />
-              {t('退出登录')}
-            </DropdownMenuItem>
+            <UserMenuItems user={user} roleText={roleText} onLogout={handleLogout} />
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

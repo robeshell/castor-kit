@@ -26,7 +26,7 @@ import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import BrandMark from '@/components/app/BrandMark'
 import UserMenu from '@/components/app/UserMenu'
-import { findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/components/app/menu-tree'
+import { HOME_SECTION, findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/components/app/menu-tree'
 import { useTranslation } from 'react-i18next'
 
 /*
@@ -112,7 +112,11 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
   )
 }
 
-export default function AppSidebar() {
+/**
+ * variant: shadcn sidebar variant (sidebar / floating / inset).
+ * section: mixed nav mode only; limits the menus to one top-level section (a root group id, or HOME_SECTION for root-level pages).
+ */
+export default function AppSidebar({ variant = 'sidebar', section }) {
   // Subscribe to language changes: re-render menu names when the language switches (menuLabel reads i18n directly)
   useTranslation()
   const { menus } = useAuth()
@@ -147,11 +151,11 @@ export default function AppSidebar() {
   }
 
   const roots = (menus || []).filter(isNavVisible)
-  const leafRoots = roots.filter((m) => visibleChildren(m).length === 0)
-  const groupRoots = roots.filter((m) => visibleChildren(m).length > 0)
+  const leafRoots = section && section !== HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length === 0)
+  const groupRoots = section === HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length > 0 && (!section || m.id === section))
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
+    <Sidebar collapsible="icon" variant={variant}>
       <SidebarHeader className="px-2 pt-3 pb-1">
         <Link
           to="/"

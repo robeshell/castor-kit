@@ -3,7 +3,9 @@
 
 /*
  * castor-kit design system (docs/frontend-redesign-plan.md §3)
- * Neutral gray base, with the Ocean gradient (blue → sky → cyan) as the only accent color; gradients are for accents only.
+ * Neutral gray base plus one accent (default Ocean: blue → sky → cyan); gradients are for accents only.
+ * The accent is switchable: presets at the bottom of this file only set --brand-from / --brand-via / --brand-to,
+ * and every accent-colored token (primary, ring, charts, soft / glow / shadow) derives from those three.
  * All colors go through the CSS variables below; never hard-code hex values in pages.
  */
 
@@ -19,7 +21,7 @@
   --card-foreground: #0a0a0a;
   --popover: #ffffff;
   --popover-foreground: #0a0a0a;
-  --primary: #2563eb;
+  --primary: var(--brand-from);
   --primary-foreground: #ffffff;
   --secondary: #f5f5f5;
   --secondary-foreground: #0a0a0a;
@@ -31,7 +33,7 @@
   --destructive-foreground: #ffffff;
   --border: #ebebeb;
   --input: #e3e3e3;
-  --ring: #2563eb;
+  --ring: var(--brand-from);
 
   --success: #16a34a;
   --success-soft: rgba(34, 197, 94, 0.12);
@@ -42,20 +44,20 @@
   --info: #0284c7;
   --info-soft: rgba(2, 132, 199, 0.1);
 
-  --chart-1: #2563eb;
-  --chart-2: #0ea5e9;
-  --chart-3: #22d3ee;
+  --chart-1: var(--brand-from);
+  --chart-2: var(--brand-via);
+  --chart-3: var(--brand-to);
   --chart-4: #14b8a6;
   --chart-5: #f59e0b;
 
   --sidebar: #fafafa;
   --sidebar-foreground: #404040;
-  --sidebar-primary: #2563eb;
+  --sidebar-primary: var(--brand-from);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #ebebeb;
   --sidebar-accent-foreground: #0a0a0a;
   --sidebar-border: #ebebeb;
-  --sidebar-ring: #2563eb;
+  --sidebar-ring: var(--brand-from);
 
   /* Brand gradient: three-stop for decoration, two-stop (strong) for elements carrying white text */
   --brand-from: #2563eb;
@@ -63,9 +65,9 @@
   --brand-to: #22d3ee;
   --brand-gradient: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via) 55%, var(--brand-to) 100%);
   --brand-gradient-strong: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via) 100%);
-  --brand-glow: rgba(2, 132, 199, 0.12);
-  --brand-shadow: rgba(37, 99, 235, 0.45);
-  --brand-soft: rgba(37, 99, 235, 0.08);
+  --brand-glow: color-mix(in srgb, var(--brand-via) 12%, transparent);
+  --brand-shadow: color-mix(in srgb, var(--brand-from) 45%, transparent);
+  --brand-soft: color-mix(in srgb, var(--brand-from) 8%, transparent);
 
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -78,7 +80,6 @@
   --card-foreground: #f5f5f5;
   --popover: #151515;
   --popover-foreground: #f5f5f5;
-  --primary: #3b82f6;
   --primary-foreground: #ffffff;
   --secondary: #1a1a1a;
   --secondary-foreground: #f5f5f5;
@@ -90,7 +91,6 @@
   --destructive-foreground: #ffffff;
   --border: #242424;
   --input: #2c2c2c;
-  --ring: #3b82f6;
 
   --success: #4ade80;
   --success-soft: rgba(74, 222, 128, 0.14);
@@ -101,28 +101,45 @@
   --info: #38bdf8;
   --info-soft: rgba(56, 189, 248, 0.14);
 
-  --chart-1: #3b82f6;
-  --chart-2: #38bdf8;
-  --chart-3: #22d3ee;
   --chart-4: #2dd4bf;
   --chart-5: #fbbf24;
 
   --sidebar: #0d0d0d;
   --sidebar-foreground: #b5b5b5;
-  --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #1f1f1f;
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: #1f1f1f;
-  --sidebar-ring: #3b82f6;
 
   --brand-from: #3b82f6;
   --brand-via: #0ea5e9;
   --brand-to: #22d3ee;
-  --brand-glow: rgba(14, 165, 233, 0.14);
-  --brand-shadow: rgba(59, 130, 246, 0.45);
-  --brand-soft: rgba(59, 130, 246, 0.12);
+  --brand-glow: color-mix(in srgb, var(--brand-via) 14%, transparent);
+  --brand-soft: color-mix(in srgb, var(--brand-from) 12%, transparent);
 }
+
+/*
+ * Accent presets (ids match ACCENTS in src/lib/appearance.js). <html data-accent> selects the page accent;
+ * any element with data-accent (e.g. a swatch in the appearance menu) previews that preset inside its own box.
+ * Keep the three stops as hex: lib/chart-theme.js converts --brand-from to rgba.
+ */
+[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
+.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
+
+[data-accent='violet'] { --brand-from: #7c3aed; --brand-via: #9333ea; --brand-to: #e879f9; }
+.dark[data-accent='violet'], .dark [data-accent='violet'] { --brand-from: #8b5cf6; --brand-via: #a855f7; --brand-to: #f0abfc; }
+
+[data-accent='emerald'] { --brand-from: #059669; --brand-via: #0d9488; --brand-to: #2dd4bf; }
+.dark[data-accent='emerald'], .dark [data-accent='emerald'] { --brand-from: #10b981; --brand-via: #14b8a6; --brand-to: #5eead4; }
+
+[data-accent='rose'] { --brand-from: #e11d48; --brand-via: #db2777; --brand-to: #fb7185; }
+.dark[data-accent='rose'], .dark [data-accent='rose'] { --brand-from: #f43f5e; --brand-via: #ec4899; --brand-to: #fda4af; }
+
+[data-accent='amber'] { --brand-from: #ea580c; --brand-via: #f97316; --brand-to: #fbbf24; }
+.dark[data-accent='amber'], .dark [data-accent='amber'] { --brand-from: #f97316; --brand-via: #fb923c; --brand-to: #fcd34d; }
+
+[data-accent='slate'] { --brand-from: #334155; --brand-via: #475569; --brand-to: #94a3b8; }
+.dark[data-accent='slate'], .dark [data-accent='slate'] { --brand-from: #64748b; --brand-via: #94a3b8; --brand-to: #cbd5e1; }
 
 @theme inline {
   --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
