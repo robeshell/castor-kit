@@ -1,6 +1,6 @@
 # castor-kit — Claude Code 专属补充
 
-> **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/architecture.md`（架构说明：技术栈、横切约定、迁移、部署、设计决定）。
+> **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/architecture.md`（架构说明：技术栈、横切约定、迁移、部署、设计决定）；路线图上的功能先读 `docs/roadmap.md` 对应章节。
 > 开始任何实现前先读这两个文件；涉及前端 UI 时再读 `docs/frontend-redesign-plan.md`（shadcn/ui 体系）。本文件只放 Claude Code 专属的补充内容。
 
 ## 规则
