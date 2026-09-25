@@ -1,10 +1,9 @@
 /**
  * cc_advanced_table_rows
- * 对齐 AuraStack backend/app/component_center/model/entities_advanced_table_page.py
  *
  * 由 drizzle-kit pull 生成后整理。category/status 等列在现库里有 DB DEFAULT（.default()）；
- * created_at/updated_at 是 SQLAlchemy 应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
- * score 是 numeric(7,2)，驱动返回字符串；注意 Python to_dict 这里是 `float(self.score)`，输出 JSON 数字。
+ * created_at/updated_at 是应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
+ * score 是 numeric(7,2)，驱动返回字符串；注意 toDict 这里把它转成数字，输出 JSON 数字。
  */
 
 import { boolean, date, integer, numeric, pgTable, serial, text, unique, varchar } from 'drizzle-orm/pg-core'
@@ -35,7 +34,7 @@ export const cc_advanced_table_rows = pgTable('cc_advanced_table_rows', {
 
 export type AdvancedTableRow = typeof cc_advanced_table_rows.$inferSelect
 
-/** AdvancedTableRow.to_dict() */
+/** 高级表格行输出 */
 export function advancedTableRowToDict(r: AdvancedTableRow) {
   return {
     id: r.id,

@@ -1,7 +1,7 @@
 /**
- * 角色模块路由（对齐 AuraStack backend/app/admin/api/roles.py）
+ * 角色模块路由
  *
- * 带 id 的路由先 get_or_404，再做权限检查（与 Flask 一致）。
+ * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
  */
 
 import type { FastifyInstance } from 'fastify'

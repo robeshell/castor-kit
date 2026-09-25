@@ -159,15 +159,11 @@ pnpm db:generate --name add_customer_table
 pnpm db:migrate
 
 # Confirm the table really exists
-psql -d aurastack -c '\d customers'
+psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning Migrations must actually be applied
 Generating a migration file is not enough. Run `pnpm db:migrate` and confirm the table/columns exist with `psql \d`; the `migration_applied` check in `pnpm verify` also compares against the migration records in the database.
-:::
-
-::: info Taking over an AuraStack database
-When `pnpm db:migrate` runs against an existing AuraStack database, the baseline migration is only marked as applied (recorded in `drizzle.__drizzle_migrations`) and no DDL is executed; the existing `alembic_version` table is left untouched.
 :::
 
 ---
@@ -189,7 +185,7 @@ It checks TypeScript types, layering rules (no local permission helpers), migrat
 ```bash
 pnpm dev                       # api (5001) + web (5173)
 pnpm typecheck                 # TypeScript type check
-pnpm test                      # Vitest (needs the aurastack_test database)
+pnpm test                      # Vitest (needs the castor_kit_test database)
 pnpm build                     # build web + api + mcp
 pnpm db:generate --name <desc> # generate a migration
 pnpm db:migrate                # apply migrations
@@ -200,7 +196,7 @@ pnpm openapi:apifox            # push to Apifox (needs APIFOX_PROJECT_ID / APIFO
 pnpm mcp                       # start the MCP server
 ```
 
-Test database: `createdb -T aurastack aurastack_test` (clone the dev database) or `createdb aurastack_test` (empty; tests run the migrations automatically).
+Test database: `createdb -T castor_kit castor_kit_test` (clone the dev database) or `createdb castor_kit_test` (empty; tests run the migrations automatically).
 
 ---
 
@@ -228,8 +224,8 @@ All tools share the core context in `AGENTS.md`, which covers the full project a
 | Variable | Default | Description |
 |---|---|---|
 | `NODE_ENV` | `development` | Runtime environment: `development` / `production` / `test` |
-| `DEV_DATABASE_URL` | `postgresql://localhost/aurastack_dev` | Local PostgreSQL connection string |
-| `TEST_DATABASE_URL` | `postgresql://localhost/aurastack_test` | Test database used by `pnpm test` |
+| `DEV_DATABASE_URL` | `postgresql://localhost/castor_kit_dev` | Local PostgreSQL connection string |
+| `TEST_DATABASE_URL` | `postgresql://localhost/castor_kit_test` | Test database used by `pnpm test` |
 | `SECRET_KEY` | built-in dev key | Session encryption key (optional in development) |
 | `ADMIN_PASSWORD` | `admin123` | Password `pnpm seed:rbac` uses for the admin account |
 | `PORT` | `5001` | Backend port (the Vite proxy targets 5001) |

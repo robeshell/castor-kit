@@ -11,7 +11,7 @@
 
 > *Castor* is the Latin genus name of the beaver — nature's engineer, building and extending a whole dam without blueprints.
 >
-> castor-kit is the Node.js/TypeScript rewrite of [AuraStack](https://github.com/robeshell/AuraStack) (Flask + React). It connects to the same PostgreSQL schema and keeps the API contract compatible; the React frontend keeps AuraStack's routing and features, with the UI rebuilt on shadcn/ui + Tailwind CSS v4 (migrated from Semi Design — see [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)).
+> castor-kit is a pnpm monorepo: a Fastify 5 + Zod + Drizzle backend on PostgreSQL, a React 19 frontend built on shadcn/ui + Tailwind CSS v4 (see [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)), and an MCP server that exposes the scaffold / verify / seed / migration toolchain.
 
 ---
 
@@ -60,13 +60,13 @@ Requires Node 22+, pnpm and a local PostgreSQL.
 ```bash
 pnpm install
 cp apps/api/.env.example apps/api/.env.development   # set DEV_DATABASE_URL
-createdb aurastack
-pnpm db:migrate        # create tables (Drizzle baseline)
+createdb castor_kit
+pnpm db:migrate        # create tables (Drizzle migrations)
 pnpm seed:rbac         # menus, super-admin role, admin / admin123
 pnpm dev               # api :5001 + web :5173
 ```
 
-AI tools read [AGENTS.md](AGENTS.md) (all tools), [CLAUDE.md](CLAUDE.md), [CODEX.md](CODEX.md), `.cursor/rules/`, `.windsurfrules` and `.github/copilot-instructions.md`. The full rewrite design is in [docs/rewrite-plan.md](docs/rewrite-plan.md); the frontend UI conventions are in [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md). New shadcn/ui primitives are added with `apps/web/scripts/shadcn-add.sh <component>` (runs `npx shadcn@latest add` through a local registry relay).
+AI tools read [AGENTS.md](AGENTS.md) (all tools), [CLAUDE.md](CLAUDE.md), [CODEX.md](CODEX.md), `.cursor/rules/`, `.windsurfrules` and `.github/copilot-instructions.md`. The architecture overview is in [docs/architecture.md](docs/architecture.md); the frontend UI conventions are in [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md). New shadcn/ui primitives are added with `apps/web/scripts/shadcn-add.sh <component>` (runs `npx shadcn@latest add` through a local registry relay).
 
 > For deployment options, environment variables, AI tools integration and more — see the **[full documentation](https://robeshell.github.io/castor-kit/)**.
 

@@ -1,5 +1,5 @@
 /**
- * 列表页 repository 层（对齐 AuraStack backend/app/component_center/crud/list_page.py）
+ * 列表页 repository 层
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'

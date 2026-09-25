@@ -1,5 +1,5 @@
 /**
- * 首页仪表盘 service 层（对齐 AuraStack backend/app/admin/api/dashboard.py 的统计逻辑）
+ * 首页仪表盘 service 层：统计逻辑
  */
 
 import type { Db } from '@/db/client'

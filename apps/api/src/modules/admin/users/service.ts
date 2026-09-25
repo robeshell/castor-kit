@@ -1,5 +1,5 @@
 /**
- * 用户模块 service 层（对齐 AuraStack backend/app/admin/service/users.py）
+ * 用户模块 service 层
  */
 
 import { ServiceError } from '@/common/errors'

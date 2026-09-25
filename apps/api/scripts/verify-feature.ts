@@ -1,5 +1,5 @@
 /**
- * castor-kit 功能验证门禁（对齐 AuraStack backend/scripts/verify_feature.py）
+ * castor-kit 功能验证门禁
  *
  * 用法：
  *   pnpm verify -- --module customer
@@ -24,7 +24,7 @@
  *  15. 前端 Vitest 通过（可选，--skip-frontend-tests 跳过）
  *  16. 后端 Vitest 通过（可选，--skip-api-tests 跳过；约 45s，需要测试库）
  *
- * JSON 输出结构与 Python 版一致：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
+ * JSON 输出结构：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
  */
 
 import { spawnSync, type SpawnSyncOptions } from 'node:child_process'
@@ -153,7 +153,7 @@ interface JournalEntry {
 
 /**
  * 迁移链完整性：journal 的 idx 连续、when 严格递增、tag 唯一；每条有 SQL 与 snapshot；
- * snapshot 的 prevId 首尾相接（等价 Alembic 的单根线性、无分叉）；drizzle/ 下没有游离（手写）SQL。
+ * snapshot 的 prevId 首尾相接（单根线性、无分叉）；drizzle/ 下没有游离（手写）SQL。
  */
 export function checkMigrationChain(ctx: VerifyContext): CheckResult {
   const dir = join(ctx.apiDir, 'drizzle')
@@ -295,7 +295,7 @@ export async function checkMigrationApplied(
 
 /**
  * OpenAPI 文档同步度（告警性质，不阻断门禁）：调用 generate-openapi.ts --dry-run（只统计不写回），
- * 有未入文档的路由、或详细路径覆盖率 < 80%（骨架路径不计入，与 Python 同一口径）时告警。
+ * 有未入文档的路由、或详细路径覆盖率 < 80%（骨架路径不计入）时告警。
  */
 export function checkOpenapiSync(ctx: VerifyContext): CheckResult {
   const name = 'openapi_sync'

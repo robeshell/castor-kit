@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 
 /**
- * 菜单图标：menus.icon 字段存的是历史 Semi 图标名（如 IconHome），这里映射到 lucide。
+ * 菜单图标：menus.icon 字段存的是 IconXxx 形式的图标名（如 IconHome），这里映射到 lucide。
  * 新增图标：在 SEMI_TO_LUCIDE 里加一条「名称 → lucide 组件」映射（按需导入，避免把整个图标库打进包）；
  * 未知名称回退为 List。
  */

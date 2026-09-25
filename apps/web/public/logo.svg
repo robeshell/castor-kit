@@ -4,7 +4,7 @@
       <stop offset="0" stop-color="#0EA5E9" />
       <stop offset="1" stop-color="#14B8A6" />
     </linearGradient>
-    <linearGradient id="auraGradient" x1="11" y1="10" x2="55" y2="54" gradientUnits="userSpaceOnUse">
+    <linearGradient id="brandGradient" x1="11" y1="10" x2="55" y2="54" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#38BDF8" />
       <stop offset="1" stop-color="#2563EB" />
     </linearGradient>
@@ -12,7 +12,7 @@
 
   <path
     d="M12 24C14.5 15.6 22.1 10 32 10C42 10 49.5 15.6 52 24"
-    stroke="url(#auraGradient)"
+    stroke="url(#brandGradient)"
     stroke-width="4"
     stroke-linecap="round"
   />

@@ -1,5 +1,5 @@
 /**
- * 公告管理 repository 层（对齐 AuraStack backend/app/admin/crud/announcement.py）
+ * 公告管理 repository 层
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm'

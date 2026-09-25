@@ -1,5 +1,5 @@
 /**
- * 数据字典 repository 层（对齐 AuraStack backend/app/admin/crud/dicts.py）
+ * 数据字典 repository 层
  */
 
 import { and, asc, count, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'

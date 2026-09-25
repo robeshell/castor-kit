@@ -1,9 +1,9 @@
 /**
- * AI SQL 专用只读数据库访问层（对齐 AuraStack backend/app/component_center/api/ai_sql_engine.py）
+ * AI SQL 专用只读数据库访问层
  *
  * 为 AI Text-to-SQL 提供独立、强制只读的连接池，避免用户提交的任意 SELECT 在应用主库连接
  * （生产为超级用户）上执行。纵深防御：
- * 1. 独立 pg.Pool，生产通过 AI_SQL_DATABASE_URL 指向非超级用户只读账号 aurastack_ro
+ * 1. 独立 pg.Pool，生产通过 AI_SQL_DATABASE_URL 指向非超级用户只读账号 castor_kit_ro
  *    （缺失时 config.ts 直接 fail-closed，开发/测试回退主库 URL）。
  * 2. 连接启动参数 `-c default_transaction_read_only=on -c statement_timeout=<ms>`，
  *    在物理连接建立阶段就强制只读，早于任何用户 SQL。
@@ -16,7 +16,7 @@
 
 import pg from 'pg'
 
-/** 所有列都按文本原样返回，由调用方按 Python（psycopg2）语义转换 */
+/** 所有列都按文本原样返回，由调用方按列类型转换 */
 const RAW_TEXT_TYPES = {
   getTypeParser: () => (value: string) => value,
 } as unknown as pg.CustomTypesConfig

@@ -1,5 +1,5 @@
 /**
- * AI 提示词模板 repository 层（Python 版直接在 api/ai_prompt.py 里用 db.session 操作）
+ * AI 提示词模板 repository 层
  */
 
 import { asc, eq, sql } from 'drizzle-orm'
@@ -11,7 +11,7 @@ import { ai_prompt_templates, type AiPromptTemplate } from '@/db/schema'
 export type AiPromptTemplateInsert = PgInsertValue<typeof ai_prompt_templates>
 export type AiPromptTemplateUpdate = PgUpdateSetSource<typeof ai_prompt_templates>
 
-/** json 列按 Python `json.dumps` 的文本格式写入（`["a", "b"]`），与 SQLAlchemy JSON 类型落库一致 */
+/** json 列按 `json.dumps` 的文本格式写入（`["a", "b"]`，分隔符带空格） */
 export function variablesValue(variables: string[]) {
   return sql`${pyJsonDumps(variables)}::json`
 }

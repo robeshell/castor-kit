@@ -27,4 +27,3 @@ coverage/
 # 文档站构建产物
 website/.vitepress/cache/
 website/.vitepress/dist/
-apps/api/.shadow-all/

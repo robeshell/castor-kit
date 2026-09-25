@@ -3,7 +3,7 @@
   "info": {
     "title": "castor-kit 接口文档（自动生成）",
     "version": "1.0.0",
-    "description": "AuraStack 接口文档（由脚本自动生成）。"
+    "description": "castor-kit 接口文档（由脚本自动生成）。"
   },
   "servers": [
     {
@@ -59,7 +59,7 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "session",
-        "description": "Flask Session Cookie 登录态"
+        "description": "Session Cookie 登录态"
       }
     }
   },

@@ -51,7 +51,7 @@ describe('format', () => {
 })
 
 describe('menu-icons', () => {
-  it('Semi 图标名映射到 lucide，未知回退 List', () => {
+  it('IconXxx 图标名映射到 lucide，未知回退 List', () => {
     expect(resolveMenuIcon({ icon: 'IconHome' })).toBe(Home)
     expect(resolveMenuIcon({ icon: 'IconUnknown', code: 'x' })).toBe(List)
   })

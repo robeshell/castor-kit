@@ -1,7 +1,7 @@
 /**
- * 首页仪表盘 repository 层（Python 版直接在 api/dashboard.py 里查询，这里下沉；只读）
+ * 首页仪表盘 repository 层（只读）
  *
- * “今天”按 Python `datetime.utcnow().date()` 计算，全部下推到 SQL（不经过 JS Date）。
+ * “今天”按 UTC 日期计算，全部下推到 SQL（不经过 JS Date）。
  */
 
 import { count, sql } from 'drizzle-orm'

@@ -1,9 +1,8 @@
 /**
  * announcements
- * 对齐 AuraStack backend/app/admin/model/entities_announcement.py
  *
- * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（对应 SQLAlchemy `default=`），不进 DDL。
- * SQLAlchemy 插入时会跳过值为 None 的列（从而触发 default），调用方插入前应把 null 转成 undefined。
+ * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL。
+ * 插入时值为 null 的列要转成 undefined（省略该列）才会触发应用侧默认值。
  */
 
 import { boolean, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'

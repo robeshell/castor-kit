@@ -1,13 +1,13 @@
 /**
- * 定时任务 service 层（对齐 AuraStack backend/app/admin/service/scheduled_task.py）
+ * 定时任务 service 层
  *
- * 与 Python 保持一致的“怪”行为（有意保留，见各处注释）：
+ * 有意保留的接口行为（见各处注释）：
  * - 手动执行失败时返回 500，但响应体是完整的 {message, task, run, error}（不是通用错误文案）
  *
- * 与 Python 的有意差异（docs/rewrite-plan.md「与方案/Flask 有意不同」）：
- * - 新增时请求地址不合法返回 400 + 具体原因（Flask 的 validate_request_url 在 try 之外，未捕获 → 500 通用文案），
- *   校验顺序挪到名称 / 编码 / Cron 之后，与表单字段顺序一致
- * - 地址格式错误（urlsplit 抛的 ValueError，如 `http://[::1/x`）新增、编辑都返回 400「请求地址格式不合法」（Flask → 500）
+ * 设计说明：
+ * - 新增时请求地址不合法返回 400 + 具体原因（而不是 500 通用文案），
+ *   校验顺序放在名称 / 编码 / Cron 之后，与表单字段顺序一致
+ * - 地址格式错误（URL 解析失败，如 `http://[::1/x`）新增、编辑都返回 400「请求地址格式不合法」
  *
  * “当前时间”一律取数据库 UTC 时间文本（不经过 JS Date），cron 以它为基准计算。
  */
@@ -40,13 +40,13 @@ type Data = Record<string, unknown>
 export interface ScheduledTaskServiceOptions {
   /** HTTP 执行器（默认带连接级 SSRF 复检的 undici 实现；测试可注入） */
   httpExecutor?: HttpExecutor
-  /** URL 校验时的 DNS 解析（默认 dns.lookup；测试可注入，对应 Python 测试里 patch socket.getaddrinfo） */
+  /** URL 校验时的 DNS 解析（默认 dns.lookup；测试可注入） */
   lookup?: HostLookup
 }
 
 const RESPONSE_BODY_LIMIT = 2000
 
-/** ScheduledTaskSchemaError → 400；其他（含 Python 未捕获的 ValueError）→ 500 */
+/** ScheduledTaskSchemaError → schemaStatus（默认 400）；地址格式错误 → 400；其他未预期错误 → 500 */
 function toServiceError(err: unknown, schemaStatus = 400): never {
   if (err instanceof ServiceError) throw err
   if (err instanceof ScheduledTaskSchemaError) throw new ServiceError(err.message, schemaStatus)
@@ -186,7 +186,7 @@ export class ScheduledTaskService {
       toServiceError(err)
     }
 
-    // update_map：按 Python 的字段顺序逐个 setattr
+    // 按固定字段顺序逐个赋值
     const next: ScheduledTask = { ...task }
     try {
       if (has('name')) next.name = pyText(data.name)
@@ -200,7 +200,7 @@ export class ScheduledTaskService {
       if (has('is_active')) next.is_active = parseBool(data.is_active, task.is_active)
       if (has('remark')) next.remark = normalizeText(data.remark)
     } catch (err) {
-      // 前面已校验过，这里理论上不会失败；Python 在 try 之外 → 500
+      // 前面已校验过，这里理论上不会失败；万一失败按 500 处理
       toServiceError(err, 500)
     }
 
@@ -210,7 +210,7 @@ export class ScheduledTaskService {
       toServiceError(err)
     }
 
-    // SQLAlchemy 只对真正变化的列发 UPDATE（也只有这时 onupdate 才刷新 updated_at）
+    // 只对真正变化的列发 UPDATE（也只有这时才刷新 updated_at）
     const fields = [
       'name', 'task_code', 'cron_expression', 'request_method', 'request_url', 'request_headers',
       'request_body', 'timeout_seconds', 'is_active', 'remark', 'next_run_at',

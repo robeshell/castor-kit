@@ -1,6 +1,5 @@
 /**
- * cron 匹配器快照：期望值由 AuraStack venv 实际运行 Python compute_next_run_at 得出
- * （backend/app/admin/schema/scheduled_task.py，2026-09-24 生成），保证已有任务的 next_run_at 计算结果不变。
+ * cron 匹配器快照：期望值为固定快照（2026-09-24 生成），保证已有任务的 next_run_at 计算结果不变。
  * 每行：[表达式, base_time, 期望]；期望以 '!' 开头表示 ScheduledTaskSchemaError 的 message。
  */
 
@@ -518,7 +517,7 @@ function run(expr: string, base: string): string {
   }
 }
 
-describe('cron 与 Python compute_next_run_at 逐条一致', () => {
+describe('computeNextRunAt 与快照逐条一致', () => {
   it(`${PY_CASES.length} 条用例`, () => {
     const mismatches = PY_CASES.filter(([expr, base, expected]) => run(expr, base) !== expected).map(
       ([expr, base, expected]) => ({ expr, base, expected, actual: run(expr, base) }),

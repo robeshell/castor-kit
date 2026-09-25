@@ -1,9 +1,9 @@
 /**
- * 列表页 service 层（对齐 AuraStack backend/app/component_center/service/list_page.py）
+ * 列表页 service 层
  *
- * - Text 列里存的 JSON 字符串一律用 Python `json.dumps(ensure_ascii=False)` 的格式写入（导出时原样输出）
- * - 每次写操作（含版本快照）放在一个事务里，对应 Python 一个请求一次 commit
- * - 上传文件写入 `${instanceDir}/uploads/list_page{,_files}`，与 Flask 的 instance/uploads 结构一致
+ * - Text 列里存的 JSON 字符串一律按 `json.dumps(ensure_ascii=False)` 的格式写入（分隔符带空格、非 ASCII 原样保留；导出时原样输出）
+ * - 每次写操作（含版本快照）放在一个事务里，一个请求只提交一次
+ * - 上传文件写入 `${instanceDir}/uploads/list_page{,_files}`
  */
 
 import { randomUUID } from 'node:crypto'
@@ -52,7 +52,7 @@ const PG_INT_MAX = 2_147_483_647
 
 const hasOwn = (obj: object, key: string) => Object.prototype.hasOwnProperty.call(obj, key)
 
-// ---------------------------------------------------------------- 归一化（静态方法原样移植）
+// ---------------------------------------------------------------- 归一化
 
 /** service 版 parse_json_object：None → default；dict 原样；str → strip 后解析，非对象/解析失败 → default；其他 → default */
 export function parseJsonObject(raw: unknown, defaultValue: Data): Data {
@@ -199,7 +199,7 @@ function operatorText(data: Data): string {
   return pyStr(pyTruthy(data.operator) ? data.operator : 'system').trim() || 'system'
 }
 
-/** 与 Python `for field in fields: field in EXPORT_FIELD_MAP` 同语义（str 按字符、dict 按键；不可迭代/不可哈希 → 500） */
+/** 展开导出的 fields：list → 元素，str 按字符，dict 按键；不可迭代 → 500（元素为 list/dict 时由调用方返回 500） */
 function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value === 'string') return [...value]
@@ -714,7 +714,7 @@ export class ListPageService {
         if (fileUrls.length === 0) fileUrls = normalizeFileUrls(mapped.file_url)
         const priority = parseIntOr(mapped.priority, 0)
         const isActive = parseBool(mapped.is_active, true)
-        // 非法发布状态直接中断整个导入（Python 同样抛出，不计入 error_rows）
+        // 非法发布状态直接中断整个导入（不计入 error_rows）
         const status = normalizeStatus(mapped.status, 'draft')
         const description = optionalText(mapped.description)
 

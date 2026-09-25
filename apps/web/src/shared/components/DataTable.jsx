@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import EmptyState from '@/shared/components/EmptyState'
 
 /**
- * 数据表格（替代 Semi Table）。列定义与 Semi 接近，方便迁移：
+ * 数据表格。列定义：
  *   columns = [
  *     { key: 'username', title: '用户名', dataIndex: 'username', width: 200 },
  *     { key: 'status', title: '状态', render: (value, row, index) => <StatusBadge …/> },

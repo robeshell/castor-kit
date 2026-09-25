@@ -1,6 +1,6 @@
 /**
- * 展示格式化。后端时间是 Python isoformat 风格的 UTC 文本（无 Z），这里按原样截断展示，
- * 与原 Semi 版页面一致（value.slice(0, 19).replace('T', ' ')）。
+ * 展示格式化。后端时间是 ISO 8601 风格的 UTC 文本（YYYY-MM-DDTHH:MM:SS[.ffffff]，无 Z），
+ * 这里按原样截断展示（value.slice(0, 19).replace('T', ' ')），不做时区换算。
  */
 export function formatDateTime(value, fallback = '-') {
   if (!value || typeof value !== 'string') return fallback

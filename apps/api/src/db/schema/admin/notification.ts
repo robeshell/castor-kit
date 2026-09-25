@@ -1,8 +1,7 @@
 /**
  * notifications / notification_reads
- * 对齐 AuraStack backend/app/admin/model/entities_notification.py
  *
- * `.$default()` / createdAt() 只是应用侧默认值（对应 SQLAlchemy `default=`），不进 DDL；
+ * `.$default()` / createdAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL；
  * noti_type / is_global 另有库级 DEFAULT（DDL 里的 `.default()`，保持原样）。
  */
 
@@ -62,7 +61,7 @@ export const notification_reads_relations = relations(notification_reads, ({ one
 export type Notification = typeof notifications.$inferSelect
 export type NotificationRead = typeof notification_reads.$inferSelect
 
-/** Notification.to_dict(is_read) */
+/** 通知输出（附带当前用户的 is_read） */
 export function notificationToDict(item: Notification, isRead = false) {
   return {
     id: item.id,

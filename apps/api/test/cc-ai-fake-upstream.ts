@@ -1,11 +1,9 @@
 /**
- * 假 OpenAI 兼容上游（/chat/completions）：AI 对话 / AI 数据查询的 vitest 与 shadow-diff 共用，绝不调用真实 AI。
+ * 假 OpenAI 兼容上游（/chat/completions）：AI 对话 / AI 数据查询的 vitest 使用，绝不调用真实 AI。
  *
  * 行为由最后一条消息的内容决定（流式 = ai_chat，非流式 = ai_sql 的 call_llm，取“问题：”之后的文本）。
  *
  * vitest：`const up = await startFakeUpstream()`，`buildTestApp({ aiApiBase: up.url, aiApiKey: 'x', aiModel: 'm' })`
- * shadow-diff：`npx tsx test/cc-ai-fake-upstream.ts 5178`，Flask 与 Node 都以
- *   `AI_API_BASE=http://127.0.0.1:5178 AI_API_KEY=fake-key AI_MODEL=fake-model` 启动，再加 `SHADOW_FAKE_AI=1` 跑 shadow-diff
  */
 
 import { createHash } from 'node:crypto'

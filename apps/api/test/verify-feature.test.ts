@@ -3,7 +3,7 @@
  *
  * 在临时目录里搭一个最小仓库骨架（模块文件、router、schema、seed、drizzle journal、前端文件、AGENTS.md），
  * 前端页面额外检查不得残留旧 UI 体系（@douyinfe/*、var(--semi-*)），
- * 逐项验证各检查的通过 / 失败分支，以及 --json 输出结构（与 Python verify_feature.py 一致）。
+ * 逐项验证各检查的通过 / 失败分支，以及 --json 输出结构。
  * migration_applied 连真实测试库（TEST_DATABASE_URL）。
  */
 
@@ -306,7 +306,7 @@ describe('verify-feature 全局检查', () => {
     expect(isRepoPathRef('apps/api/src/router.ts', new Set())).toBe(true)
     expect(isRepoPathRef('frontend/', new Set())).toBe(true)
     expect(isRepoPathRef('apps/web', new Set(['apps']))).toBe(true)
-    expect(isRepoPathRef('robeshell/AuraStack', new Set(['apps']))).toBe(false)
+    expect(isRepoPathRef('robeshell/other-repo', new Set(['apps']))).toBe(false)
     for (const ref of ['<name>/routes.ts', '/abs/x.ts', '@/common/auth', 'a/b c.ts', 'apps/api/.env.development', 'http://x/y.md']) {
       expect(isRepoPathRef(ref, new Set(['apps'])), ref).toBe(false)
     }
@@ -324,7 +324,7 @@ describe('verify-feature 全局检查', () => {
 })
 
 describe('verify-feature 汇总与 CLI', () => {
-  it('verify()：JSON 结构、检查顺序、summary 与 Python 一致', async () => {
+  it('verify()：JSON 结构、检查顺序、summary', async () => {
     const report = await verify({ root, module: 'ck_widget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(Object.keys(report)).toEqual(['passed', 'module', 'checks', 'summary'])
     expect(report.module).toBe('ck_widget')

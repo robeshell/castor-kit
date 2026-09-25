@@ -1,5 +1,5 @@
 /**
- * 看板页 schema 层（对齐 AuraStack backend/app/component_center/schema/kanban_page.py）
+ * 看板页 schema 层
  */
 
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
@@ -54,7 +54,7 @@ export function hasKey(data: Record<string, unknown>, key: string): boolean {
 }
 
 /**
- * SQLAlchemy 只对“值真的变了”的属性发 UPDATE（onupdate 的 updated_at 也只在发 UPDATE 时刷新）：
+ * 只对“值真的变了”的字段发 UPDATE（updated_at 也只在发 UPDATE 时刷新）：
  * 过滤掉与当前行相同的字段，返回空对象时调用方不应发 UPDATE。
  */
 export function changedFields<R extends Record<string, unknown>, P extends Partial<R>>(row: R, patch: P): P {

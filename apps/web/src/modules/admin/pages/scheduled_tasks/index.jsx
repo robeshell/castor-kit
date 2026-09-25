@@ -267,7 +267,7 @@ export default function ScheduledTasks() {
       ),
     },
     {
-      // 列很多需要横向滚动：操作列吸附在右侧（对应原 Semi fixed: 'right'）
+      // 列很多需要横向滚动：操作列吸附在右侧
       key: 'actions',
       title: '',
       align: 'right',

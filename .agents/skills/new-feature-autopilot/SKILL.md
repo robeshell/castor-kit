@@ -15,7 +15,7 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 - 不向 PM 询问任何技术细节
 - 先展示业务预览供确认，再执行实现
 - 所有命令在仓库根目录执行（Node 22 + pnpm）
-- 开发环境配置在 `apps/api/.env.development`（仓库根目录没有 `.env`）；数据库连接取其中的 `DEV_DATABASE_URL`，本地默认库名 `aurastack`
+- 开发环境配置在 `apps/api/.env.development`（仓库根目录没有 `.env`）；数据库连接取其中的 `DEV_DATABASE_URL`，本地默认库名 `castor_kit`
 
 ---
 
@@ -137,7 +137,7 @@ pnpm seed:rbac -- --incremental
 # 审查 apps/api/drizzle/ 下新生成的 SQL 后执行
 pnpm db:migrate
 # 实证：表 / 字段真实存在（库名以 apps/api/.env.development 的 DEV_DATABASE_URL 为准）
-psql -d aurastack -c '\d <name>s'
+psql -d castor_kit -c '\d <name>s'
 ```
 
 **4e. API 文档（建议，verify 只提醒不拦截）**
@@ -157,7 +157,7 @@ pnpm verify -- --module <name>
 ```
 
 - 如有失败项 → 自动修复 → 重新运行验证
-- `migration_applied` 项的 detail 形如「已迁移至 0001_<name>（aurastack）」，写进交付报告
+- `migration_applied` 项的 detail 形如「已迁移至 0001_<name>（castor_kit）」，写进交付报告
 - 全部通过后输出交付报告
 
 ---

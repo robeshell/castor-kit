@@ -1,5 +1,5 @@
 /**
- * castor-kit 代码骨架生成脚本（对齐 AuraStack backend/scripts/scaffold.py）
+ * castor-kit 代码骨架生成脚本：按字段定义生成后端模块、前端页面与迁移
  *
  * 用法：
  *   pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str,status:str"
@@ -24,7 +24,7 @@
  *   drizzle-kit generate --name <name>
  *
  * 后端目录/文件名按仓库约定用小写连字符（ck_demo → ck-demo，component_center → component-center）；
- * 表名 `<name>s`、前端路径（admin/pages/<name>、component_center/pages/admin/<name>_page）与 Python 版一致。
+ * 表名为 `<name>s`；前端路径为 admin/pages/<name> 或 component_center/pages/admin/<name>_page。
  */
 
 import { spawnSync } from 'node:child_process'
@@ -60,7 +60,7 @@ export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
   datetime: { column: "timestamp({ mode: 'string' })", builder: 'timestamp', coerce: 'toDateTime' },
 }
 
-/** Python：`FIELD_TYPE_MAP.get(ftype, FIELD_TYPE_MAP['str'])` */
+/** 字段类型规格；未知类型按 str 处理 */
 export function fieldSpec(type: string): FieldTypeSpec {
   return FIELD_TYPE_MAP[type] ?? FIELD_TYPE_MAP.str!
 }
@@ -134,7 +134,7 @@ export function buildSpec(name: string, domain: 'admin' | 'component_center', fi
   const domainPrefix = domain === 'admin' ? 'system' : 'cc'
   // 名称字段（搜索、导入必填列）：第一个 str / str50 字段；str20（编码、电话、状态）与 str500（链接）不算
   const nameField = fields.find(([, t]) => t === 'str' || t === 'str50')?.[0] ?? fields[0]?.[0] ?? 'name'
-  // 导入 / 导出 / 表格列覆盖全部字段（AuraStack 只取前 3 / 前 4 个，是为了与 Python 输出逐字一致，已不需要）；
+  // 导入 / 导出 / 表格列覆盖全部字段；
   // 必填列（name 字段）排第一，非字符串字段由 buildValues 转换，转换失败记为错误行
   const importFields = [...fields.filter(([f]) => f === nameField), ...fields.filter(([f]) => f !== nameField)]
   return {
@@ -291,8 +291,8 @@ ${used.map((c) => COERCERS[c]).join('\n\n')}
 
 /**
  * 请求体 → 列值。
- * - 新增（partial=false）：所有字段都写入，缺失的为 null（Python \`Model(field=data.get(field))\`）
- * - 编辑（partial=true）：只写请求体里出现的字段（Python \`if field in data\`）
+ * - 新增（partial=false）：所有字段都写入，缺失的为 null
+ * - 编辑（partial=true）：只写请求体里出现的字段
  */
 export function buildValues(data: Record<string, unknown>, partial: boolean): ${s.pascal}Values {
   const values: ${s.pascal}Values = {}
@@ -527,7 +527,7 @@ export function genRoutes(s: ScaffoldSpec): string {
  * ${s.pascal} 路由（由 scripts/scaffold.ts 生成）
  *
  * 权限编码：${p}（查看 / 模板）、${p}_add、${p}_edit、${p}_delete、${p}_export、${p}_import
- * 带 id 的路由先 get_or_404（404）再做权限检查（403），与 Flask 约定一致。
+ * 带 id 的路由先查记录（不存在 404）再做权限检查（403）。
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -610,7 +610,7 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
 
 // ─── 前端代码生成（shadcn/ui 体系，结构对齐 apps/web/src/modules/admin/pages/users/index.jsx） ──────
 //
-// api 文件格式与 Python scaffold.py 一致；页面按 docs/frontend-redesign-plan.md 的新体系生成：
+// api 文件按固定模板生成；页面按 docs/frontend-redesign-plan.md 的新体系生成：
 // PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
 // + ConfirmAction + toast + useCrudList。字段 → 表单组件 / 表格列渲染见 FRONTEND_FIELD_MAP。
 

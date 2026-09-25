@@ -1,6 +1,5 @@
 /**
  * card_items
- * 对齐 AuraStack backend/app/component_center/model/entities_card_list_page.py
  */
 
 import { boolean, integer, pgTable, serial, text, unique, varchar } from 'drizzle-orm/pg-core'
@@ -12,7 +11,7 @@ export const card_items = pgTable('card_items', {
   title: varchar({ length: 120 }).notNull(),
   card_code: varchar({ length: 120 }).notNull(),
   subtitle: varchar({ length: 200 }),
-  // Python: default='general'（应用侧默认，库里无 DEFAULT）
+  // 应用侧默认 'general'（库里无 DEFAULT）
   category: varchar({ length: 50 }).$default(() => 'general'),
   cover_url: varchar({ length: 500 }),
   tag: varchar({ length: 50 }),

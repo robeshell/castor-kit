@@ -1,5 +1,5 @@
 /**
- * 定时任务 URL 防 SSRF（移植 AuraStack backend/tests/test_scheduled_task_ssrf.py 全部用例 + Node 侧加固）
+ * 定时任务 URL 防 SSRF：基础用例 + 补充加固
  */
 
 import { createServer, type Server } from 'node:http'
@@ -9,7 +9,7 @@ import { PyUncaughtError, ScheduledTaskSchemaError } from '@/common/scheduler/er
 import { executeHttpRequest } from '@/common/scheduler/http'
 import { isBlockedIp, pyUrlSplit, validateRequestUrl } from '@/common/scheduler/ssrf'
 
-/** 对应 Python 测试里 patch socket.getaddrinfo */
+/** 打桩 DNS 解析：返回指定 IP / 解析失败 */
 const resolvesTo = (...ips: string[]) => async () => ips
 const failsToResolve = async (): Promise<string[]> => {
   throw new Error('ENOTFOUND')
@@ -24,7 +24,7 @@ async function expectSchemaError(promise: Promise<unknown>, match?: string | Reg
   if (match) expect((err as Error).message).toMatch(match)
 }
 
-describe('validate_request_url（Python 用例）', () => {
+describe('validateRequestUrl（基础用例）', () => {
   it('test_allows_public_https', async () => {
     await expect(validateRequestUrl('https://api.example.com/v1/data', { lookup: resolvesTo('93.184.216.34') })).resolves.toBe(
       'https://api.example.com/v1/data',
@@ -66,7 +66,7 @@ describe('validate_request_url（Python 用例）', () => {
   })
 })
 
-describe('validate_request_url（补充分支，文案与 Python 一致）', () => {
+describe('validateRequestUrl（补充分支与错误文案）', () => {
   it('空值 / 协议 / 主机 / 端口文案', async () => {
     await expectSchemaError(validateRequestUrl(null), '请求地址不能为空')
     await expectSchemaError(validateRequestUrl('   '), '请求地址不能为空')
@@ -104,7 +104,7 @@ describe('validate_request_url（补充分支，文案与 Python 一致）', () 
     expect(isBlockedIp('2606:4700:4700::1111')).toBe(false)
   })
 
-  it('urlsplit 自身抛 ValueError 的输入（Python 未捕获 → 500）', () => {
+  it('urlsplit 自身抛 ValueError 的输入（未捕获 → 500）', () => {
     expect(() => pyUrlSplit('http://[::1/x')).toThrow(PyUncaughtError)
     expect(() => pyUrlSplit('http://::1]/x')).toThrow('Invalid IPv6 URL')
     expect(() => pyUrlSplit('http://a[::1]/x')).toThrow('Invalid IPv6 URL')

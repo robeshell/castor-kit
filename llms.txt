@@ -2,12 +2,12 @@
 
 castor-kit is a Node.js/TypeScript + React + RBAC scaffold optimized for AI-driven feature delivery.
 Product managers provide only natural-language intent. Agents perform end-to-end implementation.
-It is the Node.js rewrite of AuraStack (Flask): same PostgreSQL database, compatible API contract; the frontend keeps AuraStack's routing, API layer and page features, with the UI migrated from Semi Design to shadcn/ui + Tailwind CSS v4 + motion.
+It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19 frontend with shadcn/ui + Tailwind CSS v4 + motion, and an MCP server exposing the toolchain.
 
 ## Canonical Entry Points
 
 - [Agent Rules](./AGENTS.md)
-- [Rewrite Plan](./docs/rewrite-plan.md)
+- [Architecture](./docs/architecture.md)
 - [Frontend Redesign Plan (shadcn/ui)](./docs/frontend-redesign-plan.md)
 - [OpenAPI Source](./docs/apifox-full.openapi.json)
 - [OpenAPI Generator](./apps/api/scripts/generate-openapi.ts)

@@ -1,9 +1,8 @@
 /**
  * cc_gantt_tasks
- * 对齐 AuraStack backend/app/component_center/model/entities_gantt_page.py
  *
  * 由 drizzle-kit pull 生成后整理。task_type/progress 等列在现库里有 DB DEFAULT（.default()）；
- * created_at/updated_at 是 SQLAlchemy 应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
+ * created_at/updated_at 是应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
  */
 
 import { date, integer, pgTable, serial, varchar } from 'drizzle-orm/pg-core'
@@ -28,7 +27,7 @@ export const cc_gantt_tasks = pgTable('cc_gantt_tasks', {
 
 export type GanttTask = typeof cc_gantt_tasks.$inferSelect
 
-/** GanttTask.to_dict() */
+/** 甘特任务输出 */
 export function ganttTaskToDict(t: GanttTask) {
   return {
     id: t.id,

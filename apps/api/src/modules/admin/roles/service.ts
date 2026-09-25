@@ -1,5 +1,5 @@
 /**
- * 角色模块 service 层（对齐 AuraStack backend/app/admin/service/roles.py）
+ * 角色模块 service 层
  */
 
 import { ServiceError } from '@/common/errors'
@@ -38,7 +38,7 @@ export class RoleService {
     this.repo = new RoleRepository(db)
   }
 
-  /** Python 的 `try: ... commit() except Exception: rollback(); raise RoleServiceError(str(e), 500)` */
+  /** 事务执行：任何异常都回滚；ServiceError 原样抛出，其他错误以原错误信息转成 500 */
   private async inTx<T>(fn: (repo: RoleRepository) => Promise<T>): Promise<T> {
     try {
       return await this.db.transaction((tx) => fn(new RoleRepository(tx)))
@@ -72,7 +72,7 @@ export class RoleService {
   async createRole(data: Data) {
     if (!pyTruthy(data.name)) throw new ServiceError('角色名称不能为空', 400)
     if (!pyTruthy(data.code)) throw new ServiceError('角色编码不能为空', 400)
-    // 非字符串 code：Python `roles.code = 5` 在 PG 报 operator does not exist → 500
+    // 非字符串 code：按 `roles.code = 5` 查询时 PG 报 operator does not exist → 500
     if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
     if (await this.repo.getByCode(data.code)) throw new ServiceError('角色编码已存在', 400)
 
@@ -117,7 +117,7 @@ export class RoleService {
       items = await this.repo.listByIdsOrdered(adaptIdsForIn(ids))
     }
 
-    // `item.menus`：当前用户的角色复用 get_current_admin_user 预加载的集合，其余角色懒加载
+    // 角色菜单：当前用户的角色复用 currentUserRoleMenus 预加载的集合，其余角色按需单独查询
     let exportItems: RoleExportItem[] = items.map((r) => ({ ...r, menus: [] }))
     if (args.validFields.some((f) => f === 'menu_codes' || f === 'menu_names')) {
       const preloaded = currentUsername ? await this.repo.currentUserRoleMenus(currentUsername) : new Map<number, Menu[]>()

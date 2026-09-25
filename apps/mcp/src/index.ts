@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * castor-kit MCP Server（对齐 AuraStack mcp_server.py）
+ * castor-kit MCP Server
  *
  * 把 castor-kit 开发工具暴露为 MCP 协议，让 Claude Desktop 等 MCP 客户端无需命令行即可驱动完整的功能开发流程。
  *
@@ -45,7 +45,7 @@ interface RunResult {
   code: number
   stdout: string
   stderr: string
-  /** stdout + stderr（与 Python subprocess stderr=STDOUT 等价的合并输出） */
+  /** stdout + stderr（合并输出） */
   output: string
 }
 

@@ -1,9 +1,8 @@
 /**
  * kanban_boards / kanban_cards
- * 对齐 AuraStack backend/app/component_center/model/entities_kanban_page.py
  *
  * 由 drizzle-kit pull 生成后整理。color/sort_order 等列在现库里有 DB DEFAULT（.default()）；
- * created_at/updated_at 是 SQLAlchemy 应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
+ * created_at/updated_at 是应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
  */
 
 import { relations } from 'drizzle-orm'
@@ -59,7 +58,7 @@ export const kanbanCardsRelations = relations(kanban_cards, ({ one }) => ({
 export type KanbanBoard = typeof kanban_boards.$inferSelect
 export type KanbanCard = typeof kanban_cards.$inferSelect
 
-/** KanbanCard.to_dict() */
+/** 看板卡片输出 */
 export function kanbanCardToDict(card: KanbanCard) {
   return {
     id: card.id,
@@ -79,8 +78,8 @@ export function kanbanCardToDict(card: KanbanCard) {
 }
 
 /**
- * KanbanBoard.to_dict(include_cards)：cards 为该列按 sort_order 排好序的卡片
- * （cards_count 即 `self.cards.count()`，与卡片列表同一过滤条件）。
+ * 看板列输出：cards 为该列按 sort_order 排好序的卡片
+ * （cards_count 为该列卡片数，与卡片列表同一过滤条件）；includeCards=false 时不附带 cards。
  */
 export function kanbanBoardToDict(board: KanbanBoard, cards: KanbanCard[], includeCards = true) {
   const d: Record<string, unknown> = {

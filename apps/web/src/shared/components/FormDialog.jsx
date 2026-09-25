@@ -114,7 +114,7 @@ export function DetailSheet({ open, onOpenChange, title, description, width = 48
   )
 }
 
-/** 详情键值列表（替代 Semi Descriptions） */
+/** 详情键值列表 */
 export function DescriptionList({ items = [], columns = 1, className }) {
   return (
     <dl className={cn('grid gap-x-6 gap-y-3 text-[13px]', columns === 2 && 'sm:grid-cols-2', className)}>

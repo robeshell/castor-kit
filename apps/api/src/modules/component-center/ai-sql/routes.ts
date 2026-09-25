@@ -1,8 +1,8 @@
 /**
- * AI Text-to-SQL 路由（对齐 AuraStack backend/app/component_center/api/ai_sql.py）
+ * AI Text-to-SQL 路由
  *
- * 用户 SQL 一律在独立只读连接池（db/readonly.ts）上执行；连接池懒加载（对齐 get_ai_sql_engine），
- * 应用关闭时释放。这里的 500 都是 Flask 路由里直接 jsonify 的具体文案，不走全局通用 500 文案。
+ * 用户 SQL 一律在独立只读连接池（db/readonly.ts）上执行；连接池懒加载，
+ * 应用关闭时释放。这里的 500 都由路由直接返回具体文案，不走全局通用 500 文案。
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -16,7 +16,7 @@ import { AiSqlService, LlmConfigError } from './service'
 
 const PERMISSION = 'cc_ai_sql'
 
-/** Python `(data.get(key) or '').strip()`：非字符串的真值会触发 AttributeError → 500 */
+/** 取字段并去首尾空白：假值视为空字符串；非字符串的真值 → 500 */
 function strippedField(data: Record<string, unknown>, key: string): string {
   const value = data[key]
   if (!pyTruthy(value)) return ''

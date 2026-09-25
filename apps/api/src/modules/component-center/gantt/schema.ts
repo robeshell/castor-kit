@@ -1,5 +1,5 @@
 /**
- * 甘特图页 schema 层（对齐 AuraStack backend/app/component_center/schema/gantt_page.py）
+ * 甘特图页 schema 层
  */
 
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
@@ -47,7 +47,7 @@ export function hasKey(data: Record<string, unknown>, key: string): boolean {
   return Object.hasOwn(data, key)
 }
 
-/** 只保留与当前行不同的字段（SQLAlchemy 只对变化的属性发 UPDATE） */
+/** 只保留与当前行不同的字段（只对值真正变化的字段发 UPDATE） */
 export function changedFields<R extends Record<string, unknown>, P extends Partial<R>>(row: R, patch: P): P {
   const out: Partial<R> = {}
   for (const [k, v] of Object.entries(patch)) {

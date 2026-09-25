@@ -1,7 +1,7 @@
 /**
- * 看板页路由（对齐 AuraStack backend/app/component_center/api/kanban_page.py）
+ * 看板页路由
  *
- * 与 Flask 一致：带 id 的路由先 get_or_404，再做权限检查。
+ * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
  */
 
 import type { FastifyInstance } from 'fastify'

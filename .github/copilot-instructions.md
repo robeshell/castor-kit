@@ -4,7 +4,7 @@
 
 ## 项目定位
 
-Node.js/TypeScript + React + RBAC 的 AI-First 脚手架（AuraStack 的 Node.js 重写版）。pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle，端口 5001），前端 `apps/web`（Vite dev server 5173，`/api` 请求通过 proxy 转发），MCP Server `apps/mcp`。
+Node.js/TypeScript + React + RBAC 的 AI-First 脚手架。pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle，端口 5001），前端 `apps/web`（Vite dev server 5173，`/api` 请求通过 proxy 转发），MCP Server `apps/mcp`。
 
 ## 必须遵守的约定
 
@@ -35,7 +35,7 @@ Node.js/TypeScript + React + RBAC 的 AI-First 脚手架（AuraStack 的 Node.js
 2. 运行 scaffold：`pnpm scaffold -- --name <name> --domain admin --fields "..."`（自动注册路由与表定义并生成迁移）
 3. 按 db/schema → schema → repository → service → routes 顺序填充业务逻辑
 4. 在 `apps/api/scripts/seed-rbac.ts` 中添加菜单 + 按钮权限，运行 `pnpm seed:rbac -- --incremental`
-5. `pnpm db:migrate`，并用 `psql -d aurastack -c '\d <table>'` 确认落库（改表结构后用 `pnpm db:generate --name <描述>` 生成新迁移，不能写 `--`）
+5. `pnpm db:migrate`，并用 `psql -d castor_kit -c '\d <table>'` 确认落库（改表结构后用 `pnpm db:generate --name <描述>` 生成新迁移，不能写 `--`）
 6. 运行 `pnpm verify -- --module <name>` 验证
 
 ## 字段类型速查

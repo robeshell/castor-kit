@@ -1,5 +1,5 @@
 /**
- * 日志模块 service 层（对齐 AuraStack backend/app/admin/service/logs.py）
+ * 日志模块 service 层
  */
 
 import { ServiceError } from '@/common/errors'

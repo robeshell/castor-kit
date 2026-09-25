@@ -1,5 +1,5 @@
 /**
- * CSRF 防护（对齐 AuraStack backend/common/csrf.py）
+ * CSRF 防护
  *
  * 基于会话 Cookie 的认证依赖浏览器自动携带 Cookie，需对状态变更请求校验双提交 token：
  * 前端在登录 / 获取当前用户时拿到 csrf_token，随请求头 X-CSRF-Token 提交，服务端与会话中的 token 比对。
@@ -39,7 +39,7 @@ export function requestPath(request: FastifyRequest): string {
 
 /**
  * 对已登录会话的状态变更请求做 CSRF 校验
- * 挂在 preValidation（请求体已解析）而不是 onRequest：被拒请求的请求体仍要进操作日志，与 Flask 一致
+ * 挂在 preValidation（请求体已解析）而不是 onRequest：被拒请求的请求体仍要进操作日志
  * - 仅拦截 /api/ 下的 POST/PUT/PATCH/DELETE
  * - 登录接口本身豁免（此时尚未建立会话 token）
  * - 未登录请求跳过（由 loginRequired 处理）

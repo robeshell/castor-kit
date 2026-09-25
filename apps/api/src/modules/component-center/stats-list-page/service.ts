@@ -1,9 +1,9 @@
 /**
- * 带统计的列表页 service 层（对齐 AuraStack backend/app/component_center/service/stats_list_page.py）
+ * 带统计的列表页 service 层
  *
- * 与 SQLAlchemy 行为对齐的要点：
+ * 写入行为要点：
  * - 更新只写真正变化的列；没有变化时不发 UPDATE，updated_at 保持不变（onupdate 语义）
- * - 导入沿用 Session autoflush 时机：上一行的写入在下一行 get_by_code 查询前才落库，最后一行在提交时落库；
+ * - 导入的落库时机：上一行的写入在下一行 get_by_code 查询前才落库，最后一行在提交时落库；
  *   有错误行时直接回滚，未落库的写入不会触发数据库错误
  */
 
@@ -35,7 +35,7 @@ import {
 
 type Data = Record<string, unknown>
 
-/** 可写列的规范化值（amount 为 Python float，写库时转 numeric 文本） */
+/** 可写列的规范化值（amount 为浮点数，写库时转 numeric 文本） */
 interface ItemValues {
   name?: string
   item_code?: string
@@ -63,7 +63,7 @@ function categoryOf(value: unknown): string {
   return pyStrOrEmpty(value) || 'general'
 }
 
-/** 只保留与当前行不同的列（SQLAlchemy 属性历史：值相等则不算变更） */
+/** 只保留与当前行不同的列（值相等则不算变更） */
 function changedValues(item: StatsItem, next: ItemValues): StatsItemUpdate {
   const changes: StatsItemUpdate = {}
   for (const [key, value] of Object.entries(next) as [keyof ItemValues, unknown][]) {
@@ -216,7 +216,7 @@ export class StatsListPageService {
 
     let items: StatsItem[]
     if (exportMode === 'filtered') {
-      // Python: filters.get(...)；非 dict（如 list/str）没有 .get → AttributeError → 500
+      // filters 不是对象（如 list/str）时返回 500
       if (!isPlainObject(filters)) throw new ServiceError("'filters' object has no attribute 'get'", 500)
       items = await this.repo.listAllOrdered({
         search: pyStrOrEmpty(filters.search),

@@ -1,9 +1,5 @@
 # Getting Started
 
-::: info castor-kit and AuraStack
-castor-kit is the Node.js/TypeScript rewrite of AuraStack (the Flask version): the backend is now Fastify + Drizzle, the React frontend keeps its routing and features with the UI migrated from Semi Design to shadcn/ui + Tailwind CSS v4, and it connects to the same PostgreSQL schema with a compatible API contract.
-:::
-
 ## Prerequisites
 
 Choose the setup path that fits your situation:
@@ -77,7 +73,7 @@ cp apps/api/.env.example apps/api/.env.development
 Open `apps/api/.env.development` and set at least the database connection:
 
 ```env
-DEV_DATABASE_URL=postgresql://youruser@localhost/aurastack
+DEV_DATABASE_URL=postgresql://youruser@localhost/castor_kit
 ```
 
 In development `NODE_ENV` defaults to `development`; `SECRET_KEY` and `ADMIN_PASSWORD` may be left empty (a built-in dev key and `admin123` are used).
@@ -86,7 +82,7 @@ In development `NODE_ENV` defaults to `development`; `SECRET_KEY` and `ADMIN_PAS
 
 ```bash
 # Create the database
-createdb aurastack
+createdb castor_kit
 
 # Run the Drizzle migrations (an empty database gets every table)
 pnpm db:migrate

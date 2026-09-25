@@ -1,15 +1,13 @@
 /**
- * SQLAlchemy + psycopg2 写库/查询时对“宽松请求体取值”的实际处理，在 Node 侧复刻（roles / menu / logs 共用）。
+ * 写库/查询时对“宽松请求体取值”的处理规则（roles / menu / logs 共用）。
  *
- * Flask 版把 `request.get_json()` 里的原始值直接赋给模型字段或拼进 `Model.id.in_(...)`，最终效果由
- * SQLAlchemy 类型处理 + psycopg2 字面量渲染 + PostgreSQL 赋值转换共同决定（均已对 Flask 实测）：
+ * 请求体里的原始值直接用作列值或 `id IN (...)` 参数时，按“SQL 字面量 + PostgreSQL 赋值转换”的效果处理：
  * - 文本列：str 原样；int/float → 数字文本；bool → 'true'/'false'；list → PG 数组文本（如 `{1,2}`）；dict → 500
  * - 整数列：int 原样；float → 四舍五入（远离 0）；str → PG int4 解析（非法 → 500）；bool/list/dict → 500
- * - 布尔列：SQLAlchemy 严格校验，只接受 None/True/False/0/1，其余 → 500
+ * - 布尔列：严格校验，只接受 None/True/False/0/1，其余 → 500
  * - `id IN (...)`：参数必须是 list（dict 取键），元素 int 超出 int4 范围或非整数 float 只是“不匹配”，
  *   str 交给 int4 解析（非法 → 500），None 不匹配，bool/list/dict → 500
- * Python 侧这些错误要么被 service 的 `except Exception` 转成 500，要么是未捕获异常（Flask 同样 500），
- * 这里统一抛 `ServiceError(..., 500)`，由全局错误处理器输出通用文案。
+ * 这些错误统一抛 `ServiceError(..., 500)`，由全局错误处理器输出通用文案。
  */
 
 import { ServiceError } from '@/common/errors'
@@ -21,7 +19,7 @@ const INT4_MAX = 2_147_483_647
 /** PostgreSQL int4in 接受的首尾空白（isspace） */
 const PG_INT_RE = /^[ \t\n\r\v\f]*([+-]?\d+)[ \t\n\r\v\f]*$/
 
-/** Python 侧会抛异常（TypeError / AttributeError / 数据库错误）的输入 → 500 */
+/** 类型不合法 / 缺少属性 / 数据库报错的输入 → 500 */
 export function internalError(detail: string): ServiceError {
   return new ServiceError(detail, 500)
 }
@@ -89,7 +87,7 @@ function arrayElementText(text: string): string {
   return needsQuote ? `"${text.replace(/(["\\])/g, '\\$1')}"` : text
 }
 
-/** psycopg2 把 list 渲染成 `ARRAY[...]`，赋给文本列后 PG 输出的数组文本 */
+/** list 按 `ARRAY[...]` 处理，赋给文本列后存 PG 数组文本 */
 function pgArrayText(items: unknown[]): string {
   const kinds = new Set(items.filter((v) => v !== null && v !== undefined).map((v) => typeof v))
   if (kinds.size > 1 || [...kinds].some((k) => !['string', 'number', 'boolean'].includes(k))) {
@@ -126,7 +124,7 @@ export function adaptInt(value: unknown): number | null {
   throw internalError(`column is of type integer but expression is of type ${typeof value}`)
 }
 
-/** 赋给 boolean 列的值（SQLAlchemy Boolean 严格校验） */
+/** 赋给 boolean 列的值（严格校验，只接受 null/true/false/0/1） */
 export function adaptBool(value: unknown): boolean | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'boolean') return value
@@ -158,7 +156,7 @@ export function adaptIdsForIn(values: unknown): number[] {
   return [...new Set(out)]
 }
 
-/** `filters.get(key)`：filters 不是 dict 时 Python 抛 AttributeError → 500 */
+/** `filters.get(key)`：filters 不是 dict 时 → 500 */
 export function dictGet(obj: unknown, key: string): unknown {
   if (!isPlainObject(obj)) throw internalError(`'${typeof obj}' object has no attribute 'get'`)
   return obj[key]
@@ -211,9 +209,9 @@ export function selectedIdsOrNull(ids: unknown): unknown[] | null {
 }
 
 /**
- * `request.get_json() or {}` 之后按 dict 使用（`data.get(...)`）：
- * 假值（null / [] / 0 / '' / false）→ {}；其他非 dict 的真值在 Python 里 `.get` 抛 AttributeError → 500。
- * （common/http.jsonBody 把所有非对象都当作 {}，这里按 Flask 实测行为收紧。）
+ * 请求体按 dict 使用（`data.get(...)`）：
+ * 假值（null / [] / 0 / '' / false）→ {}；其他非 dict 的真值 → 500。
+ * （common/http.jsonBody 把所有非对象都当作 {}，这里更严格。）
  */
 export function dictBody(raw: unknown): Record<string, unknown> {
   if (isPlainObject(raw)) return raw

@@ -344,7 +344,7 @@ describe('list-page 导入导出', () => {
     expect(filtered.rawPayload.toString('utf8')).toBe('﻿名称\r\n导出2\r\n')
   })
 
-  it('导出 错误分支（400 / Python 未捕获异常 → 500）', async () => {
+  it('导出 错误分支（400 / 未捕获异常 → 500）', async () => {
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的查询数据' })
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 1 } })).statusCode).toBe(400)
     for (const payload of [

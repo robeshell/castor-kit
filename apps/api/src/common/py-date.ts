@@ -1,9 +1,9 @@
 /**
- * Python 3.13 `date.fromisoformat(str(value)[:10])` 的逐字移植（C 实现 `_datetimemodule.c`），
- * 供 kanban / detail-tabs / gantt / advanced-table 四个模块的 `_parse_date` / `parse_due_date` 共用。
+ * 按 Python 3.13 `date.fromisoformat()`（C 实现 `_datetimemodule.c`）规则解析日期，
+ * 供 kanban / detail-tabs / gantt / advanced-table 四个模块的日期解析（`parseLooseDate`）共用。
  * （建议后续挪到 common/py.ts；当前按文件归属放在这里。）
  *
- * C 实现的要点（与“只认 YYYY-MM-DD”不同，已用 AuraStack venv 实测）：
+ * 规则要点（与“只认 YYYY-MM-DD”不同）：
  * - 长度按 UTF-8 字节计，必须是 7 / 8 / 10
  * - 支持 `YYYY-MM-DD`、`YYYYMMDD`、ISO 周 `YYYY-Www[-D]` / `YYYYWww[D]`
  * - 解析完不检查是否耗尽：`20240101ab` → 2024-01-01

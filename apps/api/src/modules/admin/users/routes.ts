@@ -1,7 +1,7 @@
 /**
- * 用户模块路由（对齐 AuraStack backend/app/admin/api/users.py）
+ * 用户模块路由
  *
- * 注意与 Flask 一致的顺序：带 id 的路由先 get_or_404，再做权限检查。
+ * 注意顺序：带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
  */
 
 import type { FastifyInstance } from 'fastify'

@@ -1,5 +1,5 @@
 /**
- * 业务异常与统一错误处理（对齐 AuraStack 各 api 模块的 handle_service_error + app.py 错误处理器）
+ * 业务异常与统一错误处理（ServiceError 定义 + 全局错误处理器）
  *
  * 响应形状只有一种：`{ error: string, ...payload }`。5xx 一律返回通用文案，不透传内部信息。
  */

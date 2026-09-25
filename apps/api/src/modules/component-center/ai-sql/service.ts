@@ -1,8 +1,8 @@
 /**
- * AI Text-to-SQL 业务逻辑（对齐 AuraStack component_center/api/ai_sql.py）
+ * AI Text-to-SQL 业务逻辑
  *
- * 自然语言 → LLM 生成 SQL → 安全校验 → 只读引擎执行。错误分支与 Flask 一一对应：
- * - LLM 配置/响应类错误（Python 里是 ValueError：未配置 key、非 200、响应不是 JSON、URL 非法）
+ * 自然语言 → LLM 生成 SQL → 安全校验 → 只读引擎执行。错误分支：
+ * - LLM 配置/响应类错误（LlmConfigError：未配置 key、非 200、响应不是 JSON、URL 非法）
  *   → 500 `AI 生成失败，请检查模型配置后重试`
  * - 其他异常（网络、超时、响应结构不对）→ 500 `AI 生成失败`
  */
@@ -13,7 +13,7 @@ import { AiSqlRepository, type ColumnInfo } from './repository'
 import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schema'
 import { pgToPy, toResponseValue } from './pg-values'
 
-/** Python 里的 ValueError 分支（配置/上游响应问题） */
+/** LLM 配置 / 上游响应问题 */
 export class LlmConfigError extends Error {}
 
 const LLM_TIMEOUT_MS = 30_000

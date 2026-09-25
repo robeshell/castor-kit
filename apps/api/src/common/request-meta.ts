@@ -1,12 +1,12 @@
 /**
- * 请求元信息（对齐 AuraStack backend/common/request_meta.py）
+ * 请求元信息（客户端 IP、User-Agent、写进操作日志的请求体文本等）
  */
 
 import type { FastifyRequest } from 'fastify'
 
 /**
  * 客户端 IP：以 `request.ip` 为准。直连时即对端地址；部署在可信反代后由 `trustProxy`
- * （替代 Flask ProxyFix）修正为真实 IP。不直接读可伪造的 X-Forwarded-For。
+ * 修正为真实 IP。不直接读可伪造的 X-Forwarded-For。
  */
 export function getClientIp(request: FastifyRequest): string {
   return request.ip || ''
@@ -44,7 +44,7 @@ function maskSensitive(data: unknown): unknown {
 
 /**
  * 等价 Python `json.dumps(value, ensure_ascii=False)`：默认分隔符是 `", "` 与 `": "`，
- * 保证写进 operation_logs.payload 的文本与 Flask 版一致。
+ * 保证写进 operation_logs.payload 的文本格式与既有日志一致。
  */
 export function pyJsonDumps(value: unknown): string {
   if (value === null || value === undefined) return 'null'

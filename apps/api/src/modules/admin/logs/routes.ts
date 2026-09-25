@@ -1,5 +1,5 @@
 /**
- * 日志模块路由（对齐 AuraStack backend/app/admin/api/logs.py）
+ * 日志模块路由
  *
  * 操作日志是**集中式**写入：全局 onResponse hook 按路径/方法推断 module/action 后落库，
  * 异常吞掉不影响响应。不要在各 service 里散写操作日志。
@@ -20,7 +20,7 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
   const opts = { preHandler: loginRequired }
 
   app.addHook('onResponse', async (request, reply) => {
-    // 只记录命中路由的请求（Flask 里 after_request 注册在 Blueprint 上，未匹配路由不会触发）
+    // 只记录命中路由的请求（未匹配路由不记录）
     if (!request.routeOptions.url) return
     try {
       const contentType = request.headers['content-type'] ?? ''

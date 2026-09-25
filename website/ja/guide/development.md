@@ -159,15 +159,11 @@ pnpm db:generate --name add_customer_table
 pnpm db:migrate
 
 # テーブルが実際に存在することを確認
-psql -d aurastack -c '\d customers'
+psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning マイグレーションは必ず実際に適用すること
 マイグレーションファイルを生成するだけでは不十分です。`pnpm db:migrate` を実行し、`psql \d` でテーブル/カラムの存在を確認してください。`pnpm verify` の `migration_applied` チェックもデータベース内のマイグレーション記録と照合します。
-:::
-
-::: info AuraStack のデータベースを引き継ぐ場合
-既存の AuraStack データベースに対して `pnpm db:migrate` を実行すると、ベースラインマイグレーションは適用済みとしてマークされるだけで（`drizzle.__drizzle_migrations` に記録）、DDL は実行されません。既存の `alembic_version` テーブルには手を加えません。
 :::
 
 ---
@@ -189,7 +185,7 @@ TypeScript の型、層構成ルール（ローカルの権限ヘルパー禁止
 ```bash
 pnpm dev                       # api (5001) + web (5173)
 pnpm typecheck                 # TypeScript 型チェック
-pnpm test                      # Vitest（aurastack_test データベースが必要）
+pnpm test                      # Vitest（castor_kit_test データベースが必要）
 pnpm build                     # web + api + mcp をビルド
 pnpm db:generate --name <desc> # マイグレーションを生成
 pnpm db:migrate                # マイグレーションを適用
@@ -200,7 +196,7 @@ pnpm openapi:apifox            # Apifox にプッシュ（APIFOX_PROJECT_ID / AP
 pnpm mcp                       # MCP サーバーを起動
 ```
 
-テストデータベース：`createdb -T aurastack aurastack_test`（開発データベースを複製）または `createdb aurastack_test`（空。テストが自動的にマイグレーションを実行）。
+テストデータベース：`createdb -T castor_kit castor_kit_test`（開発データベースを複製）または `createdb castor_kit_test`（空。テストが自動的にマイグレーションを実行）。
 
 ---
 
@@ -228,8 +224,8 @@ castor-kit にはすべての主要 AI コーディングツール向けのコ�
 | 変数 | デフォルト値 | 説明 |
 |---|---|---|
 | `NODE_ENV` | `development` | 実行環境：`development` / `production` / `test` |
-| `DEV_DATABASE_URL` | `postgresql://localhost/aurastack_dev` | ローカル PostgreSQL の接続文字列 |
-| `TEST_DATABASE_URL` | `postgresql://localhost/aurastack_test` | `pnpm test` が使用するテストデータベース |
+| `DEV_DATABASE_URL` | `postgresql://localhost/castor_kit_dev` | ローカル PostgreSQL の接続文字列 |
+| `TEST_DATABASE_URL` | `postgresql://localhost/castor_kit_test` | `pnpm test` が使用するテストデータベース |
 | `SECRET_KEY` | 組み込みの開発用キー | セッション暗号化キー（開発環境では任意） |
 | `ADMIN_PASSWORD` | `admin123` | `pnpm seed:rbac` が admin アカウントに使用するパスワード |
 | `PORT` | `5001` | バックエンドのポート（Vite プロキシの転送先は 5001） |

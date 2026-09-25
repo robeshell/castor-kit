@@ -13,7 +13,7 @@ declare module 'fastify' {
   }
 }
 
-/** 会话里存的字段（对齐 Flask session 的键） */
+/** 会话里存的字段 */
 declare module '@fastify/secure-session' {
   interface SessionData {
     logged_in: boolean

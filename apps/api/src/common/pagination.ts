@@ -1,12 +1,12 @@
 /**
- * 分页参数解析（对齐 AuraStack backend/common/pagination.py）
+ * 分页参数解析
  */
 
 /** 单页最多返回行数，防止 ?per_page=1000000 整表拉取 */
 export const MAX_PER_PAGE = 200
 export const DEFAULT_PER_PAGE = 20
 
-/** 等价 Flask `request.args.get(key, default, type=int)`：无法按 int 解析时回落默认值 */
+/** 查询参数按 int 解析：缺省或无法解析时回落默认值 */
 export function queryInt(value: unknown, fallback: number): number {
   const raw = Array.isArray(value) ? value[0] : value
   if (typeof raw !== 'string') return fallback

@@ -1,5 +1,5 @@
 /**
- * 地图热力图模拟数据（逐字对齐 AuraStack backend/app/component_center/api/map_heatmap.py 的 PROVINCE_DATA）
+ * 地图热力图模拟数据：各省基准值（PROVINCE_DATA）
  */
 
 export interface ProvincePoint {

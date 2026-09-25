@@ -1,8 +1,7 @@
 /**
  * tree_nodes
- * 对齐 AuraStack backend/app/component_center/model/entities_tree_list_page.py
  *
- * parent_id 外键 ON DELETE SET NULL；SQLAlchemy 的 children/parent 自引用关系对应下方 relations。
+ * parent_id 外键 ON DELETE SET NULL；children/parent 自引用关系见下方 relations。
  */
 
 import { relations } from 'drizzle-orm'
@@ -58,7 +57,7 @@ export function treeNodeToDict(node: TreeNode) {
   }
 }
 
-/** Python `to_tree_dict()`：to_dict + 直接子节点数（childrenCount 由调用方查询） */
+/** 树节点输出：toDict + 直接子节点数（childrenCount 由调用方查询） */
 export function treeNodeToTreeDict(node: TreeNode, childrenCount: number) {
   return { ...treeNodeToDict(node), children_count: childrenCount }
 }

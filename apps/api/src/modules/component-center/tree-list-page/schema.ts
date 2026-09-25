@@ -1,5 +1,5 @@
 /**
- * 树形列表页 schema 层（对齐 AuraStack backend/app/component_center/schema/tree_list_page.py）
+ * 树形列表页 schema 层
  */
 
 import { z } from 'zod'
@@ -8,7 +8,7 @@ import { isPlainObject, pyInt, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { TreeNode } from '@/db/schema'
 
-/** 移植期请求体：loose + 全可选，归一化在 service 里做 */
+/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
 export const treeNodeBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 export const STATUS_VALUES = new Set(['active', 'inactive', 'archived'])
@@ -65,7 +65,7 @@ export function parseInt(value: unknown, fallback = 0): number {
   }
 }
 
-/** Python `int(x)`，失败（ValueError/TypeError）返回 null */
+/** 按 pyInt 规则转整数，失败返回 null */
 export function tryInt(value: unknown): number | null {
   try {
     return pyInt(value)
@@ -84,11 +84,11 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   return { line, reason, row }
 }
 
-// ---------------------------------------------------------------- Python 语义辅助
+// ---------------------------------------------------------------- 值处理辅助
 
 /**
- * Python `for f in fields`（POST 导出的 fields 可能不是列表）：list → 元素，str → 字符，dict → 键；
- * 其余真值（数字 / True）不可迭代 → TypeError → 500。
+ * 遍历 fields（POST 导出的 fields 可能不是列表）：list → 元素，str → 字符，dict → 键；
+ * 其余真值（数字 / true）不可迭代 → 500。
  */
 export function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
@@ -97,7 +97,7 @@ export function pyIterate(value: unknown): unknown[] {
   throw new ServiceError(`'${typeof value}' object is not iterable`, 500)
 }
 
-/** Python `f in EXPORT_FIELD_MAP`：list/dict 不可哈希 → TypeError → 500 */
+/** 判断 f 是否为可导出字段；f 为 list/dict（不能作为字段名）时返回 500 */
 export function isExportField(field: unknown): field is string {
   if (field !== null && typeof field === 'object') throw new ServiceError('unhashable type', 500)
   return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
@@ -106,13 +106,13 @@ export function isExportField(field: unknown): field is string {
 const PG_INT_MIN = -2_147_483_648
 const PG_INT_MAX = 2_147_483_647
 
-/** 能作为 integer 参数与 int4 列比较（超范围的 Python int 在 PostgreSQL 里比较不会命中，而不是报错） */
+/** 能作为 integer 参数与 int4 列比较（超范围的整数在 PostgreSQL 里比较不会命中，而不是报错） */
 export function isPgInt(n: number): boolean {
   return Number.isInteger(n) && n >= PG_INT_MIN && n <= PG_INT_MAX
 }
 
 /**
- * SQLAlchemy `id.in_(ids)`（psycopg2 客户端插值）在 PostgreSQL 上的效果：
+ * ids 中各元素内联进 `id IN (...)` 后在 PostgreSQL 上的效果：
  * - 整数 → 匹配；非整数/超出 int4 的数字 → 与 integer 比较不会命中（不报错）；None → 不命中
  * - 字符串 → 按 int4 输入解析（'2' 可命中，'abc'/超范围 → 数据库报错 → 500）
  * - bool / list / dict → 类型错误 → 500

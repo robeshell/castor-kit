@@ -24,7 +24,7 @@ cp .env.example .env.production
 SECRET_KEY=64位以上的随机字符串     # 必填 — 会话加密密钥
 ADMIN_PASSWORD=你的管理员密码       # 必填 — 初始管理员密码
 POSTGRES_PASSWORD=数据库密码        # 必填 — PostgreSQL 密码
-POSTGRES_RO_PASSWORD=只读账号密码   # 必填 — AI SQL 只读账号 aurastack_ro 的密码
+POSTGRES_RO_PASSWORD=只读账号密码   # 必填 — AI SQL 只读账号 castor_kit_ro 的密码
 ```
 
 然后构建并启动：
@@ -91,22 +91,6 @@ docker compose --env-file .env.production up -d --build
 
 ---
 
-## 从 AuraStack 原地切换
-
-castor-kit 是 AuraStack 的 Node.js 重写版，使用同一套数据库表结构。已经用 Docker 部署了 AuraStack 的服务器，可以让 castor-kit 直接复用原来的数据卷：
-
-```bash
-COMPOSE_DB_VOLUME=aurastack_postgres_data \
-COMPOSE_INSTANCE_VOLUME=aurastack_app_instance \
-docker compose --env-file .env.production up -d --build
-```
-
-- 首次启动时 baseline 迁移只做标记，不改动任何已有表；`alembic_version` 表保持不动
-- 用户密码哈希格式兼容，账号可以直接登录；但会话 cookie 不通用，切换后所有用户需要重新登录一次
-- `.env.production` 中原来的 `FLASK_ENV` 已不再使用，改由 compose 设置 `NODE_ENV=production`
-
----
-
 ## 手动服务器部署
 
 适合在没有 Docker 的 VPS 或裸机服务器上部署。需要 Node 22+、pnpm 和 PostgreSQL 14+。
@@ -131,10 +115,10 @@ cp .env.example .env.production
 
 ```env
 SECRET_KEY=你的强随机密钥
-DATABASE_URL=postgresql://用户:密码@localhost/aurastack
+DATABASE_URL=postgresql://用户:密码@localhost/castor_kit
 ADMIN_PASSWORD=你的管理员密码
 POSTGRES_RO_PASSWORD=只读账号密码
-AI_SQL_DATABASE_URL=postgresql://aurastack_ro:只读账号密码@localhost/aurastack
+AI_SQL_DATABASE_URL=postgresql://castor_kit_ro:只读账号密码@localhost/castor_kit
 ```
 
 ### 3. 初始化数据库
@@ -143,7 +127,7 @@ AI_SQL_DATABASE_URL=postgresql://aurastack_ro:只读账号密码@localhost/auras
 NODE_ENV=production node apps/api/dist/setup-once.js
 ```
 
-它会执行迁移、同步 RBAC 数据，并按 `POSTGRES_RO_PASSWORD` 创建只读账号 `aurastack_ro`。
+它会执行迁移、同步 RBAC 数据，并按 `POSTGRES_RO_PASSWORD` 创建只读账号 `castor_kit_ro`。
 
 ### 4. 启动服务
 

@@ -1,5 +1,5 @@
 /**
- * 认证模块路由（对齐 AuraStack backend/app/admin/api/auth.py）
+ * 认证模块路由
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -32,7 +32,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
   app.post('/api/admin/logout', async (request) => {
     const username = request.session.get('username') ?? ''
     const result = await service.logout(username, { ip: getClientIp(request), userAgent: getUserAgent(request) })
-    // 等价 Flask session.clear()：先清空数据（后续 onResponse 审计 hook 读不到用户名），再删除 cookie
+    // 清空会话：先清空数据（后续 onResponse 审计 hook 读不到用户名），再删除 cookie
     request.session.regenerate()
     request.session.delete()
     return result

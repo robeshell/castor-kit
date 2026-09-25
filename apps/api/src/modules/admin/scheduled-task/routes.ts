@@ -1,7 +1,7 @@
 /**
- * 定时任务路由（对齐 AuraStack backend/app/admin/api/scheduled_task.py）
+ * 定时任务路由
  *
- * 顺序与 Flask 一致：
+ * 检查顺序（保持既有接口行为）：
  * - GET/PUT/DELETE /scheduled-tasks/<id>：先 get_or_404 再做权限检查
  * - POST /scheduled-tasks/<id>/run：先做权限检查再 get_or_404
  * - 手动执行：run.status 为 success 返回 200，否则 500（响应体仍是完整结果）

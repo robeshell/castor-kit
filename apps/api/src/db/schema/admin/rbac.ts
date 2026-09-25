@@ -1,6 +1,5 @@
 /**
  * RBAC 表：admin_users / roles / menus / user_roles / role_menus
- * 对齐 AuraStack backend/app/admin/model/entities_rbac.py
  */
 
 import { relations } from 'drizzle-orm'
@@ -112,7 +111,7 @@ export const role_menus = pgTable(
   ],
 )
 
-// ---- relations（只做显式查询，不做隐式懒加载；对应 SQLAlchemy 的 roles / menus / children） ----
+// ---- relations（只做显式查询，不做隐式懒加载：roles / menus / children） ----
 
 export const admin_users_relations = relations(admin_users, ({ many }) => ({
   user_roles: many(user_roles),
@@ -146,10 +145,10 @@ export type Role = typeof roles.$inferSelect
 export type Menu = typeof menus.$inferSelect
 
 export type RoleWithMenus = Role & { menus: Menu[] }
-/** 已预加载 roles → menus 的用户（对应 Python 里 joinedload(roles).joinedload(menus) 的 Admin 实例） */
+/** 已预加载 roles → menus 的用户 */
 export type AdminUserWithRoles = AdminUser & { roles: RoleWithMenus[] }
 
-// ---- toDict（对齐 Python to_dict 的键与值） ----
+// ---- toDict（接口输出的键与值） ----
 
 export function roleToDict(role: Role | RoleWithMenus, includeMenus = false) {
   const result: Record<string, unknown> = {
@@ -201,7 +200,7 @@ export interface MenuDict {
   children?: MenuDict[]
 }
 
-/** `Menu.to_dict(include_children=False)`；带 children 的树由调用方显式查询后组装 */
+/** 菜单输出（不含 children）；带 children 的树由调用方显式查询后组装 */
 export function menuToDict(menu: Menu): MenuDict {
   return {
     id: menu.id,

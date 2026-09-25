@@ -6,7 +6,7 @@ import { loadConfig, type AppConfig } from '../src/config'
 import { createDb, type DbHandle } from '../src/db/client'
 import { admin_users, login_logs, menus, operation_logs, role_menus, roles, user_roles } from '../src/db/schema'
 
-export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://wangwenyu@localhost/aurastack_test'
+export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://wangwenyu@localhost/castor_kit_test'
 
 export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {

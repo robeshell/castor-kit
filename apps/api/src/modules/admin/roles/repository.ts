@@ -1,12 +1,12 @@
 /**
- * 角色模块 repository 层（对齐 AuraStack backend/app/admin/crud/roles.py）
+ * 角色模块 repository 层
  *
- * 几处“无 ORDER BY”的查询用与 SQLAlchemy 完全相同形状的 SQL 执行，使 PostgreSQL 选择同样的执行计划、
- * 返回同样的行序（Flask 实测：角色导出的菜单编码顺序就取决于这些查询）：
- * - `Role.query.options(joinedload(Role.menus))`（角色列表）
- * - `role.menus` 懒加载（secondary 关系）
- * - `get_current_admin_user()` 的 joinedload(roles).joinedload(menus)：当前用户的角色在同一请求里
- *   已被它加载进 identity map，之后 `role.menus` 直接复用这份集合与顺序
+ * 几处“无 ORDER BY”的查询刻意保持固定的 SQL 形状（别名、JOIN 结构不要随意改），使 PostgreSQL 选择稳定的执行计划、
+ * 返回既有的行序（角色导出的菜单编码顺序就取决于这些查询）：
+ * - `listWithMenusPyOrder`：角色列表，roles LEFT OUTER JOIN role_menus/menus 一次查出
+ * - `lazyMenus`：单个角色的菜单，menus × role_menus 按角色过滤
+ * - `currentUserRoleMenus`：当前用户 → 角色 → 菜单一次 JOIN 查出；同一请求内当前用户的角色
+ *   直接复用这份菜单集合与顺序
  */
 
 import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
@@ -70,7 +70,7 @@ function roleFromRow(row: Record<string, unknown>, prefix: string): Role {
 export class RoleRepository {
   constructor(private readonly db: Executor) {}
 
-  /** `Role.query.options(joinedload(Role.menus)).all()`：按结果行首次出现顺序返回角色 */
+  /** 全部角色及其菜单（一次 JOIN 查出）：按结果行首次出现顺序返回角色 */
   async listWithMenusPyOrder(): Promise<RoleWithMenus[]> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT roles.id AS roles_id, roles.name AS roles_name, roles.code AS roles_code,
@@ -92,7 +92,7 @@ export class RoleRepository {
     return [...byId.values()]
   }
 
-  /** `role.menus` 懒加载（secondary 关系，无 ORDER BY） */
+  /** 单个角色的菜单（经 role_menus 关联，无 ORDER BY） */
   async lazyMenus(roleId: number): Promise<Menu[]> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT ${MENU_COLUMNS('menus')}
@@ -102,7 +102,7 @@ export class RoleRepository {
     return result.rows.map((row) => menuFromRow(row, 'menus')!)
   }
 
-  /** `get_current_admin_user()` 的预加载查询：返回该用户每个角色的菜单（按结果行顺序） */
+  /** 当前用户的角色菜单预加载查询：返回该用户每个角色的菜单（按结果行顺序） */
   async currentUserRoleMenus(username: string): Promise<Map<number, Menu[]>> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT anon_1.admin_users_id AS anon_1_admin_users_id, anon_1.admin_users_username AS anon_1_admin_users_username,

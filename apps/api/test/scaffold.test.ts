@@ -1,7 +1,7 @@
 /**
  * scripts/scaffold.ts
  *
- * - 纯函数：命名 / 字段解析 / 推断规则 / 自动注册（与 Python scaffold.py 对齐）；
+ * - 纯函数：命名 / 字段解析 / 推断规则 / 自动注册；
  *   前端页面为 shadcn/ui 新体系，用 apps/web 的 eslint（stdin，不落盘）与 @/ 路径存在性把关
  * - 集成：在临时目录里复制一份 apps/api（src + drizzle，node_modules 用符号链接），用 --root 指向它执行 scaffold，
  *   断言生成文件、注册、迁移 SQL、生成代码通过 tsc、重复执行不覆盖、dry-run 不落盘。绝不写主仓库。
@@ -40,7 +40,7 @@ function scaffoldCli(args: string[]) {
 }
 
 describe('scaffold 纯函数', () => {
-  it('命名：Pascal / kebab / title 与 Python 一致', () => {
+  it('命名：Pascal / kebab / title', () => {
     expect(toPascal('customer_order')).toBe('CustomerOrder')
     expect(toPascal('ck_demo_customer')).toBe('CkDemoCustomer')
     expect(toKebab('customer_order')).toBe('customer-order')
@@ -89,7 +89,7 @@ describe('scaffold 纯函数', () => {
       webModule: 'component_center',
       nameField: 'qty', // 没有字符串字段时取第一个字段
     })
-    // 没有字符串字段：按原类型导入全部字段（不再像 Python 那样把第一个字段当 str）
+    // 没有字符串字段：按原类型导入全部字段（不把第一个字段当 str）
     expect(cc.importFields).toEqual([['qty', 'int'], ['price', 'float']])
   })
 
@@ -200,7 +200,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     if (root) rmSync(root, { recursive: true, force: true })
   })
 
-  it('非法名称：exit 1 + Python 同款提示', () => {
+  it('非法名称：exit 1 + 提示', () => {
     const res = scaffoldCli(['--', '--name', 'BadName', '--root', root])
     expect(res.code).toBe(1)
     expect(res.out).toContain('❌ --name 必须是 snake_case 格式（小写字母+下划线），如 customer_order')
@@ -250,7 +250,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(table).toContain('  created_at: createdAt(),')
     expect(table).toContain('    visited_at: toIso(item.visited_at),')
 
-    // 路由：Python 同款权限编码与文案，带 id 先 404 再 403
+    // 路由：权限编码与文案，带 id 先 404 再 403
     const routes = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts'), 'utf8')
     expect(routes).toContain("const BASE = '/api/admin/ck-scaffold-demos'")
     for (const [code, msg] of [
@@ -266,7 +266,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     }
     expect(routes.indexOf('service.getOr404(itemId(request.params))')).toBeLessThan(routes.indexOf("'system_ck_scaffold_demo_edit'"))
 
-    // 前端：api 文件格式与 Python 一致；页面是 shadcn/ui 新体系（结构同 users 页）
+    // 前端：api 文件格式；页面是 shadcn/ui 新体系（结构同 users 页）
     const api = readFileSync(join(root, 'apps/web/src/modules/admin/api/ck_scaffold_demo.js'), 'utf8')
     expect(api).toContain("const BASE = '/admin/ck-scaffold-demos'")
     const page = readFileSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx'), 'utf8')

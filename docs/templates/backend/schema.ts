@@ -41,7 +41,7 @@ function toStr(value: unknown): string | null {
   return value === null || value === undefined ? null : pyStr(value)
 }
 
-/** 示例：整数字段（Python int()），空值为 null */
+/** 示例：整数字段（按整数解析），空值为 null */
 export function toInt(field: string, value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   if (typeof value === 'number' && Number.isInteger(value)) return value
@@ -52,7 +52,7 @@ export function toInt(field: string, value: unknown): number | null {
 /**
  * 请求体 → 列值。
  * - 新增（partial=false）：所有字段都写入，缺失的为 null
- * - 编辑（partial=true）：只写请求体里出现的字段（Python `if 'x' in data`）
+ * - 编辑（partial=true）：只写请求体里出现的字段（`'x' in data`）
  */
 export function buildValues(data: Record<string, unknown>, partial: boolean): <Resource>Values {
   const values: <Resource>Values = {}

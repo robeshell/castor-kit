@@ -58,7 +58,7 @@ describe('perf-stats', () => {
     expect(denied.json()).toEqual({ error: '无权限' })
   })
 
-  it('字段与单位对齐 psutil 版（MB / GB / 百分比）', async () => {
+  it('字段与单位（MB / GB / 百分比）', async () => {
     const res = await s.inject({ url: PERF })
     expect(res.statusCode).toBe(200)
     const body = res.json() as Record<string, number>
@@ -78,7 +78,7 @@ describe('perf-stats', () => {
     for (const key of ['disk_used', 'disk_total', 'net_sent', 'net_recv']) expect(Math.round(body[key]! * 100) / 100).toBe(body[key])
   })
 
-  it('metric 消息文本逐字对齐 json.dumps（浮点整数值带 .0，type 在最后）', async () => {
+  it('metric 消息文本逐字按 json.dumps 格式（浮点整数值带 .0，type 在最后）', async () => {
     const text = metricMessage({
       cpu: 0, mem_used: 1024, mem_total: 2048.5, mem_pct: 50, disk_used: 1.25, disk_total: 10, disk_pct: 12.5,
       net_sent: 0.01, net_recv: 3, ts: 1700000000000,
@@ -223,7 +223,7 @@ describe('/ws/devtools', () => {
     expect(earlyEcho).toMatch(/^\{"early": true, "type": "echo", "server_ts": \d+\}$/)
   })
 
-  it('JSON 但不是对象（Python 对 list 赋值抛异常）→ 连接异常中断', async () => {
+  it('JSON 但不是对象 → 连接异常中断', async () => {
     for (const payload of ['[1, 2]', '"str"', '42']) {
       const ws = track(connect(s))
       await opened(ws)

@@ -1,13 +1,11 @@
 /**
- * werkzeug 兼容的密码哈希：`pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`
+ * 密码哈希，存储格式：`pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`
  *
- * 对齐 AuraStack `generate_password_hash(password, method='pbkdf2:sha256')` /
- * `check_password_hash`（Werkzeug 3.1）：
  * - salt 是 16 位 [A-Za-z0-9] 字符串，按 UTF-8 字节参与计算（不做 base64/hex 解码）
- * - 派生长度 = sha256 摘要长度 32 字节，输出小写 hex
- * - 迭代次数省略时 werkzeug 使用其当前默认值 1_000_000
+ * - 派生长度 = 摘要长度（sha256 为 32 字节），输出小写 hex
+ * - method 里省略迭代次数时按默认值 1_000_000 处理
  *
- * 并行运行期新哈希也必须写成该格式，保证 Flask / Node 两个后端互相可验（rewrite-plan §2.3）。
+ * 新哈希一律写成该格式，与库中已有的密码哈希保持可互验。
  * 一律使用异步 pbkdf2：100 万次迭代同步执行会阻塞事件循环约 0.3–0.5s。
  */
 

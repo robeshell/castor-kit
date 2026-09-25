@@ -1,5 +1,5 @@
 /**
- * scripts/seed-rbac.ts：对齐 AuraStack init_rbac_data.py
+ * scripts/seed-rbac.ts：菜单、超级管理员角色、管理员账号的全量重建与增量同步
  *
  * - 全量/增量在独立临时库（castor_seed_*）上验证，不动共享测试库的 RBAC 数据
  * - 增量模式另在 TEST_DATABASE_URL（现库克隆）上连跑两次，确认幂等、不改已有 ID
@@ -68,11 +68,11 @@ afterAll(async () => {
 // 菜单数 / 最大 ID 从 MENUS_DATA 推导：每新增一个功能模块菜单都会变，测试只校验同步逻辑本身
 const MENU_COUNT = MENUS_DATA.length
 const NEXT_MENU_ID = Math.max(...MENUS_DATA.map((m) => m.id)) + 1
-/** 从 AuraStack 移植时的 120 个菜单：新增功能不应改动它们 */
+/** 初始菜单集的 120 个菜单：新增功能不应改动它们 */
 const LEGACY_MENU_COUNT = 120
 
 describe('MENUS_DATA', () => {
-  it('至少包含移植时的 120 个菜单；ID/编码唯一、父节点先于子节点、历史 ID 不变', () => {
+  it('至少包含初始的 120 个菜单；ID/编码唯一、父节点先于子节点、历史 ID 不变', () => {
     expect(MENU_COUNT).toBeGreaterThanOrEqual(LEGACY_MENU_COUNT)
     const ids = MENUS_DATA.map((m) => m.id)
     expect(new Set(ids).size).toBe(ids.length)
@@ -103,7 +103,7 @@ describe('MENUS_DATA', () => {
 })
 
 describe('全量重建（空库）', () => {
-  it('写入全部菜单 + super_admin + admin，序列与 Python 一致', async () => {
+  it('写入全部菜单 + super_admin + admin，序列状态正确', async () => {
     const result = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'ck_test_r8_pw', log: quiet })
     expect(result).toEqual({ menusAdded: MENU_COUNT, menusUpdated: 0, superAdminMenuCount: MENU_COUNT, adminCreated: true })
 
@@ -117,7 +117,7 @@ describe('全量重建（空库）', () => {
       }
       expect(row.description).toBeNull()
     }
-    // Python 实测：menus_id_seq = max(id)+1 且 is_called=false；roles / admin_users 各用了一次序列
+    // menus_id_seq = max(id)+1 且 is_called=false；roles / admin_users 各用了一次序列
     expect(snap.seq).toEqual({ last_value: NEXT_MENU_ID, is_called: false })
     expect(snap.roles).toEqual([{ id: 1, name: '超级管理员', code: 'super_admin', description: '拥有所有权限的超级管理员' }])
     expect(snap.users).toEqual([{ id: 1, username: 'admin' }])

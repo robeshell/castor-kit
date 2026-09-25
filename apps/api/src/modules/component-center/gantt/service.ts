@@ -1,5 +1,5 @@
 /**
- * 甘特图页 service 层（对齐 AuraStack backend/app/component_center/service/gantt_page.py）
+ * 甘特图页 service 层
  */
 
 import { ServiceError } from '@/common/errors'

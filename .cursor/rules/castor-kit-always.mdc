@@ -7,7 +7,7 @@ alwaysApply: true
 
 **完整上下文见 `AGENTS.md`，实现任何新功能前必须阅读。**
 
-castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`apps/api`（Fastify 5 + Zod + Drizzle）、`apps/web`（React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion，UI 已从 Semi Design 迁移，见 `docs/frontend-redesign-plan.md`）、`apps/mcp`。所有命令在仓库根目录用 pnpm 执行。
+castor-kit 是 Node.js/TypeScript + React 的 AI-First 管理后台脚手架：pnpm monorepo，`apps/api`（Fastify 5 + Zod + Drizzle）、`apps/web`（React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion，见 `docs/frontend-redesign-plan.md`）、`apps/mcp`。所有命令在仓库根目录用 pnpm 执行。
 
 ## 关键约定速查
 
@@ -37,7 +37,7 @@ castor-kit 是 AuraStack 的 Node.js/TypeScript 重写版：pnpm monorepo，`app
 - 文件下载用 `@/shared/utils/file` 中的 `downloadBlobFile`
 
 ### 迁移
-- 表结构变更：`pnpm db:generate --name <描述>`（不能写 `--`）→ `pnpm db:migrate` → `psql -d aurastack -c '\d <table>'` 实证
+- 表结构变更：`pnpm db:generate --name <描述>`（不能写 `--`）→ `pnpm db:migrate` → `psql -d castor_kit -c '\d <table>'` 实证
 
 ### 禁止行为
 - ❌ 询问 PM 路由路径、权限编码、字段类型等技术细节

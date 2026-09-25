@@ -1,12 +1,12 @@
 /**
- * AI 对话 SSE 流（对齐 AuraStack backend/app/component_center/api/ai_chat.py 的 generate()）
+ * AI 对话 SSE 流
  *
  * 上游是 OpenAI 兼容接口（`${AI_API_BASE}/chat/completions`，stream:true）。逐行解析 `data:`，
  * 把 `choices[0].delta.content` 转发为 `data: {"content": "..."}\n\n`，结束发 `data: [DONE]\n\n`。
- * 事件文本逐字对齐 Python `json.dumps(..., ensure_ascii=False)`（默认分隔符 `", "` / `": "`）。
+ * 事件文本按 `json.dumps(..., ensure_ascii=False)` 的格式输出（分隔符 `", "` / `": "`，非 ASCII 原样保留）。
  *
- * 超时与 requests(timeout=60, stream=True) 对齐：连接/等响应头超时 → `请求超时，请重试`；
- * 读流过程中超时在 requests 里被包成 ConnectionError → 通用文案 `AI 响应异常，请稍后重试`。
+ * 超时 60 秒：连接/等响应头超时 → `请求超时，请重试`；
+ * 读流过程中超时 → 通用文案 `AI 响应异常，请稍后重试`。
  */
 
 import { Agent, fetch } from 'undici'
@@ -18,13 +18,13 @@ import { pyStrip } from '../ai-sql/schema'
 const UPSTREAM_TIMEOUT_MS = 60_000
 const DONE_EVENT = 'data: [DONE]\n\n'
 
-/** 注入的系统提示词：项目名与技术栈描述改为 castor-kit / Node 版（rewrite-plan §5.7），其余与 Flask 版一致 */
+/** 注入的系统提示词：介绍 castor-kit 的定位、技术栈、功能模块与开发约定 */
 export const SYSTEM_PROMPT = {
   role: 'system',
   content:
     '你是 castor-kit 项目的专属 AI 助手。\n\n' +
     '## 关于 castor-kit\n' +
-    'castor-kit 是一个 AI-First 的企业级全栈脚手架（AuraStack 的 Node.js 重写版），核心理念是：PM 用自然语言描述需求，AI Agent 端到端实现功能。\n\n' +
+    'castor-kit 是一个 AI-First 的企业级全栈脚手架（Node.js + React），核心理念是：PM 用自然语言描述需求，AI Agent 端到端实现功能。\n\n' +
     '## 技术栈\n' +
     '- 后端：Node.js 22 + Fastify 5 + TypeScript + Zod + Drizzle ORM + PostgreSQL\n' +
     '- 前端：React 19 + Vite + React Router + Tailwind CSS v4\n' +
@@ -70,7 +70,7 @@ function isRequestTimeout(err: unknown): boolean {
 
 /**
  * 从一行 data: 负载里取 `chunk['choices'][0]['delta'].get('content', '')`；
- * 结构不符（Python 里的 KeyError/TypeError/IndexError/AttributeError）返回 undefined → 跳过该行
+ * 结构不符（缺字段、类型不对、choices 为空等）返回 undefined → 跳过该行
  */
 function extractContent(chunk: unknown): unknown {
   if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) return undefined

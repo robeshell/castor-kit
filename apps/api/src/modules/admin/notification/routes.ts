@@ -1,5 +1,5 @@
 /**
- * 通知消息路由（对齐 AuraStack backend/app/admin/api/notification.py）
+ * 通知消息路由
  *
  * 所有登录用户可用：列表 / 未读数 / 已读 / 删除按“全局 OR 专属于当前用户”的可见性过滤；
  * 仅新增需要 system_notifications_add，删除全局通知需要 system_notifications_delete。
@@ -16,7 +16,7 @@ const USER_NOT_FOUND = { error: '用户不存在' }
 export async function registerNotificationRoutes(app: FastifyInstance): Promise<void> {
   const service = new NotificationService(app.db)
   const opts = { preHandler: loginRequired }
-  // 超出 integer 范围的 id 不报 get_or_404，而是走 service 的“通知不存在或无权限”（Python 是普通 filter 查询）
+  // 超出 integer 范围的 id 不报 get_or_404，而是走 service 的“通知不存在或无权限”（service 里是普通条件查询）
   const notiIdOf = (request: FastifyRequest) => Number((request.params as { noti_id: string }).noti_id)
 
   app.get('/api/admin/notifications', opts, async (request, reply) => {

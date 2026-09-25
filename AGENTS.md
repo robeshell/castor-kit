@@ -4,7 +4,7 @@
 > 实现任何新功能前必须完整阅读本文件。AI 应从本文件自行推断所有技术决策，无需向 PM 询问技术细节。
 >
 > 各工具专属配置：`CLAUDE.md`（Claude Code）| `CODEX.md`（Codex CLI）| `.cursor/rules/`（Cursor）| `.github/copilot-instructions.md`（Copilot）| `.windsurfrules`（Windsurf）| `llms.txt`（入口索引）
-> 重写方案与验收基线：`docs/rewrite-plan.md`（§2 兼容契约、§4 分层与反模式、§7 工具链）。
+> 架构说明：`docs/architecture.md`（技术栈、分层与反模式、横切约定、迁移、工具链、部署、设计决定）。
 > 前端 UI 方案：`docs/frontend-redesign-plan.md`（Semi Design → shadcn/ui + Tailwind CSS v4 + motion，设计 tokens 与公共组件约定）。
 
 ---
@@ -15,7 +15,7 @@
 
 目标：PM 用自然语言描述业务意图 → AI Agent 自动推断技术决策 → 展示业务预览供确认 → 端到端交付符合规范的新功能模块（数据表、接口、页面、权限、迁移）。
 
-castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端换成 Node，数据库不动，API 契约兼容**；前端的路由机制、API 层与页面功能沿用 AuraStack，UI 已从 Semi Design 整体迁移到 **shadcn/ui + Tailwind CSS v4 + motion**（见 `docs/frontend-redesign-plan.md`）。原项目在本机 `/Users/wangwenyu/Documents/Code/AuraStack`（GitHub `robeshell/AuraStack`），移植或排查行为差异时以那里的 Python 实现为行为基准。
+castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle + PostgreSQL），前端 `apps/web`（React 19 + **shadcn/ui + Tailwind CSS v4 + motion**，见 `docs/frontend-redesign-plan.md`），`apps/mcp` 把 scaffold / verify / seed / 迁移等工具链暴露给 MCP Client。整体架构与设计决定见 `docs/architecture.md`。
 
 ---
 
@@ -50,10 +50,10 @@ castor-kit 是 AuraStack（Flask 版）的 Node.js/TypeScript 重写：**后端�
 
 **开发环境：**
 - 端口：api 5001、web 5173（Vite proxy 把 `/api`、`/ws` 转发到 5001）；测试环境 5002；生产 5000
-- 数据库：`postgresql://wangwenyu@localhost/aurastack`（与 AuraStack 共用，写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`；未设置时默认 `postgresql://localhost/aurastack_dev`）
+- 数据库：`postgresql://wangwenyu@localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`；未设置时默认 `postgresql://localhost/castor_kit_dev`）
 - 本地配置：`apps/api/.env.development`（参考 `apps/api/.env.example`，已被 gitignore；仓库根目录的 `.env.<NODE_ENV>` 也会被读取）
 - 默认账号：`admin` / `admin123`
-- 测试库：`createdb -T aurastack aurastack_test`（克隆）或 `createdb aurastack_test`（空库，测试会自动跑 baseline）；`pnpm test`
+- 测试库：`createdb -T castor_kit castor_kit_test`（克隆）或 `createdb castor_kit_test`（空库，测试会自动执行迁移）；`pnpm test`
 
 ---
 
@@ -79,15 +79,16 @@ castor-kit/
 │   │   │   │   ├── errors.ts          # ServiceError + 统一错误处理器
 │   │   │   │   ├── http.ts            # intParam / parseIntParam / jsonBody / queryString / getUploadedFile
 │   │   │   │   ├── pagination.ts      # parsePagination（MAX_PER_PAGE=200，默认 20）
-│   │   │   │   ├── serialize.ts       # toIso() 等，对齐 Python isoformat 输出
+│   │   │   │   ├── serialize.ts       # toIso() 等，统一时间输出格式
 │   │   │   │   ├── tabular.ts         # csv/xlsx 读写 + 公式注入防护 + 5MB 上限
 │   │   │   │   ├── request-meta.ts    # clientIp / userAgent / safePayload（脱敏）
-│   │   │   │   ├── password.ts        # werkzeug pbkdf2:sha256 哈希兼容
+│   │   │   │   ├── password.ts        # pbkdf2:sha256 密码哈希
 │   │   │   │   └── scheduler/         # 定时任务 runner（租约模型）+ cron 匹配器 + SSRF 防护
 │   │   │   ├── db/
 │   │   │   │   ├── client.ts          # pg Pool + drizzle 实例 + 类型解析器
 │   │   │   │   ├── readonly.ts        # AI SQL 专用只读 Pool
-│   │   │   │   ├── migrate.ts         # 迁移执行器（含 baseline 逻辑）
+│   │   │   │   ├── migrate.ts         # 迁移执行器（drizzle-orm migrator）
+│   │   │   │   ├── migrate-cli.ts     # pnpm db:migrate 入口
 │   │   │   │   └── schema/            # ← model 层：Drizzle 表定义 + toDict
 │   │   │   │       ├── columns.ts     # createdAt() / updatedAt()
 │   │   │   │       ├── admin/         # rbac / audit-logs / dicts / scheduled-task / notification / announcement
@@ -105,7 +106,7 @@ castor-kit/
 │   │   │               ai-chat/ ai-prompt/ ai-sql/ devtools/
 │   │   ├── drizzle/                   # SQL 迁移 + meta/_journal.json（drizzle-kit 生成）
 │   │   ├── scripts/                   # 工具链：scaffold / verify-feature / seed-rbac / setup-once /
-│   │   │                              #         init-ro-role / generate-openapi / import-apifox / shadow-diff
+│   │   │                              #         init-ro-role / generate-openapi / import-apifox
 │   │   ├── test/                      # Vitest（真实 PostgreSQL）
 │   │   └── drizzle.config.ts
 │   ├── web/                           # @castor-kit/web —— React 19 + shadcn/ui + Tailwind v4（JSX）
@@ -132,7 +133,7 @@ castor-kit/
 │   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ …
 │   └── mcp/                           # @castor-kit/mcp —— MCP Server（src/index.ts）
 ├── docs/
-│   ├── rewrite-plan.md                # 重写方案
+│   ├── architecture.md                # 架构说明
 │   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
 │   ├── apifox-full.openapi.json       # OpenAPI 文档（pnpm openapi:generate 补齐）
 │   └── templates/                     # 代码骨架模板（AI 临摹用）
@@ -142,7 +143,7 @@ castor-kit/
 └── Dockerfile / docker-compose.yml / docker-entrypoint.sh / setup.sh
 ```
 
-> 命名：后端目录与文件名一律小写连字符（`component-center`、`scheduled-task`、`customer-order.ts`）；表名、前端目录、菜单 `component` 保持下划线（`component_center/admin/list_page`），与现库和前端路由兼容。
+> 命名：后端目录与文件名一律小写连字符（`component-center`、`scheduled-task`、`customer-order.ts`）；表名、前端目录、菜单 `component` 保持下划线（`component_center/admin/list_page`），与数据库和前端路由保持一致。
 
 ---
 
@@ -258,11 +259,11 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 在已有域（admin / component_center）内新增模块时，`pnpm scaffold` 会自动完成两处注册（`db/schema/index.ts` + `modules/<domain>/router.ts`）；手写时照 `docs/templates/backend/README.md` 操作。
 
-### 横切约定（移植期契约，见 `docs/rewrite-plan.md` §2）
+### 横切约定（详见 `docs/architecture.md`「横切约定」）
 
 - **时间**：pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（`YYYY-MM-DDTHH:mm:ss[.ffffff]`，无 `Z`）。**禁止** `Date#toISOString()`
 - **数值**：`numeric` 列保持字符串（如 `"12.50"`），`toDict()` 里不要 `parseFloat`
-- **请求校验**：移植期请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
+- **请求校验**：请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
 - **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON
 - **操作日志**：由 logs 模块注册的全局 `onResponse` hook 集中写 `operation_logs`，不要在 service 里散写
 - **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
@@ -271,7 +272,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 ## 前端架构约定
 
-前端路由机制、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面的功能沿用 AuraStack；UI 按 `docs/frontend-redesign-plan.md` 重写为 **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言保持 JavaScript（JSX），文案保持中文。
+前端由动态路由（`App.jsx`）、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面组成；UI 体系见 `docs/frontend-redesign-plan.md`：**shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言为 JavaScript（JSX），文案中文。
 
 ### 动态路由机制
 
@@ -565,11 +566,11 @@ Step 5  验证门禁（强制，不得跳过）
 ```
 
 > **迁移必须落库（强制）**：生成 / 修改迁移后，仅靠静态检查（verify 的 `migration_chain`）**不算完成**。必须实际执行并确认：
-> 0. 库名以 `apps/api/.env.development` 的 `DEV_DATABASE_URL` 为准（本地默认 `aurastack`，下面的命令按实际库名替换）
-> 1. 写操作前记录当前版本：`psql -d aurastack -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
+> 0. 库名以 `apps/api/.env.development` 的 `DEV_DATABASE_URL` 为准（本地默认 `castor_kit`，下面的命令按实际库名替换）
+> 1. 写操作前记录当前版本：`psql -d castor_kit -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
 > 2. `pnpm db:migrate` 应用变更
-> 3. 涉及新表 / 索引 / 字段时，用 `psql -d aurastack -c '\d <table>'` 确认对象真实存在
-> 4. `pnpm verify -- --module <name>` 的 `migration_applied` 项通过（它会比对 journal 与 `drizzle.__drizzle_migrations`，并用 `to_regclass` 确认模块表存在），其 detail 形如「已迁移至 0001_customer（aurastack）」
+> 3. 涉及新表 / 索引 / 字段时，用 `psql -d castor_kit -c '\d <table>'` 确认对象真实存在
+> 4. `pnpm verify -- --module <name>` 的 `migration_applied` 项通过（它会比对 journal 与 `drizzle.__drizzle_migrations`，并用 `to_regclass` 确认模块表存在），其 detail 形如「已迁移至 0001_customer（castor_kit）」
 > 5. 交付报告中注明「已迁移至 <tag>」（tag 即 `apps/api/drizzle/` 下的迁移名，如 `0001_customer`）
 
 **交付报告格式：**
@@ -607,14 +608,14 @@ pnpm --filter @castor-kit/api worker   # 独立调度器进程（RUN_SCHEDULER_I
 
 # 质量
 pnpm typecheck               # tsc --noEmit（api / mcp）
-pnpm test                    # vitest（需要 aurastack_test 库）+ web 单测
+pnpm test                    # vitest（需要 castor_kit_test 库）+ web 单测
 pnpm lint
 pnpm build                   # web(vite) + api(tsup) + mcp
 
 # 数据库迁移（Drizzle）
 pnpm db:generate --name <描述>          # drizzle-kit generate，生成 apps/api/drizzle/<nnnn>_<描述>.sql
-pnpm db:migrate                         # 应用迁移（现库只标记 baseline，记录在 drizzle.__drizzle_migrations）
-psql -d aurastack -c '\d <table>'       # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
+pnpm db:migrate                         # 应用迁移（记录在 drizzle.__drizzle_migrations）
+psql -d castor_kit -c '\d <table>'       # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
 
 # RBAC（菜单变更后必跑）
 pnpm seed:rbac -- --incremental         # 增量 upsert，不删除
@@ -622,7 +623,7 @@ pnpm seed:rbac                          # 全量重建（仅空库初始化）
 
 # 一次性初始化（迁移 + RBAC 增量 + AI SQL 只读账号，advisory lock 保证并发安全）
 pnpm setup-once
-pnpm --filter @castor-kit/api init-ro-role   # 单独创建只读账号 aurastack_ro（需 POSTGRES_RO_PASSWORD）
+pnpm --filter @castor-kit/api init-ro-role   # 单独创建只读账号 castor_kit_ro（需 POSTGRES_RO_PASSWORD）
 
 # 验证门禁
 pnpm verify -- --module <name>                 # 全部检查（含 vite build）
@@ -642,10 +643,6 @@ pnpm openapi:apifox                      # 推送到 Apifox（APIFOX_PROJECT_ID 
 
 # MCP Server
 pnpm mcp
-
-# 与 Flask oracle 对照（移植期）
-pnpm shadow-diff -- --flask http://localhost:5003 --node http://localhost:5001 [--only users]
-bash apps/api/scripts/shadow-all.sh   # 集成对照：全部模块按组在 aurastack_test / aurastack_t1..t7 上对 Flask(production) 跑一遍
 ```
 
 ---
@@ -668,7 +665,7 @@ Claude Desktop 配置（`claude_desktop_config.json`）：
 
 ## 当前菜单树（ID 参考）
 
-> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（移植时 45 个菜单 + 按钮权限，ID 与 AuraStack 一致）。新增功能菜单后同步补到下面；有出入时以 seed-rbac.ts 为准。
+> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（菜单 + 按钮权限）。新增功能菜单后同步补到下面；有出入时以 seed-rbac.ts 为准。
 
 ```
 ID=1   首页 (dashboard) → /dashboard → admin/dashboard
@@ -724,51 +721,12 @@ ID=3   组件示例中心 (component_center)
 
 - 项目名 `castor-kit`；命名一律小写连字符，不用驼峰、不用 Stack 后缀
 - 后端：Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino；不用 NestJS
-- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 从 Semi Design 整体迁移（`docs/frontend-redesign-plan.md`）；路由机制、API 层、页面功能与 AuraStack 保持一致
-- 数据库：直连现有 PostgreSQL（同库同表同列），不做数据迁移；`alembic_version` 表保留（Drizzle 不建模它）
+- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-redesign-plan.md`
 - `.xls` 不支持，只支持 csv / xlsx
-- 密码哈希必须兼容 werkzeug `pbkdf2:sha256:<iter>$<salt>$<hex>`，并行期新哈希也写此格式
-- 会话：`@fastify/secure-session`，cookie 名 `castor_session`，密钥用 HKDF 从 `SECRET_KEY` 派生；从 AuraStack 切换时所有用户需重新登录一次
-- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，Python 固定 6 位；P0 shadow-diff 实测）
-- cron 匹配器从 AuraStack 原样移植（日/周为 AND 语义），不用 `cron-parser`
-- 移植期请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里照搬
+- 密码哈希格式 `pbkdf2:sha256:<iter>$<salt>$<hex>`（`common/password.ts`，异步 pbkdf2）
+- 会话：`@fastify/secure-session`，cookie 名 `castor_session`，密钥用 HKDF 从 `SECRET_KEY` 派生
+- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，补齐后格式稳定）
+- cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
+- 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
 - 操作日志用全局 `onResponse` hook 集中写，不散到 service
-- 环境变量名沿用 AuraStack，仅 `FLASK_ENV` → `NODE_ENV`；生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 拒绝启动
-
----
-
-## 移植期实测事实与已知差异
-
-### P0 实施中确认的事实（shadow-diff 对 Flask 实测，覆盖方案里的推测）
-
-- 404/405：Flask 的 SPA catch-all 对任意路径接受 GET，所以**未命中的 GET/HEAD → 404（/api）或 SPA，未命中的其他方法一律 405**（含未知路径的 POST；“只注册了 POST 的路径被 GET”是 404 不是 405）
-- CSRF 检查挂 `preValidation`：被拒请求的请求体仍要进操作日志（Flask 的 after_request 会记）；未命中路由的已登录写请求也先 403
-- `created_at/updated_at` 在现库没有 DB DEFAULT（是 SQLAlchemy 应用侧默认），Node 插入用 `db/schema/columns.ts` 的 `createdAt()/updatedAt()`（`timezone('utc', now())`）
-- `menu_codes` 与角色顺序在 Python 侧不保证，契约比较按集合
-- `my-menus` 没有 super_admin 短路；叶子节点没有 `children` 键
-- Flask 实际响应是 `ensure_ascii` + 排序键 + debug 缩进的 JSON；Node 输出 UTF-8 紧凑 JSON。二者 JSON 语义一致（shadow-diff 按解析后比较），字节不同
-
-### P1 注意
-
-- `pyJsonDumps` 把 `1.0` 输出成 `1`（Python 保留 `1.0`），只影响浮点请求体写进 `operation_logs.payload` 的文本
-- 非 `/api` 路径的未命中写请求返回 JSON 405，Flask 是 Werkzeug HTML 405（前端不会触发）
-- 非 P0 表的 `toDict` 与应用侧默认值（`createdAt()` 等）在移植对应模块时按 Python 模型补齐
-
-### 工具链与 AuraStack 的有意差异
-
-- `setup-once` 里的 RBAC 同步用增量模式（Python 版实际走了全量重建，会清空账号与角色）
-- `generate-openapi` 输出标准 OpenAPI 路径参数（`{user_id}`），同一路径的多个方法合并生成
-- AI SQL 只读账号名仍为 `aurastack_ro`，advisory lock key 仍为 `0x41555341`（与现库和 AuraStack 部署兼容）
-
-### 与 Flask oracle 对照（移植期）
-
-Flask 跑 5003 作参考，Node 跑 5001（或并行验证期的 5002），两者连同一个库：
-
-```bash
-# 在 AuraStack 仓库
-FLASK_ENV=development ENABLE_TASK_SCHEDULER=false venv/bin/python app.py 5003
-# 在 castor-kit 仓库
-pnpm shadow-diff -- --flask http://localhost:5003 --node http://localhost:5001
-```
-
-用例在 `apps/api/scripts/shadow-cases/`（按模块一个文件）；写接口用例会真实写库，只在测试库上跑。
+- 运行环境由 `NODE_ENV` 决定；生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 拒绝启动

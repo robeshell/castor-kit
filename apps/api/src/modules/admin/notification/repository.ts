@@ -1,5 +1,5 @@
 /**
- * 通知消息 repository 层（Python 版无独立 crud 文件，DB 操作在 service/notification.py 里，这里下沉）
+ * 通知消息 repository 层
  */
 
 import { and, count, desc, eq, inArray, notInArray, or, type SQL } from 'drizzle-orm'

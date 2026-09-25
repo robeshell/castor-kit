@@ -227,7 +227,7 @@ describe('announcement', () => {
     expect(ok.json()).toEqual({ created: 1, updated: 0 })
   })
 
-  it('导入：表头带空白的列不会被映射（与 Python 一致）；空文件/无文件/格式', async () => {
+  it('导入：表头带空白的列不会被映射；空文件/无文件/格式', async () => {
     const res = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', ` 标题 \n${P}空白表头\n`) })
     expect(res.json()).toEqual({ created: 0, updated: 0, error_rows: [{ line: 2, reason: '标题不能为空', row: { ' 标题 ': `${P}空白表头` } }] })
 
@@ -246,7 +246,7 @@ describe('announcement', () => {
     expect((await s.inject({ method: 'DELETE', url: `/api/admin/announcements/${a}` })).statusCode).toBe(404)
   })
 
-  it('权限：先 403 后 404（与 Flask 顺序一致）；export-fields 只需登录', async () => {
+  it('权限：先 403 后 404；export-fields 只需登录', async () => {
     const cases: [string, string][] = [
       ['GET', '/api/admin/announcements'],
       ['POST', '/api/admin/announcements'],

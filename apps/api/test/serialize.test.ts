@@ -3,7 +3,7 @@ import { toIso, utcNowIso } from '@/common/serialize'
 import { openTestDb } from './helpers'
 import { admin_users } from '@/db/schema'
 
-describe('时间格式对齐 Python isoformat()', () => {
+describe('时间格式（isoformat 风格）', () => {
   it('toIso：空格换 T、小数秒补齐 6 位、不加 Z', () => {
     expect(toIso('2026-08-01 12:35:48.834152')).toBe('2026-08-01T12:35:48.834152')
     expect(toIso('2026-08-01 12:35:48')).toBe('2026-08-01T12:35:48')

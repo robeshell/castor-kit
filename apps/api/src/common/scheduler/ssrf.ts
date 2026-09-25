@@ -1,15 +1,12 @@
 /**
- * 定时任务请求地址防 SSRF（对齐 AuraStack backend/app/admin/schema/scheduled_task.py 的 validate_request_url）
+ * 定时任务请求地址防 SSRF（validateRequestUrl）
  *
  * - 只允许 http/https；目标不能是环回 / 私网 / 链路本地（含云元数据 169.254.169.254）/ 保留地址
- * - URL 拆分按 Python `urllib.parse.urlsplit`（3.13）原样复刻，而不是 WHATWG URL，保证同一输入
- *   得到与 Flask 相同的 hostname / port / 错误文案；urlsplit 自己抛的 ValueError（Invalid IPv6 URL 等）
- *   在 Python 里没被捕获、会变成 500，这里抛 PyUncaughtError 由 service 转 500
+ * - URL 拆分按 Python `urllib.parse.urlsplit`（3.13）的规则实现，而不是 WHATWG URL，保证 hostname / port /
+ *   错误文案稳定；urlsplit 规则下的拆分错误（Invalid IPv6 URL 等）抛 PyUncaughtError，由 service 转 500
  * - 主机名解析后全部结果都要校验（存在一个内网 IP 即拒绝）
- *
- * 相比 Python 的有意加固 / 改进（不追求逐字一致）：
- * - 域名解析到禁止网段时文案附带解析结果（`不允许访问内网地址（localhost 解析为 127.0.0.1）`）；IP 直连仍是原文案
- * - IPv4 映射的 IPv6（`::ffff:127.0.0.1`）按其内嵌 IPv4 判定（Python 的 `ip in IPv4Network` 对 IPv6 地址恒为假，会放行）
+ * - 域名解析到禁止网段时文案附带解析结果（`不允许访问内网地址（localhost 解析为 127.0.0.1）`）；IP 直连是固定文案
+ * - IPv4 映射的 IPv6（`::ffff:127.0.0.1`）按其内嵌 IPv4 判定，避免被当成普通 IPv6 放行
  * - 额外拦截 `::/128`（未指定地址，多数系统上等同本机）
  * - 执行阶段（http.ts）在建立连接时再按同一规则复检实际连接的 IP，防 DNS rebinding 与重定向绕过
  */

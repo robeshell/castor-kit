@@ -1,19 +1,19 @@
 /**
- * RBAC 种子数据：菜单、超级管理员角色、管理员账号及权限关联（对齐 AuraStack backend/scripts/init_rbac_data.py）
+ * RBAC 种子数据：菜单、超级管理员角色、管理员账号及权限关联
  *
  * 用法：
  *   pnpm seed:rbac                    # 全量重建：清空 user_roles / role_menus / admin_users / roles / menus 后重新写入
  *   pnpm seed:rbac -- --incremental   # 增量同步：按 code upsert 菜单 + 刷新超级管理员权限，不删除任何数据
  *
  * 菜单树（MENUS_DATA）是唯一事实源：新增菜单/按钮权限在这里加条目，然后跑 `--incremental`。
- * ID 与 Python 版逐条一致（含历史遗留的 31/33/34/35/36/37/100002/100003），不许改动。
+ * ID 固定（含历史遗留的 31/33/34/35/36/37/100002/100003），不许改动。
  *
- * 行为要点（与 Python 一致）：
+ * 行为要点：
  * - 菜单按 code 匹配：已存在只更新 9 个字段（不改 id）；不存在时用固定 id 插入，id 被占用则走序列
- * - 字段值无变化时不发 UPDATE（SQLAlchemy 无脏数据不写库），updated_at 保持不变
+ * - 字段值无变化时不发 UPDATE，updated_at 保持不变
  * - 插入后只同步 menus 的序列：setval(pg_get_serial_sequence('menus','id'), max(id)+1, false)
- * - 超级管理员角色（super_admin）授予全部菜单；admin 账号不存在才创建（密码取 ADMIN_PASSWORD，werkzeug 格式）
- * - 提交边界同 Python：清空 / 菜单 / 角色 / 账号各自一个事务
+ * - 超级管理员角色（super_admin）授予全部菜单；admin 账号不存在才创建（密码取 ADMIN_PASSWORD，pbkdf2:sha256 格式）
+ * - 提交边界：清空 / 菜单 / 角色 / 账号各自一个事务
  */
 
 import { parseArgs } from 'node:util'
@@ -584,7 +584,7 @@ if (isMain) {
     })
     incremental = values.incremental
   } catch (err) {
-    // 对齐 argparse：参数错误退出码 2
+    // 参数错误退出码 2
     console.error('usage: seed-rbac [--incremental]')
     console.error(`seed-rbac: error: ${err instanceof Error ? err.message : String(err)}`)
     process.exit(2)

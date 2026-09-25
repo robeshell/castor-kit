@@ -1,5 +1,5 @@
 /**
- * 详情标签页 service 层（对齐 AuraStack backend/app/component_center/service/detail_tabs_page.py）
+ * 详情标签页 service 层
  */
 
 import { ServiceError } from '@/common/errors'

@@ -15,7 +15,6 @@
     "test": "pnpm -r --if-present test",
     "db:generate": "pnpm --filter @castor-kit/api db:generate",
     "db:migrate": "pnpm --filter @castor-kit/api db:migrate",
-    "shadow-diff": "pnpm --filter @castor-kit/api shadow-diff",
     "seed:rbac": "pnpm --filter @castor-kit/api seed:rbac",
     "setup-once": "pnpm --filter @castor-kit/api setup-once",
     "openapi:generate": "pnpm --filter @castor-kit/api openapi:generate",

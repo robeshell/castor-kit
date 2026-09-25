@@ -13,7 +13,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 /**
- * 危险操作二次确认（替代 Semi Popconfirm）。onConfirm 可返回 Promise，期间按钮 loading、弹窗不关闭。
+ * 危险操作二次确认。onConfirm 可返回 Promise，期间按钮 loading、弹窗不关闭。
  *   <ConfirmAction title="删除该用户？" description="删除后不可恢复。" onConfirm={() => remove(id)}>
  *     <Button variant="ghost" size="sm">删除</Button>
  *   </ConfirmAction>

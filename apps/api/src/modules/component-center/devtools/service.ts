@@ -1,7 +1,7 @@
 /**
- * 系统指标快照（对齐 AuraStack component_center/api/devtools.py 的 _system_snapshot，psutil → systeminformation）
+ * 系统指标快照（基于 systeminformation 采集）
  *
- * 字段与单位与 psutil 版一致：
+ * 字段与单位（统计口径参照 psutil）：
  * - cpu：全局 CPU 使用率（%，1 位小数；与 psutil.cpu_percent(interval=None) 一样是“距上次调用”的区间值）
  * - mem_used / mem_total：MB（1 位小数）；mem_pct：%（1 位）
  *     psutil 口径：Linux used = total - free - buffers - (Cached + SReclaimable)，
@@ -31,7 +31,7 @@ export interface SystemSnapshot {
   ts: number
 }
 
-/** Python round(x, n)：按浮点数的精确十进制值舍入（toFixed 同样基于精确值，仅恰好 .5 的平局规则不同） */
+/** 保留 n 位小数：按浮点数的精确十进制值舍入（toFixed） */
 function round(value: number, digits: number): number {
   if (!Number.isFinite(value)) return 0
   return Number(value.toFixed(digits))
@@ -121,7 +121,7 @@ export function warmUp(): Promise<void> {
   return warmedUp
 }
 
-/** Python `repr(float)` 对这里的指标值（非负、至多 2 位小数）的输出：整数值带 `.0` */
+/** 指标值（非负、至多 2 位小数）的文本形式：整数值带 `.0` */
 function pyFloatText(n: number): string {
   return Number.isInteger(n) ? `${n}.0` : String(n)
 }

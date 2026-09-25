@@ -41,7 +41,7 @@ describe('castor-kit MCP server (stdio)', () => {
     await client?.close()
   })
 
-  it('list_tools 返回 7 个工具，输入 schema 与 Python 版一致', async () => {
+  it('list_tools 返回 7 个工具及输入 schema', async () => {
     const { tools } = await client.listTools()
     assert.deepEqual(tools.map((t) => t.name).sort(), [...TOOLS].sort())
     const scaffold = tools.find((t) => t.name === 'scaffold_feature')!

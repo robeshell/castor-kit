@@ -93,7 +93,7 @@ describe('ai chat 错误分支（非流式 JSON）', () => {
 })
 
 describe('ai chat SSE 流', () => {
-  it('正常：逐字对齐 json.dumps(ensure_ascii=False)，[DONE] 之后的内容被忽略；响应头与上游请求体', async () => {
+  it('正常：逐字按 json.dumps(ensure_ascii=False) 格式，[DONE] 之后的内容被忽略；响应头与上游请求体', async () => {
     const before = up.requests.length
     const messages = [
       { role: 'user', content: 'first' },
@@ -119,7 +119,7 @@ describe('ai chat SSE 流', () => {
     expect(SYSTEM_PROMPT.content).toContain('Fastify')
     expect(SYSTEM_PROMPT.content).toContain('TypeScript')
     expect(SYSTEM_PROMPT.content).toContain('Drizzle')
-    expect(SYSTEM_PROMPT.content).not.toContain('Flask')
+    expect(SYSTEM_PROMPT.content).toContain('castor-kit')
   })
 
   it('畸形行跳过；非字符串 content 按 json.dumps 输出；data: 后无空格也解析；[DONE] 两侧空白', async () => {
@@ -164,7 +164,7 @@ describe('ai chat SSE 流', () => {
     }
   })
 
-  it('超时：等响应头超时 → 请求超时；读流中途超时 → 通用错误（对齐 requests 的 ReadTimeout→ConnectionError）', async () => {
+  it('超时：等响应头超时 → 请求超时；读流中途超时 → 通用错误', async () => {
     const hangHeaders = await s.inject({ method: 'POST', url: URL_PATH, payload: say('hang-headers') })
     expect(hangHeaders.body).toBe(ev('{"error": "请求超时，请重试"}') + DONE)
     const hangBody = await s.inject({ method: 'POST', url: URL_PATH, payload: say('hang-body') })

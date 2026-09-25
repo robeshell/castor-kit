@@ -1,12 +1,12 @@
 /**
- * 用户模块 schema 层（对齐 AuraStack backend/app/admin/schema/users.py）
+ * 用户模块 schema 层
  */
 
 import { z } from 'zod'
 import { formatDateTime } from '@/common/serialize'
 import type { AdminUserWithRoles } from '@/db/schema'
 
-/** 移植期请求体：loose + 全可选，归一化在 service 里做 */
+/** 请求体：loose + 全可选，归一化在 service 里做 */
 export const userBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: AdminUserWithRoles) => unknown]> = {

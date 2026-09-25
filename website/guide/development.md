@@ -159,15 +159,11 @@ pnpm db:generate --name add_customer_table
 pnpm db:migrate
 
 # 确认表已真实落库
-psql -d aurastack -c '\d customers'
+psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning 迁移必须真实落库
 只生成迁移文件不算完成。必须执行 `pnpm db:migrate` 并用 `psql \d` 确认表 / 字段真实存在，`pnpm verify` 的 `migration_applied` 检查也会比对数据库中的迁移记录。
-:::
-
-::: info 从 AuraStack 数据库接管
-对着 AuraStack 已有的数据库执行 `pnpm db:migrate` 时，baseline 迁移只会被标记为已应用（记录在 `drizzle.__drizzle_migrations`），不会执行任何 DDL；原有的 `alembic_version` 表保持不动。
 :::
 
 ---
@@ -189,7 +185,7 @@ pnpm verify -- --module customer --skip-build
 ```bash
 pnpm dev                       # api(5001) + web(5173)
 pnpm typecheck                 # TypeScript 类型检查
-pnpm test                      # Vitest（需要 aurastack_test 测试库）
+pnpm test                      # Vitest（需要 castor_kit_test 测试库）
 pnpm build                     # 构建 web + api + mcp
 pnpm db:generate --name <描述>  # 生成迁移
 pnpm db:migrate                # 应用迁移
@@ -200,7 +196,7 @@ pnpm openapi:apifox            # 推送到 Apifox（需 APIFOX_PROJECT_ID / APIF
 pnpm mcp                       # 启动 MCP Server
 ```
 
-测试库准备：`createdb -T aurastack aurastack_test`（克隆开发库）或 `createdb aurastack_test`（空库，测试会自动执行迁移）。
+测试库准备：`createdb -T castor_kit castor_kit_test`（克隆开发库）或 `createdb castor_kit_test`（空库，测试会自动执行迁移）。
 
 ---
 
@@ -228,8 +224,8 @@ castor-kit 为所有主流 AI 编码工具预配置了上下文文件：
 | 变量 | 默认值 | 说明 |
 |---|---|---|
 | `NODE_ENV` | `development` | 运行环境：`development` / `production` / `test` |
-| `DEV_DATABASE_URL` | `postgresql://localhost/aurastack_dev` | 本地 PostgreSQL 连接字符串 |
-| `TEST_DATABASE_URL` | `postgresql://localhost/aurastack_test` | `pnpm test` 使用的测试库 |
+| `DEV_DATABASE_URL` | `postgresql://localhost/castor_kit_dev` | 本地 PostgreSQL 连接字符串 |
+| `TEST_DATABASE_URL` | `postgresql://localhost/castor_kit_test` | `pnpm test` 使用的测试库 |
 | `SECRET_KEY` | 内置开发密钥 | 会话加密密钥（开发环境可不填） |
 | `ADMIN_PASSWORD` | `admin123` | `pnpm seed:rbac` 创建管理员时使用的密码 |
 | `PORT` | `5001` | 后端端口（Vite 代理指向 5001） |

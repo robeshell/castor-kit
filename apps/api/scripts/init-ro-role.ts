@@ -1,7 +1,7 @@
 /**
- * AI SQL 只读角色初始化（对齐 AuraStack backend/scripts/init_ai_sql_ro_role.py）
+ * AI SQL 只读角色初始化
  *
- * 在迁移建表之后执行：创建非超级用户只读角色 aurastack_ro，仅授予业务表 SELECT
+ * 在迁移建表之后执行：创建非超级用户只读角色 castor_kit_ro，仅授予业务表 SELECT
  * （排除 admin_users / 日志 / 定时任务等敏感表，复用 AI SQL 模块的 isVisibleTable），
  * 并强制角色级只读 + 超时。
  *
@@ -13,18 +13,18 @@ import pg from 'pg'
 import { loadConfig, loadEnvFiles, type AppEnv } from '../src/config'
 import { isVisibleTable } from '../src/modules/component-center/ai-sql/schema'
 
-export const RO_ROLE = 'aurastack_ro'
+export const RO_ROLE = 'castor_kit_ro'
 const SAFE_TABLE_NAME = /^[a-z0-9_]+$/
 const SAFE_ROLE_NAME = /^[a-z_][a-z0-9_]*$/
 
-// 授权范围与 AI SQL 的 schema 可见范围同一套规则（ai_sql_engine.is_visible_table）
+// 授权范围与 AI SQL 的 schema 可见范围同一套规则（ai-sql/schema.ts 的 isVisibleTable）
 export { isVisibleTable }
 
 export interface InitRoRoleOptions {
   databaseUrl: string
   /** POSTGRES_RO_PASSWORD（首尾空白已去除）；为空则跳过 */
   roPassword: string
-  /** 只读角色名，默认 aurastack_ro（测试用独立角色名，避免改动集群里共用角色的密码） */
+  /** 只读角色名，默认 castor_kit_ro（测试用独立角色名，避免改动集群里共用角色的密码） */
   roleName?: string
   log?: (msg: string) => void
 }
@@ -34,7 +34,7 @@ export interface InitRoRoleResult {
   granted: number
 }
 
-/** 对齐 SQLAlchemy `engine.url.database` */
+/** 从连接串取数据库名（URL path，已解码） */
 function databaseNameFromUrl(databaseUrl: string): string {
   try {
     return decodeURIComponent(new URL(databaseUrl).pathname.replace(/^\//, ''))
@@ -69,7 +69,7 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
           END IF;
       END $$;
     `)
-    // 2. 设置密码：ALTER ROLE 是工具语句不支持绑定参数，用 escapeLiteral 转义（Python 由 psycopg2 客户端插值）
+    // 2. 设置密码：ALTER ROLE 是工具语句不支持绑定参数，用 escapeLiteral 转义
     await client.query(`ALTER ROLE ${role} PASSWORD ${client.escapeLiteral(roPassword)}`)
     // 3. 角色级强制只读 + 超时（即使绕过应用层连接参数也生效）
     await client.query(`ALTER ROLE ${role} SET default_transaction_read_only = on`)

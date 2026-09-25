@@ -1,9 +1,8 @@
 /**
  * cc_detail_members
- * 对齐 AuraStack backend/app/component_center/model/entities_detail_tabs_page.py
  *
  * 由 drizzle-kit pull 生成后整理。status/avatar_color 等列在现库里有 DB DEFAULT（.default()）；
- * created_at/updated_at 是 SQLAlchemy 应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
+ * created_at/updated_at 是应用侧默认值，用 ../columns 的 createdAt()/updatedAt()。
  */
 
 import { boolean, date, integer, pgTable, serial, text, varchar } from 'drizzle-orm/pg-core'
@@ -29,7 +28,7 @@ export const cc_detail_members = pgTable('cc_detail_members', {
 
 export type DetailMember = typeof cc_detail_members.$inferSelect
 
-/** DetailMember.to_dict() */
+/** 成员输出 */
 export function detailMemberToDict(m: DetailMember) {
   return {
     id: m.id,

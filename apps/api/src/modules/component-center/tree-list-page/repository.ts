@@ -1,6 +1,5 @@
 /**
- * 树形列表页 repository 层（对齐 AuraStack backend/app/component_center/crud/tree_list_page.py
- * 以及 service 里直接拼的查询）
+ * 树形列表页 repository 层（含 service 里直接拼的查询）
  */
 
 import { and, asc, count, eq, ilike, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -118,14 +117,13 @@ export class TreeListPageRepository {
     return row!
   }
 
-  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新，对齐 SQLAlchemy onupdate） */
+  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新） */
   async update(id: number, values: TreeNodeUpdate): Promise<void> {
     await this.db.update(tree_nodes).set(values).where(eq(tree_nodes.id, id))
   }
 
   /**
-   * 删除节点。SQLAlchemy 的 children 关系（未设 passive_deletes）会在 DELETE 前把子节点逐个
-   * `UPDATE parent_id = NULL`（触发 onupdate，子节点 updated_at 刷新），这里显式做同样的事；
+   * 删除节点：DELETE 前先把子节点逐个 `UPDATE parent_id = NULL`（子节点 updated_at 随之刷新），
    * 库里的 ON DELETE SET NULL 兜底。
    */
   async deleteWithChildrenDetached(id: number): Promise<void> {

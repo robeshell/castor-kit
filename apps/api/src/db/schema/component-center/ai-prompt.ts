@@ -1,6 +1,5 @@
 /**
  * ai_prompt_templates
- * 对齐 AuraStack backend/app/component_center/model/entities_ai_prompt.py
  *
  * 由 drizzle-kit pull 生成后整理。`$default` / `createdAt()` / `updatedAt()` 只在运行时生效，不进 DDL。
  */
@@ -15,7 +14,7 @@ export const ai_prompt_templates = pgTable('ai_prompt_templates', {
   category: varchar({ length: 50 }).default('custom'),
   description: text(),
   content: text().notNull(),
-  /** 变量定义：JSON 数组，例如 ["requirement", "target_users"]（Python `default=list`） */
+  /** 变量定义：JSON 数组，例如 ["requirement", "target_users"]（应用侧默认空数组） */
   variables: json().$default(() => []),
   /** 标签：逗号分隔字符串，例如 "产品,需求" */
   tags: varchar({ length: 500 }).default(''),

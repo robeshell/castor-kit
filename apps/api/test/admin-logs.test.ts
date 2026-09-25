@@ -209,7 +209,7 @@ describe('日志导入', () => {
       ['imp_d', 'success', null],
     ])
     expect(rows[0]!.created_at).toBe('2026-03-01 10:00:00')
-    // 带时区：psycopg2 以 timestamptz 写入，PG 按会话时区换算后存入 timestamp 列
+    // 带时区：以 timestamptz 写入，PG 按会话时区换算后存入 timestamp 列
     const [{ expected }] = (
       await handle.db.execute<{ expected: string }>(sql`SELECT ('2026-03-01 10:00:00+00:00'::timestamptz)::timestamp::text AS expected`)
     ).rows as [{ expected: string }]
@@ -309,8 +309,8 @@ describe('操作日志 hook', () => {
   })
 })
 
-describe('parse_datetime（CPython fromisoformat 移植）', () => {
-  it('与 Python 3.13 行为一致的样例', () => {
+describe('parseDatetime（ISO 日期时间解析）', () => {
+  it('各类输入样例', () => {
     const f = (x: string) => {
       const r = pyFromIsoFormat(x)
       return r && [r.year, r.month, r.day, r.hour, r.minute, r.second, r.microsecond, r.offsetMicros]

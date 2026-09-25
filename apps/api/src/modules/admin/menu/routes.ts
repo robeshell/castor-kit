@@ -1,7 +1,7 @@
 /**
- * 菜单模块路由（对齐 AuraStack backend/app/admin/api/menu.py）
+ * 菜单模块路由
  *
- * 顺序与 Flask 一致：`/menus/<id>` 先 get_or_404 再做权限检查；`/menus/<id>/sort` 反过来，先权限后 404。
+ * 检查顺序（保持既有接口行为）：`/menus/<id>` 先 get_or_404 再做权限检查；`/menus/<id>/sort` 反过来，先权限后 404。
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'

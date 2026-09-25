@@ -2,7 +2,7 @@
  * pg Pool + Drizzle 实例
  *
  * 类型解析器：`timestamp without time zone`(1114) 与 `date`(1082) 原样保留文本。pg 默认会按本地时区
- * 解析成 `Date`（偏移 8 小时且丢微秒），无法复现 Python `isoformat()`（rewrite-plan §2.2）。
+ * 解析成 `Date`（偏移 8 小时且丢微秒），无法输出带微秒的 UTC 时间文本（见 common/serialize.toIso）。
  * Drizzle 自己的查询在 schema 里已声明 mode:'string'；这里的全局设置覆盖裸 `pool.query()`。
  */
 

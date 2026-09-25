@@ -1,6 +1,5 @@
 /**
  * 调度器租约模型 + execute_task（真实 PostgreSQL）
- * 对齐 AuraStack backend/common/scheduler.py 与 service/scheduled_task.py 的 execute_task
  */
 
 import { eq, like, sql } from 'drizzle-orm'
@@ -90,7 +89,7 @@ afterAll(async () => {
   await handle2.pool.end()
 })
 
-describe('间隔与租约参数（对齐 Python 构造函数）', () => {
+describe('间隔与租约参数（构造函数）', () => {
   it('interval 至少 5 秒，0 回落 20；lease 至少 3 倍 interval，0 回落 1800', () => {
     const a = new ScheduledTaskRunner(handle.db, { intervalSeconds: 1, leaseSeconds: 10 })
     expect([a.intervalSeconds, a.leaseSeconds]).toEqual([5, 15])

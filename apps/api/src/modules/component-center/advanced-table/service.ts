@@ -1,5 +1,5 @@
 /**
- * 高级表格页 service 层（对齐 AuraStack backend/app/component_center/service/advanced_table_page.py）
+ * 高级表格页 service 层
  */
 
 import { ServiceError } from '@/common/errors'
@@ -54,7 +54,7 @@ export function normalizeSortOrder(value: unknown, fallback = 0): number {
   return sortOrder
 }
 
-/** 只保留与当前行不同的字段（SQLAlchemy 只对变化的属性发 UPDATE；score 按 Decimal == float 精确比较） */
+/** 只保留与当前行不同的字段（只对值真正变化的字段发 UPDATE；score 按 numeric 与浮点数的精确值比较） */
 function changedFields(row: AdvancedTableRow, patch: AdvancedTableRowPatch, newScore?: number): AdvancedTableRowPatch {
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(patch)) {
@@ -111,7 +111,7 @@ export class AdvancedTableService {
     if (!rowCode) throw new ServiceError('编码不能为空')
     if (await this.repo.getByCode(rowCode)) throw new ServiceError('编码已存在')
 
-    // 按 Python 关键字参数的求值顺序：status 的校验先于 sort_order
+    // 字段按下列顺序校验：status 的校验先于 sort_order（同时非法时先报 status 的错）
     const values = {
       name,
       row_code: rowCode,

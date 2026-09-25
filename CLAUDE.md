@@ -1,11 +1,7 @@
 # castor-kit — Claude Code 专属补充
 
-> **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/rewrite-plan.md`（完整重写方案与兼容契约）。
+> **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/architecture.md`（架构说明：技术栈、横切约定、迁移、部署、设计决定）。
 > 开始任何实现前先读这两个文件；涉及前端 UI 时再读 `docs/frontend-redesign-plan.md`（shadcn/ui 体系）。本文件只放 Claude Code 专属的补充内容。
-
-## 参考源码
-
-原项目 AuraStack 在 `/Users/wangwenyu/Documents/Code/AuraStack`，移植时以那里的 Python 实现为行为基准。
 
 ## 规则
 
@@ -70,7 +66,7 @@
 pnpm dev                                   # api(5001) + web(5173)
 pnpm db:generate --name <描述>              # 生成迁移（注意：这里不能写 --）
 pnpm db:migrate                            # 应用迁移
-psql -d aurastack -c '\d <table>'          # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
+psql -d castor_kit -c '\d <table>'          # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
 pnpm seed:rbac -- --incremental            # RBAC 增量同步
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
 pnpm verify -- --module <name>             # 功能验证门禁（--skip-build 跳过前端构建，--json 结构化输出）

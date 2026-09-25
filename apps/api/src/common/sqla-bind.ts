@@ -1,13 +1,12 @@
 /**
- * 把请求体里的原始 JSON 值写进列时，复刻 SQLAlchemy + psycopg2 的绑定语义。
+ * 把请求体里的原始 JSON 值（不做类型校验）写进列时的绑定规则。
  *
- * Python 代码里大量 `setattr(item, field, data[field])` / `Model(field=data.get(...))`，值不做类型转换直接落库：
- * - psycopg2 把 Python 值内联成 SQL 字面量，再由 PG 做赋值转换（`2.5` → integer 列四舍五入成 3，
- *   `True` → varchar 列存 'true'，`['a','b']` → varchar 列存 '{a,b}'），dict 无法适配直接报错；
- * - SQLAlchemy Boolean 列只接受 True/False/None/0/1，其余在 flush 时抛 TypeError。
- * node-pg 一律按文本参数发送，行为不同，所以这里先按 Python 语义把值转好（或抛 500）。
- * 所有错误在 Python 侧都落到 `except Exception → XxxServiceError(str(e), 500)` 或全局 500，
- * 对外都是通用 500 文案，因此这里统一抛 ServiceError(..., 500)。
+ * 值按“SQL 字面量 + PG 赋值转换”的效果落库：
+ * - `2.5` → integer 列四舍五入成 3，`true` → varchar 列存 'true'，`['a','b']` → varchar 列存 '{a,b}'，
+ *   对象（dict）无法适配直接报错；
+ * - 布尔列只接受 true/false/null/0/1，其余报错。
+ * node-pg 一律按文本参数发送，行为不同，所以这里先把值转好（或抛 500）。
+ * 这些错误对外都是通用 500 文案，因此这里统一抛 ServiceError(..., 500)。
  *
  * 目前 dicts / notification / announcement 共用；可考虑上移到 common/py.ts。
  */
@@ -32,7 +31,7 @@ function pgArrayElement(value: unknown): string {
   return text
 }
 
-/** psycopg2 把 list 适配成 ARRAY[...]，赋给文本列后 PG 输出数组文本（只支持元素同类型的一维数组） */
+/** list 按 ARRAY[...] 处理，赋给文本列后存 PG 数组文本（只支持元素同类型的一维数组） */
 function pgArrayText(values: unknown[]): string {
   const kinds = new Set(values.filter((v) => v !== null && v !== undefined).map((v) => typeof v))
   if (kinds.size > 1 || [...kinds].some((k) => k === 'object')) throw bindError('cannot adapt list')
@@ -68,7 +67,7 @@ export function bindInt(value: unknown): number | null {
   throw bindError('column is of type integer')
 }
 
-/** 布尔列（Boolean）：SQLAlchemy `_strict_as_bool` 只接受 None/True/False/0/1 */
+/** 布尔列（Boolean）：严格校验，只接受 null/true/false/0/1 */
 export function bindBool(value: unknown): boolean | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'boolean') return value
@@ -87,8 +86,8 @@ export function lookupInt(value: unknown): number | null {
 }
 
 /**
- * SQLAlchemy 判断属性是否变化用的 Python `==`：数值与布尔按数值比较（`1 == True`），
- * 字符串逐字比较，其余类型互不相等。相等时 SQLAlchemy 不会把该列放进 UPDATE。
+ * 判断列值是否变化用的 Python `==`：数值与布尔按数值比较（`1 == True`），
+ * 字符串逐字比较，其余类型互不相等。相等时该列不放进 UPDATE。
  */
 export function pyEq(newValue: unknown, current: unknown): boolean {
   const a = newValue === undefined ? null : newValue
@@ -100,7 +99,7 @@ export function pyEq(newValue: unknown, current: unknown): boolean {
   return false
 }
 
-/** INSERT 时 SQLAlchemy 跳过值为 None 的列（让 `default=` 生效）：null → undefined */
+/** INSERT 时跳过值为 null 的列（让应用侧默认值生效）：null → undefined */
 export function omitNull<T>(value: T | null): T | undefined {
   return value === null ? undefined : value
 }

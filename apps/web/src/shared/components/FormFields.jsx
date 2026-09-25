@@ -11,7 +11,7 @@ import MultiSelect from '@/shared/components/MultiSelect'
 import TagInput from '@/shared/components/TagInput'
 
 /**
- * react-hook-form 表单字段（替代 Semi Form.Input / Form.Select …）。
+ * react-hook-form 表单字段（输入框 / 下拉选择 …）。
  * 用法：const form = useForm({ defaultValues })，放进 <FormDialog form={form} …> 或 <Form {...form}> 里：
  *   <FormInput control={form.control} name="username" label="用户名" rules={{ required: '请输入用户名' }} />
  * rules 与 react-hook-form register 规则一致（required / minLength / pattern / validate …）。

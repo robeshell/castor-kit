@@ -1,7 +1,7 @@
 /**
- * 列表页 schema 层（对齐 AuraStack backend/app/component_center/schema/list_page.py）
+ * 列表页 schema 层
  *
- * 另含 service 里用到的 Python 语义小工具（secure_filename / str.title / json.dumps(indent=2)），
+ * 另含 service 里用到的字符串小工具（secure_filename / str.title / json.dumps(indent=2) 的等价实现），
  * 只服务本模块，不要合并到 common。
  */
 
@@ -10,7 +10,7 @@ import { pyInt, PyValueError, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { QueryManagement } from '@/db/schema'
 
-/** 移植期请求体：loose + 全可选，归一化在 service 里做 */
+/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
 export const listPageBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 function exportUrlList(raw: string | null, single: string | null): string {
@@ -101,7 +101,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', '是', '启用'])
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off', '否', '停用'])
 
-/** Python parse_bool(value, default=None) */
+/** 解析布尔值：空值返回 defaultValue；字符串按 TRUE_VALUES / FALSE_VALUES 识别，无法识别也返回 defaultValue */
 export function parseBool<D>(value: unknown, defaultValue: D): boolean | D {
   if (value === null || value === undefined || value === '') return defaultValue
   if (typeof value === 'boolean') return value
@@ -111,7 +111,7 @@ export function parseBool<D>(value: unknown, defaultValue: D): boolean | D {
   return defaultValue
 }
 
-/** Python parse_int(value, default=0)：`int(value)`，TypeError/ValueError → default */
+/** 按 pyInt 规则解析整数，值无法解析（PyValueError）时返回 defaultValue */
 export function parseIntOr<D>(value: unknown, defaultValue: D): number | D {
   try {
     return pyInt(value)
@@ -135,9 +135,9 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   }
 }
 
-// ---------------------------------------------------------------- Python 语义小工具
+// ---------------------------------------------------------------- 字符串小工具
 
-/** 等价 werkzeug.utils.secure_filename（POSIX：os.sep='/'，无 altsep，不做 Windows 设备名处理） */
+/** 把上传文件名清洗成安全文件名（secure_filename 规则）：NFKD 后去掉非 ASCII，路径分隔符与空白折成 `_`，只保留 [A-Za-z0-9_.-]，去掉首尾的 `.`/`_`（按 POSIX 处理，不做 Windows 设备名处理） */
 export function secureFilename(filename: string): string {
   let name = filename.normalize('NFKD').replace(/[^\x00-\x7f]/g, '')
   name = name.replace(/\//g, ' ')
@@ -150,7 +150,7 @@ export function secureFilename(filename: string): string {
   return name.replace(/^[._]+/, '').replace(/[._]+$/, '')
 }
 
-/** titlecase 与 uppercase 不同的字符（Python str.title 用 titlecase 映射） */
+/** titlecase 与 uppercase 不同的字符（str.title 语义用 titlecase 映射） */
 const TITLECASE_MAP: Record<string, string> = {
   Ǆ: 'ǅ', ǅ: 'ǅ', ǆ: 'ǅ', Ǉ: 'ǈ', ǈ: 'ǈ', ǉ: 'ǈ', Ǌ: 'ǋ', ǋ: 'ǋ', ǌ: 'ǋ', Ǳ: 'ǲ', ǲ: 'ǲ', ǳ: 'ǲ',
   ß: 'Ss', ﬀ: 'Ff', ﬁ: 'Fi', ﬂ: 'Fl', ﬃ: 'Ffi', ﬄ: 'Ffl', ﬅ: 'St', ﬆ: 'St',
@@ -160,7 +160,7 @@ function isCased(ch: string): boolean {
   return ch.toLowerCase() !== ch.toUpperCase()
 }
 
-/** 等价 Python `str.title()`：前一个字符不是“有大小写”的字符时大写，否则小写（数字也算分隔） */
+/** Python `str.title()` 语义：前一个字符不是“有大小写”的字符时大写，否则小写（数字也算分隔） */
 export function pyTitle(text: string): string {
   let out = ''
   let previousCased = false

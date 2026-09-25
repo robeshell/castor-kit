@@ -90,7 +90,7 @@ describe('menus 新增', () => {
     rootId = body.id
   })
 
-  it('字段转换与 SQLAlchemy/psycopg2 一致：float 四舍五入、数字字符串、list → PG 数组文本、raw code 不 strip', async () => {
+  it('字段转换：float 四舍五入、数字字符串、list → PG 数组文本、raw code 不 strip', async () => {
     const res = await post('/api/admin/menus', {
       name: ['a b', null, ''],
       code: `${P}c1`,
@@ -156,7 +156,7 @@ describe('menus 列表 / 详情', () => {
     const tree = (await s.inject({ url: `/api/admin/menus?search=${P}ROOT` })).json()
     expect(tree).toHaveLength(1)
     expect(tree[0].children).toHaveLength(3)
-    // 子节点匹配（有意偏离 Flask 的「只过滤根节点」）：带出祖先，兄弟节点不出现
+    // 子节点匹配（不只过滤根节点）：带出祖先，兄弟节点不出现
     const child = (await s.inject({ url: `/api/admin/menus?search=${P}c1` })).json()
     expect(child.map((m: { code: string }) => m.code)).toEqual([`${P}root`])
     expect(child[0].children.map((m: { code: string }) => m.code)).toEqual([`${P}c1`])
@@ -183,7 +183,7 @@ describe('menus 列表 / 详情', () => {
     expect((await s.inject({ url: '/api/admin/menus/99999999999' })).statusCode).toBe(404)
     expect((await s.inject({ url: '/api/admin/menus/abc' })).statusCode).toBe(404)
     const c1 = (await menuByCode(`${P}c1`))!
-    // parent_id 指向自身：Python 递归 to_dict 抛 RecursionError → 500
+    // parent_id 指向自身 → 500
     await handle.db.update(menus).set({ parent_id: c1.id }).where(eq(menus.id, c1.id))
     expect((await s.inject({ url: `/api/admin/menus/${c1.id}` })).statusCode).toBe(500)
     await handle.db.update(menus).set({ parent_id: rootId }).where(eq(menus.id, c1.id))
@@ -203,7 +203,7 @@ describe('menus 编辑 / 删除 / 排序', () => {
     expect((await menuByCode(`${P}c2`))!.updated_at).not.toBe(before.updated_at)
   })
 
-  it('编辑：父级改成自身或子菜单 → 400（有意偏离 Flask，成环后菜单树会 500）', async () => {
+  it('编辑：父级改成自身或子菜单 → 400（成环后菜单树会 500）', async () => {
     const root = (await menuByCode(`${P}root`))!
     const c1 = (await menuByCode(`${P}c1`))!
     for (const [id, parent] of [[root.id, c1.id], [c1.id, c1.id]] as const) {
@@ -337,7 +337,7 @@ describe('menus 导出 / 模板 / 导入', () => {
     expect(await menuByCode(`${P}c2`)).toMatchObject({ name: '改', menu_type: 'button', parent_id: null, sort_order: 0, icon: null })
   })
 
-  it('导入：父级关系成环 → 错误行、整批回滚（有意偏离 Flask）', async () => {
+  it('导入：父级关系成环 → 错误行、整批回滚', async () => {
     const csv = '菜单名称,菜单编码,类型,父级编码\n' + `根改名,${P}root,directory,${P}c1\n`
     const res = await s.inject({ method: 'POST', url: '/api/admin/menus/import', ...multipartFile('m.csv', csv) })
     expect(res.statusCode).toBe(400)

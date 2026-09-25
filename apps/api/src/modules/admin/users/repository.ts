@@ -1,5 +1,5 @@
 /**
- * 用户模块 repository 层（对齐 AuraStack backend/app/admin/crud/users.py）
+ * 用户模块 repository 层
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, type SQL } from 'drizzle-orm'

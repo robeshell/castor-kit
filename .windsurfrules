@@ -4,10 +4,10 @@
 
 ## 项目概况
 
-Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 19 + PostgreSQL + shadcn/ui（Tailwind CSS v4 + motion）的 AI-First 管理后台脚手架（AuraStack 的 Node.js 重写版；前端 UI 已从 Semi Design 迁移，见 `docs/frontend-redesign-plan.md`）。pnpm monorepo：`apps/api`（后端）、`apps/web`（前端）、`apps/mcp`（MCP Server）。
+Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 19 + PostgreSQL + shadcn/ui（Tailwind CSS v4 + motion）的 AI-First 管理后台脚手架（前端 UI 体系见 `docs/frontend-redesign-plan.md`）。pnpm monorepo：`apps/api`（后端）、`apps/web`（前端）、`apps/mcp`（MCP Server）。
 
 - 后端端口：5001 | 前端：Vite dev server 5173（`/api`、`/ws` proxy 到 5001）| 启动：`pnpm dev`
-- 数据库：`postgresql://wangwenyu@localhost/aurastack`
+- 数据库：`postgresql://wangwenyu@localhost/castor_kit`
 - 路径别名：后端 `@/*` → `apps/api/src/*`；前端 `@` → `apps/web/src`
 
 ## 核心约定
@@ -43,7 +43,7 @@ Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 19 + PostgreSQL + sha
    （自动注册路由与表定义，并生成 Drizzle 迁移）
 5. 补充 db/schema / schema / repository / service / routes 业务逻辑
 6. 在 apps/api/scripts/seed-rbac.ts 添加菜单+权限，运行 pnpm seed:rbac -- --incremental
-7. pnpm db:migrate，并用 psql -d aurastack -c '\d <table>' 确认落库
+7. pnpm db:migrate，并用 psql -d castor_kit -c '\d <table>' 确认落库
 8. pnpm verify -- --module <name> --skip-build
 ```
 

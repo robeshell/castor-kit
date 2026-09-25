@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs'
 import { describe, expect, it } from 'vitest'
 import { buildTable, normalizeTableFileType, readTableFile, sanitizeFormula, TableFileError } from '@/common/tabular'
 
-describe('tabular（对齐 backend/tests/test_tabular.py）', () => {
+describe('tabular', () => {
   it('公式注入防护', () => {
     for (const v of ['=1+1', '+1', '@SUM(A1)', '\tx', '\rx', '-abc']) expect(sanitizeFormula(v)).toBe(`'${v}`)
     for (const v of ['-1', '-.5', 'abc', '1+1', '']) expect(sanitizeFormula(v)).toBe(v)
@@ -14,7 +14,7 @@ describe('tabular（对齐 backend/tests/test_tabular.py）', () => {
     expect(normalizeTableFileType(undefined)).toBe('csv')
   })
 
-  it('CSV 输出与 Python csv.writer 一致：BOM、\\r\\n、最小引用', async () => {
+  it('CSV 输出：BOM、\\r\\n、最小引用', async () => {
     const t = await buildTable(['名称', '备注'], [['a,b', 'say "hi"'], ['=cmd', null], [1.0, 2.5]], 'x', 'csv')
     expect(t.filename).toBe('x.csv')
     expect(t.contentType).toBe('text/csv; charset=utf-8')

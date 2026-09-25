@@ -121,7 +121,7 @@ describe('roles 列表 / 新增', () => {
     expect(await handle.db.select().from(roles).where(eq(roles.code, `${P}z`))).toHaveLength(0)
   })
 
-  it('请求体不是对象：真值 → 500（Python data.get 抛 AttributeError），假值当作 {}', async () => {
+  it('请求体不是对象：真值 → 500，假值当作 {}', async () => {
     const json = { 'content-type': 'application/json' }
     const post = (payload: unknown) => s.inject({ method: 'POST', url: '/api/admin/roles', payload: JSON.stringify(payload), headers: json })
     expect((await post([1, 2])).statusCode).toBe(500)
@@ -216,7 +216,7 @@ describe('roles 导出 / 模板 / 导入', () => {
     expect(String(rows[1]![6])).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/)
   })
 
-  it('导出：非法参数 → 500（Python 未捕获异常）', async () => {
+  it('导出：非法参数 → 500', async () => {
     for (const payload of [{ export_mode: 1 }, { export_mode: 'filtered', filters: [1] }, { ids: [1], fields: 5 }, { ids: [1], fields: [[1]] }, { ids: ['x'] }]) {
       expect((await s.inject({ method: 'POST', url: '/api/admin/roles/export', payload })).statusCode, JSON.stringify(payload)).toBe(500)
     }

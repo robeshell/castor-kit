@@ -1,5 +1,5 @@
 /**
- * 通过 Apifox 开放 API 导入 OpenAPI/Swagger（对齐 AuraStack backend/scripts/import_openapi_to_apifox.py）
+ * 通过 Apifox 开放 API 导入 OpenAPI/Swagger
  *
  * 默认对匹配到的接口/数据模型“覆盖已有”。
  *
@@ -7,8 +7,8 @@
  *   pnpm openapi:apifox -- [--project-id ID] [--access-token TOKEN] [--spec-file PATH | --input-url URL] ...
  * 环境变量：APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN / APIFOX_API_VERSION（默认 2024-03-28）
  *
- * 退出码同 Python：参数错误 2；输入/请求失败或 HTTP >= 400 为 1；返回 errors 或 *Failed 计数 > 0 为 2；成功 0。
- * 请求体按 Python requests 的 `json=` 编码（ensure_ascii + ', '/': ' 分隔符），与 Python 版逐字节一致。
+ * 退出码：参数错误 2；输入/请求失败或 HTTP >= 400 为 1；返回 errors 或 *Failed 计数 > 0 为 2；成功 0。
+ * 请求体按 Python requests 的 `json=` 方式编码（ensure_ascii + ', '/': ' 分隔符）。
  */
 
 import { existsSync, readFileSync } from 'node:fs'
@@ -45,7 +45,7 @@ export interface ImportArgs {
   timeout: number
 }
 
-/** argparse `parser.error`：打印 usage 与错误后以 2 退出 */
+/** 参数错误：打印 usage 与错误后以 2 退出 */
 export class ArgumentError extends Error {}
 
 /** Python int()：允许首尾空白、正负号、数字间下划线 */
@@ -200,7 +200,7 @@ function pyStrOf(value: OrderedJson | undefined): string {
   return pyStr(JSON.parse(JSON.stringify(value, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v))))
 }
 
-/** OrderedJson 数字/字符串 → Python int(x or 0)；无法转换时抛错（Python 抛 ValueError 以 1 退出） */
+/** OrderedJson 数字/字符串 → Python int(x or 0)；无法转换时抛错（以 1 退出） */
 function pyIntOf(value: OrderedJson | undefined): number {
   if (value === undefined || value === null || value === false || value === '') return 0
   if (value === true) return 1
@@ -240,7 +240,7 @@ function isTruthyJson(value: OrderedJson | undefined): boolean {
 
 export interface RunImportOptions {
   env?: NodeJS.ProcessEnv
-  /** 仅测试用：替换 Apifox 地址（Python 版是模块常量） */
+  /** 仅测试用：替换 Apifox 地址 */
   baseUrl?: string
   out?: (line: string) => void
   err?: (line: string) => void

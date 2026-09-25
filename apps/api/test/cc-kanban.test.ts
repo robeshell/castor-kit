@@ -41,7 +41,7 @@ afterAll(async () => {
   await handle.pool.end()
 })
 
-describe('py-date：date.fromisoformat(str(v)[:10])（期望值来自 AuraStack venv Python 3.13 实测）', () => {
+describe('py-date：date.fromisoformat(str(v)[:10])', () => {
   it.each([
     ['2024-01-01', '2024-01-01'],
     ['20240101', '2024-01-01'],
