@@ -91,5 +91,9 @@ export function registerDemoGuard(app: FastifyInstance, config: DemoConfig): voi
   })
 }
 
-/** Cap on the model's reply length in the demo (keeps the shared free quota going further) */
-export const DEMO_MAX_OUTPUT_TOKENS = { chat: 1024, sql: 512 }
+/**
+ * Cap on the model's reply length in the demo (keeps the shared free quota going further).
+ * Generous on purpose: for thinking models (e.g. Gemini Flash) the limit includes the thinking tokens, and a tight
+ * cap ends the reply before any text is produced.
+ */
+export const DEMO_MAX_OUTPUT_TOKENS = { chat: 4096, sql: 2048 }

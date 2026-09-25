@@ -124,8 +124,12 @@ export class AiSqlService {
       // requests' JSONDecodeError is a ValueError subclass
       throw new LlmConfigError('LLM 响应不是合法 JSON')
     }
-    const rawSql = (data as { choices: { message: { content: unknown } }[] }).choices[0]!.message.content
-    if (typeof rawSql !== 'string') throw new TypeError('LLM 响应缺少 content')
+    const choice = (data as { choices: { message?: { content?: unknown }; finish_reason?: unknown }[] }).choices[0]!
+    const rawSql = choice.message?.content
+    if (typeof rawSql !== 'string' || !rawSql.trim()) {
+      // A reply without text is a model / settings problem (e.g. finish_reason "length": the output cap was spent on thinking)
+      throw new LlmConfigError(`LLM 没有返回内容（finish_reason: ${String(choice.finish_reason ?? 'unknown')}）`)
+    }
     return cleanSql(rawSql)
   }
 

@@ -223,7 +223,7 @@ describe('demo AI quota', () => {
     it('caps the reply length upstream and returns a translated 429 once the hourly quota is used', async () => {
       const before = up.requests.length
       expect((await s.inject({ method: 'POST', url: GENERATE, payload: { question: '列出看板' } })).statusCode).not.toBe(429)
-      expect(up.requests[before]!.body).toMatchObject({ max_tokens: 512 })
+      expect(up.requests[before]!.body).toMatchObject({ max_tokens: 2048 })
       expect((await s.inject({ method: 'POST', url: GENERATE, payload: { question: '列出看板' } })).statusCode).not.toBe(429)
       const limited = await s.inject({
         method: 'POST',
