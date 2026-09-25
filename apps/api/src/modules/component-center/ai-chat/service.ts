@@ -112,16 +112,20 @@ async function* iterLines(body: AsyncIterable<Uint8Array>): AsyncGenerator<strin
 
 export interface ChatStreamOptions {
   timeoutMs?: number
+  /** Server-side log for upstream failures (the client only ever sees a generic message) */
+  log?: { warn: (obj: unknown, msg: string) => void }
 }
 
 export class AiChatService {
   private readonly dispatcher: Agent
+  private readonly log: ChatStreamOptions['log']
 
   constructor(
     private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
     options: ChatStreamOptions = {},
   ) {
     const timeout = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS
+    this.log = options.log
     this.dispatcher = new Agent({ connect: { timeout }, headersTimeout: timeout, bodyTimeout: timeout })
   }
 
@@ -156,8 +160,10 @@ export class AiChatService {
       })
 
       if (resp.status !== 200) {
-        // Don't pass the upstream response body through to the client (it may contain internal info); only a generic error code
-        await resp.body?.cancel().catch(() => {})
+        // Don't pass the upstream response body through to the client (it may contain internal info); only a generic error code.
+        // Log the start of it server-side so the cause (bad model name, quota, overload...) is visible in the logs.
+        const detail = await resp.text().catch(() => '')
+        this.log?.warn({ status: resp.status, body: detail.slice(0, 500) }, 'AI 上游返回错误')
         yield event('error', translateMessage(`AI 服务暂时不可用（${resp.status}），请稍后重试`, lang))
         yield DONE_EVENT
         return
