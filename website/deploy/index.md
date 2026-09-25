@@ -96,7 +96,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 
 ### 1. 创建 Neon 数据库
 
-1. 注册 Neon，新建一个项目。区域尽量选离 Render 服务近的（例如都选美国东部或新加坡）
+1. 注册 Neon，新建一个项目。区域选 **AWS US East 2 (Ohio)**，与 `render.yaml` 里 Render 服务的 `region: ohio` 一致；若改用其他区域，两边保持一致
 2. 在项目首页点 **Connect**，**关闭「Connection pooling」**，复制直连的连接串，形如 `postgresql://<用户>:<密码>@ep-xxx.<区域>.aws.neon.tech/neondb?sslmode=require`
 
 ::: tip 为什么要直连

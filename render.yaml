@@ -8,6 +8,8 @@ services:
     name: castor-kit-demo
     runtime: docker
     plan: free
+    # Same region as the Neon project (AWS US East 2 / Ohio) to keep database round trips short
+    region: ohio
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:

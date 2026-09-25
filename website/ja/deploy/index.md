@@ -96,7 +96,7 @@ compose がデフォルトで読み込むのは `.env` だけで、`.env.product
 
 ### 1. Neon でデータベースを作成する
 
-1. Neon に登録してプロジェクトを作成します。リージョンは Render のサービスに近いもの（例：どちらも米国東部やシンガポール）を選びます
+1. Neon に登録してプロジェクトを作成します。リージョンは **AWS US East 2 (Ohio)** を選び、`render.yaml` にある Render サービスの `region: ohio` と揃えます。別のリージョンにする場合も両方を同じにしてください
 2. プロジェクトのダッシュボードで **Connect** をクリックし、**「Connection pooling」をオフ**にして、直接接続の接続文字列をコピーします。形式は `postgresql://<ユーザー>:<パスワード>@ep-xxx.<リージョン>.aws.neon.tech/neondb?sslmode=require` です
 
 ::: tip 直接接続を使う理由

@@ -96,7 +96,7 @@ These were the free tiers at the time of writing; check each provider's site bef
 
 ### 1. Create the Neon database
 
-1. Sign up for Neon and create a project. Pick a region close to your Render service (for example US East or Singapore for both)
+1. Sign up for Neon and create a project. Pick **AWS US East 2 (Ohio)** to match `region: ohio` of the Render service in `render.yaml`; if you choose another region, keep both sides in the same one
 2. On the project dashboard click **Connect**, **turn off "Connection pooling"**, and copy the direct connection string, e.g. `postgresql://<user>:<password>@ep-xxx.<region>.aws.neon.tech/neondb?sslmode=require`
 
 ::: tip Why a direct connection
