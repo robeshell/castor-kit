@@ -28,6 +28,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
+- After signing in, the "no accessible pages" screen flashed before the dashboard (menus are now loaded before the redirect); list pages and dashboard panels show skeletons instead of "no data" / zero values until their first response.
 - AI Data Query sample questions asked about system tables (users, roles, menus, logs, scheduled tasks) that AI SQL never exposes, so they came back empty; they now ask about the component gallery data, and the demo data has members who joined across the last six months.
 - AI Data Query timed out in the browser after 10 s with thinking models; the generate request now allows 60 s. A startup warning flags Neon pooler URLs, which break the AI SQL read-only connection.
 - Docker image crashed at startup: `sodium-native` has no prebuilt binaries for Alpine (musl); the image now uses `node:22-bookworm-slim`, and the npm registry is a build argument.
