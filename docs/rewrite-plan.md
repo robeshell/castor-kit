@@ -442,7 +442,7 @@ castor-kit/
 
 验收证据：
 - 路由：Node 收集到 114 条 `/api` 路由，与 Flask 完全一致（另有 `/ws/devtools`、`/health`、`/admin/login`、SPA fallback）。
-- shadow-diff（Flask production 模式作 oracle，24 个用例文件 847 个用例，`apps/api/scripts/shadow-all.sh` 可复跑）：841 一致；6 个为有意差异——2 个 `.xls` 导出回落 csv（§5.9），4 个是 Flask 公告模块的 bug（`AnnouncementServiceError` 缺 `payload` 属性，所有 4xx 变成 500；Node 按原意返回 400）。
+- shadow-diff（2026-09-25 前的结果；之后新增的有意差异见下文「定时任务」一条，未重跑；Flask production 模式作 oracle，24 个用例文件 847 个用例，`apps/api/scripts/shadow-all.sh` 可复跑）：841 一致；6 个为有意差异——2 个 `.xls` 导出回落 csv（§5.9），4 个是 Flask 公告模块的 bug（`AnnouncementServiceError` 缺 `payload` 属性，所有 4xx 变成 500；Node 按原意返回 400）。
 - vitest：api 430 条（428 通过 + 2 条 60s 调度端到端需 `SCHEDULER_E2E=1`，已单独跑通）、web 7、mcp 6；在“空库 + setup-once”的 CI 同构环境下全绿。
 - 工具链：在仓库副本里 scaffold 示例模块 → seed → 迁移（`psql \d` 实证）→ `pnpm verify` 14/14 → CRUD、my-menus 出现新菜单。
 - 生产布局：按 Dockerfile 的产物布局在本机模拟（`pnpm deploy --prod` + dist + drizzle + web），空库 `setup-once` → 服务启动 → 登录 / 菜单 / SPA 正常。
@@ -456,6 +456,10 @@ castor-kit/
 - `setup-once` 用增量模式同步 RBAC（Python 版每次容器启动全量重建、会删用户，视为 bug 未照搬）。
 - AI SQL：Flask 经 psycopg2 执行时单个 `%` 会报错（`LIKE '%x%'` 全部失败），Node 原样执行。
 - `jsonBody`：非对象 JSON 体 / 非 JSON Content-Type 统一按 `{}` 处理（Flask 分别是 500 / 415 HTML），前端不会发这类请求。
+- 定时任务：新增时请求地址不合法返回 400 + 具体原因（Flask 的 `validate_request_url` 在 try 之外 → 500 通用文案），校验挪到名称 / 编码 / Cron 之后；地址格式错误（urlsplit ValueError）新增、编辑都返回 400「请求地址格式不合法」；域名解析到禁止网段时文案附带解析结果（`不允许访问内网地址（localhost 解析为 127.0.0.1）`），shadow「编辑 地址 localhost」因此不一致。
+- 成环校验：菜单与树形列表修改父级时，不能改成自身或自己的子孙（400）；导入同样按最终父子关系检查，成环的行记为错误行、整批回滚。Flask 菜单成环后树接口无限递归 500，树形列表只排除「等于自身」、导入不检查。
+- 菜单树形搜索：保留匹配节点及其祖先路径、匹配节点子树完整（Flask 只过滤根节点，搜子菜单永远为空）。
+- 接管 AuraStack 现库（`migrate.ts` baseline 分支）时同一事务内把落后的自增序列推进到 `MAX(id)`：AuraStack 部分 Alembic 迁移显式 id 插入演示数据却未 setval（`cc_detail_members` / `cc_gantt_tasks` 等），接管后新增会撞主键。
 - OpenAPI：`generate-openapi` 与 Python 同口径（保留文档详细定义、补骨架），未做 Zod 全量生成；详细覆盖率约 53%（按路由去重）。
 
 遗留（需人工决定/操作）：

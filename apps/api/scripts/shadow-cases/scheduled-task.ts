@@ -6,8 +6,11 @@
  * 种子可重复执行（先删后插）。两个后端都要关闭调度器（Flask ENABLE_TASK_SCHEDULER=false，Node 不设 RUN_SCHEDULER_IN_WEB）。
  *
  * 不放进 shadow 的用例（在 vitest 里验证）：
- * - 新增时 URL 为空 / 非 http(s) / 内网 / urlsplit ValueError：两边都是 500，但 Flask 开发模式返回 Werkzeug 调试 HTML，
- *   Node 返回生产形态的 JSON `{error:'服务器内部错误，请稍后重试'}`
+ * - 新增时 URL 为空 / 非 http(s) / 内网 / urlsplit ValueError：Flask 未捕获 → 500；Node 有意改为 400 + 具体原因
+ *   （urlsplit ValueError 新增、编辑都是 400「请求地址格式不合法」）
+ *
+ * 已知有意差异（shadow 会报不一致）：
+ * - 「编辑 地址 localhost」：Node 文案附带解析结果「不允许访问内网地址（localhost 解析为 127.0.0.1）」
  * - 删除成功、新增成功：两边各写一次库，第二次必然不同
  * - 目标为内网地址的已存量任务手动执行：Python 执行阶段不做 SSRF 复检会真的发请求，Node 在连接阶段拦截（有意加固）
  */

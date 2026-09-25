@@ -9,6 +9,7 @@
  *   有错误行时直接回滚，未落库的写入不会触发数据库错误
  */
 
+import { wouldCreateCycle } from '@/common/tree'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { isPlainObject, pyStr, pyStrOrEmpty, pyTruthy } from '@/common/py'
@@ -183,6 +184,10 @@ export class TreeListPageService {
           pendingFirst = {}
         }
         if (!(await repo.exists(parentAction.pid))) throw new ServiceError('父节点不存在', 400)
+        // 有意偏离 Flask：Python 只排除「等于自身」，移到自己的子孙下会成环（前端能拦，但接口直调会写进库）
+        if (await wouldCreateCycle(tx, 'tree_nodes', item.id, parentAction.pid)) {
+          throw new ServiceError('不能将节点移动到自身或其子节点下', 400)
+        }
       }
 
       const second: TreeNodeUpdate = { ...pendingFirst }
@@ -284,6 +289,8 @@ export class TreeListPageService {
       const errors: ErrorRow[] = []
       // 尚未 flush 的上一行写入（对应 Session 里的 pending/dirty 对象）
       let pending: (() => Promise<unknown>) | null = null
+      // 带父节点的行，全部写完后统一做成环检查
+      const withParent: Array<{ line: number; row: Record<string, string>; nodeCode: string; parentId: number }> = []
       const flush = async () => {
         if (!pending) return
         const op = pending
@@ -321,6 +328,8 @@ export class TreeListPageService {
           description: strOrNone(mapped.description),
         }
 
+        if (parentId !== null) withParent.push({ line, row, nodeCode, parentId })
+
         await flush() // Query 触发 autoflush
         const existing = await repo.getByCode(nodeCode)
         if (existing) {
@@ -333,13 +342,23 @@ export class TreeListPageService {
         }
       }
 
+      await flush()
+      // 有意偏离 Flask：导入的 parent_id 可能让节点成为自己的祖先（含指向自身），成环的行记为错误、整批回滚
+      if (errors.length === 0) {
+        for (const item of withParent) {
+          const node = await repo.getByCode(item.nodeCode)
+          if (node && (await wouldCreateCycle(tx, 'tree_nodes', node.id, item.parentId))) {
+            errors.push(buildErrorRow(item.line, `父节点 ${item.parentId} 会导致成环（不能是自身或其子节点）`, item.row))
+          }
+        }
+      }
+
       if (errors.length > 0) {
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,
         })
       }
-      await flush()
       return { message: '导入成功', created, updated }
     })
   }

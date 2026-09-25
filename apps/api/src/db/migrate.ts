@@ -4,6 +4,8 @@
  * - 库里有 `alembic_version` 且 Drizzle 迁移记录为空：说明是 AuraStack 建好的现库，表已存在。
  *   只把 0000_baseline 记为已应用（写记录，不执行 DDL），之后的迁移正常执行。
  *   前提是 Alembic 必须处于 baseline 对应的 head，否则表结构对不上，直接拒绝。
+ *   同一事务里把所有自增 id 序列推进到不小于 MAX(id)：AuraStack 的部分 Alembic 迁移用显式 id 插入演示数据
+ *   却没有 setval（如 cc_detail_members / cc_gantt_tasks），接管后新增会撞主键 → 500。
  * - 全新空库：正常执行 baseline 及之后的全部迁移。
  *
  * 命令行入口见 migrate-cli.ts（`pnpm db:migrate` / `node dist/migrate.js`）
@@ -15,6 +17,35 @@ import { fileURLToPath } from 'node:url'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { readMigrationFiles } from 'drizzle-orm/migrator'
 import { createDb } from './client'
+
+/**
+ * 把 public 下所有「id 列绑定序列」的表的序列推进到 MAX(id)（只前进不后退，已经领先的不动）。
+ * 被推进的表名写入会话临时表 pg_temp.synced_sequences（事务提交即删除），供调用方记日志。
+ */
+export const SYNC_ID_SEQUENCES_SQL = `
+DO $$
+DECLARE
+  r record;
+  max_id bigint;
+  next_id bigint;
+BEGIN
+  CREATE TEMP TABLE IF NOT EXISTS pg_temp.synced_sequences (table_name text) ON COMMIT DROP;
+  FOR r IN
+    SELECT c.table_name,
+           pg_get_serial_sequence(format('%I.%I', c.table_schema, c.table_name), c.column_name) AS seq
+    FROM information_schema.columns c
+    WHERE c.table_schema = 'public' AND c.column_name = 'id'
+  LOOP
+    CONTINUE WHEN r.seq IS NULL;
+    EXECUTE format('SELECT COALESCE(MAX(id), 0) FROM public.%I', r.table_name) INTO max_id;
+    EXECUTE format('SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', r.seq) INTO next_id;
+    IF max_id >= next_id THEN
+      PERFORM setval(r.seq, max_id, true);
+      INSERT INTO pg_temp.synced_sequences VALUES (r.table_name);
+    END IF;
+  END LOOP;
+END $$;
+`
 
 /** baseline 等价的 Alembic head（AuraStack backend/migrations/versions/5a9f3c2e8d71_*.py） */
 export const BASELINE_ALEMBIC_REVISION = '5a9f3c2e8d71'
@@ -94,7 +125,12 @@ export async function runMigrations(
           `INSERT INTO "${MIGRATIONS_SCHEMA}"."${MIGRATIONS_TABLE}" (hash, created_at) VALUES ($1, $2)`,
           [baseline.hash, baseline.folderMillis],
         )
+        await client.query(SYNC_ID_SEQUENCES_SQL)
+        const synced = await client.query<{ table_name: string }>('SELECT table_name FROM pg_temp.synced_sequences ORDER BY 1')
         await client.query('COMMIT')
+        if (synced.rows.length > 0) {
+          log(`已同步落后的自增序列：${synced.rows.map((r) => r.table_name).join(', ')}`)
+        }
       } catch (err) {
         await client.query('ROLLBACK')
         throw err

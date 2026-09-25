@@ -7,7 +7,8 @@
  *   在 Python 里没被捕获、会变成 500，这里抛 PyUncaughtError 由 service 转 500
  * - 主机名解析后全部结果都要校验（存在一个内网 IP 即拒绝）
  *
- * 相比 Python 的有意加固（安全修复，不追求逐字一致）：
+ * 相比 Python 的有意加固 / 改进（不追求逐字一致）：
+ * - 域名解析到禁止网段时文案附带解析结果（`不允许访问内网地址（localhost 解析为 127.0.0.1）`）；IP 直连仍是原文案
  * - IPv4 映射的 IPv6（`::ffff:127.0.0.1`）按其内嵌 IPv4 判定（Python 的 `ip in IPv4Network` 对 IPv6 地址恒为假，会放行）
  * - 额外拦截 `::/128`（未指定地址，多数系统上等同本机）
  * - 执行阶段（http.ts）在建立连接时再按同一规则复检实际连接的 IP，防 DNS rebinding 与重定向绕过
@@ -40,6 +41,11 @@ const blockList = new net.BlockList()
 for (const [address, prefix, family] of BLOCKED_NETWORKS) blockList.addSubnet(address, prefix, family)
 
 export const BLOCKED_ADDRESS_MESSAGE = '不允许访问内网地址'
+
+/** 域名解析到禁止网段时的文案：`不允许访问内网地址（localhost 解析为 127.0.0.1）` */
+export function blockedHostMessage(hostname: string, address: string): string {
+  return `${BLOCKED_ADDRESS_MESSAGE}（${hostname} 解析为 ${address}）`
+}
 
 /** 去掉 IPv6 zone（`fe80::1%en0`）与方括号 */
 function bareIp(ip: string): string {
@@ -231,7 +237,8 @@ export async function validateRequestUrl(raw: unknown, { lookup = defaultLookup 
     throw new ScheduledTaskSchemaError('请求地址无法解析')
   }
   for (const address of addresses) {
-    if (isBlockedIp(address)) throw new ScheduledTaskSchemaError(BLOCKED_ADDRESS_MESSAGE)
+    // 带上解析结果：本机代理的 fake-ip 模式（198.18.0.0/15）会让任何域名都被判为内网，附上 IP 才看得出原因
+    if (isBlockedIp(address)) throw new ScheduledTaskSchemaError(blockedHostMessage(hostname, address))
   }
   return text
 }

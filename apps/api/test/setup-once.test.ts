@@ -195,6 +195,8 @@ describe('setup-once', () => {
       CREATE TABLE alembic_version (version_num varchar(32) NOT NULL PRIMARY KEY);
       INSERT INTO alembic_version VALUES ('${BASELINE_ALEMBIC_REVISION}');
       INSERT INTO admin_users (username, password_hash, created_at) VALUES ('ck_test_r8_user', 'x', now());
+      -- 模拟 Alembic 迁移用显式 id 插入演示数据、未 setval：序列落后于 MAX(id)
+      INSERT INTO cc_gantt_tasks (id, title, start_date, end_date) VALUES (500, 'ck_test_r8_gantt', '2026-01-01', '2026-01-02');
     `)
     const log: string[] = []
     await runSetupOnce({ databaseUrl: legacyUrl, adminPassword: 'x', roPassword: '', log: (m) => log.push(m) })
@@ -203,6 +205,13 @@ describe('setup-once', () => {
     expect(snap.migrations).toHaveLength(1)
     expect(snap.users.map((u) => u.username)).toEqual(['ck_test_r8_user', 'admin'])
     expect(snap.menus).toHaveLength(120)
+    // 落后的序列被推进到 MAX(id)，接管后新增不会撞主键
+    expect(log.some((m) => m.startsWith('已同步落后的自增序列') && m.includes('cc_gantt_tasks'))).toBe(true)
+    const [inserted] = await query<{ id: number }>(
+      legacyUrl,
+      `INSERT INTO cc_gantt_tasks (title, start_date, end_date) VALUES ('ck_test_r8_next', '2026-01-01', '2026-01-02') RETURNING id`,
+    )
+    expect(inserted!.id).toBe(501)
 
     const again = await rbacSnapshot(legacyUrl)
     await runSetupOnce({ databaseUrl: legacyUrl, adminPassword: 'x', roPassword: '', log: quiet })
