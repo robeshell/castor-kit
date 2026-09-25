@@ -609,6 +609,12 @@ Step 5  验证门禁（强制，不得跳过）
 
 ---
 
+## 文档站与开源规范文件
+
+- 文档站与官网在 `website/`（VitePress，独立 npm 项目，不在 pnpm workspace 内）：中文是根语言（`website/guide/…`），英文 `website/en/`、日文 `website/ja/`，三种语言页面一一对应；首页是 `.vitepress/theme/components/Landing.vue`，文案在 `landing-content.js`
+- 功能行为、命令、环境变量有变化时，同一个 PR 里同步更新三种语言的文档；本地预览 `npm --prefix website run dev`，提交前 `npm --prefix website run build`（会检查死链）
+- 仓库根目录的 `README.md`（英文）/ `README_CN.md` / `README.ja.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 面向外部贡献者；用户可见的变化记到 `CHANGELOG.md` 的 `[Unreleased]`
+
 ## 常用命令速查
 
 所有命令在仓库根目录执行。castor-kit 自己的脚本（scaffold / verify / seed:rbac / openapi:*）参数前的 `--` 可写可不写；**`pnpm db:generate` 后面不能写 `--`**（drizzle-kit 不认识）。
