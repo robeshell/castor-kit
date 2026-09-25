@@ -480,7 +480,8 @@ describe('AI SQL 路由', () => {
     const configError = { error: 'AI 生成失败，请检查模型配置后重试' }
     const generic = { error: 'AI 生成失败' }
     for (const [question, expected] of [
-      ['q:status500', configError],
+      ['q:status500', { error: 'AI 生成失败（模型服务返回 500），请检查模型配置后重试' }],
+      ['q:status429', { error: 'AI 生成失败：模型服务的调用次数已达上限（429），请稍后再试' }],
       ['q:notjson', configError],
       ['q:nocontent', configError],
       ['q:nochoices', generic],

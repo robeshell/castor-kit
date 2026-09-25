@@ -82,6 +82,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '新密码长度至少6位': { 'en-US': 'New password must be at least 6 characters', 'ja-JP': '新しいパスワードは6文字以上で入力してください' },
   '登录失败次数过多，请稍后再试': { 'en-US': 'Too many failed sign-in attempts. Please try again later.', 'ja-JP': 'ログインの失敗回数が上限に達しました。しばらくしてから再度お試しください。' },
   '演示环境不允许此操作': { 'en-US': 'This action is disabled in the demo.', 'ja-JP': 'デモ環境ではこの操作はできません。' },
+  'AI 生成失败：模型服务的调用次数已达上限（429），请稍后再试': { 'en-US': 'AI generation failed: the model service rate limit was reached (429). Please try again later.', 'ja-JP': 'AI による生成に失敗しました：モデルサービスの呼び出し回数が上限に達しました（429）。しばらくしてから再度お試しください。' },
   '演示环境单次输入过长，请精简后再试': { 'en-US': 'Input is too long for the demo. Please shorten it and try again.', 'ja-JP': 'デモ環境では入力が長すぎます。短くしてからもう一度お試しください。' },
   '演示环境 AI 调用过于频繁，请稍后再试': { 'en-US': 'Too many AI requests in the demo. Please try again later.', 'ja-JP': 'デモ環境での AI の呼び出しが多すぎます。しばらくしてから再度お試しください。' },
   '今日演示 AI 额度已用完，请明天再试': { 'en-US': "Today's AI quota for the demo is used up. Please try again tomorrow.", 'ja-JP': '本日のデモ用 AI の利用枠を使い切りました。明日もう一度お試しください。' },
@@ -344,6 +345,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
 /** First match wins: keep specific patterns first and the scaffold catch-alls at the end */
 export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
+  { re: /^AI 生成失败（模型服务返回 (\d+)），请检查模型配置后重试$/, 'en-US': 'AI generation failed (the model service returned $1). Please check the model settings and try again.', 'ja-JP': 'AI による生成に失敗しました（モデルサービスが $1 を返しました）。モデルの設定を確認してから再度お試しください。' },
   { re: /^AI 服务暂时不可用（(.+)），请稍后重试$/, 'en-US': 'The AI service is temporarily unavailable ($1). Please try again later.', 'ja-JP': 'AI サービスは一時的に利用できません（$1）。しばらくしてから再度お試しください。' },
   // framework / common
   { re: /^缺少权限: (.+)$/, 'en-US': 'Missing permission: $1', 'ja-JP': '権限がありません：$1' },
