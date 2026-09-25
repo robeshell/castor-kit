@@ -97,7 +97,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 ### 1. 创建 Neon 数据库
 
 1. 注册 Neon，新建一个项目。区域选 **AWS US East 2 (Ohio)**，与 `render.yaml` 里 Render 服务的 `region: ohio` 一致；若改用其他区域，两边保持一致
-2. 在项目首页点 **Connect**，**关闭「Connection pooling」**，复制直连的连接串，形如 `postgresql://<用户>:<密码>@ep-xxx.<区域>.aws.neon.tech/neondb?sslmode=require`
+2. 在项目首页点 **Connect**，**关闭「Connection pooling」**，复制直连的连接串，形如 `postgresql://<用户>:<密码>@ep-xxx.<区域>.aws.neon.tech/neondb?sslmode=require`。**主机名里不能带 `-pooler`**：带了的话 AI 数据查询会报错，把 `-pooler` 删掉即可
 
 ::: tip 为什么要直连
 启动时的初始化（迁移、RBAC 同步、演示数据恢复）使用会话级的 advisory lock 防止并发，连接池模式下拿不到这把锁。连接串里的 `channel_binding=require` 可以保留，也可以去掉。

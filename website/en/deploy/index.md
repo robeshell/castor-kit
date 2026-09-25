@@ -97,7 +97,7 @@ These were the free tiers at the time of writing; check each provider's site bef
 ### 1. Create the Neon database
 
 1. Sign up for Neon and create a project. Pick **AWS US East 2 (Ohio)** to match `region: ohio` of the Render service in `render.yaml`; if you choose another region, keep both sides in the same one
-2. On the project dashboard click **Connect**, **turn off "Connection pooling"**, and copy the direct connection string, e.g. `postgresql://<user>:<password>@ep-xxx.<region>.aws.neon.tech/neondb?sslmode=require`
+2. On the project dashboard click **Connect**, **turn off "Connection pooling"**, and copy the direct connection string, e.g. `postgresql://<user>:<password>@ep-xxx.<region>.aws.neon.tech/neondb?sslmode=require`. **The host must not contain `-pooler`**: with it, AI Data Query fails — just delete `-pooler` from the host
 
 ::: tip Why a direct connection
 Startup initialization (migrations, RBAC sync, demo data restore) uses a session-level advisory lock to stay safe with concurrent instances, and a transaction pooler doesn't keep that lock. You can keep or remove `channel_binding=require` in the connection string.
