@@ -14,7 +14,7 @@
 :root {
   --radius: 0.625rem;
 
-  /* Pure neutral gray (no blue/purple cast): content area and sidebar both pure white; hierarchy comes from hairline borders, not background differences */
+  /* Pure neutral gray (no blue/purple cast) for content; the sidebar gets a faint tint of the accent so it separates from the white content without looking gray */
   --background: #ffffff;
   --foreground: #0a0a0a;
   --card: #ffffff;
@@ -50,11 +50,11 @@
   --chart-4: #14b8a6;
   --chart-5: #f59e0b;
 
-  --sidebar: #ffffff;
+  --sidebar: color-mix(in srgb, var(--brand-from) 4%, #ffffff);
   --sidebar-foreground: #404040;
   --sidebar-primary: var(--brand-from);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f2f2f2;
+  --sidebar-accent: color-mix(in srgb, var(--brand-from) 10%, #ffffff);
   --sidebar-accent-foreground: #0a0a0a;
   --sidebar-border: #ebebeb;
   --sidebar-ring: var(--brand-from);
@@ -116,12 +116,6 @@
   --brand-to: #22d3ee;
   --brand-glow: color-mix(in srgb, var(--brand-via) 14%, transparent);
   --brand-soft: color-mix(in srgb, var(--brand-from) 12%, transparent);
-}
-
-/* Inset sidebar style: the canvas (and the sidebar on it) turns light gray so the white content sheet reads as raised */
-html:not(.dark) [data-slot='sidebar-wrapper']:has([data-variant='inset']) {
-  --sidebar: #f7f7f7;
-  --sidebar-accent: #ebebeb;
 }
 
 /*
