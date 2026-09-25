@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Check, Download, Minus, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { roleDescription, roleName } from '@/lib/role-label'
 import { toast } from '@/lib/toast'
 import { formatDateTime } from '@/lib/format'
 import { menuLabel } from '@/lib/menu-label'
@@ -237,14 +238,14 @@ export default function Roles() {
 
   const columns = [
     { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },
-    { key: 'name', title: '角色名称', dataIndex: 'name', render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'name', title: '角色名称', dataIndex: 'name', render: (_, record) => <span className="font-medium">{roleName(record)}</span> },
     {
       key: 'code',
       title: '角色编码',
       dataIndex: 'code',
       render: (v) => (v ? <StatusBadge tone="neutral" className="font-mono">{v}</StatusBadge> : null),
     },
-    { key: 'description', title: '描述', dataIndex: 'description', ellipsis: true, className: 'text-muted-foreground' },
+    { key: 'description', title: '描述', dataIndex: 'description', ellipsis: true, className: 'text-muted-foreground', render: (_, record) => roleDescription(record) },
     {
       key: 'menus',
       title: '菜单权限',

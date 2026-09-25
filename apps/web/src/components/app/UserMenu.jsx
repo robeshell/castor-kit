@@ -12,6 +12,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
+import { roleName } from '@/lib/role-label'
 import { useTranslation } from 'react-i18next'
 
 export function UserAvatar({ name, className = 'size-8' }) {
@@ -31,8 +32,7 @@ export default function UserMenu() {
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
   const role = user?.roles?.[0]
-  // The built-in super_admin role is translated by code; custom role names are data and shown as stored
-  const roleName = role?.code === 'super_admin' ? t('超级管理员') : role?.name || t('成员')
+  const roleText = role ? roleName(role) : t('成员')
 
   const handleLogout = async () => {
     await logout()
@@ -51,7 +51,7 @@ export default function UserMenu() {
               <UserAvatar name={user?.username} />
               <div className="grid flex-1 text-left leading-tight">
                 <span className="truncate text-[13px] font-medium">{user?.username}</span>
-                <span className="text-muted-foreground truncate text-[11px]">{roleName}</span>
+                <span className="text-muted-foreground truncate text-[11px]">{roleText}</span>
               </div>
               <ChevronsUpDown className="text-muted-foreground ml-auto size-4" />
             </SidebarMenuButton>
@@ -66,7 +66,7 @@ export default function UserMenu() {
               <UserAvatar name={user?.username} />
               <div className="grid leading-tight">
                 <span className="text-sm font-medium">{user?.username}</span>
-                <span className="text-muted-foreground text-xs">{roleName}</span>
+                <span className="text-muted-foreground text-xs">{roleText}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
