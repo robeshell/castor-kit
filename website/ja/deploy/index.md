@@ -123,7 +123,11 @@ README の **Deploy to Render** ボタンからでも同じようにデプロイ
 デモでは Google Gemini の無料枠を使って、AI チャットと AI データ検索を試せます。
 
 1. [Google AI Studio](https://aistudio.google.com) で Google アカウントを使って API キーを作成します
-2. Render サービスの **Environment** で `AI_API_KEY`（作成したキー）と `AI_MODEL`（AI Studio に表示される Flash 系のモデル名）を設定します。`AI_API_BASE` は `render.yaml` で Gemini の OpenAI 互換エンドポイントに設定済みです。保存するとサービスが自動で再起動します
+2. Render サービスの **Environment** で `AI_API_KEY`（作成したキー）と `AI_MODEL`（おすすめは `gemini-3.5-flash`）を設定します。`AI_API_BASE` は `render.yaml` で Gemini の OpenAI 互換エンドポイントに設定済みです。保存するとサービスが自動で再起動します
+
+::: tip モデルの選び方
+最新の Flash モデルは、無料枠では負荷が高く 503 を返すことがよくあります（執筆時点の `gemini-3.8-flash` など）。デモ環境では、`gemini-3.5-flash` や `gemini-3.5-flash-lite` のように少し前に出た安定版をおすすめします。エラーになったときは、Render の **Logs** で「AI 上游返回错误」を検索すると、アップストリームが返した理由を確認できます。
+:::
 
 デモモードでは AI の呼び出しを制限します。IP ごとに 1 時間 20 回、サイト全体で 1 日 300 回、1 回の入力は 4000 文字まで、さらに返答の長さも制限します。`DEMO_AI_*` の変数で調整できます（[設定](/ja/reference/configuration#public-demo)を参照）。無料枠のリクエストはサービス提供者の製品改善に使われる場合があるため、デモ環境には機密情報を入力しないでください。
 

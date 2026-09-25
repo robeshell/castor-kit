@@ -123,7 +123,11 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 演示站可以接入 Google Gemini 的免费额度来演示 AI 对话和 AI 数据查询：
 
 1. 在 [Google AI Studio](https://aistudio.google.com) 用 Google 账号创建 API Key
-2. 在 Render 服务的 **Environment** 中设置 `AI_API_KEY`（上一步的 key）和 `AI_MODEL`（AI Studio 中列出的 Flash 系列模型名）；`AI_API_BASE` 已在 `render.yaml` 中设为 Gemini 的 OpenAI 兼容地址。保存后服务会自动重启
+2. 在 Render 服务的 **Environment** 中设置 `AI_API_KEY`（上一步的 key）和 `AI_MODEL`（推荐 `gemini-3.5-flash`）；`AI_API_BASE` 已在 `render.yaml` 中设为 Gemini 的 OpenAI 兼容地址。保存后服务会自动重启
+
+::: tip 模型选择
+最新发布的 Flash 模型在免费档上经常因为负载过高返回 503（例如写作本文时的 `gemini-3.8-flash`）。演示环境建议用发布较早的稳定版，如 `gemini-3.5-flash` 或 `gemini-3.5-flash-lite`。遇到报错时，在 Render 的 **Logs** 中搜索「AI 上游返回错误」可以看到上游返回的原因。
+:::
 
 演示模式会限制 AI 调用：每个 IP 每小时 20 次、全站每天 300 次、单次输入最多 4000 字符，并限制回复长度，可用 `DEMO_AI_*` 变量调整（见[配置项](/reference/configuration#公开演示)）。免费档的请求数据可能被服务商用于改进产品，演示环境不要输入敏感信息。
 

@@ -31,7 +31,8 @@ services:
         value: "true"
       - key: RUN_SCHEDULER_IN_WEB
         value: "true"
-      # AI features (optional): Gemini's OpenAI-compatible endpoint. Set AI_API_KEY and AI_MODEL in the Render dashboard;
+      # AI features (optional): Gemini's OpenAI-compatible endpoint. Set AI_API_KEY and AI_MODEL (e.g. gemini-3.5-flash;
+      # the newest Flash model often returns 503 on the free tier) in the Render dashboard;
       # demo mode rate-limits the AI endpoints (DEMO_AI_HOURLY_PER_IP / DEMO_AI_DAILY) so one free key goes further
       - key: AI_API_BASE
         value: https://generativelanguage.googleapis.com/v1beta/openai
