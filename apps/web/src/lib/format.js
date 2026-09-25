@@ -1,8 +1,8 @@
 import i18n from '@/i18n'
 
 /**
- * 展示格式化。后端时间是 ISO 8601 风格的 UTC 文本（YYYY-MM-DDTHH:MM:SS[.ffffff]，无 Z），
- * 这里按原样截断展示（value.slice(0, 19).replace('T', ' ')），不做时区换算。
+ * Display formatting. Backend times are ISO 8601-style UTC text (YYYY-MM-DDTHH:MM:SS[.ffffff], no Z);
+ * they are truncated for display as is (value.slice(0, 19).replace('T', ' ')), with no time zone conversion.
  */
 export function formatDateTime(value, fallback = '-') {
   if (!value || typeof value !== 'string') return fallback
@@ -19,7 +19,7 @@ export function formatNumber(value, fallback = '-') {
   return Number.isFinite(n) ? new Intl.NumberFormat(i18n.language).format(n) : fallback
 }
 
-/** 相对时间：刚刚 / N 分钟前 / N 小时前 / N 天前（随当前语言；输入为 UTC isoformat 文本） */
+/** Relative time: just now / N minutes ago / N hours ago / N days ago (follows the current language; input is UTC isoformat text) */
 export function formatRelative(value, fallback = '-') {
   if (!value || typeof value !== 'string') return fallback
   const ts = Date.parse(`${value.slice(0, 23)}Z`)

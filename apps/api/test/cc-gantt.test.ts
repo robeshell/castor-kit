@@ -31,7 +31,7 @@ beforeAll(async () => {
   app = await buildTestApp()
   s = await superAdminSession(app, handle)
   await cleanup()
-  // 克隆出来的测试库主键序列可能落后于 MAX(id)，先同步
+  // Primary-key sequences in the cloned test database may lag behind MAX(id), so sync them first
   await handle.pool.query(
     "SELECT setval(pg_get_serial_sequence('cc_gantt_tasks', 'id'), COALESCE((SELECT MAX(id) FROM cc_gantt_tasks), 0) + 1, false)",
   )
@@ -126,7 +126,7 @@ describe('gantt', () => {
   })
 
   it('删除', async () => {
-    s = await superAdminSession(app, handle) // createFixture 会清掉 ck_test_ 前缀的用户（含 super 测试账号）
+    s = await superAdminSession(app, handle) // createFixture clears users with the ck_test_ prefix (including the super test account)
     expect((await s.inject({ method: 'DELETE', url: `${B}/tasks/${taskId}` })).json()).toEqual({ message: '删除成功' })
     expect((await s.inject({ method: 'DELETE', url: `${B}/tasks/${taskId}` })).statusCode).toBe(404)
   })

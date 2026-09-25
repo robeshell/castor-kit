@@ -8,6 +8,7 @@
 - 命名一律小写连字符（`castor-kit`、`@castor-kit/api`），不用驼峰
 - shadcn/ui 组件实现前优先查阅 shadcn 官方文档 / registry（可用 shadcn MCP）；新增原子组件用 `npx shadcn@latest add`（本机需经 REGISTRY_URL 中转，直接跑 `apps/web/scripts/shadcn-add.sh <组件>`，见 AGENTS.md「新增 shadcn 原子组件」）
 - 迁移必须真实落库并用 `psql \d` 验证，静态检查不算完成
+- **代码注释一律英文**；界面支持中 / 英 / 日三语：前端写 `t('中文原文')`，译文放页面目录 `locales/en-US.json`、`ja-JP.json`，后端新报错在 `apps/api/src/i18n/messages.ts` 登记译文（详见 AGENTS.md「多语言（i18n）与代码注释」）
 
 ---
 

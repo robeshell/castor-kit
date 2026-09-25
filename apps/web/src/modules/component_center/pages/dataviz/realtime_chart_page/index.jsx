@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Pause, Play, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
@@ -47,6 +48,7 @@ function initialState() {
 }
 
 export default function RealtimeChartPage() {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
   const c = useChartColors()
   const [init] = useState(initialState)
@@ -99,7 +101,7 @@ export default function RealtimeChartPage() {
       color: SERIES_CONFIG.map((s) => c[s.colorVar]),
       tooltip: { ...base.tooltip, axisPointer: { type: 'cross', lineStyle: { color: c.border }, crossStyle: { color: c.border } } },
       legend: {
-        data: SERIES_CONFIG.map((s) => s.name),
+        data: SERIES_CONFIG.map((s) => t(s.name)),
         top: 0,
         right: 0,
         icon: 'roundRect',
@@ -117,7 +119,7 @@ export default function RealtimeChartPage() {
       },
       yAxis: { ...base.yAxis, type: 'value' },
       series: SERIES_CONFIG.map((s) => ({
-        name: s.name,
+        name: t(s.name),
         type: 'line',
         data: series[s.key],
         smooth: true,
@@ -128,7 +130,7 @@ export default function RealtimeChartPage() {
       })),
       animation: false,
     }
-  }, [c, timestamps, series])
+  }, [c, timestamps, series, t])
 
   return (
     <div className="space-y-5">
@@ -146,18 +148,18 @@ export default function RealtimeChartPage() {
               <SelectContent>
                 {SPEED_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                    {t(o.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button size="sm" variant={running ? 'outline' : 'brand'} onClick={() => setRunning((r) => !r)}>
               {running ? <Pause /> : <Play />}
-              {running ? '暂停' : '继续'}
+              {running ? t('暂停') : t('继续')}
             </Button>
             <Button size="sm" variant="ghost" className="text-danger hover:text-danger" onClick={handleClear}>
               <Trash2 />
-              清空
+              {t('清空')}
             </Button>
           </>
         }
@@ -169,7 +171,7 @@ export default function RealtimeChartPage() {
             <span className={cn('absolute inset-y-3 left-0 w-0.5 rounded-full', s.accent)} />
             <div className="text-muted-foreground flex items-center gap-2 text-[13px]">
               <span className={cn('size-1.5 rounded-full', s.accent)} />
-              {s.name}
+              {t(s.name)}
             </div>
             <div className="mt-2 flex items-baseline gap-1">
               <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums">
@@ -181,7 +183,7 @@ export default function RealtimeChartPage() {
         ))}
       </div>
 
-      <Panel title="传感器曲线" description={`最近 ${MAX_POINTS} 个采样点`}>
+      <Panel title="传感器曲线" description={t('最近 {{count}} 个采样点', { count: MAX_POINTS })}>
         <ReactECharts
           option={option}
           style={{ height: isMobile ? 240 : 400 }}

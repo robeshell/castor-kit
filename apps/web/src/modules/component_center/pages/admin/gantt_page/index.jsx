@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { MotionConfig, motion } from 'motion/react'
 import { CalendarRange, Flag, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -18,11 +19,11 @@ import Panel from '@/shared/components/Panel'
 import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import StatusBadge from '@/shared/components/StatusBadge'
 
-// 任务颜色是持久化到数据库的业务数据（后端默认 #4080FF），不是页面样式
+// Task colors are business data persisted to the database (backend default #4080FF), not page styling
 const COLOR_PALETTE = ['#4080FF', '#00B96B', '#FA8C16', '#06B6D4', '#FF4D4F', '#8C8C8C']
 const DEFAULT_COLOR = COLOR_PALETTE[0]
 
-/** 状态 → 徽章色 / 任务条底色 / 进度填充 */
+/** Status → badge tone / bar track / progress fill */
 const STATUS_META = {
   not_started: { label: '未开始', tone: 'neutral', track: 'bg-muted-foreground/12', fill: 'bg-muted-foreground/45', dot: 'bg-muted-foreground/50' },
   in_progress: { label: '进行中', tone: 'brand', track: 'bg-brand-soft', fill: 'bg-brand-gradient', dot: 'bg-primary' },
@@ -61,7 +62,7 @@ const EMPTY_FORM = {
   color: DEFAULT_COLOR,
 }
 
-// ── 日期（按 UTC 天序号计算，避免时区/夏令时误差） ─────────────────────
+// ── Dates (computed as UTC day numbers to avoid time zone / DST errors) ──
 const DAY_MS = 86400000
 function toDay(value) {
   if (!value || typeof value !== 'string') return null
@@ -76,7 +77,7 @@ function todayDay() {
   return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS)
 }
 
-/** 计算时间轴范围：任务最早开始 ~ 最晚结束，两侧留白；“今天”离得不远时一并纳入 */
+/** Timeline range: earliest start ~ latest end with padding on both sides; includes today when it is not too far away */
 function buildRange(tasks) {
   let min = Infinity
   let max = -Infinity
@@ -99,20 +100,22 @@ function buildRange(tasks) {
   return { start, end, days: end - start + 1, today, todayVisible: today >= start && today <= end }
 }
 
-function buildMonths(range) {
+function buildMonths(range, lang) {
+  const monthFormat = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'short', timeZone: 'UTC' })
   const months = []
   for (let d = range.start; d <= range.end; d += 1) {
     const date = dayDate(d)
     const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`
     const last = months[months.length - 1]
     if (last && last.key === key) last.days += 1
-    else months.push({ key, offset: d - range.start, days: 1, label: `${date.getUTCFullYear()}年${date.getUTCMonth() + 1}月` })
+    else months.push({ key, offset: d - range.start, days: 1, label: monthFormat.format(date) })
   }
   return months
 }
 
-// ── 小组件 ─────────────────────────────────────────────────────────
+// ── Small components ──────────────────────────────────────────────
 function ColorPicker({ value, onChange }) {
+  const { t } = useTranslation()
   const sel = (value || DEFAULT_COLOR).toUpperCase()
   return (
     <div className="flex items-center gap-2.5">
@@ -122,7 +125,7 @@ function ColorPicker({ value, onChange }) {
           <button
             key={c}
             type="button"
-            aria-label={`颜色 ${c}`}
+            aria-label={t('颜色 {{color}}', { color: c })}
             aria-pressed={selected}
             onClick={() => onChange(c)}
             className={cn(
@@ -150,6 +153,7 @@ function ProgressCell({ value }) {
 }
 
 function BarTooltip({ task, children }) {
+  const { t } = useTranslation()
   const s = toDay(task.start_date)
   const e = toDay(task.end_date)
   const st = STATUS_META[task.status] || STATUS_META.not_started
@@ -161,10 +165,11 @@ function BarTooltip({ task, children }) {
           <p className="font-medium">{task.title}</p>
           <p className="opacity-75 tabular-nums">
             {task.start_date?.slice(0, 10)} → {task.end_date?.slice(0, 10)}
-            {s !== null && e !== null ? ` · ${e - s + 1} 天` : ''}
+            {s !== null && e !== null ? ` · ${t('{{count}} 天', { count: e - s + 1 })}` : ''}
           </p>
           <p className="opacity-75">
-            {st.label} · 进度 {task.progress || 0}%{task.assignee ? ` · ${task.assignee}` : ''}
+            {t(st.label)} · {t('进度 {{value}}%', { value: task.progress || 0 })}
+            {task.assignee ? ` · ${task.assignee}` : ''}
           </p>
         </div>
       </TooltipContent>
@@ -173,9 +178,10 @@ function BarTooltip({ task, children }) {
 }
 
 function TaskBar({ task, range, px, index }) {
+  const { t } = useTranslation()
   const s = toDay(task.start_date)
   const e = toDay(task.end_date) ?? s
-  if (s === null) return <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 text-xs">未设置日期</span>
+  if (s === null) return <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 text-xs">{t('未设置日期')}</span>
   const st = STATUS_META[task.status] || STATUS_META.not_started
   const left = (s - range.start) * px
   const width = Math.max((e - s + 1) * px, 6)
@@ -260,6 +266,7 @@ function GanttSkeleton() {
 
 // ── Main Page ──────────────────────────────────────────────────────
 export default function GanttPage() {
+  const { t, i18n } = useTranslation()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [scale, setScale] = useState('week')
@@ -283,7 +290,7 @@ export default function GanttPage() {
   }, [fetchTasks])
 
   const range = useMemo(() => buildRange(tasks), [tasks])
-  const months = useMemo(() => (range ? buildMonths(range) : []), [range])
+  const months = useMemo(() => (range ? buildMonths(range, i18n.language) : []), [range, i18n.language])
   const px = SCALES.find((s) => s.value === scale)?.px || 14
   const counts = useMemo(() => {
     const c = { not_started: 0, in_progress: 0, completed: 0, delayed: 0 }
@@ -350,7 +357,7 @@ export default function GanttPage() {
     }
   }
 
-  // ── 时间轴 ──────────────────────────────────────────────
+  // ── Timeline ───────────────────────────────────────────
   const timelineWidth = range ? range.days * px : 0
   const weekends = useMemo(() => {
     if (!range || scale === 'month') return []
@@ -381,7 +388,7 @@ export default function GanttPage() {
         actions={
           <Button size="sm" variant="brand" onClick={openCreate}>
             <Plus />
-            新建任务
+            {t('新建任务')}
           </Button>
         }
       />
@@ -391,7 +398,13 @@ export default function GanttPage() {
         title="项目排期"
         description={
           range
-            ? `${fmtDay(range.start + 3)} ~ ${fmtDay(range.end - 4)} · 共 ${tasks.length} 项${range.todayVisible ? '' : ` · 今天（${fmtDay(range.today)}）不在排期范围内`}`
+            ? [
+                `${fmtDay(range.start + 3)} ~ ${fmtDay(range.end - 4)}`,
+                t('共 {{count}} 项', { count: tasks.length }),
+                range.todayVisible ? null : t('今天（{{date}}）不在排期范围内', { date: fmtDay(range.today) }),
+              ]
+                .filter(Boolean)
+                .join(' · ')
             : undefined
         }
         actions={<SegmentedTabs variant="pill" value={scale} onChange={setScale} items={SCALES} />}
@@ -401,13 +414,13 @@ export default function GanttPage() {
             {Object.entries(STATUS_META).map(([key, m]) => (
               <span key={key} className="text-muted-foreground inline-flex items-center gap-1.5">
                 <span className={cn('h-2 w-3.5 rounded-sm', m.fill)} />
-                {m.label}
+                {t(m.label)}
                 <span className="text-foreground font-medium tabular-nums">{counts[key]}</span>
               </span>
             ))}
             <span className="text-muted-foreground inline-flex items-center gap-1.5">
               <span className="bg-muted-foreground/60 size-2 rotate-45 rounded-[1px]" />
-              里程碑
+              {t('里程碑')}
             </span>
           </div>
         ) : null}
@@ -422,20 +435,20 @@ export default function GanttPage() {
             action={
               <Button size="sm" variant="outline" onClick={openCreate}>
                 <Plus />
-                新建任务
+                {t('新建任务')}
               </Button>
             }
           />
         ) : (
           <div className="overflow-x-auto border-t">
             <div className="flex min-w-max">
-              {/* ── 左侧任务列表（横向滚动时固定） ── */}
+              {/* ── Left task list (pinned while scrolling horizontally) ── */}
               <div className={cn('bg-card sticky left-0 z-20 shrink-0 border-r', leftCell)}>
                 <div className="bg-muted/40 text-muted-foreground flex h-14 items-end gap-3 border-b px-4 pb-2 text-xs font-medium">
-                  <span className="flex-1">任务名</span>
-                  <span className="hidden w-14 xl:block">负责人</span>
-                  <span className="hidden w-24 md:block">进度</span>
-                  <span className="hidden w-14 xl:block">状态</span>
+                  <span className="flex-1">{t('任务名')}</span>
+                  <span className="hidden w-14 xl:block">{t('负责人')}</span>
+                  <span className="hidden w-24 md:block">{t('进度')}</span>
+                  <span className="hidden w-14 xl:block">{t('状态')}</span>
                   <span className="w-14" />
                 </div>
                 {tasks.map((task) => {
@@ -456,7 +469,7 @@ export default function GanttPage() {
                         <span className="size-2 shrink-0 rounded-full" style={{ background: task.color || DEFAULT_COLOR }} />
                         <StatusBadge tone={tm.tone} className="hidden shrink-0 xl:inline-flex">
                           {task.task_type === 'milestone' ? <Flag className="size-3" /> : null}
-                          {tm.label}
+                          {t(tm.label)}
                         </StatusBadge>
                         <span className={cn('truncate text-[13px]', task.task_type === 'phase' ? 'font-semibold' : 'font-medium')} title={task.title}>
                           {task.title}
@@ -472,11 +485,11 @@ export default function GanttPage() {
                         </StatusBadge>
                       </span>
                       <div className="flex w-14 justify-end gap-0.5 transition-opacity md:opacity-0 md:group-hover/row:opacity-100 md:focus-within:opacity-100">
-                        <Button variant="ghost" size="icon" className="size-7" aria-label="编辑" onClick={() => openEdit(task)}>
+                        <Button variant="ghost" size="icon" className="size-7" aria-label={t('编辑')} onClick={() => openEdit(task)}>
                           <Pencil />
                         </Button>
-                        <ConfirmAction title={`确定删除任务「${task.title}」？`} confirmText="删除" onConfirm={() => remove(task)}>
-                          <Button variant="ghost" size="icon" className="text-danger hover:text-danger size-7" aria-label="删除">
+                        <ConfirmAction title={t('确定删除任务「{{title}}」？', { title: task.title })} confirmText="删除" onConfirm={() => remove(task)}>
+                          <Button variant="ghost" size="icon" className="text-danger hover:text-danger size-7" aria-label={t('删除')}>
                             <Trash2 />
                           </Button>
                         </ConfirmAction>
@@ -486,10 +499,10 @@ export default function GanttPage() {
                 })}
               </div>
 
-              {/* ── 右侧时间轴 ── */}
+              {/* ── Right timeline ── */}
               {range ? (
                 <div className="relative shrink-0" style={{ width: timelineWidth + 160 }}>
-                  {/* 表头：月 / 日或周 */}
+                  {/* Header: month / day or week */}
                   <div className="bg-muted/40 relative h-14 border-b">
                     {months.map((m) => (
                       <div
@@ -514,12 +527,12 @@ export default function GanttPage() {
                         className="bg-brand-gradient-strong absolute bottom-1 z-10 -translate-x-1/2 rounded-full px-1.5 py-px text-[10px] font-medium text-white"
                         style={{ left: (range.today - range.start) * px + px / 2 }}
                       >
-                        今天
+                        {t('今天')}
                       </span>
                     ) : null}
                   </div>
 
-                  {/* 背景网格：周末、月分隔、今天线 */}
+                  {/* Background grid: weekends, month dividers, today line */}
                   <div className="pointer-events-none absolute inset-x-0 top-14 bottom-0" aria-hidden>
                     {weekends.map((o) => (
                       <div key={o} className="bg-muted/45 absolute inset-y-0" style={{ left: o * px, width: px }} />
@@ -548,7 +561,7 @@ export default function GanttPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-muted-foreground flex flex-1 items-center justify-center px-10 text-[13px]">任务日期不完整，无法渲染甘特图</div>
+                <div className="text-muted-foreground flex flex-1 items-center justify-center px-10 text-[13px]">{t('任务日期不完整，无法渲染甘特图')}</div>
               )}
             </div>
           </div>

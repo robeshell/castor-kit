@@ -32,7 +32,7 @@ beforeAll(async () => {
   app = await buildTestApp()
   s = await superAdminSession(app, handle)
   await cleanup()
-  // 克隆出来的测试库主键序列可能落后于 MAX(id)，先同步
+  // Primary-key sequences in the cloned test database may lag behind MAX(id), so sync them first
   await handle.pool.query(
     "SELECT setval(pg_get_serial_sequence('cc_advanced_table_rows', 'id'), COALESCE((SELECT MAX(id) FROM cc_advanced_table_rows), 0) + 1, false)",
   )
@@ -47,7 +47,7 @@ afterAll(async () => {
 
 describe('advanced-table 工具函数', () => {
   it('pyRound2 按 round(x, 2) 语义（含恰好一半取偶）', () => {
-    // round(x, 2) 语义：round(0.125,2)=0.12, round(0.375,2)=0.38, round(2.675,2)=2.67, round(1.005,2)=1.0
+    // round(x, 2) semantics: round(0.125,2)=0.12, round(0.375,2)=0.38, round(2.675,2)=2.67, round(1.005,2)=1.0
     expect(pyRound2(0.125)).toBe(0.12)
     expect(pyRound2(0.375)).toBe(0.38)
     expect(pyRound2(-0.125)).toBe(-0.12)
@@ -135,13 +135,13 @@ describe('advanced-table', () => {
     const body = res.json()
     expect(Object.keys(body).sort()).toEqual(['items', 'page', 'per_page', 'total'])
     expect(body.total).toBe(3)
-    expect(body.items.map((r: { id: number }) => r.id)).toEqual([ids.a, ids.b, ids.c]) // a 置顶
+    expect(body.items.map((r: { id: number }) => r.id)).toEqual([ids.a, ids.b, ids.c]) // a pinned to top
     const byScore = (await s.inject({ url: `${B}/rows?search=${P}&sort_field=score&sort_order=DESC` })).json()
     expect(byScore.items.map((r: { id: number }) => r.id)).toEqual([ids.a, ids.b, ids.c])
     const byProgress = (await s.inject({ url: `${B}/rows?search=${P}&sort_field=progress&sort_order=asc` })).json()
     expect(byProgress.items.map((r: { id: number }) => r.id)).toEqual([ids.a, ids.b, ids.c])
     const bogus = (await s.inject({ url: `${B}/rows?search=${P}&sort_field=name&sort_order=desc` })).json()
-    expect(bogus.items.map((r: { id: number }) => r.id)).toEqual([ids.a, ids.c, ids.b]) // 回落 sort_order desc
+    expect(bogus.items.map((r: { id: number }) => r.id)).toEqual([ids.a, ids.c, ids.b]) // Falls back to sort_order desc
 
     const page2 = (await s.inject({ url: `${B}/rows?search=${P}&page=2&per_page=2` })).json()
     expect([page2.page, page2.per_page, page2.total, page2.items.length]).toEqual([2, 2, 3, 1])
@@ -190,7 +190,7 @@ describe('advanced-table', () => {
     const noop = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { category: 'x', priority: 'x', row_code: `${P}b` } })
     expect(noop.json().updated_at).toBe(res.json().updated_at)
     expect(noop.json().category).toBe('risk')
-    // Decimal('7.01') 与浮点 7.01 精确比较不相等 → 仍会发 UPDATE 刷新 updated_at
+    // Decimal('7.01') vs float 7.01 compares unequal exactly → still issues an UPDATE that refreshes updated_at
     const inexact = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { score: 7.01 } })
     expect(inexact.json().score).toBe(7.01)
     expect(inexact.json().updated_at).not.toBe(res.json().updated_at)
@@ -271,7 +271,7 @@ describe('advanced-table', () => {
   })
 
   it('删除 / 批量删除', async () => {
-    s = await superAdminSession(app, handle) // createFixture 会清掉 ck_test_ 前缀的用户（含 super 测试账号）
+    s = await superAdminSession(app, handle) // createFixture clears users with the ck_test_ prefix (including the super test account)
     expect((await s.inject({ method: 'DELETE', url: `${B}/rows/${ids.a}` })).json()).toEqual({ message: '删除成功' })
     expect((await s.inject({ method: 'DELETE', url: `${B}/rows/${ids.a}` })).statusCode).toBe(404)
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-delete`, payload: { ids: [] } })).json()).toEqual({ error: '请先选择要删除的数据' })

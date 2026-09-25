@@ -1,5 +1,5 @@
 /**
- * 角色模块 service 层
+ * Roles module service layer
  */
 
 import { ServiceError } from '@/common/errors'
@@ -38,7 +38,7 @@ export class RoleService {
     this.repo = new RoleRepository(db)
   }
 
-  /** 事务执行：任何异常都回滚；ServiceError 原样抛出，其他错误以原错误信息转成 500 */
+  /** Run in a transaction: any error rolls back; ServiceError is rethrown as-is, other errors become a 500 with the original message */
   private async inTx<T>(fn: (repo: RoleRepository) => Promise<T>): Promise<T> {
     try {
       return await this.db.transaction((tx) => fn(new RoleRepository(tx)))
@@ -72,7 +72,7 @@ export class RoleService {
   async createRole(data: Data) {
     if (!pyTruthy(data.name)) throw new ServiceError('角色名称不能为空', 400)
     if (!pyTruthy(data.code)) throw new ServiceError('角色编码不能为空', 400)
-    // 非字符串 code：按 `roles.code = 5` 查询时 PG 报 operator does not exist → 500
+    // Non-string code: querying `roles.code = 5` makes PG raise operator does not exist → 500
     if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
     if (await this.repo.getByCode(data.code)) throw new ServiceError('角色编码已存在', 400)
 
@@ -117,7 +117,7 @@ export class RoleService {
       items = await this.repo.listByIdsOrdered(adaptIdsForIn(ids))
     }
 
-    // 角色菜单：当前用户的角色复用 currentUserRoleMenus 预加载的集合，其余角色按需单独查询
+    // Role menus: the current user's roles reuse the set preloaded by currentUserRoleMenus; other roles are queried individually on demand
     let exportItems: RoleExportItem[] = items.map((r) => ({ ...r, menus: [] }))
     if (args.validFields.some((f) => f === 'menu_codes' || f === 'menu_names')) {
       const preloaded = currentUsername ? await this.repo.currentUserRoleMenus(currentUsername) : new Map<number, Menu[]>()
@@ -205,7 +205,7 @@ export class RoleService {
       }
 
       if (errors.length > 0) {
-        // 抛错让事务整体回滚
+        // Throw so the whole transaction rolls back
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,

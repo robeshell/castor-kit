@@ -1,8 +1,8 @@
 /**
  * scripts/setup-once.ts + scripts/init-ro-role.ts
  *
- * 在临时库（castor_seed_*）上验证：空库全流程、并发两次（advisory lock 串行化）、幂等、只读角色授权范围。
- * 只读角色是集群级对象：测试用独立角色名 ck_test_r8_ro，结束时 DROP OWNED + DROP ROLE，不碰共用的只读角色。
+ * Verified on a temporary DB (castor_seed_*): full flow on an empty DB, two concurrent runs (serialized by an advisory lock), idempotency, and the read-only role's grant scope.
+ * The read-only role is a cluster-level object: the test uses a dedicated role name ck_test_r8_ro and runs DROP OWNED + DROP ROLE at the end, never touching the shared read-only role.
  */
 
 import pg from 'pg'
@@ -84,7 +84,7 @@ describe('isVisibleTable（与 AI SQL 的表可见范围同一套规则）', () 
 })
 
 const DRIZZLE_DIR = resolve(__dirname, '../drizzle')
-/** 仓库当前的迁移条数（随新增功能增长） */
+/** Current number of migrations in the repo (grows as features are added) */
 const MIGRATION_COUNT = (JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta/_journal.json'), 'utf8')) as { entries: unknown[] }).entries.length
 
 describe('setup-once', () => {
@@ -95,7 +95,7 @@ describe('setup-once', () => {
     const logger = (tag: string) => (msg: string) => {
       if (msg.startsWith('[setup]')) events.push(`${tag} ${msg}`)
     }
-    // 先占住锁，确认两个实例都在锁上等待、谁也没开始迁移
+    // Hold the lock first, and confirm both instances are waiting on it and neither has started migrating
     const holder = new pg.Client({ connectionString: url })
     await holder.connect()
     await holder.query(`SELECT pg_advisory_lock(${ADVISORY_LOCK_KEY})`)
@@ -114,7 +114,7 @@ describe('setup-once', () => {
     await holder.end()
     await runs
 
-    // 两段执行不交错：先完整跑完一个实例（到只读账号步骤），另一个才拿到锁
+    // The two runs don't interleave: one instance runs to completion (through the read-only account step) before the other gets the lock
     const first = events[0]!.slice(0, 1)
     const second = first === 'A' ? 'B' : 'A'
     const secondAcquired = events.indexOf(`${second} [setup] 已获取初始化锁（并发安全）`)

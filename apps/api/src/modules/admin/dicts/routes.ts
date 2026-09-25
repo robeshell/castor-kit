@@ -1,7 +1,7 @@
 /**
- * 数据字典路由
+ * Data dictionary routes
  *
- * 带 id 的路由先 get_or_404，再做权限检查。
+ * Routes with an id run get_or_404 first, then the permission check.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -24,7 +24,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
   const dictIdOf = (request: FastifyRequest) => parseIntParam((request.params as { dict_id: string }).dict_id)
   const itemIdOf = (request: FastifyRequest) => parseIntParam((request.params as { item_id: string }).item_id)
 
-  // 故意不加菜单权限：供所有登录用户跨模块下拉使用（如表单选择项）
+  // Intentionally no menu permission: any logged-in user can use it for cross-module dropdowns (e.g. form select options)
   app.get('/api/admin/dicts/options', opts, async (request) => {
     return service.getDictOptions(queryString(request, 'codes').trim())
   })

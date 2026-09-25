@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import EmptyState from '@/shared/components/EmptyState'
 
 /**
- * 数据表格。列定义：
+ * Data table. Column definitions:
  *   columns = [
  *     { key: 'username', title: '用户名', dataIndex: 'username', width: 200 },
  *     { key: 'status', title: '状态', render: (value, row, index) => <StatusBadge …/> },
@@ -17,13 +17,13 @@ import EmptyState from '@/shared/components/EmptyState'
  *   ]
  *
  * props:
- *   data / columns / rowKey（默认 'id'）/ loading
- *   pagination = { page, perPage, total, onChange(page) }   // 不传则不显示分页
+ *   data / columns / rowKey (default 'id') / loading
+ *   pagination = { page, perPage, total, onChange(page) }   // omit to hide pagination
  *   selectable + selectedKeys + onSelectionChange(keys, rows)
  *   onRowClick(row) / rowClassName(row) / emptyTitle / emptyDescription / emptyAction
- *   bordered（默认 true：外层带卡片边框）/ dense（紧凑行高）
+ *   bordered (default true: outer card border) / dense (compact row height)
  */
-/** 骨架条宽度：按行列错开，避免每行一模一样像条形码 */
+/** Skeleton bar widths: staggered by row and column so rows don't all look identical like a barcode */
 const SKELETON_WIDTHS = ['w-2/3', 'w-1/2', 'w-3/4', 'w-2/5', 'w-3/5']
 function skeletonWidth(row, col) {
   return SKELETON_WIDTHS[(row * 7 + col * 3) % SKELETON_WIDTHS.length]
@@ -200,7 +200,7 @@ function pageList(page, totalPages) {
   return result
 }
 
-/** 分页条：共 N 条 · 页码 · 上一页/下一页 */
+/** Pagination bar: N total · page numbers · previous/next */
 export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, loading = false, className }) {
   const { t } = useTranslation()
   const totalPages = Math.max(1, Math.ceil(total / perPage))

@@ -1,8 +1,8 @@
 /**
- * AI Text-to-SQL 路由
+ * AI Text-to-SQL routes
  *
- * 用户 SQL 一律在独立只读连接池（db/readonly.ts）上执行；连接池懒加载，
- * 应用关闭时释放。这里的 500 都由路由直接返回具体文案，不走全局通用 500 文案。
+ * User SQL always runs on a separate read-only pool (db/readonly.ts); the pool is created lazily
+ * and released on app shutdown. All 500s here are returned by the route with a specific message, bypassing the global generic 500 message.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -16,7 +16,7 @@ import { AiSqlService, LlmConfigError } from './service'
 
 const PERMISSION = 'cc_ai_sql'
 
-/** 取字段并去首尾空白：假值视为空字符串；非字符串的真值 → 500 */
+/** Get a field trimmed of surrounding whitespace: falsy → empty string; truthy non-string → 500 */
 function strippedField(data: Record<string, unknown>, key: string): string {
   const value = data[key]
   if (!pyTruthy(value)) return ''
@@ -39,7 +39,7 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
   const opts = { preHandler: loginRequired }
   const forbidden = async (request: FastifyRequest) => !(await hasMenuPermission(request, PERMISSION))
 
-  /** 获取数据库表结构（供前端展示，敏感表不暴露） */
+  /** Get the DB table structure (for frontend display; sensitive tables are not exposed) */
   app.get('/api/admin/component-center/ai/sql/schema', opts, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
     try {
@@ -52,7 +52,7 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
     }
   })
 
-  /** 自然语言 → SQL → 执行 → 返回结果 */
+  /** Natural language → SQL → execute → return results */
   app.post('/api/admin/component-center/ai/sql/generate', opts, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
 
@@ -83,7 +83,7 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
     }
   })
 
-  /** 执行用户手动修改后的 SQL */
+  /** Execute SQL manually edited by the user */
   app.post('/api/admin/component-center/ai/sql/execute', opts, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
 

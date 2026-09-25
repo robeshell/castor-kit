@@ -1,5 +1,5 @@
 /**
- * 认证模块路由
+ * Auth module routes
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -32,7 +32,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
   app.post('/api/admin/logout', async (request) => {
     const username = request.session.get('username') ?? ''
     const result = await service.logout(username, { ip: getClientIp(request), userAgent: getUserAgent(request) })
-    // 清空会话：先清空数据（后续 onResponse 审计 hook 读不到用户名），再删除 cookie
+    // Clear the session: wipe the data first (so the later onResponse audit hook can't read the username), then delete the cookie
     request.session.regenerate()
     request.session.delete()
     return result

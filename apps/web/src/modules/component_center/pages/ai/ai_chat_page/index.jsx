@@ -1,20 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { ArrowDown, ArrowUp, Eraser, Lightbulb, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import i18n from '@/i18n'
 import { stagger } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import ChatMessage, { ContextDivider } from '@/modules/component_center/pages/ai/ai_chat_page/ChatMessage'
+import { HINTS } from '@/modules/component_center/pages/ai/ai_chat_page/demo-content'
 import PageHeader from '@/shared/components/PageHeader'
 import { getCsrfToken } from '@/shared/api/request'
 
-const HINTS = [
-  '介绍一下 castor-kit 项目',
-  '如何使用 shadcn/ui 组件库？',
-  'Fastify 和 React 如何配合开发？',
-  '用 TypeScript 写一个快速排序',
-]
-
+// content is the Chinese source text; it is translated with t() when rendered
 const WELCOME = {
   role: 'assistant',
   id: 'welcome',
@@ -24,7 +21,7 @@ const WELCOME = {
 
 const isGenerating = (m) => m.role === 'assistant' && (m.status === 'loading' || m.status === 'incomplete')
 
-// 将 chats 转为 API 的 messages 格式（只取最近一次“清除上下文”之后的消息）
+// Convert chats to the API messages format (only messages after the latest "clear context")
 function toApiMessages(chats) {
   let start = 0
   chats.forEach((m, i) => {
@@ -36,13 +33,13 @@ function toApiMessages(chats) {
     .map((m) => ({ role: m.role, content: m.content || '' }))
 }
 
-// 非 2xx：后端返回 {error}，取出文案；否则原样展示
+// Non-2xx: the backend returns {error}; use its message, otherwise show the raw text
 function readError(text) {
   try {
     const data = JSON.parse(text)
     if (data && typeof data.error === 'string') return data.error
   } catch {
-    /* 不是 JSON */
+    /* not JSON */
   }
   return text
 }
@@ -52,7 +49,7 @@ async function callAiStream(apiMessages, aiMsgId, setChats, signal) {
   try {
     const res = await fetch('/api/admin/component-center/ai/chat/stream', {
       method: 'POST',
-      // 原生 fetch 绕过 axios，需手动附加 CSRF 头（登录/getMe 响应已写入 token）
+      // Native fetch bypasses axios, so attach the CSRF header manually (the login / getMe response stored the token)
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       credentials: 'include',
       body: JSON.stringify({ messages: apiMessages }),
@@ -61,7 +58,7 @@ async function callAiStream(apiMessages, aiMsgId, setChats, signal) {
 
     if (!res.ok) {
       const err = await res.text()
-      patch((m) => ({ ...m, status: 'error', content: `请求失败：${readError(err)}` }))
+      patch((m) => ({ ...m, status: 'error', content: i18n.t('请求失败：{{message}}', { message: readError(err) }) }))
       return
     }
 
@@ -101,15 +98,16 @@ async function callAiStream(apiMessages, aiMsgId, setChats, signal) {
     patch((m) => ({ ...m, status: 'complete' }))
   } catch (err) {
     if (err.name === 'AbortError') return
-    patch((m) => ({ ...m, status: 'error', content: '网络错误，请重试' }))
+    patch((m) => ({ ...m, status: 'error', content: i18n.t('网络错误，请重试') }))
   }
 }
 
 function Composer({ busy, onSend, onStop }) {
+  const { t } = useTranslation()
   const [value, setValue] = useState('')
   const ref = useRef(null)
 
-  // 输入框高度随内容自适应（最多约 8 行，超出滚动）
+  // Auto-grow the textarea with its content (up to about 8 lines, then scroll)
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
@@ -138,26 +136,26 @@ function Composer({ busy, onSend, onStop }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
-            // Enter 发送，Shift+Enter 换行；输入法组字中不发送
+            // Enter sends, Shift+Enter inserts a newline; never send while an IME is composing
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
               submit()
             }
           }}
-          placeholder="输入消息，Enter 发送..."
-          aria-label="输入消息"
+          placeholder={t('输入消息，Enter 发送...')}
+          aria-label={t('输入消息')}
           className="placeholder:text-muted-foreground max-h-[200px] min-h-[36px] flex-1 resize-none bg-transparent py-1.5 text-sm leading-relaxed outline-none"
         />
         <AnimatePresence mode="wait" initial={false}>
           {busy ? (
             <motion.div key="stop" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ duration: 0.15 }}>
-              <Button type="button" variant="outline" size="icon-sm" className="rounded-full" aria-label="停止生成" title="停止生成" onClick={onStop}>
+              <Button type="button" variant="outline" size="icon-sm" className="rounded-full" aria-label={t('停止生成')} title={t('停止生成')} onClick={onStop}>
                 <Square className="fill-current size-3" />
               </Button>
             </motion.div>
           ) : (
             <motion.div key="send" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ duration: 0.15 }}>
-              <Button type="button" variant="brand" size="icon-sm" className="rounded-full" aria-label="发送" title="发送" disabled={!value.trim()} onClick={submit}>
+              <Button type="button" variant="brand" size="icon-sm" className="rounded-full" aria-label={t('发送')} title={t('发送')} disabled={!value.trim()} onClick={submit}>
                 <ArrowUp />
               </Button>
             </motion.div>
@@ -165,15 +163,16 @@ function Composer({ busy, onSend, onStop }) {
         </AnimatePresence>
       </div>
       <p className="text-muted-foreground mx-auto mt-1.5 max-w-3xl text-center text-[11px]">
-        Enter 发送 · Shift + Enter 换行
+        {t('Enter 发送 · Shift + Enter 换行')}
       </p>
     </div>
   )
 }
 
 export default function AiChatPage() {
+  const { t } = useTranslation()
   const [chats, setChats] = useState([WELCOME])
-  // 最新 chats 的快照（事件处理里构建请求用，避免闭包过期）
+  // Snapshot of the latest chats (used by event handlers to build requests without stale closures)
   const chatsRef = useRef(chats)
   const abortRef = useRef(null)
   const idRef = useRef(100)
@@ -186,7 +185,7 @@ export default function AiChatPage() {
     chatsRef.current = chats
   }, [chats])
 
-  // 组件卸载时中止进行中的 SSE 流，避免对已卸载组件 setState
+  // Abort any in-flight SSE stream on unmount to avoid setState on an unmounted component
   useEffect(() => () => abortRef.current?.abort(), [])
 
   const commit = useCallback((next) => {
@@ -194,7 +193,7 @@ export default function AiChatPage() {
     setChats(next)
   }, [])
 
-  // 在 base 的基础上追加一条 AI 消息并发起流式请求
+  // Append an AI message to base and start the streaming request
   const triggerAI = useCallback(
     (base) => {
       const aiMsgId = String(++idRef.current)
@@ -224,7 +223,7 @@ export default function AiChatPage() {
     setChats((p) => p.map((m) => (isGenerating(m) ? { ...m, status: 'complete', stopped: true } : m)))
   }, [])
 
-  // 重新生成：去掉这条 AI 回复，基于它之前的消息重新请求
+  // Regenerate: drop this AI reply and request again from the messages before it
   const handleRegenerate = useCallback(
     (id) => {
       const list = chatsRef.current
@@ -247,17 +246,19 @@ export default function AiChatPage() {
   }
 
   const busy = chats.some(isGenerating)
+  // The welcome message follows the current language
+  const welcome = useMemo(() => ({ ...WELCOME, content: t(WELCOME.content) }), [t])
 
-  // 可重新生成：最后一条是 AI 回复（完成或出错），且它前面有用户消息
+  // Can regenerate: the last message is an AI reply (complete or failed) with a user message before it
   const last = chats[chats.length - 1]
   const regenerateId =
     !busy && last?.role === 'assistant' && last.id !== WELCOME.id && (last.status === 'complete' || last.status === 'error') ? last.id : null
 
-  // 当前上下文里还没有用户消息 → 显示提示词建议
+  // No user message in the current context yet -> show prompt suggestions
   const lastDivider = chats.map((m) => m.role).lastIndexOf('divider')
   const showHints = !busy && !chats.slice(lastDivider + 1).some((m) => m.role === 'user')
 
-  // 贴底滚动：用户停留在底部附近时，内容变高（新消息 / 流式文字逐帧出现）自动滚到最底
+  // Stick to bottom: while the user stays near the bottom, scroll down whenever content grows (new messages / streamed text)
   useEffect(() => {
     const el = scrollRef.current
     const content = contentRef.current
@@ -291,7 +292,7 @@ export default function AiChatPage() {
         actions={
           <Button variant="outline" size="sm" onClick={handleClearContext} disabled={busy || last?.role === 'divider'}>
             <Eraser />
-            清除上下文
+            {t('清除上下文')}
           </Button>
         }
       />
@@ -305,7 +306,7 @@ export default function AiChatPage() {
               ) : (
                 <ChatMessage
                   key={m.id}
-                  message={m}
+                  message={m.id === WELCOME.id ? welcome : m}
                   busy={busy}
                   canRegenerate={m.id === regenerateId}
                   onRegenerate={handleRegenerate}
@@ -351,7 +352,7 @@ export default function AiChatPage() {
               transition={{ duration: 0.15 }}
               className="pointer-events-none absolute inset-x-0 bottom-[108px] flex justify-center"
             >
-              <Button variant="outline" size="icon-sm" className="pointer-events-auto rounded-full shadow-md" aria-label="回到底部" onClick={scrollToBottom}>
+              <Button variant="outline" size="icon-sm" className="pointer-events-auto rounded-full shadow-md" aria-label={t('回到底部')} onClick={scrollToBottom}>
                 <ArrowDown />
               </Button>
             </motion.div>

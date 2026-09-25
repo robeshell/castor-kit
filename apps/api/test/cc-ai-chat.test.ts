@@ -1,6 +1,6 @@
 /**
- * AI 对话 SSE：用本地假上游（test/cc-ai-fake-upstream.ts）覆盖流式转发、错误分支、超时、
- * 不被压缩/缓冲、客户端断开中止上游等行为；不调用真实 AI 服务。
+ * AI chat SSE: uses a local fake upstream (test/cc-ai-fake-upstream.ts) to cover stream forwarding, error branches, timeouts,
+ * no compression/buffering, aborting upstream on client disconnect, etc.; never calls a real AI service.
  */
 
 import type { AddressInfo } from 'node:net'
@@ -109,7 +109,7 @@ describe('ai chat SSE 流', () => {
     expect(res.headers['set-cookie']).toBeDefined()
     const expected = DEFAULT_PIECES.map((p) => ev(`{"content": ${JSON.stringify(p)}}`)).join('') + DONE
     expect(res.body).toBe(expected)
-    // 逐字检查一段：非 ASCII 原样输出（ensure_ascii=False），键值分隔符是 ": "
+    // Check one chunk verbatim: non-ASCII is output as is (ensure_ascii=False), and the key-value separator is ": "
     expect(res.body.startsWith('data: {"content": "你好"}\n\n')).toBe(true)
 
     const req = up.requests[before]!
@@ -189,7 +189,7 @@ describe('ai chat SSE 流', () => {
 
 describe('ai chat 真实连接', () => {
   let base: string
-  // 客户端用独立连接池并在结束时关闭：中止请求后 undici 会预建新连接，不关掉会拖住 app.close()
+  // The client uses its own connection pool and closes it at the end: after an aborted request undici pre-opens a new connection, which would hold up app.close() if not closed
   const client = new Agent()
 
   beforeAll(async () => {

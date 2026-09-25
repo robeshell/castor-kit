@@ -1,5 +1,5 @@
-# 数据卷名可通过环境变量覆盖：需要复用已有的卷（数据库与上传文件）时指向它们即可：
-#   COMPOSE_DB_VOLUME=<已有数据库卷> COMPOSE_INSTANCE_VOLUME=<已有上传文件卷>
+# Volume names can be overridden via env vars; to reuse existing volumes (database and uploads), point these at them:
+#   COMPOSE_DB_VOLUME=<existing db volume> COMPOSE_INSTANCE_VOLUME=<existing uploads volume>
 services:
   db:
     image: postgres:alpine
@@ -26,17 +26,17 @@ services:
       DATABASE_URL: postgresql://castor_kit:${POSTGRES_PASSWORD:?请设置 POSTGRES_PASSWORD}@db/castor_kit
       SECRET_KEY: ${SECRET_KEY:?请设置 SECRET_KEY}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请设置 ADMIN_PASSWORD}
-      # 只读账号密码（setup-once 会用它创建 castor_kit_ro，用于 AI SQL）
+      # Read-only account password (setup-once uses it to create castor_kit_ro for AI SQL)
       POSTGRES_RO_PASSWORD: ${POSTGRES_RO_PASSWORD:?请设置 POSTGRES_RO_PASSWORD}
-      # AI SQL 专用只读连接（必须指向非超级用户只读账号，禁止回退到主库超级用户）
+      # Dedicated read-only connection for AI SQL (must point to the non-superuser read-only account; never fall back to the main superuser)
       AI_SQL_DATABASE_URL: postgresql://castor_kit_ro:${POSTGRES_RO_PASSWORD}@db/castor_kit
-      # 定时任务（多副本时建议 RUN_SCHEDULER_IN_WEB=false，由独立 worker 服务跑）
+      # Scheduled tasks (with multiple replicas, set RUN_SCHEDULER_IN_WEB=false and let a dedicated worker service run them)
       ENABLE_TASK_SCHEDULER: ${ENABLE_TASK_SCHEDULER:-true}
       RUN_SCHEDULER_IN_WEB: ${RUN_SCHEDULER_IN_WEB:-true}
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-8}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
-      # AI（可选，不填则 AI 功能不可用）
+      # AI (optional; AI features are unavailable if unset)
       AI_API_KEY: ${AI_API_KEY:-}
       AI_API_BASE: ${AI_API_BASE:-}
       AI_MODEL: ${AI_MODEL:-}
@@ -44,7 +44,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      # 持久化上传文件
+      # Persist uploaded files
       - app_instance:/app/instance
 
 volumes:

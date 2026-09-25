@@ -1,10 +1,10 @@
 /**
- * Python 语义的基础工具：在 service/schema 里按 Python `str()` / `int()` / `float()` / 真值判断的规则转换值，
- * 避免 JS 的隐式转换悄悄改变边缘输入的行为。各模块自己的 parse_bool/parse_int 等在模块 schema.ts 里
- * 各自实现（不同模块接受的取值不完全一样，不要合并）。
+ * Basic helpers with Python semantics: convert values in service/schema following Python `str()` / `int()` / `float()` / truthiness rules,
+ * so JS implicit coercion doesn't silently change behavior on edge-case input. Per-module parse_bool/parse_int etc. are
+ * implemented in each module's schema.ts (modules accept slightly different values; do not merge them).
  */
 
-/** Python 真值：None / '' / 0 / False / 空 list / 空 dict 为假 */
+/** Python truthiness: None / '' / 0 / False / empty list / empty dict are falsy */
 export function pyTruthy(value: unknown): boolean {
   if (value === null || value === undefined || value === false || value === 0 || value === '') return false
   if (typeof value === 'number' && Number.isNaN(value)) return true
@@ -18,7 +18,7 @@ function pyRepr(value: unknown): string {
   return pyStr(value)
 }
 
-/** 等价 Python `str(value)`（覆盖 JSON 可表达的类型；JSON 里的 1.0 在 JS 已是 1，无法区分） */
+/** Equivalent to Python `str(value)` (covers JSON-representable types; JSON 1.0 is already 1 in JS and cannot be told apart) */
 export function pyStr(value: unknown): string {
   if (value === null || value === undefined) return 'None'
   if (value === true) return 'True'
@@ -38,12 +38,12 @@ export function pyStr(value: unknown): string {
   return String(value)
 }
 
-/** Python `str(x or '').strip()`：假值 → ''，其余转字符串后去首尾空白 */
+/** Python `str(x or '').strip()`: falsy → '', otherwise stringified and trimmed */
 export function pyStrOrEmpty(value: unknown): string {
   return pyTruthy(value) ? pyStr(value).trim() : ''
 }
 
-/** Python `.strip()`（去除首尾空白，含全角空格等 Unicode 空白） */
+/** Python `.strip()` (trims leading/trailing whitespace, incl. Unicode whitespace such as the full-width space) */
 export function pyStrip(text: string): string {
   return text.trim()
 }
@@ -51,10 +51,10 @@ export function pyStrip(text: string): string {
 export class PyValueError extends Error {}
 
 /**
- * 等价 Python `int(value)`：
- * - bool → 0/1；数值 → 向零截断
- * - 字符串 → 允许首尾空白、正负号、下划线分组，不允许小数点
- * - 其他（None、list、dict、非法字符串）抛 PyValueError（Python 是 TypeError/ValueError）
+ * Equivalent to Python `int(value)`:
+ * - bool → 0/1; numbers → truncated toward zero
+ * - strings → leading/trailing whitespace, sign and underscore grouping allowed; no decimal point
+ * - anything else (None, list, dict, invalid string) throws PyValueError (TypeError/ValueError in Python)
  */
 export function pyInt(value: unknown): number {
   if (typeof value === 'boolean') return value ? 1 : 0
@@ -69,7 +69,7 @@ export function pyInt(value: unknown): number {
   throw new PyValueError(`invalid literal for int(): ${pyRepr(value)}`)
 }
 
-/** 等价 Python `float(value)` */
+/** Equivalent to Python `float(value)` */
 export function pyFloat(value: unknown): number {
   if (typeof value === 'boolean') return value ? 1 : 0
   if (typeof value === 'number') return value

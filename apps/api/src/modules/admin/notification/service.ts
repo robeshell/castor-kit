@@ -1,5 +1,5 @@
 /**
- * 通知消息 service 层
+ * Notification service layer
  */
 
 import { ServiceError } from '@/common/errors'

@@ -13,10 +13,10 @@ const DEFAULT_FILE_TYPES = [
 ]
 
 /**
- * 导出弹窗（替代 ExportFieldsModal，props 对齐，visible → open）：
+ * Export dialog (replaces ExportFieldsModal with matching props, visible → open):
  *   <ExportDialog open={open} onOpenChange={setOpen} fieldOptions={FIELDS} defaultFields={[…]}
  *     ruleHint="已勾选 3 条" onConfirm={async ({ fields, fileType }) => …} />
- * onConfirm 可返回 Promise；成功后由调用方关闭弹窗。
+ * onConfirm may return a Promise; the caller closes the dialog on success.
  */
 export default function ExportDialog({
   open,
@@ -29,7 +29,7 @@ export default function ExportDialog({
   defaultFileType = 'xlsx',
   onConfirm,
 }) {
-  // 状态放在 ExportBody 里：关闭即卸载，重新打开按默认字段初始化
+  // State lives in ExportBody: closing unmounts it, and reopening re-initializes from the default fields
   const [busy, setBusy] = useState(false)
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange?.(next)}>

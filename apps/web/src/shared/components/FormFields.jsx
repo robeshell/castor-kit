@@ -12,10 +12,10 @@ import MultiSelect from '@/shared/components/MultiSelect'
 import TagInput from '@/shared/components/TagInput'
 
 /**
- * react-hook-form 表单字段（输入框 / 下拉选择 …）。
- * 用法：const form = useForm({ defaultValues })，放进 <FormDialog form={form} …> 或 <Form {...form}> 里：
+ * react-hook-form form fields (input / select …).
+ * Usage: const form = useForm({ defaultValues }), placed inside <FormDialog form={form} …> or <Form {...form}>:
  *   <FormInput control={form.control} name="username" label="用户名" rules={{ required: '请输入用户名' }} />
- * rules 与 react-hook-form register 规则一致（required / minLength / pattern / validate …）。
+ * rules match react-hook-form register rules (required / minLength / pattern / validate …).
  */
 
 function Field({ control, name, label, description, rules, className, required, children, layout = 'vertical' }) {
@@ -84,7 +84,7 @@ export function FormTextarea({ placeholder, rows = 3, disabled, inputClassName, 
             rows={rows}
             placeholder={tx(placeholder)}
             disabled={disabled}
-            // 基础 Textarea 是 field-sizing-content（按内容撑高，rows 失效）；表单里固定为 rows 行，可手动拖高
+            // The base Textarea uses field-sizing-content (grows with content, rows has no effect); in forms it's fixed to rows lines and can be resized manually
             className={cn('field-sizing-fixed min-h-0 resize-y', inputClassName)}
           />
         </FormControl>
@@ -93,7 +93,7 @@ export function FormTextarea({ placeholder, rows = 3, disabled, inputClassName, 
   )
 }
 
-/** 数字输入：空值为 null；其余转为 Number */
+/** Number input: empty value is null; anything else is converted to Number */
 export function FormNumber({ placeholder, min, max, step, disabled, ...rest }) {
   const tx = useTx()
   return (
@@ -121,7 +121,7 @@ export function FormNumber({ placeholder, min, max, step, disabled, ...rest }) {
   )
 }
 
-/** 单选下拉：options = [{ label, value }]，保持 value 原始类型；clearable 时可以选“不选择” */
+/** Single select: options = [{ label, value }], keeps value's original type; when clearable, "none" can be selected */
 export function FormSelect({ options = [], placeholder = '请选择', disabled, clearable = false, ...rest }) {
   const tx = useTx()
   const NONE = '__none__'
@@ -168,7 +168,7 @@ export function FormMultiSelect({ options = [], placeholder, disabled, ...rest }
   )
 }
 
-/** 开关：默认行内卡片布局（label 左、开关右） */
+/** Switch: inline card layout by default (label left, switch right) */
 export function FormSwitch({ disabled, layout = 'inline', ...rest }) {
   return (
     <Field layout={layout} {...rest}>
@@ -275,12 +275,12 @@ export function FormTags({ placeholder, disabled, ...rest }) {
   )
 }
 
-/** 自定义控件：render({ value, onChange, field, fieldState }) */
+/** Custom control: render({ value, onChange, field, fieldState }) */
 export function FormCustom({ render, ...rest }) {
   return <Field {...rest}>{(field, fieldState) => render({ value: field.value, onChange: field.onChange, field, fieldState })}</Field>
 }
 
-/** 两列布局容器（移动端自动单列） */
+/** Two-column layout container (automatically single column on mobile) */
 export function FormGrid({ columns = 2, className, children }) {
   return (
     <div className={cn('grid gap-4', columns === 2 && 'sm:grid-cols-2', columns === 3 && 'sm:grid-cols-3', className)}>

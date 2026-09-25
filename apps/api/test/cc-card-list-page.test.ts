@@ -43,7 +43,7 @@ beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
   await cleanup()
-  // createFixture 会清理所有 ck_test_ 用户（含 super），所以先建夹具再登录 super
+  // createFixture removes all ck_test_ users (including super), so create fixtures before logging in as super
   const fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)

@@ -1,5 +1,5 @@
 /**
- * 菜单模块 repository 层
+ * Menu module repository layer
  */
 
 import { and, asc, count, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
@@ -16,7 +16,7 @@ export class MenuRepository {
     return search ? or(ilike(menus.name, `%${search}%`), ilike(menus.code, `%${search}%`)) : undefined
   }
 
-  /** 给定菜单 id 及其全部祖先 id（递归 CTE 一次查出，避免逐级访问父级的 N 次查询） */
+  /** The given menu ids plus all their ancestor ids (one recursive CTE instead of N queries walking up parent by parent) */
   async listIdsWithAncestors(ids: number[]): Promise<number[]> {
     if (ids.length === 0) return []
     const result = await this.db.execute<{ id: number }>(sql`
@@ -30,7 +30,7 @@ export class MenuRepository {
     return result.rows.map((r) => r.id)
   }
 
-  /** 按 id 取菜单，排序 sort_order ASC, id ASC（NULL sort_order 排最后） */
+  /** Fetch menus by id, ordered by sort_order ASC, id ASC (NULL sort_order last) */
   async listByIdsOrdered(ids: number[]): Promise<Menu[]> {
     if (ids.length === 0) return []
     return this.db
@@ -40,7 +40,7 @@ export class MenuRepository {
       .orderBy(asc(menus.sort_order), asc(menus.id))
   }
 
-  /** 根节点（search 只匹配根节点本身；树形搜索由 service.searchTree 处理） */
+  /** Root nodes (search matches the root node itself only; tree search is handled by service.searchTree) */
   async listRoots(search: string): Promise<Menu[]> {
     return this.db
       .select()
@@ -54,14 +54,14 @@ export class MenuRepository {
   }
 
   /**
-   * 某菜单的直接子菜单：只按 sort_order 排序（同值的先后由 PG 执行计划决定），
-   * 所以逐节点执行固定形状的查询以保持既有顺序，而不是一次取全表后在内存里排序。
+   * Direct children of a menu: ordered by sort_order only (ties are ordered by the PG query plan),
+   * so we run a fixed-shape query per node to keep the existing order, instead of loading the whole table and sorting in memory.
    */
   async listChildrenPyOrder(parentId: number): Promise<Menu[]> {
     return this.db.select().from(menus).where(eq(menus.parent_id, parentId)).orderBy(asc(menus.sort_order))
   }
 
-  /** 同级菜单（parent_id IS NULL 或 = parentId），sort_order ASC, id ASC */
+  /** Sibling menus (parent_id IS NULL or = parentId), sort_order ASC, id ASC */
   async listSiblings(parentId: number | null): Promise<Menu[]> {
     return this.db
       .select()
@@ -89,7 +89,7 @@ export class MenuRepository {
     return row?.n ?? 0
   }
 
-  /** 导出 parent_code：按 id 取 code */
+  /** parent_code for export: look up code by id */
   async mapCodesByIds(ids: number[]): Promise<Map<number, string>> {
     if (ids.length === 0) return new Map()
     const rows = await this.db.select({ id: menus.id, code: menus.code }).from(menus).where(inArray(menus.id, ids))
@@ -100,7 +100,7 @@ export class MenuRepository {
     return this.listFlat(search)
   }
 
-  /** `sync_id_sequence`：显式 ID 插入后把序列推到 MAX(id)+1 */
+  /** `sync_id_sequence`: after inserts with explicit ids, advance the sequence to MAX(id)+1 */
   async syncIdSequence(): Promise<void> {
     await this.db.execute(sql`
       SELECT setval(
@@ -116,7 +116,7 @@ export class MenuRepository {
     return row!
   }
 
-  /** 更新并刷新 updated_at（对应 onupdate=datetime.utcnow；调用方只在确有变化时调用） */
+  /** Update and refresh updated_at (matches onupdate=datetime.utcnow; callers only call this when something actually changed) */
   async update(id: number, values: MenuUpdateValues): Promise<Menu> {
     const [row] = await this.db.update(menus).set(values).where(eq(menus.id, id)).returning()
     return row!

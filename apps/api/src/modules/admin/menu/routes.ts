@@ -1,7 +1,7 @@
 /**
- * 菜单模块路由
+ * Menu module routes
  *
- * 检查顺序（保持既有接口行为）：`/menus/<id>` 先 get_or_404 再做权限检查；`/menus/<id>/sort` 反过来，先权限后 404。
+ * Check order (preserves existing API behavior): `/menus/<id>` runs get_or_404 before the permission check; `/menus/<id>/sort` is the reverse, permission first, then 404.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'

@@ -1,4 +1,4 @@
-/** 新设计体系公共组件行为测试（DataTable / Filters / FormDialog / ExportDialog / StatusBadge） */
+/** Behavior tests for the new design system's shared components (DataTable / Filters / FormDialog / ExportDialog / StatusBadge) */
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

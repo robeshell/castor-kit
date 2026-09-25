@@ -1,12 +1,12 @@
 // -*- coding: utf-8 -*-
 /**
- * 导入完整性测试：扫描 frontend/src 下所有 JS/JSX，验证每个模块导入路径都能解析。
+ * Import integrity test: scan all JS/JSX under frontend/src and verify every module import path resolves.
  *
- * 覆盖两种形态：
- *  - @/ 别名（应指向 src 根下的真实文件）
- *  - ./ 或 ../ 相对路径（资源导入如 CSS/图片保留相对，JS 模块不应再出现相对）
+ * Covers two forms:
+ *  - @/ alias (should point to a real file under the src root)
+ *  - ./ or ../ relative paths (asset imports like CSS/images stay relative; JS modules should no longer use relative imports)
  *
- * 该测试是「@ 别名统一」改动的回归防线：任何 broken import 或回退成相对 JS 导入都会在此失败。
+ * This test is the regression guard for the "unified @ alias" change: any broken import or regression to relative JS imports fails here.
  */
 import { readdirSync, statSync, existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -61,17 +61,17 @@ describe('导入完整性', () => {
             broken.push(`${file}:${line} → ${spec}（无法解析）`)
           }
         } else if (spec.startsWith('./') || spec.startsWith('../')) {
-          // 资源导入（CSS/图片）保留相对是合理的
+          // Keeping asset imports (CSS/images) relative is fine
           if (RESOURCE_RE.test(spec)) continue
-          // JS 模块不应再出现相对导入（@ 别名统一）
+          // JS modules should no longer use relative imports (unified @ alias)
           relativeJsCount++
           broken.push(`${file}:${line} → ${spec}（JS 模块应使用 @/ 别名）`)
         }
       }
     }
 
-    expect(aliasCount).toBeGreaterThan(150) // 别名统一已覆盖绝大多数
-    expect(relativeJsCount).toBe(0) // JS 相对导入必须清零
+    expect(aliasCount).toBeGreaterThan(150) // Alias unification already covers the vast majority
+    expect(relativeJsCount).toBe(0) // JS relative imports must be zero
     expect(broken).toEqual([])
   })
 

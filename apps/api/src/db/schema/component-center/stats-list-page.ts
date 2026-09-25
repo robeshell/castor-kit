@@ -10,7 +10,7 @@ export const stats_items = pgTable('stats_items', {
   id: serial().primaryKey().notNull(),
   name: varchar({ length: 120 }).notNull(),
   item_code: varchar({ length: 120 }).notNull(),
-  // 应用侧默认 'general'（库里无 DEFAULT）
+  // App-side default 'general' (no DB DEFAULT)
   category: varchar({ length: 50 }).$default(() => 'general'),
   status: varchar({ length: 20 }).default('draft').notNull(),
   amount: numeric({ precision: 14, scale: 2 }).default('0'),
@@ -27,7 +27,7 @@ export const stats_items = pgTable('stats_items', {
 
 export type StatsItem = typeof stats_items.$inferSelect
 
-/** numeric 文本 → JS number（该模块 toDict 输出 JSON 数字而不是字符串） */
+/** numeric text → JS number (this module's toDict emits JSON numbers rather than strings) */
 export function numericToFloat(value: string | null | undefined): number {
   return value === null || value === undefined ? 0 : Number(value)
 }

@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     globalSetup: ['test/global-setup.ts'],
-    // 共用一个真实 PostgreSQL 测试库，文件间串行避免登录日志等写入互相干扰
+    // All files share one real PostgreSQL test database; run files serially so writes like login logs don't interfere with each other
     fileParallelism: false,
     testTimeout: 20000,
   },

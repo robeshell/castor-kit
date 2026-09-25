@@ -1,10 +1,10 @@
 /**
- * 表格文件读写（CSV / XLSX）
+ * Table file read/write (CSV / XLSX)
  *
- * - 不支持 `.xls`：上传 .xls 返回明确 400，导出/模板 file_type=xls 按默认 csv 处理
- * - CSV 输出按 excel 方言：`\r\n` 行尾、最小引用、UTF-8 BOM
- * - 公式注入防护：以 = + @ 或制表符/回车开头，或 - 后跟非数字的单元格加 `'` 前缀
- * - 导入文件上限 5MB
+ * - `.xls` is not supported: uploading .xls returns an explicit 400; export/template with file_type=xls falls back to the default csv
+ * - CSV output uses the excel dialect: `\r\n` line endings, minimal quoting, UTF-8 BOM
+ * - Formula injection guard: cells starting with = + @ or tab/CR, or - followed by a non-digit, get a `'` prefix
+ * - Import file limit is 5MB
  */
 
 import ExcelJS from 'exceljs'
@@ -22,7 +22,7 @@ const MIME_MAP: Record<TableFileType, string> = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
-/** 读取/校验失败，调用方转成 400 */
+/** Read/validation failure; the caller turns it into a 400 */
 export class TableFileError extends Error {}
 
 export interface UploadedFile {
@@ -61,7 +61,7 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-/** 单元格取值转文本：null→''，日期时间→'YYYY-MM-DD HH:mm:ss'，整数值浮点→整数文本，其余转字符串后去首尾空白 */
+/** Cell value → text: null→'', datetime→'YYYY-MM-DD HH:mm:ss', integral float→integer text, everything else stringified and trimmed */
 export function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (value instanceof Date) {
@@ -75,11 +75,11 @@ export function formatCellValue(value: unknown): string {
   return String(value).trim()
 }
 
-// ---------------------------------------------------------------- 读取
+// ---------------------------------------------------------------- Read
 
 export interface TableReadResult {
   fieldnames: string[]
-  /** [行号, 行字典]；行号从表头下一行 = 2 开始 */
+  /** [row number, row dict]; row numbers start at 2 (the line after the header) */
   rows: [number, Record<string, string>][]
   fileType: TableFileType
 }
@@ -93,7 +93,7 @@ function readCsv(content: Buffer): TableReadResult {
   }
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
 
-  // csv.DictReader：空行直接跳过（不计行号），列数不齐的行宽松处理
+  // csv.DictReader: blank lines are skipped (not counted), rows with mismatched column counts are handled leniently
   const records = parseCsv(text, {
     relax_column_count: true,
     relax_quotes: true,
@@ -116,7 +116,7 @@ function readCsv(content: Buffer): TableReadResult {
   return { fieldnames, rows, fileType: 'csv' }
 }
 
-/** exceljs 单元格值 → 与 openpyxl data_only=True 读出的值等价的原始值 */
+/** exceljs cell value → raw value equivalent to what openpyxl data_only=True reads */
 function xlsxCellRaw(value: ExcelJS.CellValue): unknown {
   if (value === null || value === undefined) return null
   if (value instanceof Date) return value
@@ -165,7 +165,7 @@ async function readXlsx(content: Buffer): Promise<TableReadResult> {
   return { fieldnames: headers, rows, fileType: 'xlsx' }
 }
 
-/** 读取上传的表格文件；校验失败抛 TableFileError（→ 400） */
+/** Read an uploaded table file; throws TableFileError (→ 400) on validation failure */
 export async function readTableFile(file: UploadedFile | null | undefined): Promise<TableReadResult> {
   if (!file) throw new TableFileError('请上传导入文件')
   if (extensionOf(file.filename) === 'xls') {
@@ -178,15 +178,15 @@ export async function readTableFile(file: UploadedFile | null | undefined): Prom
   return fileType === 'csv' ? readCsv(file.data) : readXlsx(file.data)
 }
 
-// ---------------------------------------------------------------- 写出
+// ---------------------------------------------------------------- Write
 
-/** CSV（excel 方言，最小引用）单字段编码 */
+/** Encode a single CSV field (excel dialect, minimal quoting) */
 function csvField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
 }
 
 function csvRow(fields: string[]): string {
-  // “只有一个空字段”的行写成 ""，避免被读成空行
+  // A row with "a single empty field" is written as "" so it is not read back as a blank line
   if (fields.length === 1 && fields[0] === '') return '""\r\n'
   return `${fields.map(csvField).join(',')}\r\n`
 }
@@ -214,7 +214,7 @@ export async function buildTable(
   } else {
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Sheet')
-    // 空字符串单元格不写 <c> 元素：exceljs 写 '' 会生成空字符串单元格，这里转成 null
+    // Empty-string cells get no <c> element: exceljs would write '' as an empty-string cell, so convert to null here
     const blankToNull = (row: string[]) => row.map((v) => (v === '' ? null : v))
     sheet.addRow(blankToNull(safeHeaders))
     for (const row of safeRows) sheet.addRow(blankToNull(row))
@@ -223,7 +223,7 @@ export async function buildTable(
   return { payload, contentType: MIME_MAP[fileType], filename: `${baseFilename}.${fileType}` }
 }
 
-/** 发送表格文件（设置 Content-Type / 下载文件名并写出内容） */
+/** Send a table file (sets Content-Type / download filename and writes the content) */
 export function sendTable(reply: FastifyReply, table: TablePayload): FastifyReply {
   return reply
     .header('Content-Type', table.contentType)

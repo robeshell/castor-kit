@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { login } from '@/modules/admin/api/auth'
 import { useTranslation } from 'react-i18next'
 
-/** 背景：以表单卡片为中心的细网格 + 卡片身后的一圈 Ocean 光晕，只做烘托，不抢表单 */
+/** Backdrop: a fine grid centered on the form card plus an Ocean glow behind it; decoration only, it must not compete with the form */
 function Backdrop() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -34,7 +34,7 @@ function Halo() {
   )
 }
 
-/** 带前置图标的输入框 */
+/** Input with a leading icon */
 function IconInput({ icon: Icon, invalid, className, ...props }) {
   return (
     <div className="relative">
@@ -96,9 +96,9 @@ export default function Login() {
           className="relative isolate w-full max-w-[400px]"
         >
           <Halo />
-          {/* 表单卡片：页面唯一的视觉主体 */}
+          {/* Form card: the only visual focus of the page */}
           <div className="bg-card relative overflow-hidden rounded-2xl px-7 pt-9 pb-7 shadow-[0_0_0_1px_var(--border),0_1px_2px_rgba(0,0,0,0.04),0_28px_56px_-24px_rgba(15,23,42,0.22)] sm:px-9 dark:shadow-[0_0_0_1px_var(--border),0_28px_56px_-24px_rgba(0,0,0,0.7)]">
-            {/* 顶部一道渐变高光，给卡片一点品牌感 */}
+            {/* A gradient highlight along the top edge adds a touch of brand */}
             <div className="via-brand-via absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent to-transparent" />
 
             <div className="flex flex-col items-center text-center">

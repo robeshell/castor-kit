@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { LANGUAGES, setLanguage } from '@/i18n'
 
-/** 界面语言切换（顶栏 / 登录页）；选择记在 localStorage，请求头 Accept-Language 随之变化 */
+/** UI language switcher (top bar / login page); the choice is stored in localStorage and the Accept-Language request header follows it */
 export default function LanguageSwitcher() {
   const { t, i18n } = useTranslation()
   return (

@@ -1,4 +1,4 @@
-// 本地改动：半选（checked="indeterminate"）显示减号并用主色填充。重新 `shadcn add checkbox` 会覆盖，需手动保留。
+// Local change: indeterminate (checked="indeterminate") shows a minus sign filled with the primary color. Re-running `shadcn add checkbox` overwrites it; keep this manually.
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { CheckIcon, MinusIcon } from "lucide-react"

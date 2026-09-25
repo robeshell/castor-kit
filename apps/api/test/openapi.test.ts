@@ -1,10 +1,10 @@
 /**
  * scripts/generate-openapi.ts + scripts/import-apifox.ts
  *
- * - 骨架识别
- * - 文档覆盖所有已注册的 /api 路由（按路径形状比较，`{int:x}` 与 `{x}` 等价）
- * - 写回格式同 json.dumps(indent=2, ensure_ascii=False)，逐字节稳定
- * - Apifox 推送：用本地假服务校验 URL / 头 / 体与退出码，不向 Apifox 发真实请求
+ * - Stub detection
+ * - The document covers every registered /api route (compared by path shape; `{int:x}` is equivalent to `{x}`)
+ * - Write-back format matches json.dumps(indent=2, ensure_ascii=False), byte-for-byte stable
+ * - Apifox push: uses a local fake server to check URL / headers / body and exit code, sends no real requests to Apifox
  */
 
 import { createServer, type Server } from 'node:http'

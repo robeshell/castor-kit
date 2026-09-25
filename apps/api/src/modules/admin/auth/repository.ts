@@ -1,5 +1,5 @@
 /**
- * 认证模块 repository 层（含 login_logs 查询）
+ * Auth module repository layer (includes login_logs queries)
  */
 
 import { and, count, eq, gte, or, sql, type SQL } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import type { Db } from '@/db/client'
 import { admin_users, login_logs, operation_logs, type NewLoginLog, type NewOperationLog } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
 
-/** `datetime.utcnow() - timedelta(minutes=n)`，由数据库计算 */
+/** `datetime.utcnow() - timedelta(minutes=n)`, computed by the DB */
 const windowStart = (minutes: number) => sql`${utcNow()} - make_interval(mins => ${minutes})`
 
 export class AuthRepository {
@@ -30,7 +30,7 @@ export class AuthRepository {
     await this.db.update(admin_users).set({ password_hash: passwordHash }).where(eq(admin_users.id, userId))
   }
 
-  /** 近窗口内失败登录次数；by 为 ip 或 username 维度 */
+  /** Failed login count within the recent window; `by` is the ip or username dimension */
   async countRecentFailures(by: { ip: string } | { username: string }, lockoutMinutes: number): Promise<number> {
     const dimension = 'ip' in by ? eq(login_logs.ip, by.ip) : eq(login_logs.username, by.username)
     const [row] = await this.db
@@ -43,8 +43,8 @@ export class AuthRepository {
   }
 
   /**
-   * 清零窗口内失败记录：同时给了用户名和 IP 时按 OR 删除；只给一个按该维度；
-   * 都没给时不加维度条件。
+   * Clear failed records within the window: with both username and IP, delete by OR; with only one, filter by that dimension;
+   * with neither, no dimension filter is applied.
    */
   async clearRecentFailures(username: string, ip: string, lockoutMinutes: number): Promise<void> {
     const conditions: (SQL | undefined)[] = [

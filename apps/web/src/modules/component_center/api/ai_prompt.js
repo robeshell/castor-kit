@@ -2,14 +2,14 @@ import request from '@/shared/api/request'
 
 const BASE = '/admin/component-center/ai/prompt'
 
-/** 获取模板列表（可选按 category 过滤） */
+/** List templates (optionally filtered by category) */
 export const getPromptTemplates = (params) => request.get(`${BASE}/templates`, { params })
 
-/** 新建模板 */
+/** Create a template */
 export const createPromptTemplate = (data) => request.post(`${BASE}/templates`, data)
 
-/** 更新模板 */
+/** Update a template */
 export const updatePromptTemplate = (id, data) => request.put(`${BASE}/templates/${id}`, data)
 
-/** 删除模板 */
+/** Delete a template */
 export const deletePromptTemplate = (id) => request.delete(`${BASE}/templates/${id}`)

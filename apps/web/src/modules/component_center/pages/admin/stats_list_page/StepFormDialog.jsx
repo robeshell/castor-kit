@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { useWatch } from 'react-hook-form'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form } from '@/components/ui/form'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import { useTx } from '@/i18n'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
-/** 步骤指示器：已完成（勾）/ 当前（描边）/ 未开始（灰），连接线按进度填充 */
+/** Step indicator: done (check) / current (outlined) / upcoming (muted); connectors fill with progress */
 function StepIndicator({ steps, current }) {
+  const tx = useTx()
   return (
     <ol className="flex items-start">
       {steps.map((s, i) => {
@@ -31,8 +34,8 @@ function StepIndicator({ steps, current }) {
                 {done ? <Check className="size-3.5" /> : i + 1}
               </span>
               <div className="min-w-0 pt-0.5">
-                <div className={cn('truncate text-[13px] leading-5 font-medium', !done && !active && 'text-muted-foreground')}>{s.title}</div>
-                <div className="text-muted-foreground hidden truncate text-xs sm:block">{s.description}</div>
+                <div className={cn('truncate text-[13px] leading-5 font-medium', !done && !active && 'text-muted-foreground')}>{tx(s.title)}</div>
+                <div className="text-muted-foreground hidden truncate text-xs sm:block">{tx(s.description)}</div>
               </div>
             </div>
             {i < steps.length - 1 ? (
@@ -53,8 +56,10 @@ function StepIndicator({ steps, current }) {
 }
 
 /**
- * 分步表单弹窗（react-hook-form）。所有步骤常驻挂载、仅隐藏非当前步，保证跨步取值与整表校验；
- * 「下一步」只校验当前步的 fields；最后一步才真正提交。onSubmit 抛错时弹窗保持打开。
+ * Multi-step form dialog (react-hook-form). All steps stay mounted and only non-current steps are hidden,
+ * so values carry across steps and the whole form validates together.
+ * "Next" validates only the current step's fields; only the last step submits. The dialog stays open if onSubmit throws.
+ * String title / description / submitText / step labels are translated here.
  */
 export default function StepFormDialog({
   open,
@@ -69,6 +74,8 @@ export default function StepFormDialog({
   submitText = '提交',
   renderStep,
 }) {
+  const { t } = useTranslation()
+  const tx = useTx()
   const [submitting, setSubmitting] = useState(false)
   const values = useWatch({ control: form.control })
   const last = steps.length - 1
@@ -85,19 +92,19 @@ export default function StepFormDialog({
         setSubmitting(true)
         await onSubmit?.(vals)
       } catch {
-        /* 错误提示由调用方负责，弹窗保持打开 */
+        /* the caller shows the error; keep the dialog open */
       } finally {
         setSubmitting(false)
       }
     },
     (errors) => {
-      // 整表校验失败：跳回第一个有错误字段的步骤
+      // Whole-form validation failed: jump back to the first step with an invalid field
       const index = steps.findIndex((s) => (s.fields || []).some((f) => errors[f]))
       if (index >= 0 && index !== step) onStepChange(index)
     },
   )
 
-  // 非最后一步时，输入框内回车 = 下一步（多输入框表单没有隐式提交）
+  // Before the last step, Enter in an input means Next (multi-input forms have no implicit submit)
   const handleKeyDown = (e) => {
     if (e.key !== 'Enter' || e.nativeEvent.isComposing || step >= last) return
     if (e.target instanceof HTMLInputElement) {
@@ -118,8 +125,8 @@ export default function StepFormDialog({
         <Form {...form}>
           <form noValidate onSubmit={handleFormSubmit} onKeyDown={handleKeyDown} className="flex max-h-[85vh] flex-col">
             <DialogHeader className="px-6 pt-6 pb-4">
-              <DialogTitle>{title}</DialogTitle>
-              {description ? <DialogDescription>{description}</DialogDescription> : null}
+              <DialogTitle>{tx(title)}</DialogTitle>
+              {description ? <DialogDescription>{tx(description)}</DialogDescription> : null}
             </DialogHeader>
             <div className="border-y px-6 py-4">
               <StepIndicator steps={steps} current={step} />
@@ -139,25 +146,25 @@ export default function StepFormDialog({
             </ScrollArea>
             <DialogFooter className="flex-row items-center border-t px-6 py-4 sm:justify-between">
               <span className="text-muted-foreground mr-auto text-xs tabular-nums">
-                第 {step + 1} 步，共 {steps.length} 步
+                {t('第 {{current}} 步，共 {{total}} 步', { current: step + 1, total: steps.length })}
               </span>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" disabled={submitting} onClick={() => onOpenChange?.(false)}>
-                  取消
+                  {t('取消')}
                 </Button>
                 {step > 0 ? (
                   <Button type="button" variant="outline" disabled={submitting} onClick={() => onStepChange(step - 1)}>
-                    上一步
+                    {t('上一步')}
                   </Button>
                 ) : null}
                 {step < last ? (
                   <Button key="next" type="button" onClick={next}>
-                    下一步
+                    {t('下一步')}
                   </Button>
                 ) : (
                   <Button key="submit" type="submit" disabled={submitting}>
                     {submitting ? <Spinner /> : null}
-                    {submitText}
+                    {tx(submitText)}
                   </Button>
                 )}
               </div>

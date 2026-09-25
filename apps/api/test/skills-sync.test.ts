@@ -1,6 +1,6 @@
 /**
- * .claude/skills（Claude Code 读）与 .agents/skills（Codex 等其他工具读）必须逐字节一致。
- * 以 .claude/skills 为准；改完后同步：rm -rf .agents/skills && cp -R .claude/skills .agents/skills
+ * .claude/skills (read by Claude Code) and .agents/skills (read by Codex and other tools) must be byte-for-byte identical.
+ * .claude/skills is the source of truth; sync after editing: rm -rf .agents/skills && cp -R .claude/skills .agents/skills
  */
 
 import { readdirSync, readFileSync } from 'node:fs'

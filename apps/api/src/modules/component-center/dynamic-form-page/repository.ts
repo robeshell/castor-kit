@@ -1,5 +1,5 @@
 /**
- * 动态表单页 repository 层（含 service/model 里直接拼的查询）
+ * Dynamic form page repository layer (includes queries the service/model build directly)
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, or, sql, type SQL } from 'drizzle-orm'
@@ -26,7 +26,7 @@ const fieldsCountSql = sql<number>`(select count(*) from "dynamic_form_fields" a
 export class DynamicFormPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** 对应 service._build_list_query */
+  /** Equivalent of service._build_list_query */
   private listWhere(f: DynamicFormListFilters): SQL | undefined {
     const conds: (SQL | undefined)[] = []
     if (f.search) {
@@ -96,17 +96,17 @@ export class DynamicFormPageRepository {
     return row!
   }
 
-  /** 只在有变更列时调用（updated_at 由 $onUpdateFn 自动刷新） */
+  /** Only called when some column changed (updated_at is refreshed automatically by $onUpdateFn) */
   async update(id: number, values: DynamicFormRecordUpdate): Promise<void> {
     await this.db.update(dynamic_form_records).set(values).where(eq(dynamic_form_records.id, id))
   }
 
-  /** 删除记录；字段由外键 ON DELETE CASCADE 一并删除（对应 cascade='all, delete-orphan'） */
+  /** Delete a record; its fields are removed via the FK's ON DELETE CASCADE (equivalent of cascade='all, delete-orphan') */
   async delete(id: number): Promise<void> {
     await this.db.delete(dynamic_form_records).where(eq(dynamic_form_records.id, id))
   }
 
-  // ---- 动态字段 ----
+  // ---- Dynamic fields ----
 
   async countFields(recordId: number): Promise<number> {
     const [row] = await this.db.select({ n: count() }).from(dynamic_form_fields).where(eq(dynamic_form_fields.record_id, recordId))
@@ -114,8 +114,8 @@ export class DynamicFormPageRepository {
   }
 
   /**
-   * 记录的动态字段，`ORDER BY sort_order, sort_order`（不加 id 作为次序键，
-   * sort_order 相同的字段顺序由 PostgreSQL 决定；保持既有查询形状，避免改变已有数据的字段顺序）。
+   * A record's dynamic fields, `ORDER BY sort_order, sort_order` (id is not used as a tiebreaker;
+   * PostgreSQL decides the order of fields with equal sort_order. The existing query shape is kept so field order of existing data doesn't change).
    */
   async listFields(recordId: number): Promise<DynamicFormField[]> {
     return this.db

@@ -1,12 +1,12 @@
 /**
- * 后台定时任务调度器（ScheduledTaskRunner）
+ * Background scheduled-task scheduler (ScheduledTaskRunner)
  *
- * 租约模型，多个调度进程可以同时运行而不重复执行：
- * - claim：`next_run_at` 仍等于读到的值时置空并标 running，UPDATE 命中 1 行才算抢到
- * - 过期回收：running 且 next_run_at 为空、updated_at 早于 now - lease 的任务重置为 idle 并立即到期
- * - 执行崩溃（execute_task 抛异常）：按 cron 排下一次（cron 非法则 5 分钟后），标 failed
+ * Lease model, so multiple scheduler processes can run concurrently without double execution:
+ * - claim: if `next_run_at` still equals the value read, null it and mark running; claimed only if the UPDATE hits exactly 1 row
+ * - Expired-lease reclaim: tasks that are running with a null next_run_at and updated_at older than now - lease are reset to idle and due immediately
+ * - Execution crash (execute_task throws): schedule the next run from cron (5 minutes later if the cron is invalid) and mark failed
  *
- * 运行方式：RUN_SCHEDULER_IN_WEB=true 时 web 进程内启动（main.ts）；否则用独立进程 `node dist/worker.js`。
+ * Runs in the web process (main.ts) when RUN_SCHEDULER_IN_WEB=true; otherwise as a separate process `node dist/worker.js`.
  */
 
 import type { AppConfig } from '@/config'
@@ -16,7 +16,7 @@ import { ScheduledTaskRepository, type CrashNextRun } from '@/modules/admin/sche
 import { computeNextRunAt } from './cron'
 import { ScheduledTaskSchemaError } from './errors'
 
-/** pino 兼容的最小日志接口（web 进程传 app.log，worker 用 consoleLogger） */
+/** Minimal pino-compatible logger interface (web process passes app.log, worker uses consoleLogger) */
 export interface SchedulerLogger {
   info(msg: string): void
   info(obj: object, msg?: string): void
@@ -30,13 +30,13 @@ export interface ScheduledTaskRunnerOptions {
   intervalSeconds?: number
   leaseSeconds?: number
   logger?: SchedulerLogger
-  /** 测试可注入（例如自定义 HTTP 执行器的 service） */
+  /** Injectable for tests (e.g. a service with a custom HTTP executor) */
   service?: ScheduledTaskService
 }
 
 const silentLogger: SchedulerLogger = { info() {}, warn() {}, error() {} }
 
-/** 取整数配置：缺省或为 0 时用默认值 */
+/** Read an integer config value: falls back to the default when missing or 0 */
 function intOr(value: number | undefined, fallback: number): number {
   return Math.trunc(value || fallback)
 }
@@ -70,7 +70,7 @@ export class ScheduledTaskRunner {
     this.loopPromise = this.loop()
   }
 
-  /** 停止循环；最多等待当前一轮 3 秒 */
+  /** Stop the loop; waits up to 3 seconds for the current tick */
   async stop(): Promise<void> {
     this.stopped = true
     if (this.sleepTimer) clearTimeout(this.sleepTimer)
@@ -101,7 +101,7 @@ export class ScheduledTaskRunner {
     }
   }
 
-  /** 一轮调度：回收过期租约 → 取到期任务（最多 20 条）→ 逐个抢占并执行 */
+  /** One tick: reclaim expired leases → fetch due tasks (up to 20) → claim and execute each */
   async executeDueTasks(): Promise<void> {
     await this.recoverStaleClaims()
     const dueTasks = await this.repo.listDueTasks(20)
@@ -140,8 +140,8 @@ export class ScheduledTaskRunner {
 }
 
 /**
- * 启动调度器：ENABLE_TASK_SCHEDULER 关闭时不启动（返回 null）。
- * 调用方负责在关闭时 `await runner.stop()`。
+ * Start the scheduler: not started (returns null) when ENABLE_TASK_SCHEDULER is off.
+ * The caller is responsible for `await runner.stop()` on shutdown.
  */
 export function startScheduledTaskRunner(db: Db, config: AppConfig, logger?: SchedulerLogger): ScheduledTaskRunner | null {
   if (!config.enableTaskScheduler) return null

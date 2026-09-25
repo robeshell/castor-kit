@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-/** 防抖值（搜索框实时过滤用） */
+/** Debounced value (for live filtering in search boxes) */
 export function useDebouncedValue(value, delay = 300) {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {

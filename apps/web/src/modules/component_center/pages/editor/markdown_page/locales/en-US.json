@@ -1,0 +1,23 @@
+{
+  "\n```javascript\n// 代码块\nconsole.log(\"Hello\")\n```\n": "\n```javascript\n// Code block\nconsole.log(\"Hello\")\n```\n",
+  "\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 值1 | 值2 | 值3 |\n": "\n| Col 1 | Col 2 | Col 3 |\n|-----|-----|-----|\n| Val 1 | Val 2 | Val 3 |\n",
+  "# 标题": "# Heading",
+  "# 标题\n": "# Heading\n",
+  "**加粗**": "**Bold**",
+  "**加粗文字**": "**Bold text**",
+  "*斜体*": "*Italic*",
+  "*斜体文字*": "*Italic text*",
+  "Markdown 内容已复制": "Markdown copied",
+  "Markdown 编辑区": "Markdown editor",
+  "Markdown 预览": "Markdown Preview",
+  "[链接文字](https://example.com)": "[Link text](https://example.com)",
+  "`代码`": "`code`",
+  "代码块": "Code block",
+  "内容已清空": "Content cleared",
+  "在此输入 Markdown 内容...": "Type Markdown here...",
+  "复制内容": "Copy content",
+  "字数 <0>{{count}}</0>": "Words <0>{{count}}</0>",
+  "左侧输入 Markdown 内容后在此实时预览": "Type Markdown on the left to see a live preview here",
+  "快捷插入": "Quick insert",
+  "链接": "Link"
+}

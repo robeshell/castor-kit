@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Play, Sparkles } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { EASE_OUT } from '@/lib/motion'
@@ -12,9 +13,10 @@ import SegmentedTabs from '@/shared/components/SegmentedTabs'
 const PARTICLE_COUNT = 18000
 
 const SHAPES = ['sphere', 'torus', 'dna', 'galaxy', 'cube']
+// Labels keep the Chinese source text and are translated when rendered
 const SHAPE_LABELS = { sphere: '球体', torus: '环面', dna: 'DNA 螺旋', galaxy: '星系', cube: '立方体' }
 
-// WebGL 顶点色（0~1 RGB），Ocean 蓝青系
+// WebGL vertex colors (0–1 RGB), Ocean blue / cyan family
 const PALETTES = [
   { name: '海洋', colors: [[0.15, 0.39, 0.92], [0.01, 0.52, 0.78], [0.13, 0.83, 0.93]] },
   { name: '冰川', colors: [[0.13, 0.83, 0.93], [0.65, 0.95, 0.99], [0.22, 0.74, 0.97]] },
@@ -86,6 +88,7 @@ function getColors(palette, count) {
 }
 
 export default function MorphingParticlesPage() {
+  const { t } = useTranslation()
   const mountRef = useRef(null)
   const stateRef = useRef({ shapeIdx: 0, paletteIdx: 0, auto: true, morphT: 1.0 })
   const [shapeIdx, setShapeIdx] = useState(0)
@@ -147,7 +150,7 @@ export default function MorphingParticlesPage() {
 
     // Expose to buttons
     stateRef.current.startMorph = startMorph
-    // 切换配色立即生效（不必等到下一次变形）
+    // Palette changes apply immediately (no need to wait for the next morph)
     stateRef.current.applyPalette = (idx) => {
       geo.attributes.color.array.set(getColors(idx, PARTICLE_COUNT))
       geo.attributes.color.needsUpdate = true
@@ -259,7 +262,7 @@ export default function MorphingParticlesPage() {
 
       <Panel bodyClassName="flex flex-wrap items-center gap-x-6 gap-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs">形态</span>
+          <span className="text-muted-foreground text-xs">{t('形态')}</span>
           <SegmentedTabs
             variant="pill"
             value={SHAPES[shapeIdx]}
@@ -268,11 +271,11 @@ export default function MorphingParticlesPage() {
           />
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={handleAuto}>
             <Play />
-            自动
+            {t('自动')}
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-xs">配色</span>
+          <span className="text-muted-foreground text-xs">{t('配色')}</span>
           {PALETTES.map((p, i) => (
             <button
               key={p.name}
@@ -284,7 +287,7 @@ export default function MorphingParticlesPage() {
               )}
             >
               <span className="h-2 w-5 rounded-full" style={{ background: paletteSwatch(p) }} />
-              {p.name}
+              {t(p.name)}
             </button>
           ))}
         </div>
@@ -294,7 +297,7 @@ export default function MorphingParticlesPage() {
         <div ref={mountRef} className="h-[460px] w-full cursor-grab bg-black active:cursor-grabbing md:h-[600px]" />
 
         <div className="pointer-events-none absolute top-3 right-3 rounded-xl bg-white/5 px-4 py-2.5 text-right ring-1 ring-white/10 backdrop-blur-md">
-          <div className="text-[11px] text-white/40">当前形态</div>
+          <div className="text-[11px] text-white/40">{t('当前形态')}</div>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={shapeIdx}
@@ -304,17 +307,17 @@ export default function MorphingParticlesPage() {
               transition={{ duration: 0.2, ease: EASE_OUT }}
               className="text-lg font-semibold text-white"
             >
-              {SHAPE_LABELS[SHAPES[shapeIdx]]}
+              {t(SHAPE_LABELS[SHAPES[shapeIdx]])}
             </motion.div>
           </AnimatePresence>
           <div className={cn('text-brand-to flex items-center justify-end gap-1 text-[11px] transition-opacity duration-200', morphing ? 'opacity-100' : 'opacity-0')}>
             <Sparkles className="size-3" />
-            变形中...
+            {t('变形中...')}
           </div>
         </div>
 
         <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-white/5 px-2 py-1 text-[11px] text-white/50 ring-1 ring-white/10 backdrop-blur-sm">
-          拖拽旋转 · 点击上方切换形态
+          {t('拖拽旋转 · 点击上方切换形态')}
         </div>
       </section>
     </div>

@@ -1,7 +1,7 @@
 /**
- * 公告管理路由
+ * Announcement management routes
  *
- * 注意：与 dicts/users 不同，这里是**先做权限检查（403 '无权限'）再 get_or_404**（保持既有接口行为）。
+ * Note: unlike dicts/users, this **checks permission first (403 '无权限'), then get_or_404** (preserves existing API behavior).
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -73,6 +73,6 @@ export async function registerAnnouncementRoutes(app: FastifyInstance): Promise<
     return service.importItems(await getUploadedFile(request))
   })
 
-  // 只要求登录，不校验菜单权限
+  // Login required only; no menu permission check
   app.get('/api/admin/announcements/export-fields', opts, async () => service.exportFields())
 }

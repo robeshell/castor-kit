@@ -1,4 +1,4 @@
-/* 流式输出时在最后一段文字末尾显示闪烁光标 */
+/* Show a blinking caret after the last block of text while streaming */
 .chat-streaming .md-prose > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
 .chat-streaming .md-prose > :is(ul, ol):last-child > li:last-child::after {
   content: '';

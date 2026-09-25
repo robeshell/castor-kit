@@ -11,7 +11,7 @@ dist/
 
 # runtime
 instance/
-# 仅忽略运行时日志目录；不能写成裸 logs/，会误伤 src/modules/admin/logs 等源码目录
+# Ignore only runtime log dirs; a bare logs/ would also match source dirs such as src/modules/admin/logs
 /logs/
 /apps/*/logs/
 *.log
@@ -24,6 +24,6 @@ coverage/
 .vitest/
 .vite/
 
-# 文档站构建产物
+# Docs site build output
 website/.vitepress/cache/
 website/.vitepress/dist/

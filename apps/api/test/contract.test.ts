@@ -1,6 +1,6 @@
 /**
- * HTTP 契约快照（见 docs/architecture.md「横切约定」）：响应形状、错误结构、csrf_token、时间格式、会话 cookie。
- * 用真实 PostgreSQL（TEST_DATABASE_URL）+ app.inject()，夹具数据自建自删。
+ * HTTP contract snapshots (see "Cross-cutting conventions" in docs/architecture.md): response shape, error structure, csrf_token, time format, session cookie.
+ * Uses a real PostgreSQL (TEST_DATABASE_URL) + app.inject(); fixture data is created and deleted by the tests themselves.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -23,7 +23,7 @@ import {
   type Fixture,
 } from './helpers'
 
-/** Python isoformat()：无 Z，微秒为 0 时不带小数 */
+/** Python isoformat(): no Z, and no fractional part when microseconds are 0 */
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/
 
 let app: FastifyInstance
@@ -131,7 +131,7 @@ describe('登录 / 会话', () => {
     expect(user.roles).toHaveLength(1)
     expect(Object.keys(user.roles[0]).sort()).toEqual(['code', 'created_at', 'description', 'id', 'name'])
     expect(user.roles[0].created_at).toMatch(ISO_RE)
-    // 顺序不保证 → 按集合比较
+    // Order not guaranteed → compare as sets
     expect([...user.menu_codes].sort()).toEqual([...fx.assignedCodes].sort())
 
     const cookie = res.cookies.find((c) => c.name === 'castor_session')!
@@ -165,7 +165,7 @@ describe('登录 / 会话', () => {
     expect(Object.keys(me.json()).sort()).toEqual(['csrf_token', 'user'])
     expect(me.json().csrf_token).toBe(csrf)
     expect(me.json().user.username).toBe(FIXTURE_USER)
-    // 滑动过期：已登录请求会续发 cookie
+    // Sliding expiration: authenticated requests re-issue the cookie
     expect(sessionCookie(me)).toBeTruthy()
 
     const token = await app.inject({ url: '/api/admin/csrf-token', cookies: { castor_session: cookie } })
@@ -273,7 +273,7 @@ describe('改密 / 登出', () => {
     expect(row!.password_hash).toMatch(/^pbkdf2:sha256:1000000\$[A-Za-z0-9]{16}\$[0-9a-f]{64}$/)
     expect(await checkPasswordHash(row!.password_hash, 'changed-pass-2')).toBe(true)
 
-    // onResponse 审计 hook 是异步落库，稍等再查
+    // The onResponse audit hook persists asynchronously; wait a bit before querying
     await new Promise((r) => setTimeout(r, 100))
     const [log] = await handle.db
       .select()
@@ -290,7 +290,7 @@ describe('改密 / 登出', () => {
       payload: '{"old_password": "***", "new_password": "***"}',
     })
 
-    // 恢复夹具密码，后续用例继续可用
+    // Restore the fixture password so later cases can keep using it
     await handle.db.delete(admin_users).where(eq(admin_users.id, fx.userId))
     fx = await createFixture(handle)
   })

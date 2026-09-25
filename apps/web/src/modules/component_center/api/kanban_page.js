@@ -1,6 +1,6 @@
 import request from '@/shared/api/request'
 
-// ── 看板列 ──────────────────────────────────────────────
+// ── Board columns ──────────────────────────────────────
 export const getKanbanBoards = () =>
   request.get('/admin/component-center/kanban/boards')
 
@@ -13,7 +13,7 @@ export const updateKanbanBoard = (id, data) =>
 export const deleteKanbanBoard = (id) =>
   request.delete(`/admin/component-center/kanban/boards/${id}`)
 
-// ── 卡片 ────────────────────────────────────────────────
+// ── Cards ───────────────────────────────────────────────
 export const createKanbanCard = (data) =>
   request.post('/admin/component-center/kanban/cards', data)
 

@@ -18,7 +18,7 @@ import { menuLabel } from '@/lib/menu-label'
 import { flattenMenus, navigablePages } from '@/components/app/menu-tree'
 import { useTranslation } from 'react-i18next'
 
-/** ⌘K 命令面板：跳转页面、切换主题、个人设置、退出登录 */
+/** ⌘K command palette: navigate to pages, switch theme, personal settings, log out */
 export default function CommandMenu({ open, onOpenChange }) {
   const { t } = useTranslation()
   const { menus, logout } = useAuth()

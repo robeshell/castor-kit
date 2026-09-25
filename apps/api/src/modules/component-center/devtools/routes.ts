@@ -1,14 +1,14 @@
 /**
- * 工程工具类 API：
- * 性能监控快照（REST）+ WebSocket `/ws/devtools` 实时推送。
+ * Dev tools API:
+ * performance monitor snapshot (REST) + real-time push over WebSocket `/ws/devtools`.
  *
- * WebSocket 行为：
- * - 连接建立后先校验 Origin（同 Host 或 CORS_ORIGINS 白名单，无 Origin 放行）、会话已登录、
- *   `cc_devtools_perf_monitor` 权限，任一不满足直接正常关闭（1000）
- * - 立即推送一次、之后每秒推送 `{...snapshot, type:'metric'}`
- * - 收到消息回 `{...payload, type:'echo', server_ts}`（非 JSON 文本包成 `{text}`）；
- *   JSON 但不是对象时直接断开连接
- * - 30 秒没有收到任何消息断开（正常关闭 1000）
+ * WebSocket behavior:
+ * - after connecting, first validate the Origin (same Host or in the CORS_ORIGINS allowlist; no Origin is allowed), a logged-in session
+ *   and the `cc_devtools_perf_monitor` permission; if any check fails, close normally (1000)
+ * - push once immediately, then `{...snapshot, type:'metric'}` every second
+ * - reply to each message with `{...payload, type:'echo', server_ts}` (non-JSON text is wrapped as `{text}`);
+ *   JSON that is not an object closes the connection
+ * - disconnect after 30 s without any incoming message (normal close 1000)
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -21,12 +21,12 @@ import { metricMessage, systemSnapshot, warmUp } from './service'
 const PERMISSION = 'cc_devtools_perf_monitor'
 const NORMAL_CLOSURE = 1000
 
-/** 推送间隔（1 秒）与接收超时（30 秒）；导出仅供测试缩短 */
+/** Push interval (1 s) and receive timeout (30 s); exported only so tests can shorten them */
 export const WS_TIMINGS = { pushIntervalMs: 1000, receiveTimeoutMs: 30_000 }
 
-/** 取 URL 的 netloc（host[:port]，含 userinfo）：去掉 scheme 后取 `//` 与首个 `/?#` 之间的部分；没有 `//` 时返回空串 */
+/** Get a URL's netloc (host[:port], including userinfo): after the scheme, the part between `//` and the first `/?#`; empty string when there is no `//` */
 export function urlNetloc(url: string): string {
-  // urlsplit 会先去掉首部的 C0 控制字符与空格，并删除 \t \r \n
+  // urlsplit first strips leading C0 control chars and spaces, and removes \t \r \n
   const cleaned = url.replace(/^[\x00-\x20]+/, '').replace(/[\t\r\n]/g, '')
   let rest = cleaned
   const colon = cleaned.indexOf(':')
@@ -38,8 +38,8 @@ export function urlNetloc(url: string): string {
 }
 
 /**
- * 校验 WS 握手 Origin，阻断跨站 WebSocket 劫持（CSWSH）。
- * 允许：同源（Host 与 Origin 一致）或 CORS_ORIGINS 白名单内的来源；无 Origin（非浏览器客户端）放行。
+ * Validate the WS handshake Origin to block cross-site WebSocket hijacking (CSWSH).
+ * Allowed: same origin (Host matches Origin) or an origin in the CORS_ORIGINS allowlist; a missing Origin (non-browser client) is allowed.
  */
 export function originAllowed(origin: string | undefined, host: string | undefined, whitelist: string[]): boolean {
   if (!origin) return true
@@ -52,10 +52,10 @@ function headerValue(value: string | string[] | undefined): string | undefined {
 }
 
 export async function registerDevtoolsRoutes(app: FastifyInstance): Promise<void> {
-  // systeminformation 的 CPU 基线与网卡枚举预热（不阻塞启动）
+  // Warm up systeminformation's CPU baseline and NIC enumeration (without blocking startup)
   void warmUp()
 
-  // ── 性能指标快照（REST 轮询）────────────────────────────────────────
+  // ── Performance metrics snapshot (REST polling) ──────────────────────────
   app.get('/api/admin/component-center/devtools/perf-stats', { preHandler: loginRequired }, async (request, reply) => {
     if (!(await hasMenuPermission(request, PERMISSION))) {
       return reply.status(403).send({ error: '无权限' })
@@ -63,9 +63,9 @@ export async function registerDevtoolsRoutes(app: FastifyInstance): Promise<void
     return systemSnapshot()
   })
 
-  // ── WebSocket：实时双向通信 demo ─────────────────────────────────────
+  // ── WebSocket: real-time bidirectional demo ─────────────────────────────
   app.get('/ws/devtools', { websocket: true }, (socket: WebSocket, request: FastifyRequest) => {
-    // 鉴权完成前到达的消息先缓存，避免丢失
+    // Buffer messages that arrive before auth completes so they aren't lost
     const pending: (string | Buffer)[] = []
     let onMessage: ((data: string | Buffer) => void) | undefined
     socket.on('message', (data, isBinary) => {
@@ -75,7 +75,7 @@ export async function registerDevtoolsRoutes(app: FastifyInstance): Promise<void
     })
 
     void (async () => {
-      // WebSocket 无路由装饰器鉴权，须在处理器内校验 Origin + 会话 + 权限
+      // WebSocket routes have no auth decorator, so Origin + session + permission must be checked in the handler
       const allowed =
         originAllowed(headerValue(request.headers.origin), headerValue(request.headers.host), app.config.corsOrigins) &&
         Boolean(request.session.get('logged_in')) &&
@@ -114,7 +114,7 @@ function runSession(
     if (!stopped && socket.readyState === socket.OPEN) socket.send(text)
   }
 
-  // 推送线程：采集 → 发送 → 等 1 秒
+  // Push loop: collect → send → wait 1 s
   const push = async () => {
     if (stopped) return
     try {
@@ -126,7 +126,7 @@ function runSession(
   }
   void push()
 
-  // receive(timeout=30)：距上一条消息 30 秒无新消息则结束会话
+  // receive(timeout=30): end the session after 30 s without a new message since the last one
   const resetIdle = () => {
     clearTimeout(idleTimer)
     idleTimer = setTimeout(() => {
@@ -143,7 +143,7 @@ function runSession(
     try {
       payload = JSON.parse(text)
     } catch {
-      // 二进制帧无法按 JSON 解析时直接断开连接
+      // Close the connection when a binary frame can't be parsed as JSON
       if (typeof data !== 'string') {
         stop()
         socket.terminate()
@@ -152,7 +152,7 @@ function runSession(
       payload = { text }
     }
     if (!isPlainObject(payload)) {
-      // payload 不是对象（list/str/数字）时直接断开连接
+      // Close the connection when the payload is not an object (list/str/number)
       stop()
       socket.terminate()
       return

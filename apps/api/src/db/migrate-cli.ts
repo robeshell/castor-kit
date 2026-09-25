@@ -1,7 +1,7 @@
 /**
- * 迁移命令行入口：`pnpm db:migrate`（源码）/ `node dist/migrate.js`（构建产物）。
- * 读取当前 NODE_ENV 的数据库配置。与 migrate.ts 分开，是因为打包后 runMigrations 会进共享 chunk，
- * 在库文件里用 import.meta.url 判断“是否直接执行”会失效。
+ * Migration CLI entry point: `pnpm db:migrate` (source) / `node dist/migrate.js` (build output).
+ * Uses the database config for the current NODE_ENV. Kept separate from migrate.ts because after bundling runMigrations lands in a shared chunk,
+ * where an import.meta.url "run directly?" check in library code no longer works.
  */
 
 import { loadConfig, loadEnvFiles, type AppEnv } from '../config'

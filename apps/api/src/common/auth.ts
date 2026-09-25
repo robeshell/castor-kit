@@ -1,7 +1,7 @@
 /**
- * 认证与权限
+ * Authentication and authorization
  *
- * routes 里的权限判断一律 import 自这里，禁止在模块内自定义 hasPermission。
+ * Permission checks in routes must always be imported from here; never define a custom hasPermission inside a module.
  */
 
 import { eq, inArray, type SQL } from 'drizzle-orm'
@@ -16,7 +16,7 @@ function isApiRequest(request: FastifyRequest): boolean {
   return request.url.startsWith('/api/')
 }
 
-/** 登录校验 preHandler */
+/** Login-required preHandler */
 export const loginRequired: preHandlerAsyncHookHandler = async (request, reply) => {
   if (!request.session.get('logged_in')) {
     if (isApiRequest(request)) {
@@ -57,14 +57,14 @@ function flattenAdmin(row: AdminRowWithRelations): AdminUserWithRoles {
 }
 
 /**
- * 按用户名加载用户并一次查询预加载 roles → menus
+ * Load a user by username, eager-loading roles → menus in a single query
  */
 export async function loadAdminWithRoles(db: Executor, username: string): Promise<AdminUserWithRoles | null> {
   const row = await findAdminRow(db, eq(admin_users.username, username))
   return row ? flattenAdmin(row) : null
 }
 
-/** 按 id 批量加载（预加载 roles → menus），返回顺序与 ids 一致，不存在的 id 忽略 */
+/** Batch-load by id (eager-loading roles → menus); results follow the order of ids, missing ids are skipped */
 export async function loadAdminsWithRolesByIds(db: Executor, ids: number[]): Promise<AdminUserWithRoles[]> {
   if (ids.length === 0) return []
   const rows = await db.query.admin_users.findMany({ where: inArray(admin_users.id, ids), with: WITH_ROLES_MENUS })
@@ -72,7 +72,7 @@ export async function loadAdminsWithRolesByIds(db: Executor, ids: number[]): Pro
   return ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []))
 }
 
-/** 当前登录用户（请求内缓存，避免权限检查 N+1） */
+/** Current logged-in user (cached per request to avoid N+1 in permission checks) */
 export async function getCurrentAdminUser(request: FastifyRequest): Promise<AdminUserWithRoles | null> {
   if (request.currentAdminUser !== undefined) return request.currentAdminUser
 
@@ -94,7 +94,7 @@ export async function hasAnyMenuPermission(request: FastifyRequest, ...menuCodes
   return false
 }
 
-/** 菜单权限校验 preHandler（基于菜单 code） */
+/** Menu permission preHandler (by menu code) */
 export function menuPermissionRequired(menuCode: string): preHandlerAsyncHookHandler {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const api = isApiRequest(request)

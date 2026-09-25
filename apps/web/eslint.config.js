@@ -26,12 +26,12 @@ export default defineConfig([
       },
     },
     rules: {
-      // 核心规则不识别 JSX 用法：大写组件名与 <motion.div> 这类成员表达式视为已使用
+      // The core rule doesn't understand JSX usage: treat capitalized component names and member expressions like <motion.div> as used
       'no-unused-vars': ['error', { varsIgnorePattern: '^(?:[A-Z_]|motion$)', argsIgnorePattern: '^(?:[A-Z_]|_)' }],
     },
   },
   {
-    // Context 文件按惯例同时导出 Provider 与 useXxx hook
+    // By convention Context files export both the Provider and a useXxx hook
     files: ['src/context/**/*.{js,jsx}', 'src/components/ui/**/*.{js,jsx}'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },

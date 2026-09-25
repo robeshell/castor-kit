@@ -8,7 +8,7 @@ export default defineConfig({
     url: process.env.DATABASE_URL ?? process.env.DEV_DATABASE_URL ?? 'postgresql://localhost/castor_kit_dev',
   },
   migrations: {
-    // 迁移记录放独立 schema，不出现在 public（避免被 AI SQL 的表暴露逻辑看到）
+    // Keep migration records in a separate schema, out of public (so the AI SQL table-exposure logic doesn't see them)
     schema: 'drizzle',
     table: '__drizzle_migrations',
   },

@@ -1,7 +1,7 @@
 /**
- * 高级表格页路由
+ * Advanced table page routes
  *
- * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
+ * Routes with an id do get_or_404 first, then the permission check (preserves existing API behavior).
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -14,7 +14,7 @@ import { AdvancedTableService } from './service'
 
 const BASE = '/api/admin/component-center/advanced-table'
 
-/** `request.args.get(key)`：缺失为 None */
+/** `request.args.get(key)`: None when missing */
 function queryArg(request: FastifyRequest, key: string): string | null {
   const value = (request.query as Record<string, unknown> | undefined)?.[key]
   const first = Array.isArray(value) ? value[0] : value

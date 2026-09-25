@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# 通过本地中转执行 `npx shadcn@latest add`（castor-kit 前端新增 shadcn/ui 原子组件用）。
+# Runs `npx shadcn@latest add` through a local relay (used to add shadcn/ui primitives to the castor-kit frontend).
 #
-# 为什么需要中转：shadcn CLI（node）不走系统代理，本机直连 ui.shadcn.com 会失败；
-# 而 CLI 读到 HTTP(S)_PROXY 时又会把 127.0.0.1 的请求也塞给代理。所以这里：
-#   1. 起一个 python 本地中转（127.0.0.1 随机端口），把 /r/<path> 用 curl（走系统代理）转发到 https://ui.shadcn.com/r/<path>
-#   2. 清掉 HTTP(S)_PROXY / ALL_PROXY 后，用 REGISTRY_URL=http://127.0.0.1:<port>/r 执行 CLI
-#      （npx / pnpm 下载依赖仍通过 npm_config_proxy 走原代理）
-#   3. 结束后关闭中转
+# Why a relay: the shadcn CLI (node) ignores the system proxy, and connecting to ui.shadcn.com directly fails on this machine;
+# yet when the CLI sees HTTP(S)_PROXY it sends even 127.0.0.1 requests through the proxy. So this script:
+#   1. starts a local python relay (127.0.0.1, random port) that forwards /r/<path> to https://ui.shadcn.com/r/<path> via curl (which uses the system proxy)
+#   2. clears HTTP(S)_PROXY / ALL_PROXY and runs the CLI with REGISTRY_URL=http://127.0.0.1:<port>/r
+#      (npx / pnpm still download dependencies through the original proxy via npm_config_proxy)
+#   3. shuts the relay down when done
 #
-# 用法（任意目录执行，组件写入 apps/web/src/components/ui/，配置见 apps/web/components.json）：
+# Usage (run from any directory; components are written to apps/web/src/components/ui/, config in apps/web/components.json):
 #   apps/web/scripts/shadcn-add.sh hover-card
-#   apps/web/scripts/shadcn-add.sh badge -o          # 覆盖已有文件（会丢掉本地改动，谨慎）
-#   apps/web/scripts/shadcn-add.sh --view badge      # 只看不写：透传给 `shadcn view`
-# 环境变量：SHADCN_VERSION（默认 latest）、SHADCN_UPSTREAM（默认 https://ui.shadcn.com/r）
-# 注意：CLI 会为组件依赖跑 pnpm add；若误装了 cn 包，本脚本会 pnpm remove cn 撤回（lockfile 还原，dev server 可能重载一次）。
+#   apps/web/scripts/shadcn-add.sh badge -o          # overwrite existing files (discards local changes, use with care)
+#   apps/web/scripts/shadcn-add.sh --view badge      # read-only: passed through to `shadcn view`
+# Env vars: SHADCN_VERSION (default latest), SHADCN_UPSTREAM (default https://ui.shadcn.com/r)
+# Note: the CLI runs pnpm add for component deps; if it wrongly installs the cn package, this script reverts it with pnpm remove cn (the lockfile is restored; the dev server may reload once).
 set -euo pipefail
 
 WEB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,7 +57,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             body_file = tmp.name
         try:
-            # curl 继承调用方的 HTTP(S)_PROXY，负责真正出网
+            # curl inherits the caller's HTTP(S)_PROXY and does the actual outbound request
             res = subprocess.run(
                 ['curl', '-sS', '-L', '--max-time', '60', '-o', body_file, '-w', '%{http_code}', UPSTREAM + path[2:]],
                 capture_output=True, text=True,
@@ -98,7 +98,7 @@ fi
 PORT="$(cat "$TMP_DIR/port")"
 echo "→ shadcn registry 中转：http://127.0.0.1:$PORT/r → $UPSTREAM" >&2
 
-# 保留原代理给 npx / pnpm 下载 npm 包用（npm_config_*），shadcn CLI 本身不再看到代理变量
+# Keep the original proxy for npx / pnpm package downloads (npm_config_*); the shadcn CLI itself no longer sees proxy vars
 ORIG_PROXY="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
 NPM_PROXY_ENV=()
 if [[ -n "$ORIG_PROXY" ]]; then
@@ -117,8 +117,8 @@ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u al
 
 [[ "$SUBCOMMAND" == "add" ]] || exit 0
 
-# 当前 registry（new-york-v4）里的源码写的是 `import { cn } from "cn"`，并把 "cn" 列为 npm 依赖；
-# CLI 不会把它改写成 components.json 的 utils 别名。这里统一改回 @/lib/utils，并撤掉误装的 cn 包。
+# Sources in the current registry (new-york-v4) use `import { cn } from "cn"` and list "cn" as an npm dependency;
+# the CLI doesn't rewrite it to the components.json utils alias. Rewrite it back to @/lib/utils and remove the wrongly installed cn package.
 OUT_DIRS=(src)
 prev=""
 for arg in "$@"; do

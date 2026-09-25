@@ -2,9 +2,9 @@
 @import "tw-animate-css";
 
 /*
- * castor-kit 设计系统（docs/frontend-redesign-plan.md §3）
- * 中性灰为底，Ocean 渐变（blue → sky → cyan）作为唯一强调色，渐变只做点缀。
- * 颜色一律走下面的 CSS 变量；页面里不要写死十六进制色值。
+ * castor-kit design system (docs/frontend-redesign-plan.md §3)
+ * Neutral gray base, with the Ocean gradient (blue → sky → cyan) as the only accent color; gradients are for accents only.
+ * All colors go through the CSS variables below; never hard-code hex values in pages.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -12,7 +12,7 @@
 :root {
   --radius: 0.625rem;
 
-  /* 纯中性灰（不带蓝紫色偏）：内容区纯白、侧栏浅灰，层次靠发丝边而不是底色差 */
+  /* Pure neutral gray (no blue/purple cast): content area pure white, sidebar light gray; hierarchy comes from hairline borders, not background differences */
   --background: #ffffff;
   --foreground: #0a0a0a;
   --card: #ffffff;
@@ -57,7 +57,7 @@
   --sidebar-border: #ebebeb;
   --sidebar-ring: #2563eb;
 
-  /* 品牌渐变：三段用于装饰，两段（strong）用于承载白色文字的元素 */
+  /* Brand gradient: three-stop for decoration, two-stop (strong) for elements carrying white text */
   --brand-from: #2563eb;
   --brand-via: #0284c7;
   --brand-to: #22d3ee;
@@ -184,7 +184,7 @@
   --ease-spring: var(--ease-spring);
   --ease-out-soft: var(--ease-out-soft);
 
-  /* 骨架屏：200ms 后才淡入（本地接口秒回时不闪），扫光在 ::after 上 */
+  /* Skeleton: fades in only after 200ms (no flash when local APIs respond instantly); shimmer lives on ::after */
   --animate-skeleton-in: skeleton-in 0.2s ease-out 0.2s both;
   @keyframes skeleton-in {
     from {
@@ -235,7 +235,7 @@
   }
 }
 
-/* ---- 品牌渐变工具类（只用于点缀） ---- */
+/* ---- Brand gradient utilities (accents only) ---- */
 @utility bg-brand-gradient {
   background-image: var(--brand-gradient);
 }
@@ -248,24 +248,24 @@
   background-clip: text;
   color: transparent;
 }
-/* 渐变描边：配合圆角使用，内部保持卡片底色 */
+/* Gradient border: use with rounded corners; the inside keeps the card background */
 @utility border-brand-gradient {
   border: 1px solid transparent;
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
     var(--brand-gradient) border-box;
 }
-/* 主按钮柔和辉光 */
+/* Soft glow for primary buttons */
 @utility shadow-brand {
   box-shadow:
     0 6px 16px -6px var(--brand-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
-/* 页面顶部柔光 */
+/* Soft glow at the top of the page */
 @utility bg-brand-glow {
   background-image: radial-gradient(900px 260px at 78% -80px, var(--brand-glow), transparent 70%);
 }
-/* 卡片：白底 + 发丝边 + 极浅投影（让卡片边缘清晰，而不是靠底色差） */
+/* Card: white background + hairline border + very light shadow (keeps card edges crisp instead of relying on background differences) */
 @utility surface-card {
   background: var(--card);
   border-radius: calc(var(--radius) + 4px);
@@ -284,7 +284,7 @@
   }
 }
 
-/* 主题切换时的颜色过渡（ThemeContext 临时加在 <html> 上） */
+/* Color transition when switching themes (temporarily added to <html> by ThemeContext) */
 .theme-transition,
 .theme-transition *,
 .theme-transition *::before,

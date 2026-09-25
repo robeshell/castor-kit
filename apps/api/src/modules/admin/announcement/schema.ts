@@ -1,5 +1,5 @@
 /**
- * 公告管理 schema 层：字段映射与归一化
+ * Announcement management schema layer: field mapping and normalization
  */
 
 import { ServiceError } from '@/common/errors'
@@ -48,8 +48,8 @@ function pyTypeName(value: unknown): string {
 }
 
 /**
- * `(value or '').strip()`：假值 → ''；真值必须是字符串，
- * 否则抛错（未捕获 → 全局 500）。
+ * `(value or '').strip()`: falsy → ''; truthy values must be strings,
+ * otherwise it throws (uncaught → global 500).
  */
 export function stripOrEmpty(value: unknown): string {
   if (!pyTruthy(value)) return ''
@@ -58,8 +58,8 @@ export function stripOrEmpty(value: unknown): string {
 }
 
 /**
- * `data.get('fields') or []` 后 `[f for f in fields if f in EXPORT_FIELD_MAP]`：
- * 字符串按字符迭代、dict 按键迭代；不可迭代或含不可哈希元素（list/dict）时抛错 → 500。
+ * `data.get('fields') or []` then `[f for f in fields if f in EXPORT_FIELD_MAP]`:
+ * strings iterate by character, dicts by key; non-iterables or unhashable elements (list/dict) throw → 500.
  */
 export function pickExportFields(raw: unknown): string[] {
   if (!pyTruthy(raw)) return []
@@ -77,11 +77,11 @@ export function pickExportFields(raw: unknown): string[] {
 }
 
 /**
- * `id IN (ids)`：ids 必须是 list（或 dict，取键）；元素按 SQL 字面量比较 ——
- * 整数 / 可解析的数字字符串参与匹配，非整数数值与 None 永不匹配，其余（bool、不合法字符串、嵌套）PG 报错 → 500。
+ * `id IN (ids)`: ids must be a list (or a dict, using its keys); elements are compared as SQL literals —
+ * integers / parseable numeric strings can match, non-integer numbers and None never match, anything else (bool, invalid strings, nested values) makes PG error → 500.
  */
 export function idsForInClause(ids: unknown): number[] {
-  // dict 可迭代（迭代键），str 与标量不是合法的 IN 列表
+  // dicts are iterable (over keys); str and scalars are not valid IN lists
   const values = Array.isArray(ids) ? ids : isPlainObject(ids) ? Object.keys(ids) : null
   if (!values) throw new ServiceError('IN expression list expected', 500)
   const result: number[] = []
@@ -105,9 +105,9 @@ export function idsForInClause(ids: unknown): number[] {
 // ---------------------------------------------------------------- datetime.fromisoformat
 
 /**
- * `datetime.fromisoformat(s)` 的解析结果。
- * text 用于写库：naive 为 `YYYY-MM-DD HH:MM:SS.ffffff`（按 timestamp 存），
- * aware 为带偏移的 ISO 串（以 `::timestamptz` 发送，存入 timestamp 列时换算到会话时区）。
+ * Result of parsing with `datetime.fromisoformat(s)`.
+ * text is what gets written: naive values are `YYYY-MM-DD HH:MM:SS.ffffff` (stored as timestamp),
+ * aware values are ISO strings with an offset (sent as `::timestamptz`, converted to the session time zone when stored in a timestamp column).
  */
 export interface PyDateTime {
   text: string
@@ -130,7 +130,7 @@ function daysInMonth(y: number, m: number): number {
   return [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]!
 }
 
-/** 纯日历运算（非数据库时间）：ISO 周日期 → 公历 */
+/** Pure calendar arithmetic (not DB time): ISO week date → Gregorian date */
 function isoWeekToGregorian(year: number, week: number, day: number): [number, number, number] {
   if (year < 1 || year > 9999) throw new Error('year out of range')
   const jan1 = new Date(0)
@@ -141,7 +141,7 @@ function isoWeekToGregorian(year: number, week: number, day: number): [number, n
     if (!ok) throw new Error('invalid week')
   }
   if (!(day > 0 && day < 8)) throw new Error('invalid weekday')
-  // 第 1 周的周一
+  // Monday of week 1
   const week1Monday = new Date(jan1.getTime())
   week1Monday.setUTCDate(jan1.getUTCDate() - (jan1Weekday - 1) + (jan1Weekday > 4 ? 7 : 0))
   const target = new Date(week1Monday.getTime())
@@ -230,13 +230,13 @@ function parseHhMmSsFf(s: string): [number, number, number, number] {
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
-/** 按 `fromisoformat` 规则解析 ISO 8601 日期时间（不支持 24:00）；不合法返回 null */
+/** Parse an ISO 8601 datetime per `fromisoformat` rules (24:00 unsupported); returns null when invalid */
 export function pyFromIsoformat(value: string): PyDateTime | null {
   try {
     if (value.length < 7) return null
     const sepAt = findSeparator(value)
     const [year, month, day] = parseDate(value.slice(0, sepAt))
-    // 有分隔符就必须带时间部分（`2026-01-02T` 不合法）
+    // A separator requires a time part (`2026-01-02T` is invalid)
     if (sepAt < value.length && sepAt + 1 >= value.length) return null
     const tstr = value.slice(sepAt + 1)
 
@@ -279,13 +279,13 @@ export function pyFromIsoformat(value: string): PyDateTime | null {
   }
 }
 
-/** 把 `Z` 替换成 `+00:00` 后按 `fromisoformat` 规则解析；非字符串与解析失败都返回 null */
+/** Replace `Z` with `+00:00`, then parse per `fromisoformat` rules; returns null for non-strings and parse failures */
 export function parsePublishAt(value: unknown): PyDateTime | null {
   if (typeof value !== 'string') return null
   return pyFromIsoformat(value.replace(/Z/g, '+00:00'))
 }
 
-/** 数据库 timestamp 文本 → 与 PyDateTime.text 同格式（用于 naive datetime 的相等比较） */
+/** DB timestamp text → same format as PyDateTime.text (for equality checks on naive datetimes) */
 export function normalizeDbTimestamp(value: string | null): string | null {
   if (!value) return null
   const [datePart, timePart = '00:00:00'] = value.replace('T', ' ').split(' ')

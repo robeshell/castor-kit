@@ -1,0 +1,18 @@
+{
+  "HTML 源码": "HTML source",
+  "复制 HTML": "Copy HTML",
+  "字数统计 <0>{{count}}</0> 字": "Word count <0>{{count}}</0>",
+  "富文本编辑器": "Rich Text Editor",
+  "已复制到剪贴板": "Copied to clipboard",
+  "开始输入内容…": "Start typing…",
+  "支持粘贴带格式文本 · 支持快捷键（Ctrl+B 加粗、Ctrl+I 斜体、Ctrl+U 下划线）": "Paste formatted text · Shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+U underline",
+  "查看 HTML": "View HTML",
+  "标题 1": "Heading 1",
+  "标题 2": "Heading 2",
+  "标题 3": "Heading 3",
+  "正文": "Normal",
+  "清空内容": "Clear content",
+  "编辑器当前内容对应的 HTML": "The HTML for the editor's current content",
+  "访问链接：": "Visit URL:",
+  "输入链接：": "Enter link:"
+}

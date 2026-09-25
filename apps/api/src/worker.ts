@@ -1,10 +1,10 @@
 /**
- * 独立定时任务 worker 进程入口
- * 用法：`pnpm worker`（源码）/ `node dist/worker.js`（构建产物）
+ * Entry point of the standalone scheduled task worker process
+ * Usage: `pnpm worker` (source) / `node dist/worker.js` (build output)
  *
- * 与 web 进程共用同一套租约模型，可与 RUN_SCHEDULER_IN_WEB=true 的 web 进程或其他 worker 同时运行，
- * 同一任务同一时刻只会被一个进程抢到。
- * ENABLE_TASK_SCHEDULER=false 时不启动调度，但进程保持运行（空转）。
+ * Shares the lease model with the web process, so it can run alongside a web process with RUN_SCHEDULER_IN_WEB=true or other workers;
+ * a given task is claimed by only one process at a time.
+ * With ENABLE_TASK_SCHEDULER=false the scheduler is not started, but the process keeps running (idle).
  */
 
 import { utcNowIso } from './common/serialize'
@@ -35,7 +35,7 @@ const logger: SchedulerLogger = {
 }
 
 const runner = startScheduledTaskRunner(handle.db, config, logger)
-// 保持事件循环存活
+// Keep the event loop alive
 const keepAlive = setInterval(() => {}, 60_000)
 
 if (runner) {

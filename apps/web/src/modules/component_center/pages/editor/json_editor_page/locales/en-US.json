@@ -1,0 +1,17 @@
+{
+  "JSON 已压缩": "JSON minified",
+  "JSON 格式错误，无法压缩": "Invalid JSON, so it can't be minified",
+  "JSON 编辑器": "JSON Editor",
+  "JSON 解析失败": "Failed to parse JSON",
+  "JSON 错误：{{message}}": "JSON error: {{message}}",
+  "压缩": "Minify",
+  "字符串": "String",
+  "已加载示例数据": "Sample data loaded",
+  "布尔值": "Boolean",
+  "树形预览": "Tree preview",
+  "格式化": "Format",
+  "点击树节点可展开 / 折叠子节点 · 颜色区分类型：": "Click a node to expand / collapse it · Colors by type:",
+  "示例数据": "Sample data",
+  "输入 JSON 后在此展示树形结构": "Enter JSON to see its tree structure here",
+  "键 / 对象 / 数组": "Key / Object / Array"
+}

@@ -1,5 +1,5 @@
 /**
- * 数据字典 repository 层
+ * Data dictionary repository layer
  */
 
 import { and, asc, count, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'
@@ -61,7 +61,7 @@ export class DictsRepository {
     return { total: totalRow?.n ?? 0, rows }
   }
 
-  /** 各字典类型的字典项数量（DictType.to_dict 的 item_count） */
+  /** Item count per dict type (item_count in DictType.to_dict) */
   async countItemsByTypeIds(typeIds: number[]): Promise<Map<number, number>> {
     const result = new Map<number, number>()
     if (typeIds.length === 0) return result
@@ -157,7 +157,7 @@ export class DictsRepository {
     await this.db.delete(dict_items).where(eq(dict_items.id, id))
   }
 
-  /** 同一字典下除 excludeId 外的默认项全部取消默认 */
+  /** Unset the default flag on all other items in the same dict (except excludeId) */
   async clearDefaultExcludingId(typeId: number, excludeId: number): Promise<void> {
     await this.db
       .update(dict_items)
@@ -165,7 +165,7 @@ export class DictsRepository {
       .where(and(eq(dict_items.dict_type_id, typeId), ne(dict_items.id, excludeId), eq(dict_items.is_default, true)))
   }
 
-  /** 同一字典下除 keepValue 外的默认项全部取消默认 */
+  /** Unset the default flag on all other items in the same dict (except keepValue) */
   async clearDefaultKeepingValue(typeId: number, keepValue: string): Promise<void> {
     await this.db
       .update(dict_items)

@@ -41,7 +41,7 @@ beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
   await cleanup()
-  // createFixture 会清理所有 ck_test_ 用户（含 super），所以先建夹具再登录 super
+  // createFixture cleans up all ck_test_ users (including super), so create the fixture first, then log in as super
   const fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)
@@ -103,7 +103,7 @@ describe('dynamic-form-page', () => {
     const partial = await post({ title: 'x', record_code: `${P}z`, fields: [{ field_key: 'ok' }, 'bad'] })
     expect(partial.statusCode).toBe(500)
     expect(await rowByCode(`${P}z`)).toBeUndefined()
-    // 空值（'' / {} / false）按 [] 处理
+    // Empty values ('' / {} / false) are treated as []
     const empty = await post({ title: 'x', record_code: `${P}e`, fields: {} })
     expect(empty.json().fields).toEqual([])
   })

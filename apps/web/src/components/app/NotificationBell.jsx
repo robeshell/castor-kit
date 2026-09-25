@@ -37,7 +37,7 @@ export default function NotificationBell() {
       .catch(() => {})
   }, [])
 
-  // 未读数轮询：标签页隐藏时暂停，避免后台空耗请求
+  // Unread count polling: paused while the tab is hidden to avoid wasting requests in the background
   useEffect(() => {
     if (!user) return undefined
     let timer = null

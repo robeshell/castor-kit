@@ -1,7 +1,7 @@
 /**
- * 角色模块路由
+ * Roles module routes
  *
- * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
+ * Routes with an id run get_or_404 first, then the permission check (preserves existing API behavior).
  */
 
 import type { FastifyInstance } from 'fastify'

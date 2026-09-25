@@ -1,12 +1,12 @@
 /**
- * 角色模块 repository 层
+ * Roles module repository layer
  *
- * 几处“无 ORDER BY”的查询刻意保持固定的 SQL 形状（别名、JOIN 结构不要随意改），使 PostgreSQL 选择稳定的执行计划、
- * 返回既有的行序（角色导出的菜单编码顺序就取决于这些查询）：
- * - `listWithMenusPyOrder`：角色列表，roles LEFT OUTER JOIN role_menus/menus 一次查出
- * - `lazyMenus`：单个角色的菜单，menus × role_menus 按角色过滤
- * - `currentUserRoleMenus`：当前用户 → 角色 → 菜单一次 JOIN 查出；同一请求内当前用户的角色
- *   直接复用这份菜单集合与顺序
+ * Several queries without ORDER BY deliberately keep a fixed SQL shape (don't casually change aliases or JOIN structure) so PostgreSQL picks a stable plan
+ * and returns the existing row order (the menu code order in role export depends on these queries):
+ * - `listWithMenusPyOrder`: role list, fetched in one roles LEFT OUTER JOIN role_menus/menus query
+ * - `lazyMenus`: menus of a single role, menus × role_menus filtered by role
+ * - `currentUserRoleMenus`: current user → roles → menus in one JOIN; within the same request the current user's roles
+ *   reuse this menu set and order directly
  */
 
 import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
@@ -70,7 +70,7 @@ function roleFromRow(row: Record<string, unknown>, prefix: string): Role {
 export class RoleRepository {
   constructor(private readonly db: Executor) {}
 
-  /** 全部角色及其菜单（一次 JOIN 查出）：按结果行首次出现顺序返回角色 */
+  /** All roles with their menus (one JOIN): roles are returned in order of first appearance in the result rows */
   async listWithMenusPyOrder(): Promise<RoleWithMenus[]> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT roles.id AS roles_id, roles.name AS roles_name, roles.code AS roles_code,
@@ -92,7 +92,7 @@ export class RoleRepository {
     return [...byId.values()]
   }
 
-  /** 单个角色的菜单（经 role_menus 关联，无 ORDER BY） */
+  /** Menus of a single role (joined via role_menus, no ORDER BY) */
   async lazyMenus(roleId: number): Promise<Menu[]> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT ${MENU_COLUMNS('menus')}
@@ -102,7 +102,7 @@ export class RoleRepository {
     return result.rows.map((row) => menuFromRow(row, 'menus')!)
   }
 
-  /** 当前用户的角色菜单预加载查询：返回该用户每个角色的菜单（按结果行顺序） */
+  /** Preload query for the current user's role menus: returns the menus of each of the user's roles (in result-row order) */
   async currentUserRoleMenus(username: string): Promise<Map<number, Menu[]>> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT anon_1.admin_users_id AS anon_1_admin_users_id, anon_1.admin_users_username AS anon_1_admin_users_username,
@@ -179,7 +179,7 @@ export class RoleRepository {
     await this.db.delete(roles).where(eq(roles.id, id))
   }
 
-  /** 覆盖式设置角色菜单（对应 `role.menus = [...]`），只增删差异部分 */
+  /** Replace a role's menus (like `role.menus = [...]`), inserting/deleting only the difference */
   async setMenus(roleId: number, menuIds: number[]): Promise<void> {
     const wanted = new Set(menuIds)
     const current = await this.db.select({ id: role_menus.menu_id }).from(role_menus).where(eq(role_menus.role_id, roleId))

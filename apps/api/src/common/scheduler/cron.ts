@@ -1,14 +1,14 @@
 /**
- * 手写 5 段 cron 匹配器（分 时 日 月 周）：表达式解析 + 计算下一次执行时间。
+ * Hand-written 5-field cron matcher (minute hour day month weekday): expression parsing + next-run computation.
  *
- * 与标准（Vixie）cron 的差异是有意为之，必须保留（已存任务的调度结果依赖这些规则）：
- * - “日”与“周”是 AND 关系（`0 0 1 * 1` = 既是 1 号又是周一），标准 cron 两者都受限时是 OR
- * - 周字段 Sunday=0，7 是 0 的别名（别名在区间两端分别生效，所以 `5-7` 是非法区间）
- * - 不支持 L / W / # / 月份与星期名称
- * - 按 UTC 逐分钟向前扫描，最多 366 天，找不到则报错
+ * Deviations from standard (Vixie) cron are intentional and must be kept (stored tasks' schedules depend on them):
+ * - Day-of-month and day-of-week are ANDed (`0 0 1 * 1` = the 1st AND a Monday); standard cron ORs them when both are restricted
+ * - Weekday field has Sunday=0 and 7 as an alias of 0 (the alias applies to each range end separately, so `5-7` is an invalid range)
+ * - No support for L / W / # or month/weekday names
+ * - Scans forward minute by minute in UTC, up to 366 days, and throws if nothing matches
  *
- * 时间一律用“墙上时间”字段做整数运算，不经过 JS Date：输入是数据库 timestamp 文本
- * （`YYYY-MM-DD HH:mm:ss[.ffffff]`），输出是可直接写库的 `YYYY-MM-DD HH:mm:00`。
+ * All time math is integer arithmetic on wall-clock fields, never via JS Date: input is DB timestamp text
+ * (`YYYY-MM-DD HH:mm:ss[.ffffff]`), output is `YYYY-MM-DD HH:mm:00`, ready to write to the DB.
  */
 
 import { pyStr, pyTruthy } from '@/common/py'
@@ -88,7 +88,7 @@ function parseCronField(field: string, minValue: number, maxValue: number, alias
   return result
 }
 
-/** 规范化整数文本：去掉前导 0、Unicode 数字转 ASCII（大数也保持精确文本） */
+/** Normalize integer text: strip leading zeros, convert Unicode digits to ASCII (large numbers stay exact as text) */
 function canonicalIntText(text: string): string {
   const negative = text.startsWith('-')
   let digits = ''
@@ -113,7 +113,7 @@ function parseNum(raw: string, minValue: number, maxValue: number, alias: Map<nu
   return value
 }
 
-// ---- 墙上时间（UTC）整数运算 ----
+// ---- Wall-clock time (UTC) integer arithmetic ----
 
 export interface WallTime {
   year: number
@@ -127,7 +127,7 @@ export interface WallTime {
 
 const TIMESTAMP_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?$/
 
-/** 解析数据库 timestamp 文本（驱动原样返回的 `YYYY-MM-DD HH:mm:ss[.ffffff]`，或 isoformat 的 `T` 分隔） */
+/** Parse DB timestamp text (`YYYY-MM-DD HH:mm:ss[.ffffff]` as returned by the driver, or isoformat with a `T` separator) */
 export function parseTimestamp(text: string): WallTime {
   const m = TIMESTAMP_RE.exec(text.trim())
   if (!m) throw new Error(`无法解析时间：${text}`)
@@ -151,7 +151,7 @@ export function daysInMonth(year: number, month: number): number {
   return [4, 6, 9, 11].includes(month) ? 30 : 31
 }
 
-/** 1970-01-01 起的天数（proleptic Gregorian，Howard Hinnant days_from_civil） */
+/** Days since 1970-01-01 (proleptic Gregorian, Howard Hinnant's days_from_civil) */
 export function daysFromCivil(year: number, month: number, day: number): number {
   const y = month <= 2 ? year - 1 : year
   const era = Math.floor(y / 400)
@@ -162,7 +162,7 @@ export function daysFromCivil(year: number, month: number, day: number): number 
   return era * 146097 + doe - 719468
 }
 
-/** 墙上时间 → 1970 起的微秒数（用于两个数据库时间求差） */
+/** Wall-clock time → microseconds since 1970 (used to diff two DB timestamps) */
 export function toEpochMicros(t: WallTime): number {
   const days = daysFromCivil(t.year, t.month, t.day)
   return ((days * 24 + t.hour) * 60 + t.minute) * 60_000_000 + t.second * 1_000_000 + t.microsecond
@@ -172,17 +172,17 @@ function pad(n: number, width = 2): string {
   return String(n).padStart(width, '0')
 }
 
-/** 格式化为可写库的 timestamp 文本（秒为 0，无小数） */
+/** Format as timestamp text writable to the DB (seconds zeroed, no fraction) */
 function formatMinute(year: number, month: number, day: number, hour: number, minute: number): string {
   return `${pad(year, 4)}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}:00`
 }
 
-/** 默认的前瞻窗口：366 天 */
+/** Default look-ahead window: 366 days */
 export const LOOKAHEAD_MINUTES = 366 * 24 * 60
 
 /**
- * 从 baseTime（数据库 UTC timestamp 文本）之后的下一分钟开始逐分钟扫描，返回第一个匹配时刻。
- * 返回值是 `YYYY-MM-DD HH:mm:00` 文本（可直接写库，读出后经 toIso 输出）。
+ * Scan minute by minute starting from the minute after baseTime (DB UTC timestamp text) and return the first match.
+ * Returns `YYYY-MM-DD HH:mm:00` text (writable to the DB as-is; emitted via toIso when read back).
  */
 export function computeNextRunAt(expression: unknown, baseTime: string, lookaheadMinutes = LOOKAHEAD_MINUTES): string {
   const cron = parseCronExpression(expression)
@@ -190,7 +190,7 @@ export function computeNextRunAt(expression: unknown, baseTime: string, lookahea
 
   // current = base.replace(second=0, microsecond=0) + timedelta(minutes=1)
   let { year, month, day, hour, minute } = base
-  // cron 周：Monday=1 ... Sunday=0；1970-01-01 是周四（4）
+  // cron weekday: Monday=1 ... Sunday=0; 1970-01-01 was a Thursday (4)
   let weekday = (((daysFromCivil(year, month, day) + 4) % 7) + 7) % 7
   let monthDays = daysInMonth(year, month)
 

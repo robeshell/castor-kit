@@ -1,30 +1,30 @@
 /**
- * castor-kit 功能验证门禁
+ * castor-kit feature verification gate
  *
- * 用法：
+ * Usage:
  *   pnpm verify -- --module customer
  *   pnpm verify -- --module customer --skip-build
- *   pnpm verify -- --module customer --json   # 输出结构化 JSON（供 AI/MCP 读取；stdout 只有 JSON）
+ *   pnpm verify -- --module customer --json   # structured JSON output (for AI/MCP; stdout contains only JSON)
  *
- * 检查项：
- *   1. TypeScript 类型检查（tsc --noEmit：apps/api 全量含 scripts/test，以及 apps/mcp）
- *   2. routes 层不允许自定义 hasPermission（必须用 common/auth）
- *   3. 迁移链完整（drizzle journal 线性、snapshot prevId 成链、每条都有 SQL、无游离 SQL）
- *   4. 迁移已真实落库（journal 与 drizzle.__drizzle_migrations 比对；模块表用 to_regclass 确认存在）
- *   5. OpenAPI 文档同步（告警，调用 scripts/generate-openapi.ts --dry-run）
- *   6. AI 上下文文档引用的路径存在（告警；--strict-docs 时阻断）
- *   7. 后端 routes/repository/service 文件存在
- *   8. 前端页面文件存在
- *   9. 前端页面只用 shadcn/ui 新体系（页面目录内禁止 @douyinfe/*、var(--semi-*)、已下线的旧公共组件）
- *  10. 前端 API 文件存在
- *  11. 路由注册（src/router.ts / modules/<domain>/router.ts）
- *  12. 表定义注册（db/schema/index.ts）
- *  13. RBAC 种子（scripts/seed-rbac.ts）包含菜单 component 或权限编码
- *  14. 前端构建通过（可选，--skip-build 跳过）
- *  15. 前端 Vitest 通过（可选，--skip-frontend-tests 跳过）
- *  16. 后端 Vitest 通过（可选，--skip-api-tests 跳过；约 45s，需要测试库）
+ * Checks:
+ *   1. TypeScript type check (tsc --noEmit: all of apps/api including scripts/test, plus apps/mcp)
+ *   2. routes layer must not define its own hasPermission (must use common/auth)
+ *   3. Migration chain is intact (drizzle journal is linear, snapshot prevIds chain up, every entry has SQL, no stray SQL)
+ *   4. Migrations are actually applied (journal compared against drizzle.__drizzle_migrations; module tables confirmed via to_regclass)
+ *   5. OpenAPI docs in sync (warning; runs scripts/generate-openapi.ts --dry-run)
+ *   6. Paths referenced by AI context docs exist (warning; blocking with --strict-docs)
+ *   7. Backend routes/repository/service files exist
+ *   8. Frontend page file exists
+ *   9. Frontend page uses only the new shadcn/ui system (no @douyinfe/*, var(--semi-*) or retired legacy shared components in the page directory)
+ *  10. Frontend API file exists
+ *  11. Route registration (src/router.ts / modules/<domain>/router.ts)
+ *  12. Table definition registration (db/schema/index.ts)
+ *  13. RBAC seed (scripts/seed-rbac.ts) contains the menu component or permission code
+ *  14. Frontend build passes (optional, skip with --skip-build)
+ *  15. Frontend Vitest passes (optional, skip with --skip-frontend-tests)
+ *  16. Backend Vitest passes (optional, skip with --skip-api-tests; ~45s, needs the test DB)
  *
- * JSON 输出结构：{ passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
+ * JSON output shape: { passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
  */
 
 import { spawnSync, type SpawnSyncOptions } from 'node:child_process'
@@ -61,7 +61,7 @@ export function makeContext(root: string = DEFAULT_ROOT): VerifyContext {
   return { root: r, apiDir, srcDir: join(apiDir, 'src'), webDir: join(r, 'apps', 'web') }
 }
 
-// ─── 工具 ──────────────────────────────────────────────────────────────────────
+// ─── Utilities ─────────────────────────────────────────────────────────────────
 
 export function run(cmd: string[], cwd: string, timeoutMs = 600_000): { code: number; output: string } {
   const opts: SpawnSyncOptions = { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: timeoutMs, env: process.env }
@@ -71,7 +71,7 @@ export function run(cmd: string[], cwd: string, timeoutMs = 600_000): { code: nu
   return { code: res.status ?? 1, output }
 }
 
-/** 优先用包内 node_modules/.bin，找不到退回 npx */
+/** Prefer the package's node_modules/.bin; fall back to npx if not found */
 function bin(pkgDir: string, name: string): string[] {
   const local = join(pkgDir, 'node_modules', '.bin', name)
   return existsSync(local) ? [local] : ['npx', name]
@@ -103,7 +103,7 @@ const toPascal = (name: string) =>
     .map((w) => (w ? w[0]!.toUpperCase() + w.slice(1).toLowerCase() : ''))
     .join('')
 
-/** 模块名的候选写法：customer / customers / customer_page / list_page → list */
+/** Candidate spellings of the module name: customer / customers / customer_page / list_page → list */
 export function moduleCandidates(module: string): string[] {
   const singular = singularOf(module)
   const names = [module, singular, `${module}_page`, `${singular}_page`]
@@ -114,9 +114,9 @@ export function moduleCandidates(module: string): string[] {
 const BACKEND_DOMAINS = ['admin', 'component-center']
 const WEB_MODULES = ['admin', 'component_center']
 
-// ─── 单项检查 ──────────────────────────────────────────────────────────────────
+// ─── Individual checks ─────────────────────────────────────────────────────────
 
-/** TypeScript 类型检查（apps/api 全量 + apps/mcp） */
+/** TypeScript type check (all of apps/api + apps/mcp) */
 export function checkTypescript(ctx: VerifyContext): CheckResult {
   const errors: string[] = []
   for (const pkg of [ctx.apiDir, join(ctx.root, 'apps', 'mcp')]) {
@@ -128,7 +128,7 @@ export function checkTypescript(ctx: VerifyContext): CheckResult {
   return { name: 'typescript_compile', passed: true }
 }
 
-/** routes 层不允许自定义 hasPermission / hasMenuPermission（必须 import 自 common/auth） */
+/** routes layer must not define its own hasPermission / hasMenuPermission (must import from common/auth) */
 export function checkNoLocalHasPermission(ctx: VerifyContext): CheckResult {
   const modulesDir = join(ctx.srcDir, 'modules')
   const re = /(function\s+has(Menu)?Permission\s*[(<])|((const|let|var)\s+has(Menu)?Permission\s*[=:])/
@@ -152,8 +152,8 @@ interface JournalEntry {
 }
 
 /**
- * 迁移链完整性：journal 的 idx 连续、when 严格递增、tag 唯一；每条有 SQL 与 snapshot；
- * snapshot 的 prevId 首尾相接（单根线性、无分叉）；drizzle/ 下没有游离（手写）SQL。
+ * Migration chain integrity: journal idx is contiguous, when strictly increasing, tags unique; each entry has SQL and a snapshot;
+ * snapshot prevIds link end to end (single root, linear, no forks); no stray (hand-written) SQL under drizzle/.
  */
 export function checkMigrationChain(ctx: VerifyContext): CheckResult {
   const dir = join(ctx.apiDir, 'drizzle')
@@ -209,7 +209,7 @@ export function checkMigrationChain(ctx: VerifyContext): CheckResult {
   return { name: 'migration_chain', passed: true, head: entries[entries.length - 1]!.tag }
 }
 
-/** 从 schema 文件里找出模块相关的表名（pgTable('xxx')） */
+/** Find the module's table names in schema files (pgTable('xxx')) */
 export function findModuleTables(ctx: VerifyContext, module: string): { file: string; tables: string[] } | null {
   const schemaDir = join(ctx.srcDir, 'db', 'schema')
   const files = walk(schemaDir, (p) => p.endsWith('.ts') && !p.endsWith('index.ts'))
@@ -217,9 +217,9 @@ export function findModuleTables(ctx: VerifyContext, module: string): { file: st
   const kebabs = new Set(names.map(toKebab))
   const tableNames = new Set(names.flatMap((n) => [n, `${n}s`]))
 
-  // 1) 同名 schema 文件（scaffold 生成的布局）
+  // 1) Schema file with the same name (layout generated by scaffold)
   const byFile = files.find((f) => kebabs.has(f.slice(f.lastIndexOf('/') + 1, -3)))
-  // 2) 任意 schema 文件里定义了同名表
+  // 2) Any schema file that defines a table with the same name
   const byTable = files.find((f) => {
     for (const m of readFileSync(f, 'utf8').matchAll(/pgTable\(\s*['"]([^'"]+)['"]/g)) if (tableNames.has(m[1]!)) return true
     return false
@@ -230,7 +230,7 @@ export function findModuleTables(ctx: VerifyContext, module: string): { file: st
   return { file, tables }
 }
 
-/** 迁移已真实落库：journal 的每条迁移（按 SQL 内容 hash）都在 drizzle.__drizzle_migrations；模块表真实存在 */
+/** Migrations actually applied: every journal migration (by SQL content hash) is in drizzle.__drizzle_migrations; module tables really exist */
 export async function checkMigrationApplied(
   ctx: VerifyContext,
   module: string | undefined,
@@ -294,8 +294,8 @@ export async function checkMigrationApplied(
 }
 
 /**
- * OpenAPI 文档同步度（告警性质，不阻断门禁）：调用 generate-openapi.ts --dry-run（只统计不写回），
- * 有未入文档的路由、或详细路径覆盖率 < 80%（骨架路径不计入）时告警。
+ * OpenAPI docs sync (warning only, does not block the gate): runs generate-openapi.ts --dry-run (counts only, no write-back);
+ * warns when there are undocumented routes, or detailed path coverage < 80% (skeleton paths not counted).
  */
 export function checkOpenapiSync(ctx: VerifyContext): CheckResult {
   const name = 'openapi_sync'
@@ -341,7 +341,7 @@ export function checkOpenapiSync(ctx: VerifyContext): CheckResult {
   return { name, passed: true }
 }
 
-/** AI 上下文文档（AGENTS.md / CLAUDE.md / ...）里 `反引号` 或相对链接引用的仓库路径必须存在 */
+/** Repo paths referenced in AI context docs (AGENTS.md / CLAUDE.md / ...) via `backticks` or relative links must exist */
 export function checkDocPaths(ctx: VerifyContext, strict = false): CheckResult {
   const name = 'docs_paths'
   const docs = [
@@ -402,7 +402,7 @@ export function isRepoPathRef(ref: string, topLevel: Set<string>): boolean {
   return topLevel.has(segments[0] ?? '')
 }
 
-/** 后端 routes/repository/service 文件存在（modules/<domain>/<name>/） */
+/** Backend routes/repository/service files exist (modules/<domain>/<name>/) */
 export function checkBackendFile(ctx: VerifyContext, module: string): CheckResult {
   const candidates = BACKEND_DOMAINS.flatMap((d) =>
     moduleCandidates(module).map((n) => join(ctx.srcDir, 'modules', d, toKebab(n))),
@@ -426,7 +426,7 @@ export function checkBackendFile(ctx: VerifyContext, module: string): CheckResul
   return { name: 'backend_file', passed: true, path: rel(ctx, found) }
 }
 
-/** 前端页面 index.jsx 存在 */
+/** Frontend page index.jsx exists */
 export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResult {
   const singular = singularOf(module)
   const names = new Set([module, singular, `${module}_page`, `${singular}_page`])
@@ -445,8 +445,8 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
 }
 
 /**
- * 旧 UI 体系的残留写法（前端已按 docs/frontend-redesign-plan.md 从 Semi Design 迁到 shadcn/ui + Tailwind v4）。
- * 这些依赖 / 文件会在迁移收尾时删除，命中即构建失败或样式失效，所以按失败处理而不是告警。
+ * Leftover patterns from the old UI system (the frontend moved from Semi Design to shadcn/ui + Tailwind v4 per docs/frontend-redesign-plan.md).
+ * These dependencies / files are deleted when the migration wraps up; a hit means a build failure or broken styles, so it's treated as a failure rather than a warning.
  */
 export const LEGACY_UI_PATTERNS: { re: RegExp; hint: string }[] = [
   { re: /(?:from|import|require)\s*\(?\s*['"]@douyinfe\//, hint: '导入 @douyinfe/*（改用 @/components/ui/* 与 @/shared/components/*，图标用 lucide-react）' },
@@ -457,7 +457,7 @@ export const LEGACY_UI_PATTERNS: { re: RegExp; hint: string }[] = [
   },
 ]
 
-/** 前端页面目录（index.jsx 及同目录局部组件 / 样式）不得使用旧 UI 体系；页面不存在时跳过（frontend_page 已报错） */
+/** The frontend page directory (index.jsx plus co-located local components / styles) must not use the old UI system; skipped when the page doesn't exist (frontend_page already reported it) */
 export function checkFrontendNoLegacyUi(ctx: VerifyContext, module: string): CheckResult {
   const name = 'frontend_no_legacy_ui'
   const page = checkFrontendPage(ctx, module)
@@ -484,7 +484,7 @@ export function checkFrontendNoLegacyUi(ctx: VerifyContext, module: string): Che
   return { name, passed: true, path: rel(ctx, dir) }
 }
 
-/** 前端 API 文件存在 */
+/** Frontend API file exists */
 export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResult {
   const singular = singularOf(module)
   const api = (m: string, f: string) => join(ctx.webDir, 'src', 'modules', m, 'api', f)
@@ -504,7 +504,7 @@ export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResul
   }
 }
 
-/** 路由注册：解析 router 文件中真实调用的 registerXxxRoutes(app)，精确匹配 */
+/** Route registration: parse the registerXxxRoutes(app) calls actually made in router files, exact match */
 export function checkRouterRegistration(ctx: VerifyContext, module: string): CheckResult {
   const routerFiles = [join(ctx.srcDir, 'router.ts'), ...BACKEND_DOMAINS.map((d) => join(ctx.srcDir, 'modules', d, 'router.ts'))]
   const registered = new Set<string>()
@@ -527,7 +527,7 @@ export function checkRouterRegistration(ctx: VerifyContext, module: string): Che
   }
 }
 
-/** 表定义注册：模块的 schema 文件必须从 db/schema/index.ts 导出（drizzle-kit 与 relational query 都从这里读） */
+/** Table definition registration: the module's schema file must be exported from db/schema/index.ts (both drizzle-kit and relational queries read from there) */
 export function checkSchemaRegistration(ctx: VerifyContext, module: string): CheckResult {
   const name = 'schema_registration'
   const found = findModuleTables(ctx, module)
@@ -546,12 +546,12 @@ export function checkSchemaRegistration(ctx: VerifyContext, module: string): Che
   }
 }
 
-/** RBAC 种子：菜单数据里必须有对应 component 路径或权限编码（精确匹配） */
+/** RBAC seed: the menu data must contain the matching component path or permission code (exact match) */
 export function checkRbacSeed(ctx: VerifyContext, module: string): CheckResult {
   const seedFile = join(ctx.apiDir, 'scripts', 'seed-rbac.ts')
   if (!existsSync(seedFile)) return { name: 'rbac_seed', passed: false, error: 'scripts/seed-rbac.ts 不存在' }
 
-  // seed-rbac.ts 及其相对导入的数据文件
+  // seed-rbac.ts and the data files it imports relatively
   const files = [seedFile]
   for (const m of readFileSync(seedFile, 'utf8').matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g)) {
     const base = resolve(dirname(seedFile), m[1]!)
@@ -563,7 +563,7 @@ export function checkRbacSeed(ctx: VerifyContext, module: string): CheckResult {
   const components = new Set([...text.matchAll(/\bcomponent['"]?\s*:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]!))
 
   const singular = singularOf(module)
-  // 组件路径以 /<module> 或 /<module>_page 结尾（如 component_center/ai/ai_sql_page / admin/users）
+  // Component path ends with /<module> or /<module>_page (e.g. component_center/ai/ai_sql_page / admin/users)
   const compMatch = [...components].some((c) =>
     [module, `${module}_page`, singular, `${singular}_page`].some((n) => c.endsWith(`/${n}`)),
   )
@@ -578,13 +578,13 @@ export function checkRbacSeed(ctx: VerifyContext, module: string): CheckResult {
   }
 }
 
-/** 执行 seed-rbac.ts --incremental */
+/** Run seed-rbac.ts --incremental */
 export function runRbacSync(ctx: VerifyContext): CheckResult {
   const { code, output } = run([...bin(ctx.apiDir, 'tsx'), 'scripts/seed-rbac.ts', '--incremental'], ctx.apiDir)
   return { name: 'rbac_sync', passed: code === 0, error: code !== 0 ? output.trim().slice(0, 500) : null }
 }
 
-/** 前端构建（vite build） */
+/** Frontend build (vite build) */
 export function checkFrontendBuild(ctx: VerifyContext, skip: boolean): CheckResult {
   if (skip) return { name: 'frontend_build', passed: true, skipped: true }
   const { code, output } = run([...bin(ctx.webDir, 'vite'), 'build'], ctx.webDir)
@@ -592,7 +592,7 @@ export function checkFrontendBuild(ctx: VerifyContext, skip: boolean): CheckResu
   return { name: 'frontend_build', passed: true }
 }
 
-/** 前端 Vitest 测试（含 @ 别名导入完整性回归） */
+/** Frontend Vitest tests (including the @ alias import integrity regression) */
 export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResult {
   if (skip) return { name: 'frontend_tests', passed: true, skipped: true }
   const { code, output } = run([...bin(ctx.webDir, 'vitest'), 'run'], ctx.webDir)
@@ -600,7 +600,7 @@ export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResu
   return { name: 'frontend_tests', passed: true }
 }
 
-/** 后端单元测试：新功能常会让 seed / 迁移相关测试变化，门禁必须覆盖 */
+/** Backend unit tests: new features often change seed / migration related tests, so the gate must cover them */
 export function checkApiTests(ctx: VerifyContext, skip: boolean): CheckResult {
   if (skip) return { name: 'api_tests', passed: true, skipped: true }
   const { code, output } = run([...bin(ctx.apiDir, 'vitest'), 'run'], ctx.apiDir)
@@ -608,7 +608,7 @@ export function checkApiTests(ctx: VerifyContext, skip: boolean): CheckResult {
   return { name: 'api_tests', passed: true }
 }
 
-// ─── 主流程 ────────────────────────────────────────────────────────────────────
+// ─── Main flow ─────────────────────────────────────────────────────────────────
 
 export interface VerifyOptions {
   module?: string
@@ -630,7 +630,7 @@ export interface VerifyReport {
   summary: string
 }
 
-/** 按 NODE_ENV 读取数据库连接（与 pnpm db:migrate 一致） */
+/** Read the database connection according to NODE_ENV (same as pnpm db:migrate) */
 export async function resolveDatabaseUrl(ctx: VerifyContext): Promise<string | null> {
   try {
     const configUrl = pathToFileURL(join(ctx.srcDir, 'config.ts')).href
@@ -658,7 +658,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
     return r
   }
 
-  // 全局检查
+  // Global checks
   step('typescript_compile', () => checkTypescript(ctx))
   step('no_local_has_permission', () => checkNoLocalHasPermission(ctx))
   step('migration_chain', () => checkMigrationChain(ctx))
@@ -672,7 +672,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
   step('openapi_sync', () => checkOpenapiSync(ctx))
   step('docs_paths', () => checkDocPaths(ctx, options.strictDocs))
 
-  // 模块级检查
+  // Module-level checks
   if (options.module) {
     const m = options.module
     step('backend_file', () => checkBackendFile(ctx, m))
@@ -684,15 +684,15 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
     step('rbac_seed', () => checkRbacSeed(ctx, m))
   }
 
-  // RBAC 同步
+  // RBAC sync
   if (options.runRbacSync) step('rbac_sync', () => runRbacSync(ctx))
 
-  // 前端构建 + 测试
+  // Frontend build + tests
   step('frontend_build', () => checkFrontendBuild(ctx, options.skipBuild ?? false))
   step('frontend_tests', () => checkFrontendTests(ctx, options.skipFrontendTests ?? false))
   step('api_tests', () => checkApiTests(ctx, options.skipApiTests ?? false))
 
-  // 汇总
+  // Summary
   const passed = results.every((r) => r.passed)
   const failures = results.filter((r) => !r.passed && !r.skipped)
   return {
@@ -749,7 +749,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     runRbacSync: values['run-rbac-sync'],
     databaseUrl: values['database-url'],
     root: values.root,
-    // --json 模式 stdout 只输出 JSON，进度走 stderr
+    // In --json mode stdout carries only JSON; progress goes to stderr
     progress: values.json ? (l) => process.stderr.write(`${l}\n`) : undefined,
   })
   if (values.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)

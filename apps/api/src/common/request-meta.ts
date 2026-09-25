@@ -1,12 +1,12 @@
 /**
- * 请求元信息（客户端 IP、User-Agent、写进操作日志的请求体文本等）
+ * Request metadata (client IP, User-Agent, request body text written to the operation log, etc.)
  */
 
 import type { FastifyRequest } from 'fastify'
 
 /**
- * 客户端 IP：以 `request.ip` 为准。直连时即对端地址；部署在可信反代后由 `trustProxy`
- * 修正为真实 IP。不直接读可伪造的 X-Forwarded-For。
+ * Client IP: `request.ip` is authoritative. On direct connections it is the peer address; behind a trusted reverse proxy `trustProxy`
+ * resolves it to the real IP. Never read the spoofable X-Forwarded-For directly.
  */
 export function getClientIp(request: FastifyRequest): string {
   return request.ip || ''
@@ -43,8 +43,8 @@ function maskSensitive(data: unknown): unknown {
 }
 
 /**
- * 等价 Python `json.dumps(value, ensure_ascii=False)`：默认分隔符是 `", "` 与 `": "`，
- * 保证写进 operation_logs.payload 的文本格式与既有日志一致。
+ * Equivalent to Python `json.dumps(value, ensure_ascii=False)`: default separators are `", "` and `": "`,
+ * so the text written to operation_logs.payload matches the format of existing logs.
  */
 export function pyJsonDumps(value: unknown): string {
   if (value === null || value === undefined) return 'null'
@@ -63,7 +63,7 @@ export function pyJsonDumps(value: unknown): string {
   return JSON.stringify(String(value))
 }
 
-/** 序列化请求体并限制长度（敏感字段先脱敏） */
+/** Serialize the request body with a length limit (sensitive fields are masked first) */
 export function safePayload(payload: unknown): string | null {
   if (payload === null || payload === undefined) return null
   const text = pyJsonDumps(maskSensitive(payload))

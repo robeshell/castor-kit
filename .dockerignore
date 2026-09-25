@@ -1,24 +1,24 @@
-# 依赖与构建产物（在镜像内重新安装/构建）
+# Dependencies and build output (reinstalled / rebuilt inside the image)
 **/node_modules/
 **/dist/
 **/.turbo/
 **/*.tsbuildinfo
 coverage/
 
-# 环境变量（安全起见不打包进镜像）
+# Environment files (kept out of the image for security)
 .env
 .env.*
 **/.env.*
 !**/.env.example
 
-# 开发工具
+# Dev tooling
 .git/
 .claude/
 .cursor/
 .vscode/
 .idea/
 
-# 运行时
+# Runtime
 instance/
 **/instance/
 *.log

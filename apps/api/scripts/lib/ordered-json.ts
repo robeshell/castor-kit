@@ -1,8 +1,8 @@
 /**
- * 保序 JSON + Python json.dumps 输出格式（generate-openapi / import-apifox 共用）
+ * Order-preserving JSON + Python json.dumps output format (shared by generate-openapi / import-apifox)
  *
- * JS 对象会把 "200"/"201" 这类整数形键提到最前，而 Python dict 保持插入顺序；
- * 需要保持键顺序、逐字节稳定输出的地方，用 Map 表示对象、数字保留原文。
+ * JS objects hoist integer-like keys such as "200"/"201" to the front, while Python dicts keep insertion order;
+ * where key order must be preserved and output must be byte-for-byte stable, objects are represented as Map and numbers keep their original text.
  */
 
 export type OrderedJson = null | boolean | string | { raw: string } | OrderedJson[] | Map<string, OrderedJson>
@@ -103,7 +103,7 @@ export function parseOrderedJson(text: string): OrderedJson {
   return value
 }
 
-/** 普通 JS 值 → 保序结构（键顺序即插入顺序；整数形键会按 JS 规则先行，调用方需自行保证） */
+/** Plain JS value → order-preserving structure (key order is insertion order; integer-like keys come first per JS rules, callers must handle that themselves) */
 export function toOrdered(value: unknown): OrderedJson {
   if (value === null || typeof value === 'boolean' || typeof value === 'string') return value
   if (typeof value === 'number') return { raw: String(value) }
@@ -113,7 +113,7 @@ export function toOrdered(value: unknown): OrderedJson {
   throw new TypeError(`无法序列化的值: ${String(value)}`)
 }
 
-/** Python ensure_ascii=True：0x7F 及以上字符一律 \uXXXX（小写十六进制，码点 > 0xFFFF 拆成代理对） */
+/** Python ensure_ascii=True: every character at 0x7F or above becomes \uXXXX (lowercase hex; code points > 0xFFFF are split into surrogate pairs) */
 function escapeNonAscii(json: string): string {
   return json.replace(/[\u007f-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 }
@@ -123,7 +123,7 @@ function dumpString(s: string, ensureAscii: boolean): string {
   return ensureAscii ? escapeNonAscii(json) : json
 }
 
-/** 等价于 Python `json.dumps(obj, ensure_ascii=False, indent=2)` */
+/** Equivalent to Python `json.dumps(obj, ensure_ascii=False, indent=2)` */
 export function dumpIndented(value: OrderedJson, level = 0): string {
   if (value === null) return 'null'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
@@ -142,7 +142,7 @@ export function dumpIndented(value: OrderedJson, level = 0): string {
   return value.raw
 }
 
-/** 等价于 Python `json.dumps(obj)` 默认参数（ensure_ascii=True，分隔符 ', ' 与 ': '）——requests 的 json= 就是这样编码请求体 */
+/** Equivalent to Python `json.dumps(obj)` with default args (ensure_ascii=True, separators ', ' and ': ') - this is how requests' json= encodes the request body */
 export function dumpPythonDefault(value: OrderedJson): string {
   if (value === null) return 'null'
   if (typeof value === 'boolean') return value ? 'true' : 'false'

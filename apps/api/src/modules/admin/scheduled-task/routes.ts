@@ -1,10 +1,10 @@
 /**
- * 定时任务路由
+ * Scheduled task routes
  *
- * 检查顺序（保持既有接口行为）：
- * - GET/PUT/DELETE /scheduled-tasks/<id>：先 get_or_404 再做权限检查
- * - POST /scheduled-tasks/<id>/run：先做权限检查再 get_or_404
- * - 手动执行：run.status 为 success 返回 200，否则 500（响应体仍是完整结果）
+ * Check order (preserves existing API behavior):
+ * - GET/PUT/DELETE /scheduled-tasks/<id>: get_or_404 first, then the permission check
+ * - POST /scheduled-tasks/<id>/run: permission check first, then get_or_404
+ * - Manual run: 200 when run.status is success, otherwise 500 (the body is still the full result)
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -40,7 +40,7 @@ export async function registerScheduledTaskRoutes(app: FastifyInstance): Promise
     return reply.status(201).send(await service.createTask(jsonBody(request)))
   })
 
-  // 静态路径 /runs 必须能命中：intParam 只匹配纯数字，不会与 /runs 冲突
+  // The static path /runs must be reachable: intParam only matches digits, so it doesn't conflict with /runs
   app.get('/api/admin/scheduled-tasks/runs', opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks'))) {
       return reply.status(403).send({ error: '无权限查看执行记录' })

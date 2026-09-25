@@ -5,7 +5,7 @@ import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
- * 树形列表。nodes = [{ key, label, children?, …任意字段 }]
+ * Tree list. nodes = [{ key, label, children?, …any other fields }]
  *   <TreeView nodes={tree} selectedKey={id} onSelect={(node) => …}
  *     renderLabel={(node) => …} renderActions={(node) => …} defaultExpandAll />
  */

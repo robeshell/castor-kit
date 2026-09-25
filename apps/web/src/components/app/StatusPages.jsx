@@ -61,9 +61,9 @@ export function RouteNotConfigured({ path, component }) {
 }
 
 /**
- * 页面代码首次加载时的占位：形状对齐标准列表页（标题 + 右侧按钮、筛选栏、表格卡片），
- * 与 DataTable 自己的行骨架一致，页面出来时不跳。只在登录后打开第一个页面时可能看到——
- * 之后切页由 AppLayout 的 Suspense + 路由 transition 保留旧页面，直到新页面代码就绪。
+ * Placeholder while page code loads for the first time: shaped like a standard list page (title + right-side button, filter bar, table card),
+ * matching DataTable's own row skeleton so nothing jumps when the page appears. Only likely seen on the first page opened after login;
+ * after that, page switches keep the old page via AppLayout's Suspense + route transition until the new page code is ready.
  */
 export function PageLoading() {
   const { t } = useTranslation()

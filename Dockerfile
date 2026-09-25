@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Stage 1: 安装依赖 + 构建前端（vite）与后端（tsup），裁剪出生产依赖
+# Stage 1: install deps, build the frontend (vite) and backend (tsup), prune to production deps
 # ─────────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
 
@@ -20,7 +20,7 @@ RUN pnpm --filter @castor-kit/web build && \
 
 
 # ─────────────────────────────────────────────────────────────
-# Stage 2: 运行镜像
+# Stage 2: runtime image
 # ─────────────────────────────────────────────────────────────
 FROM node:22-alpine
 
@@ -35,7 +35,7 @@ COPY --from=build /repo/apps/api/drizzle ./drizzle
 COPY --from=build /repo/apps/web/dist ./web
 COPY docker-entrypoint.sh ./
 
-# 运行时必要目录 + 非 root 运行用户（纵深防御，降低容器内提权影响）
+# Required runtime dirs + non-root user (defense in depth: limits privilege escalation inside the container)
 RUN chmod +x docker-entrypoint.sh && \
     mkdir -p instance && \
     adduser -D -u 10001 appuser && \

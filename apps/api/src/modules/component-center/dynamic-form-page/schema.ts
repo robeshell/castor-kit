@@ -1,5 +1,5 @@
 /**
- * 动态表单页 schema 层
+ * Dynamic form page schema layer
  */
 
 import { z } from 'zod'
@@ -8,10 +8,10 @@ import { isPlainObject, pyInt, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { DynamicFormRecord } from '@/db/schema'
 
-/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
+/** Loose request-body validation: any keys, all optional; normalization happens in the service */
 export const dynamicFormBodySchema = z.record(z.string(), z.unknown()).nullish()
 
-/** 导出行：记录 + 字段数（对应 `item.fields.count()`） */
+/** Export row: record + field count (equivalent of `item.fields.count()`) */
 export type DynamicFormExportRow = DynamicFormRecord & { fields_count: number }
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: DynamicFormExportRow) => unknown]> = {
@@ -45,7 +45,7 @@ export const VALID_FIELD_TYPES = new Set(['text', 'number', 'boolean', 'date'])
 export const STATUS_VALUES = new Set(['draft', 'published', 'archived'])
 export const CATEGORY_VALUES = new Set(['general', 'config', 'profile', 'spec'])
 
-/** 单条记录最多的动态字段数 */
+/** Max number of dynamic fields on a single record */
 export const MAX_FIELDS = 20
 
 export const TEMPLATE_HEADERS = ['标题', '记录编码', '分类', '发布状态', '负责人', '优先级', '启用', '描述']
@@ -79,9 +79,9 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   return { line, reason, row }
 }
 
-// ---------------------------------------------------------------- 值处理辅助
+// ---------------------------------------------------------------- Value helpers
 
-/** 长度：list / str（按字符）/ dict（键数）；其余（数字、bool）→ 500 */
+/** Length: list / str (in characters) / dict (key count); anything else (numbers, bool) → 500 */
 export function pyLen(value: unknown): number {
   if (Array.isArray(value)) return value.length
   if (typeof value === 'string') return Array.from(value).length
@@ -90,8 +90,8 @@ export function pyLen(value: unknown): number {
 }
 
 /**
- * 按可迭代语义展开 x：list → 元素，str → 字符，dict → 键；
- * 其余真值（数字 / true）不可迭代 → 500。
+ * Expand x with iterable semantics: list → elements, str → characters, dict → keys;
+ * other truthy values (numbers / true) are not iterable → 500.
  */
 export function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
@@ -100,7 +100,7 @@ export function pyIterate(value: unknown): unknown[] {
   throw new ServiceError(`'${typeof value}' object is not iterable`, 500)
 }
 
-/** 判断 f 是否为可导出字段；f 为 list/dict（不能作为字段名）时返回 500 */
+/** Whether f is an exportable field; returns 500 when f is a list/dict (not usable as a field name) */
 export function isExportField(field: unknown): field is string {
   if (field !== null && typeof field === 'object') throw new ServiceError('unhashable type', 500)
   return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
@@ -110,10 +110,10 @@ const PG_INT_MIN = -2_147_483_648
 const PG_INT_MAX = 2_147_483_647
 
 /**
- * ids 中各元素内联进 `id IN (...)` 后在 PostgreSQL 上的效果：
- * - 整数 → 匹配；非整数/超出 int4 的数字 → 与 integer 比较不会命中（不报错）；None → 不命中
- * - 字符串 → 按 int4 输入解析（'2' 可命中，'abc'/超范围 → 数据库报错 → 500）
- * - bool / list / dict → 类型错误 → 500
+ * How each element of ids behaves on PostgreSQL once inlined into `id IN (...)`:
+ * - integer → matches; non-integer / out-of-int4 numbers → never match against integer (no error); None → no match
+ * - string → parsed as int4 input ('2' can match; 'abc' / out of range → DB error → 500)
+ * - bool / list / dict → type error → 500
  */
 export function resolveIdList(ids: unknown[]): number[] {
   const result: number[] = []

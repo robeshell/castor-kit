@@ -21,6 +21,7 @@ import { FormGrid, FormInput, FormNumber, FormSelect, FormSwitch, FormTextarea }
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
+import { useTranslation } from 'react-i18next'
 
 const STATUS_OPTIONS = [
   { label: 'idle', value: 'idle' },
@@ -74,6 +75,7 @@ const RUN_COLUMNS = [
 ]
 
 export default function ScheduledTasks() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getScheduledTaskList(params).catch(() => {
@@ -119,7 +121,7 @@ export default function ScheduledTasks() {
   useEffect(() => {
     fetchData()
     loadRunLogs(1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
 
   const handleSearch = () => {
@@ -203,7 +205,7 @@ export default function ScheduledTasks() {
       })
       .catch((err) => {
         toast.apiError(err, '执行失败')
-        // 执行失败时后端同样会记一条运行记录并更新任务状态，这里一并刷新
+        // A failed run is still logged and updates the task status on the backend, so refresh both here
         fetchData()
         fetchRunLogs(runLogsPage)
       })
@@ -267,12 +269,12 @@ export default function ScheduledTasks() {
       ),
     },
     {
-      // 列很多需要横向滚动：操作列吸附在右侧
+      // Many columns scroll horizontally: pin the action column to the right
       key: 'actions',
       title: '',
       align: 'right',
       width: 196,
-      // 吸附列需要不透明底色：bg-card 打底，再叠一层与表头 / 行 hover 相同的 muted/40
+      // A sticky column needs an opaque background: bg-card underneath, plus the same muted/40 overlay as the header / row hover
       className:
         'sticky right-0 bg-card shadow-[inset_1px_0_0_var(--border)] group-hover/row:bg-linear-to-r group-hover/row:from-muted/40 group-hover/row:to-muted/40',
       headerClassName: 'sticky right-0 bg-card bg-linear-to-r from-muted/40 to-muted/40 shadow-[inset_1px_0_0_var(--border)]',
@@ -286,14 +288,14 @@ export default function ScheduledTasks() {
             onClick={() => handleRunNow(record)}
           >
             {runningTaskId === record.id ? <Spinner /> : <Play />}
-            立即执行
+            {t('立即执行')}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该定时任务？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -311,14 +313,14 @@ export default function ScheduledTasks() {
           <>
             <Button variant="outline" size="sm" onClick={openRuns}>
               <History />
-              执行记录
+              {t('执行记录')}
               {runLogsTotal ? (
                 <span className="bg-muted text-muted-foreground rounded-full px-1.5 text-[11px] font-normal tabular-nums">{runLogsTotal}</span>
               ) : null}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建任务
+              {t('新建任务')}
             </Button>
           </>
         }
@@ -344,7 +346,7 @@ export default function ScheduledTasks() {
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing ? '编辑定时任务' : '新建定时任务'}
-        description={editing ? `正在编辑 ${editing.name}` : undefined}
+        description={editing ? t('正在编辑 {{name}}', { name: editing.name }) : undefined}
         form={form}
         onSubmit={submit}
         size="lg"
@@ -417,7 +419,7 @@ export default function ScheduledTasks() {
         footer={
           <Button variant="outline" size="sm" onClick={() => fetchRunLogs(1)} disabled={runLogsLoading}>
             {runLogsLoading ? <Spinner /> : <RefreshCw />}
-            刷新记录
+            {t('刷新记录')}
           </Button>
         }
       >

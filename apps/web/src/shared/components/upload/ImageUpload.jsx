@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { useTx } from '@/i18n'
 import { useUploader } from '@/shared/components/upload/useUploader'
 
-/** 图片上传：缩略图网格 + 点击放大预览 */
+/** Image upload: thumbnail grid + click to enlarge preview */
 export default function ImageUpload({
   fileList = [],
   onFileListChange,

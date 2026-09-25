@@ -1,5 +1,5 @@
 /**
- * 调度器租约模型 + execute_task（真实 PostgreSQL）
+ * Scheduler lease model + execute_task (real PostgreSQL)
  */
 
 import { eq, like, sql } from 'drizzle-orm'
@@ -15,7 +15,7 @@ import { openTestDb } from './helpers'
 
 const P = 'ck_test_r6_rn_'
 let handle: DbHandle
-/** 第二个连接池：模拟另一个调度进程 */
+/** Second connection pool: simulates another scheduler process */
 let handle2: DbHandle
 let seq = 0
 
@@ -76,7 +76,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  // 每个用例只让自己的任务到期，避免处理库里其他到期任务
+  // Each case makes only its own task due, to avoid processing other due tasks in the DB
   await handle.db
     .update(scheduled_tasks)
     .set({ next_run_at: '2099-01-01 00:00:00' })
@@ -292,7 +292,7 @@ describe('崩溃标记与过期租约回收', () => {
     expect((await getTask(fresh.id)).last_status).toBe('running')
     expect((await getTask(inactive.id)).last_status).toBe('running')
 
-    // 回收后的任务在下一轮被重新执行
+    // A reclaimed task is re-executed in the next round
     const ex = fakeExecutor(() => ({ status: 200, text: 'again' }))
     await new ScheduledTaskRunner(handle.db, { service: new ScheduledTaskService(handle.db, { httpExecutor: ex }) }).executeDueTasks()
     expect(ex.calls).toHaveLength(1)

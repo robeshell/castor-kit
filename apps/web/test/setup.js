@@ -1,6 +1,6 @@
-// 不用 '@testing-library/jest-dom/vitest'：它会从 jest-dom 包的位置解析 vitest，
-// monorepo 里 api 用 vitest 5、web 用 vitest 2，CI 上会解析到根目录提升的另一个实例，matchers 注册不到当前 expect。
-// 这里用 web 自己的 vitest 显式注册。
+// Not using '@testing-library/jest-dom/vitest': it resolves vitest from the jest-dom package's location;
+// in the monorepo api uses vitest 5 and web uses vitest 2, so CI resolves the other instance hoisted to the root and the matchers don't register on the current expect.
+// Register them explicitly here with web's own vitest.
 import * as matchers from '@testing-library/jest-dom/matchers'
 import { expect } from 'vitest'
 
@@ -25,7 +25,7 @@ if (typeof globalThis.localStorage?.setItem !== 'function') {
 // Test assertions are written in Chinese: pin the UI language (jsdom's navigator.language is en-US)
 localStorage.setItem('lang', 'zh-CN')
 
-// jsdom 缺少的浏览器 API（Radix / motion 组件会用到）
+// Browser APIs missing from jsdom (used by Radix / motion components)
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

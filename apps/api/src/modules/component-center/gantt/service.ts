@@ -1,5 +1,5 @@
 /**
- * 甘特图页 service 层
+ * Gantt page service layer
  */
 
 import { ServiceError } from '@/common/errors'

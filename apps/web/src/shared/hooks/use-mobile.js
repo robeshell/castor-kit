@@ -8,7 +8,7 @@ function subscribe(callback) {
   return () => mql.removeEventListener('change', callback)
 }
 
-/** shadcn sidebar 使用：视口宽度 < 768px 视为移动端 */
+/** Used by the shadcn sidebar: viewport width < 768px counts as mobile */
 export function useIsMobile() {
   return useSyncExternalStore(
     subscribe,

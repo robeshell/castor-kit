@@ -381,6 +381,18 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 
 **菜单图标**：`menus.icon` 存的是历史 Semi 图标名（如 `IconUser`），由 `apps/web/src/lib/menu-icons.js` 映射到 lucide；新增菜单沿用映射表里已有的名字，需要新图标时在映射表补一条。
 
+### 多语言（i18n）与代码注释
+
+界面支持简体中文 / English / 日本語，**中文原文就是翻译 key**（设计见 `apps/web/src/i18n/index.js`、`apps/api/src/common/i18n.ts`）。
+
+- **前端**：`const { t } = useTranslation()`，写 `t('保存')`、`t('共 {{count}} 条', { count })`。英文 / 日文写在**页面目录下** `locales/en-US.json`、`locales/ja-JP.json`（「中文 → 译文」，两份 key 相同）；公共文案在 `src/locales/`，菜单名按菜单 code 在 `src/locales/menus/`。
+  - 传给公共组件的字符串属性（PageHeader / Panel 标题、DataTable 列 title、FormFields 的 label / placeholder / options / rules 文案、FilterSelect / SegmentedTabs / StatusBadge / StatCard / RowActions / ConfirmAction / FormDialog 等）由组件自动翻译，直接写中文、补译文即可；`toast.success('固定中文')` 也会自动翻译。
+  - 必须包 `t()`：JSX 里直接写的中文、原生元素的 aria-label / title / placeholder、带变量的文案（不要用中文模板字符串）、图表坐标轴 / 图例等其他显示渠道。
+  - 演示内容（示例数据、示例文档）不翻译，用 `// i18n-ignore-next-line` 或文件级 `i18n-ignore-file` 标出。
+  - 检查：`node apps/web/scripts/i18n-scan.mjs <目录>` 必须 0 问题（前端测试 `test/i18n.test.js` 会对全部页面执行）。
+- **后端**：继续抛中文报错（`new ServiceError('用户名已存在')`），响应钩子按请求头 `Accept-Language` 翻译 `error` / `message` / 导入错误行 `reason`；新增文案要在 `apps/api/src/i18n/messages.ts` 登记英日译文（带变量的放 `PATTERNS`），`test/i18n-messages.test.ts` 会拦下漏登记的。导入导出文件的表头保持中文。
+- **代码注释一律英文**（前端、后端、脚本、测试、scaffold 生成的代码）。界面文案仍写中文原文作为 key。
+
 ### 新增 shadcn 原子组件
 
 组件源码直接进仓库（`apps/web/src/components/ui/`，配置 `apps/web/components.json`）。本机 shadcn CLI（node）直连 ui.shadcn.com 会失败，统一用中转脚本：

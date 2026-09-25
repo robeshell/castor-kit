@@ -1,12 +1,12 @@
 /**
- * schema 层模板 → apps/api/src/modules/<domain>/<resource>/schema.ts
+ * Schema layer template → apps/api/src/modules/<domain>/<resource>/schema.ts
  *
- * TODO: 替换 <Resource> 为类型名（大驼峰，如 Customer）
- * TODO: 替换 <resource> 为资源名（下划线，如 customer）
+ * TODO: replace <Resource> with the type name (PascalCase, e.g. Customer)
+ * TODO: replace <resource> with the resource name (snake_case, e.g. customer)
  *
- * 职责：请求体归一化、导入导出字段映射。不做数据库操作。
- * 请求体宽松：`request.get_json() or {}` 语义由 common/http 的 jsonBody() 提供，
- * 这里按字段类型把 unknown 归一化成列值；值无法转换时抛 ServiceError(400)。
+ * Responsibilities: request body normalization and import/export field mapping. No database access.
+ * Request bodies are lenient: the `request.get_json() or {}` semantics come from jsonBody() in common/http;
+ * here unknown values are normalized into column values by field type; throws ServiceError(400) when a value can't be converted.
  */
 
 import { z } from 'zod'
@@ -14,32 +14,32 @@ import { ServiceError } from '@/common/errors'
 import { pyStr } from '@/common/py'
 import type { <Resource>, New<Resource> } from '@/db/schema'
 
-/** 请求体：loose + 全可选（驱动 OpenAPI），归一化在 buildValues 里做 */
+/** Request body: loose + all optional (drives OpenAPI); normalization happens in buildValues */
 export const <resource>BodySchema = z.record(z.string(), z.unknown()).nullish()
 
 /**
- * 导出列：表头字符串（值取 toDict 的同名字段），或 [表头, 取值函数]（需要转换时用，如枚举显示中文、布尔显示是/否）。
- * 字段校验报错也用这里的表头作为字段名。
+ * Export columns: a header string (value taken from the same-named field of toDict), or [header, getter] (when a conversion is needed, e.g. showing enum labels in Chinese or booleans as yes/no).
+ * Field validation errors also use these headers as field names.
  */
 export type ExportColumn = string | [header: string, value: (item: <Resource>) => unknown]
 
 export const EXPORT_FIELD_MAP: Record<string, ExportColumn> = {
   id: 'ID',
   name: '名称',
-  // TODO: 补充其他字段，如 status: ['状态', (item) => STATUS_LABELS[item.status ?? ''] ?? item.status]
+  // TODO: add other fields, e.g. status: ['状态', (item) => STATUS_LABELS[item.status ?? ''] ?? item.status]
   created_at: '创建时间',
 }
 
-/** 字段的中文名（取导出表头；没有导出列时退回字段名） */
+/** Display (Chinese) name of a field (taken from the export header; falls back to the field name if there is no export column) */
 export function fieldLabel(field: string): string {
   const column = EXPORT_FIELD_MAP[field]
   return Array.isArray(column) ? column[0] : (column ?? field)
 }
 
-/** 导入列头映射（key=中文表头, value=字段名）；第一列为必填 */
+/** Import header mapping (key = Chinese header, value = field name); the first column is required */
 export const IMPORT_HEADER_MAP: Record<string, string> = {
   名称: 'name',
-  // TODO: 补充其他可导入字段
+  // TODO: add other importable fields
 }
 
 export type <Resource>Values = Partial<Omit<New<Resource>, 'id' | 'created_at' | 'updated_at'>>
@@ -52,7 +52,7 @@ function toStr(value: unknown): string | null {
   return value === null || value === undefined ? null : pyStr(value)
 }
 
-/** 示例：整数字段（按整数解析），空值为 null */
+/** Example: integer field (parsed as an integer); empty values become null */
 export function toInt(field: string, value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   if (typeof value === 'number' && Number.isInteger(value)) return value
@@ -61,14 +61,14 @@ export function toInt(field: string, value: unknown): number | null {
 }
 
 /**
- * 请求体 → 列值。
- * - 新增（partial=false）：所有字段都写入，缺失的为 null
- * - 编辑（partial=true）：只写请求体里出现的字段（`'x' in data`）
+ * Request body → column values.
+ * - Create (partial=false): all fields are written; missing ones become null
+ * - Update (partial=true): only fields present in the request body are written (`'x' in data`)
  */
 export function buildValues(data: Record<string, unknown>, partial: boolean): <Resource>Values {
   const values: <Resource>Values = {}
   if (!partial || Object.hasOwn(data, 'name')) values.name = toStr(data.name) ?? ''
-  // TODO: 补充其他字段，如
+  // TODO: add other fields, e.g.
   // if (!partial || Object.hasOwn(data, 'sort_order')) values.sort_order = toInt('sort_order', data.sort_order)
   return values
 }

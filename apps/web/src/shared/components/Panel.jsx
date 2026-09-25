@@ -2,9 +2,9 @@ import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
- * 卡片容器：白底 + 1px 发丝边 + 14px 圆角。页面里的分区一律用它（不要自己写阴影卡片）。
- *   <Panel title="系统状态" description="…" actions={…}>内容</Panel>
- *   <Panel padded={false}> 表格等需要贴边的内容 </Panel>
+ * Card container: white background + 1px hairline border + 14px radius. Use it for every section in a page (don't hand-roll shadowed cards).
+ *   <Panel title="系统状态" description="…" actions={…}>…</Panel>
+ *   <Panel padded={false}> content that needs to sit flush, like tables </Panel>
  */
 export default function Panel({ title, description, actions, padded = true, className, bodyClassName, children, ...props }) {
   const tx = useTx()

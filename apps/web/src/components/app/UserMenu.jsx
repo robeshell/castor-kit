@@ -30,7 +30,9 @@ export default function UserMenu() {
   const { isDark, toggleTheme } = useTheme()
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
-  const roleName = user?.roles?.[0]?.name || t('成员')
+  const role = user?.roles?.[0]
+  // The built-in super_admin role is translated by code; custom role names are data and shown as stored
+  const roleName = role?.code === 'super_admin' ? t('超级管理员') : role?.name || t('成员')
 
   const handleLogout = async () => {
     await logout()

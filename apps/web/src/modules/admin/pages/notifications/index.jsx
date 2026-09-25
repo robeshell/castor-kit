@@ -18,6 +18,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
+import { useTranslation } from 'react-i18next'
 
 const TYPE_TONE_MAP = { info: 'info', success: 'success', warning: 'warning', error: 'danger' }
 const TYPE_LABEL_MAP = { info: '信息', success: '成功', warning: '警告', error: '错误' }
@@ -34,8 +35,9 @@ const TYPE_OPTIONS = [
 ]
 const DEFAULT_VALUES = { title: '', content: '', noti_type: 'info', link: '', is_global: true }
 
-/** 可搜索单选，用于“指定用户” */
+/** Searchable single select, used for the "target user" field */
 function SearchableSelect({ value, onChange, options, placeholder, invalid }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const current = options.find((o) => String(o.value) === String(value))
   return (
@@ -57,9 +59,9 @@ function SearchableSelect({ value, onChange, options, placeholder, invalid }) {
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
         <Command>
-          <CommandInput placeholder="搜索用户名…" />
+          <CommandInput placeholder={t('搜索用户名…')} />
           <CommandList>
-            <CommandEmpty>没有匹配的用户</CommandEmpty>
+            <CommandEmpty>{t('没有匹配的用户')}</CommandEmpty>
             <CommandGroup>
               {options.map((opt) => (
                 <CommandItem
@@ -83,6 +85,7 @@ function SearchableSelect({ value, onChange, options, placeholder, invalid }) {
 }
 
 export default function Notifications() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getNotifications(params).catch(() => {
@@ -95,7 +98,7 @@ export default function Notifications() {
   const [formOpen, setFormOpen] = useState(false)
   const [users, setUsers] = useState([])
 
-  // shouldUnregister：隐藏（已卸载）的“指定用户”字段不进入提交数据
+  // shouldUnregister: the hidden (unmounted) target user field is left out of the submitted values
   const form = useForm({ defaultValues: DEFAULT_VALUES, shouldUnregister: true })
   const isGlobal = useWatch({ control: form.control, name: 'is_global' })
 
@@ -104,7 +107,7 @@ export default function Notifications() {
     getUsers({ page: 1, per_page: 100 })
       .then((res) => setUsers(Array.isArray(res.items) ? res.items : []))
       .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
 
   const userOptions = useMemo(() => users.map((u) => ({ label: u.username, value: u.id })), [users])
@@ -121,7 +124,7 @@ export default function Notifications() {
   const handleMarkAllRead = () => {
     markAllAsRead()
       .then((res) => {
-        toast.success(`已将 ${res?.marked ?? 0} 条通知标记为已读`)
+        toast.success(t('已将 {{count}} 条通知标记为已读', { count: res?.marked ?? 0 }))
         fetchData()
       })
       .catch((err) => toast.apiError(err, '操作失败'))
@@ -181,7 +184,7 @@ export default function Notifications() {
       title: '状态',
       dataIndex: 'is_read',
       width: 80,
-      render: (v) => (v ? <StatusBadge tone="neutral">已读</StatusBadge> : <StatusBadge tone="brand">未读</StatusBadge>),
+      render: (v) => (v ? <StatusBadge tone="neutral">{t('已读')}</StatusBadge> : <StatusBadge tone="brand">{t('未读')}</StatusBadge>),
     },
     {
       key: 'created_at',
@@ -199,13 +202,13 @@ export default function Notifications() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           {!record.is_read ? (
-            <Button variant="ghost" size="sm" className="h-7 px-2" title="标记为已读" onClick={() => handleMarkRead(record.id)}>
-              已读
+            <Button variant="ghost" size="sm" className="h-7 px-2" title={t('标记为已读')} onClick={() => handleMarkRead(record.id)}>
+              {t('已读')}
             </Button>
           ) : null}
           <ConfirmAction title="确认删除该通知？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -223,11 +226,11 @@ export default function Notifications() {
           <>
             <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
               <CheckCheck />
-              全部已读
+              {t('全部已读')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建通知
+              {t('新建通知')}
             </Button>
           </>
         }
@@ -237,7 +240,7 @@ export default function Notifications() {
         <SegmentedTabs variant="pill" value={readFilter} onChange={(val) => handleSearch({ is_read: val })} items={FILTER_ITEMS} />
         <Button variant="ghost" size="sm" className="text-muted-foreground h-8" onClick={() => fetchData()}>
           <RefreshCw className={cn(loading && 'animate-spin')} />
-          刷新
+          {t('刷新')}
         </Button>
       </div>
 
@@ -269,7 +272,7 @@ export default function Notifications() {
                 value={value}
                 onChange={onChange}
                 options={userOptions}
-                placeholder="请选择目标用户"
+                placeholder={t('请选择目标用户')}
                 invalid={Boolean(fieldState.error)}
               />
             )}

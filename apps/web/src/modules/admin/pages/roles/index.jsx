@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Check, Download, Minus, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
 import { formatDateTime } from '@/lib/format'
+import { menuLabel } from '@/lib/menu-label'
 import { cn } from '@/lib/utils'
 import { getMenus } from '@/modules/admin/api/menus'
 import {
@@ -39,10 +41,11 @@ const ROLE_EXPORT_FIELDS = [
 ]
 const normalizeFileType = (raw) => (['csv', 'xls', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
-// 后端菜单树 → TreeView 节点（key 为数字菜单 id）
+// Backend menu tree -> TreeView nodes (key is the numeric menu id; code is kept for the translated label)
 const convertToTreeData = (menus = []) =>
   menus.map((m) => ({
     key: m.id,
+    code: m.code,
     label: m.name,
     children: m.children?.length ? convertToTreeData(m.children) : undefined,
   }))
@@ -50,10 +53,10 @@ const convertToTreeData = (menus = []) =>
 const collectDescendants = (node) => (node.children || []).flatMap((child) => [child.key, ...collectDescendants(child)])
 
 /**
- * 父子联动勾选（多选）：
- * - 选中集合包含所有“完全选中”的节点（含父节点），半选父节点不在集合里
- * - 父节点在集合中 → 其全部子孙视为选中
- * - 父节点当且仅当所有子节点选中时为选中
+ * Cascading parent/child checks (multi-select):
+ * - the checked set holds every fully checked node (parents included); half-checked parents are not in it
+ * - a parent in the set -> all of its descendants count as checked
+ * - a parent is checked if and only if all of its children are checked
  */
 function expandDown(nodes, set) {
   const walk = (list, parentChecked) =>
@@ -79,7 +82,7 @@ function recomputeUp(nodes, set) {
   return set
 }
 
-/** 仅展示用的勾选框（整行可点击切换）：选中 / 半选 / 未选 */
+/** Display-only checkbox (the whole row toggles it): checked / indeterminate / unchecked */
 function CheckMark({ state }) {
   return (
     <span
@@ -96,6 +99,8 @@ function CheckMark({ state }) {
 }
 
 function MenuTreeChecklist({ tree, value, onChange }) {
+  // Subscribe to language changes: menuLabel reads i18n directly
+  useTranslation()
   const checked = useMemo(() => recomputeUp(tree, expandDown(tree, new Set(value))), [tree, value])
 
   const isIndeterminate = (node) => !checked.has(node.key) && collectDescendants(node).some((k) => checked.has(k))
@@ -116,7 +121,7 @@ function MenuTreeChecklist({ tree, value, onChange }) {
       renderLabel={(node) => (
         <span className="flex items-center gap-2">
           <CheckMark state={checked.has(node.key) ? 'checked' : isIndeterminate(node) ? 'indeterminate' : 'unchecked'} />
-          <span className="truncate">{node.label}</span>
+          <span className="truncate">{menuLabel({ code: node.code, name: node.label })}</span>
         </span>
       )}
     />
@@ -124,6 +129,7 @@ function MenuTreeChecklist({ tree, value, onChange }) {
 }
 
 export default function Roles() {
+  const { t } = useTranslation()
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -246,7 +252,11 @@ export default function Roles() {
       width: 110,
       render: (menus) => (
         <StatusBadge tone={menus?.length ? 'success' : 'neutral'}>
-          <span className="tabular-nums">{menus?.length || 0}</span> 个
+          <Trans
+            i18nKey="<0>{{count}}</0> 个"
+            values={{ count: menus?.length || 0 }}
+            components={[<span className="tabular-nums" />]}
+          />
         </StatusBadge>
       ),
     },
@@ -266,11 +276,11 @@ export default function Roles() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该角色？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -286,15 +296,15 @@ export default function Roles() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建角色
+              {t('新建角色')}
             </Button>
           </>
         }
@@ -314,11 +324,15 @@ export default function Roles() {
           >
             <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
               <span>
-                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                <Trans
+                  i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                  values={{ count: selectedKeys.length }}
+                  components={[<span className="font-medium tabular-nums" />]}
+                />
               </span>
               <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                 <X />
-                清空勾选
+                {t('清空勾选')}
               </Button>
             </div>
           </motion.div>
@@ -341,7 +355,7 @@ export default function Roles() {
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing ? '编辑角色' : '新建角色'}
-        description={editing ? `正在编辑 ${editing.name}` : undefined}
+        description={editing ? t('正在编辑 {{name}}', { name: editing.name }) : undefined}
         form={form}
         onSubmit={submit}
       >
@@ -358,14 +372,14 @@ export default function Roles() {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[13px] font-medium">菜单权限</span>
-            <span className="text-muted-foreground text-xs tabular-nums">已选 {checkedMenus.length} 项</span>
+            <span className="text-[13px] font-medium">{t('菜单权限')}</span>
+            <span className="text-muted-foreground text-xs tabular-nums">{t('已选 {{count}} 项', { count: checkedMenus.length })}</span>
           </div>
           <div className="max-h-72 overflow-auto rounded-lg border p-1.5">
             {menuTree.length > 0 ? (
               <MenuTreeChecklist tree={menuTree} value={checkedMenus} onChange={setCheckedMenus} />
             ) : (
-              <p className="text-muted-foreground px-2 py-3 text-[13px]">暂无菜单数据</p>
+              <p className="text-muted-foreground px-2 py-3 text-[13px]">{t('暂无菜单数据')}</p>
             )}
           </div>
         </div>
@@ -375,7 +389,11 @@ export default function Roles() {
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="角色导出字段"
-        ruleHint={selectedKeys.length ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将导出当前列表全部结果'}
+        ruleHint={
+          selectedKeys.length
+            ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: selectedKeys.length })
+            : '未勾选数据时，将导出当前列表全部结果'
+        }
         fieldOptions={ROLE_EXPORT_FIELDS}
         defaultFields={['name', 'code', 'description', 'menu_codes']}
         onConfirm={handleExport}
@@ -396,7 +414,7 @@ export default function Roles() {
         }
         onImport={(file) => importRoles(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="roles_import_error_rows.csv"

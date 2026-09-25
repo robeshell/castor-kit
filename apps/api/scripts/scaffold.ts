@@ -1,30 +1,37 @@
 /**
- * castor-kit 代码骨架生成脚本：按字段定义生成后端模块、前端页面与迁移
+ * castor-kit code scaffold: generates a backend module, a frontend page and a migration from field definitions
  *
- * 用法：
+ * Usage:
  *   pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str,status:str"
  *
- *   --name            资源名（snake_case，如 customer）
- *   --domain          所属域（admin 或 component_center，默认 admin）
- *   --fields          字段列表，格式 "field:type,field:type"（默认 name:str）
- *                     支持类型：str / str20 / str50 / str500 / text / int / float / bool / date / datetime
- *   --dry-run         只打印，不写文件、不改注册文件、不生成迁移
- *   --skip-migration  不调用 drizzle-kit generate（测试用）
- *   --root            仓库根目录（默认本脚本所在仓库，测试用）
+ *   --name            resource name (snake_case, e.g. customer)
+ *   --domain          owning domain (admin or component_center, default admin)
+ *   --fields          field list, formatted "field:type,field:type" (default name:str)
+ *                     supported types: str / str20 / str50 / str500 / text / int / float / bool / date / datetime
+ *   --dry-run         print only: write no files, change no registration files, generate no migration
+ *   --skip-migration  don't run drizzle-kit generate (for tests)
+ *   --root            repository root (default: the repo this script lives in; for tests)
  *
- * 生成文件（已存在的文件跳过，不覆盖）：
- *   apps/api/src/db/schema/<domain>/<name>.ts                         表定义 + toDict
+ * Generated files (existing files are skipped, never overwritten):
+ *   apps/api/src/db/schema/<domain>/<name>.ts                         table definition + toDict
  *   apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
+ *   apps/api/test/<admin|cc>-<name>.test.ts                           basic API tests
  *   apps/web/src/modules/<module>/api/<name>.js
- *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.jsx   shadcn/ui 列表页（结构同 users 页）
- * 自动注册：
+ *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.jsx   shadcn/ui list page (same structure as the users page)
+ *   apps/web/src/modules/<module>/pages/<subdir>/<name>/locales/{en-US,ja-JP}.json
+ *                     only when the page uses fixed Chinese text that apps/web/src/locales doesn't translate
+ * Auto-registration:
  *   apps/api/src/db/schema/index.ts          export * from './<domain>/<name>'
  *   apps/api/src/modules/<domain>/router.ts  import + await register<Name>Routes(app)
- * 生成迁移：
+ * Migration:
  *   drizzle-kit generate --name <name>
  *
- * 后端目录/文件名按仓库约定用小写连字符（ck_demo → ck-demo，component_center → component-center）；
- * 表名为 `<name>s`；前端路径为 admin/pages/<name> 或 component_center/pages/admin/<name>_page。
+ * Backend directory / file names use lowercase hyphens per repo convention (ck_demo → ck-demo, component_center → component-center);
+ * the table name is `<name>s`; the frontend path is admin/pages/<name> or component_center/pages/admin/<name>_page.
+ *
+ * i18n: generated pages follow apps/web/src/modules/admin/pages/users/index.jsx (Chinese source text is the key,
+ * see apps/web/src/i18n/index.js); backend error messages stay Chinese and are translated by apps/api/src/i18n/messages.ts.
+ * Generated code comments are English.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -36,14 +43,14 @@ import { printUsage } from './lib/usage'
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 
-// ─── 字段类型映射 ──────────────────────────────────────────────────────────────
+// ─── Field type mapping ────────────────────────────────────────────────────────
 
 export interface FieldTypeSpec {
-  /** Drizzle 列构造表达式 */
+  /** Drizzle column builder expression */
   column: string
-  /** 需要从 drizzle-orm/pg-core 导入的构造器 */
+  /** Builder to import from drizzle-orm/pg-core */
   builder: string
-  /** schema.ts 里的归一化函数 */
+  /** Normalizer function in schema.ts */
   coerce: 'toStr' | 'toInt' | 'toNumeric' | 'toBool' | 'toDate' | 'toDateTime'
 }
 
@@ -60,14 +67,14 @@ export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
   datetime: { column: "timestamp({ mode: 'string' })", builder: 'timestamp', coerce: 'toDateTime' },
 }
 
-/** 字段类型规格；未知类型按 str 处理 */
+/** Field type spec; unknown types are treated as str */
 export function fieldSpec(type: string): FieldTypeSpec {
   return FIELD_TYPE_MAP[type] ?? FIELD_TYPE_MAP.str!
 }
 
 export type Field = [name: string, type: string]
 
-// ─── 命名工具 ──────────────────────────────────────────────────────────────────
+// ─── Naming helpers ────────────────────────────────────────────────────────────
 
 /** Python `''.join(w.capitalize() for w in name.split('_'))` */
 export function toPascal(name: string): string {
@@ -86,7 +93,7 @@ export function toKebab(name: string): string {
   return name.replace(/_/g, '-')
 }
 
-/** Python `name.replace('_', ' ').title()`：字母跟在非字母后大写，其余小写 */
+/** Python `name.replace('_', ' ').title()`: a letter following a non-letter is upper-cased, the rest lower-cased */
 export function toLabel(name: string): string {
   let prevIsLetter = false
   let out = ''
@@ -98,17 +105,17 @@ export function toLabel(name: string): string {
   return out
 }
 
-/** 生成到 TS 单引号字符串里 */
+/** Emit as a single-quoted TS string literal */
 function q(text: string): string {
   return `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 }
 
-/** 对象字面量的键：合法标识符直接写，否则加引号 */
+/** Object literal key: bare when it's a valid identifier, quoted otherwise */
 function key(text: string): string {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(text) ? text : q(text)
 }
 
-// ─── 推断 ──────────────────────────────────────────────────────────────────────
+// ─── Inference ─────────────────────────────────────────────────────────────────
 
 export interface ScaffoldSpec {
   name: string
@@ -118,9 +125,9 @@ export interface ScaffoldSpec {
   camel: string
   kebab: string
   table: string
-  /** 后端目录名：admin / component-center */
+  /** Backend directory name: admin / component-center */
   domainDir: string
-  /** 前端模块目录：admin / component_center */
+  /** Frontend module directory: admin / component_center */
   webModule: string
   permPrefix: string
   menuComponent: string
@@ -132,10 +139,10 @@ export interface ScaffoldSpec {
 
 export function buildSpec(name: string, domain: 'admin' | 'component_center', fields: Field[]): ScaffoldSpec {
   const domainPrefix = domain === 'admin' ? 'system' : 'cc'
-  // 名称字段（搜索、导入必填列）：第一个 str / str50 字段；str20（编码、电话、状态）与 str500（链接）不算
+  // Name field (search, required import column): the first str / str50 field; str20 (codes, phones, statuses) and str500 (links) don't count
   const nameField = fields.find(([, t]) => t === 'str' || t === 'str50')?.[0] ?? fields[0]?.[0] ?? 'name'
-  // 导入 / 导出 / 表格列覆盖全部字段；
-  // 必填列（name 字段）排第一，非字符串字段由 buildValues 转换，转换失败记为错误行
+  // Import / export / table columns cover all fields;
+  // the required column (name field) comes first; non-string fields are converted by buildValues, and conversion failures become error rows
   const importFields = [...fields.filter(([f]) => f === nameField), ...fields.filter(([f]) => f !== nameField)]
   return {
     name,
@@ -156,7 +163,7 @@ export function buildSpec(name: string, domain: 'admin' | 'component_center', fi
   }
 }
 
-// ─── 后端代码生成 ──────────────────────────────────────────────────────────────
+// ─── Backend code generation ───────────────────────────────────────────────────
 
 export function genDbSchema(s: ScaffoldSpec): string {
   const builders = new Set(['pgTable', 'serial'])
@@ -167,11 +174,11 @@ export function genDbSchema(s: ScaffoldSpec): string {
   )
   return `/**
  * ${s.table}
- * 由 scripts/scaffold.ts 生成（name=${s.name}, domain=${s.domain}）。
+ * Generated by scripts/scaffold.ts (name=${s.name}, domain=${s.domain}).
  *
- * - 时间列用 createdAt()/updatedAt()（应用侧默认 \`timezone('utc', now())\`），输出统一走 toIso()
- * - numeric 列保持字符串，date 列是 'YYYY-MM-DD' 文本
- * - 改完表结构后执行 \`pnpm db:generate --name <描述>\` + \`pnpm db:migrate\`
+ * - Timestamp columns use createdAt()/updatedAt() (app-side default \`timezone('utc', now())\`); output always goes through toIso()
+ * - numeric columns stay strings; date columns are 'YYYY-MM-DD' text
+ * - After changing the table, run \`pnpm db:generate --name <description>\` + \`pnpm db:migrate\`
  */
 
 import { ${[...builders].sort().join(', ')} } from 'drizzle-orm/pg-core'
@@ -211,7 +218,7 @@ const COERCERS: Record<FieldTypeSpec['coerce'], string> = {
     throw invalid(field)
   }
 }`,
-  toNumeric: `/** numeric 列保持字符串（不经过 parseFloat，避免精度问题） */
+  toNumeric: `/** numeric columns stay strings (no parseFloat, to avoid precision loss) */
 function toNumeric(field: string, value: unknown): string | null {
   if (value === null || value === undefined || value === '') return null
   if (typeof value === 'number' && Number.isFinite(value)) return String(value)
@@ -227,14 +234,14 @@ function toNumeric(field: string, value: unknown): string | null {
   if (['0', 'false', 'no', 'off', '否'].includes(text)) return false
   throw invalid(field)
 }`,
-  toDate: `/** 'YYYY-MM-DD'（也接受带时间的 ISO 字符串，取日期部分） */
+  toDate: `/** 'YYYY-MM-DD' (ISO strings with a time part are accepted; the date part is kept) */
 function toDate(field: string, value: unknown): string | null {
   if (value === null || value === undefined || value === '') return null
   const match = typeof value === 'string' ? /^(\\d{4}-\\d{2}-\\d{2})([ T].*)?$/.exec(value.trim()) : null
   if (!match) throw invalid(field)
   return match[1]!
 }`,
-  toDateTime: `/** 'YYYY-MM-DD HH:mm[:ss[.ffffff]]' 或 ISO 'T' 分隔 */
+  toDateTime: `/** 'YYYY-MM-DD HH:mm[:ss[.ffffff]]' or ISO with a 'T' separator */
 function toDateTime(field: string, value: unknown): string | null {
   if (value === null || value === undefined || value === '') return null
   const text = typeof value === 'string' ? value.trim() : ''
@@ -263,21 +270,22 @@ export function genModuleSchema(s: ScaffoldSpec): string {
   })
 
   return `/**
- * ${s.pascal} 模块 schema 层（由 scripts/scaffold.ts 生成）
+ * ${s.pascal} module schema layer (generated by scripts/scaffold.ts)
  *
- * 请求体宽松：\`request.get_json() or {}\` 语义由 jsonBody() 提供，这里按字段类型归一化；
- * 值无法转换成列类型时返回 400。按业务补充必填 / 唯一性等校验。
+ * Request bodies are lenient: jsonBody() provides the \`request.get_json() or {}\` semantics; values are normalized by field type here,
+ * and a value that can't be converted to its column type returns 400. Add required / uniqueness checks as the business needs.
  */
 
 import { z } from 'zod'
 ${needsInvalid ? `import { ServiceError } from '@/common/errors'\n` : ''}${pyImports.length > 0 ? `import { ${pyImports.join(', ')} } from '@/common/py'\n` : ''}import type { ${s.pascal}, New${s.pascal} } from '@/db/schema'
 
-/** 请求体：loose + 全可选，归一化在 buildValues 里做 */
+/** Request body: loose and fully optional; normalization happens in buildValues */
 export const ${s.camel}BodySchema = z.record(z.string(), z.unknown()).nullish()
 
 /**
- * 导出列：表头字符串（值取 toDict 的同名字段），或 [表头, 取值函数]（需要转换时用，如枚举显示中文、布尔显示是/否）。
- * 表头由 AI/开发者翻译成中文；字段校验报错也用这里的表头作为字段名。
+ * Export columns: a header string (value taken from the toDict field of the same name), or [header, value function]
+ * (when a conversion is needed, e.g. enum values shown as Chinese labels, booleans shown as yes / no text).
+ * Headers are translated into Chinese by the AI / developer; field validation errors also use these headers as field names.
  */
 export type ExportColumn = string | [header: string, value: (item: ${s.pascal}) => unknown]
 
@@ -285,26 +293,26 @@ export const EXPORT_FIELD_MAP: Record<string, ExportColumn> = {
 ${exportLines.join('\n')}
 }
 
-/** 字段的中文名（取导出表头；没有导出列时退回字段名） */
+/** Chinese name of a field (the export header; falls back to the field name when there is no export column) */
 export function fieldLabel(field: string): string {
   const column = EXPORT_FIELD_MAP[field]
   return Array.isArray(column) ? column[0] : (column ?? field)
 }
 
-/** 导入列头映射（key=表头, value=字段名）；第一列为必填 */
+/** Import header map (key = header, value = field name); the first column is required */
 export const IMPORT_HEADER_MAP: Record<string, string> = {
 ${importLines.join('\n')}
 }
 
-/** 请求体归一化后的列值：每个字段都可缺省、可为 null；必填 / 唯一由数据库约束兜底（service 转成 400） */
+/** Column values after normalizing the request body: every field may be absent or null; required / unique is enforced by DB constraints (the service turns violations into 400) */
 export type ${s.pascal}Values = { [K in keyof Omit<New${s.pascal}, 'id' | 'created_at' | 'updated_at'>]?: New${s.pascal}[K] | null }
 ${needsInvalid ? `\nfunction invalid(field: string): ServiceError {\n  return new ServiceError(\`\${fieldLabel(field)}的值无效\`, 400)\n}\n` : ''}
 ${used.map((c) => COERCERS[c]).join('\n\n')}
 
 /**
- * 请求体 → 列值。
- * - 新增（partial=false）：所有字段都写入，缺失的为 null
- * - 编辑（partial=true）：只写请求体里出现的字段
+ * Request body → column values.
+ * - Create (partial=false): every field is written; missing ones become null
+ * - Edit (partial=true): only fields present in the request body are written
  */
 export function buildValues(data: Record<string, unknown>, partial: boolean): ${s.pascal}Values {
   const values: ${s.pascal}Values = {}
@@ -336,7 +344,7 @@ export function genRepository(s: ScaffoldSpec): string {
     : `ilike(sql\`\${${s.table}.${s.nameField}}::text\`, \`%\${search}%\`)`
   const ormImports = ['count', 'desc', 'eq', 'ilike', 'inArray', ...(isText ? [] : ['sql']), 'type SQL']
   return `/**
- * ${s.pascal} repository 层（由 scripts/scaffold.ts 生成）：纯数据库读写，不含业务逻辑
+ * ${s.pascal} repository layer (generated by scripts/scaffold.ts): plain database reads / writes, no business logic
  */
 
 import { ${ormImports.join(', ')} } from 'drizzle-orm'
@@ -364,7 +372,7 @@ export class ${s.pascal}Repository {
     return { total: totalRow?.n ?? 0, items }
   }
 
-  /** 导出：ids 为 null 时导出全部；按 id 倒序 */
+  /** Export: all rows when ids is null; ordered by id descending */
   async listForExport(ids: number[] | null): Promise<${s.pascal}[]> {
     return this.db
       .select()
@@ -379,8 +387,8 @@ export class ${s.pascal}Repository {
   }
 
   /**
-   * values 来自 buildValues（字段都是可选的）；给列加了 .notNull() 后缺值由数据库拒绝，
-   * service 会把 not-null / 唯一等约束错误转成 400，所以这里按插入类型收下即可。
+   * values come from buildValues (every field optional); once a column gets .notNull() the database rejects missing values,
+   * and the service turns not-null / unique constraint errors into 400, so accepting them as the insert type is fine here.
    */
   async insert(values: ${s.pascal}Values): Promise<${s.pascal}> {
     const [row] = await this.db
@@ -408,7 +416,7 @@ export class ${s.pascal}Repository {
 
 export function genService(s: ScaffoldSpec): string {
   return `/**
- * ${s.pascal} service 层（由 scripts/scaffold.ts 生成）：业务逻辑，抛 ServiceError，不碰 HTTP 对象
+ * ${s.pascal} service layer (generated by scripts/scaffold.ts): business logic; throws ServiceError and never touches HTTP objects
  */
 
 import { ServiceError } from '@/common/errors'
@@ -435,7 +443,7 @@ export class ${s.pascal}Service {
       return await this.db.transaction((tx) => fn(new ${s.pascal}Repository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      // 唯一冲突 / 超长 / 数值溢出等输入问题 → 400；其余 → 500
+      // Input problems such as unique conflicts / values too long / numeric overflow → 400; anything else → 500
       throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
@@ -474,7 +482,7 @@ export class ${s.pascal}Service {
     return { message: '删除成功' }
   }
 
-  /** 导出：fields 缺省为全部导出字段；ids 为空导出全部；默认 xlsx */
+  /** Export: fields default to all export fields; empty ids exports everything; xlsx by default */
   async exportItems(data: Data) {
     const fileType = normalizeTableFileType(data.file_type, 'xlsx')
     const rawFields = pyTruthy(data.fields) && Array.isArray(data.fields) ? data.fields : Object.keys(EXPORT_FIELD_MAP)
@@ -500,7 +508,7 @@ export class ${s.pascal}Service {
     return buildTable(Object.keys(IMPORT_HEADER_MAP), [], ${q(`${s.name}_import_template`)}, fileType)
   }
 
-  /** 导入：整批一个事务，存在错误行时整体回滚并返回 400 + error_rows */
+  /** Import: the whole batch is one transaction; any error row rolls it all back and returns 400 + error_rows */
   async importItems(file: UploadedFile | null) {
     let table
     try {
@@ -535,7 +543,7 @@ export class ${s.pascal}Service {
         try {
           await repo.insert(values)
         } catch (err) {
-          // 数据库拒绝这一行（唯一冲突、超长等）：事务已中止，带上已发现的错误行一起返回
+          // The database rejected this row (unique conflict, too long, ...): the transaction is aborted, so return it with the error rows found so far
           const rowError = dbConstraintError(err)
           if (!rowError) throw err
           errors.push(buildErrorRow(line, rowError.message, row))
@@ -544,7 +552,7 @@ export class ${s.pascal}Service {
         created += 1
       }
       if (errors.length > 0) {
-        // 抛错让事务整体回滚
+        // Throw so the whole transaction rolls back
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,
@@ -560,10 +568,10 @@ export class ${s.pascal}Service {
 export function genRoutes(s: ScaffoldSpec): string {
   const p = s.permPrefix
   return `/**
- * ${s.pascal} 路由（由 scripts/scaffold.ts 生成）
+ * ${s.pascal} routes (generated by scripts/scaffold.ts)
  *
- * 权限编码：${p}（查看 / 模板）、${p}_add、${p}_edit、${p}_delete、${p}_export、${p}_import
- * 带 id 的路由先查记录（不存在 404）再做权限检查（403）。
+ * Permission codes: ${p} (view / template), ${p}_add, ${p}_edit, ${p}_delete, ${p}_export, ${p}_import
+ * Routes with an id load the record first (404 when missing), then check permissions (403).
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -644,9 +652,9 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
 `
 }
 
-// ─── 后端测试生成 ──────────────────────────────────────────────────────────────
+// ─── Backend test generation ───────────────────────────────────────────────────
 
-/** 各 scaffold 类型的示例值（TS 源码片段）；字符串带 tag，避免多次新增撞唯一约束 */
+/** Sample value per scaffold type (TS source snippet); strings carry a tag so repeated creates don't hit unique constraints */
 function sampleExpr(field: string, type: string): string {
   const maxLen: Record<string, number> = { str: 100, str20: 20, str50: 50, str500: 500 }
   switch (fieldSpec(type).coerce) {
@@ -675,11 +683,11 @@ export function testFilePath(s: ScaffoldSpec): string {
 export function genApiTest(s: ScaffoldSpec): string {
   const sampleLines = s.fields.map(([f, t]) => `    ${key(f)}: ${sampleExpr(f, t)},`)
   return `/**
- * ${s.pascal} 接口基础用例（由 scripts/scaffold.ts 生成）
+ * ${s.pascal} basic API tests (generated by scripts/scaffold.ts)
  *
- * 覆盖：增删改查、列表分页与搜索、404、导出、导入模板、导入成功 / 必填列为空整批回滚。
- * 按业务加了必填 / 唯一 / 枚举 / 默认值等规则后，同步修改 sample() 与断言，并补上对应的失败用例。
- * 测试数据按 id 清理：只删本文件运行期间新增的记录。
+ * Covers: CRUD, list pagination and search, 404, export, import template, successful import / whole-batch rollback on an empty required column.
+ * After adding business rules (required / unique / enum / defaults ...), update sample() and the assertions, and add the matching failure cases.
+ * Test data is cleaned up by id: only rows created while this file runs are deleted.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -692,7 +700,7 @@ import { buildTestApp, multipartFile, openTestDb, superAdminSession, type Authed
 
 const BASE = ${q(s.apiBase)}
 
-/** 各字段的示例值（tag 让字符串每次不同） */
+/** Sample value per field (the tag makes strings differ on every call) */
 function sample(tag: string): Record<string, unknown> {
   return {
 ${sampleLines.join('\n')}
@@ -791,20 +799,25 @@ describe(${q(`${s.table} 接口`)}, () => {
 `
 }
 
-// ─── 前端代码生成（shadcn/ui 体系，结构对齐 apps/web/src/modules/admin/pages/users/index.jsx） ──────
+// ─── Frontend code generation (shadcn/ui, same structure as apps/web/src/modules/admin/pages/users/index.jsx) ──
 //
-// api 文件按固定模板生成；页面按 docs/frontend-redesign-plan.md 的新体系生成：
+// The api file comes from a fixed template; the page follows docs/frontend-redesign-plan.md:
 // PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
-// + ConfirmAction + toast + useCrudList。字段 → 表单组件 / 表格列渲染见 FRONTEND_FIELD_MAP。
+// + ConfirmAction + toast + useCrudList. Field → form component / table column rendering: see FRONTEND_FIELD_MAP.
+//
+// i18n (see apps/web/src/i18n/index.js): Chinese source text is the key. Strings passed to shared components stay
+// plain Chinese (the components translate them); JSX text, native attributes and interpolated text go through
+// t() / <Trans>. Every fixed Chinese string the page emits must have an entry in PAGE_TEXTS; the ones missing from
+// apps/web/src/locales are written to the page's own locales/ (see genFrontendLocales).
 
 type FrontendKind = 'str' | 'text' | 'int' | 'float' | 'bool' | 'date' | 'datetime'
 
 export interface FrontendFieldSpec {
-  /** FormFields.jsx 里的表单组件 */
+  /** Form component from FormFields.jsx */
   component: 'FormInput' | 'FormTextarea' | 'FormNumber' | 'FormSwitch' | 'FormDate' | 'FormDateTime'
-  /** 表单组件额外属性（JSX 片段） */
+  /** Extra props for the form component (JSX snippet) */
   props: string
-  /** useForm 默认值（JS 字面量） */
+  /** useForm default value (JS literal) */
   empty: string
 }
 
@@ -818,9 +831,69 @@ export const FRONTEND_FIELD_MAP: Record<FrontendKind, FrontendFieldSpec> = {
   datetime: { component: 'FormDateTime', props: '', empty: "''" },
 }
 
-/** scaffold 类型 → 前端字段类别（str20 / str50 / str500 / 未知类型都按 str） */
+/** scaffold type → frontend field kind (str20 / str50 / str500 / unknown types all map to str) */
 export function frontendKind(type: string): FrontendKind {
   return type in FRONTEND_FIELD_MAP ? (type as FrontendKind) : 'str'
+}
+
+export const PAGE_LANGS = ['en-US', 'ja-JP'] as const
+export type PageLang = (typeof PAGE_LANGS)[number]
+/** Translation catalog per language: { Chinese source text → translation } */
+export type Catalogs = Partial<Record<PageLang, Record<string, string>>>
+
+/**
+ * Translations of every fixed Chinese string a generated page can contain.
+ * Most of them are shared CRUD strings already in apps/web/src/locales; the values must match those files exactly
+ * (a key translated differently in two locales files is a conflict, see apps/web/test/i18n.test.js).
+ * They are still listed here so a checkout whose shared locales lack a string gets it in the page's own locales.
+ */
+export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
+  创建时间: { 'en-US': 'Created at', 'ja-JP': '作成日時' },
+  是: { 'en-US': 'Yes', 'ja-JP': 'はい' },
+  否: { 'en-US': 'No', 'ja-JP': 'いいえ' },
+  加载失败: { 'en-US': 'Failed to load', 'ja-JP': '読み込みに失敗しました' },
+  更新成功: { 'en-US': 'Updated', 'ja-JP': '更新しました' },
+  创建成功: { 'en-US': 'Created', 'ja-JP': '作成しました' },
+  操作失败: { 'en-US': 'Operation failed', 'ja-JP': '操作に失敗しました' },
+  删除成功: { 'en-US': 'Deleted', 'ja-JP': '削除しました' },
+  删除失败: { 'en-US': 'Delete failed', 'ja-JP': '削除に失敗しました' },
+  导出成功: { 'en-US': 'Export complete', 'ja-JP': 'エクスポートしました' },
+  导出失败: { 'en-US': 'Export failed', 'ja-JP': 'エクスポートに失敗しました' },
+  编辑: { 'en-US': 'Edit', 'ja-JP': '編集' },
+  删除: { 'en-US': 'Delete', 'ja-JP': '削除' },
+  '确认删除该记录？': { 'en-US': 'Delete this record?', 'ja-JP': 'このレコードを削除しますか？' },
+  '删除后不可恢复。': { 'en-US': "This can't be undone.", 'ja-JP': '削除すると元に戻せません。' },
+  导入: { 'en-US': 'Import', 'ja-JP': 'インポート' },
+  导出: { 'en-US': 'Export', 'ja-JP': 'エクスポート' },
+  新增: { 'en-US': 'Add', 'ja-JP': '追加' },
+  '搜索…': { 'en-US': 'Search…', 'ja-JP': '検索…' },
+  '已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据': {
+    'en-US': '<0>{{count}}</0> selected. Export will use the selected rows.',
+    'ja-JP': '<0>{{count}}</0> 件を選択中。エクスポート時は選択したデータが優先されます',
+  },
+  清空勾选: { 'en-US': 'Clear selection', 'ja-JP': '選択を解除' },
+  暂无数据: { 'en-US': 'No data', 'ja-JP': 'データがありません' },
+  换个关键词试试: { 'en-US': 'Try a different keyword', 'ja-JP': '別のキーワードでお試しください' },
+  '点击右上角「新增」添加第一条数据': {
+    'en-US': 'Click "Add" in the top right to add the first record',
+    'ja-JP': '右上の「追加」から最初のデータを追加してください',
+  },
+  导出设置: { 'en-US': 'Export settings', 'ja-JP': 'エクスポート設定' },
+  '已勾选 {{count}} 条，将优先导出勾选数据。': {
+    'en-US': '{{count}} selected. Only the selected rows will be exported.',
+    'ja-JP': '{{count}} 件を選択中です。選択したデータが優先してエクスポートされます。',
+  },
+  '未勾选数据时导出全部数据。': {
+    'en-US': 'With nothing selected, all data is exported.',
+    'ja-JP': '何も選択していない場合は、すべてのデータをエクスポートします。',
+  },
+  导入数据: { 'en-US': 'Import data', 'ja-JP': 'データのインポート' },
+  模板已下载: { 'en-US': 'Template downloaded', 'ja-JP': 'テンプレートをダウンロードしました' },
+  模板下载失败: { 'en-US': 'Template download failed', 'ja-JP': 'テンプレートのダウンロードに失敗しました' },
+  '导入成功：新增 {{created}} 条，更新 {{updated}} 条': {
+    'en-US': 'Imported: {{created}} added, {{updated}} updated',
+    'ja-JP': 'インポートしました：追加 {{created}} 件、更新 {{updated}} 件',
+  },
 }
 
 export function genFrontendApi(s: ScaffoldSpec): string {
@@ -849,7 +922,7 @@ export const importItems = (file) => {
 `
 }
 
-/** 编辑时 record → 表单值（时间转成 DatePicker / DateTimePicker 的格式） */
+/** Edit: record → form value (dates converted to the DatePicker / DateTimePicker format) */
 function formValueExpr(field: string, kind: FrontendKind): string {
   const v = `record.${field}`
   if (kind === 'bool') return `Boolean(${v})`
@@ -859,11 +932,12 @@ function formValueExpr(field: string, kind: FrontendKind): string {
   return `${v} ?? ''`
 }
 
-/** 表格列：bool → StatusBadge，日期 → formatDate / formatDateTime，数字 → tabular-nums */
+/** Table column: bool → StatusBadge, dates → formatDate / formatDateTime, numbers → tabular-nums */
 function columnLines(field: string, kind: FrontendKind): string[] {
   const head = [`    {`, `      key: ${q(field)},`, `      title: ${q(toLabel(field))},`, `      dataIndex: ${q(field)},`]
   const tail = [`    },`]
   if (kind === 'bool') {
+    // StatusBadge translates string children, so the Chinese stays plain
     return [
       ...head,
       `      width: 100,`,
@@ -895,7 +969,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
   const title = toLabel(s.name)
   const k = s.kebab
 
-  // 只导入用到的组件（web 的 eslint 开了 no-unused-vars）
+  // Import only the components in use (apps/web's eslint enables no-unused-vars)
   const formComponents = [...new Set(fields.map(([, kind]) => FRONTEND_FIELD_MAP[kind].component))].sort()
   const formatImports = [...(kinds.has('date') ? ['formatDate'] : []), 'formatDateTime']
   const needsStatusBadge = columnFields.some(([, kind]) => kind === 'bool')
@@ -930,11 +1004,11 @@ export function genFrontendPage(s: ScaffoldSpec): string {
     `      render: (_, record) => (`,
     `        <div className="flex justify-end gap-0.5">`,
     `          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>`,
-    `            编辑`,
+    `            {t('编辑')}`,
     `          </Button>`,
     `          <ConfirmAction title="确认删除该记录？" description="删除后不可恢复。" confirmText="删除" onConfirm={() => remove(record)}>`,
     `            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">`,
-    `              删除`,
+    `              {t('删除')}`,
     `            </Button>`,
     `          </ConfirmAction>`,
     `        </div>`,
@@ -943,14 +1017,21 @@ export function genFrontendPage(s: ScaffoldSpec): string {
   ]
 
   return `/**
- * ${title} 列表页（由 scripts/scaffold.ts 生成，结构同 apps/web/src/modules/admin/pages/users/index.jsx）
+ * ${title} list page (generated by scripts/scaffold.ts; same structure as apps/web/src/modules/admin/pages/users/index.jsx)
  *
- * PageHeader → FilterBar → DataTable（分页 / 勾选 / 行操作）→ FormDialog（react-hook-form）
- * → ImportDialog / ExportDialog。标题与字段标签是英文占位，按业务改成中文，并在 rules 里补必填校验。
+ * PageHeader -> FilterBar -> DataTable (pagination / selection / row actions) -> FormDialog (react-hook-form)
+ * -> ImportDialog / ExportDialog. The title and field labels are English placeholders: replace them with Chinese
+ * for the business and add required checks in rules.
+ *
+ * i18n: Chinese source text is the key. Strings passed to shared components (PageHeader, DataTable columns,
+ * FormDialog, FormFields, ExportDialog, toast, ...) are translated inside them; text written in JSX, native
+ * attributes and interpolated strings go through t() / <Trans>. Shared CRUD strings are translated in
+ * src/locales; add page-specific translations (e.g. the Chinese title and labels) to ./locales/<lang>.json.
  */
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Download, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ${formatImports.join(', ')} } from '@/lib/format'
@@ -984,12 +1065,13 @@ const EMPTY_VALUES = {
 ${emptyLines.join('\n')}
 }
 
-/** 编辑：只取表单字段（id / created_at 不回传），时间转成选择器格式 */
+/** Edit: take only the form fields (id / created_at are not sent back); dates converted to the picker format */
 const toFormValues = (record) => ({
 ${toFormLines.join('\n')}
 })
 
 export default function ${s.pascal}Page() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getItems(params).catch((err) => {
@@ -1090,15 +1172,15 @@ ${columns.join('\n')}
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新增
+              {t('新增')}
             </Button>
           </>
         }
@@ -1118,11 +1200,15 @@ ${columns.join('\n')}
           >
             <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
               <span>
-                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                <Trans
+                  i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                  values={{ count: selectedKeys.length }}
+                  components={[<span className="font-medium tabular-nums" />]}
+                />
               </span>
               <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                 <X />
-                清空勾选
+                {t('清空勾选')}
               </Button>
             </div>
           </motion.div>
@@ -1155,7 +1241,11 @@ ${formLines.join('\n')}
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="导出设置"
-        ruleHint={selectedKeys.length ? \`已勾选 \${selectedKeys.length} 条，将只导出勾选数据。\` : '未勾选数据时导出全部数据。'}
+        ruleHint={
+          selectedKeys.length
+            ? t('已勾选 {{count}} 条，将优先导出勾选数据。', { count: selectedKeys.length })
+            : '未勾选数据时导出全部数据。'
+        }
         fieldOptions={EXPORT_FIELDS}
         onConfirm={handleExport}
       />
@@ -1175,7 +1265,7 @@ ${formLines.join('\n')}
         }
         onImport={(file) => importItems(file)}
         onImported={(res) => {
-          toast.success(\`导入成功：新增 \${res?.created || 0} 条\`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="${k}s_import_errors.csv"
@@ -1186,9 +1276,50 @@ ${formLines.join('\n')}
 `
 }
 
-// ─── 自动注册 ──────────────────────────────────────────────────────────────────
+const CJK = /[㐀-鿿豈-﫿]/
 
-/** 在 db/schema/index.ts 注册 `export * from './<domainDir>/<kebab>'`；已注册返回 null */
+/** Fixed Chinese strings in generated page code: the contents of '…' / "…" literals that contain CJK characters */
+export function pageTexts(code: string): string[] {
+  const texts = new Set<string>()
+  // Drop comments first so an apostrophe in prose can't pair up with a real quote
+  const source = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  for (const [, , text] of source.matchAll(/(['"])((?:(?!\1)[^\\\n])*)\1/g)) {
+    if (text && CJK.test(text)) texts.add(text)
+  }
+  return [...texts].sort()
+}
+
+/**
+ * Page locales: translations of the page's fixed Chinese strings that the shared catalogs (apps/web/src/locales) lack.
+ * Both languages get the same keys (a string missing in either shared catalog goes into both page files).
+ * Returns null when the shared catalogs already cover everything.
+ */
+export function genFrontendLocales(s: ScaffoldSpec, shared: Catalogs = {}): Record<PageLang, Record<string, string>> | null {
+  const missing = pageTexts(genFrontendPage(s)).filter((text) => PAGE_LANGS.some((lang) => !shared[lang]?.[text]))
+  if (missing.length === 0) return null
+  const unknown = missing.filter((text) => !PAGE_TEXTS[text])
+  if (unknown.length > 0) throw new Error(`PAGE_TEXTS has no translation for: ${unknown.join(', ')}`)
+  return Object.fromEntries(
+    PAGE_LANGS.map((lang) => [lang, Object.fromEntries(missing.map((text) => [text, PAGE_TEXTS[text]![lang]]))]),
+  ) as Record<PageLang, Record<string, string>>
+}
+
+/** Shared catalogs of the target repo (a missing / unreadable file counts as empty) */
+export function readSharedCatalogs(root: string): Catalogs {
+  const catalogs: Catalogs = {}
+  for (const lang of PAGE_LANGS) {
+    try {
+      catalogs[lang] = JSON.parse(readFileSync(join(root, 'apps', 'web', 'src', 'locales', `${lang}.json`), 'utf8')) as Record<string, string>
+    } catch {
+      catalogs[lang] = {}
+    }
+  }
+  return catalogs
+}
+
+// ─── Auto-registration ─────────────────────────────────────────────────────────
+
+/** Register `export * from './<domainDir>/<kebab>'` in db/schema/index.ts; returns null when already registered */
 export function registerSchemaExport(content: string, domainDir: string, kebab: string): string | null {
   const line = `export * from './${domainDir}/${kebab}'`
   const escaped = `./${domainDir}/${kebab}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -1206,7 +1337,7 @@ export function registerSchemaExport(content: string, domainDir: string, kebab: 
   return `${trimmed}\n\n// ${domainDir.replace(/-/g, '_')}\n${line}\n`
 }
 
-/** 在 modules/<domain>/router.ts 注册 import + `await registerXRoutes(app)`；已注册返回 null */
+/** Register the import + `await registerXRoutes(app)` in modules/<domain>/router.ts; returns null when already registered */
 export function registerRoute(content: string, pascal: string, kebab: string): string | null {
   const fn = `register${pascal}Routes`
   if (new RegExp(`\\b${fn}\\b`).test(content)) return null
@@ -1229,7 +1360,7 @@ export function registerRoute(content: string, pascal: string, kebab: string): s
   return lines.join('\n')
 }
 
-// ─── 写文件 ────────────────────────────────────────────────────────────────────
+// ─── File writing ──────────────────────────────────────────────────────────────
 
 export interface ScaffoldOptions {
   root?: string
@@ -1275,14 +1406,18 @@ function updateFile(
   log(`  [update] ${rel}`)
 }
 
+function sortKeys(obj: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]!]))
+}
+
 function resolveDrizzleKit(apiDir: string): string[] {
   const local = join(apiDir, 'node_modules', '.bin', 'drizzle-kit')
   return existsSync(local) ? [local] : ['npx', 'drizzle-kit']
 }
 
-// ─── 主流程 ────────────────────────────────────────────────────────────────────
+// ─── Main flow ─────────────────────────────────────────────────────────────────
 
-/** 解析 "name:str,phone:str20,amount:float" 格式 */
+/** Parse the "name:str,phone:str20,amount:float" format */
 export function parseFields(fieldsStr: string): Field[] {
   if (!fieldsStr) return [['name', 'str']]
   const result: Field[] = []
@@ -1295,7 +1430,7 @@ export function parseFields(fieldsStr: string): Field[] {
   return result
 }
 
-/** 生成全部文件；返回 0 成功 / 1 失败 */
+/** Generate all files; returns 0 on success / 1 on failure */
 export function scaffold(
   name: string,
   domain: 'admin' | 'component_center',
@@ -1312,7 +1447,7 @@ export function scaffold(
   const srcDir = join(apiDir, 'src')
   const moduleDir = join(srcDir, 'modules', s.domainDir, s.kebab)
   const feBase = join(root, 'apps', 'web', 'src', 'modules', s.webModule)
-  // admin 域：pages/<name>/index.jsx；component_center 域：pages/admin/<name>_page/index.jsx
+  // admin domain: pages/<name>/index.jsx; component_center domain: pages/admin/<name>_page/index.jsx
   const fePagePath =
     domain === 'admin' ? join(feBase, 'pages', name, 'index.jsx') : join(feBase, 'pages', 'admin', `${name}_page`, 'index.jsx')
 
@@ -1323,7 +1458,7 @@ export function scaffold(
   log(`   API: ${s.apiBase}`)
   log('')
 
-  // 后端文件
+  // Backend files
   writeFile(root, join(srcDir, 'db', 'schema', s.domainDir, `${s.kebab}.ts`), genDbSchema(s), dryRun, log)
   writeFile(root, join(moduleDir, 'schema.ts'), genModuleSchema(s), dryRun, log)
   writeFile(root, join(moduleDir, 'repository.ts'), genRepository(s), dryRun, log)
@@ -1331,11 +1466,20 @@ export function scaffold(
   writeFile(root, join(moduleDir, 'routes.ts'), genRoutes(s), dryRun, log)
   writeFile(root, join(apiDir, 'test', testFilePath(s)), genApiTest(s), dryRun, log)
 
-  // 前端文件
+  // Frontend files
   writeFile(root, join(feBase, 'api', `${name}.js`), genFrontendApi(s), dryRun, log)
   writeFile(root, fePagePath, genFrontendPage(s), dryRun, log)
+  const locales = genFrontendLocales(s, readSharedCatalogs(root))
+  if (locales) {
+    for (const lang of PAGE_LANGS) {
+      const json = `${JSON.stringify(sortKeys(locales[lang]), null, 2)}\n`
+      writeFile(root, join(dirname(fePagePath), 'locales', `${lang}.json`), json, dryRun, log)
+    }
+  } else {
+    log('  [skip] page locales: every page string is translated in apps/web/src/locales')
+  }
 
-  // 注册
+  // Registration
   try {
     updateFile(root, join(srcDir, 'db', 'schema', 'index.ts'), (c) => registerSchemaExport(c, s.domainDir, s.kebab), dryRun, log)
     updateFile(root, join(srcDir, 'modules', s.domainDir, 'router.ts'), (c) => registerRoute(c, s.pascal, s.kebab), dryRun, log)
@@ -1344,7 +1488,7 @@ export function scaffold(
     return 1
   }
 
-  // 迁移
+  // Migration
   if (dryRun) {
     log(`  [dry-run] would run: drizzle-kit generate --name ${name}`)
   } else if (options.skipMigration) {
@@ -1354,7 +1498,7 @@ export function scaffold(
     const [cmd, ...pre] = resolveDrizzleKit(apiDir)
     const res = spawnSync(cmd!, [...pre, 'generate', '--name', name], { cwd: apiDir, encoding: 'utf8' })
     const output = `${res.stdout ?? ''}${res.stderr ?? ''}`.trim()
-    // 成功时只保留结论行（drizzle-kit 会把每张表都列一遍）；失败时原样输出
+    // On success keep only the summary lines (drizzle-kit lists every table); on failure print everything
     const shown =
       res.status === 0 ? output.split('\n').filter((l) => /\[✓\]|No schema changes|warn/i.test(l)) : output.split('\n')
     if (shown.length > 0) log(shown.map((l) => `      ${l.trim()}`).join('\n'))
@@ -1368,7 +1512,7 @@ export function scaffold(
   log('✅ 骨架文件生成完成！')
   log('')
   log('后续手动步骤：')
-  log(`  1. 按业务补充字段校验、中文表头（modules/${s.domainDir}/${s.kebab}/schema.ts）与前端页面文案`)
+  log(`  1. 按业务补充字段校验、中文表头（modules/${s.domainDir}/${s.kebab}/schema.ts）与前端页面文案（页面专属译文写在页面目录 locales/）`)
   log(`  2. 在 apps/api/scripts/seed-rbac.ts 中添加菜单（component: '${s.menuComponent}'）+ 按钮权限：`)
   log(`     ${s.permPrefix} / ${s.permPrefix}_add / _edit / _delete / _export / _import`)
   log('  3. 运行: pnpm seed:rbac -- --incremental')
@@ -1405,7 +1549,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     console.error(`❌ --domain 只能是 admin 或 component_center（当前：${values.domain}）`)
     return 2
   }
-  // 校验名称格式
+  // Validate the name format
   if (!/^[a-z][a-z0-9_]*$/.test(values.name)) {
     console.log('❌ --name 必须是 snake_case 格式（小写字母+下划线），如 customer_order')
     return 1

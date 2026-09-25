@@ -1,23 +1,23 @@
 /**
- * 从 Fastify 路由补齐 OpenAPI paths，合并到 docs/apifox-full.openapi.json
+ * Fill in OpenAPI paths from Fastify routes and merge them into docs/apifox-full.openapi.json
  *
- * - 保留文档中已有的详细路径定义，只为缺失的 /api 路由补上基础条目（通用响应）。
- * - 补出的条目是「骨架」（仅通用 responses、无 requestBody/parameters/content），
- *   覆盖率统计会区分 详细路径 vs 骨架路径，避免骨架虚高覆盖率。
- * - 用法：
- *     pnpm openapi:generate              # 补齐并写回
- *     pnpm openapi:generate -- --dry-run # 只统计，不写回
- *     pnpm openapi:generate -- --strict  # 存在骨架路径则退出非 0
+ * - Keeps the detailed path definitions already in the document; only adds basic entries (generic responses) for missing /api routes.
+ * - Added entries are "stubs" (generic responses only, no requestBody/parameters/content);
+ *   coverage stats distinguish detailed paths vs stub paths so stubs don't inflate coverage.
+ * - Usage:
+ *     pnpm openapi:generate              # fill in and write back
+ *     pnpm openapi:generate -- --dry-run # stats only, no write-back
+ *     pnpm openapi:generate -- --strict  # exit non-zero if any stub paths exist
  *
- * 路由来源：订阅 Fastify 的 `fastify.initialization` diagnostics channel，在实例创建后、任何路由注册前
- * 挂 onRoute 钩子，再跑一遍 buildApp() 收集全部路由（不启动监听、不连库）。
+ * Route source: subscribe to Fastify's `fastify.initialization` diagnostics channel, attach an onRoute hook after the
+ * instance is created and before any route is registered, then run buildApp() once to collect all routes (no listening, no DB connection).
  *
- * 路径与合并规则：
- * - 路径参数转成标准 OpenAPI 形式：`:user_id(^\d+$)` → `{user_id}`，通配 `*` → `{path}`。
- *   文档里还有历史遗留的 `{int:user_id}` / `{path:filename}` 这类 key（部分与人工维护的 `{user_id}` 详细条目重复）；
- *   “路径是否已在文档里”按参数位置比较（忽略参数名与转换器前缀），因此历史的 `{int:x}` 条目仍算已覆盖，不会再补第三份。
- * - 同一路径的所有方法合并后再生成骨架（如 announcements/:id 的 PUT 与 DELETE 一起记下）。
- * - 写回时保持文档原有键顺序（含 "201" 在 "200" 前这类整数形键），输出格式同 Python `json.dumps(indent=2, ensure_ascii=False)`，逐字节稳定。
+ * Path and merge rules:
+ * - Path params are converted to standard OpenAPI form: `:user_id(^\d+$)` → `{user_id}`, wildcard `*` → `{path}`.
+ *   The document also has legacy keys like `{int:user_id}` / `{path:filename}` (some duplicate hand-maintained detailed `{user_id}` entries);
+ *   "is the path already in the document" compares by param position (ignoring param names and converter prefixes), so legacy `{int:x}` entries still count as covered and no third copy is added.
+ * - All methods of the same path are merged before generating the stub (e.g. PUT and DELETE of announcements/:id are recorded together).
+ * - Write-back preserves the document's original key order (including integer-like keys such as "201" before "200"), with output formatted like Python `json.dumps(indent=2, ensure_ascii=False)`, byte-for-byte stable.
  */
 
 import diagnostics from 'node:diagnostics_channel'
@@ -33,7 +33,7 @@ import { dumpIndented, parseOrderedJson, toOrdered, type OrderedJson } from './l
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 export const DOC_PATH = resolve(REPO_ROOT, 'docs/apifox-full.openapi.json')
 
-// 跳过的方法
+// Methods to skip
 const SKIP_METHODS = new Set(['HEAD', 'OPTIONS', 'TRACE'])
 
 const STUB_RESPONSES: Array<[string, string]> = [
@@ -46,22 +46,22 @@ const STUB_RESPONSES: Array<[string, string]> = [
 ]
 
 // ---------------------------------------------------------------------------
-// 路由收集
+// Route collection
 // ---------------------------------------------------------------------------
 
-/** 把 Fastify 路由 `/users/:user_id(^\d+$)`、`/file/*` 转成 OpenAPI `/users/{user_id}`、`/file/{path}` */
+/** Convert Fastify routes `/users/:user_id(^\d+$)`, `/file/*` to OpenAPI `/users/{user_id}`, `/file/{path}` */
 export function fastifyPathToOpenApi(url: string): string {
   return url
     .replace(/:([A-Za-z_][A-Za-z0-9_]*)(\((?:[^()]|\([^()]*\))*\))?/g, '{$1}')
     .replace(/\*$/, '{path}')
 }
 
-/** 路径形状：参数名/转换器不参与比较（`{int:item_id}`、`{item_id}` 视为同一路径） */
+/** Path shape: param names/converters are ignored in comparison (`{int:item_id}` and `{item_id}` are treated as the same path) */
 export function pathShape(path: string): string {
   return path.replace(/\{[^}]*\}/g, '{}')
 }
 
-/** 收集全部 /api 路由：OpenAPI 路径 → 排序后的方法列表（已去掉 HEAD/OPTIONS/TRACE） */
+/** Collect all /api routes: OpenAPI path → sorted method list (HEAD/OPTIONS/TRACE removed) */
 export async function collectApiRoutes(config: AppConfig): Promise<Map<string, string[]>> {
   const collected = new Map<string, Set<string>>()
   const channel = diagnostics.channel('fastify.initialization')
@@ -98,12 +98,12 @@ export async function collectApiRoutes(config: AppConfig): Promise<Map<string, s
 }
 
 // ---------------------------------------------------------------------------
-// 骨架识别 / 统计（与 verify_feature._openapi_is_stub_path 同规则）
+// Stub detection / stats (same rules as verify_feature._openapi_is_stub_path)
 // ---------------------------------------------------------------------------
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
-/** Python 真值：None / False / 0 / '' / 空容器为假 */
+/** Python truthiness: None / False / 0 / '' / empty containers are falsy */
 function pyTruthy(v: unknown): boolean {
   if (v === null || v === undefined || v === false || v === 0 || v === '') return false
   if (Array.isArray(v)) return v.length > 0
@@ -111,7 +111,7 @@ function pyTruthy(v: unknown): boolean {
   return true
 }
 
-/** 骨架路径：所有 method 都只有通用 responses，无 requestBody/parameters/content */
+/** Stub path: every method has only generic responses, no requestBody/parameters/content */
 export function isStubEntry(entry: unknown): boolean {
   if (!isObject(entry)) return true
   for (const op of Object.values(entry)) {
@@ -156,7 +156,7 @@ export function buildStubEntry(path: string, methods: string[]): Record<string, 
   return entry
 }
 
-/** 找出文档里没有的路由（按路径形状比较） */
+/** Find routes missing from the document (compared by path shape) */
 export function findMissingRoutes(
   docPaths: Record<string, unknown>,
   routes: Map<string, string[]>,
@@ -172,7 +172,7 @@ export function findMissingRoutes(
 }
 
 // ---------------------------------------------------------------------------
-// 主流程
+// Main flow
 // ---------------------------------------------------------------------------
 
 export interface GenerateOptions {
@@ -241,7 +241,7 @@ if (isMain) {
   }
   const env = (process.env.NODE_ENV ?? 'development') as AppEnv
   loadEnvFiles(env)
-  // 只收集路由，不连库、不启调度
+  // Only collect routes; no DB connection, no scheduler
   const config = { ...loadConfig(), enableTaskScheduler: false, runSchedulerInWeb: false }
   generateOpenApi({ config, dryRun: values['dry-run'], strict: values.strict })
     .then((result) => process.exit(result.exitCode))

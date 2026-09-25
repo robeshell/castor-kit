@@ -1,5 +1,5 @@
 /**
- * 公告管理 service 层
+ * Announcement management service layer
  */
 
 import { sql, type SQL } from 'drizzle-orm'
@@ -29,7 +29,7 @@ import {
 
 type Data = Record<string, unknown>
 
-/** 整数转换失败按未捕获错误处理 → 全局 500 */
+/** Integer conversion failures are treated as uncaught errors → global 500 */
 function pyIntOr500(value: unknown): number {
   try {
     return pyInt(value)
@@ -38,24 +38,24 @@ function pyIntOr500(value: unknown): number {
   }
 }
 
-/** publish_at 的待写值：解析结果 / 当前 UTC 时间 / None */
+/** Value to write for publish_at: parsed result / current UTC time / None */
 type PublishAtValue = PyDateTime | 'now' | null
 
 function publishAtSql(value: PublishAtValue): SQL | string | null {
   if (value === null) return null
   if (value === 'now') return utcNow()
-  // aware datetime 以 `'...'::timestamptz` 发送，存入 timestamp 列时按会话时区换算
+  // aware datetimes are sent as `'...'::timestamptz` and converted to the session time zone when stored in a timestamp column
   return value.aware ? sql`${value.text}::timestamptz` : value.text
 }
 
-/** 发布时间是否未变化：naive 按值比较；aware 与数据库里的 naive 值永不相等 */
+/** Whether the publish time is unchanged: naive values compare by value; aware values never equal the naive DB value */
 function publishAtEquals(value: PublishAtValue, current: string | null): boolean {
   if (value === null) return current === null
   if (value === 'now' || value.aware) return false
   return value.text === normalizeDbTimestamp(current)
 }
 
-/** SQLSTATE → 错误类名，用作导入行错误 reason 的前缀（保持既有错误文案格式） */
+/** SQLSTATE → error class name, used as the prefix of import row error reasons (keeps the existing error message format) */
 const PG_ERROR_CLASS: Record<string, string> = {
   '22001': 'StringDataRightTruncation',
   '22003': 'NumericValueOutOfRange',
@@ -64,7 +64,7 @@ const PG_ERROR_CLASS: Record<string, string> = {
 }
 
 function importRowReason(err: unknown): string {
-  // Drizzle 把 pg 错误包在 cause 里
+  // Drizzle wraps the pg error in `cause`
   const e = ((err as { cause?: unknown }).cause ?? err) as { code?: string; message?: string }
   const cls = e.code && PG_ERROR_CLASS[e.code]
   const message = e.message ?? String(err)
@@ -117,7 +117,7 @@ export class AnnouncementService {
     }
   }
 
-  /** 按固定字段顺序算出最终值，只把与当前值不等（`==` 语义）的列写回；无变化时不发 UPDATE */
+  /** Compute final values in a fixed field order and write back only columns that differ from the current value (`==` semantics); no UPDATE when nothing changed */
   private async applyChanges(item: Announcement, assigned: Record<string, unknown>, publishAt?: PublishAtValue) {
     const changes: AnnouncementUpdate = {}
     for (const [field, value] of Object.entries(assigned)) {
@@ -130,7 +130,7 @@ export class AnnouncementService {
     }
     if (Object.keys(changes).length === 0) return announcementToDict(item)
 
-    // 写入前按列类型绑定（PG 赋值转换语义）
+    // Bind by column type before writing (PG assignment-cast semantics)
     for (const field of ['content', 'announce_type', 'status'] as const) {
       if (field in changes) changes[field] = bindText(changes[field]) as never
     }
@@ -213,7 +213,7 @@ export class AnnouncementService {
     return buildTable(TEMPLATE_HEADERS, TEMPLATE_ROWS, 'announcements_import_template', normalizeTableFileType(fileTypeRaw, 'xlsx'))
   }
 
-  /** 逐行提交：成功行保留，失败行记入 error_rows（不整体回滚） */
+  /** Commit row by row: successful rows are kept, failed rows go to error_rows (no overall rollback) */
   async importItems(file: UploadedFile | null) {
     if (!file) throw new ServiceError('请上传导入文件', 400)
     let table
@@ -225,7 +225,7 @@ export class AnnouncementService {
     }
     if (table.fieldnames.length === 0) throw new ServiceError('文件为空或格式错误', 400)
 
-    // 注意：键是 strip 后的表头，而取值时用原始表头判断（表头带空白时该列不会被映射，保持既有行为）
+    // Note: keys are the stripped headers, but lookups check the raw headers (a header with surrounding whitespace is not mapped; preserves existing behavior)
     const colMap = new Map<string, string>()
     for (const col of table.fieldnames) {
       const key = col.trim()

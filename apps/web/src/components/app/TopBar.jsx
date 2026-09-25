@@ -20,7 +20,7 @@ import LanguageSwitcher from '@/components/app/LanguageSwitcher'
 import { menuLabel } from '@/lib/menu-label'
 import { useTranslation } from 'react-i18next'
 
-const STATIC_TITLES = { '/profile': '个人设置', '/403': '无访问权限' }  // 中文原文即 i18n key
+const STATIC_TITLES = { '/profile': '个人设置', '/403': '无访问权限' }  // The Chinese source text is the i18n key
 
 export default function TopBar({ onOpenSearch }) {
   const { t } = useTranslation()

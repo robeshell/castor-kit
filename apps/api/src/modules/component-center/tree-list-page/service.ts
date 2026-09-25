@@ -1,12 +1,12 @@
 /**
- * 树形列表页 service 层
+ * Tree list page service layer
  *
- * 写入行为要点：
- * - 更新只写真正变化的列；没有变化时不发 UPDATE，updated_at 保持不变（onupdate 语义）
- * - 编辑时校验父节点的查询会先 autoflush 前面已赋值的字段（因此数据库错误先于“父节点不存在”暴露）
- * - 删除时子节点先被置空 parent_id（见 repository.deleteWithChildrenDetached）
- * - 导入的落库时机：上一行的写入在下一行 get_by_code 查询前才落库，最后一行在提交时落库；
- *   有错误行时直接回滚，未落库的写入不会触发数据库错误
+ * Write behavior notes:
+ * - Updates write only columns that actually changed; with no changes no UPDATE is sent and updated_at stays the same (onupdate semantics)
+ * - On edit, the parent-validation query first autoflushes fields already assigned (so DB errors surface before the "parent not found" error)
+ * - On delete, children have their parent_id cleared first (see repository.deleteWithChildrenDetached)
+ * - Import persistence timing: a row's write is persisted to the DB only right before the next row's get_by_code query, and the last row on commit;
+ *   if any row has errors everything is rolled back, so unpersisted writes never trigger DB errors
  */
 
 import { wouldCreateCycle } from '@/common/tree'
@@ -45,12 +45,12 @@ function strOrNone(value: unknown): string | null {
   return pyStrOrEmpty(value) || null
 }
 
-/** `str(x or 'category').strip() or 'category'` / `str(x or '').strip() or 'category'`（二者结果相同） */
+/** `str(x or 'category').strip() or 'category'` / `str(x or '').strip() or 'category'` (both yield the same result) */
 function nodeTypeOf(value: unknown): string {
   return pyStrOrEmpty(value) || 'category'
 }
 
-/** 只保留与当前行不同的列（值相等则不算变更） */
+/** Keep only columns that differ from the current row (equal values don't count as changes) */
 function changedValues(item: TreeNode, next: TreeNodeUpdate): TreeNodeUpdate {
   const changes: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(next)) {
@@ -85,7 +85,7 @@ export class TreeListPageService {
     return treeNodeToDict(item)
   }
 
-  /** 对应 _build_tree：平铺节点组装为嵌套树；父节点不在结果集里的节点作为根 */
+  /** Equivalent of _build_tree: assemble flat nodes into a nested tree; nodes whose parent isn't in the result set become roots */
   private buildTree(nodes: TreeNode[]): TreeDict[] {
     const nodeMap = new Map<number, TreeDict>()
     for (const n of nodes) nodeMap.set(n.id, { ...treeNodeToDict(n), children: [], children_count: 0 })
@@ -100,7 +100,7 @@ export class TreeListPageService {
         roots.push(d)
       }
     }
-    // sorted(roots, key=lambda x: (x.get('sort_order') or 0, x.get('id') or 0))，稳定排序
+    // sorted(roots, key=lambda x: (x.get('sort_order') or 0, x.get('id') or 0)), stable sort
     return roots.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || (a.id || 0) - (b.id || 0))
   }
 
@@ -122,7 +122,7 @@ export class TreeListPageService {
 
     let parentId: number | null = null
     if (data.parent_id !== null && data.parent_id !== undefined) parentId = tryInt(data.parent_id)
-    // parent_id 为假值（含 0）时跳过校验并原样写入（0 的外键不成立 → 数据库错误 → 500）
+    // A falsy parent_id (including 0) skips validation and is written as-is (0 violates the FK → DB error → 500)
     if (parentId && !(await this.repo.exists(parentId))) throw new ServiceError('父节点不存在', 400)
 
     const status = TreeListPageService.normalizeStatus(data.status, 'active')
@@ -144,7 +144,7 @@ export class TreeListPageService {
   async updateItem(item: TreeNode, data: Data) {
     if (has(data, 'name') && !pyStrOrEmpty(data.name)) throw new ServiceError('节点名称不能为空', 400)
     if (has(data, 'node_code')) {
-      // 只校验，不在 update_map 里（node_code 实际不会被修改）
+      // Validation only; not part of update_map (node_code is never actually modified)
       const nextCode = pyStrOrEmpty(data.node_code)
       if (!nextCode) throw new ServiceError('节点编码不能为空', 400)
       if (await this.repo.existsOtherWithCode(nextCode, item.id)) throw new ServiceError('节点编码已存在', 400)
@@ -159,7 +159,7 @@ export class TreeListPageService {
     if (has(data, 'sort_order')) first.sort_order = parseInt(data.sort_order, item.sort_order || 0)
     if (has(data, 'is_active')) first.is_active = parseBool(data.is_active, item.is_active)
 
-    // parent_id：None / '' / 0（含 False）→ 置空；int() 失败忽略；等于自身忽略；否则须存在
+    // parent_id: None / '' / 0 (incl. False) → cleared; int() failure ignored; equal to self ignored; otherwise it must exist
     let parentAction: { kind: 'none' } | { kind: 'clear' } | { kind: 'set'; pid: number } = { kind: 'none' }
     if (has(data, 'parent_id')) {
       const pid = data.parent_id
@@ -177,14 +177,14 @@ export class TreeListPageService {
       let pendingFirst = changedValues(current, first)
 
       if (parentAction.kind === 'set') {
-        // Query 触发 autoflush：先落库前面的字段赋值
+        // Query triggers autoflush: persist the earlier field assignments to the DB first
         if (Object.keys(pendingFirst).length > 0) {
           await repo.update(item.id, pendingFirst)
           current = { ...current, ...(pendingFirst as Partial<TreeNode>) }
           pendingFirst = {}
         }
         if (!(await repo.exists(parentAction.pid))) throw new ServiceError('父节点不存在', 400)
-        // 除了不能等于自身，还要防止移到自己的子孙下成环（前端能拦，但接口直调会写进库）
+        // Besides not being itself, the parent must not be a descendant (would form a cycle; the frontend blocks this, but direct API calls would write it to the DB)
         if (await wouldCreateCycle(tx, 'tree_nodes', item.id, parentAction.pid)) {
           throw new ServiceError('不能将节点移动到自身或其子节点下', 400)
         }
@@ -207,7 +207,7 @@ export class TreeListPageService {
     return { message: '删除成功' }
   }
 
-  /** method=GET 时 data 为 query 参数（每个键取第一个值），否则为 JSON 体 */
+  /** For method=GET, data is the query params (first value of each key); otherwise the JSON body */
   async exportItems(data: Data, requestMethod: string) {
     let ids: unknown
     let fields: unknown[]
@@ -238,7 +238,7 @@ export class TreeListPageService {
 
     let items: TreeNode[]
     if (exportMode === 'filtered') {
-      // filters 不是对象（如 list/str）时返回 500
+      // Return 500 when filters is not an object (e.g. list/str)
       if (!isPlainObject(filters)) throw new ServiceError("'filters' object has no attribute 'get'", 500)
       items = await this.repo.listAllOrdered({
         search: pyStrOrEmpty(filters.search),
@@ -287,9 +287,9 @@ export class TreeListPageService {
       let created = 0
       let updated = 0
       const errors: ErrorRow[] = []
-      // 尚未 flush 的上一行写入（对应 Session 里的 pending/dirty 对象）
+      // Previous row's write not yet flushed (the pending/dirty objects in the Session)
       let pending: (() => Promise<unknown>) | null = null
-      // 带父节点的行，全部写完后统一做成环检查
+      // Rows with a parent; cycle check runs for all of them once every row is written
       const withParent: Array<{ line: number; row: Record<string, string>; nodeCode: string; parentId: number }> = []
       const flush = async () => {
         if (!pending) return
@@ -312,7 +312,7 @@ export class TreeListPageService {
           continue
         }
 
-        // `if parent_id_raw:`（字符串真值，'0' 也算）→ int()，失败为 None；不校验存在性（外键兜底）
+        // `if parent_id_raw:` (string truthiness, so '0' counts) → int(), None on failure; existence isn't checked (the FK is the fallback)
         const parentId = mapped.parent_id ? tryInt(mapped.parent_id) : null
         const nodeType = nodeTypeOf(mapped.node_type)
         const status = TreeListPageService.normalizeStatus(mapped.status, 'active')
@@ -330,7 +330,7 @@ export class TreeListPageService {
 
         if (parentId !== null) withParent.push({ line, row, nodeCode, parentId })
 
-        await flush() // Query 触发 autoflush
+        await flush() // Query triggers autoflush
         const existing = await repo.getByCode(nodeCode)
         if (existing) {
           const changes = changedValues(existing, values)
@@ -343,7 +343,7 @@ export class TreeListPageService {
       }
 
       await flush()
-      // 导入的 parent_id 可能让节点成为自己的祖先（含指向自身），成环的行记为错误、整批回滚
+      // An imported parent_id can make a node its own ancestor (including pointing at itself); cyclic rows are recorded as errors and the whole batch rolls back
       if (errors.length === 0) {
         for (const item of withParent) {
           const node = await repo.getByCode(item.nodeCode)

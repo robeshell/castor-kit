@@ -75,7 +75,7 @@ describe('py-date：date.fromisoformat(str(v)[:10])', () => {
     expect(parseLooseDate(0)).toBeNull()
     expect(parseLooseDate(20240315)).toBe('2024-03-15')
     expect(parseLooseDate('2024-05-06T12:00:00Z')).toBe('2024-05-06')
-    expect(parseLooseDate('20240101é')).toBe('2024-01-01') // 9 字符 = 10 字节
+    expect(parseLooseDate('20240101é')).toBe('2024-01-01') // 9 chars = 10 bytes
     expect(parseLooseDate(true)).toBeNull()
   })
 })
@@ -131,12 +131,12 @@ describe('kanban', () => {
     const card = res.json()
     expect(card.card_code).toMatch(/^card_[0-9a-f]{8}$/)
     expect(card).toMatchObject({ board_id: boardA, priority: 'medium', due_date: '2024-03-05', tags: '', description: null, is_active: true })
-    // 改成带前缀的编码便于清理
+    // Change to a prefixed code for easier cleanup
     await handle.db.update(kanban_cards).set({ card_code: `${P}c1` }).where(eq(kanban_cards.id, card.id))
 
     const c2 = await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: '卡2', board_id: boardA, card_code: `${P}c2`, priority: 'urgent' } })
     expect(c2.json()).toMatchObject({ card_code: `${P}c2`, priority: 'urgent', sort_order: 0 })
-    // 编码冲突 → 重新生成 10 位
+    // Code conflict → regenerate 10 chars
     const c3 = await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: '卡3', board_id: boardA, card_code: `${P}c2`, sort_order: 2 } })
     expect(c3.json().card_code).toMatch(/^card_[0-9a-f]{10}$/)
     await handle.db.update(kanban_cards).set({ card_code: `${P}c3` }).where(eq(kanban_cards.id, c3.json().id))
@@ -209,7 +209,7 @@ describe('kanban', () => {
     expect(missing.json()).toEqual({ error: '目标列不存在' })
     expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [1] })).statusCode).toBe(500)
 
-    // 第二条写入越界 → 整体回滚，第一条也不生效
+    // Second write is out of range → everything rolls back, the first one doesn't take effect either
     const bad = await s.inject({
       method: 'PUT',
       url: `${B}/cards/reorder`,
@@ -231,7 +231,7 @@ describe('kanban', () => {
   })
 
   it('主键序列落后：同步序列后重试成功', async () => {
-    // 把序列拨回到一个已被占用的 id，确保下一次插入必然主键冲突（不依赖库里是否有 id=1 的种子数据）
+    // Rewind the sequence to an id already in use so the next insert is guaranteed to hit a PK conflict (regardless of whether seed data with id=1 exists)
     await handle.pool.query(
       "SELECT setval(pg_get_serial_sequence('kanban_boards', 'id'), (SELECT MIN(id) FROM kanban_boards), false)",
     )

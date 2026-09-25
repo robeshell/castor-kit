@@ -11,7 +11,7 @@ export const card_items = pgTable('card_items', {
   title: varchar({ length: 120 }).notNull(),
   card_code: varchar({ length: 120 }).notNull(),
   subtitle: varchar({ length: 200 }),
-  // 应用侧默认 'general'（库里无 DEFAULT）
+  // App-side default 'general' (no DB DEFAULT)
   category: varchar({ length: 50 }).$default(() => 'general'),
   cover_url: varchar({ length: 500 }),
   tag: varchar({ length: 50 }),

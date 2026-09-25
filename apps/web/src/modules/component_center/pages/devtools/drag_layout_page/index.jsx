@@ -5,6 +5,7 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import ReactECharts from 'echarts-for-react'
 import { GripVertical, Info, Lock, RotateCcw, Unlock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { brandArea, brandLine, chartBase, useChartColors } from '@/lib/chart-theme'
 import { EASE_OUT } from '@/lib/motion'
@@ -12,12 +13,13 @@ import { cn } from '@/lib/utils'
 import DataTable from '@/shared/components/DataTable'
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { LOG_DATA, PROGRESS_DATA, SHARE } from '@/modules/component_center/pages/devtools/drag_layout_page/demo-content'
 import './drag-layout.css'
 
-// 布局保存在 localStorage，按版本号区分格式
+// Layout is saved in localStorage; the version suffix separates storage formats
 const STORAGE_KEY = 'castor_kit_drag_layout_v1'
 
-// ── 默认布局 ──────────────────────────────────────────────────────────
+// ── Default layout ──────────────────────────────────────────────────────────
 const DEFAULT_LAYOUT = [
   { i: 'line-chart', x: 0, y: 0, w: 6, h: 4 },
   { i: 'pie-chart', x: 6, y: 0, w: 6, h: 4 },
@@ -29,16 +31,9 @@ const DEFAULT_LAYOUT = [
 
 const GRID_CONFIG = { cols: 12, rowHeight: 80, margin: [12, 12], containerPadding: [0, 0] }
 
-// ── 静态数据 ──────────────────────────────────────────────────────────
+// ── Static data ──────────────────────────────────────────────────────────
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const SALES = [420, 532, 601, 734, 690, 810, 876, 950, 888, 1020, 1100, 1280]
-const SHARE = [
-  { name: '华东', value: 35 },
-  { name: '华南', value: 25 },
-  { name: '华北', value: 20 },
-  { name: '西南', value: 15 },
-  { name: '其他', value: 5 },
-]
 
 const STAT_DATA = [
   { label: '总用户数', value: '182,430' },
@@ -68,19 +63,12 @@ const TABLE_COLUMNS = [
 
 const TABLE_DATA = Array.from({ length: 10 }, (_, i) => ({
   id: `ORD-${1000 + i}`,
+  // i18n-ignore-next-line: sample customer names are demo content
   customer: `客户${String(i + 1).padStart(3, '0')}`,
   amount: (3000 + i * 1234).toLocaleString(),
   status: ['已完成', '处理中', '已取消'][i % 3],
   date: `2025-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
 }))
-
-const PROGRESS_DATA = [
-  { label: '研发部', value: 88 },
-  { label: '产品部', value: 72 },
-  { label: '市场部', value: 61 },
-  { label: '运营部', value: 79 },
-  { label: '财务部', value: 55 },
-]
 
 const LOG_LEVEL = {
   success: { tone: 'success', label: 'OK' },
@@ -88,16 +76,6 @@ const LOG_LEVEL = {
   danger: { tone: 'danger', label: 'ERR' },
   info: { tone: 'info', label: 'INFO' },
 }
-
-const LOG_DATA = [
-  { time: '14:32:10', level: 'success', msg: 'API /api/users 响应正常，耗时 42ms' },
-  { time: '14:31:58', level: 'warning', msg: 'DB 连接池使用率 78%，接近阈值' },
-  { time: '14:31:40', level: 'info', msg: '定时任务 sync_orders 执行完成，同步 320 条' },
-  { time: '14:30:22', level: 'success', msg: '用户 admin 登录成功，IP: 192.168.1.10' },
-  { time: '14:29:55', level: 'danger', msg: 'Redis 连接超时，已触发重连机制' },
-  { time: '14:28:11', level: 'info', msg: '缓存预热完成，命中率提升至 94.3%' },
-  { time: '14:27:03', level: 'warning', msg: '第三方短信服务响应慢，P99 > 2s' },
-]
 
 function readSavedLayout() {
   try {
@@ -108,8 +86,9 @@ function readSavedLayout() {
   }
 }
 
-// ── GridItem 容器 ──────────────────────────────────────────────────────
+// ── GridItem container ──────────────────────────────────────────────────────
 function GridItem({ title, isEditing, children }) {
+  const { t } = useTranslation()
   return (
     <div
       className={cn(
@@ -123,7 +102,7 @@ function GridItem({ title, isEditing, children }) {
           isEditing ? 'drag-handle bg-muted/50 cursor-move' : 'cursor-default',
         )}
       >
-        <span className="truncate text-[13px] font-medium">{title}</span>
+        <span className="truncate text-[13px] font-medium">{t(title)}</span>
         {isEditing ? <GripVertical className="text-muted-foreground size-4" /> : null}
       </div>
       <div className="min-h-0 flex-1 overflow-hidden p-2">{children}</div>
@@ -131,8 +110,9 @@ function GridItem({ title, isEditing, children }) {
   )
 }
 
-// ── 组件内容 ──────────────────────────────────────────────────────────
+// ── Widget contents ──────────────────────────────────────────────────────────
 function LineChartWidget() {
+  const { t } = useTranslation()
   const c = useChartColors()
   const option = useMemo(() => {
     const base = chartBase(c)
@@ -143,7 +123,7 @@ function LineChartWidget() {
       yAxis: { ...base.yAxis, type: 'value' },
       series: [
         {
-          name: '销售额',
+          name: t('销售额'),
           type: 'line',
           smooth: true,
           data: SALES,
@@ -155,11 +135,12 @@ function LineChartWidget() {
         },
       ],
     }
-  }, [c])
+  }, [c, t])
   return <ReactECharts option={option} style={{ height: '100%', width: '100%' }} notMerge />
 }
 
 function PieChartWidget() {
+  const { t } = useTranslation()
   const c = useChartColors()
   const option = useMemo(() => {
     const base = chartBase(c)
@@ -178,7 +159,7 @@ function PieChartWidget() {
       },
       series: [
         {
-          name: '市场份额',
+          name: t('市场份额'),
           type: 'pie',
           radius: ['46%', '72%'],
           center: ['38%', '50%'],
@@ -189,16 +170,17 @@ function PieChartWidget() {
         },
       ],
     }
-  }, [c])
+  }, [c, t])
   return <ReactECharts option={option} style={{ height: '100%', width: '100%' }} notMerge />
 }
 
 function StatCardsWidget() {
+  const { t } = useTranslation()
   return (
     <div className="flex h-full flex-col justify-center gap-1.5">
       {STAT_DATA.map((s) => (
         <div key={s.label} className="bg-muted/50 flex items-center justify-between rounded-lg px-3 py-1.5">
-          <span className="text-muted-foreground text-xs">{s.label}</span>
+          <span className="text-muted-foreground text-xs">{t(s.label)}</span>
           <span className="text-sm font-semibold tabular-nums">{s.value}</span>
         </div>
       ))}
@@ -258,8 +240,9 @@ const WIDGET_MAP = {
   'sys-log': { title: '系统日志', Component: SysLogWidget },
 }
 
-// ── 主页面 ──────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────
 export default function DragLayoutPage() {
+  const { t } = useTranslation()
   const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true })
   const [isEditing, setIsEditing] = useState(false)
   const [layout, setLayout] = useState(readSavedLayout)
@@ -290,11 +273,11 @@ export default function DragLayoutPage() {
           <>
             <Button size="sm" variant={isEditing ? 'brand' : 'outline'} onClick={() => setIsEditing((v) => !v)}>
               {isEditing ? <Lock /> : <Unlock />}
-              {isEditing ? '锁定布局' : '编辑布局'}
+              {isEditing ? t('锁定布局') : t('编辑布局')}
             </Button>
             <Button size="sm" variant="ghost" onClick={handleReset}>
               <RotateCcw />
-              重置布局
+              {t('重置布局')}
             </Button>
           </>
         }
@@ -312,13 +295,13 @@ export default function DragLayoutPage() {
           >
             <div className="bg-brand-soft text-primary flex items-center gap-2 rounded-lg px-3 py-2 text-xs">
               <Info className="size-3.5 shrink-0" />
-              编辑模式已开启 · 拖拽卡片标题栏移动位置，拖拽卡片右下角调整大小，布局会自动保存至本地
+              {t('编辑模式已开启 · 拖拽卡片标题栏移动位置，拖拽卡片右下角调整大小，布局会自动保存至本地')}
             </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
 
-      {/* 窄屏下网格保持最小宽度，外层横向滚动 */}
+      {/* On narrow screens the grid keeps a minimum width and the wrapper scrolls horizontally */}
       <div className="-mx-1 overflow-x-auto px-1 pb-1">
         <div ref={containerRef} className="drag-layout min-w-[880px]">
           {mounted ? (

@@ -32,6 +32,7 @@ import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
+import { useTranslation } from 'react-i18next'
 
 const FILE_TYPE_OPTIONS = [
   { label: 'CSV (.csv)', value: 'csv' },
@@ -50,11 +51,12 @@ function ActiveBadge({ value }) {
   )
 }
 
-/** 字典项颜色：取色器 + 文本输入 + 预览（替代原 input[type=color] + Input + Tag） */
+/** Dict item color: color picker + text input + preview (replaces the old input[type=color] + Input + Tag) */
 function ColorField({ value, onChange }) {
+  const { t } = useTranslation()
   const color = (value || '').trim()
   const pickerRef = useRef(null)
-  // 取色器保持非受控（空值时浏览器会告警），合法色值时同步给它作为初始色
+  // Keep the picker uncontrolled (browsers warn on an empty value); sync a valid color into it as the initial value
   useEffect(() => {
     if (pickerRef.current && HEX_RE.test(color)) pickerRef.current.value = color.toLowerCase()
   }, [color])
@@ -64,25 +66,26 @@ function ColorField({ value, onChange }) {
         <span className={cn('absolute inset-1 rounded-[4px]', !color && 'bg-muted')} style={color ? { backgroundColor: color } : undefined} />
         <input
           type="color"
-          aria-label="选择颜色"
+          aria-label={t('选择颜色')}
           ref={pickerRef}
           onChange={(e) => onChange(e.target.value)}
           className="absolute inset-0 cursor-pointer opacity-0"
         />
       </label>
-      <Input value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="例如：#16a34a" className="h-9 w-44 font-mono" />
+      <Input value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder={t('例如：#16a34a')} className="h-9 w-44 font-mono" />
       {color ? (
         <span className="inline-flex h-6 items-center rounded-md px-2 font-mono text-xs text-white" style={{ backgroundColor: color }}>
           {color}
         </span>
       ) : (
-        <StatusBadge tone="neutral">无</StatusBadge>
+        <StatusBadge tone="neutral">{t('无')}</StatusBadge>
       )}
     </div>
   )
 }
 
 export default function Dicts() {
+  const { t } = useTranslation()
   const [selectedType, setSelectedType] = useState(null)
   const typeList = useCrudList(
     (params) =>
@@ -121,7 +124,7 @@ export default function Dicts() {
 
   const typeId = selectedType?.id ?? null
 
-  // 切换字典类型：清空字典项搜索与列表（渲染期同步派生状态，避免在 effect 里 setState）
+  // Switching dict type clears the item search and list (derive state during render instead of setState in an effect)
   const [itemsTypeId, setItemsTypeId] = useState(null)
   if (itemsTypeId !== typeId) {
     setItemsTypeId(typeId)
@@ -132,7 +135,7 @@ export default function Dicts() {
 
   useEffect(() => {
     fetchTypes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
 
   useEffect(() => {
@@ -308,14 +311,14 @@ export default function Dicts() {
       align: 'right',
       width: 112,
       render: (_, record) => (
-        // 阻止冒泡：操作按钮（含确认弹窗内的点击）不触发行选中
+        // Stop propagation: action buttons (including clicks inside the confirm popover) must not select the row
         <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEditType(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该字典类型？" description="删除前需要先清空字典项" confirmText="删除" onConfirm={() => removeType(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -350,7 +353,7 @@ export default function Dicts() {
       title: '默认',
       dataIndex: 'is_default',
       width: 60,
-      render: (v) => (v ? <StatusBadge tone="brand">是</StatusBadge> : <StatusBadge tone="neutral">否</StatusBadge>),
+      render: (v) => (v ? <StatusBadge tone="brand">{t('是')}</StatusBadge> : <StatusBadge tone="neutral">{t('否')}</StatusBadge>),
     },
     { key: 'is_active', title: '状态', dataIndex: 'is_active', width: 80, render: (v) => <ActiveBadge value={v} /> },
     { key: 'sort_order', title: '排序', dataIndex: 'sort_order', width: 56, align: 'right', className: 'tabular-nums' },
@@ -370,11 +373,11 @@ export default function Dicts() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEditItem(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该字典项？" confirmText="删除" onConfirm={() => removeItem(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -389,12 +392,12 @@ export default function Dicts() {
         actions={
           <Button size="sm" variant="brand" onClick={openCreateType}>
             <Plus />
-            新建字典类型
+            {t('新建字典类型')}
           </Button>
         }
       />
 
-      {/* 两张表列较多：超宽屏左右分栏，其余上下排列，避免操作列被挤出可视区 */}
+      {/* Both tables are wide: side by side only on ultra-wide screens, stacked otherwise so the action column stays visible */}
       <div className="grid gap-4 min-[1760px]:grid-cols-2">
         <Panel title="字典类型" padded={false} className="min-w-0">
           <div className="px-5">
@@ -420,7 +423,7 @@ export default function Dicts() {
 
         <Panel
           title="字典项"
-          description={selectedType ? `当前类型：${selectedType.name} (${selectedType.code})` : '请先选择字典类型'}
+          description={selectedType ? t('当前类型：{{name}} ({{code}})', { name: selectedType.name, code: selectedType.code }) : '请先选择字典类型'}
           padded={false}
           className="min-w-0"
           actions={
@@ -429,7 +432,7 @@ export default function Dicts() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" disabled={!selectedType}>
                     <Download />
-                    导出
+                    {t('导出')}
                     <ChevronDown className="text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -443,11 +446,11 @@ export default function Dicts() {
               </DropdownMenu>
               <Button variant="outline" size="sm" onClick={openImport} disabled={!selectedType}>
                 <Upload />
-                导入
+                {t('导入')}
               </Button>
               <Button variant="outline" size="sm" onClick={openCreateItem} disabled={!selectedType}>
                 <Plus />
-                新建
+                {t('新建')}
               </Button>
             </>
           }
@@ -481,7 +484,7 @@ export default function Dicts() {
         open={typeFormOpen}
         onOpenChange={setTypeFormOpen}
         title={typeEditing ? '编辑字典类型' : '新建字典类型'}
-        description={typeEditing ? `正在编辑 ${typeEditing.name}` : '字典编码建议使用小写下划线，例如 order_status'}
+        description={typeEditing ? t('正在编辑 {{name}}', { name: typeEditing.name }) : '字典编码建议使用小写下划线，例如 order_status'}
         form={typeForm}
         onSubmit={submitType}
         size="sm"
@@ -506,7 +509,7 @@ export default function Dicts() {
         open={itemFormOpen}
         onOpenChange={setItemFormOpen}
         title={itemEditing ? '编辑字典项' : '新建字典项'}
-        description={selectedType ? `所属类型：${selectedType.name} (${selectedType.code})` : undefined}
+        description={selectedType ? t('所属类型：{{name}} ({{code}})', { name: selectedType.name, code: selectedType.code }) : undefined}
         form={itemForm}
         onSubmit={submitItem}
         size="sm"
@@ -528,7 +531,7 @@ export default function Dicts() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="导入字典项"
-        targetLabel={selectedType ? `数据字典 / ${selectedType.name} (${selectedType.code})` : undefined}
+        targetLabel={selectedType ? t('数据字典 / {{name}} ({{code}})', { name: selectedType.name, code: selectedType.code }) : undefined}
         templateFormatOptions={FILE_TYPE_OPTIONS}
         onDownloadTemplate={(fileType) => {
           if (!selectedType) {
@@ -545,7 +548,7 @@ export default function Dicts() {
         }}
         onImport={(file) => importDictItems(selectedType.id, file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchItems(selectedType.id, itemSearch)
         }}
         errorExportFileName={`dict_${selectedType?.code || 'items'}_import_error_rows.csv`}

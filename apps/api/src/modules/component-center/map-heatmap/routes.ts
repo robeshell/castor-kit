@@ -1,8 +1,8 @@
 /**
- * 地图热力图路由
+ * Map heatmap routes
  *
- * 只读模拟数据：各省基准值 + randint(-200, 200) 抖动，外加 randint(1, 100) 的 seed。
- * 本模块没有 model/repository/service，只有 routes + 常量数据。
+ * Read-only mock data: per-province base value + randint(-200, 200) jitter, plus a randint(1, 100) seed.
+ * This module has no model/repository/service, only routes + constant data.
  */
 
 import { randomInt } from 'node:crypto'
@@ -10,7 +10,7 @@ import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { PROVINCE_DATA } from './schema'
 
-/** [a, b] 闭区间内的随机整数 */
+/** Random integer in the closed interval [a, b] */
 function randint(a: number, b: number): number {
   return randomInt(a, b + 1)
 }

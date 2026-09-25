@@ -1,14 +1,14 @@
 /**
- * AI 提示词工坊 schema 层（请求体校验与模板变量提取等纯函数）
+ * AI prompt workshop schema layer (pure functions: request-body validation, template variable extraction, etc.)
  */
 
 import { z } from 'zod'
 import { pyStr } from '@/common/py'
 
-/** 请求体宽松校验：任意键、全部可选，归一化在 service 里做 */
+/** Loose request-body validation: any keys, all optional; normalization happens in the service */
 export const aiPromptBodySchema = z.record(z.string(), z.unknown()).nullish()
 
-/** 匹配 `{{变量名}}`：变量名由 Unicode 字母、数字、下划线组成 */
+/** Matches `{{varName}}`: the name consists of Unicode letters, digits and underscores */
 export const VARIABLE_RE = /\{\{([\p{L}\p{N}_]+)\}\}/gu
 
 export function findVariables(text: string): string[] {
@@ -16,13 +16,13 @@ export function findVariables(text: string): string[] {
 }
 
 /**
- * 提取模板变量并去重，按“首次出现顺序”排列，保证结果稳定。
+ * Extract template variables, deduplicated, in first-occurrence order so the result is stable.
  */
 export function extractVariables(content: string): string[] {
   return [...new Set(findVariables(content))]
 }
 
-/** tags 兼容列表或逗号分隔字符串，统一存为逗号分隔字符串 */
+/** tags accepts a list or a comma-separated string; always stored as a comma-separated string */
 export function normalizeTags(raw: unknown): string {
   if (raw === null || raw === undefined) return ''
   if (Array.isArray(raw)) {
@@ -38,7 +38,7 @@ export function normalizeTags(raw: unknown): string {
     .join(',')
 }
 
-/** 内置模板种子（列表接口每次调用时按名称补齐） */
+/** Built-in template seeds (backfilled by name on every list API call) */
 export const SEED_TEMPLATES = [
   {
     name: '产品需求分析',

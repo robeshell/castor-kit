@@ -30,16 +30,16 @@ import { findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/c
 import { useTranslation } from 'react-i18next'
 
 /*
- * 侧栏对齐规则（展开 256px / 折叠 48px 共用一条轴）：
- * - 左轴 16px：Logo、分组标题、菜单图标、头像的左边缘都在 x=16；子菜单文字与一级菜单文字同在 x=40
- * - 右边缘统一 x=248（一级、子级的底板同宽）
- * - 行高统一 36px、行距 2px；折叠时按钮 32px 居中于 48px 栏宽
- * - 选中 = 灰底 + 深色字 + 蓝色图标；悬停 = 更浅的灰，避免悬停项看起来比选中项更「选中」
+ * Sidebar alignment rules (expanded 256px / collapsed 48px share one axis):
+ * - Left axis 16px: the left edges of the logo, group titles, menu icons and avatar are all at x=16; submenu text and top-level menu text are both at x=40
+ * - Right edge is uniformly x=248 (top-level and child backgrounds have the same width)
+ * - Row height is uniformly 36px with 2px spacing; when collapsed, the 32px button is centered in the 48px rail
+ * - Selected = gray background + dark text + blue icon; hover = lighter gray, so a hovered item never looks more "selected" than the selected one
  */
 const ITEM = 'h-9 gap-2.5 text-sidebar-foreground hover:bg-black/[0.035] dark:hover:bg-white/[0.045] data-[state=open]:hover:bg-black/[0.035] dark:data-[state=open]:hover:bg-white/[0.045]'
 
 function ActivePill() {
-  // 选中项背后的滑动底板：跨菜单项切换时用 layoutId 做连续动画
+  // Sliding background behind the selected item: uses layoutId for a continuous animation when switching between items
   return (
     <motion.span
       layoutId="sidebar-active-pill"
@@ -73,7 +73,7 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
   const { state } = useSidebar()
   const children = visibleChildren(menu)
   const open = openIds.has(menu.id)
-  // 折叠成图标栏时子菜单不可见：当前页在这个分组里，就把分组图标标成选中
+  // Submenus are hidden when collapsed to an icon rail: if the current page is in this group, mark the group icon as selected
   const holdsActive = state === 'collapsed' && children.some((c) => c.id === activeId)
   return (
     <Collapsible asChild open={open} onOpenChange={() => toggleOpen(menu.id)} className="group/collapsible">
@@ -113,7 +113,7 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
 }
 
 export default function AppSidebar() {
-  // 订阅语言变化：切换语言时重新渲染菜单名（menuLabel 直接读 i18n）
+  // Subscribe to language changes: re-render menu names when the language switches (menuLabel reads i18n directly)
   useTranslation()
   const { menus } = useAuth()
   const location = useLocation()
@@ -124,7 +124,7 @@ export default function AppSidebar() {
   const [openIds, setOpenIds] = useState(() => new Set())
   const [seenActiveId, setSeenActiveId] = useState(null)
 
-  // 路由切换时自动展开当前页的祖先分组，不收起用户手动展开的分组（渲染期派生，避免 effect 里 setState）
+  // On route change, auto-expand the current page's ancestor groups without collapsing groups the user expanded manually (derived during render to avoid setState in an effect)
   if (active && active.id !== seenActiveId) {
     setSeenActiveId(active.id)
     setOpenIds((prev) => {

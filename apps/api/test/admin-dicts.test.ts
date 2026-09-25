@@ -51,7 +51,7 @@ beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
   await cleanup()
-  // createFixture 会清理所有 ck_test_ 用户，必须在 superAdminSession 之前
+  // createFixture cleans up all ck_test_ users, so it must run before superAdminSession
   const fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)
@@ -175,7 +175,7 @@ describe('dicts：字典项', () => {
     expect((await post({ value: 'x' })).json()).toEqual({ error: '字典标签不能为空' })
     expect((await post({ label: 'x' })).json()).toEqual({ error: '字典值不能为空' })
     expect((await post({ label: 'x', value: 'a' })).json()).toEqual({ error: '同一字典下字典值不能重复' })
-    // is_default 为非法布尔：先清默认再插入失败 → 整体回滚，b 仍是默认
+    // is_default is an invalid boolean: clearing the default then failing the insert → the whole thing rolls back, b is still the default
     const bad = await post({ label: 'x', value: 'zz', is_default: 'yes' })
     expect(bad.statusCode).toBe(500)
     expect((await itemsOf(typeId)).find((r) => r.id === b)!.is_default).toBe(true)
@@ -222,7 +222,7 @@ describe('dicts：字典项', () => {
       error: '字典标签不能为空',
     })
 
-    // 原始值（带空白）落库；重复检查用的是去空白后的值，所以 ' c ' 与 ' c ' 的冲突要到提交时由唯一约束拦下
+    // The raw value (with whitespace) is stored; the duplicate check uses the trimmed value, so the ' c ' vs ' c ' conflict is only caught by the unique constraint at commit
     const spaced = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { value: ' c ' } })
     expect(spaced.json().value).toBe(' c ')
     const conflict = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${a}`, payload: { value: ' c ', is_default: true, label: '冲突' } })
@@ -231,7 +231,7 @@ describe('dicts：字典项', () => {
     const [stillA] = await handle.db.select().from(dict_items).where(eq(dict_items.id, a))
     expect(stillA).toMatchObject({ value: 'a', label: '甲' })
 
-    // 迁移到另一个字典类型
+    // Move to another dict type
     const moved = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { dict_type_id: String(otherTypeId), value: 'b' } })
     expect(moved.json()).toMatchObject({ dict_type_id: otherTypeId, dict_type_code: `${P}b`, value: 'b' })
     await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { dict_type_id: typeId } })
@@ -347,7 +347,7 @@ describe('dicts：权限', () => {
     for (const url of ['/api/admin/dicts/99999999', '/api/admin/dicts/99999999/items', '/api/admin/dicts/items/99999999']) {
       expect((await u.inject({ url })).json()).toEqual({ error: '资源不存在' })
     }
-    // 未登录
+    // Not logged in
     const anon = await app.inject({ url: '/api/admin/dicts/options?codes=a' })
     expect([anon.statusCode, anon.json()]).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
     await handle.db.delete(dict_items).where(inArray(dict_items.id, [item!.id]))

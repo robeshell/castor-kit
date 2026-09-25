@@ -1,12 +1,12 @@
 /**
- * 菜单模块 schema 层：参数映射、校验、类型转换
+ * Menu module schema layer: parameter mapping, validation, type conversion
  */
 
 import { ServiceError } from '@/common/errors'
 import { pyInt, pyStr, pyStrOrEmpty } from '@/common/py'
 import type { Menu } from '@/db/schema'
 
-/** 导出行：菜单 + 父级编码（`item.parent.code`） */
+/** Export row: menu + parent code (`item.parent.code`) */
 export type MenuExportItem = Menu & { parent_code: string | null }
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: MenuExportItem) => unknown]> = {

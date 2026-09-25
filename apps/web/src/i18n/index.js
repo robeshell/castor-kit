@@ -1,14 +1,14 @@
 /**
- * 多语言：简体中文 / English / 日本語（i18next）
+ * i18n: Simplified Chinese / English / Japanese (i18next)
  *
- * 约定：**中文原文就是 key**。代码里写 `t('保存')`、`t('共 {{count}} 条', { count })`，
- * 中文不需要译文文件（找不到译文时直接显示 key 本身）；英文 / 日文在各处的 locales/<语言>.json 里写「中文 → 译文」。
+ * Convention: **the Chinese source text is the key**. Code writes `t('保存')`, `t('共 {{count}} 条', { count })`;
+ * Chinese needs no translation file (when no translation is found the key itself is shown); English / Japanese go in the nearby locales/<lang>.json as "Chinese → translation".
  *
- * - 公共文案：src/locales/en-US.json、ja-JP.json
- * - 页面文案：和页面放在一起，如 modules/admin/pages/users/locales/en-US.json
- * - 菜单名：按菜单 code 翻译，src/locales/menus/<语言>.json；没有译文时显示数据库里的名字（见 lib/menu-label.js）
+ * - Shared strings: src/locales/en-US.json, ja-JP.json
+ * - Page strings: live next to the page, e.g. modules/admin/pages/users/locales/en-US.json
+ * - Menu names: translated by menu code in src/locales/menus/<lang>.json; without a translation the name from the database is shown (see lib/menu-label.js)
  *
- * 所有 locales/*.json 在构建时合并成一个命名空间；同一个中文 key 在两处给出不同译文会被测试拦下（test/i18n.test.js）。
+ * All locales/*.json files are merged into one namespace at build time; giving the same Chinese key different translations in two places is caught by a test (test/i18n.test.js).
  */
 
 import { useCallback } from 'react'
@@ -28,7 +28,7 @@ const CODES = LANGUAGES.map((l) => l.code)
 const textFiles = import.meta.glob('../**/locales/*.json', { eager: true, import: 'default' })
 const menuFiles = import.meta.glob('../locales/menus/*.json', { eager: true, import: 'default' })
 
-/** 文件路径 → 语言代码（…/locales/en-US.json → en-US） */
+/** File path → language code (…/locales/en-US.json → en-US) */
 function langOf(path) {
   return path.split('/').pop().replace(/\.json$/, '')
 }
@@ -46,7 +46,7 @@ function buildResources() {
   return resources
 }
 
-/** 规范成支持的语言代码：zh* → zh-CN，en* → en-US，ja* → ja-JP，其余 null */
+/** Normalize to a supported language code: zh* → zh-CN, en* → en-US, ja* → ja-JP, anything else null */
 export function normalizeLanguage(value) {
   const text = String(value || '').toLowerCase()
   if (text.startsWith('zh')) return 'zh-CN'
@@ -55,13 +55,13 @@ export function normalizeLanguage(value) {
   return null
 }
 
-/** 初始语言：上次选择 → 浏览器语言 → 简体中文 */
+/** Initial language: last choice → browser language → Simplified Chinese */
 export function detectLanguage() {
   try {
     const saved = normalizeLanguage(localStorage.getItem(STORAGE_KEY))
     if (saved) return saved
   } catch {
-    /* 隐私模式等场景 localStorage 不可用 */
+    /* localStorage is unavailable in private mode and similar cases */
   }
   for (const candidate of navigator.languages || [navigator.language]) {
     const lang = normalizeLanguage(candidate)
@@ -74,7 +74,7 @@ i18n.use(initReactI18next).init({
   resources: buildResources(),
   lng: detectLanguage(),
   fallbackLng: false,
-  // 中文原文当 key：关掉 key 里的 . 和 : 分隔符
+  // Chinese source text as keys: disable the . and : separators in keys
   keySeparator: false,
   nsSeparator: false,
   returnEmptyString: false,
@@ -89,15 +89,15 @@ syncDocument(i18n.language)
 i18n.on('languageChanged', syncDocument)
 
 /**
- * 公共组件用：字符串按当前语言翻译，其他值（ReactNode、数字、undefined）原样返回。
- * 页面传给公共组件的中文 title / label / placeholder / 选项等因此不用逐个包 t()；已翻译的文字查不到 key，原样显示。
+ * For shared components: strings are translated into the current language; other values (ReactNode, numbers, undefined) are returned as is.
+ * So Chinese title / label / placeholder / options etc. passed from pages to shared components need no individual t() wrapping; already-translated text has no matching key and is shown as is.
  */
 export function useTx() {
   const { t } = useTranslation()
   return useCallback((value, options) => (typeof value === 'string' && value ? t(value, options) : value), [t])
 }
 
-/** 切换语言并记住选择 */
+/** Switch language and remember the choice */
 export function setLanguage(lang) {
   const next = normalizeLanguage(lang) || DEFAULT_LANGUAGE
   try {

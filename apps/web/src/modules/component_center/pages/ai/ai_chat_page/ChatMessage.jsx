@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { AlertCircle, Bot, Check, Copy, RotateCcw, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -10,8 +11,8 @@ import MarkdownView from '@/shared/components/markdown/MarkdownView'
 import './chat.css'
 
 /**
- * 平滑流式文字：网络分片到达的节奏不均匀，这里按帧追赶目标文本，
- * 剩余越多追得越快（约 10 帧追平），剩余少时每帧至少 1 个字符，避免“一坨一坨”蹦出来。
+ * Smooth streaming text: network chunks arrive unevenly, so catch up to the target text frame by frame.
+ * The more is left, the faster it catches up (about 10 frames); at least 1 character per frame, so text never pops in in lumps.
  */
 function useSmoothText(text, animate) {
   const [shown, setShown] = useState(animate ? 0 : text.length)
@@ -48,6 +49,7 @@ function ActionButton({ label, onClick, children, className }) {
 }
 
 function CopyAction({ text }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const timerRef = useRef(null)
   useEffect(() => () => clearTimeout(timerRef.current), [])
@@ -62,15 +64,16 @@ function CopyAction({ text }) {
       .catch(() => toast.error('复制失败'))
   }
   return (
-    <ActionButton label={copied ? '已复制' : '复制'} onClick={copy}>
+    <ActionButton label={copied ? t('已复制') : t('复制')} onClick={copy}>
       {copied ? <Check className="text-success" /> : <Copy />}
     </ActionButton>
   )
 }
 
 function TypingDots() {
+  const { t } = useTranslation()
   return (
-    <span className="flex h-6 items-center gap-1" aria-label="AI 正在思考">
+    <span className="flex h-6 items-center gap-1" aria-label={t('AI 正在思考')}>
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
@@ -84,7 +87,8 @@ function TypingDots() {
 }
 
 function AssistantBody({ message }) {
-  // 首次渲染时还在生成中的消息才做平滑追赶；历史消息直接完整显示
+  const { t } = useTranslation()
+  // Only messages still generating on first render are smoothed; history is shown in full
   const [animate] = useState(message.status === 'loading' || message.status === 'incomplete')
   const { text, catchingUp } = useSmoothText(message.content || '', animate)
   const streaming = message.status === 'incomplete' || catchingUp
@@ -93,13 +97,14 @@ function AssistantBody({ message }) {
   return (
     <div className={cn('relative', streaming && 'chat-streaming')}>
       <MarkdownView>{text}</MarkdownView>
-      {message.stopped ? <p className="text-muted-foreground mt-2 text-xs">已停止生成</p> : null}
+      {message.stopped ? <p className="text-muted-foreground mt-2 text-xs">{t('已停止生成')}</p> : null}
     </div>
   )
 }
 
-/** 上下文分隔线（清除上下文后插入） */
+/** Context divider (inserted after the context is cleared) */
 export function ContextDivider() {
+  const { t } = useTranslation()
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -107,13 +112,14 @@ export function ContextDivider() {
       className="text-muted-foreground flex items-center gap-3 py-1 text-xs"
     >
       <span className="bg-border h-px flex-1" />
-      上下文已清除，之后的对话不再携带之前的消息
+      {t('上下文已清除，之后的对话不再携带之前的消息')}
       <span className="bg-border h-px flex-1" />
     </motion.div>
   )
 }
 
 function ChatMessage({ message, busy, canRegenerate, onRegenerate, onDelete }) {
+  const { t } = useTranslation()
   const isUser = message.role === 'user'
   const isError = message.status === 'error'
   const generating = message.status === 'loading' || message.status === 'incomplete'
@@ -135,7 +141,7 @@ function ChatMessage({ message, busy, canRegenerate, onRegenerate, onDelete }) {
       </div>
 
       <div className={cn('flex min-w-0 flex-col gap-1', isUser ? 'max-w-[85%] items-end sm:max-w-[75%]' : 'max-w-[92%] flex-1 sm:max-w-[85%]')}>
-        <span className="text-muted-foreground px-1 text-xs">{isUser ? '我' : 'AI 助手'}</span>
+        <span className="text-muted-foreground px-1 text-xs">{isUser ? t('我') : t('AI 助手')}</span>
         {isUser ? (
           <div className="bg-muted rounded-2xl rounded-tr-md px-4 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap">
             {message.content}
@@ -160,12 +166,12 @@ function ChatMessage({ message, busy, canRegenerate, onRegenerate, onDelete }) {
           >
             {message.content && !isError ? <CopyAction text={message.content} /> : null}
             {canRegenerate ? (
-              <ActionButton label="重新生成" onClick={() => onRegenerate(message.id)}>
+              <ActionButton label={t('重新生成')} onClick={() => onRegenerate(message.id)}>
                 <RotateCcw />
               </ActionButton>
             ) : null}
             {!busy ? (
-              <ActionButton label="删除" onClick={() => onDelete(message.id)} className="hover:text-danger">
+              <ActionButton label={t('删除')} onClick={() => onDelete(message.id)} className="hover:text-danger">
                 <Trash2 />
               </ActionButton>
             ) : null}

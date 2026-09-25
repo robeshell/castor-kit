@@ -21,12 +21,12 @@ export async function buildTestApp(overrides: Partial<AppConfig> = {}): Promise<
   return app
 }
 
-/** 从响应里取 castor_session cookie 值，供后续 inject 携带 */
+/** Extracts the castor_session cookie value from a response, for later inject calls to carry */
 export function sessionCookie(res: LightMyRequestResponse): string | undefined {
   return res.cookies.find((c) => c.name === SESSION_COOKIE_NAME)?.value
 }
 
-// ---- 夹具：独立的测试用户 / 角色 / 菜单，不依赖开发库里的种子数据 ----
+// ---- Fixtures: dedicated test user / role / menus, independent of seed data in the dev DB ----
 
 export const FIXTURE_PREFIX = 'ck_test_'
 export const FIXTURE_USER = `${FIXTURE_PREFIX}user`
@@ -35,13 +35,13 @@ export const FIXTURE_PASSWORD = 'fixture-pass-1'
 export interface Fixture {
   userId: number
   roleId: number
-  /** 根目录（未直接分配给角色，靠子菜单带出） */
+  /** Root directory (not directly assigned to the role; pulled in by its child menus) */
   rootId: number
-  /** 分配给角色的可见子菜单 */
+  /** Visible child menu assigned to the role */
   childId: number
-  /** 分配给角色的按钮（不可见，不应出现在 my-menus） */
+  /** Button assigned to the role (not visible; must not appear in my-menus) */
   buttonId: number
-  /** 分配给角色但已停用 */
+  /** Assigned to the role but disabled */
   inactiveId: number
   assignedCodes: string[]
 }
@@ -101,7 +101,7 @@ export function openTestDb(): DbHandle {
   return createDb(TEST_DATABASE_URL, { max: 2 })
 }
 
-// ---- 已登录会话：super_admin 测试账号（库里没有 super_admin 角色时自动创建） ----
+// ---- Logged-in session: super_admin test account (super_admin role is created automatically if missing from the DB) ----
 
 export const SUPER_USER = `${FIXTURE_PREFIX}super`
 export const SUPER_PASSWORD = 'super-pass-1'
@@ -110,7 +110,7 @@ export interface AuthedSession {
   cookie: string
   csrf: string
   userId: number
-  /** 带会话 cookie + CSRF 头的 inject */
+  /** inject with session cookie + CSRF header */
   inject: (opts: InjectOptions) => Promise<LightMyRequestResponse>
 }
 
@@ -159,7 +159,7 @@ export async function superAdminSession(app: FastifyInstance, handle: DbHandle):
   return loginSession(app, SUPER_USER, SUPER_PASSWORD, userId)
 }
 
-/** 构造 multipart/form-data 请求体（单文件字段） */
+/** Builds a multipart/form-data request body (single file field) */
 export function multipartFile(
   filename: string,
   content: Buffer | string,

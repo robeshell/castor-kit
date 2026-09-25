@@ -10,12 +10,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 /**
- * 行操作：常用操作平铺为文字按钮，更多操作收进 “…” 菜单。
+ * Row actions: common actions are laid out as text buttons, the rest go into a "…" menu.
  *   <RowActions actions={[
  *     { label: '编辑', onClick: () => edit(row), hidden: !canEdit },
  *     { label: '删除', danger: true, confirm: { title: '删除该用户？' }, onClick: () => remove(row) },
  *   ]} inline={2} />
- * 需要二次确认的操作（confirm）请平铺并用 ConfirmAction 包裹，见 users 页面。
+ * Actions that need confirmation (confirm) should be laid out inline and wrapped in ConfirmAction; see the users page.
  */
 export default function RowActions({ actions = [], inline = 2, children }) {
   const tx = useTx()

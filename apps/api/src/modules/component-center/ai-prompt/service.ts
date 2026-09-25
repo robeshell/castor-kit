@@ -1,8 +1,8 @@
 /**
- * AI 提示词模板 service 层
+ * AI prompt template service layer
  *
- * 保存/删除失败返回带具体文案的 500（`保存模板失败，请稍后重试`），而全局错误处理会把
- * ServiceError(>=500) 的文案换成通用文案，所以这类错误用 AiPromptPersistError 抛出，由 routes 原样返回。
+ * Save/delete failures return a 500 with a specific message (`保存模板失败，请稍后重试`), but the global error handler
+ * replaces the message of ServiceError(>=500) with a generic one, so these errors are thrown as AiPromptPersistError and returned as-is by routes.
  */
 
 import { ServiceError } from '@/common/errors'
@@ -18,10 +18,10 @@ const PG_INT_MAX = 2_147_483_647
 export const SAVE_FAILED = '保存模板失败，请稍后重试'
 export const DELETE_FAILED = '删除模板失败，请稍后重试'
 
-/** 带具体文案的 500（由 routes 原样返回，不走全局通用文案） */
+/** 500 with a specific message (returned as-is by routes, bypassing the global generic message) */
 export class AiPromptPersistError extends Error {}
 
-/** 取值去首尾空白：假值用 fallback；真值且非字符串 → 通用 500 */
+/** Get a value trimmed of surrounding whitespace: falsy → fallback; truthy non-string → generic 500 */
 function strictStripOr(value: unknown, fallback: string): string {
   const raw = pyTruthy(value) ? value : fallback
   if (typeof raw !== 'string') throw new ServiceError(`'${typeof raw}' object has no attribute 'strip'`, 500)
@@ -29,8 +29,8 @@ function strictStripOr(value: unknown, fallback: string): string {
 }
 
 /**
- * 严格布尔：只接受 null/true/false（1/0 也被接受），
- * 其他值视为保存失败，返回“保存模板失败”。
+ * Strict boolean: only null/true/false are accepted (1/0 are accepted too);
+ * any other value is treated as a save failure and returns SAVE_FAILED.
  */
 function strictBool(value: unknown): boolean | null {
   if (value === null || value === undefined) return null
@@ -46,7 +46,7 @@ export class AiPromptService {
     this.repo = new AiPromptRepository(db)
   }
 
-  /** 按名称幂等写入内置模板（任何异常都吞掉，不影响列表接口） */
+  /** Idempotently insert built-in templates by name (all exceptions are swallowed so the list API is unaffected) */
   private async seedBuiltinTemplates(): Promise<void> {
     let existing: Set<string>
     try {
@@ -67,7 +67,7 @@ export class AiPromptService {
         })),
       )
     } catch {
-      /* 并发重复插入等异常忽略 */
+      /* ignore exceptions such as concurrent duplicate inserts */
     }
   }
 
@@ -78,7 +78,7 @@ export class AiPromptService {
     return { data, total: data.length }
   }
 
-  /** `db.session.get(AiPromptTemplate, id)`：超出 int4 的 id 在 PG 里比较不报错，只是查不到 */
+  /** `db.session.get(AiPromptTemplate, id)`: an id beyond int4 doesn't error in PG comparisons, it just finds nothing */
   async getTemplate(rawId: string): Promise<AiPromptTemplate | null> {
     const id = Number(rawId)
     if (!Number.isSafeInteger(id) || id > PG_INT_MAX) return null
@@ -104,7 +104,7 @@ export class AiPromptService {
         content,
         variables: variablesValue(variables),
         tags,
-        // None 不参与 INSERT，由默认值 True 生效
+        // None is left out of the INSERT so the default True applies
         ...(isActive === null ? {} : { is_active: isActive }),
       })
       return aiPromptTemplateToDict(row)
@@ -129,10 +129,10 @@ export class AiPromptService {
     }
     if ('tags' in data) next.tags = normalizeTags(data.tags)
     if ('is_active' in data) next.is_active = pyTruthy(data.is_active)
-    // 保存后根据正文重新提取变量
+    // Re-extract variables from the content after saving
     const variables = extractVariables((next.content as string | undefined) ?? template.content)
 
-    // 只 UPDATE 值真正变化的列；没有变化时不发 UPDATE，updated_at 也不变
+    // UPDATE only columns whose value actually changed; with no change, no UPDATE is issued and updated_at stays the same
     const set: AiPromptTemplateUpdate = {}
     const current = template as unknown as Record<string, unknown>
     for (const [key, value] of Object.entries(next)) {

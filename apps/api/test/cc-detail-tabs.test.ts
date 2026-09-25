@@ -31,7 +31,7 @@ beforeAll(async () => {
   app = await buildTestApp()
   s = await superAdminSession(app, handle)
   await cleanup()
-  // 克隆出来的测试库主键序列可能落后于 MAX(id)，先同步
+  // The primary key sequence in a cloned test DB may lag behind MAX(id); sync it first
   await handle.pool.query(
     "SELECT setval(pg_get_serial_sequence('cc_detail_members', 'id'), COALESCE((SELECT MAX(id) FROM cc_detail_members), 0) + 1, false)",
   )
@@ -134,7 +134,7 @@ describe('detail-tabs', () => {
   })
 
   it('删除', async () => {
-    s = await superAdminSession(app, handle) // createFixture 会清掉 ck_test_ 前缀的用户（含 super 测试账号）
+    s = await superAdminSession(app, handle) // createFixture removes users with the ck_test_ prefix (including the super test account)
     expect((await s.inject({ method: 'DELETE', url: `${B}/members/${memberId}` })).json()).toEqual({ message: '删除成功' })
     expect((await s.inject({ url: `${B}/members/${memberId}` })).statusCode).toBe(404)
   })

@@ -1,10 +1,10 @@
 /**
- * 定时任务 schema 层
+ * Scheduled task schema layer
  *
- * cron 解析 / URL 防 SSRF 在 common/scheduler（调度器与 worker 也要用）；这里是本模块自己的
- * 布尔 / 整数 / JSON 对象解析与 service 用到的 normalize* 归一化辅助函数。
+ * Cron parsing / URL SSRF protection live in common/scheduler (also used by the scheduler and worker); this file holds the module's own
+ * bool / int / JSON object parsing and the normalize* helpers used by the service.
  *
- * 定时任务没有导出接口，因此本模块不定义 EXPORT_FIELD_MAP。
+ * Scheduled tasks have no export endpoint, so this module defines no EXPORT_FIELD_MAP.
  */
 
 import { z } from 'zod'
@@ -13,12 +13,12 @@ import { ScheduledTaskSchemaError } from '@/common/scheduler/errors'
 import { pyStrip } from '@/common/scheduler/py-compat'
 import { isPyDict, pyJsonDumps, pyJsonLoads, PyJsonDecodeError, type PyJson } from '@/common/scheduler/py-json'
 
-/** 请求体：loose + 全可选，归一化在 service 里做 */
+/** Request body: loose + all optional; normalization happens in the service */
 export const scheduledTaskBodySchema = z.record(z.string(), z.unknown()).nullish()
 
 export const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
 
-/** 假值 → ''，否则转字符串后去掉首尾空白 */
+/** Falsy → ''; otherwise stringify and trim */
 export function pyText(value: unknown): string {
   return pyStrip(pyTruthy(value) ? pyStr(value) : '')
 }
@@ -33,7 +33,7 @@ export function parseBool<T>(value: unknown, fallback: T): boolean | T {
   return fallback
 }
 
-/** parse_int(value, default)：`int(value)`，TypeError / ValueError 时返回默认值 */
+/** parse_int(value, default): `int(value)`, returning the default on TypeError / ValueError */
 export function parseIntValue(value: unknown, fallback: number): number {
   try {
     return pyInt(value)
@@ -42,7 +42,7 @@ export function parseIntValue(value: unknown, fallback: number): number {
   }
 }
 
-/** parse_json_object(value, default={})：返回 dict（Map 或请求体里的普通对象） */
+/** parse_json_object(value, default={}): returns a dict (a Map or a plain object from the request body) */
 export function parseJsonObject(value: unknown): Map<string, PyJson> | Record<string, unknown> {
   if (value === null || value === undefined) return {}
   if (isPyDict(value)) return value

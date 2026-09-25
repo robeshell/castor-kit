@@ -1,5 +1,5 @@
 /**
- * 审计日志表：login_logs / operation_logs
+ * Audit log tables: login_logs / operation_logs
  */
 
 import { foreignKey, index, integer, pgTable, serial, text, varchar } from 'drizzle-orm/pg-core'
@@ -20,7 +20,7 @@ export const login_logs = pgTable(
     created_at: createdAt(),
   },
   (table) => [
-    // 登录限流查询（status + 时间窗口）与登录日志列表排序共用
+    // Shared by the login rate-limit query (status + time window) and login log list sorting
     index('ix_login_logs_status_created_at').using('btree', table.status, table.created_at),
     foreignKey({
       columns: [table.user_id],

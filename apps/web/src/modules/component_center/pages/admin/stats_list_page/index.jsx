@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Trans, useTranslation } from 'react-i18next'
 import ReactECharts from 'echarts-for-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Archive, CircleCheck, Download, Layers, Plus, Upload, Wallet, X } from 'lucide-react'
@@ -120,9 +121,10 @@ function toFormValues(record) {
   }
 }
 
-// ─── 分类分布（环形图 + 图例） ───────────────────────────────────────────────
+// ─── Category distribution (donut + legend) ──────────────────────────────────────────
 
 function CategoryDistribution({ stats, loading }) {
+  const { t } = useTranslation()
   const c = useChartColors()
   const chartRef = useRef(null)
   const items = useMemo(() => stats?.category_stats || [], [stats])
@@ -138,7 +140,7 @@ function CategoryDistribution({ stats, loading }) {
         ...base.tooltip,
         trigger: 'item',
         formatter: (p) =>
-          `${p.marker}${p.name}<br/><span style="font-variant-numeric:tabular-nums">${p.value} 条 · ${p.percent}%</span>`,
+          `${p.marker}${p.name}<br/><span style="font-variant-numeric:tabular-nums">${t('{{count}} 条 · {{percent}}%', { count: p.value, percent: p.percent })}</span>`,
       },
       series: [
         {
@@ -151,13 +153,13 @@ function CategoryDistribution({ stats, loading }) {
           label: { show: false },
           labelLine: { show: false },
           emphasis: { scale: true, scaleSize: 4 },
-          data: items.map((item) => ({ name: CATEGORY_LABEL_MAP[item.category] || item.category, value: item.count })),
+          data: items.map((item) => ({ name: CATEGORY_LABEL_MAP[item.category] ? t(CATEGORY_LABEL_MAP[item.category]) : item.category, value: item.count })),
         },
       ],
       animationDuration: 700,
       animationEasing: 'cubicOut',
     }
-  }, [c, items])
+  }, [c, items, t])
 
   const highlight = (index, on) => {
     const chart = chartRef.current?.getEchartsInstance?.()
@@ -176,14 +178,14 @@ function CategoryDistribution({ stats, loading }) {
           </div>
         </div>
       ) : items.length === 0 ? (
-        <div className="text-muted-foreground flex h-40 items-center justify-center text-[13px]">暂无分类数据</div>
+        <div className="text-muted-foreground flex h-40 items-center justify-center text-[13px]">{t('暂无分类数据')}</div>
       ) : (
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
           <div className="relative size-40 shrink-0">
             <ReactECharts ref={chartRef} option={option} style={{ height: 160, width: 160 }} notMerge opts={{ renderer: 'svg' }} />
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <CountUp value={total} className="text-xl leading-none font-semibold" />
-              <span className="text-muted-foreground mt-1 text-[11px]">总记录</span>
+              <span className="text-muted-foreground mt-1 text-[11px]">{t('总记录')}</span>
             </div>
           </div>
           <ul className="w-full min-w-0 flex-1 space-y-0.5">
@@ -198,7 +200,7 @@ function CategoryDistribution({ stats, loading }) {
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: palette[index % palette.length] }} />
-                    <span className="truncate">{CATEGORY_LABEL_MAP[item.category] || item.category}</span>
+                    <span className="truncate">{CATEGORY_LABEL_MAP[item.category] ? t(CATEGORY_LABEL_MAP[item.category]) : item.category}</span>
                   </span>
                   <span className="tabular-nums">
                     {item.count}
@@ -215,9 +217,10 @@ function CategoryDistribution({ stats, loading }) {
   )
 }
 
-// ─── 发布状态（堆叠条） ──────────────────────────────────────────────────────
+// ─── Publish status (stacked bar) ─────────────────────────────────────────────────
 
 function StatusDistribution({ stats, loading }) {
+  const { t } = useTranslation()
   const total = stats?.total || 0
   const segments = [
     { key: 'published', label: '已发布', value: stats?.published_count || 0, className: 'bg-success' },
@@ -253,7 +256,7 @@ function StatusDistribution({ stats, loading }) {
               <li key={seg.key} className="flex items-center justify-between text-[13px]">
                 <span className="flex items-center gap-2">
                   <span className={cn('size-2 rounded-full', seg.className)} />
-                  {seg.label}
+                  {t(seg.label)}
                 </span>
                 <span className="tabular-nums">
                   {seg.value}
@@ -266,11 +269,11 @@ function StatusDistribution({ stats, loading }) {
           </ul>
           <Separator />
           <div className="flex items-center justify-between text-[13px]">
-            <span className="text-muted-foreground">启用率</span>
+            <span className="text-muted-foreground">{t('启用率')}</span>
             <span className="tabular-nums">
               <span className="font-medium">{activePct}%</span>
               <span className="text-muted-foreground ml-1.5 text-xs">
-                启用 {stats?.active_count || 0} · 停用 {stats ? stats.total - stats.active_count : 0}
+                {t('启用 {{active}} · 停用 {{inactive}}', { active: stats?.active_count || 0, inactive: stats ? stats.total - stats.active_count : 0 })}
               </span>
             </span>
           </div>
@@ -280,23 +283,24 @@ function StatusDistribution({ stats, loading }) {
   )
 }
 
-// ─── 分步表单：信息确认 ───────────────────────────────────────────────────────
+// ─── Step form: review ──────────────────────────────────────────────────
 
 function SummaryCard({ values }) {
+  const { t } = useTranslation()
   const rows = [
     ['名称', values.name],
     ['编码', values.item_code],
-    ['分类', CATEGORY_LABEL_MAP[values.category] || '-'],
+    ['分类', t(CATEGORY_LABEL_MAP[values.category] || '-')],
     ['金额', `¥ ${values.amount ?? 0}`],
     ['数量', values.quantity ?? 0],
   ]
   return (
     <div className="bg-muted/40 rounded-lg border px-4 py-3">
-      <div className="text-muted-foreground mb-2 text-xs">信息确认</div>
+      <div className="text-muted-foreground mb-2 text-xs">{t('信息确认')}</div>
       <dl className="space-y-1.5 text-[13px]">
         {rows.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[64px_minmax(0,1fr)] gap-2">
-            <dt className="text-muted-foreground">{label}</dt>
+            <dt className="text-muted-foreground">{t(label)}</dt>
             <dd className="truncate tabular-nums">{value === '' || value === null || value === undefined ? '-' : String(value)}</dd>
           </div>
         ))}
@@ -305,9 +309,10 @@ function SummaryCard({ values }) {
   )
 }
 
-// ─── 页面 ─────────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────
 
 export default function StatsListPage() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getStatsListPageList(params).catch((err) => {
@@ -319,7 +324,7 @@ export default function StatsListPage() {
   const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
 
   const [stats, setStats] = useState(null)
-  // 仅首屏无数据时显示骨架；刷新时保留旧数据，数字直接滚动到新值
+  // Skeleton only on the first load with no data; refreshes keep the old data and numbers roll to the new values
   const [statsLoading, setStatsLoading] = useState(true)
 
   const [search, setSearch] = useState('')
@@ -354,7 +359,7 @@ export default function StatsListPage() {
   useEffect(() => {
     fetchStats()
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
 
   const runSearch = () => {
@@ -448,7 +453,7 @@ export default function StatsListPage() {
       width: 150,
       render: (v) => (v ? <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs whitespace-nowrap">{v}</code> : null),
     },
-    { key: 'category', title: '分类', dataIndex: 'category', width: 80, render: (v) => CATEGORY_LABEL_MAP[v] || v || '-' },
+    { key: 'category', title: '分类', dataIndex: 'category', width: 80, render: (v) => (CATEGORY_LABEL_MAP[v] ? t(CATEGORY_LABEL_MAP[v]) : v || '-') },
     {
       key: 'status',
       title: '状态',
@@ -501,14 +506,14 @@ export default function StatsListPage() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(record)}>
-            查看
+            {t('查看')}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该记录？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -526,15 +531,15 @@ export default function StatsListPage() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建记录
+              {t('新建记录')}
             </Button>
           </>
         }
@@ -547,7 +552,7 @@ export default function StatsListPage() {
           icon={Layers}
           value={stats?.total ?? 0}
           suffix="条"
-          delta={`已启用 ${stats?.active_count ?? 0}`}
+          delta={t('已启用 {{count}}', { count: stats?.active_count ?? 0 })}
           deltaTone="neutral"
         />
         <StatCard
@@ -556,7 +561,7 @@ export default function StatsListPage() {
           icon={CircleCheck}
           value={stats?.published_count ?? 0}
           suffix="条"
-          delta={`草稿 ${stats?.draft_count ?? 0}`}
+          delta={t('草稿 {{count}}', { count: stats?.draft_count ?? 0 })}
           deltaTone="neutral"
         />
         <StatCard
@@ -565,7 +570,7 @@ export default function StatsListPage() {
           icon={Archive}
           value={stats?.archived_count ?? 0}
           suffix="条"
-          delta={`已停用 ${stats ? stats.total - stats.active_count : 0}`}
+          delta={t('已停用 {{count}}', { count: stats ? stats.total - stats.active_count : 0 })}
           deltaTone="neutral"
         />
         <StatCard
@@ -575,7 +580,7 @@ export default function StatsListPage() {
           value={stats?.total_amount ?? 0}
           decimals={2}
           suffix="元"
-          delta={`均值 ${money(stats?.avg_amount)}`}
+          delta={t('均值 {{amount}}', { amount: money(stats?.avg_amount) })}
           deltaTone="neutral"
         />
       </div>
@@ -599,7 +604,7 @@ export default function StatsListPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') runSearch()
             }}
-            placeholder="负责人"
+            placeholder={t('负责人')}
             className="h-8 w-32 text-[13px]"
           />
           <FilterSelect value={isActive} onChange={setIsActive} options={ACTIVE_OPTIONS} placeholder="启用状态" allLabel="全部启用状态" />
@@ -616,11 +621,15 @@ export default function StatsListPage() {
             >
               <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
                 <span>
-                  已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                  <Trans
+                    i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                    values={{ count: selectedKeys.length }}
+                    components={[<span key="count" className="font-medium tabular-nums" />]}
+                  />
                 </span>
                 <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                   <X />
-                  清空勾选
+                  {t('清空勾选')}
                 </Button>
               </div>
             </motion.div>
@@ -645,7 +654,7 @@ export default function StatsListPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing?.id ? '编辑记录' : '新建记录'}
-        description={editing?.id ? `正在编辑 ${editing.name}` : undefined}
+        description={editing?.id ? t('正在编辑 {{name}}', { name: editing.name }) : undefined}
         form={form}
         steps={STEPS}
         step={step}
@@ -731,7 +740,7 @@ export default function StatsListPage() {
         footer={
           <>
             <Button variant="outline" onClick={() => setDetailOpen(false)}>
-              关闭
+              {t('关闭')}
             </Button>
             <Button
               onClick={() => {
@@ -739,7 +748,7 @@ export default function StatsListPage() {
                 openEdit(detail)
               }}
             >
-              编辑
+              {t('编辑')}
             </Button>
           </>
         }
@@ -751,7 +760,7 @@ export default function StatsListPage() {
                 { label: 'ID', value: <span className="tabular-nums">{detail.id}</span> },
                 { label: '名称', value: detail.name },
                 { label: '编码', value: <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs whitespace-nowrap">{detail.item_code}</code> },
-                { label: '分类', value: CATEGORY_LABEL_MAP[detail.category] || detail.category || '-' },
+                { label: '分类', value: CATEGORY_LABEL_MAP[detail.category] ? t(CATEGORY_LABEL_MAP[detail.category]) : detail.category || '-' },
                 {
                   label: '发布状态',
                   value: (
@@ -780,7 +789,7 @@ export default function StatsListPage() {
               <>
                 <Separator />
                 <div className="space-y-1.5">
-                  <div className="text-[13px] font-medium">描述</div>
+                  <div className="text-[13px] font-medium">{t('描述')}</div>
                   <p className="text-muted-foreground text-[13px] leading-relaxed whitespace-pre-wrap">{detail.description}</p>
                 </div>
               </>
@@ -794,7 +803,7 @@ export default function StatsListPage() {
         onOpenChange={setExportOpen}
         title="统计列表页导出字段"
         ruleHint={
-          selectedKeys.length > 0 ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将按当前筛选条件导出'
+          selectedKeys.length > 0 ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: selectedKeys.length }) : '未勾选数据时，将按当前筛选条件导出'
         }
         fieldOptions={EXPORT_FIELDS}
         defaultFields={['name', 'item_code', 'category', 'status', 'amount', 'quantity', 'owner', 'updated_at']}
@@ -816,7 +825,7 @@ export default function StatsListPage() {
         }
         onImport={(file) => importStatsListPage(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           reloadAll()
         }}
         errorExportFileName="stats_list_page_import_error_rows.csv"

@@ -1,8 +1,8 @@
 /**
- * scripts/seed-rbac.ts：菜单、超级管理员角色、管理员账号的全量重建与增量同步
+ * scripts/seed-rbac.ts: full rebuild and incremental sync of menus, the super admin role and the admin account
  *
- * - 全量/增量在独立临时库（castor_seed_*）上验证，不动共享测试库的 RBAC 数据
- * - 增量模式另在 TEST_DATABASE_URL（现库克隆）上连跑两次，确认幂等、不改已有 ID
+ * - Full/incremental modes are verified on a separate temporary database (castor_seed_*), leaving the shared test DB's RBAC data untouched
+ * - Incremental mode is additionally run twice in a row on TEST_DATABASE_URL (a clone of the live DB) to confirm it is idempotent and doesn't change existing IDs
  */
 
 import pg from 'pg'
@@ -42,7 +42,7 @@ async function query<T extends pg.QueryResultRow>(url: string, sql: string, para
   }
 }
 
-/** 除 password_hash / created_at 外的 RBAC 全表快照（含 menus.updated_at，用于判断是否发生了写入） */
+/** Snapshot of all RBAC tables except password_hash / created_at (includes menus.updated_at, used to detect whether any write happened) */
 async function snapshot(url: string) {
   const [menus, roles, roleMenus, userRoles, users, seq] = await Promise.all([
     query(url, 'SELECT id, name, code, icon, path, component, parent_id, sort_order, is_visible, is_active, menu_type, description, updated_at::text FROM menus ORDER BY id'),
@@ -65,10 +65,10 @@ afterAll(async () => {
   await admin(`DROP DATABASE IF EXISTS ${TEMP_DB} WITH (FORCE)`)
 })
 
-// 菜单数 / 最大 ID 从 MENUS_DATA 推导：每新增一个功能模块菜单都会变，测试只校验同步逻辑本身
+// Menu count / max ID are derived from MENUS_DATA: they change with every new feature module menu, so the test only checks the sync logic itself
 const MENU_COUNT = MENUS_DATA.length
 const NEXT_MENU_ID = Math.max(...MENUS_DATA.map((m) => m.id)) + 1
-/** 初始菜单集的 120 个菜单：新增功能不应改动它们 */
+/** The 120 menus of the initial menu set: new features must not change them */
 const LEGACY_MENU_COUNT = 120
 
 describe('MENUS_DATA', () => {
@@ -77,7 +77,7 @@ describe('MENUS_DATA', () => {
     const ids = MENUS_DATA.map((m) => m.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(new Set(MENUS_DATA.map((m) => m.code)).size).toBe(ids.length)
-    // 历史遗留 ID 不许改
+    // Legacy IDs must not change
     for (const [id, code] of [
       [31, 'system_list_page'],
       [33, 'system_stats_list_page'],
@@ -117,7 +117,7 @@ describe('全量重建（空库）', () => {
       }
       expect(row.description).toBeNull()
     }
-    // menus_id_seq = max(id)+1 且 is_called=false；roles / admin_users 各用了一次序列
+    // menus_id_seq = max(id)+1 with is_called=false; roles / admin_users each consumed the sequence once
     expect(snap.seq).toEqual({ last_value: NEXT_MENU_ID, is_called: false })
     expect(snap.roles).toEqual([{ id: 1, name: '超级管理员', code: 'super_admin', description: '拥有所有权限的超级管理员' }])
     expect(snap.users).toEqual([{ id: 1, username: 'admin' }])
@@ -181,23 +181,23 @@ describe('增量同步', () => {
     )
     const byCode = new Map(rows.map((r) => [r.code, r]))
     expect(byCode.get('system_users')).toMatchObject({ id: 21, name: '用户管理', sort_order: 1 })
-    // 4423 被占用 → 走序列（上次 setval 后的下一个值）
+    // 4423 is taken → fall back to the sequence (the next value after the last setval)
     expect(byCode.get('cc_ai_prompt_delete')!.id).toBe(NEXT_MENU_ID)
     expect(byCode.get('ck_test_r8_occupier')!.id).toBe(4423)
-    // data_management → component_center（沿用原 ID 3）
+    // data_management → component_center (keeps the original ID 3)
     expect(byCode.get('component_center')).toMatchObject({ id: 3, name: '组件示例中心' })
     expect(byCode.has('data_management')).toBe(false)
-    // 旧编码与新编码并存 → 合并到新编码：子菜单改挂、角色关联迁移、旧记录删除
+    // Old and new codes coexist → merge into the new code: re-parent child menus, migrate role links, delete the old record
     expect(byCode.has('system_query_management_add')).toBe(false)
     const listPageAdd = byCode.get('system_list_page_add')!
     expect(listPageAdd.id).toBe(311)
     expect(byCode.get('ck_test_r8_child')!.parent_id).toBe(311)
     const roleMenus = await query<{ menu_id: number }>(TEMP_URL, 'SELECT menu_id FROM role_menus WHERE role_id = 50 ORDER BY 1')
     expect(roleMenus.map((r) => r.menu_id)).toEqual([21, 311])
-    // 只有旧编码 → 原地改名
+    // Only the old code exists → rename in place
     expect(byCode.get('system_list_page_delete')!.id).toBe(313)
     expect(byCode.get(RETIRED_MENU_CODES[0])).toMatchObject({ is_active: false, is_visible: false })
-    // 自定义角色保留；超级管理员拥有全部菜单
+    // Custom roles are kept; the super admin has all menus
     const [{ n }] = (await query<{ n: number }>(TEMP_URL, "SELECT count(*)::int AS n FROM roles WHERE code = 'ck_test_r8_role'")) as [{ n: number }]
     expect(n).toBe(1)
     const [counts] = await query<{ menus: number; granted: number }>(

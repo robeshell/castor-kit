@@ -8,12 +8,12 @@ declare module 'fastify' {
     db: Db
   }
   interface FastifyRequest {
-    /** getCurrentAdminUser() 的请求内缓存；undefined = 尚未查询 */
+    /** Per-request cache for getCurrentAdminUser(); undefined = not yet queried */
     currentAdminUser?: AdminUserWithRoles | null
   }
 }
 
-/** 会话里存的字段 */
+/** Fields stored in the session */
 declare module '@fastify/secure-session' {
   interface SessionData {
     logged_in: boolean

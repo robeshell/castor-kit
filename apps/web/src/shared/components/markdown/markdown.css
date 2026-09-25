@@ -1,6 +1,6 @@
 /*
- * Markdown 排版（MarkdownView 使用）。只用主题 CSS 变量，亮 / 暗自动适配。
- * Tailwind preflight 会清掉列表符号、标题字号等，这里按内容排版补回来。
+ * Markdown typography (used by MarkdownView). Uses only theme CSS variables, so light / dark adapt automatically.
+ * Tailwind preflight wipes list markers, heading sizes, etc.; they are restored here for content typography.
  */
 .md-prose {
   color: var(--foreground);
@@ -67,7 +67,7 @@
 .md-prose li > ol {
   margin: 0.2em 0;
 }
-/* GFM 任务列表 */
+/* GFM task lists */
 .md-prose ul.contains-task-list {
   list-style: none;
   padding-left: 0.25em;
@@ -117,7 +117,7 @@
   max-width: 100%;
   border-radius: 8px;
 }
-/* 行内代码 */
+/* Inline code */
 .md-prose :not(pre) > code {
   font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.86em;
@@ -127,7 +127,7 @@
   color: var(--foreground);
   box-shadow: 0 0 0 1px var(--border);
 }
-/* 代码块（外框与标题栏由 MarkdownView 的 CodeBlock 渲染） */
+/* Code blocks (the frame and title bar are rendered by MarkdownView's CodeBlock) */
 .md-prose .md-code-block {
   margin: 0.9em 0;
 }
@@ -144,7 +144,7 @@
 .md-prose .md-code-block pre code {
   font-family: inherit;
 }
-/* 表格 */
+/* Tables */
 .md-prose .md-table-wrap {
   margin: 0.9em 0;
   overflow-x: auto;

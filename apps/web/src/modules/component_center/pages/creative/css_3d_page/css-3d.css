@@ -1,4 +1,4 @@
-/* CSS 3D 页：自旋立方体（类名加前缀，避免污染全局） */
+/* CSS 3D page: spinning cube (class names are prefixed to avoid leaking into global styles) */
 @keyframes css3d-rotate-cube {
   0% {
     transform: rotateX(-20deg) rotateY(0deg);

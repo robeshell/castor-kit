@@ -1,10 +1,10 @@
 /**
- * 带统计的列表页 service 层
+ * List page with stats service layer
  *
- * 写入行为要点：
- * - 更新只写真正变化的列；没有变化时不发 UPDATE，updated_at 保持不变（onupdate 语义）
- * - 导入的落库时机：上一行的写入在下一行 get_by_code 查询前才落库，最后一行在提交时落库；
- *   有错误行时直接回滚，未落库的写入不会触发数据库错误
+ * Write behavior notes:
+ * - Updates write only columns that actually changed; with no changes no UPDATE is sent and updated_at stays the same (onupdate semantics)
+ * - Import persistence timing: a row's write is persisted to the DB only right before the next row's get_by_code query, and the last row on commit;
+ *   if any row has errors everything is rolled back, so unpersisted writes never trigger DB errors
  */
 
 import { ServiceError } from '@/common/errors'
@@ -35,7 +35,7 @@ import {
 
 type Data = Record<string, unknown>
 
-/** 可写列的规范化值（amount 为浮点数，写库时转 numeric 文本） */
+/** Normalized values of writable columns (amount is a float, converted to numeric text when written to the DB) */
 interface ItemValues {
   name?: string
   item_code?: string
@@ -58,12 +58,12 @@ function strOrNone(value: unknown): string | null {
   return pyStrOrEmpty(value) || null
 }
 
-/** `str(x or 'general').strip() or 'general'` / `str(x or '').strip() or 'general'`（二者结果相同） */
+/** `str(x or 'general').strip() or 'general'` / `str(x or '').strip() or 'general'` (both yield the same result) */
 function categoryOf(value: unknown): string {
   return pyStrOrEmpty(value) || 'general'
 }
 
-/** 只保留与当前行不同的列（值相等则不算变更） */
+/** Keep only columns that differ from the current row (equal values don't count as changes) */
 function changedValues(item: StatsItem, next: ItemValues): StatsItemUpdate {
   const changes: StatsItemUpdate = {}
   for (const [key, value] of Object.entries(next) as [keyof ItemValues, unknown][]) {
@@ -185,7 +185,7 @@ export class StatsListPageService {
     return { message: '删除成功' }
   }
 
-  /** method=GET 时 data 为 query 参数（每个键取第一个值），否则为 JSON 体 */
+  /** For method=GET, data is the query params (first value of each key); otherwise the JSON body */
   async exportItems(data: Data, requestMethod: string) {
     let ids: unknown
     let fields: unknown[]
@@ -216,7 +216,7 @@ export class StatsListPageService {
 
     let items: StatsItem[]
     if (exportMode === 'filtered') {
-      // filters 不是对象（如 list/str）时返回 500
+      // Return 500 when filters is not an object (e.g. list/str)
       if (!isPlainObject(filters)) throw new ServiceError("'filters' object has no attribute 'get'", 500)
       items = await this.repo.listAllOrdered({
         search: pyStrOrEmpty(filters.search),
@@ -265,7 +265,7 @@ export class StatsListPageService {
       let created = 0
       let updated = 0
       const errors: ErrorRow[] = []
-      // 尚未 flush 的上一行写入（对应 Session 里的 pending/dirty 对象）
+      // Previous row's write not yet flushed (the pending/dirty objects in the Session)
       let pending: (() => Promise<unknown>) | null = null
       const flush = async () => {
         if (!pending) return
@@ -300,7 +300,7 @@ export class StatsListPageService {
           description: strOrNone(mapped.description),
         }
 
-        await flush() // Query 触发 autoflush
+        await flush() // Query triggers autoflush
         const existing = await repo.getByCode(itemCode)
         if (existing) {
           const changes = changedValues(existing, values)

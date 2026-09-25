@@ -1,8 +1,8 @@
 /**
  * notifications / notification_reads
  *
- * `.$default()` / createdAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL；
- * noti_type / is_global 另有库级 DEFAULT（DDL 里的 `.default()`，保持原样）。
+ * `.$default()` / createdAt() are app-side defaults only (no DB DEFAULT) and don't go into the DDL;
+ * noti_type / is_global additionally have DB-level DEFAULTs (`.default()` in the DDL, kept as-is).
  */
 
 import { relations } from 'drizzle-orm'
@@ -61,7 +61,7 @@ export const notification_reads_relations = relations(notification_reads, ({ one
 export type Notification = typeof notifications.$inferSelect
 export type NotificationRead = typeof notification_reads.$inferSelect
 
-/** 通知输出（附带当前用户的 is_read） */
+/** Notification output (includes the current user's is_read) */
 export function notificationToDict(item: Notification, isRead = false) {
   return {
     id: item.id,

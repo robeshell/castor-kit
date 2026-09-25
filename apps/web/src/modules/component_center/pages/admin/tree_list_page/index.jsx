@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Trans, useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Download,
@@ -85,7 +86,7 @@ import TreeView from '@/shared/components/TreeView'
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue'
 import { downloadBlobFile } from '@/shared/utils/file'
 
-// ── 常量 ──────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 const PER_PAGE = 20
 const NODE_TYPE_OPTIONS = [
   { label: '分类', value: 'category' },
@@ -125,8 +126,8 @@ const EXPORT_FIELDS = [
 
 const normalizeFileType = (raw) => (raw === 'xlsx' ? 'xlsx' : raw === 'xls' ? 'xls' : 'csv')
 
-// ── 工具函数 ──────────────────────────────────────────────────────────
-/** 接口树 → TreeView 节点（key 为字符串 id，raw 保留完整节点数据） */
+// ── Helpers ──────────────────────────────────────────────────────────
+/** API tree → TreeView nodes (key is the id as a string; raw keeps the full node data) */
 function toTreeNodes(nodes) {
   return (nodes || []).map((n) => ({
     key: String(n.id),
@@ -147,7 +148,7 @@ function collectKeys(nodes) {
   return keys
 }
 
-/** 从树中找到指定 id 的节点路径（面包屑用） */
+/** Find the path to the node with the given id (for the breadcrumb) */
 function findPath(nodes, targetId, path = []) {
   for (const node of nodes || []) {
     const current = [...path, { id: node.id, name: node.name }]
@@ -203,18 +204,19 @@ function toFormValues(record, parentId = null) {
   }
 }
 
-// ── 删除确认（受控：树节点的“更多”菜单里触发） ────────────────────────────
+// ── Delete confirmation (controlled; opened from a tree node's "more" menu) ────────────
 function DeleteNodeDialog({ open, node, onOpenChange, onConfirm }) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   return (
     <AlertDialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <AlertDialogContent className="sm:max-w-[420px]">
         <AlertDialogHeader>
-          <AlertDialogTitle>确认删除节点「{node?.name}」？</AlertDialogTitle>
-          <AlertDialogDescription>子节点的父节点关联将被清除。</AlertDialogDescription>
+          <AlertDialogTitle>{t('确认删除节点「{{name}}」？', { name: node?.name })}</AlertDialogTitle>
+          <AlertDialogDescription>{t('子节点的父节点关联将被清除。')}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>取消</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{t('取消')}</AlertDialogCancel>
           <AlertDialogAction
             disabled={loading}
             variant="destructive"
@@ -225,14 +227,14 @@ function DeleteNodeDialog({ open, node, onOpenChange, onConfirm }) {
                 await onConfirm(node)
                 onOpenChange(false)
               } catch {
-                /* 已提示，弹窗保持打开 */
+                /* already reported; keep the dialog open */
               } finally {
                 setLoading(false)
               }
             }}
           >
             {loading ? <Spinner /> : null}
-            删除
+            {t('删除')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -240,9 +242,10 @@ function DeleteNodeDialog({ open, node, onOpenChange, onConfirm }) {
   )
 }
 
-// ── 主组件 ────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 export default function TreeListPage() {
-  // 左侧树
+  const { t } = useTranslation()
+  // Left-hand tree
   const [treeSearch, setTreeSearch] = useState('')
   const debouncedTreeSearch = useDebouncedValue(treeSearch.trim(), 300)
   const [treeVersion, setTreeVersion] = useState(0)
@@ -251,8 +254,8 @@ export default function TreeListPage() {
   const [expandedKeys, setExpandedKeys] = useState(null)
   const expandedBeforeSearch = useRef(null)
 
-  // 右侧表格
-  const [selectedNodeId, setSelectedNodeId] = useState(null) // null = 根级
+  // Right-hand table
+  const [selectedNodeId, setSelectedNodeId] = useState(null) // null = root level
   const [page, setPage] = useState(1)
   const [tableSearch, setTableSearch] = useState('')
   const debouncedTableSearch = useDebouncedValue(tableSearch.trim(), 300)
@@ -262,7 +265,7 @@ export default function TreeListPage() {
   const [tableState, setTableState] = useState({ key: null, items: [], total: 0 })
   const [selectedKeys, setSelectedKeys] = useState([])
 
-  // 弹窗
+  // Dialogs
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [moving, setMoving] = useState(null)
@@ -276,7 +279,7 @@ export default function TreeListPage() {
   const form = useForm({ defaultValues: toFormValues(null) })
   const moveForm = useForm({ defaultValues: { parent_id: null } })
 
-  // ── 拉取树（搜索防抖；fullTree 始终保存未过滤的完整树，供父节点选择与面包屑） ──
+  // ── Fetch the tree (debounced search; fullTree always holds the unfiltered tree for the parent picker and breadcrumb) ──
   const treeKey = `${debouncedTreeSearch}|${treeVersion}`
   useEffect(() => {
     let alive = true
@@ -287,14 +290,14 @@ export default function TreeListPage() {
         setTreeState({ key: treeKey, nodes: list })
         if (!debouncedTreeSearch) setFullTree(list)
         else {
-          // 搜索态下树是过滤后的，单独刷新一份完整树
+          // While searching the tree is filtered, so refresh the full tree separately
           getTreeListPageTree({})
             .then((full) => alive && setFullTree(Array.isArray(full) ? full : []))
             .catch(() => {})
         }
         const keys = collectKeys(toTreeNodes(list))
         if (debouncedTreeSearch) {
-          // 搜索态展开全部命中；记住搜索前的展开状态，清空搜索后恢复
+          // While searching, expand every match; remember the pre-search expansion and restore it once the search is cleared
           setExpandedKeys((prev) => {
             if (expandedBeforeSearch.current === null) expandedBeforeSearch.current = prev
             return keys
@@ -315,12 +318,12 @@ export default function TreeListPage() {
     return () => {
       alive = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- treeKey 由 search/version 派生
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- treeKey is derived from search/version
   }, [debouncedTreeSearch, treeVersion])
   const treeLoading = treeState.key !== treeKey
   const treeNodes = useMemo(() => toTreeNodes(treeState.nodes), [treeState.nodes])
 
-  // ── 拉取表格 ──────────────────────────────────────────────────────
+  // ── Fetch the table ──────────────────────────────────────────────────────
   const tableParams = useMemo(
     () => ({
       page,
@@ -339,7 +342,7 @@ export default function TreeListPage() {
       .then((res) => {
         if (!alive) return
         const items = res?.items || []
-        // 删除末页最后一条后页码越界：回退一页
+        // Deleting the last row of the last page leaves the page out of range: go back one page
         if (!items.length && (res?.total || 0) > 0 && page > 1) {
           setPage((p) => p - 1)
           return
@@ -354,7 +357,7 @@ export default function TreeListPage() {
     return () => {
       alive = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- tableKey 由 tableParams/version 派生
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tableKey is derived from tableParams/version
   }, [tableParams, tableVersion])
   const tableLoading = tableState.key !== tableKey
 
@@ -363,7 +366,7 @@ export default function TreeListPage() {
     setTableVersion((v) => v + 1)
   }
 
-  // ── 导航：切换当前父节点 ────────────────────────────────────────────
+  // ── Navigation: switch the current parent node ────────────────────────────────────────────
   const navigateTo = (id, { resetFilters = true } = {}) => {
     setSelectedNodeId(id)
     setPage(1)
@@ -375,7 +378,7 @@ export default function TreeListPage() {
   }
 
   const breadcrumbPath = selectedNodeId
-    ? findPath(fullTree, selectedNodeId) || findPath(treeState.nodes, selectedNodeId) || [{ id: selectedNodeId, name: '当前节点' }]
+    ? findPath(fullTree, selectedNodeId) || findPath(treeState.nodes, selectedNodeId) || [{ id: selectedNodeId, name: t('当前节点') }]
     : []
 
   const nodeNameOf = (id) => {
@@ -407,7 +410,7 @@ export default function TreeListPage() {
     setDetailOpen(true)
   }
 
-  /** 保存后展开目标父节点，保证新建 / 移动的节点在树里可见 */
+  /** Expand the target parent after saving so a created / moved node is visible in the tree */
   const expandParent = (parentId) => {
     if (parentId === null || parentId === undefined) return
     setExpandedKeys((prev) => Array.from(new Set([...(prev || []), String(parentId)])))
@@ -454,7 +457,7 @@ export default function TreeListPage() {
     }
   }
 
-  // ── 导出 ──────────────────────────────────────────────────────────
+  // ── Export ──────────────────────────────────────────────────────────
   const handleExport = async ({ fields, fileType }) => {
     const ext = normalizeFileType(fileType)
     const payload = {
@@ -474,7 +477,7 @@ export default function TreeListPage() {
     }
   }
 
-  // ── 表格列 ────────────────────────────────────────────────────────
+  // ── Table columns ────────────────────────────────────────────────────────
   const columns = [
     {
       key: 'name',
@@ -488,7 +491,7 @@ export default function TreeListPage() {
             type="button"
             onClick={() => navigateTo(record.id)}
             className="group/name hover:text-primary flex max-w-full items-center gap-2 text-left font-medium transition-colors"
-            title="查看子节点"
+            title={t('查看子节点')}
           >
             <Icon className="text-muted-foreground group-hover/name:text-primary size-3.5 shrink-0 transition-colors" />
             <span className="truncate">{name}</span>
@@ -526,10 +529,10 @@ export default function TreeListPage() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(record)}>
-            详情
+            {t('详情')}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction
             title="确认删除该节点？"
@@ -538,7 +541,7 @@ export default function TreeListPage() {
             onConfirm={() => remove(record)}
           >
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -549,7 +552,7 @@ export default function TreeListPage() {
   const treeCount = collectKeys(treeNodes).length
   const currentName = breadcrumbPath.length ? breadcrumbPath[breadcrumbPath.length - 1].name : null
 
-  // ── 渲染 ──────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       <PageHeader
@@ -558,47 +561,47 @@ export default function TreeListPage() {
           <>
             <Button variant="outline" size="sm" onClick={reloadAll}>
               <RefreshCw className={cn((treeLoading || tableLoading) && 'animate-spin')} />
-              刷新
+              {t('刷新')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={() => openCreate()}>
               <Plus />
-              新建节点
+              {t('新建节点')}
             </Button>
           </>
         }
       />
 
       <div className="grid items-start gap-4 lg:grid-cols-[288px_minmax(0,1fr)]">
-        {/* ══ 左侧节点树 ══ */}
+        {/* ══ Left: node tree ══ */}
         <Panel padded={false} className="flex max-h-[420px] flex-col lg:max-h-[calc(100vh-11rem)]" bodyClassName="flex min-h-0 flex-1 flex-col">
           <div className="space-y-3 border-b px-3 pt-4 pb-3">
             <div className="flex items-center justify-between px-1">
               <span className="flex items-center gap-2 text-sm font-medium">
                 <ListTree className="text-muted-foreground size-4" />
-                节点树
+                {t('节点树')}
               </span>
-              <span className="text-muted-foreground text-xs tabular-nums">{treeCount} 个节点</span>
+              <span className="text-muted-foreground text-xs tabular-nums">{t('{{count}} 个节点', { count: treeCount })}</span>
             </div>
             <div className="relative">
               <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
               <Input
                 value={treeSearch}
                 onChange={(e) => setTreeSearch(e.target.value)}
-                placeholder="搜索节点名称…"
+                placeholder={t('搜索节点名称…')}
                 className="h-8 pr-7 pl-8 text-[13px]"
               />
               {treeSearch ? (
                 <button
                   type="button"
-                  aria-label="清空"
+                  aria-label={t('清空')}
                   onClick={() => setTreeSearch('')}
                   className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
                 >
@@ -618,7 +621,7 @@ export default function TreeListPage() {
               )}
             >
               <Layers className="size-3.5" />
-              全部根节点
+              {t('全部根节点')}
             </button>
           </div>
 
@@ -663,26 +666,26 @@ export default function TreeListPage() {
                         variant="ghost"
                         size="icon"
                         className="size-6"
-                        aria-label="新建子节点"
-                        title="新建子节点"
+                        aria-label={t('新建子节点')}
+                        title={t('新建子节点')}
                         onClick={() => openCreate(node.raw.id)}
                       >
                         <Plus className="size-3.5" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6" aria-label="更多操作">
+                          <Button variant="ghost" size="icon" className="size-6" aria-label={t('更多操作')}>
                             <MoreHorizontal className="size-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="min-w-36">
                           <DropdownMenuItem onSelect={() => openEdit(node.raw)}>
                             <Pencil />
-                            编辑
+                            {t('编辑')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => openMove(node.raw)}>
                             <FolderInput />
-                            移动到…
+                            {t('移动到…')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -693,7 +696,7 @@ export default function TreeListPage() {
                             }}
                           >
                             <Trash2 />
-                            删除
+                            {t('删除')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -705,7 +708,7 @@ export default function TreeListPage() {
           </ScrollArea>
         </Panel>
 
-        {/* ══ 右侧内容区 ══ */}
+        {/* ══ Right: content ══ */}
         <div className="min-w-0">
           <div className="mb-3 flex min-h-8 flex-wrap items-center justify-between gap-2">
             <Breadcrumb>
@@ -714,11 +717,11 @@ export default function TreeListPage() {
                   {breadcrumbPath.length ? (
                     <BreadcrumbLink asChild>
                       <button type="button" onClick={() => navigateTo(null)}>
-                        根节点
+                        {t('根节点')}
                       </button>
                     </BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage>根节点</BreadcrumbPage>
+                    <BreadcrumbPage>{t('根节点')}</BreadcrumbPage>
                   )}
                 </BreadcrumbItem>
                 {breadcrumbPath.map((seg, idx) => (
@@ -740,7 +743,7 @@ export default function TreeListPage() {
               </BreadcrumbList>
             </Breadcrumb>
             <span className="text-muted-foreground text-xs tabular-nums">
-              {currentName ? `「${currentName}」的子节点` : '根级节点'} · 共 {tableState.total} 条
+              {currentName ? t('「{{name}}」的子节点', { name: currentName }) : t('根级节点')} · {t('共 {{count}} 条', { count: tableState.total })}
             </span>
           </div>
 
@@ -798,11 +801,15 @@ export default function TreeListPage() {
               >
                 <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
                   <span>
-                    已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                    <Trans
+                      i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                      values={{ count: selectedKeys.length }}
+                      components={[<span className="font-medium tabular-nums" />]}
+                    />
                   </span>
                   <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                     <X />
-                    清空勾选
+                    {t('清空勾选')}
                   </Button>
                 </div>
               </motion.div>
@@ -823,7 +830,7 @@ export default function TreeListPage() {
               !tableSearch && !filterNodeType && !filterStatus ? (
                 <Button variant="outline" size="sm" onClick={() => openCreate()}>
                   <Plus />
-                  {selectedNodeId ? '新建子节点' : '新建节点'}
+                  {t(selectedNodeId ? '新建子节点' : '新建节点')}
                 </Button>
               ) : null
             }
@@ -831,12 +838,12 @@ export default function TreeListPage() {
         </div>
       </div>
 
-      {/* ── 新建/编辑 ── */}
+      {/* ── Create / edit ── */}
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing?.id ? '编辑节点' : '新建节点'}
-        description={editing?.id ? `正在编辑 ${editing.name}` : undefined}
+        description={editing?.id ? t('正在编辑 {{name}}', { name: editing.name }) : undefined}
         form={form}
         onSubmit={submit}
         size="md"
@@ -887,12 +894,12 @@ export default function TreeListPage() {
         />
       </FormDialog>
 
-      {/* ── 移动父节点 ── */}
+      {/* ── Move to another parent ── */}
       <FormDialog
         open={Boolean(moving)}
         onOpenChange={(open) => !open && setMoving(null)}
         title="移动节点"
-        description={moving ? `将「${moving.name}」移动到新的父节点下；不选则移动到根级。` : undefined}
+        description={moving ? t('将「{{name}}」移动到新的父节点下；不选则移动到根级。', { name: moving.name }) : undefined}
         form={moveForm}
         onSubmit={submitMove}
         submitText="移动"
@@ -909,7 +916,7 @@ export default function TreeListPage() {
 
       <DeleteNodeDialog open={deleteOpen} node={deleting} onOpenChange={setDeleteOpen} onConfirm={remove} />
 
-      {/* ── 详情 ── */}
+      {/* ── Detail ── */}
       <DetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}
@@ -918,7 +925,7 @@ export default function TreeListPage() {
         footer={
           <>
             <Button variant="outline" onClick={() => setDetailOpen(false)}>
-              关闭
+              {t('关闭')}
             </Button>
             <Button
               onClick={() => {
@@ -926,7 +933,7 @@ export default function TreeListPage() {
                 openEdit(detail)
               }}
             >
-              编辑
+              {t('编辑')}
             </Button>
           </>
         }
@@ -971,7 +978,7 @@ export default function TreeListPage() {
               <>
                 <Separator />
                 <div className="space-y-1.5">
-                  <div className="text-[13px] font-medium">描述</div>
+                  <div className="text-[13px] font-medium">{t('描述')}</div>
                   <p className="text-muted-foreground text-[13px] leading-relaxed whitespace-pre-wrap">{detail.description}</p>
                 </div>
               </>
@@ -984,7 +991,7 @@ export default function TreeListPage() {
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="树形列表页导出字段"
-        ruleHint={selectedKeys.length > 0 ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选时，将按当前筛选条件导出'}
+        ruleHint={selectedKeys.length > 0 ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: selectedKeys.length }) : '未勾选时，将按当前筛选条件导出'}
         fieldOptions={EXPORT_FIELDS}
         defaultFields={['name', 'node_code', 'parent_id', 'node_type', 'status', 'owner', 'updated_at']}
         onConfirm={handleExport}
@@ -1006,7 +1013,7 @@ export default function TreeListPage() {
         }}
         onImport={(file) => importTreeListPage(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           reloadAll()
         }}
         errorExportFileName="tree_list_page_import_error_rows.csv"

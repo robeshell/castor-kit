@@ -1,7 +1,7 @@
 /**
- * 用户模块路由
+ * Users module routes
  *
- * 注意顺序：带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
+ * Mind the order: routes with an id run get_or_404 first, then the permission check (preserves existing API behavior).
  */
 
 import type { FastifyInstance } from 'fastify'

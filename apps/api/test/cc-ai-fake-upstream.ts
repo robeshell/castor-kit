@@ -1,9 +1,9 @@
 /**
- * 假 OpenAI 兼容上游（/chat/completions）：AI 对话 / AI 数据查询的 vitest 使用，绝不调用真实 AI。
+ * Fake OpenAI-compatible upstream (/chat/completions): used by the AI chat / AI data query vitest suites; never calls a real AI.
  *
- * 行为由最后一条消息的内容决定（流式 = ai_chat，非流式 = ai_sql 的 call_llm，取“问题：”之后的文本）。
+ * Behavior is determined by the content of the last message (streaming = ai_chat, non-streaming = ai_sql's call_llm, using the text after "问题：").
  *
- * vitest：`const up = await startFakeUpstream()`，`buildTestApp({ aiApiBase: up.url, aiApiKey: 'x', aiModel: 'm' })`
+ * vitest: `const up = await startFakeUpstream()`, `buildTestApp({ aiApiBase: up.url, aiApiKey: 'x', aiModel: 'm' })`
  */
 
 import { createHash } from 'node:crypto'
@@ -14,14 +14,14 @@ import { fileURLToPath } from 'node:url'
 export interface FakeRequest {
   headers: IncomingMessage['headers']
   body: { model?: unknown; messages?: { role: string; content: unknown }[]; stream?: unknown }
-  /** 客户端（被测后端）在响应结束前断开时置 true */
+  /** Set to true when the client (the backend under test) disconnects before the response ends */
   aborted: boolean
 }
 
 export interface FakeUpstream {
   url: string
   requests: FakeRequest[]
-  /** 'gate' 场景：发出第一块后等待 release() 才继续 */
+  /** 'gate' scenario: after sending the first chunk, wait for release() before continuing */
   release: () => void
   close: () => Promise<void>
 }
@@ -29,7 +29,7 @@ export interface FakeUpstream {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export const sseChunk = (content: unknown) => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
 
-/** 默认流式场景下发的内容片段（含中文、引号、反斜杠、换行、emoji、控制字符、U+2028） */
+/** Content chunks sent in the default streaming scenario (includes Chinese, quotes, backslashes, newlines, emoji, control characters, U+2028) */
 export const DEFAULT_PIECES = ['你好', '，"引号" \\ 反斜杠', '\n换行\t制表', '😀 emoji', '\u2028sep\u0001ctl', '</script>']
 
 export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
@@ -44,7 +44,7 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
     try {
       body = JSON.parse(Buffer.concat(bufs).toString('utf8'))
     } catch {
-      /* 非 JSON 请求体 */
+      /* Non-JSON request body */
     }
     const record: FakeRequest = { headers: req.headers, body, aborted: false }
     requests.push(record)
@@ -60,11 +60,11 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
         res.writeHead(Number(status[1]), { 'content-type': 'text/plain' })
         return res.end('upstream secret detail')
       }
-      if (last === 'hang-headers') return // 永不响应
+      if (last === 'hang-headers') return // Never responds
       res.writeHead(200, { 'content-type': 'text/event-stream' })
       if (last === 'hang-body') {
         res.write(sseChunk('first'))
-        return // 发一块后挂起
+        return // Sends one chunk, then hangs
       }
       if (last === 'gate') {
         res.write(sseChunk('first'))
@@ -130,7 +130,7 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
       return res.end()
     }
 
-    // 非流式（ai_sql call_llm）
+    // Non-streaming (ai_sql call_llm)
     const q = /问题：([\s\S]*)$/.exec(last)?.[1] ?? ''
     const reply = (content: unknown) => {
       res.writeHead(200, { 'content-type': 'application/json' })
@@ -157,7 +157,7 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
     if (q === 'q:badsql') return reply('SELECT * FROM no_such_table_xyz')
     if (q === 'q:fence') return reply('```sql\nSELECT 1 AS one;\n```')
     if (q === 'q:hash') {
-      // 系统提示词 + schema 文本 + 问题逐字一致时两个后端得到同一个哈希
+      // When the system prompt + schema text + question are identical, both backends get the same hash
       const h = createHash('sha256').update(JSON.stringify(messages)).digest('hex')
       return reply(`SELECT '${h}' AS prompt_hash`)
     }

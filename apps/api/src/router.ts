@@ -1,6 +1,6 @@
 /**
- * 一级路由装配
- * 新增域必须在这里注册，同时在 db/schema/index.ts 导出表定义。
+ * Top-level router assembly
+ * New domains must be registered here and their table definitions exported from db/schema/index.ts.
  */
 
 import type { FastifyInstance } from 'fastify'

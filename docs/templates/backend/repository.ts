@@ -1,10 +1,10 @@
 /**
- * repository 层模板 → apps/api/src/modules/<domain>/<resource>/repository.ts
+ * repository layer template → apps/api/src/modules/<domain>/<resource>/repository.ts
  *
- * TODO: 替换 <Resource> 为类型名（大驼峰），<resource> 为资源名（下划线）
+ * TODO: replace <Resource> with the type name (PascalCase), <resource> with the resource name (snake_case)
  *
- * 职责：纯数据库读写（Drizzle 查询）。不含业务逻辑、不碰 HTTP。
- * 构造参数是 Executor：普通连接或事务都能传（需要事务时由 service 用 db.transaction 传 tx 进来）。
+ * Responsibility: pure database reads/writes (Drizzle queries). No business logic, no HTTP.
+ * The constructor takes an Executor: either a plain connection or a transaction (when a transaction is needed, the service passes tx in via db.transaction).
  */
 
 import { count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm'
@@ -32,7 +32,7 @@ export class <Resource>Repository {
     return { total: totalRow?.n ?? 0, items }
   }
 
-  /** 导出：ids 为 null 时导出全部；按 id 倒序 */
+  /** Export: exports everything when ids is null; ordered by id descending */
   async listForExport(ids: number[] | null): Promise<<Resource>[]> {
     return this.db
       .select()

@@ -1,9 +1,9 @@
 /**
- * 列表页 service 层
+ * List page service layer
  *
- * - Text 列里存的 JSON 字符串一律按 `json.dumps(ensure_ascii=False)` 的格式写入（分隔符带空格、非 ASCII 原样保留；导出时原样输出）
- * - 每次写操作（含版本快照）放在一个事务里，一个请求只提交一次
- * - 上传文件写入 `${instanceDir}/uploads/list_page{,_files}`
+ * - JSON strings stored in Text columns are always written in `json.dumps(ensure_ascii=False)` format (separators with spaces, non-ASCII kept as-is; exported verbatim)
+ * - Each write (including the version snapshot) runs in one transaction; a request commits only once
+ * - Uploaded files are written to `${instanceDir}/uploads/list_page{,_files}`
  */
 
 import { randomUUID } from 'node:crypto'
@@ -52,9 +52,9 @@ const PG_INT_MAX = 2_147_483_647
 
 const hasOwn = (obj: object, key: string) => Object.prototype.hasOwnProperty.call(obj, key)
 
-// ---------------------------------------------------------------- 归一化
+// ---------------------------------------------------------------- Normalization
 
-/** service 版 parse_json_object：None → default；dict 原样；str → strip 后解析，非对象/解析失败 → default；其他 → default */
+/** Service-side parse_json_object: None → default; dict as-is; str → strip then parse, non-object/parse failure → default; anything else → default */
 export function parseJsonObject(raw: unknown, defaultValue: Data): Data {
   if (raw === null || raw === undefined) return defaultValue
   if (isPlainObject(raw)) return raw
@@ -99,7 +99,7 @@ export function parseSchemaConfig(raw: unknown): string {
   return pyStr(raw).trim()
 }
 
-/** normalize_status：注意是 `str(value)` 而不是 `str(value or '')`（0 → '0' → 400） */
+/** normalize_status: note it's `str(value)`, not `str(value or '')` (0 → '0' → 400) */
 export function normalizeStatus(value: unknown, defaultValue = 'draft'): string {
   if (value === null || value === undefined) return defaultValue
   const raw = pyStr(value).trim().toLowerCase()
@@ -122,7 +122,7 @@ export function normalizeImageUrls(raw: unknown): string[] {
       const parsed: unknown = JSON.parse(text)
       if (Array.isArray(parsed)) return strListItems(parsed)
     } catch {
-      /* 非 JSON，按分隔符拆 */
+      /* Not JSON; split on separators */
     }
     if (['\n', ',', '，', ';', '；'].some((sep) => text.includes(sep))) {
       const normalized = text.replace(/，/g, ',').replace(/；/g, ';').replace(/\n/g, ';')
@@ -199,7 +199,7 @@ function operatorText(data: Data): string {
   return pyStr(pyTruthy(data.operator) ? data.operator : 'system').trim() || 'system'
 }
 
-/** 展开导出的 fields：list → 元素，str 按字符，dict 按键；不可迭代 → 500（元素为 list/dict 时由调用方返回 500） */
+/** Expand export fields: list → elements, str → characters, dict → keys; non-iterable → 500 (list/dict elements are turned into a 500 by the caller) */
 function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value === 'string') return [...value]
@@ -216,7 +216,7 @@ function validExportFields(fields: unknown): string[] {
   return valid.length > 0 ? valid : Object.keys(EXPORT_FIELD_MAP)
 }
 
-/** `QueryManagement.id.in_(ids)` 的 PostgreSQL 语义：整数匹配、数字字符串被转换、其他类型报错（→ 500） */
+/** PostgreSQL semantics of `QueryManagement.id.in_(ids)`: integers match, numeric strings are cast, other types error (→ 500) */
 function coerceIdsForIn(ids: unknown[]): number[] {
   const result: number[] = []
   for (const id of ids) {
@@ -263,7 +263,7 @@ export class ListPageService {
     this.repo = new ListPageRepository(db)
   }
 
-  // ---- 上传目录 / 文件名
+  // ---- Upload dirs / filenames
 
   async getImageUploadDir(): Promise<string> {
     const dir = join(this.instanceDir, 'uploads', 'list_page')
@@ -498,7 +498,7 @@ export class ListPageService {
     return { message: '删除成功' }
   }
 
-  // ---- 预览 / 版本
+  // ---- Preview / versions
 
   runPreview(data: Data) {
     const displayConfig = parseJsonObject(data.display_config, {})
@@ -597,9 +597,9 @@ export class ListPageService {
     return queryManagementToDict(updated)
   }
 
-  // ---- 导入导出
+  // ---- Import/export
 
-  /** GET：data 为 query 参数（首值）；POST：JSON 请求体 */
+  /** GET: data is the query params (first values); POST: the JSON request body */
   async exportItems(data: Data, requestMethod: 'GET' | 'POST') {
     let ids: unknown
     let fields: unknown
@@ -714,7 +714,7 @@ export class ListPageService {
         if (fileUrls.length === 0) fileUrls = normalizeFileUrls(mapped.file_url)
         const priority = parseIntOr(mapped.priority, 0)
         const isActive = parseBool(mapped.is_active, true)
-        // 非法发布状态直接中断整个导入（不计入 error_rows）
+        // An invalid publish status aborts the whole import (not counted in error_rows)
         const status = normalizeStatus(mapped.status, 'draft')
         const description = optionalText(mapped.description)
 
@@ -774,7 +774,7 @@ export class ListPageService {
       }
 
       if (errors.length > 0) {
-        // 抛错让事务整体回滚
+        // Throw so the whole transaction rolls back
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,

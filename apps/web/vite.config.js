@@ -21,7 +21,7 @@ export default defineConfig({
       '/ws': {
         target: 'ws://localhost:5001',
         ws: true,
-        // 不改写 Host：后端 /ws/devtools 握手校验 Origin 与 Host 同源（changeOrigin 会让 Host 变成 5001 而被拒）
+        // Don't rewrite Host: the backend /ws/devtools handshake checks that Origin and Host are same-origin (changeOrigin would make Host 5001 and get rejected)
       },
     },
   },
@@ -30,7 +30,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // 常用 vendor 独立分包，便于浏览器长缓存；页面级依赖由动态 import 自动拆分
+          // Split common vendors into their own chunks for long-term browser caching; page-level dependencies are split automatically via dynamic import
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'radix-ui': ['radix-ui'],
           motion: ['motion'],

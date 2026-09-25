@@ -1,8 +1,8 @@
 /**
- * 认证模块 schema 层
+ * Auth module schema layer
  *
- * 请求 schema 一律 loose（= zod 3 的 passthrough）+ 全字段可选：请求体按宽松对象读取，
- * 缺字段/多字段/类型不对都在 service 里处理。
+ * Request schemas are all loose (= zod 3 passthrough) with every field optional: bodies are read as lenient objects,
+ * and missing/extra/mistyped fields are all handled in the service.
  */
 
 import { z } from 'zod'

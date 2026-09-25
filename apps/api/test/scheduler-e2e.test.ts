@@ -1,8 +1,8 @@
 /**
- * 调度器端到端：真实启动 web 进程（RUN_SCHEDULER_IN_WEB=true）与独立 worker 进程，任务按 cron 触发并写 scheduled_task_runs。
+ * Scheduler end-to-end: actually starts a web process (RUN_SCHEDULER_IN_WEB=true) and a standalone worker process; tasks fire on cron and write scheduled_task_runs.
  *
- * 需要：空闲端口（默认 5260，可用 SCHEDULER_E2E_PORT 指定）、能直连公网 https://1.1.1.1（目标是 Cloudflare 的只读 trace 页，无副作用）、
- * 约 90 秒（要等到下一个整分钟）。默认跳过，显式开启：
+ * Requires: a free port (default 5260, override with SCHEDULER_E2E_PORT), direct internet access to https://1.1.1.1 (the target is Cloudflare's read-only trace page, no side effects),
+ * and about 90 seconds (it waits for the next full minute). Skipped by default; enable explicitly:
  *   SCHEDULER_E2E=1 TEST_DATABASE_URL=... npx vitest run test/scheduler-e2e.test.ts
  */
 
@@ -104,14 +104,14 @@ describe.skipIf(!ENABLED)('调度器端到端', () => {
     const task = (await created.json()) as { id: number; next_run_at: string }
     expect(task.next_run_at).toMatch(/:00$/)
 
-    // 等到 next_run_at（下一个整分钟）之后的调度轮次
+    // Wait for a scheduling round after next_run_at (the next full minute)
     const [run] = await waitFor(async () => {
       const rows = await runsOf(task.id)
       return rows.length > 0 ? rows : null
     }, 90_000, 1000)
     expect(run).toMatchObject({ status: 'success', response_status: 200, error_message: null })
     expect(run!.response_body).toContain('h=1.1.1.1')
-    // 触发时刻不早于 cron 算出的时间
+    // Fire time is not earlier than the time computed from cron
     expect(run!.started_at! >= task.next_run_at.replace('T', ' ')).toBe(true)
 
     const [after] = await handle.db.select().from(scheduled_tasks).where(eq(scheduled_tasks.id, task.id))
@@ -125,7 +125,7 @@ describe.skipIf(!ENABLED)('调度器端到端', () => {
 
     const [task] = await handle.db.select().from(scheduled_tasks).where(eq(scheduled_tasks.task_code, CODE))
     const before = (await runsOf(task!.id)).length
-    // 立即到期，并把 cron 改成每天一次，避免等待期间又到下一分钟
+    // Make it due immediately and change cron to once a day, so it doesn't hit the next minute again while waiting
     const now = await new ScheduledTaskRepository(handle.db).utcNow()
     await handle.db
       .update(scheduled_tasks)
@@ -133,7 +133,7 @@ describe.skipIf(!ENABLED)('调度器端到端', () => {
       .where(eq(scheduled_tasks.id, task!.id))
 
     await waitFor(async () => (await runsOf(task!.id)).length > before || null, 20_000)
-    // 两个进程各至少再轮询两次，仍只有一条新记录
+    // Each process polls at least two more times, and there is still only one new record
     await sleep(11_000)
     expect((await runsOf(task!.id)).length).toBe(before + 1)
     const [after] = await handle.db.select().from(scheduled_tasks).where(eq(scheduled_tasks.id, task!.id))

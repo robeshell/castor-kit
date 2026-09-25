@@ -19,9 +19,9 @@ const DOTS = {
 }
 
 /**
- * 状态徽章。tone: neutral | brand | info | success | warning | danger
- *   <StatusBadge tone="success" dot>启用</StatusBadge>
- *   <StatusBadge tone="neutral" variant="plain" dot>草稿</StatusBadge>  // 只有圆点 + 文字
+ * Status badge. tone: neutral | brand | info | success | warning | danger
+ *   <StatusBadge tone="success" dot>{t('启用')}</StatusBadge>
+ *   <StatusBadge tone="neutral" variant="plain" dot>{t('草稿')}</StatusBadge>  // dot + text only
  */
 export default function StatusBadge({ tone = 'neutral', dot = false, variant = 'soft', className, children }) {
   const tx = useTx()

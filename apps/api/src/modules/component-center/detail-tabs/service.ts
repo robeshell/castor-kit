@@ -1,5 +1,5 @@
 /**
- * 详情标签页 service 层
+ * Detail tabs page service layer
  */
 
 import { ServiceError } from '@/common/errors'

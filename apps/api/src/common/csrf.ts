@@ -1,8 +1,8 @@
 /**
- * CSRF 防护
+ * CSRF protection
  *
- * 基于会话 Cookie 的认证依赖浏览器自动携带 Cookie，需对状态变更请求校验双提交 token：
- * 前端在登录 / 获取当前用户时拿到 csrf_token，随请求头 X-CSRF-Token 提交，服务端与会话中的 token 比对。
+ * Session-cookie auth relies on the browser sending cookies automatically, so state-changing requests must pass a double-submit token check:
+ * the frontend gets csrf_token on login / current-user fetch and sends it in the X-CSRF-Token header; the server compares it with the token in the session.
  */
 
 import { randomBytes, timingSafeEqual } from 'node:crypto'
@@ -12,7 +12,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 export const CSRF_ERROR_MESSAGE = 'CSRF 校验失败，请刷新页面后重试'
 const PROTECTED_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
-/** 为当前会话生成/返回 CSRF token */
+/** Generate / return the CSRF token for the current session */
 export function ensureCsrfToken(session: Session): string {
   let token = session.get('csrf_token')
   if (!token) {
@@ -38,11 +38,11 @@ export function requestPath(request: FastifyRequest): string {
 }
 
 /**
- * 对已登录会话的状态变更请求做 CSRF 校验
- * 挂在 preValidation（请求体已解析）而不是 onRequest：被拒请求的请求体仍要进操作日志
- * - 仅拦截 /api/ 下的 POST/PUT/PATCH/DELETE
- * - 登录接口本身豁免（此时尚未建立会话 token）
- * - 未登录请求跳过（由 loginRequired 处理）
+ * CSRF check for state-changing requests on logged-in sessions
+ * Hooked on preValidation (body already parsed) rather than onRequest: rejected requests' bodies must still reach the operation log
+ * - Only intercepts POST/PUT/PATCH/DELETE under /api/
+ * - The login endpoint itself is exempt (no session token exists yet)
+ * - Unauthenticated requests are skipped (handled by loginRequired)
  */
 export function registerCsrfProtection(app: FastifyInstance): void {
   app.addHook('preValidation', async (request, reply) => {

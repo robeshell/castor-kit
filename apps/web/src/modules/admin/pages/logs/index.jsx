@@ -24,11 +24,12 @@ import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
+import { Trans, useTranslation } from 'react-i18next'
 
 const METHOD_TONE = { POST: 'success', PUT: 'info', DELETE: 'danger', GET: 'neutral' }
 const LOGIN_STATUS_OPTIONS = [
   { label: '成功', value: 'success' },
-  // 后端登录日志写入的失败状态是 'failed'（原页面用 'fail' 筛不出数据）
+  // The backend writes failed logins as 'failed' (the old page filtered by 'fail' and matched nothing)
   { label: '失败', value: 'failed' },
 ]
 const LOGIN_EXPORT_FIELDS = [
@@ -86,7 +87,7 @@ const LOGIN_COLUMNS = [
     ),
   },
   {
-    // 后端字段为 message（原页面读取不存在的 fail_reason，列恒为空）；成功记录不展示
+    // The backend field is message (the old page read a nonexistent fail_reason, so the column was always empty); hidden for successful logins
     key: 'fail_reason',
     title: '失败原因',
     dataIndex: 'message',
@@ -127,6 +128,7 @@ const OPERATION_COLUMNS = [
 ]
 
 function SelectionBar({ count, onClear }) {
+  const { t } = useTranslation()
   return (
     <AnimatePresence>
       {count > 0 ? (
@@ -138,11 +140,15 @@ function SelectionBar({ count, onClear }) {
         >
           <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
             <span>
-              已勾选 <span className="font-medium tabular-nums">{count}</span> 条，导出时将优先导出勾选数据
+              <Trans
+                i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                values={{ count }}
+                components={[<span key="count" className="font-medium tabular-nums" />]}
+              />
             </span>
             <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={onClear}>
               <X />
-              清空勾选
+              {t('清空勾选')}
             </Button>
           </div>
         </motion.div>
@@ -152,9 +158,10 @@ function SelectionBar({ count, onClear }) {
 }
 
 export default function Logs() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState('login')
 
-  // 登录日志
+  // Login logs
   const loginList = useCrudList(withErrorToast(getLoginLogs), { defaultPerPage: 20 })
   const [loginUsername, setLoginUsername] = useState('')
   const [loginStatus, setLoginStatus] = useState('')
@@ -162,7 +169,7 @@ export default function Logs() {
   const [loginExportOpen, setLoginExportOpen] = useState(false)
   const [loginImportOpen, setLoginImportOpen] = useState(false)
 
-  // 操作日志
+  // Operation logs
   const opList = useCrudList(withErrorToast(getOperationLogs), { defaultPerPage: 20 })
   const [opUsername, setOpUsername] = useState('')
   const [opModule, setOpModule] = useState('')
@@ -173,7 +180,7 @@ export default function Logs() {
   useEffect(() => {
     loginList.handleSearch({ username: '', status: '' })
     opList.handleSearch({ username: '', module: '' })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载两个列表
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load both lists once on mount
   }, [])
 
   const handleLoginSearch = () => {
@@ -241,11 +248,11 @@ export default function Logs() {
           <>
             <Button variant="outline" size="sm" onClick={() => (isLogin ? setLoginImportOpen(true) : setOpImportOpen(true))}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => (isLogin ? setLoginExportOpen(true) : setOpExportOpen(true))}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
           </>
         }
@@ -253,7 +260,7 @@ export default function Logs() {
 
       <SegmentedTabs value={tab} onChange={setTab} items={tabItems} className="mb-4" />
 
-      {/* 两个标签页都保持挂载：切换时保留各自的筛选、分页与勾选状态 */}
+      {/* Keep both tabs mounted so each keeps its filters, page and selection when switching */}
       <div hidden={!isLogin}>
         <FilterBar onSearch={handleLoginSearch} onReset={handleLoginReset}>
           <SearchInput value={loginUsername} onChange={setLoginUsername} onSubmit={handleLoginSearch} placeholder="搜索用户名" className="sm:w-48" />
@@ -283,7 +290,7 @@ export default function Logs() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleOpSearch()
             }}
-            placeholder="模块名"
+            placeholder={t('模块名')}
             className="h-8 w-full text-[13px] sm:w-36"
           />
         </FilterBar>
@@ -308,7 +315,7 @@ export default function Logs() {
         title="登录日志导出字段"
         ruleHint={
           loginSelectedKeys.length
-            ? `已勾选 ${loginSelectedKeys.length} 条，将优先导出勾选数据`
+            ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: loginSelectedKeys.length })
             : '未勾选数据时，将按当前查询条件导出全部结果'
         }
         fieldOptions={LOGIN_EXPORT_FIELDS}
@@ -321,7 +328,7 @@ export default function Logs() {
         onOpenChange={setOpExportOpen}
         title="操作日志导出字段"
         ruleHint={
-          opSelectedKeys.length ? `已勾选 ${opSelectedKeys.length} 条，将优先导出勾选数据` : '未勾选数据时，将按当前查询条件导出全部结果'
+          opSelectedKeys.length ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: opSelectedKeys.length }) : '未勾选数据时，将按当前查询条件导出全部结果'
         }
         fieldOptions={OPERATION_EXPORT_FIELDS}
         defaultFields={['username', 'module', 'action', 'method', 'path', 'status_code', 'created_at']}
@@ -344,7 +351,7 @@ export default function Logs() {
         onImport={(file) => importLoginLogs(file)}
         onImported={(res) => {
           loginList.fetchData()
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
         }}
         errorExportFileName="login_logs_import_error_rows.csv"
       />
@@ -365,7 +372,7 @@ export default function Logs() {
         onImport={(file) => importOperationLogs(file)}
         onImported={(res) => {
           opList.fetchData()
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
         }}
         errorExportFileName="operation_logs_import_error_rows.csv"
       />

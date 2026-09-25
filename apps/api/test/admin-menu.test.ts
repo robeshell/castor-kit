@@ -27,7 +27,7 @@ let fx: Fixture
 let rootId: number
 
 async function cleanup() {
-  // 先删子节点再删父节点（FK 为 CASCADE，这里只是为了不依赖删除顺序）
+  // Delete children before parents (FK is CASCADE; this just avoids depending on deletion order)
   await handle.db.delete(menus).where(like(menus.code, `${P}%`))
   await handle.db.delete(roles).where(like(roles.code, `${P}%`))
 }
@@ -43,14 +43,14 @@ const put = (url: string, payload: unknown) => s.inject({ method: 'PUT', url, pa
 beforeAll(async () => {
   handle = openTestDb()
   app = await buildTestApp()
-  // createFixture 会清理所有 ck_test_ 前缀数据，必须先于本文件自己的数据创建
+  // createFixture cleans up all ck_test_-prefixed data, so it must run before this file creates its own data
   fx = await createFixture(handle)
   u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
   s = await superAdminSession(app, handle)
   await cleanup()
 })
 
-/** 本文件会把 menus 序列拨回去测试 sync_id_sequence；无论成败都恢复到 MAX(id)+1，避免影响其他测试文件 */
+/** This file rewinds the menus sequence to test sync_id_sequence; always restore it to MAX(id)+1, pass or fail, so other test files aren't affected */
 async function restoreSequence() {
   await handle.db.execute(sql`SELECT setval(pg_get_serial_sequence('menus', 'id'), COALESCE((SELECT MAX(id) FROM menus), 0) + 1, false)`)
 }
@@ -65,7 +65,7 @@ afterAll(async () => {
 
 describe('menus 新增', () => {
   it('201：None 值走模型默认；响应没有 children 键；ID 序列先同步', async () => {
-    // 把序列拨回去，模拟显式 ID 插入后序列落后：create 前的 setval 让插入仍然成功
+    // Rewind the sequence to simulate it lagging after explicit-ID inserts: the setval before create lets the insert still succeed
     await handle.db.execute(sql`SELECT setval(pg_get_serial_sequence('menus', 'id'), 1, false)`)
     const res = await post('/api/admin/menus', {
       name: '测试根',
@@ -134,7 +134,7 @@ describe('menus 新增', () => {
       expect(res.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
     }
     expect(await menuByCode(`${P}bad`)).toBeUndefined()
-    // 请求体为真值非对象 → 500；假值当作 {}
+    // Truthy non-object request body → 500; falsy is treated as {}
     expect((await post('/api/admin/menus', [1])).statusCode).toBe(500)
     expect((await post('/api/admin/menus', [])).json()).toEqual({ error: '菜单名称和编码不能为空' })
     expect((await post(`/api/admin/menus/${rootId}/sort`, [1])).statusCode).toBe(500)
@@ -156,7 +156,7 @@ describe('menus 列表 / 详情', () => {
     const tree = (await s.inject({ url: `/api/admin/menus?search=${P}ROOT` })).json()
     expect(tree).toHaveLength(1)
     expect(tree[0].children).toHaveLength(3)
-    // 子节点匹配（不只过滤根节点）：带出祖先，兄弟节点不出现
+    // Child node match (not just filtering roots): ancestors are included, siblings are not
     const child = (await s.inject({ url: `/api/admin/menus?search=${P}c1` })).json()
     expect(child.map((m: { code: string }) => m.code)).toEqual([`${P}root`])
     expect(child[0].children.map((m: { code: string }) => m.code)).toEqual([`${P}c1`])
@@ -166,7 +166,7 @@ describe('menus 列表 / 详情', () => {
     const flat = (await s.inject({ url: `/api/admin/menus?format=flat&search=${P}` })).json()
     expect(flat.map((m: { code: string }) => m.code)).toEqual([`${P}c3`, `${P}c2`, `${P}root`, `${P}c1`])
     expect(flat.every((m: object) => !('children' in m))).toBe(true)
-    // format 为空字符串也按 flat 处理
+    // An empty-string format is also treated as flat
     expect((await s.inject({ url: `/api/admin/menus?format=&search=${P}c1` })).json()).toHaveLength(1)
   })
 
@@ -183,7 +183,7 @@ describe('menus 列表 / 详情', () => {
     expect((await s.inject({ url: '/api/admin/menus/99999999999' })).statusCode).toBe(404)
     expect((await s.inject({ url: '/api/admin/menus/abc' })).statusCode).toBe(404)
     const c1 = (await menuByCode(`${P}c1`))!
-    // parent_id 指向自身 → 500
+    // parent_id pointing to itself → 500
     await handle.db.update(menus).set({ parent_id: c1.id }).where(eq(menus.id, c1.id))
     expect((await s.inject({ url: `/api/admin/menus/${c1.id}` })).statusCode).toBe(500)
     await handle.db.update(menus).set({ parent_id: rootId }).where(eq(menus.id, c1.id))
@@ -246,7 +246,7 @@ describe('menus 编辑 / 删除 / 排序', () => {
     const leaf = await post('/api/admin/menus', { name: '孙', code: `${P}g1`, parent_id: c3.id })
     expect((await sort(leaf.json().id, 'down')).json()).toEqual({ message: '当前层级只有一个菜单，无需排序', changed: false })
     expect((await sort(99999999, 'up')).json()).toEqual({ error: '资源不存在' })
-    // 排序接口先检查权限再 404
+    // The sort endpoint checks permission before 404
     expect((await u.inject({ method: 'POST', url: '/api/admin/menus/99999999/sort', payload: { direction: 'up' } })).json()).toEqual({
       error: '无权限排序菜单',
     })

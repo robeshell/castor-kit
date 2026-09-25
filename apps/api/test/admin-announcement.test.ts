@@ -33,7 +33,7 @@ async function row(id: number) {
   return r!
 }
 
-/** 在数据库里算期望值（会话时区换算），不经过 JS Date */
+/** Computes the expected value in the database (session time-zone conversion), without going through JS Date */
 async function dbScalar(expr: ReturnType<typeof sql>): Promise<string> {
   const res = await handle.db.execute<{ v: string }>(sql`SELECT (${expr})::text AS v`)
   return res.rows[0]!.v
@@ -123,7 +123,7 @@ describe('announcement', () => {
     const afterPub = await row(b)
     expect(afterPub.updated_at).not.toBe(before.updated_at)
 
-    // 已有 publish_at 时 status=published 不覆盖
+    // When publish_at is already set, status=published does not overwrite it
     await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { status: 'published' } })
     expect((await row(b)).publish_at).toBe(afterPub.publish_at)
 

@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
-/** 合并 className：条件拼接 + Tailwind 冲突类去重（shadcn 约定） */
+/** Merge classNames: conditional joining + dedupe of conflicting Tailwind classes (shadcn convention) */
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }

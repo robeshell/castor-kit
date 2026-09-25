@@ -599,7 +599,7 @@ function SidebarMenuSkeleton({
   showIcon = false,
   ...props
 }) {
-  // Random width between 50 to 90%（useState 惰性初始化：只在挂载时取一次随机数，满足 react-hooks 纯渲染规则）
+  // Random width between 50 to 90% (lazy useState initialization: the random number is taken only once on mount, satisfying the react-hooks pure-render rule)
   const [width] = React.useState(() => `${Math.floor(Math.random() * 40) + 50}%`)
 
   return (

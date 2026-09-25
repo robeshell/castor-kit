@@ -22,6 +22,7 @@ describe('translateMessage', () => {
     expect(translateMessage('资源不存在', 'ja-JP')).toBe('リソースが見つかりません')
     expect(translateMessage('资源不存在', 'zh-CN')).toBe('资源不存在')
     expect(translateMessage('缺少权限: system_users', 'en-US')).toBe('Missing permission: system_users')
+    expect(translateMessage('AI 服务暂时不可用（503），请稍后重试', 'ja-JP')).toBe('AI サービスは一時的に利用できません（503）。しばらくしてから再度お試しください。')
     expect(translateMessage('没有登记的中文', 'en-US')).toBe('没有登记的中文')
   })
 })

@@ -1,21 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Hand, MapPin } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import PageHeader from '@/shared/components/PageHeader'
-
-const CITIES = [
-  { name: '北京',   lat: 39.9,  lon: 116.4 },
-  { name: '上海',   lat: 31.2,  lon: 121.5 },
-  { name: '纽约',   lat: 40.7,  lon: -74.0 },
-  { name: '伦敦',   lat: 51.5,  lon:  -0.1 },
-  { name: '东京',   lat: 35.7,  lon: 139.7 },
-  { name: '悉尼',   lat: -33.9, lon: 151.2 },
-  { name: '迪拜',   lat: 25.2,  lon:  55.3 },
-  { name: '巴黎',   lat: 48.9,  lon:   2.3 },
-  { name: '新加坡', lat:  1.4,  lon: 103.8 },
-  { name: '旧金山', lat: 37.8,  lon: -122.4 },
-]
+import { CITIES } from '@/modules/component_center/pages/creative/threejs_globe_page/demo-content'
 
 const ARC_PAIRS = [[0,1],[0,4],[1,2],[2,3],[3,7],[4,5],[5,6],[6,8],[7,9],[8,0]]
 
@@ -30,6 +19,7 @@ function latLonToVec3(lat, lon, r = 1) {
 }
 
 export default function ThreejsGlobePage() {
+  const { t } = useTranslation()
   const mountRef   = useRef(null)
   const hoveredRef = useRef(null)
   const [hovered, setHovered] = useState(null)
@@ -66,11 +56,11 @@ export default function ThreejsGlobePage() {
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3))
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, sizeAttenuation: true })))
 
-    /* ── globe group (所有地球相关对象都挂在这里，统一旋转) ── */
+    /* ── globe group (every globe object hangs here and rotates together) ── */
     const globeGroup = new THREE.Group()
     scene.add(globeGroup)
 
-    // 球体
+    // Sphere
     const globeMesh = new THREE.Mesh(
       new THREE.SphereGeometry(1, 64, 64),
       new THREE.MeshPhongMaterial({
@@ -82,13 +72,13 @@ export default function ThreejsGlobePage() {
     )
     globeGroup.add(globeMesh)
 
-    // 经纬网格
+    // Lat / lon grid
     globeGroup.add(new THREE.Mesh(
       new THREE.SphereGeometry(1.003, 36, 18),
       new THREE.MeshBasicMaterial({ color: 0x0ea5e9, wireframe: true, transparent: true, opacity: 0.12 })
     ))
 
-    // 大气层（单面，稍大，向外）
+    // Atmosphere (single-sided, slightly larger, facing outward)
     globeGroup.add(new THREE.Mesh(
       new THREE.SphereGeometry(1.08, 64, 64),
       new THREE.MeshPhongMaterial({
@@ -97,7 +87,7 @@ export default function ThreejsGlobePage() {
       })
     ))
 
-    /* ── city dots + pulse rings (作为 globeGroup 子对象) ── */
+    /* ── city dots + pulse rings (children of globeGroup) ── */
     const dotGeo  = new THREE.SphereGeometry(0.013, 8, 8)
     const dotMat  = new THREE.MeshBasicMaterial({ color: 0x22d3ee })
     const ringGeo = new THREE.RingGeometry(0.018, 0.03, 24)
@@ -116,7 +106,7 @@ export default function ThreejsGlobePage() {
         new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
       )
       ring.position.copy(pos)
-      // 朝向球心外
+      // Face away from the globe center
       ring.lookAt(pos.clone().multiplyScalar(2))
       ring.userData.phase = Math.random() * Math.PI * 2
       globeGroup.add(ring)
@@ -141,7 +131,7 @@ export default function ThreejsGlobePage() {
     const sun = new THREE.DirectionalLight(0x60a5fa, 1.5)
     sun.position.set(4, 2, 4)
     scene.add(sun)
-    // 背光（让暗面不全黑）
+    // Back light (keeps the dark side from going fully black)
     const backLight = new THREE.DirectionalLight(0x001133, 0.8)
     backLight.position.set(-3, -1, -3)
     scene.add(backLight)
@@ -171,7 +161,7 @@ export default function ThreejsGlobePage() {
     }
     renderer.domElement.addEventListener('mousemove', onPointerMove)
 
-    // 收集可点击的 dots
+    // Collect the hoverable dots
     const dotMeshes = globeGroup.children.filter(c => c.userData?.name)
 
     /* ── animate ── */
@@ -198,7 +188,7 @@ export default function ThreejsGlobePage() {
       const hits = raycaster.intersectObjects(dotMeshes)
       if (hits.length) {
         const name = hits[0].object.userData.name
-        // 只在悬停城市变化时更新 state，避免每帧触发渲染
+        // Only update state when the hovered city changes, so we don't re-render every frame
         if (hoveredRef.current !== name) {
           hoveredRef.current = name
           setHovered(name)
@@ -244,7 +234,7 @@ export default function ThreejsGlobePage() {
 
         <div className="pointer-events-none absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-white/5 px-2 py-1 text-[11px] text-white/60 ring-1 ring-white/10 backdrop-blur-sm">
           <Hand className="size-3" />
-          拖拽旋转地球
+          {t('拖拽旋转地球')}
         </div>
 
         {hovered ? (

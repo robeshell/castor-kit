@@ -16,7 +16,7 @@ function toDate(value) {
   return isValid(d) ? d : undefined
 }
 
-/** 日期选择：value / onChange 使用 'YYYY-MM-DD' 字符串（空为 ''） */
+/** Date picker: value / onChange use a 'YYYY-MM-DD' string ('' when empty) */
 export function DatePicker({ value, onChange, placeholder = '选择日期', disabled, className, clearable = true }) {
   const { i18n } = useTranslation()
   const tx = useTx()
@@ -70,7 +70,7 @@ export function DatePicker({ value, onChange, placeholder = '选择日期', disa
   )
 }
 
-/** 日期时间：value / onChange 使用 'YYYY-MM-DD HH:mm:ss'（也接受 ISO 'YYYY-MM-DDTHH:mm:ss'） */
+/** Date-time: value / onChange use 'YYYY-MM-DD HH:mm:ss' (ISO 'YYYY-MM-DDTHH:mm:ss' is also accepted) */
 export function DateTimePicker({ value, onChange, disabled, className }) {
   const text = typeof value === 'string' ? value.replace('T', ' ') : ''
   const datePart = text.slice(0, 10)

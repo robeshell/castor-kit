@@ -1,7 +1,7 @@
 /**
- * 首页仪表盘路由
+ * Home dashboard routes
  *
- * 只要求登录，不校验菜单权限。
+ * Login required only; no menu permission check.
  */
 
 import type { FastifyInstance } from 'fastify'

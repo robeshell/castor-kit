@@ -1,5 +1,5 @@
 /**
- * 用户模块 repository 层
+ * Users module repository layer
  */
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, type SQL } from 'drizzle-orm'
@@ -72,7 +72,7 @@ export class UserRepository {
     await this.db.delete(admin_users).where(eq(admin_users.id, id))
   }
 
-  /** 覆盖式设置用户角色（对应 `user.roles = [...]`） */
+  /** Replace a user's roles (like `user.roles = [...]`) */
   async setRoles(userId: number, roleIds: number[]) {
     await this.db.delete(user_roles).where(eq(user_roles.user_id, userId))
     if (roleIds.length > 0) {
@@ -95,7 +95,7 @@ export class UserRepository {
     return row ?? null
   }
 
-  /** 除 userId 外拥有该角色的用户数 */
+  /** Number of users other than userId that have this role */
   async countOtherUsersWithRole(roleId: number, userId: number) {
     const [row] = await this.db
       .select({ n: count() })

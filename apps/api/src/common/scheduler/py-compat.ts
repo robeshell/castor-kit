@@ -1,8 +1,8 @@
 /**
- * 定时任务用到的 Python 字符串语义（str.strip / str.split / str.isdigit / int）。
+ * Python string semantics used by scheduled tasks (str.strip / str.split / str.isdigit / int).
  *
- * JS 的 trim() 与 \s 和 Python 的空白集合不完全相同（Python 含 \x1c-\x1f、\x85，不含 ﻿），
- * cron 表达式按空白切段，这里按 Python 的 str.isspace() 精确复刻。
+ * JS trim() and \s don't match Python's whitespace set exactly (Python includes \x1c-\x1f and \x85, excludes U+FEFF);
+ * cron expressions are split on whitespace, so this replicates Python's str.isspace() exactly.
  */
 
 const PY_WHITESPACE = new Set(
@@ -17,7 +17,7 @@ export function pyIsSpace(ch: string): boolean {
   return PY_WHITESPACE.has(ch)
 }
 
-/** Python `text.strip()`（无参数） */
+/** Python `text.strip()` (no arguments) */
 export function pyStrip(text: string): string {
   let start = 0
   let end = text.length
@@ -26,7 +26,7 @@ export function pyStrip(text: string): string {
   return text.slice(start, end)
 }
 
-/** Python `text.split()`（无参数：按连续空白切分，丢弃首尾空串） */
+/** Python `text.split()` (no arguments: split on runs of whitespace, drop leading/trailing empty strings) */
 export function pySplitWhitespace(text: string): string[] {
   const out: string[] = []
   let current = ''
@@ -45,9 +45,9 @@ export function pySplitWhitespace(text: string): string[] {
 const DECIMAL_DIGIT = /^\p{Nd}$/u
 
 /**
- * Python `text.isdigit()`：非空且每个字符都是数字。
- * 覆盖 Unicode 十进制数字（Nd，如 '٣'），`int()` 能正确转换它们；
- * 上标等 Numeric_Type=Digit 字符（'²'）在 Python 里 isdigit() 为真但 int() 失败，这里按非数字处理。
+ * Python `text.isdigit()`: non-empty and every character is a digit.
+ * Covers Unicode decimal digits (Nd, e.g. '٣'), which `int()` converts correctly;
+ * Numeric_Type=Digit characters such as superscripts ('²') are isdigit() in Python but int() fails, so they are treated as non-digits here.
  */
 export function pyIsDigit(text: string): boolean {
   if (!text) return false
@@ -60,8 +60,8 @@ export function pyIsDigit(text: string): boolean {
 let digitTable: Map<number, number> | null = null
 
 /**
- * 单个 Unicode 十进制数字字符的值。Unicode 保证 Nd 字符以 0-9 连续 10 个码位成组出现
- * （相邻组可能首尾相接，如数学字母数字符号区），所以按连续段每 10 个一组编号即可。
+ * Value of a single Unicode decimal digit character. Unicode guarantees Nd characters come in contiguous runs of 10 code points (0-9)
+ * (adjacent runs may abut, e.g. in Mathematical Alphanumeric Symbols), so numbering each contiguous run in groups of 10 is enough.
  */
 function digitValue(ch: string): number {
   if (ch >= '0' && ch <= '9') return ch.charCodeAt(0) - 48
@@ -80,7 +80,7 @@ function digitValue(ch: string): number {
   return digitTable.get(ch.codePointAt(0)!) ?? 0
 }
 
-/** `int(text)`，前提是 `pyIsDigit(text)`（可带前导 '-'） */
+/** `int(text)`, assuming `pyIsDigit(text)` (an optional leading '-' is allowed) */
 export function pyIntFromDigits(text: string): number {
   const negative = text.startsWith('-')
   let value = 0

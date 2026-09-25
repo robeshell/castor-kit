@@ -1,9 +1,9 @@
 /**
- * AI SQL 数据访问：全部走只读连接池（db/readonly.ts），不碰业务主连接。
+ * AI SQL data access: everything goes through the read-only pool (db/readonly.ts), never the main app connection.
  *
- * 表结构读取用 information_schema：
- * - 表：当前 schema 下的 BASE TABLE
- * - 列：按 ordinal_position；类型名输出为大写的 SQL 类型写法（如 `VARCHAR(50)`、`NUMERIC(10, 2)`，见 sqlTypeName）
+ * Table structure is read from information_schema:
+ * - tables: BASE TABLEs in the current schema
+ * - columns: by ordinal_position; type names are output in uppercase SQL type syntax (e.g. `VARCHAR(50)`, `NUMERIC(10, 2)`, see sqlTypeName)
  */
 
 import type { ReadonlyDb, ReadonlyResult } from '@/db/readonly'
@@ -34,7 +34,7 @@ SELECT table_name FROM information_schema.tables
  WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'`
 
 /**
- * udt_name → 输出的类型名（不在表里的类型输出 'NULL'，如 xml / point / tsquery）
+ * udt_name → output type name (types not in this table output 'NULL', e.g. xml / point / tsquery)
  */
 const SIMPLE_TYPES: Record<string, string> = {
   int2: 'SMALLINT',
@@ -89,13 +89,13 @@ interface ColumnRow {
   numeric_precision: string | null
   numeric_scale: string | null
   domain_name: string | null
-  /** 枚举类型标签的最大长度；非枚举为 null */
+  /** Max label length for enum types; null for non-enums */
   enum_max_length: string | null
 }
 
 export function sqlTypeName(row: ColumnRow): string {
   const udt = row.udt_name
-  // 域类型统一输出 'DOMAIN'，不看底层类型
+  // Domain types always output 'DOMAIN', regardless of the underlying type
   if (row.domain_name) return 'DOMAIN'
   if (row.data_type === 'ARRAY') return 'ARRAY'
   if (udt === 'varchar') return row.character_maximum_length ? `VARCHAR(${row.character_maximum_length})` : 'VARCHAR'
@@ -103,7 +103,7 @@ export function sqlTypeName(row: ColumnRow): string {
   if (udt === 'numeric') {
     return row.numeric_precision !== null ? `NUMERIC(${row.numeric_precision}, ${row.numeric_scale ?? 0})` : 'NUMERIC'
   }
-  // 枚举：输出 VARCHAR(最长标签长度)
+  // Enum: output VARCHAR(longest label length)
   if (row.enum_max_length !== null) return `VARCHAR(${row.enum_max_length})`
   return SIMPLE_TYPES[udt] ?? 'NULL'
 }

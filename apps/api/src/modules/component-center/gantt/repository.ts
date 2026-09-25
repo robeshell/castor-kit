@@ -1,5 +1,5 @@
 /**
- * 甘特图页 repository 层
+ * Gantt page repository layer
  */
 
 import { and, asc, eq } from 'drizzle-orm'
@@ -10,7 +10,7 @@ const INT32_MIN = -2_147_483_648
 const INT32_MAX = 2_147_483_647
 
 export type GanttTaskInsert = typeof cc_gantt_tasks.$inferInsert
-/** start_date/end_date 可能被置为 NULL（照写，由 NOT NULL 约束报错） */
+/** start_date/end_date may be set to NULL (written as-is; the NOT NULL constraint raises the error) */
 export type GanttTaskPatch = Partial<Omit<GanttTask, 'id' | 'created_at' | 'updated_at' | 'start_date' | 'end_date'>> & {
   start_date?: string | null
   end_date?: string | null

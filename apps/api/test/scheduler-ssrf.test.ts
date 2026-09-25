@@ -1,5 +1,5 @@
 /**
- * 定时任务 URL 防 SSRF：基础用例 + 补充加固
+ * Scheduled-task URL SSRF protection: basic cases + additional hardening
  */
 
 import { createServer, type Server } from 'node:http'
@@ -9,7 +9,7 @@ import { PyUncaughtError, ScheduledTaskSchemaError } from '@/common/scheduler/er
 import { executeHttpRequest } from '@/common/scheduler/http'
 import { isBlockedIp, pyUrlSplit, validateRequestUrl } from '@/common/scheduler/ssrf'
 
-/** 打桩 DNS 解析：返回指定 IP / 解析失败 */
+/** Stubs DNS resolution: returns the given IP / fails to resolve */
 const resolvesTo = (...ips: string[]) => async () => ips
 const failsToResolve = async (): Promise<string[]> => {
   throw new Error('ENOTFOUND')
@@ -142,9 +142,9 @@ describe('执行阶段连接级复检（Node 加固：防 DNS rebinding / 重定
   })
 
   it('校验时解析到公网、执行时解析到内网（rebinding）：执行阶段拦截', async () => {
-    // 创建时的校验被“骗过”
+    // The validation at creation time is "fooled"
     await expect(validateRequestUrl(`http://localhost:${port}/`, { lookup: resolvesTo('93.184.216.34') })).resolves.toBeTruthy()
-    // 真正执行时 localhost 解析到 127.0.0.1 → 拒绝
+    // At actual execution localhost resolves to 127.0.0.1 → rejected
     await expect(run(`http://localhost:${port}/`)).rejects.toThrow('不允许访问内网地址')
     expect(hits).toBe(0)
   })

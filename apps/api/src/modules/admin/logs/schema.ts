@@ -1,5 +1,5 @@
 /**
- * 日志模块 schema 层
+ * Logs module schema layer
  */
 
 import { pyInt } from '@/common/py'
@@ -109,8 +109,8 @@ export function resolveModuleAndAction(path: string, method: string): { module: 
 // ---------------------------------------------------------------- parse_datetime
 
 /**
- * 按 `fromisoformat` 规则解析 ISO 8601 日期时间的结果。
- * `offsetSeconds` 为 null 表示 naive；否则为带时区（秒，可含小数）。
+ * Result of parsing an ISO 8601 datetime per `fromisoformat` rules.
+ * `offsetSeconds` null means naive; otherwise it's the UTC offset (seconds, may be fractional).
  */
 export interface ParsedDateTime {
   year: number
@@ -249,7 +249,7 @@ function parseDate(s: string, len: number): [number, number, number] {
 
 const FRACTION_CORRECTION = [100000, 10000, 1000, 100, 10]
 
-/** C `parse_hh_mm_ss_ff`：返回 [时, 分, 秒, 微秒, 是否未到结尾] */
+/** C `parse_hh_mm_ss_ff`: returns [hour, minute, second, microsecond, notAtEnd] */
 function parseHhMmSsFf(s: string, start: number, end: number): [number, number, number, number, boolean] {
   const vals = [0, 0, 0]
   let p = start
@@ -259,7 +259,7 @@ function parseHhMmSsFf(s: string, start: number, end: number): [number, number, 
     const c = s[p]
     p += 1
     if (i === 0) hasSep = c === ':'
-    // C: `if (p >= p_end) return c != '\0';`（c 可能是 end 处的时区符号或字符串结尾）
+    // C: `if (p >= p_end) return c != '\0';` (c may be the tz sign at `end` or the end of the string)
     if (p >= end) return [vals[0]!, vals[1]!, vals[2]!, 0, c !== undefined]
     if (hasSep && c === ':') continue
     if (c === '.' || c === ',') break
@@ -313,7 +313,7 @@ export function pyFromIsoFormat(s: string): ParsedDateTime | null {
     const [year, month, day] = parseDate(s, sepLoc)
     let time: [number, number, number, number, number | null] = [0, 0, 0, 0, null]
     if (sepLoc < s.length) {
-      // 分隔符可以是任意单个字符（按码点跳过）
+      // The separator may be any single character (skipped by code point)
       const sepChar = String.fromCodePoint(s.codePointAt(sepLoc)!)
       time = parseTime(s, sepLoc + sepChar.length)
     }
@@ -332,7 +332,7 @@ export function pyFromIsoFormat(s: string): ParsedDateTime | null {
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
-/** naive 部分格式化为 PG timestamp 字面量 */
+/** Format the naive part as a PG timestamp literal */
 export function formatNaive(dt: ParsedDateTime): string {
   const base = `${pad(dt.year, 4)}-${pad(dt.month)}-${pad(dt.day)} ${pad(dt.hour)}:${pad(dt.minute)}:${pad(dt.second)}`
   return dt.microsecond ? `${base}.${pad(dt.microsecond, 6)}` : base
@@ -340,8 +340,8 @@ export function formatNaive(dt: ParsedDateTime): string {
 
 /**
  * `parse_datetime(raw, default)`：
- * - None / 空串 → 'default'（调用方用 utcnow）
- * - 解析失败 → null（调用方 `or datetime.utcnow()`）
+ * - None / empty string → 'default' (caller uses utcnow)
+ * - parse failure → null (caller does `or datetime.utcnow()`)
  */
 export function parseDatetime(raw: unknown): ParsedDateTime | 'default' | null {
   if (raw === null || raw === undefined) return 'default'

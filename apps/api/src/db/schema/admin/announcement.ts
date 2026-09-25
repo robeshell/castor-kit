@@ -1,8 +1,8 @@
 /**
  * announcements
  *
- * `.$default()` / createdAt() / updatedAt() 只是应用侧默认值（库里没有 DEFAULT），不进 DDL。
- * 插入时值为 null 的列要转成 undefined（省略该列）才会触发应用侧默认值。
+ * `.$default()` / createdAt() / updatedAt() are app-side defaults only (no DB DEFAULT) and don't go into the DDL.
+ * Columns whose insert value is null must be converted to undefined (omitted) to trigger the app-side default.
  */
 
 import { boolean, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'

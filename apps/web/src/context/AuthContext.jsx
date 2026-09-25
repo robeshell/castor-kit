@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (window.location.pathname === '/login') {
-      // 登录页不需要拉取当前用户：直接结束加载态（一次性初始化，不会形成级联渲染）
+      // The login page doesn't need to fetch the current user: end the loading state directly (one-time init, won't cause cascading renders)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false)
       return

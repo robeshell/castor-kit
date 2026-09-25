@@ -1,7 +1,7 @@
 /**
- * 菜单树工具：my-menus 返回的是树（children 仅在有子节点时存在）。
- * 侧边栏 / 面包屑 / ⌘K / 路由都从这里取，保证可见性规则一致：
- * is_active && is_visible && menu_type !== 'button'。
+ * Menu tree helpers: my-menus returns a tree (children exists only when there are child nodes).
+ * Sidebar / breadcrumbs / ⌘K / routes all read from here so visibility rules stay consistent:
+ * is_active && is_visible && menu_type !== 'button'.
  */
 
 export function isNavVisible(menu) {
@@ -25,7 +25,7 @@ export function flattenMenus(menus = []) {
   return result
 }
 
-/** 当前路径命中的菜单（最长前缀匹配） */
+/** Menu matching the current path (longest prefix match) */
 export function findActiveMenu(flat, pathname) {
   return flat
     .filter((menu) => typeof menu.path === 'string' && menu.path.startsWith('/'))
@@ -33,7 +33,7 @@ export function findActiveMenu(flat, pathname) {
     .find((menu) => pathname === menu.path || pathname.startsWith(`${menu.path}/`))
 }
 
-/** 可导航的叶子页面（有 path 且类型为 menu） */
+/** Navigable leaf pages (has a path and type is menu) */
 export function navigablePages(flat) {
   return flat.filter((menu) => menu.menu_type === 'menu' && typeof menu.path === 'string' && menu.path.startsWith('/'))
 }

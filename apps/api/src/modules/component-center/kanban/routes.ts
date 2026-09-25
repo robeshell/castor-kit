@@ -1,7 +1,7 @@
 /**
- * 看板页路由
+ * Kanban page routes
  *
- * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
+ * Routes with an id run get_or_404 first, then check permissions (preserves existing API behavior).
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -16,7 +16,7 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
   const service = new KanbanService(app.db)
   const opts = { preHandler: loginRequired }
 
-  // ── 看板列 ──────────────────────────────────────────────────────────
+  // ── Kanban columns ──────────────────────────────────────────────────────────
 
   app.get(`${BASE}/boards`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_page'))) {
@@ -48,7 +48,7 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
     return service.deleteBoard(board)
   })
 
-  // ── 卡片 ────────────────────────────────────────────────────────────
+  // ── Cards ────────────────────────────────────────────────────────────
 
   app.put(`${BASE}/cards/reorder`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_edit'))) {

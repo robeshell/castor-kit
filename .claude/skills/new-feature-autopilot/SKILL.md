@@ -130,6 +130,9 @@ scaffold 的已知限制（生成后手工补）：
 scaffold 生成的页面已可用，按业务打磨：
 
 - 标题与字段标签改成中文（页面标题下**不写描述**，见设计文档「文案」一条）；`rules` 补必填与格式校验（文案与后端一致）；枚举字段改成 `FormSelect` + 表格列 `StatusBadge`
+- **多语言**：界面文字写中文原文，按 AGENTS.md「多语言（i18n）与代码注释」接入翻译——传给公共组件的字符串自动翻译；JSX 里直接写的中文、原生元素属性、带变量的文案用 `t()`；在页面目录建 `locales/en-US.json`、`locales/ja-JP.json` 写译文；`node apps/web/scripts/i18n-scan.mjs <页面目录>` 必须 0 问题
+- 后端新增的报错 / 提示文案在 `apps/api/src/i18n/messages.ts` 登记英日译文（带变量的放 `PATTERNS`）
+- 代码注释一律英文
 - 只用 `@/components/ui/*`、`@/shared/components/*`、`lucide-react` 与 Tailwind 语义色类；禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色（verify 的 `frontend_no_legacy_ui` 会拦截）
 - 组件用法查 `.claude/skills/shadcn-ui-skills/SKILL.md`；shadcn 组件 API 查官方文档（有 shadcn MCP 时优先用）；缺原子组件时 `apps/web/scripts/shadcn-add.sh <组件>`
 - 自检：`cd apps/web && npx eslint <页面文件>` 零错误

@@ -5,11 +5,6 @@ import { loadCatalogs, scan, SRC_DIR, WEB_DIR } from '../scripts/i18n-scan.mjs'
 
 const LANGS = ['en-US', 'ja-JP']
 
-// Pages not converted yet; remove entries as they are converted (goal: empty list)
-const PENDING = ['src/modules/admin/pages/', 'src/modules/component_center/']
-const isPending = (file) =>
-  PENDING.some((prefix) => file.startsWith(prefix)) && !file.startsWith('src/modules/admin/pages/profile/')
-
 function localeDirs(dir = SRC_DIR, out = []) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
@@ -31,11 +26,14 @@ describe('i18n catalogs', () => {
           continue
         }
         if (files.length === 0) continue
+        // English plural forms (`<key>_one`) have no Japanese counterpart; they must extend an existing base key
         const keys = LANGS.map((lang) => {
           const file = join(sub, `${lang}.json`)
           return Object.keys(JSON.parse(readFileSync(file, 'utf8'))).sort()
         })
-        expect(keys[1], relative(WEB_DIR, sub)).toEqual(keys[0])
+        const plural = keys[0].filter((k) => /_(one|other)$/.test(k))
+        expect(plural.filter((k) => !keys[0].includes(k.replace(/_(one|other)$/, ''))), relative(WEB_DIR, sub)).toEqual([])
+        expect(keys[1], relative(WEB_DIR, sub)).toEqual(keys[0].filter((k) => !plural.includes(k)))
       }
     }
   })
@@ -56,9 +54,9 @@ describe('i18n catalogs', () => {
 })
 
 describe('i18n scan', () => {
-  it('converted source has no untranslated Chinese, raw JSX Chinese text or Chinese template literals', () => {
+  it('source has no untranslated Chinese, raw JSX Chinese text or Chinese template literals', () => {
     const { problems } = scan('src')
-    const outstanding = problems.filter((p) => !isPending(p.file)).map((p) => `${p.file}:${p.line} [${p.kind}] ${p.text}`)
+    const outstanding = problems.map((p) => `${p.file}:${p.line} [${p.kind}] ${p.text}`)
     expect(outstanding).toEqual([])
   })
 

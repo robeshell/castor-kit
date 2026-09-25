@@ -1,7 +1,7 @@
 /**
- * 树形列表页路由
+ * Tree list page routes
  *
- * 带 id 的路由先 get_or_404，再做权限检查（保持既有接口行为）。
+ * Routes with an id run get_or_404 first, then check permissions (preserves existing API behavior).
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -15,7 +15,7 @@ import { TreeListPageService } from './service'
 
 const BASE = '/api/admin/component-center/tree-list-page'
 
-/** request.args：每个键取第一个值 */
+/** request.args: take the first value of each key */
 function queryArgs(request: FastifyRequest): Record<string, unknown> {
   const query = (request.query ?? {}) as Record<string, unknown>
   return Object.fromEntries(Object.entries(query).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]))
@@ -35,7 +35,7 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
   const service = new TreeListPageService(app.db)
   const opts = { preHandler: loginRequired }
 
-  // 树形结构（左侧 Tree 组件用）
+  // Tree structure (for the Tree component on the left)
   app.get(`${BASE}/tree`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_tree_list_page'))) {
       return reply.status(403).send({ error: '无权限查看树形数据' })
@@ -43,7 +43,7 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
     return service.getTree(listFilters(request))
   })
 
-  // 平铺列表（右侧表格用）
+  // Flat list (for the table on the right)
   app.get(BASE, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_tree_list_page'))) {
       return reply.status(403).send({ error: '无权限查看树形列表页数据' })

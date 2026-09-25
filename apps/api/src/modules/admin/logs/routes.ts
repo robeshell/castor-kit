@@ -1,8 +1,8 @@
 /**
- * 日志模块路由
+ * Logs module routes
  *
- * 操作日志是**集中式**写入：全局 onResponse hook 按路径/方法推断 module/action 后落库，
- * 异常吞掉不影响响应。不要在各 service 里散写操作日志。
+ * Operation logs are written **centrally**: a global onResponse hook infers module/action from path/method and persists to the DB;
+ * errors are swallowed and never affect the response. Don't write operation logs ad hoc in individual services.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -20,7 +20,7 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
   const opts = { preHandler: loginRequired }
 
   app.addHook('onResponse', async (request, reply) => {
-    // 只记录命中路由的请求（未匹配路由不记录）
+    // Only log requests that matched a route (unmatched routes are skipped)
     if (!request.routeOptions.url) return
     try {
       const contentType = request.headers['content-type'] ?? ''

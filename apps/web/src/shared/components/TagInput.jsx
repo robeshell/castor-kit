@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTx } from '@/i18n'
 
-/** 标签输入：回车 / 逗号添加，退格删除最后一个；value 为字符串数组 */
+/** Tag input: Enter / comma adds, Backspace removes the last one; value is an array of strings */
 export default function TagInput({ value = [], onChange, placeholder = '输入后回车添加', disabled, className }) {
   const tx = useTx()
   const [draft, setDraft] = useState('')

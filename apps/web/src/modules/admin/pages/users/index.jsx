@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Download, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
@@ -37,11 +38,16 @@ const EXPORT_FIELDS = [
 const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
 /**
- * 用户管理 —— 列表页参考实现（其他 CRUD 页面照此结构）：
- * PageHeader（标题 + 主操作）→ FilterBar（筛选）→ DataTable（分页 / 勾选 / 行操作）
- * → FormDialog（新建/编辑，react-hook-form）→ ImportDialog / ExportDialog
+ * User management: the reference list page (other CRUD pages follow this structure):
+ * PageHeader (title + primary actions) -> FilterBar (filters) -> DataTable (pagination / selection / row actions)
+ * -> FormDialog (create / edit, react-hook-form) -> ImportDialog / ExportDialog
+ *
+ * i18n: Chinese source text is the key. Strings passed to shared components (PageHeader, DataTable columns,
+ * FormDialog, FormFields, ExportDialog, toast, ...) are translated inside them; text written in JSX, native
+ * attributes and interpolated strings go through t(). Translations live in ./locales/<lang>.json.
  */
 export default function Users() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getUsers(params).catch((err) => {
@@ -185,11 +191,16 @@ export default function Users() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            编辑
+            {t('编辑')}
           </Button>
-          <ConfirmAction title={`删除用户 ${record.username}？`} description="删除后不可恢复。" confirmText="删除" onConfirm={() => remove(record)}>
+          <ConfirmAction
+            title={t('删除用户 {{name}}？', { name: record.username })}
+            description="删除后不可恢复。"
+            confirmText="删除"
+            onConfirm={() => remove(record)}
+          >
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -205,15 +216,15 @@ export default function Users() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建用户
+              {t('新建用户')}
             </Button>
           </>
         }
@@ -233,11 +244,15 @@ export default function Users() {
           >
             <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
               <span>
-                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                <Trans
+                  i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                  values={{ count: selectedKeys.length }}
+                  components={[<span className="font-medium tabular-nums" />]}
+                />
               </span>
               <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                 <X />
-                清空勾选
+                {t('清空勾选')}
               </Button>
             </div>
           </motion.div>
@@ -260,7 +275,7 @@ export default function Users() {
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing ? '编辑用户' : '新建用户'}
-        description={editing ? `正在编辑 ${editing.username}` : undefined}
+        description={editing ? t('正在编辑 {{name}}', { name: editing.username }) : undefined}
         form={form}
         onSubmit={submit}
         size="sm"
@@ -291,7 +306,11 @@ export default function Users() {
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="导出用户"
-        ruleHint={selectedKeys.length ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据。` : '未勾选数据时，按当前查询条件导出全部结果。'}
+        ruleHint={
+          selectedKeys.length
+            ? t('已勾选 {{count}} 条，将优先导出勾选数据。', { count: selectedKeys.length })
+            : '未勾选数据时，按当前查询条件导出全部结果。'
+        }
         fieldOptions={EXPORT_FIELDS}
         defaultFields={['username', 'role_names', 'created_at']}
         onConfirm={handleExport}
@@ -312,7 +331,7 @@ export default function Users() {
         }
         onImport={(file) => importUsers(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="users_import_error_rows.csv"

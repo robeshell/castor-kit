@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Trans, useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { Download, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,7 @@ import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
 
-// ── 常量 ──────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 const CATEGORY_OPTIONS = [
   { label: '通用', value: 'general' },
   { label: '配置', value: 'config' },
@@ -87,7 +88,7 @@ const EXPORT_FIELDS = [
 
 const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'csv')
 
-/** 字段子表行 → 表单行（只保留可编辑列，丢弃 id / record_id 等） */
+/** Field sub-table row → form row (keep only editable columns; drop id / record_id etc.) */
 const toFieldRow = (f) => ({
   field_key: f?.field_key ?? '',
   field_value: f?.field_value ?? '',
@@ -144,8 +145,9 @@ function activeBadge(value, variant = 'plain') {
   )
 }
 
-// ── 主组件 ────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 export default function DynamicFormPage() {
+  const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
       getDynamicFormPageList(params).catch((err) => {
@@ -174,7 +176,7 @@ export default function DynamicFormPage() {
 
   useEffect(() => {
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首次加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
 
   const runSearch = () => {
@@ -203,7 +205,7 @@ export default function DynamicFormPage() {
     setFormOpen(true)
   }
 
-  /** 列表数据不含字段子表：带 fields 的记录直接编辑，否则先拉详情，避免保存时清空已有字段 */
+  /** List rows have no field sub-table: edit directly when fields are present, otherwise fetch the detail first so saving does not wipe existing fields */
   const openEdit = async (record) => {
     if (!record) return
     let full = record
@@ -260,7 +262,7 @@ export default function DynamicFormPage() {
     }
   }
 
-  // ── 导出 ──────────────────────────────────────────────────────────
+  // ── Export ──────────────────────────────────────────────────────────
   const handleExport = async ({ fields, fileType }) => {
     const ft = normalizeFileType(fileType)
     const payload = {
@@ -280,7 +282,7 @@ export default function DynamicFormPage() {
     }
   }
 
-  // ── 表格列 ────────────────────────────────────────────────────────
+  // ── Table columns ────────────────────────────────────────────────────────
   const columns = [
     { key: 'id', title: 'ID', dataIndex: 'id', width: 60, className: 'text-muted-foreground tabular-nums' },
     { key: 'title', title: '标题', dataIndex: 'title', minWidth: 160, render: (v) => <span className="font-medium">{v}</span> },
@@ -299,7 +301,7 @@ export default function DynamicFormPage() {
       title: '字段数',
       dataIndex: 'fields_count',
       width: 80,
-      render: (v) => <StatusBadge tone={v ? 'brand' : 'neutral'} className="tabular-nums">{v || 0} 条</StatusBadge>,
+      render: (v) => <StatusBadge tone={v ? 'brand' : 'neutral'} className="tabular-nums">{t('{{count}} 条', { count: v || 0 })}</StatusBadge>,
     },
     { key: 'is_active', title: '启用', dataIndex: 'is_active', width: 76, render: (v) => activeBadge(v) },
     {
@@ -318,15 +320,15 @@ export default function DynamicFormPage() {
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(record)}>
-            查看
+            {t('查看')}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2" disabled={loadingEditId === record.id} onClick={() => openEdit(record)}>
             {loadingEditId === record.id ? <Spinner /> : null}
-            编辑
+            {t('编辑')}
           </Button>
           <ConfirmAction title="确认删除该记录？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
             <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              删除
+              {t('删除')}
             </Button>
           </ConfirmAction>
         </div>
@@ -336,7 +338,7 @@ export default function DynamicFormPage() {
 
   const hasFilters = Object.values(filters).some((v) => v !== '' && v !== undefined)
 
-  // ── 渲染 ──────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────
   return (
     <div>
       <PageHeader
@@ -345,15 +347,15 @@ export default function DynamicFormPage() {
           <>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload />
-              导入
+              {t('导入')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download />
-              导出
+              {t('导出')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              新建记录
+              {t('新建记录')}
             </Button>
           </>
         }
@@ -376,11 +378,15 @@ export default function DynamicFormPage() {
           >
             <div className="bg-brand-soft mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]">
               <span>
-                已勾选 <span className="font-medium tabular-nums">{selectedKeys.length}</span> 条，导出时将优先导出勾选数据
+                <Trans
+                  i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
+                  values={{ count: selectedKeys.length }}
+                  components={[<span className="font-medium tabular-nums" />]}
+                />
               </span>
               <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
                 <X />
-                清空勾选
+                {t('清空勾选')}
               </Button>
             </div>
           </motion.div>
@@ -400,17 +406,17 @@ export default function DynamicFormPage() {
         emptyDescription={hasFilters ? '换个筛选条件试试' : '点击右上角「新建记录」添加第一条数据'}
       />
 
-      {/* ── 新建/编辑 ── */}
+      {/* ── Create / edit ── */}
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
         title={editing?.id ? '编辑记录' : '新建记录'}
-        description={editing?.id ? `正在编辑 ${editing.title}` : undefined}
+        description={editing?.id ? t('正在编辑 {{name}}', { name: editing.title }) : undefined}
         form={form}
         onSubmit={submit}
         size="lg"
       >
-        <div className="text-muted-foreground text-xs font-medium">基础信息</div>
+        <div className="text-muted-foreground text-xs font-medium">{t('基础信息')}</div>
         <FormGrid>
           <FormInput control={form.control} name="title" label="标题" rules={{ required: '请输入标题' }} />
           <FormInput
@@ -453,7 +459,7 @@ export default function DynamicFormPage() {
         />
       </FormDialog>
 
-      {/* ── 详情 ── */}
+      {/* ── Detail ── */}
       <DetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}
@@ -463,7 +469,7 @@ export default function DynamicFormPage() {
         footer={
           <>
             <Button variant="outline" onClick={() => setDetailOpen(false)}>
-              关闭
+              {t('关闭')}
             </Button>
             <Button
               disabled={!detail}
@@ -472,7 +478,7 @@ export default function DynamicFormPage() {
                 if (detail) openEdit(detail)
               }}
             >
-              编辑
+              {t('编辑')}
             </Button>
           </>
         }
@@ -509,7 +515,7 @@ export default function DynamicFormPage() {
                 <Separator />
                 <div className="space-y-2.5">
                   <div className="text-[13px] font-medium">
-                    动态字段 <span className="text-muted-foreground font-normal tabular-nums">（{detail.fields.length} 条）</span>
+                    {t('动态字段')} <span className="text-muted-foreground font-normal tabular-nums">{t('（{{count}} 条）', { count: detail.fields.length })}</span>
                   </div>
                   <DataTable
                     dense
@@ -541,7 +547,7 @@ export default function DynamicFormPage() {
               <>
                 <Separator />
                 <div className="space-y-1.5">
-                  <div className="text-[13px] font-medium">描述</div>
+                  <div className="text-[13px] font-medium">{t('描述')}</div>
                   <p className="text-muted-foreground text-[13px] leading-relaxed whitespace-pre-wrap">{detail.description}</p>
                 </div>
               </>
@@ -554,7 +560,7 @@ export default function DynamicFormPage() {
         open={exportOpen}
         onOpenChange={setExportOpen}
         title="动态表单页导出字段"
-        ruleHint={selectedKeys.length > 0 ? `已勾选 ${selectedKeys.length} 条，将优先导出勾选数据` : '未勾选时，将按当前筛选条件导出'}
+        ruleHint={selectedKeys.length > 0 ? t('已勾选 {{count}} 条，将优先导出勾选数据', { count: selectedKeys.length }) : '未勾选时，将按当前筛选条件导出'}
         fieldOptions={EXPORT_FIELDS}
         defaultFields={['title', 'record_code', 'category', 'status', 'owner', 'fields_count', 'updated_at']}
         onConfirm={handleExport}
@@ -576,7 +582,7 @@ export default function DynamicFormPage() {
         }}
         onImport={(file) => importDynamicFormPage(file)}
         onImported={(res) => {
-          toast.success(`导入成功：新增 ${res?.created || 0} 条，更新 ${res?.updated || 0} 条`)
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="dynamic_form_page_import_error_rows.csv"

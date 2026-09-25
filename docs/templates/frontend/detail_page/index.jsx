@@ -1,13 +1,13 @@
 /**
- * 详情页模板（shadcn/ui 体系：左侧列表 + 右侧详情，移动端上下堆叠）
+ * Detail page template (shadcn/ui: list on the left + details on the right, stacked vertically on mobile)
  *
- * 替换说明：
- *   - <Resource> → PascalCase 资源名；<resource> → snake_case；<module> → admin 或 component_center
- *   - 补充实际字段：SideItem 展示内容、DescriptionList items、EMPTY_VALUES / toFormValues、表单字段
- *   - 标签页按需增减（SegmentedTabs items）
+ * Replacements:
+ *   - <Resource> → PascalCase resource name; <resource> → snake_case; <module> → admin or component_center
+ *   - Fill in actual fields: SideItem content, DescriptionList items, EMPTY_VALUES / toFormValues, form fields
+ *   - Add or remove tabs as needed (SegmentedTabs items)
  *
- * 参考实现：apps/web/src/modules/component_center/pages/admin/detail_tabs_page/index.jsx
- * 方案与约定：docs/frontend-redesign-plan.md
+ * Reference implementation: apps/web/src/modules/component_center/pages/admin/detail_tabs_page/index.jsx
+ * Design and conventions: docs/frontend-redesign-plan.md
  */
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -37,7 +37,7 @@ const TABS = [
 const EMPTY_VALUES = { name: '', remark: '' }
 const toFormValues = (record) => ({ name: record.name ?? '', remark: record.remark ?? '' })
 
-// ─── 左侧列表项 ──────────────────────────────────────────────────────────────
+// ─── Left list item ─────────────────────────────────────────────────────────
 function SideItem({ item, selected, onClick }) {
   return (
     <motion.button
@@ -49,7 +49,7 @@ function SideItem({ item, selected, onClick }) {
         selected ? 'bg-brand-soft' : 'hover:bg-muted/60',
       )}
     >
-      {/* 替换为实际展示内容 */}
+      {/* Replace with the actual display content */}
       <span className={cn('truncate text-sm', selected && 'text-primary font-medium')}>{item.name}</span>
       <StatusBadge tone={item.status === 'active' ? 'success' : 'neutral'} variant="plain" dot>
         {item.status ?? '-'}
@@ -61,18 +61,18 @@ function SideItem({ item, selected, onClick }) {
 export default function <Resource>Page() {
   const [list, setList] = useState([])
   const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(true) // 只表示首次加载；刷新时保留旧列表，不闪骨架
+  const [loading, setLoading] = useState(true) // Only means the first load; on refresh keep the old list and don't flash the skeleton
   const [tab, setTab] = useState('info')
   const [editing, setEditing] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
 
   const form = useForm({ defaultValues: EMPTY_VALUES })
 
-  // 用 promise 链，只在回调里 setState（react-hooks/set-state-in-effect 不允许在 effect 里同步 setState）
+  // Use a promise chain and only setState inside callbacks (react-hooks/set-state-in-effect forbids synchronous setState in an effect)
   const fetchList = (keepId) =>
     getItems({ page: 1, per_page: 100 })
       .then((res) => {
-        const items = res.items || [] // request.js 已 unwrap，不要写 res.data.items
+        const items = res.items || [] // request.js already unwraps the response; don't write res.data.items
         setList(items)
         setSelected((prev) => items.find((i) => i.id === (keepId ?? prev?.id)) ?? items[0] ?? null)
       })
@@ -139,7 +139,7 @@ export default function <Resource>Page() {
       />
 
       <div className="grid gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
-        {/* 左侧列表 */}
+        {/* Left list */}
         <Panel padded={false} className="md:max-h-[calc(100vh-180px)] md:overflow-y-auto">
           {loading && list.length === 0 ? (
             <div className="space-y-3 p-4">
@@ -158,7 +158,7 @@ export default function <Resource>Page() {
           )}
         </Panel>
 
-        {/* 右侧详情 */}
+        {/* Right details */}
         <Panel className="min-w-0">
           {!selected ? (
             <EmptyState title="请从左侧选择" />
@@ -166,7 +166,7 @@ export default function <Resource>Page() {
             <div className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  {/* 替换为实际头像 / 图标 */}
+                  {/* Replace with the actual avatar / icon */}
                   <span className="bg-brand-gradient-strong flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white">
                     {(selected.name || '?').slice(0, 1).toUpperCase()}
                   </span>
@@ -192,7 +192,7 @@ export default function <Resource>Page() {
               <SegmentedTabs value={tab} onChange={setTab} items={TABS} />
 
               {tab === 'info' ? (
-                // 替换为实际字段
+                // Replace with the actual fields
                 <DescriptionList
                   columns={2}
                   items={[
@@ -212,7 +212,7 @@ export default function <Resource>Page() {
       </div>
 
       <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新增'} form={form} onSubmit={submit}>
-        {/* 补充实际表单字段 */}
+        {/* Add the actual form fields */}
         <FormInput control={form.control} name="name" label="名称" placeholder="请输入名称" rules={{ required: '请输入名称' }} />
         <FormTextarea control={form.control} name="remark" label="备注" placeholder="选填" />
       </FormDialog>

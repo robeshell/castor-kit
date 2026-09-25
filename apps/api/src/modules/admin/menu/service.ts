@@ -1,5 +1,5 @@
 /**
- * 菜单模块 service 层
+ * Menu module service layer
  */
 
 import { wouldCreateCycle } from '@/common/tree'
@@ -43,14 +43,14 @@ type Data = Record<string, unknown>
 const TEXT_FIELDS = new Set<MenuMutableField>(['name', 'code', 'icon', 'path', 'component', 'menu_type', 'description'])
 const INT_FIELDS = new Set<MenuMutableField>(['parent_id', 'sort_order'])
 
-/** 按列类型把请求体原始值转换成写库值（非法值 → 500） */
+/** Convert raw request-body values to DB values by column type (invalid values → 500) */
 function adaptField(field: MenuMutableField, value: unknown): unknown {
   if (TEXT_FIELDS.has(field)) return adaptText(value)
   if (INT_FIELDS.has(field)) return adaptInt(value)
   return adaptBool(value)
 }
 
-/** 导入时逐行更新的字段（parent_id 在第二阶段单独处理） */
+/** Fields updated per row on import (parent_id is handled separately in the second pass) */
 const IMPORT_FIELDS = [
   'name',
   'menu_type',
@@ -65,7 +65,7 @@ const IMPORT_FIELDS = [
 type ImportFields = Pick<Menu, (typeof IMPORT_FIELDS)[number] | 'code' | 'parent_id'>
 
 interface ImportState {
-  /** 数据库里的当前行（新建项在插入后才有） */
+  /** Current DB row (new items only have one after insert) */
   original: Menu | null
   current: ImportFields
 }
@@ -86,9 +86,9 @@ export class MenuService {
     }
   }
 
-  /** `Menu.to_dict(include_children=True)`：子节点逐层查询，按 sort_order 排序 */
+  /** `Menu.to_dict(include_children=True)`: children are queried level by level, ordered by sort_order */
   private async toDictWithChildren(menu: Menu, visiting: Set<number> = new Set()): Promise<MenuDict> {
-    // parent_id 指向自身/成环时视为递归过深 → 500
+    // A parent_id pointing to itself / forming a cycle is treated as too-deep recursion → 500
     if (visiting.has(menu.id)) throw internalError('maximum recursion depth exceeded')
     visiting.add(menu.id)
     const dict = menuToDict(menu)
@@ -113,8 +113,8 @@ export class MenuService {
   }
 
   /**
-   * 树形搜索（不只过滤根节点，否则子菜单永远搜不到）：
-   * 保留匹配节点及其祖先路径；匹配节点的子树完整返回，祖先只保留通向匹配节点的分支。
+   * Tree search (not just filtering root nodes, otherwise submenus could never be found):
+   * keep matched nodes and their ancestor paths; a matched node's subtree is returned in full, ancestors keep only the branches leading to matches.
    */
   private async searchTree(search: string): Promise<MenuDict[]> {
     const matched = new Set((await this.repo.listFlat(search)).map((m) => m.id))
@@ -122,7 +122,7 @@ export class MenuService {
     const parentOf = new Map((await this.repo.listFlat('')).map((m) => [m.id, m.parent_id]))
     const keep = new Set<number>()
     for (const id of matched) {
-      // 向上补齐祖先；visited 防止库里已有环时死循环
+      // Walk up to fill in ancestors; `visited` prevents an infinite loop if the DB already contains a cycle
       let cur: number | null | undefined = id
       while (cur != null && !keep.has(cur)) {
         keep.add(cur)
@@ -158,7 +158,7 @@ export class MenuService {
     return this.toDictWithChildren(menu)
   }
 
-  /** `build_menu_entity`：值为 None 的列走模型默认值 */
+  /** `build_menu_entity`: columns whose value is None fall back to the model default */
   private buildMenuValues(data: Data, code: string): NewMenuValues {
     return {
       name: adaptText(data.name)!,
@@ -185,7 +185,7 @@ export class MenuService {
 
   async createMenu(data: Data): Promise<MenuDict> {
     validateCreatePayload(data)
-    // 非字符串 code：按 `menus.code = 5` 查询时 PG 报 operator does not exist → 500
+    // Non-string code: querying `menus.code = 5` makes PG raise operator does not exist → 500
     if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
     const code = data.code
     if (await this.repo.getByCode(code)) throw new ServiceError(`菜单编码 ${code} 已存在`, 400)
@@ -213,13 +213,13 @@ export class MenuService {
       if (await this.repo.getByCode(data.code)) throw new ServiceError(`菜单编码 ${data.code} 已存在`, 400)
     }
 
-    // 只 UPDATE 值真正变化的列；没有变化就不发 UPDATE，updated_at 也不变
+    // Only UPDATE columns whose value actually changed; if nothing changed no UPDATE is sent and updated_at stays
     const changed = MENU_MUTABLE_FIELDS.filter((f) => f in data && !pyEq(data[f], menu[f]))
     if (changed.length === 0) return menuToDict(menu)
 
     return this.inTx(async (repo, tx) => {
       const values = Object.fromEntries(changed.map((f) => [f, adaptField(f, data[f])])) as MenuUpdateValues
-      // 设计说明：父级改成自身或子孙会成环，之后菜单树接口无限递归（500），菜单管理与侧边栏全部不可用，所以这里拦截
+      // Design note: making a menu its own parent or a descendant's child creates a cycle; the menu tree API then recurses forever (500) and both menu management and the sidebar break, so block it here
       const newParent = values.parent_id
       if (typeof newParent === 'number' && (await wouldCreateCycle(tx, 'menus', menu.id, newParent))) {
         throw new ServiceError('父级菜单不能是自身或其子菜单', 400)
@@ -264,10 +264,10 @@ export class MenuService {
   }
 
   /**
-   * 当前用户可见菜单树。注意（保持既有接口行为）：
-   * - 没有 super_admin 短路，只看角色实际分配的菜单
-   * - 只有“启用且可见”的菜单作为起点，其祖先无条件加入
-   * - 叶子节点没有 children 键（不是 children: []）
+   * Menu tree visible to the current user. Note (preserves existing API behavior):
+   * - no super_admin short-circuit; only menus actually assigned to the user's roles count
+   * - only active and visible menus are starting points; their ancestors are added unconditionally
+   * - leaf nodes have no children key (not children: [])
    */
   async getMyMenus(user: AdminUserWithRoles | null): Promise<MenuDict[]> {
     if (!user) return []
@@ -378,7 +378,7 @@ export class MenuService {
         pending.push([state, parsed.parent_code, line, row])
       }
 
-      // flush：已有菜单只更新变化的列；新菜单按出现顺序插入（parent_id 此时为空）
+      // flush: existing menus only update changed columns; new menus are inserted in file order (parent_id still empty at this point)
       for (const state of cache.values()) {
         if (!state.original) continue
         const changed = IMPORT_FIELDS.filter((f) => state.current[f] !== state.original![f])
@@ -410,7 +410,7 @@ export class MenuService {
         state.current.parent_id = parent.original!.id
       }
 
-      // 设计说明：按导入后的最终父子关系检查成环（A→B、B→A 这类），成环的行记为错误、整批回滚
+      // Design note: check for cycles (A→B, B→A, etc.) using the final parent/child relations after import; cyclic rows are recorded as errors and the whole batch rolls back
       const parentOf = new Map<number, number | null>()
       for (const st of cache.values()) if (st.original) parentOf.set(st.original.id, st.current.parent_id ?? null)
       for (const [state, parentCode, line, row] of pending) {
@@ -426,7 +426,7 @@ export class MenuService {
       }
 
       if (errors.length > 0) {
-        // 抛错让事务整体回滚
+        // Throw so the whole transaction rolls back
         throw new ServiceError('导入失败，存在错误数据', 400, {
           error_rows: errors.slice(0, 500),
           error_count: errors.length,

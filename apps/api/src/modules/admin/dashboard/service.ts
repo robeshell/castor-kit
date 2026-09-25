@@ -1,5 +1,5 @@
 /**
- * 首页仪表盘 service 层：统计逻辑
+ * Home dashboard service layer: statistics logic
  */
 
 import type { Db } from '@/db/client'

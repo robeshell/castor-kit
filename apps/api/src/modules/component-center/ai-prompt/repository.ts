@@ -1,5 +1,5 @@
 /**
- * AI 提示词模板 repository 层
+ * AI prompt template repository layer
  */
 
 import { asc, eq, sql } from 'drizzle-orm'
@@ -11,7 +11,7 @@ import { ai_prompt_templates, type AiPromptTemplate } from '@/db/schema'
 export type AiPromptTemplateInsert = PgInsertValue<typeof ai_prompt_templates>
 export type AiPromptTemplateUpdate = PgUpdateSetSource<typeof ai_prompt_templates>
 
-/** json 列按 `json.dumps` 的文本格式写入（`["a", "b"]`，分隔符带空格） */
+/** json columns are written in `json.dumps` text format (`["a", "b"]`, separators include a space) */
 export function variablesValue(variables: string[]) {
   return sql`${pyJsonDumps(variables)}::json`
 }

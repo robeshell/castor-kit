@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { useTx } from '@/i18n'
 import { useUploader } from '@/shared/components/upload/useUploader'
 
-/** 附件上传 */
+/** Attachment upload */
 export default function FileUpload({
   fileList = [],
   onFileListChange,

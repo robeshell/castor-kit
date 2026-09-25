@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { useTx } from '@/i18n'
 
 /**
- * 多选（可搜索）：options = [{ label, value }]，value 为数组（保持原始类型，数字还是数字）。
+ * Multi-select (searchable): options = [{ label, value }], value is an array (original types are kept; numbers stay numbers).
  */
 export default function MultiSelect({ value = [], onChange, options = [], placeholder = '请选择', disabled, className, maxShown = 3 }) {
   const tx = useTx()

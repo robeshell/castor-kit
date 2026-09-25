@@ -1,12 +1,12 @@
 /**
- * AI SQL 只读角色初始化
+ * AI SQL read-only role initialization
  *
- * 在迁移建表之后执行：创建非超级用户只读角色 castor_kit_ro，仅授予业务表 SELECT
- * （排除 admin_users / 日志 / 定时任务等敏感表，复用 AI SQL 模块的 isVisibleTable），
- * 并强制角色级只读 + 超时。
+ * Run after migrations create the tables: creates the non-superuser read-only role castor_kit_ro and grants it only SELECT on business tables
+ * (excluding sensitive tables such as admin_users / logs / scheduled tasks, reusing the AI SQL module's isVisibleTable),
+ * and enforces role-level read-only + timeouts.
  *
- * 用法：`pnpm init-ro-role`（setup-once 在迁移与 RBAC 之后调用）。
- * 未配置 POSTGRES_RO_PASSWORD 时跳过（不阻塞启动）。全程幂等，新迁移新增的业务表会被自动授权。
+ * Usage: `pnpm init-ro-role` (setup-once calls it after migrations and RBAC).
+ * Skipped when POSTGRES_RO_PASSWORD is not configured (does not block startup). Fully idempotent; business tables added by new migrations are granted automatically.
  */
 
 import pg from 'pg'
@@ -17,14 +17,14 @@ export const RO_ROLE = 'castor_kit_ro'
 const SAFE_TABLE_NAME = /^[a-z0-9_]+$/
 const SAFE_ROLE_NAME = /^[a-z_][a-z0-9_]*$/
 
-// 授权范围与 AI SQL 的 schema 可见范围同一套规则（ai-sql/schema.ts 的 isVisibleTable）
+// The grant scope follows the same rules as AI SQL's schema visibility (isVisibleTable in ai-sql/schema.ts)
 export { isVisibleTable }
 
 export interface InitRoRoleOptions {
   databaseUrl: string
-  /** POSTGRES_RO_PASSWORD（首尾空白已去除）；为空则跳过 */
+  /** POSTGRES_RO_PASSWORD (leading/trailing whitespace trimmed); skip when empty */
   roPassword: string
-  /** 只读角色名，默认 castor_kit_ro（测试用独立角色名，避免改动集群里共用角色的密码） */
+  /** Read-only role name, defaults to castor_kit_ro (tests use a separate role name to avoid changing the password of a role shared across the cluster) */
   roleName?: string
   log?: (msg: string) => void
 }
@@ -34,7 +34,7 @@ export interface InitRoRoleResult {
   granted: number
 }
 
-/** 从连接串取数据库名（URL path，已解码） */
+/** Get the database name from the connection string (URL path, decoded) */
 function databaseNameFromUrl(databaseUrl: string): string {
   try {
     return decodeURIComponent(new URL(databaseUrl).pathname.replace(/^\//, ''))
@@ -60,7 +60,7 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
   await client.connect()
   try {
     await client.query('BEGIN')
-    // 1. 幂等创建角色（LOGIN，非超级用户、无建库建角色权限）
+    // 1. Idempotently create the role (LOGIN, non-superuser, no CREATEDB/CREATEROLE)
     await client.query(`
       DO $$
       BEGIN
@@ -69,22 +69,22 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
           END IF;
       END $$;
     `)
-    // 2. 设置密码：ALTER ROLE 是工具语句不支持绑定参数，用 escapeLiteral 转义
+    // 2. Set the password: ALTER ROLE is a utility statement that doesn't support bind parameters, so escape with escapeLiteral
     await client.query(`ALTER ROLE ${role} PASSWORD ${client.escapeLiteral(roPassword)}`)
-    // 3. 角色级强制只读 + 超时（即使绕过应用层连接参数也生效）
+    // 3. Enforce read-only + timeouts at the role level (applies even if app-level connection parameters are bypassed)
     await client.query(`ALTER ROLE ${role} SET default_transaction_read_only = on`)
     await client.query(`ALTER ROLE ${role} SET statement_timeout = 5000`)
-    // 4. 允许访问 public 模式
+    // 4. Allow access to the public schema
     await client.query(`GRANT USAGE ON SCHEMA public TO ${role}`)
 
-    // 5. 只授予业务表 SELECT（敏感表不授权，连 SELECT 都拿不到）
+    // 5. Grant SELECT on business tables only (sensitive tables get no grant, not even SELECT)
     const { rows } = await client.query<{ table_name: string }>(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
     )
     let granted = 0
     for (const { table_name: tname } of rows) {
       if (!isVisibleTable(tname)) continue
-      // 表名来自 information_schema 且经白名单校验，安全拼接
+      // Table names come from information_schema and pass the allowlist check, so interpolation is safe
       if (!SAFE_TABLE_NAME.test(tname)) {
         log(`  跳过非预期表名: ${tname}`)
         continue
@@ -93,7 +93,7 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
       granted += 1
     }
 
-    // 6. 禁止 PUBLIC 使用临时表（加固）
+    // 6. Forbid PUBLIC from using temporary tables (hardening)
     const databaseName = databaseNameFromUrl(options.databaseUrl)
     if (databaseName) {
       await client.query(`REVOKE TEMPORARY ON DATABASE ${client.escapeIdentifier(databaseName)} FROM PUBLIC`)
@@ -111,7 +111,7 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
   }
 }
 
-// 按脚本文件名判断是否为直接运行：本文件会被 setup-once 打包进同一个产物，import.meta.url 不可靠
+// Detect direct execution by script file name: this file is bundled into the same output by setup-once, so import.meta.url is unreliable
 const isMain = /[\\/]init-ro-role\.(?:ts|js|mjs)$/.test(process.argv[1] ?? '')
 if (isMain) {
   const env = (process.env.NODE_ENV ?? 'development') as AppEnv
