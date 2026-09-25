@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeftToLine, ArrowRightToLine, ChevronDown, RotateCw, X, XCircle } from 'lucide-react'
@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
-import { resolveMenuIcon } from '@/lib/menu-icons'
 import { menuLabel } from '@/lib/menu-label'
 import { cn } from '@/lib/utils'
 import { STATIC_TITLES, findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
@@ -53,6 +52,7 @@ function TabActions({ Item, Separator, tab }) {
 
 /**
  * Tags view: one tab per opened page under the top bar (state in context/TagsViewContext.jsx).
+ * Tabs are text only (third-level menus show no icon in the sidebar either, so icons here would be inconsistent).
  * Middle-click closes a tab; right-click opens the tab menu. Desktop only.
  */
 export default function TagsView() {
@@ -99,12 +99,11 @@ export default function TagsView() {
                         }
                       }}
                       className={cn(
-                        'group flex h-7 items-center gap-1.5 rounded-md pr-1.5 pl-2.5 text-[12.5px] whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                        'group flex h-7 items-center gap-1 rounded-md pr-1.5 pl-2.5 text-[12.5px] whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                         tab.affix && 'pr-2.5',
                         active ? 'bg-brand-soft text-primary font-medium' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                       )}
                     >
-                      {menu ? createElement(resolveMenuIcon(menu), { className: 'size-3.5 shrink-0' }) : null}
                       <span className="max-w-40 truncate">{title}</span>
                       {tab.affix ? null : (
                         <span
