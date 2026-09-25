@@ -181,7 +181,7 @@ export default function AdvancedTablePage() {
   const fetchStats = () => {
     getAdvancedTableStats()
       .then(setStats)
-      .catch(() => {})
+      .catch(() => setStats((prev) => prev ?? {}))
   }
 
   useEffect(() => {
@@ -561,11 +561,11 @@ export default function AdvancedTablePage() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="总记录" icon={Rows3} value={stats?.total ?? 0} />
-        <StatCard label="已发布" icon={Send} value={stats?.published_count ?? 0} />
-        <StatCard label="置顶" icon={Pin} value={stats?.pinned_count ?? 0} />
-        <StatCard label="平均进度" icon={Gauge} value={avg(stats?.avg_progress)} decimals={decimalsOf(stats?.avg_progress)} suffix="%" />
-        <StatCard label="平均评分" icon={Star} value={avg(stats?.avg_score)} decimals={decimalsOf(stats?.avg_score)} className="col-span-2 md:col-span-1" />
+        <StatCard loading={!stats} label="总记录" icon={Rows3} value={stats?.total ?? 0} />
+        <StatCard loading={!stats} label="已发布" icon={Send} value={stats?.published_count ?? 0} />
+        <StatCard loading={!stats} label="置顶" icon={Pin} value={stats?.pinned_count ?? 0} />
+        <StatCard loading={!stats} label="平均进度" icon={Gauge} value={avg(stats?.avg_progress)} decimals={decimalsOf(stats?.avg_progress)} suffix="%" />
+        <StatCard loading={!stats} label="平均评分" icon={Star} value={avg(stats?.avg_score)} decimals={decimalsOf(stats?.avg_score)} className="col-span-2 md:col-span-1" />
       </div>
 
       <div>

@@ -542,6 +542,7 @@ export default function StatsListPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
+          loading={statsLoading && !stats}
           label="总记录数"
           icon={Layers}
           value={stats?.total ?? 0}
@@ -550,6 +551,7 @@ export default function StatsListPage() {
           deltaTone="neutral"
         />
         <StatCard
+          loading={statsLoading && !stats}
           label="已发布"
           icon={CircleCheck}
           value={stats?.published_count ?? 0}
@@ -558,6 +560,7 @@ export default function StatsListPage() {
           deltaTone="neutral"
         />
         <StatCard
+          loading={statsLoading && !stats}
           label="已归档"
           icon={Archive}
           value={stats?.archived_count ?? 0}
@@ -566,6 +569,7 @@ export default function StatsListPage() {
           deltaTone="neutral"
         />
         <StatCard
+          loading={statsLoading && !stats}
           label="总金额"
           icon={Wallet}
           value={stats?.total_amount ?? 0}

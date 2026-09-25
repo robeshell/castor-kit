@@ -21,6 +21,12 @@ import EmptyState from '@/shared/components/EmptyState'
  *   onRowClick(row) / rowClassName(row) / emptyTitle / emptyDescription / emptyAction
  *   bordered（默认 true：外层带卡片边框）/ dense（紧凑行高）
  */
+/** 骨架条宽度：按行列错开，避免每行一模一样像条形码 */
+const SKELETON_WIDTHS = ['w-2/3', 'w-1/2', 'w-3/4', 'w-2/5', 'w-3/5']
+function skeletonWidth(row, col) {
+  return SKELETON_WIDTHS[(row * 7 + col * 3) % SKELETON_WIDTHS.length]
+}
+
 export default function DataTable({
   data = [],
   columns = [],
@@ -101,10 +107,14 @@ export default function DataTable({
             {loading && data.length === 0
               ? Array.from({ length: skeletonRows }).map((_, i) => (
                   <tr key={`sk-${i}`} className={cn('border-b last:border-0', rowHeight)}>
-                    {selectable ? <td className="px-3" /> : null}
+                    {selectable ? (
+                      <td className="w-10 px-3">
+                        <Skeleton className="size-4 rounded-[4px]" />
+                      </td>
+                    ) : null}
                     {columns.map((col, j) => (
                       <td key={col.key || col.dataIndex || j} className="px-3">
-                        <Skeleton className={cn('h-3.5', j === 0 ? 'w-3/4' : 'w-1/2')} />
+                        <Skeleton className={cn('h-3.5', skeletonWidth(i, j), col.align === 'right' && 'ml-auto')} />
                       </td>
                     ))}
                   </tr>
@@ -168,7 +178,7 @@ export default function DataTable({
       {!loading && data.length === 0 ? (
         <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
       ) : null}
-      {pagination ? <DataPagination {...pagination} /> : null}
+      {pagination ? <DataPagination {...pagination} loading={loading && data.length === 0} /> : null}
     </div>
   )
 }
@@ -188,14 +198,14 @@ function pageList(page, totalPages) {
 }
 
 /** 分页条：共 N 条 · 页码 · 上一页/下一页 */
-export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, className }) {
+export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, loading = false, className }) {
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const from = total === 0 ? 0 : (page - 1) * perPage + 1
   const to = Math.min(page * perPage, total)
   return (
     <div className={cn('flex items-center justify-between gap-3 border-t px-3 py-2.5 text-xs', className)}>
       <span className="text-muted-foreground tabular-nums">
-        {total === 0 ? '共 0 条' : `第 ${from}–${to} 条，共 ${total} 条`}
+        {loading ? '\u00a0' : total === 0 ? '共 0 条' : `第 ${from}–${to} 条，共 ${total} 条`}
       </span>
       <div className="flex items-center gap-1">
         <Button

@@ -1,10 +1,10 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { lazy, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import AppLayout from '@/components/app/AppLayout'
 import PrivateRoute from '@/components/app/PrivateRoute'
-import { ErrorPage, NoPermissionPage, PageLoading, RouteNotConfigured } from '@/components/app/StatusPages'
+import { ErrorPage, NoPermissionPage, RouteNotConfigured } from '@/components/app/StatusPages'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Login from '@/modules/auth/pages/login'
@@ -121,10 +121,9 @@ function AppRoutes() {
             <Route
               key={menu.path}
               path={normalizeRoutePath(menu.path)}
+              // Suspense 在 AppLayout 里（跨路由共用一个边界），切页时保留旧页面直到新页面代码加载完
               element={Component ? (
-                <Suspense fallback={<PageLoading />}>
-                  <Component />
-                </Suspense>
+                <Component />
               ) : (
                 <RouteNotConfigured path={menu.path} component={menu.component} />
               )}
