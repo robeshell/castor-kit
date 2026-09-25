@@ -123,7 +123,11 @@ The **Deploy to Render** button in the README does the same thing.
 The demo can use Google Gemini's free tier to show AI chat and AI Data Query:
 
 1. Create an API key with your Google account in [Google AI Studio](https://aistudio.google.com)
-2. In the Render service's **Environment**, set `AI_API_KEY` (that key) and `AI_MODEL` (a Flash model name listed in AI Studio); `AI_API_BASE` is already set to Gemini's OpenAI-compatible endpoint in `render.yaml`. Saving restarts the service
+2. In the Render service's **Environment**, set `AI_API_KEY` (that key) and `AI_MODEL` (we recommend `gemini-3.5-flash`); `AI_API_BASE` is already set to Gemini's OpenAI-compatible endpoint in `render.yaml`. Saving restarts the service
+
+::: tip Choosing a model
+The newest Flash model is often overloaded on the free tier and returns 503 (for example `gemini-3.8-flash` at the time of writing). For the demo, use an earlier stable model such as `gemini-3.5-flash` or `gemini-3.5-flash-lite`. When something fails, search the Render **Logs** for "AI 上游返回错误" to see the upstream's reason.
+:::
 
 Demo mode rate-limits AI: 20 calls per IP per hour, 300 per day for the whole site, at most 4000 characters per request, and a capped reply length. Adjust with the `DEMO_AI_*` variables (see [Configuration](/en/reference/configuration#public-demo)). Free-tier requests may be used by the provider to improve its products, so don't enter sensitive data in the demo.
 
