@@ -1,12 +1,17 @@
 import { cn } from '@/lib/utils'
+import logoUrl from '@/assets/castor-logo.png'
 
-/** Brand mark: gradient tile + wordmark */
-export default function BrandMark({ className, showText = true, subtitle }) {
+/** Brand mark: beaver avatar + wordmark */
+export default function BrandMark({ className, imageClassName, showText = true, subtitle }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <div className="bg-brand-gradient-strong shadow-brand flex size-7 shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold text-white">
-        C
-      </div>
+      <img
+        src={logoUrl}
+        alt={showText ? '' : 'castor-kit'}
+        width={28}
+        height={28}
+        className={cn('size-7 shrink-0 object-contain', imageClassName)}
+      />
       {showText ? (
         <div className="flex min-w-0 flex-col leading-tight">
           <span className="truncate text-sm font-semibold tracking-tight">castor-kit</span>

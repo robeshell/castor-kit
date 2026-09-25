@@ -1,0 +1,187 @@
+/*
+ * Login page animated backdrop: drifting aurora blobs, a panning grid with a light band sweeping across it,
+ * a pointer spotlight that lights up the grid around the cursor, and a light running around the form card border.
+ * Brand colors only (Ocean); decoration must stay behind the form card.
+ * prefers-reduced-motion is handled globally (index.css shortens every animation), and the spotlight is not wired up then.
+ */
+
+.login-backdrop {
+  --spot-x: 50%;
+  --spot-y: 45%;
+  --spot-opacity: 0;
+  --aurora-strength: 22%;
+  --grid-line: color-mix(in srgb, var(--foreground) 7%, transparent);
+  --grid-glow: color-mix(in srgb, var(--brand-via) 55%, transparent);
+}
+
+.dark .login-backdrop {
+  --aurora-strength: 30%;
+  --grid-line: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --grid-glow: color-mix(in srgb, var(--brand-to) 60%, transparent);
+}
+
+/* ---- aurora ---- */
+.login-aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  will-change: transform;
+}
+
+.login-aurora-1 {
+  top: -18%;
+  left: 12%;
+  width: 46vmax;
+  height: 46vmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-from) var(--aurora-strength), transparent), transparent);
+  animation: login-drift-1 22s ease-in-out infinite alternate;
+}
+
+.login-aurora-2 {
+  top: 8%;
+  right: -8%;
+  width: 40vmax;
+  height: 40vmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-to) var(--aurora-strength), transparent), transparent);
+  animation: login-drift-2 26s ease-in-out infinite alternate;
+}
+
+.login-aurora-3 {
+  bottom: -24%;
+  left: 30%;
+  width: 44vmax;
+  height: 44vmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-via) var(--aurora-strength), transparent), transparent);
+  animation: login-drift-3 30s ease-in-out infinite alternate;
+}
+
+@keyframes login-drift-1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(14vw, 8vh, 0) scale(1.15); }
+  100% { transform: translate3d(-6vw, 14vh, 0) scale(0.95); }
+}
+
+@keyframes login-drift-2 {
+  0% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-16vw, 12vh, 0) scale(0.9); }
+  100% { transform: translate3d(-4vw, -6vh, 0) scale(1.1); }
+}
+
+@keyframes login-drift-3 {
+  0% { transform: translate3d(0, 0, 0) scale(0.95); }
+  50% { transform: translate3d(10vw, -14vh, 0) scale(1.1); }
+  100% { transform: translate3d(-12vw, -4vh, 0) scale(1); }
+}
+
+/* ---- grid: faint lines everywhere, fading out towards the edges, panning ---- */
+.login-grid,
+.login-grid-glow,
+.login-grid-sweep {
+  position: absolute;
+  inset: -56px;
+  background-size: 56px 56px;
+  animation: login-grid-pan 14s linear infinite;
+}
+
+.login-grid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, black 25%, transparent 100%);
+}
+
+/* the same grid in the brand color, only visible inside the pointer spotlight */
+.login-grid-glow {
+  background-image:
+    linear-gradient(to right, var(--grid-glow) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-glow) 1px, transparent 1px);
+  mask-image: radial-gradient(260px circle at var(--spot-x) var(--spot-y), black, transparent 70%);
+  opacity: var(--spot-opacity);
+  transition: opacity 0.4s var(--ease-out-soft);
+}
+
+@keyframes login-grid-pan {
+  to {
+    background-position: 56px 56px;
+  }
+}
+
+/* a diagonal light band that sweeps across the grid every few seconds */
+.login-grid-sweep {
+  background-image:
+    linear-gradient(to right, var(--grid-glow) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-glow) 1px, transparent 1px);
+  mask-image:
+    linear-gradient(115deg, transparent 40%, black 50%, transparent 60%),
+    radial-gradient(ellipse 70% 65% at 50% 45%, black 30%, transparent 100%);
+  mask-composite: intersect;
+  mask-size: 250% 250%, 100% 100%;
+  mask-repeat: no-repeat;
+  animation:
+    login-grid-pan 14s linear infinite,
+    login-grid-sweep 7s ease-in-out infinite;
+}
+
+@keyframes login-grid-sweep {
+  0% { mask-position: 100% 100%, 0 0; }
+  60%, 100% { mask-position: 0% 0%, 0 0; }
+}
+
+/* ---- form card border: a light segment running around the border ---- */
+@property --login-border-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.login-card-border {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--login-border-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--brand-from) 35%, transparent) 300deg,
+    color-mix(in srgb, var(--brand-to) 55%, transparent) 330deg,
+    transparent 360deg
+  );
+  /* keep only the 1px ring: the content box is cut out of the padding box */
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: login-border-spin 12s linear infinite;
+  pointer-events: none;
+}
+
+/* a blurred copy of the ring gives the running light a soft glow */
+.login-card-border-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  filter: blur(6px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.login-card-border-glow > .login-card-border {
+  padding: 3px;
+}
+
+@keyframes login-border-spin {
+  to {
+    --login-border-angle: 360deg;
+  }
+}
+
+/* soft light under the pointer */
+.login-spotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(420px circle at var(--spot-x) var(--spot-y), color-mix(in srgb, var(--brand-via) 10%, transparent), transparent 70%);
+  opacity: var(--spot-opacity);
+  transition: opacity 0.4s var(--ease-out-soft);
+}
