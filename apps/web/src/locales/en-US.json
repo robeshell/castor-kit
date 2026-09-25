@@ -156,5 +156,12 @@
   "浮动": "Floating",
   "内嵌": "Inset",
   "定宽": "Fixed",
-  "流式": "Fluid"
+  "流式": "Fluid",
+  "刷新": "Refresh",
+  "关闭其他": "Close others",
+  "关闭右侧": "Close to the right",
+  "关闭全部": "Close all",
+  "标签页操作": "Tab actions",
+  "标签栏": "Tabs bar",
+  "切换标签时保留页面状态": "Keeps page state when switching tabs"
 }

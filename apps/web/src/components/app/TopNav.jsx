@@ -31,11 +31,11 @@ function tabClass(active) {
   return cn(TAB, active ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground')
 }
 
-/** Nested dropdown items; branches become submenus */
-function MenuItems({ menus, activeId, activePath }) {
+/** Nested dropdown items; branches become submenus. Like the sidebar, only the first level under a root shows icons */
+function MenuItems({ menus, activeId, activePath, depth = 0 }) {
   return menus.map((menu) => {
     const children = visibleChildren(menu)
-    const icon = createElement(resolveMenuIcon(menu), { className: cn(activePath.has(menu.id) && 'text-primary') })
+    const icon = depth === 0 ? createElement(resolveMenuIcon(menu), { className: cn(activePath.has(menu.id) && 'text-primary') }) : null
     if (children.length > 0) {
       return (
         <DropdownMenuSub key={menu.id}>
@@ -44,7 +44,7 @@ function MenuItems({ menus, activeId, activePath }) {
             {menuLabel(menu)}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-44">
-            <MenuItems menus={children} activeId={activeId} activePath={activePath} />
+            <MenuItems menus={children} activeId={activeId} activePath={activePath} depth={depth + 1} />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
       )
