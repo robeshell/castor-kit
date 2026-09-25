@@ -5,6 +5,7 @@
 >
 > 各工具专属配置：`CLAUDE.md`（Claude Code）| `CODEX.md`（Codex CLI）| `.cursor/rules/`（Cursor）| `.github/copilot-instructions.md`（Copilot）| `.windsurfrules`（Windsurf）| `llms.txt`（入口索引）
 > 架构说明：`docs/architecture.md`（技术栈、分层与反模式、横切约定、迁移、工具链、部署、设计决定）。
+> 功能路线图：`docs/roadmap.md`（计划中的新功能及其数据模型、接口、验收标准；实现其中任何一项前先读对应章节，完成后更新状态）。
 > 前端 UI 方案：`docs/frontend-redesign-plan.md`（Semi Design → shadcn/ui + Tailwind CSS v4 + motion，设计 tokens 与公共组件约定）。
 
 ---
