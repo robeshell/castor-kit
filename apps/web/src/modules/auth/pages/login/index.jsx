@@ -14,16 +14,8 @@ import { toast } from '@/lib/toast'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { login } from '@/modules/admin/api/auth'
+import LoginBackdrop from '@/modules/auth/pages/login/LoginBackdrop'
 import { useTranslation } from 'react-i18next'
-
-/** Backdrop: a fine grid centered on the form card plus an Ocean glow behind it; decoration only, it must not compete with the form */
-function Backdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_42%_46%_at_50%_46%,black_20%,transparent_100%)] bg-[size:56px_56px]" />
-    </div>
-  )
-}
 
 function Halo() {
   return (
@@ -78,10 +70,10 @@ export default function Login() {
 
   return (
     <div className="bg-sidebar relative flex h-svh flex-col overflow-y-auto">
-      <Backdrop />
+      <LoginBackdrop />
 
-      <header className="relative flex items-center justify-between px-5 py-4 sm:px-8">
-        <BrandMark />
+      {/* The brand lives in the form card; the header only carries the language / theme switches */}
+      <header className="relative flex items-center justify-end px-5 py-4 sm:px-8">
         <div className="flex items-center gap-1">
           <LanguageSwitcher />
           <ThemeToggle />
@@ -102,9 +94,7 @@ export default function Login() {
             <div className="via-brand-via absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent to-transparent" />
 
             <div className="flex flex-col items-center text-center">
-              <div className="bg-brand-gradient-strong shadow-brand flex size-11 items-center justify-center rounded-xl text-lg font-semibold text-white">
-                C
-              </div>
+              <BrandMark showText={false} imageClassName="size-11" />
               <h1 className="mt-5 text-[22px] font-semibold tracking-tight">{t('登录 castor-kit')}</h1>
             </div>
 
