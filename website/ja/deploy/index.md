@@ -2,8 +2,10 @@
 
 Docker Compose でのデプロイをおすすめします。compose 構成には PostgreSQL（`db`）と Node アプリケーション（`app`）の 2 つのサービスが含まれます。アプリケーションのプロセスは、バックエンド API とビルド済みのフロントエンドのページを両方とも配信します。
 
-::: info 自動デプロイはありません
-このプロジェクトでは CI による自動デプロイは行いません。`.github/workflows/ci.yml` は push と Pull Request のときに lint、型チェック、テスト、検証ゲート、フロントエンドのビルドを実行するだけです。デプロイはサーバー上で手動で行います。更新の手順は後述します。
+::: info アプリの自動デプロイはありません
+アプリケーションは CI による自動デプロイを行いません。`.github/workflows/ci.yml` は push と Pull Request のときに lint、型チェック、テスト、検証ゲート、フロントエンドのビルドを実行するだけです。デプロイはサーバー上で手動で行います。更新の手順は後述します。
+
+ドキュメントサイトは例外です。`website/` の変更が main にマージされると、`.github/workflows/docs.yml` がビルドして GitHub Pages に公開します（リポジトリの Settings → Pages で Source を GitHub Actions に設定してください）。Pull Request ではビルドとリンク切れのチェックのみ行います。
 :::
 
 ## アーキテクチャの概要

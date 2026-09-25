@@ -109,4 +109,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 |---|---|
 | `npm --prefix website install` | ドキュメントサイトの依存関係をインストール |
 | `npm --prefix website run dev` | ドキュメントサイトをローカルでプレビュー |
-| `npm --prefix website run build` | ドキュメントサイトをビルド |
+| `npm --prefix website run build` | ドキュメントサイトをビルド（リンク切れがあると失敗） |
+| `npm --prefix website run screenshots` | 起動中のアプリからランディングページと README のスクリーンショットを撮り直す（先に `pnpm dev` を実行。admin のパスワードを尋ねられます） |
+
+main にマージされると、`.github/workflows/docs.yml` がサイトを GitHub Pages に公開します。

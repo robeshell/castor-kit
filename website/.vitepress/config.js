@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitepress'
 
 const REPO = 'https://github.com/robeshell/castor-kit'
+// Published by .github/workflows/docs.yml to GitHub Pages
+const SITE = 'https://robeshell.github.io/castor-kit'
 
 /**
  * One page tree, three languages. `prefix` is '' for the root (Chinese) locale and '/en' / '/ja' otherwise;
@@ -107,6 +109,13 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/castor-kit/castor-logo.png' }],
     ['meta', { name: 'theme-color', content: '#2563eb' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'castor-kit' }],
+    ['meta', { property: 'og:image', content: `${SITE}/og.png` }],
+    ['meta', { property: 'og:image:width', content: '1280' }],
+    ['meta', { property: 'og:image:height', content: '640' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: `${SITE}/og.png` }],
   ],
 
   locales: {

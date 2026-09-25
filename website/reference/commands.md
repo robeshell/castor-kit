@@ -109,4 +109,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 |---|---|
 | `npm --prefix website install` | 安装文档站依赖 |
 | `npm --prefix website run dev` | 本地预览文档站 |
-| `npm --prefix website run build` | 构建文档站 |
+| `npm --prefix website run build` | 构建文档站（会检查死链） |
+| `npm --prefix website run screenshots` | 从运行中的应用重新截取落地页和 README 的截图（需先 `pnpm dev`，会提示输入 admin 密码） |
+
+合入 main 后，文档站由 `.github/workflows/docs.yml` 自动发布到 GitHub Pages。

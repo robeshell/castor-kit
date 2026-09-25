@@ -614,6 +614,7 @@ Step 5  验证门禁（强制，不得跳过）
 - 文档站与官网在 `website/`（VitePress，独立 npm 项目，不在 pnpm workspace 内）：中文是根语言（`website/guide/…`），英文 `website/en/`、日文 `website/ja/`，三种语言页面一一对应；首页是 `.vitepress/theme/components/Landing.vue`，文案在 `landing-content.js`
 - 落地页与 README 的界面图都是真实截图（`website/public/screenshots/`、`.github/assets/screenshot-*.webp`），由 `npm --prefix website run screenshots` 在 `pnpm dev` 运行时自动截取（会提示输入 admin 密码）；界面外观有明显变化时重新截图
 - 功能行为、命令、环境变量有变化时，同一个 PR 里同步更新三种语言的文档；本地预览 `npm --prefix website run dev`，提交前 `npm --prefix website run build`（会检查死链）
+- 文档站由 `.github/workflows/docs.yml` 发布到 GitHub Pages（https://robeshell.github.io/castor-kit/）：`website/` 的改动合入 main 后自动部署，PR 只构建检查
 - 仓库根目录的 `README.md`（英文）/ `README_CN.md` / `README.ja.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 面向外部贡献者；用户可见的变化记到 `CHANGELOG.md` 的 `[Unreleased]`
 
 ## 常用命令速查

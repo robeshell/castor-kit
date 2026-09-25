@@ -19,7 +19,7 @@
 
 [English](README.md) · [简体中文](README_CN.md) · **日本語**
 
-[ドキュメント](website/ja/guide/index.md) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
+[ドキュメント](https://robeshell.github.io/castor-kit/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
 
 <br>
 
@@ -133,7 +133,7 @@ AGENTS.md     人と AI ツールが共有する開発ルール
 | トピック | [権限](website/ja/guide/rbac.md) · [多言語対応](website/ja/guide/i18n.md) · [テーマとレイアウト](website/ja/guide/appearance.md) |
 | リファレンス | [コマンド一覧](website/ja/reference/commands.md) · [設定](website/ja/reference/configuration.md) · [デプロイ](website/ja/deploy/index.md) |
 
-ドキュメントサイトをローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
+オンラインで読む：**[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/ja/)**。ローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
 
 ## コントリビュート
 
