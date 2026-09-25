@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useData, withBase } from 'vitepress'
 import AiTerminal from './AiTerminal.vue'
-import AppMockup from './AppMockup.vue'
+import Showcase from './Showcase.vue'
 import { CONTENT, INSTALL, STACK } from './landing-content.js'
 
 /** Marketing landing page (the site root of each locale); copy lives in landing-content.js */
@@ -86,7 +86,7 @@ const ICONS = {
         <h2>{{ c.showcase.title }}</h2>
         <p class="section-lead">{{ c.showcase.lead }}</p>
       </header>
-      <AppMockup :t="c.showcase" />
+      <Showcase :t="c.showcase" />
     </section>
 
     <!-- ── AI workflow ── -->

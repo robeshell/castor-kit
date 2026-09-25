@@ -1,78 +1,65 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
-    <img src=".github/assets/wordmark-light.svg" alt="castor-kit" height="96">
-  </picture>
-</p>
+<div align="center">
 
-<p align="center">
-  <strong>すぐ使える管理画面。新機能は AI におまかせ。</strong><br>
-  ユーザー、ロール、権限、メニュー、ログなどの基本機能は実装済み。<br>
-  新しい画面は要件を伝えるだけで、AI がテーブル・API・画面を作り、動作まで自動でチェックします。
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
+  <img src=".github/assets/wordmark-light.svg" alt="castor-kit" height="110">
+</picture>
 
-<p align="center">
-  <a href="https://github.com/robeshell/castor-kit/actions/workflows/ci.yml"><img src="https://github.com/robeshell/castor-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2563eb" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7" alt="Node ≥ 22">
-  <img src="https://img.shields.io/badge/pnpm-workspace-22d3ee" alt="pnpm workspace">
-  <img src="https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7" alt="i18n: zh · en · ja">
-  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-2563eb" alt="PRs welcome"></a>
-</p>
+### すぐ使える管理画面。新機能は AI におまかせ。
 
-<p align="center">
-  <a href="website/ja/guide/index.md">ドキュメント</a> ·
-  <a href="#クイックスタート">クイックスタート</a> ·
-  <a href="CONTRIBUTING.md">コントリビュート</a> ·
-  <a href="README.md">English</a> ·
-  <a href="README_CN.md">简体中文</a> ·
-  <b>日本語</b>
-</p>
+ユーザー、ロール、権限、メニュー、ログなどの基本機能は実装済み。<br>
+新しい画面は要件を伝えるだけで、AI がテーブル・API・画面を作り、動作まで自動でチェックします。
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-dark.png">
-    <img src=".github/assets/screenshot-light.png" alt="castor-kit 管理画面" width="880">
-  </picture>
-</p>
+[![CI](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
+![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
+![i18n](https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-22d3ee)](CONTRIBUTING.md)
 
----
+[English](README.md) · [简体中文](README_CN.md) · **日本語**
 
-## なぜ castor-kit か
+[ドキュメント](website/ja/guide/index.md) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
 
-多くのスキャフォールドは出発点を用意するだけで、その先は開発者の規律任せです。castor-kit はその規律を書き残しました。[`AGENTS.md`](AGENTS.md) にはアーキテクチャ、命名、フィールド型の推論、権限、多言語のルールが、あらゆる AI コーディングツールが従える形で記述されています。さらにスキャフォールドと検証ゲートが、それらのルールを強制できる仕組みに変えます。人が書いても AI が書いても、千個目の機能は一個目と同じくらいきれいなままです。
+<br>
 
-> *Castor* はビーバーのラテン語の属名です。ビーバーは自然界のエンジニア。丸太を一本ずつ積み上げて、ダム全体を築き上げます。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-ja-dark.webp">
+  <img src=".github/assets/screenshot-ja-light.webp" alt="castor-kit 管理画面" width="900">
+</picture>
 
-## 特長
+</div>
 
-- **AI 駆動のワークフロー**：Claude Code、Cursor、GitHub Copilot、Windsurf、Codex CLI、MCP クライアント向けに設定済み。一文の依頼から、テーブル、API、画面、RBAC エントリー、マイグレーションを生成します。
-- **納品ゲート**：`pnpm verify` が 15 項目を検査します。型チェック、レイヤー規約、マイグレーションチェーン、ルート登録、RBAC のシードと同期、OpenAPI の同期、API とフロントエンドのテスト、本番ビルド。
-- **完全な RBAC**：ユーザー、ロール、メニュー、ボタン単位の権限。新しい機能は自動的に権限体系に組み込まれます。
-- **デザインされた管理画面**：shadcn/ui + Tailwind CSS v4、6 色のアクセント、ライトとダーク、3 種類のナビゲーション、ページの状態を保持するタブバー。
-- **3 言語対応**：UI と API エラーを中国語・英語・日本語で表示。スキャナーとテストが翻訳漏れを防ぎます。
-- **25 以上のサンプル画面**：テーブル、ダッシュボード、チャート、Three.js の地球儀、AI チャット、エディター、カンバン、WebSocket ツールなど。
-- **インポート / エクスポート**：フロントエンドとバックエンドの両方で CSV と XLSX に対応。行単位で検証します。
-- **ワンライナーでデプロイ**：`bash setup.sh` が Docker Compose で PostgreSQL、API、Web アプリを起動し、マイグレーションと初期データ投入まで行います。
+## castor-kit とは？
 
-## 仕組み
+castor-kit はオープンソースの管理画面です。今日そのまま使えて、明日からは AI で機能を増やせます。
 
-```text
-あなた ▸ 「設備台帳」を作って：名称、コード、状態、購入日、担当者
+- **すぐに使える**：ログイン、ユーザー、ロール、ボタン単位の権限、メニュー、ログ、データ辞書、定期タスク、通知、お知らせを実装済み。洗練された UI で、ライト / ダークに対応。
+- **AI で拡張する前提の設計**：開発ルールを AI コーディングツール（Claude Code、Cursor、Copilot、Codex CLI など）がそのまま従える形で記述。要件を一文で伝えれば、テーブル・API・画面・権限ができあがり、自動チェックを通って完成します。
 
-AI     ▸ 仕様（型、テーブル、メニュー、ボタン権限）を推論し、業務プレビューを提示
-       $ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
-       $ pnpm db:migrate
-       $ pnpm seed:rbac -- --incremental
-       $ pnpm verify -- --module equipment
-       ✓ typescript_compile ✓ migration_chain ✓ router_registration ✓ rbac_sync ✓ api_tests ✓ frontend_tests ✓ frontend_build
-```
+## 機能
 
-全体の流れは [AI 駆動開発](website/ja/guide/ai-workflow.md) を参照してください。
+<table>
+  <tr>
+    <td width="33%"><b>権限管理</b><br>ユーザー、ロール、メニュー、ボタン単位まで。</td>
+    <td width="33%"><b>AI 対応</b><br>一文からテーブル、API、画面、権限を生成。</td>
+    <td width="33%"><b>自動チェック</b><br>型、マイグレーション、ルート、権限、テスト、ビルドの 15 項目。</td>
+  </tr>
+  <tr>
+    <td><b>テーマとレイアウト</b><br>6 色のテーマ、3 種類のレイアウト、ライト / ダーク、タブバー。</td>
+    <td><b>3 言語対応</b><br>画面もエラーメッセージも中・英・日で表示。</td>
+    <td><b>インポート / エクスポート</b><br>すべての表で Excel と CSV に対応、行単位で検証。</td>
+  </tr>
+  <tr>
+    <td><b>25 以上のサンプル画面</b><br>ダッシュボード、チャート、カンバン、3D、AI チャット、エディターなど。</td>
+    <td><b>きれいな構成</b><br>明確なレイヤー、strict な TypeScript、レビューできる SQL マイグレーション。</td>
+    <td><b>コマンド 1 つでデプロイ</b><br>Docker Compose でデータベースからアプリまで起動。</td>
+  </tr>
+</table>
 
 ## クイックスタート
 
-**Docker（推奨）**：必要なのは Docker だけです。
+**Docker を使う**（推奨、必要なのは Docker だけ）：
 
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
@@ -80,9 +67,10 @@ cd castor-kit
 bash setup.sh
 ```
 
-ウィザードで管理者パスワードとポート（既定は `5000`）を設定し、必要に応じて AI 機能も構成します。完了したら `http://localhost:5000` を開き、`admin` でサインインします。
+セットアップウィザードで管理者パスワードとポート（既定は `5000`）を設定します。完了したら `http://localhost:5000` を開き、`admin` でサインインしてください。
 
-**ローカル開発**：Node 22 以上、pnpm、PostgreSQL 14 以上が必要です。
+<details>
+<summary><b>ローカル開発</b>（Node.js 22 以上、pnpm、PostgreSQL 14 以上）</summary>
 
 ```bash
 pnpm install
@@ -93,42 +81,69 @@ pnpm seed:rbac
 pnpm dev                                              # API :5001 · Web :5173
 ```
 
+</details>
+
+## AI で機能を作る
+
+1. **AI に伝える**：「設備台帳を作って。名称、コード、状態、購入日、担当者。」
+2. **プレビューを確認**：AI がフィールド型、テーブル、メニュー、権限を判断し、業務の言葉でまとめたプレビューを見せます。
+3. **生成とチェック**：AI がスキャフォールド、マイグレーション、権限の同期を実行し、最後に納品チェックを走らせます。
+
+```text
+$ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
+$ pnpm db:migrate
+$ pnpm seed:rbac -- --incremental
+$ pnpm verify -- --module equipment
+✓ typescript_compile  ✓ migration_chain  ✓ router_registration  ✓ rbac_sync
+✓ api_tests  ✓ frontend_tests  ✓ frontend_build
+```
+
+AI が従うルールは [`AGENTS.md`](AGENTS.md) にあります。詳しくは [AI 駆動開発](website/ja/guide/ai-workflow.md) を参照してください。
+
 ## 技術スタック
 
 | レイヤー | 技術 |
 |---|---|
-| バックエンド | Node.js 22 · TypeScript · Fastify 5 · Zod 4 |
-| データベース | PostgreSQL · Drizzle ORM（レビュー可能な SQL マイグレーション） |
-| フロントエンド | React 19 · Vite · React Router 7 · i18next |
-| UI | shadcn/ui（Radix）· Tailwind CSS v4 · Motion · lucide-react |
-| データとチャート | TanStack Table · react-hook-form · ECharts 6 · Three.js |
-| ツール | pnpm workspaces · Vitest · ESLint · MCP サーバー · Docker Compose |
+| **バックエンド** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
+| **フロントエンド** | React 19 · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
+| **データとチャート** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
+| **ツール** | pnpm workspaces · Vitest · ESLint · MCP サーバー · Docker Compose |
 
-## ディレクトリ構成
+<details>
+<summary><b>ディレクトリ構成</b></summary>
 
 ```text
 apps/
   api/        Fastify API：db/schema → modules/<domain>/<name>/{schema,repository,service,routes}.ts
   web/        React アプリ：modules/<module>/pages/**、共通コンポーネント、翻訳ファイル
   mcp/        scaffold / verify / seed / マイグレーションを提供する MCP サーバー
-docs/         アーキテクチャ資料、スキャフォールドのテンプレート
+docs/         アーキテクチャ資料とスキャフォールドのテンプレート
 website/      ドキュメントとランディングサイト（VitePress）
-AGENTS.md     人と AI ツールが共有する唯一の規約
+AGENTS.md     人と AI ツールが共有する開発ルール
 ```
+
+</details>
 
 ## ドキュメント
 
-ドキュメントは [`website/`](website) にあります。[概要](website/ja/guide/index.md)、[クイックスタート](website/ja/guide/getting-started.md)、[バックエンド](website/ja/guide/backend.md)、[フロントエンド](website/ja/guide/frontend.md)、[RBAC](website/ja/guide/rbac.md)、[多言語対応](website/ja/guide/i18n.md)、[テーマとレイアウト](website/ja/guide/appearance.md)、[デプロイ](website/ja/deploy/index.md) を扱っています。ローカルで閲覧するには：
+| カテゴリ | ページ |
+|---|---|
+| はじめに | [概要](website/ja/guide/index.md) · [クイックスタート](website/ja/guide/getting-started.md) · [プロジェクト構成](website/ja/guide/project-structure.md) |
+| 開発 | [AI 駆動開発](website/ja/guide/ai-workflow.md) · [バックエンド](website/ja/guide/backend.md) · [フロントエンド](website/ja/guide/frontend.md) |
+| トピック | [権限](website/ja/guide/rbac.md) · [多言語対応](website/ja/guide/i18n.md) · [テーマとレイアウト](website/ja/guide/appearance.md) |
+| リファレンス | [コマンド一覧](website/ja/reference/commands.md) · [設定](website/ja/reference/configuration.md) · [デプロイ](website/ja/deploy/index.md) |
 
-```bash
-npm --prefix website install
-npm --prefix website run dev
-```
+ドキュメントサイトをローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
 
 ## コントリビュート
 
-Issue と Pull Request を歓迎します。まず [CONTRIBUTING.md](CONTRIBUTING.md) と [行動規範](CODE_OF_CONDUCT.md) をお読みください。セキュリティ上の問題は公開 Issue ではなく、[SECURITY.md](SECURITY.md) の手順で報告してください。
+Issue と Pull Request を歓迎します。まず[コントリビューションガイド](CONTRIBUTING.md)と[行動規範](CODE_OF_CONDUCT.md)をお読みください。セキュリティ上の問題は [SECURITY.md](SECURITY.md) の手順で非公開に報告してください。主な変更は[変更履歴](CHANGELOG.md)に記録しています。
 
 ## ライセンス
 
 [MIT](LICENSE) © castor-kit contributors
+
+<div align="center">
+<br>
+<sub><i>Castor</i> はビーバーのラテン名。ビーバーは自然界のエンジニアで、丸太を一本ずつ積み上げてダムを築きます。</sub>
+</div>

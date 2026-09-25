@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Added
 
-- Documentation and landing site rebuilt on VitePress with a custom theme, an interactive product showcase and docs in Chinese, English and Japanese.
+- Documentation and landing site rebuilt on VitePress with a custom theme, real product screenshots (captured by `npm --prefix website run screenshots`) and docs in Chinese, English and Japanese.
 - Community files: MIT `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue forms and a pull request template; README in English, Chinese and Japanese.
 - `castorkit` wordmark next to the beaver logo, in the app and as SVG assets.
 - Tabs bar: opened pages stay as tabs and keep their state (React `<Activity>`), with refresh / close / close others / close to the right / close all and per-page scroll memory ([#9]).
