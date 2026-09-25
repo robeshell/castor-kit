@@ -12,13 +12,13 @@ export default function BrandMark({ className, imageClassName, showText = true, 
       <img
         src={logoUrl}
         alt={showText ? '' : 'castor-kit'}
-        width={28}
-        height={28}
-        className={cn('size-7 shrink-0 object-contain', imageClassName)}
+        width={32}
+        height={32}
+        className={cn('size-8 shrink-0 object-contain', imageClassName)}
       />
       {showText ? (
         <div className="flex min-w-0 flex-col">
-          <span aria-label="castor-kit" className="truncate text-[17px] leading-none font-bold tracking-[-0.035em]">
+          <span aria-label="castor-kit" className="truncate text-[21px] leading-none font-bold tracking-[-0.04em]">
             castor<span className="text-brand-gradient">kit</span>
           </span>
           {subtitle ? <span className="text-muted-foreground mt-1 truncate text-[11px]">{subtitle}</span> : null}
