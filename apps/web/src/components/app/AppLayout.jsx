@@ -11,7 +11,6 @@ import { useIsMobile } from '@/shared/hooks/use-mobile'
 import AppSidebar from '@/components/app/AppSidebar'
 import { PageLoading } from '@/components/app/StatusPages'
 import CommandMenu from '@/components/app/CommandMenu'
-import DemoBanner from '@/components/app/DemoBanner'
 import TagsView from '@/components/app/TagsView'
 import TopBar from '@/components/app/TopBar'
 import { TagsViewProvider, useTagsView } from '@/context/TagsViewContext'
@@ -113,7 +112,6 @@ function Shell() {
         <AppSidebar variant={sidebarVariant} section={!isMobile && navMode === 'mixed' ? section : undefined} />
       ) : null}
       <SidebarInset className={cn('min-w-0 overflow-hidden', !showSidebar && 'md:m-0 md:rounded-none md:shadow-none')}>
-        <DemoBanner />
         <TopBar onOpenSearch={() => setSearchOpen(true)} />
         {tagsView ? <TagsView /> : null}
         <PageArea keepAlive={tagsView && !isMobile} container={contentContainerClass(contentWidth)} />
