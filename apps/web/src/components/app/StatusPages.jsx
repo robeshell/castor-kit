@@ -56,15 +56,36 @@ export function RouteNotConfigured({ path, component }) {
   )
 }
 
+/**
+ * 页面代码首次加载时的占位：形状对齐标准列表页（标题 + 右侧按钮、筛选栏、表格卡片），
+ * 与 DataTable 自己的行骨架一致，页面出来时不跳。只在登录后打开第一个页面时可能看到——
+ * 之后切页由 AppLayout 的 Suspense + 路由 transition 保留旧页面，直到新页面代码就绪。
+ */
 export function PageLoading() {
+  const widths = ['w-2/3', 'w-1/2', 'w-3/4', 'w-2/5', 'w-3/5']
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-4 w-80" />
+    <div aria-busy="true" aria-label="加载中">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <Skeleton className="h-7 w-36" />
+        <div className="hidden gap-2 sm:flex">
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-8 w-24" />
+        </div>
       </div>
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-[360px] w-full rounded-xl" />
+      <div className="mb-4 flex gap-2">
+        <Skeleton className="h-9 w-full max-w-64" />
+        <Skeleton className="h-9 w-16" />
+      </div>
+      <div className="surface-card overflow-hidden">
+        <div className="bg-muted/40 h-10 border-b" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="grid h-12 grid-cols-4 items-center gap-6 border-b px-4 last:border-0">
+            {Array.from({ length: 4 }).map((__, j) => (
+              <Skeleton key={j} className={`h-3.5 ${widths[(i * 7 + j * 3) % widths.length]}`} />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

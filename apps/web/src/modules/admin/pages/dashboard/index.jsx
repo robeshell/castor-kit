@@ -20,6 +20,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
 import { formatRelative } from '@/lib/format'
@@ -215,7 +216,7 @@ function RecentActivity() {
       {loading ? (
         <div className="space-y-2 px-5 pb-5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-muted h-9 animate-pulse rounded-md" />
+            <Skeleton key={i} className="h-9" />
           ))}
         </div>
       ) : logs.length === 0 ? (
@@ -260,9 +261,9 @@ export default function Dashboard() {
     request
       .get('/admin/dashboard/stats')
       .then((data) => {
-        if (data && !data.error) setStats(data)
+        setStats(data && !data.error ? data : {})
       })
-      .catch(() => {})
+      .catch(() => setStats({}))
   }, [])
 
   const dateText = now.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })
@@ -293,10 +294,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="注册用户" value={stats?.user_count ?? 0} suffix="人" icon={Users} />
-        <StatCard label="菜单数量" value={stats?.menu_count ?? 0} suffix="项" icon={ListTree} />
-        <StatCard label="角色权限" value={stats?.role_count ?? 0} suffix="个" icon={ShieldCheck} />
-        <StatCard label="今日日志" value={stats?.today_log_count ?? 0} suffix="条" icon={Activity} />
+        <StatCard label="注册用户" value={stats?.user_count ?? 0} loading={!stats} suffix="人" icon={Users} />
+        <StatCard label="菜单数量" value={stats?.menu_count ?? 0} loading={!stats} suffix="项" icon={ListTree} />
+        <StatCard label="角色权限" value={stats?.role_count ?? 0} loading={!stats} suffix="个" icon={ShieldCheck} />
+        <StatCard label="今日日志" value={stats?.today_log_count ?? 0} loading={!stats} suffix="条" icon={Activity} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">

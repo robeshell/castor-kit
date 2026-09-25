@@ -35,7 +35,7 @@ export default function TopBar({ onOpenSearch }) {
       <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="flex-nowrap">
-          <BreadcrumbItem className="hidden sm:inline-flex">
+          <BreadcrumbItem className="hidden shrink-0 whitespace-nowrap sm:inline-flex">
             <BreadcrumbLink asChild>
               <Link to="/">工作台</Link>
             </BreadcrumbLink>
@@ -43,7 +43,7 @@ export default function TopBar({ onOpenSearch }) {
           {trail.map((item, index) => (
             <Fragment key={`${item.name}-${index}`}>
               <BreadcrumbSeparator className={index === 0 ? 'hidden sm:block' : undefined} />
-              <BreadcrumbItem className={item.current ? 'min-w-0' : 'hidden md:inline-flex'}>
+              <BreadcrumbItem className={item.current ? 'min-w-0' : 'hidden shrink-0 whitespace-nowrap md:inline-flex'}>
                 {item.current ? (
                   <BreadcrumbPage className="truncate">{item.name}</BreadcrumbPage>
                 ) : (

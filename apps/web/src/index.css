@@ -183,6 +183,20 @@
 
   --ease-spring: var(--ease-spring);
   --ease-out-soft: var(--ease-out-soft);
+
+  /* 骨架屏：200ms 后才淡入（本地接口秒回时不闪），扫光在 ::after 上 */
+  --animate-skeleton-in: skeleton-in 0.2s ease-out 0.2s both;
+  @keyframes skeleton-in {
+    from {
+      opacity: 0;
+    }
+  }
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
 }
 
 @layer base {
