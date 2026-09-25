@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ChevronsUpDown, LogOut, Moon, Sun, UserRound } from 'lucide-react'
+import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
-import { useTheme } from '@/context/ThemeContext'
 import { roleName } from '@/lib/role-label'
 import { useTranslation } from 'react-i18next'
 
@@ -41,7 +40,6 @@ function useUserMenu() {
 /** Dropdown items shared by the sidebar footer menu and the compact top-bar menu */
 function UserMenuItems({ user, roleText, onLogout }) {
   const { t } = useTranslation()
-  const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   return (
     <>
@@ -57,10 +55,6 @@ function UserMenuItems({ user, roleText, onLogout }) {
         <DropdownMenuItem onSelect={() => navigate('/profile')}>
           <UserRound />
           {t('个人设置')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={toggleTheme}>
-          {isDark ? <Sun /> : <Moon />}
-          {isDark ? t('切换浅色模式') : t('切换深色模式')}
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />

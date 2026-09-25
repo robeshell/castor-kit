@@ -21,6 +21,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- The user menu no longer has a light / dark toggle; the top bar button and the ⌘K command menu cover it.
 - The default content width is now fluid (full width); fixed width stays available in the appearance menu.
 - The 3D globe and particle demos follow the accent color.
 - Light-mode sidebar uses a cool off-white with a raised selection chip; pagination follows the accent color.
