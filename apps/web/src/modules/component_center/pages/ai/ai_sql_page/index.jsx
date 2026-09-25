@@ -38,17 +38,17 @@ const canRenderChart = (columns, rows) => {
 // Sample questions (demo content, not translated)
 const EXAMPLE_QUESTIONS = [
   // i18n-ignore-next-line: sample question sent to the AI as-is
-  '最近 7 天每天新增的用户数',
+  '最近 7 天每天新加入的成员数',
   // i18n-ignore-next-line: sample question sent to the AI as-is
-  '每个角色分别有多少用户',
+  '各部门分别有多少成员',
   // i18n-ignore-next-line: sample question sent to the AI as-is
-  '各类型菜单各有多少条',
+  '每个月新加入的成员数（最近 6 个月）',
   // i18n-ignore-next-line: sample question sent to the AI as-is
-  '登录日志中登录失败次数最多的前 10 个用户',
+  '看板每一列各有多少张卡片',
   // i18n-ignore-next-line: sample question sent to the AI as-is
-  '所有定时任务及其状态',
+  '甘特图中还没完成的任务，按结束日期排序',
   // i18n-ignore-next-line: sample question sent to the AI as-is
-  '每个月新增用户数趋势（最近 6 个月）',
+  '统计列表中各分类的金额合计',
 ]
 
 function ResultChart({ columns, rows }) {
