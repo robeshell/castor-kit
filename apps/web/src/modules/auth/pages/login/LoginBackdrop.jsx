@@ -1,8 +1,20 @@
 import { useEffect, useRef } from 'react'
 import './login-backdrop.css'
 
+/** Light running around the form card border; place it as the first child of a rounded, relative card */
+export function LoginCardBorder() {
+  return (
+    <>
+      <div aria-hidden className="login-card-border-glow">
+        <div className="login-card-border" />
+      </div>
+      <div aria-hidden className="login-card-border" />
+    </>
+  )
+}
+
 /**
- * Animated login backdrop (see login-backdrop.css): aurora blobs + panning grid + pointer spotlight.
+ * Animated login backdrop (see login-backdrop.css): aurora blobs + panning grid with a sweeping light band + pointer spotlight.
  * The spotlight follows the pointer through CSS variables updated at most once per frame;
  * it is not wired up for touch-only devices or when the user prefers reduced motion.
  */
@@ -47,6 +59,7 @@ export default function LoginBackdrop() {
       <div className="login-aurora login-aurora-2" />
       <div className="login-aurora login-aurora-3" />
       <div className="login-grid" />
+      <div className="login-grid-sweep" />
       <div className="login-grid-glow" />
       <div className="login-spotlight" />
     </div>

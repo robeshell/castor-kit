@@ -14,7 +14,7 @@ import { toast } from '@/lib/toast'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { login } from '@/modules/admin/api/auth'
-import LoginBackdrop from '@/modules/auth/pages/login/LoginBackdrop'
+import LoginBackdrop, { LoginCardBorder } from '@/modules/auth/pages/login/LoginBackdrop'
 import { useTranslation } from 'react-i18next'
 
 function Halo() {
@@ -90,6 +90,7 @@ export default function Login() {
           <Halo />
           {/* Form card: the only visual focus of the page */}
           <div className="bg-card relative overflow-hidden rounded-2xl px-7 pt-9 pb-7 shadow-[0_0_0_1px_var(--border),0_1px_2px_rgba(0,0,0,0.04),0_28px_56px_-24px_rgba(15,23,42,0.22)] sm:px-9 dark:shadow-[0_0_0_1px_var(--border),0_28px_56px_-24px_rgba(0,0,0,0.7)]">
+            <LoginCardBorder />
             {/* A gradient highlight along the top edge adds a touch of brand */}
             <div className="via-brand-via absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent to-transparent" />
 
