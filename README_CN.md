@@ -19,7 +19,7 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md)
 
-[文档](https://robeshell.github.io/castor-kit/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
+**[在线演示](https://castor-kit-demo.onrender.com)** · [文档](https://robeshell.github.io/castor-kit/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
@@ -71,7 +71,9 @@ bash setup.sh
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
 
-**免费在线演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/deploy/index.md)。
+**在线体验**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)，登录页一键登录（免费实例闲置后首次访问需要约 30 秒唤醒）。
+
+**部署你自己的演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/deploy/index.md)。
 
 <details>
 <summary><b>本地开发</b>（Node.js 22+、pnpm、PostgreSQL 14+）</summary>

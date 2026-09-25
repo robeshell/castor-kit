@@ -19,7 +19,7 @@
 
 [English](README.md) · [简体中文](README_CN.md) · **日本語**
 
-[ドキュメント](https://robeshell.github.io/castor-kit/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
+**[ライブデモ](https://castor-kit-demo.onrender.com)** · [ドキュメント](https://robeshell.github.io/castor-kit/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
 
 <br>
 
@@ -71,7 +71,9 @@ bash setup.sh
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
 
-**無料のオンラインデモ**：ワンクリックで Render にデプロイし、データベースは Neon の無料プランを使います（システム管理は読み取り専用、データは毎日リセット）。手順は [Render + Neon](website/ja/deploy/index.md) を参照してください。
+**試してみる**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)。ログイン画面からワンクリックでログインできます（無料インスタンスのため、しばらくアクセスがないと最初の表示に 30 秒ほどかかります）。
+
+**自分のデモをデプロイ**：ワンクリックで Render にデプロイし、データベースは Neon の無料プランを使います（システム管理は読み取り専用、データは毎日リセット）。手順は [Render + Neon](website/ja/deploy/index.md) を参照してください。
 
 <details>
 <summary><b>ローカル開発</b>（Node.js 22 以上、pnpm、PostgreSQL 14 以上）</summary>

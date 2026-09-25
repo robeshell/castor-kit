@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useData, withBase } from 'vitepress'
 import AiTerminal from './AiTerminal.vue'
 import Showcase from './Showcase.vue'
-import { CONTENT, INSTALL, STACK } from './landing-content.js'
+import { CONTENT, DEMO_URL, INSTALL, STACK } from './landing-content.js'
 
 /** Marketing landing page (the site root of each locale); copy lives in landing-content.js */
 const { lang } = useData()
@@ -60,6 +60,7 @@ const ICONS = {
         <p class="lead">{{ c.hero.lead }}</p>
         <div class="actions">
           <a class="btn brand" :href="href('/guide/getting-started')">{{ c.hero.primary }} <span aria-hidden="true">→</span></a>
+          <a class="btn alt" :href="DEMO_URL" target="_blank" rel="noreferrer">{{ c.hero.demo }}</a>
           <a class="btn alt" href="https://github.com/robeshell/castor-kit" target="_blank" rel="noreferrer">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3"/></svg>
             {{ c.hero.secondary }}
