@@ -194,6 +194,9 @@ describe('scaffold CLI（临时目录副本）', () => {
     trimDrizzleToBaseline(join(api, 'drizzle'))
     symlinkSync(join(API_DIR, 'node_modules'), join(api, 'node_modules'), 'dir')
     mkdirSync(join(root, 'apps', 'web', 'src', 'modules'), { recursive: true })
+    // 生成的接口测试会 import ./helpers，tsc 检查时需要它
+    mkdirSync(join(api, 'test'), { recursive: true })
+    cpSync(join(API_DIR, 'test', 'helpers.ts'), join(api, 'test', 'helpers.ts'))
   })
 
   afterAll(() => {
@@ -211,6 +214,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     const res = scaffoldCli(['--name', name, '--domain', 'component_center', '--fields', fields, '--dry-run', '--root', root])
     expect(res.code).toBe(0)
     expect(res.out).toContain('[dry-run] would write: apps/api/src/modules/component-center/ck-scaffold-demo/routes.ts')
+    expect(res.out).toContain('[dry-run] would write: apps/api/test/cc-ck-scaffold-demo.test.ts')
     expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/pages/admin/ck_scaffold_demo_page/index.jsx')
     expect(res.out).toContain('[dry-run] would run: drizzle-kit generate --name ck_scaffold_demo')
     expect(res.out).toContain('Perm prefix: cc_ck_scaffold_demo')
@@ -228,6 +232,7 @@ describe('scaffold CLI（临时目录副本）', () => {
       'apps/api/src/modules/admin/ck-scaffold-demo/repository.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/service.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts',
+      'apps/api/test/admin-ck-scaffold-demo.test.ts',
       'apps/web/src/modules/admin/api/ck_scaffold_demo.js',
       'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx',
     ]) {

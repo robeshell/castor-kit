@@ -414,7 +414,7 @@ component_center/dataviz/realtime_chart_page
   - `readTableFile(file)` → `{ fieldnames, rows, fileType }`（rows 带行号，5MB 上限，csv 自动去 BOM）
   - `normalizeTableFileType(raw, fallback)` → 标准化文件类型；`sanitizeFormula()` 做公式注入防护
   - 上传文件用 `getUploadedFile(request)`（`@/common/http`）
-- 在 `modules/<domain>/<name>/schema.ts` 定义 `EXPORT_FIELD_MAP`（字段 → [中文表头, 取值函数]）和 `IMPORT_HEADER_MAP`（中文表头 → 字段）
+- 在 `modules/<domain>/<name>/schema.ts` 定义 `EXPORT_FIELD_MAP`（字段 → 中文表头，值取 toDict 的同名字段；需要转换时写成 `[中文表头, 取值函数]`，如枚举显示中文）和 `IMPORT_HEADER_MAP`（中文表头 → 字段）
 - 导入整批一个事务：有错误行时抛 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` 整体回滚
 - 路由：`POST /export`、`GET /template`、`POST /import`（挂在资源路径下）；权限编码 `<perm>_export` / `<perm>_import`
 - 参考实现：`apps/api/src/modules/admin/users/`
@@ -501,7 +501,7 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 | 内容、正文、详情 | `text` | `text()` | 富文本 |
 | 标签、tags | `text` | `text()` | JSON 字符串 |
 
-**scaffold 的已知限制**（生成后手工补，见 `new-feature-autopilot` 技能 4a）：`--fields` 表达不了必填 / 唯一 / 默认值（改 `db/schema` 后 `pnpm db:generate` 增量迁移，service 在新增 / 编辑 / 导入三处补校验）；生成的标签是英文占位；`bool` 列可为空；枚举字段按 `str20` 生成，存英文代码、界面显示中文需手写映射。
+**scaffold 的已知限制**（详见 `new-feature-autopilot` 技能 4a）：`--fields` 表达不了必填 / 唯一 / 默认值——用 `--skip-migration` 生成后改 `db/schema` 再 `pnpm db:generate`，一张表只出一个迁移，违反约束自动返回 400（`common/db-errors.ts`）；生成的标签是英文占位；`bool` 列可为空；枚举字段按 `str20` 生成，存英文代码、界面显示中文需手写映射；表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。
 
 ---
 
@@ -581,6 +581,7 @@ Step 5  验证门禁（强制，不得跳过）
   后端：apps/api/src/db/schema/<domain>/<name>.ts
         apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
         apps/api/src/db/schema/index.ts、apps/api/src/modules/<domain>/router.ts（注册）
+        apps/api/test/<admin|cc>-<name>.test.ts（接口测试，已按业务规则更新）
   前端：apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
         apps/web/src/modules/<module>/api/<name>.js
   RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）

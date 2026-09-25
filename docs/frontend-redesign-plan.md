@@ -69,14 +69,16 @@ apps/web/src/
 
 ## 5. 公共组件约定（页面必须复用，不各写一套）
 
-- `PageHeader`：标题、描述、右侧操作区。
-- `ListToolbar`：搜索框 + 筛选项 + 查询/重置；
-- `DataTable`：列定义（TanStack），`loading` 骨架、空态、分页（total/page/perPage）、行选择、行 hover 操作。
-- `FormDialog` / `FormSheet`：新建/编辑表单容器（react-hook-form），提交 loading、错误提示。
-- `ConfirmButton`：删除等危险操作的确认弹层（替代 Popconfirm）。
-- `ImportDialog` / `ExportDialog`：替代 ImportCsvModal / ExportFieldsModal，接口与原组件 props 对齐，只支持 csv/xlsx。
-- `PermissionGate` / `useAuth().hasPermission`：按钮权限。
-- `toast.success / toast.error`：统一反馈；后端 `{error}` 文案直接展示。
+组件都在 `apps/web/src/shared/components/`，完整用法见 `.claude/skills/shadcn-ui-skills/COMPONENTS.md`。
+
+- `PageHeader`：标题 + 右侧操作区（description 只放数据类信息）。
+- `Filters`（`FilterBar` / `SearchInput` / `FilterSelect`）：搜索框 + 筛选项 + 查询/重置。
+- `DataTable`：自研表格（非 TanStack），列定义 `{ key, title, dataIndex, render, … }`；`loading` 骨架、空态、分页（total/page/perPage）、行选择。
+- `FormDialog` / `FormSheet` + `FormFields`：新建/编辑表单容器（react-hook-form），提交 loading、错误提示。
+- `ConfirmAction`：删除等危险操作的确认弹层；`RowActions`：行操作。
+- `data-transfer/ImportDialog` / `ExportDialog`：导入导出，只支持 csv/xlsx。
+- `useAuth().hasPermission(code)`：按钮权限（`@/context/AuthContext`）。
+- `toast.success / toast.error / toast.apiError`（`@/lib/toast`）：统一反馈；后端 `{error}` 文案直接展示。
 
 ## 6. 实施步骤
 

@@ -48,11 +48,13 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 - 资源名（snake_case，如 customer_order）与所属域（admin | component_center）
 - API 路径（/api/admin/<resource>s，多词用连字符，如 /api/admin/customer-orders）
 - 字段名 + scaffold 类型（str/str20/str50/str500/text/int/float/bool/date/datetime，参考 AGENTS.md 字段类型推断规则）
-- 权限编码（admin 域 system_<name>，component_center 域 cc_<name>；按钮 _add/_edit/_delete/_export/_import）
+- 权限编码（admin 域 system_<name>，component_center 域 cc_<name>，与 scaffold 输出的 Perm prefix 一致；按钮 _add/_edit/_delete/_export/_import。同级的 `cc_admin_*_page`、`system_list_page` 等是历史编码，新模块不要模仿）
 - 前端文件路径（admin 域 modules/admin/pages/<name>/index.jsx；
                component_center 域 modules/component_center/pages/admin/<name>_page/index.jsx）
 - 菜单 ID（在 AGENTS.md 的 ID 分配区间里取 `MENUS_DATA` 未占用的 ID；按钮 ID = 菜单 ID × 10 + 序号）
-- 菜单路径（`/system/<资源复数>`，与同级风格一致）、排序（排在同级最后）、图标（沿用 `apps/web/src/lib/menu-icons.js` 映射表里已有的名字）
+- 菜单路径：admin 域 `/system/<name-kebab>s`（如 `/system/suppliers`）；component_center 域 `/component-center/admin/<name-kebab>`（与同级「管理系统」下的页面一致）
+- 菜单排序排在同级最后；图标沿用 `apps/web/src/lib/menu-icons.js` 映射表里已有的名字
+- 资源名：scaffold 固定在表名 / 接口路径后加 `s`，选名字时顺带想好复数（`equipment` 会得到 `equipments`，可改用 `device` 等可数名词）
 - 枚举字段：库里存英文代码（如 `raw_material`），界面 / 导出显示中文，导入中英文都接受
 - parent_id（从菜单树中根据 PM 描述的位置推断）
 - 迁移名称（scaffold 默认用 <name>）
@@ -93,6 +95,7 @@ scaffold 会：
 - 生成 `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts`（Drizzle 表定义 + toDict）
 - 生成 `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts`
 - 生成前端 `apps/web/src/modules/<module>/api/<name>.js` + 页面 `index.jsx`（shadcn/ui 体系，结构同 users 页：PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog）
+- 生成接口基础测试 `apps/api/test/<admin|cc>-<name-kebab>.test.ts`（增删改查、列表搜索、404、导出、导入模板、导入成功 / 必填列为空回滚）
 - 自动注册 `apps/api/src/db/schema/index.ts` 与 `apps/api/src/modules/<domain-dir>/router.ts`
 - 自动执行 `drizzle-kit generate --name <name>` 生成迁移 SQL
 
@@ -100,8 +103,15 @@ scaffold 会：
 
 scaffold 的已知限制（生成后手工补）：
 
-- `--fields` 表达不了**必填 / 唯一 / 默认值**：改 `db/schema` 加 `.notNull()` / `.unique()` 等后 `pnpm db:generate --name <描述>` 生成增量迁移，service 里补「XX不能为空」「XX已存在」校验（新增、编辑、导入三处）
-- 生成的标题与字段标签是英文占位，要改成中文（表格列、表单、`EXPORT_FIELD_MAP`、`IMPORT_HEADER_MAP`）
+- `--fields` 表达不了**必填 / 唯一 / 默认值**。推荐顺序，一张新表只出一个迁移：
+  1. `pnpm scaffold -- … --skip-migration`
+  2. 改 `db/schema/<domain-dir>/<name-kebab>.ts`：加 `.notNull()` / `.unique()` / `.$default(() => …)`
+  3. `pnpm db:generate --name <name>`
+  
+  加了约束后不用改生成代码的类型；违反约束时 service 自动返回 400（「数据重复：唯一字段的值已存在」「必填字段不能为空」「字段长度超出限制」「数值超出范围」，见 `apps/api/src/common/db-errors.ts`）。想要带字段名的提示（如「设备编号已存在」），在 service 里先查重 / 先校验再写库
+- 生成的标题与字段标签是英文占位，要改成中文（表格列、表单、`EXPORT_FIELD_MAP`、`IMPORT_HEADER_MAP`）。字段校验报错（「XX的值无效」）取 `EXPORT_FIELD_MAP` 的表头，改成中文后报错也是中文
+- `EXPORT_FIELD_MAP` 的值可以是表头字符串，也可以是 `[表头, 取值函数]`（枚举显示中文、布尔显示是/否时用）
+- 生成的接口测试用 `sample()` 造数据：加了必填 / 唯一 / 枚举 / 默认值等规则后，同步改 `sample()`，并补上对应的失败用例（如重复编码 400）
 - `bool` 列可为空，请求里不传时写入 null；需要默认值时在 service 里补
 - 权限前缀是单数 `system_<name>` / `cc_<name>`，与路由、verify 保持一致即可，不必改成复数
 
@@ -130,6 +140,8 @@ scaffold 生成的页面已可用，按业务打磨：
 ```bash
 pnpm seed:rbac -- --incremental
 ```
+
+并在 AGENTS.md「当前菜单树」里补上新菜单这一行。
 
 **4d. 数据库迁移（必须真实落库）**
 
@@ -171,6 +183,7 @@ pnpm verify -- --module <name>
   后端：apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts
         apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts
         apps/api/src/db/schema/index.ts、apps/api/src/modules/<domain-dir>/router.ts（注册）
+        apps/api/test/<admin|cc>-<name-kebab>.test.ts（接口测试）
   前端：apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
         apps/web/src/modules/<module>/api/<name>.js
   RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）
