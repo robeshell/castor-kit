@@ -482,7 +482,7 @@ describe('AI SQL 路由', () => {
     for (const [question, expected] of [
       ['q:status500', configError],
       ['q:notjson', configError],
-      ['q:nocontent', generic],
+      ['q:nocontent', configError],
       ['q:nochoices', generic],
     ] as const) {
       const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question } })
