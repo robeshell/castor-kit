@@ -16,6 +16,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import AppearanceMenu from '@/components/app/AppearanceMenu'
 import BrandMark from '@/components/app/BrandMark'
+import DemoBadge from '@/components/app/DemoBadge'
 import NotificationBell from '@/components/app/NotificationBell'
 import ThemeToggle from '@/components/app/ThemeToggle'
 import TopNav from '@/components/app/TopNav'
@@ -96,6 +97,7 @@ export default function TopBar({ onOpenSearch }) {
         <Kbd>⌘K</Kbd>
       </button>
       <div className="flex items-center gap-1">
+        <DemoBadge />
         <button
           type="button"
           onClick={onOpenSearch}
