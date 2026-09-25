@@ -1,83 +1,134 @@
-# castor-kit
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
+    <img src=".github/assets/wordmark-light.svg" alt="castor-kit" height="96">
+  </picture>
+</p>
 
-> **AI-First 全栈管理脚手架**
-> Node.js + TypeScript（Fastify 5 · Zod · Drizzle）+ React 19 + PostgreSQL + shadcn/ui（Tailwind CSS v4 · motion）— 为 AI 驱动的端到端功能开发而生。
+<p align="center">
+  <strong>AI-First 全栈管理脚手架。</strong><br>
+  用自然语言描述需求，得到一个完整且通过验证的功能模块：<br>
+  数据表、接口、页面、权限与迁移。
+</p>
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue)
-![Node 22+](https://img.shields.io/badge/node-22%2B-green)
-![pnpm](https://img.shields.io/badge/pnpm-workspaces-orange)
+<p align="center">
+  <a href="https://github.com/robeshell/castor-kit/actions/workflows/ci.yml"><img src="https://github.com/robeshell/castor-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2563eb" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7" alt="Node ≥ 22">
+  <img src="https://img.shields.io/badge/pnpm-workspace-22d3ee" alt="pnpm workspace">
+  <img src="https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7" alt="i18n: zh · en · ja">
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-2563eb" alt="PRs welcome"></a>
+</p>
 
-**[📖 在线文档](https://robeshell.github.io/castor-kit/)** · **[English](README.md)**
+<p align="center">
+  <a href="website/guide/index.md">文档</a> ·
+  <a href="#快速开始">快速开始</a> ·
+  <a href="CONTRIBUTING.md">参与贡献</a> ·
+  <a href="README.md">English</a> ·
+  <b>简体中文</b> ·
+  <a href="README.ja.md">日本語</a>
+</p>
 
-> Castor 是河狸的拉丁属名——“自然界的工程师”，不需要图纸就能把整座水坝建起来并持续扩建。
->
-> castor-kit 是一个 pnpm monorepo：后端 Fastify 5 + Zod + Drizzle + PostgreSQL，前端 React 19 + shadcn/ui + Tailwind CSS v4（见 [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)），另有 MCP Server 把 scaffold / verify / seed / 迁移工具链暴露给 AI 工具。
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-dark.png">
+    <img src=".github/assets/screenshot-light.png" alt="castor-kit 管理后台界面" width="880">
+  </picture>
+</p>
 
 ---
 
-## 特性
+## 为什么是 castor-kit
 
-- **AI-First 工作流** — 预配置 Claude Code、Cursor、Copilot、Windsurf、Codex CLI 与 MCP 客户端；PM 用自然语言描述需求，AI 自动生成完整模块
-- **类型化工具链** — `pnpm scaffold` 一次生成数据表 + 接口 + 页面，`pnpm verify` 作为交付门禁（类型检查、分层、迁移真实落库、RBAC 种子、文档路径）
-- **完整 RBAC** — 用户 / 角色 / 菜单权限系统，支持按钮级别的权限控制
-- **30+ 组件示例** — 管理列表、看板、甘特图、数据大屏、AI 对话、3D 创意、编辑器、WebSocket 等
-- **导入 / 导出内置** — 每个列表页标配 CSV、XLSX 导入导出
-- **定时任务** — 基于数据库租约的调度器，自带管理 UI
-- **生产级 Docker** — 一条命令启动完整服务栈，自动完成 Drizzle 迁移和 RBAC 初始化
+大多数脚手架只给一个起点，剩下的全靠自觉。castor-kit 把"自觉"写了下来：[`AGENTS.md`](AGENTS.md) 用所有 AI 编程工具都能遵循的形式，记录了架构分层、命名、字段类型推断、权限与多语言规则；脚手架和验证门禁再把这些规则变成可以强制执行的流程。结果是：无论由人还是由 AI 编写，第一千个功能都和第一个一样整洁。
 
----
+> *Castor* 是河狸的拉丁属名。河狸是自然界的工程师，一根一根木头，把整座水坝搭起来。
+
+## 亮点
+
+- **AI 驱动工作流**：已为 Claude Code、Cursor、GitHub Copilot、Windsurf、Codex CLI 与 MCP 客户端预先配置。一句自然语言需求，生成数据表、接口、页面、权限条目与迁移。
+- **交付门禁**：`pnpm verify` 执行 15 项检查，包括类型检查、分层规则、迁移链、路由注册、RBAC 种子与同步、OpenAPI 同步、前后端测试与生产构建。
+- **完整 RBAC**：用户、角色、菜单、按钮级权限，新功能自动纳入权限体系。
+- **认真设计过的界面**：shadcn/ui + Tailwind CSS v4，六种强调色、浅色与深色、三种导航模式，以及能保留页面状态的标签栏。
+- **三语国际化**：界面与接口报错支持中文、英文、日文，由扫描脚本和测试守护。
+- **25+ 示例页面**：表格、仪表盘、图表、Three.js 地球、AI 对话、编辑器、看板、WebSocket 工具等。
+- **导入导出**：前后端都支持 CSV 与 XLSX，逐行校验。
+- **一行部署**：`bash setup.sh` 通过 Docker Compose 启动 PostgreSQL、API 与前端，并自动迁移和初始化数据。
+
+## 工作方式
+
+```text
+你    ▸ 做一个「设备台账」：名称、编号、状态、采购日期、负责人
+
+AI    ▸ 推断技术规格（类型、表、菜单、按钮权限），展示业务预览供确认
+      $ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
+      $ pnpm db:migrate
+      $ pnpm seed:rbac -- --incremental
+      $ pnpm verify -- --module equipment
+      ✓ typescript_compile ✓ migration_chain ✓ router_registration ✓ rbac_sync ✓ api_tests ✓ frontend_tests ✓ frontend_build
+```
+
+完整流程见 [AI 驱动开发](website/guide/ai-workflow.md)。
+
+## 快速开始
+
+**Docker（推荐）**，只需要安装 Docker：
+
+```bash
+git clone https://github.com/robeshell/castor-kit.git
+cd castor-kit
+bash setup.sh
+```
+
+安装向导会设置管理员密码和端口（默认 `5000`），并可选配置 AI 功能。完成后打开 `http://localhost:5000`，用 `admin` 登录。
+
+**本地开发**，需要 Node 22+、pnpm 与 PostgreSQL 14+：
+
+```bash
+pnpm install
+cp apps/api/.env.example apps/api/.env.development   # 设置 DEV_DATABASE_URL
+createdb castor_kit
+pnpm db:migrate
+pnpm seed:rbac
+pnpm dev                                              # API :5001 · 前端 :5173
+```
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|---|
-| 后端 | Node 22 · TypeScript · Fastify 5 · Zod · pino |
-| 数据库 | PostgreSQL 14+ · Drizzle ORM + drizzle-kit（SQL 迁移） |
-| 前端 | React 19 · Vite 5 · React Router 7 · Axios（JavaScript / JSX） |
-| UI | shadcn/ui（new-york，Radix）· Tailwind CSS v4 · motion · lucide-react |
-| 表单 / 表格 | react-hook-form · @tanstack/react-table · sonner |
-| 图表 | ECharts 6 · echarts-for-react |
-| 3D | Three.js 0.176 |
-| 编辑器 | Monaco Editor · react-quill-new |
-| 仓库 | pnpm workspaces：`apps/api` · `apps/web` · `apps/mcp` |
+| 后端 | Node.js 22 · TypeScript · Fastify 5 · Zod 4 |
+| 数据库 | PostgreSQL · Drizzle ORM（可审查的 SQL 迁移） |
+| 前端 | React 19 · Vite · React Router 7 · i18next |
+| UI | shadcn/ui（Radix）· Tailwind CSS v4 · Motion · lucide-react |
+| 数据与图表 | TanStack Table · react-hook-form · ECharts 6 · Three.js |
+| 工具链 | pnpm workspaces · Vitest · ESLint · MCP Server · Docker Compose |
 
----
+## 目录结构
 
-## 快速开始（Docker）
-
-```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
-bash setup.sh          # 交互式向导：设置管理员密码与端口，可选配置 AI 功能
+```text
+apps/
+  api/        Fastify 接口：db/schema → modules/<domain>/<name>/{schema,repository,service,routes}.ts
+  web/        React 应用：modules/<module>/pages/**、公共组件、多语言文案
+  mcp/        MCP Server，提供 scaffold / verify / seed / 迁移工具
+docs/         架构说明、脚手架使用的模板
+website/      文档与官网（VitePress）
+AGENTS.md     人和 AI 工具共同遵循的唯一规范来源
 ```
 
-打开 **http://localhost:5000**（或向导中设置的端口），使用 `admin` 和向导中设置的密码登录。
+## 文档
 
-## 本地开发
-
-需要 Node 22+、pnpm 与本机 PostgreSQL。
+文档位于 [`website/`](website)，包括[介绍](website/guide/index.md)、[快速开始](website/guide/getting-started.md)、[后端开发](website/guide/backend.md)、[前端开发](website/guide/frontend.md)、[权限 RBAC](website/guide/rbac.md)、[多语言](website/guide/i18n.md)、[主题与布局](website/guide/appearance.md)和[部署](website/deploy/index.md)。本地浏览：
 
 ```bash
-pnpm install
-cp apps/api/.env.example apps/api/.env.development   # 按需修改 DEV_DATABASE_URL
-createdb castor_kit
-pnpm db:migrate        # 建表（执行 Drizzle 迁移）
-pnpm seed:rbac         # 菜单、超级管理员角色、admin / admin123
-pnpm dev               # api :5001 + web :5173
+npm --prefix website install
+npm --prefix website run dev
 ```
 
-AI 工具的上下文入口：[AGENTS.md](AGENTS.md)（所有工具通用）、[CLAUDE.md](CLAUDE.md)、[CODEX.md](CODEX.md)、`.cursor/rules/`、`.windsurfrules`、`.github/copilot-instructions.md`。架构说明见 [docs/architecture.md](docs/architecture.md)，前端 UI 约定见 [docs/frontend-redesign-plan.md](docs/frontend-redesign-plan.md)。新增 shadcn/ui 原子组件用 `apps/web/scripts/shadcn-add.sh <组件>`（经本地 registry 中转执行 `npx shadcn@latest add`）。
+## 参与贡献
 
-> 部署方式、环境变量、AI 工具集成等详细说明，请查阅 **[在线文档](https://robeshell.github.io/castor-kit/)**。
-
----
-
-## 命名约定
-
-全部小写连字符：`castor-kit`、`@castor-kit/api`（会话 cookie `castor_session` 例外用下划线）。不用驼峰，不用 Stack 后缀。
-
----
+欢迎提交 Issue 和 Pull Request，请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与[行为准则](CODE_OF_CONDUCT.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告，不要公开提 Issue。
 
 ## 许可证
 
-MIT
+[MIT](LICENSE) © castor-kit contributors

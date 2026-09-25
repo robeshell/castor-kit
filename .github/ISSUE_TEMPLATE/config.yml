@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/robeshell/castor-kit/tree/main/website/guide
+    about: Guides for setup, development, RBAC, i18n and deployment.
+  - name: Report a security vulnerability
+    url: https://github.com/robeshell/castor-kit/security/advisories/new
+    about: Please report security issues privately.
