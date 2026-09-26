@@ -8,7 +8,7 @@
 | 阶段 | 功能 | 优先级 | 依赖 | 状态 |
 |---|---|---|---|---|
 | 0 | [用户资料扩展](#0-用户资料扩展) | 必须先做 | — | 已完成 |
-| 1 | [部门与数据权限](#1-部门与数据权限) | 高 | 0 | 未开始 |
+| 1 | [部门与数据权限](#1-部门与数据权限) | 高 | 0 | 已完成 |
 | 1 | [文件中心](#2-文件中心) | 高 | 0（头像） | 未开始 |
 | 2 | [账号安全](#3-账号安全) | 中 | 0 | 未开始 |
 | 2 | [开放接口：API Token 与 Webhook](#4-开放接口api-token-与-webhook) | 中 | — | 未开始 |
@@ -73,11 +73,16 @@
 
 **后端**
 
-- 新增 `common/data-scope.ts`：`dataScopeWhere(request, { deptColumn, ownerColumn })` 返回 Drizzle `SQL` 条件；用户有多个角色时取各角色范围的并集；`super_admin` 直接放行
-- 部门子树查询用递归 CTE，结果按请求缓存
+- 新增 `common/data-scope.ts`，拆成两步，repository 不接触 `request`：
+  - `resolveDataScope(request)`：在 routes 里调用，按请求缓存，得到当前用户的范围（全部，或「部门 ID 列表 + 是否含本人」）；用户有多个角色时取各角色范围的并集；`super_admin` 或任一角色为 `all` 时不限制
+  - `dataScopeWhere(scope, { deptColumn, ownerColumn })`：纯函数，在 repository 里返回 Drizzle `SQL` 条件；范围受限但算出来为空（如 `dept` 角色的用户没有部门）时返回恒假条件，不能退化成不过滤
+  - `currentActor(request)`：新建数据时写入 `created_by` / `dept_id` 用
+- 部门子树查询用递归 CTE（`common/tree.ts`），结果按请求缓存；停用的部门仍算在子树内
+- 部门本身不做数据权限：有部门、用户或角色菜单权限的人都能看到完整部门树
 - 列表、详情、导出、更新、删除都必须带上数据范围条件（更新 / 删除越权返回 404，不泄露数据存在与否）
 - `scaffold` 新增 `--data-scope` 参数：自动加 `dept_id` / `created_by` 列、在 repository 中接入 `dataScopeWhere`、生成对应的测试
-- `pnpm verify` 新增检查：声明了数据权限的模块，repository 的查询必须使用 `dataScopeWhere`
+- `pnpm verify` 新增检查：声明了数据权限的模块（`schema.ts` 导出 `DATA_SCOPE`），repository 必须使用 `dataScopeWhere`
+- 用户管理本身接入数据权限（部门列 `admin_users.dept_id`，本人列 `admin_users.id`）；范围受限时只能把用户分配到范围内的部门
 
 **前端**
 
@@ -229,3 +234,4 @@
 | 2026-09-25 | 创建路线图，列出阶段 0–3 共 9 项功能 |
 | 2026-09-25 | 新增并完成「公开演示模式与 Render + Neon 部署」 |
 | 2026-09-26 | 完成「0. 用户资料扩展」 |
+| 2026-09-26 | 完成「1. 部门与数据权限」（迁移 `0003_departments_data_scope`）；方案调整：`dataScopeWhere` 拆成 `resolveDataScope`（routes）+ 纯函数 `dataScopeWhere`（repository），用户管理本身接入数据权限 |

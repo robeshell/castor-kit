@@ -47,6 +47,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 |---|---|
 | `pnpm seed:rbac -- --incremental` | メニューと権限の増分同期：`code` で upsert し、削除はしない |
 | `pnpm seed:rbac` | 全件再構築：ユーザー、ロール、メニューを空にしてから書き込み直す。**空のデータベースの初期化専用** |
+| `pnpm seed:demo` | データ権限を試すためのサンプル部署・ロール（部門主管 / 一般社員）・ユーザーを登録。何度実行しても安全。本番環境では `--force` が必要 |
 
 ## コード生成と検証ゲート
 
@@ -55,6 +56,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<フィールド:型,...>"` | バックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを生成 |
 | `pnpm scaffold -- ... --dry-run` | 生成される内容を表示するだけで、ファイルは書き込まない |
 | `pnpm scaffold -- ... --skip-migration` | コードは生成するが、マイグレーションは生成しない |
+| `pnpm scaffold -- ... --data-scope` | 生成したモジュールをデータ権限で絞り込む（`dept_id` / `created_by` を追加） |
 | `pnpm verify -- --module <name>` | すべての検証ゲートのチェックを実行 |
 | `pnpm verify -- --module <name> --skip-build` | フロントエンドのビルドをスキップ |
 | `pnpm verify -- --module <name> --json` | 構造化 JSON を出力 |

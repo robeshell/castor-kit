@@ -76,6 +76,7 @@ castor-kit/
 │   │   │   ├── common/                # 横切能力
 │   │   │   │   ├── auth.ts            # loginRequired / hasMenuPermission / hasAnyMenuPermission / menuPermissionRequired
 │   │   │   │   ├── rbac.ts            # 纯函数：isSuperAdmin / 菜单编码收集
+│   │   │   │   ├── data-scope.ts      # 数据权限：resolveDataScope / dataScopeWhere / currentActor
 │   │   │   │   ├── csrf.ts            # 双提交校验
 │   │   │   │   ├── errors.ts          # ServiceError + 统一错误处理器
 │   │   │   │   ├── http.ts            # intParam / parseIntParam / jsonBody / queryString / getUploadedFile
@@ -267,6 +268,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 - **请求校验**：请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
 - **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON
 - **操作日志**：由 logs 模块注册的全局 `onResponse` hook 集中写 `operation_logs`，不要在 service 里散写
+- **数据权限**：角色的 `data_scope`（`all` / `dept_and_children` / `dept` / `self` / `custom`）决定能看到哪些行。routes 里 `await resolveDataScope(request)` 取范围，repository 里 `and(..., dataScopeWhere(scope, { deptColumn, ownerColumn }))` 过滤（repository 不碰 `request`）；超出范围的详情 / 修改 / 删除一律 404。受控模块在 `schema.ts` 导出 `DATA_SCOPE`，`verify` 的 `data_scope_filter` 会检查 repository 是否用了 `dataScopeWhere`。新模块需要时用 `pnpm scaffold ... --data-scope` 生成（加 `dept_id` / `created_by`，新建时写入 `currentActor`）。用户管理已接入（部门列 `dept_id`，本人列 `id`）
 - **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
 - **公开演示（`DEMO_MODE`）**：`common/demo.ts` 的白名单之外的写请求一律 403——目前只放行登录 / 登出、`/api/admin/component-center/*`、通知已读；新增的业务域在演示环境默认只读，需要演示可写时把路径加进 `DEMO_WRITABLE`，并在 `src/demo/fixtures.ts` 补示例数据（恢复逻辑见 `src/demo/reset.ts`）
 
@@ -460,6 +462,8 @@ user_roles：用户-角色 多对多（复合主键）
 
 `code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
 
+保护（roles / users service 里强制，界面同步禁用）：超级管理员角色不能删除、编码不能改、数据范围固定 `all`、菜单固定全部；只有超级管理员能授予 / 移除这个角色、能编辑 / 停用 / 删除超级管理员账号；不能移除自己的这个角色；最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色。锁死后的恢复：`pnpm seed:rbac -- --incremental` 会重建角色并把 `admin` 挂回去。
+
 ### 菜单变更流程
 
 1. 在 `apps/api/scripts/seed-rbac.ts` 的 `MENUS_DATA`（唯一事实源）中添加 / 修改菜单条目和按钮权限
@@ -645,6 +649,7 @@ psql -d castor_kit -c '\d <table>'       # 实证落库（库名取 apps/api/.en
 # RBAC（菜单变更后必跑）
 pnpm seed:rbac -- --incremental         # 增量 upsert，不删除
 pnpm seed:rbac                          # 全量重建（仅空库初始化）
+pnpm seed:demo                          # 示例部门 / 角色（部门主管、普通员工）/ 用户，体验数据权限；生产环境需 --force
 
 # 一次性初始化（迁移 + RBAC 增量 + AI SQL 只读账号，advisory lock 保证并发安全）
 pnpm setup-once
@@ -659,6 +664,7 @@ pnpm verify -- --module <name> --json          # 结构化 JSON（stdout 只有 
 # 代码骨架生成
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
 pnpm scaffold -- --name <name> --domain component_center --fields "..." --dry-run   # 只打印不写文件
+pnpm scaffold -- --name <name> --domain admin --fields "..." --data-scope         # 接入数据权限（dept_id / created_by）
 #   --domain 只能是 admin 或 component_center；--skip-migration 不调用 drizzle-kit
 
 # OpenAPI
@@ -697,6 +703,7 @@ ID=1   首页 (dashboard) → /dashboard → admin/dashboard
 ID=2   系统管理 (system)
   ID=21  用户管理 → /system/users → admin/users
   ID=22  角色权限 → /system/roles → admin/roles
+  ID=26  部门管理 → /system/departments → admin/departments
   ID=23  菜单管理 → /system/menus → admin/menus
   ID=24  日志管理 → /system/logs → admin/logs
   ID=25  数据字典 → /system/dicts → admin/dicts

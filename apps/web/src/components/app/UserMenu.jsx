@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react'
 import {
@@ -18,6 +19,26 @@ import { useTranslation } from 'react-i18next'
 
 function MenuAvatar({ user, className }) {
   return <UserAvatar src={user?.avatar} name={userDisplayName(user)} className={className} />
+}
+
+/**
+ * Radix returns focus to the trigger when the menu closes, which leaves the account button looking focused after a
+ * mouse pick. Skip that for pointer interactions only, so keyboard users still land back on the trigger.
+ */
+function usePointerCloseFocus() {
+  const byPointer = useRef(false)
+  return {
+    onPointerDown: () => {
+      byPointer.current = true
+    },
+    onKeyDown: () => {
+      byPointer.current = false
+    },
+    onCloseAutoFocus: (event) => {
+      if (byPointer.current) event.preventDefault()
+      byPointer.current = false
+    },
+  }
 }
 
 function useUserMenu() {
@@ -66,6 +87,7 @@ function UserMenuItems({ user, roleText, onLogout }) {
 export function UserMenuCompact() {
   const { t } = useTranslation()
   const { user, roleText, handleLogout } = useUserMenu()
+  const focusProps = usePointerCloseFocus()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -73,7 +95,7 @@ export function UserMenuCompact() {
           <MenuAvatar user={user} className="size-7" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-56" align="end" sideOffset={8}>
+      <DropdownMenuContent className="min-w-56" align="end" sideOffset={8} {...focusProps}>
         <UserMenuItems user={user} roleText={roleText} onLogout={handleLogout} />
       </DropdownMenuContent>
     </DropdownMenu>
@@ -83,6 +105,7 @@ export function UserMenuCompact() {
 export default function UserMenu() {
   const { isMobile } = useSidebar()
   const { user, roleText, handleLogout } = useUserMenu()
+  const focusProps = usePointerCloseFocus()
 
   return (
     <SidebarMenu>
@@ -106,6 +129,7 @@ export default function UserMenu() {
             side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={8}
+            {...focusProps}
           >
             <UserMenuItems user={user} roleText={roleText} onLogout={handleLogout} />
           </DropdownMenuContent>

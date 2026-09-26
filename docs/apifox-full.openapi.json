@@ -51,6 +51,10 @@
     {
       "name": "后台-高级表格",
       "description": "高级表格行内编辑、拖拽排序与批量操作接口"
+    },
+    {
+      "name": "后台-部门管理",
+      "description": "部门树与部门管理"
     }
   ],
   "components": {
@@ -3244,6 +3248,640 @@
           },
           "500": {
             "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/departments": {
+      "get": {
+        "tags": [
+          "后台-部门管理"
+        ],
+        "summary": "部门树",
+        "x-apifox-folder": "后台/系统管理/部门管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_departments、system_users 或 system_roles 之一；部门本身不做数据权限。search 保留匹配节点及其祖先和子树，status 只保留该状态的部门（及其祖先）",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "按名称 / 编码搜索"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "disabled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "部门节点（含 leader_name、user_count、children）",
+                    "additionalProperties": true,
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "parent_id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "leader_id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "sort_order": {
+                        "type": "integer"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "disabled"
+                        ]
+                      },
+                      "created_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "updated_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "leader_name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "user_count": {
+                        "type": "integer",
+                        "description": "直属用户数"
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "后台-部门管理"
+        ],
+        "summary": "新增部门",
+        "x-apifox-folder": "后台/系统管理/部门管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_departments_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "description": "唯一"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "leader_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "负责人（用户 ID）"
+                  },
+                  "sort_order": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "disabled"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "leader_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "sort_order": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "disabled"
+                      ]
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/departments/{dept_id}": {
+      "get": {
+        "tags": [
+          "后台-部门管理"
+        ],
+        "summary": "部门详情",
+        "x-apifox-folder": "后台/系统管理/部门管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dept_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dept_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "leader_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "sort_order": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "disabled"
+                      ]
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "部门不存在"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "后台-部门管理"
+        ],
+        "summary": "编辑部门",
+        "x-apifox-folder": "后台/系统管理/部门管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_departments_edit；上级不能是自身或其下级部门",
+        "parameters": [
+          {
+            "name": "dept_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dept_id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "description": "唯一"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "leader_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "负责人（用户 ID）"
+                  },
+                  "sort_order": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "disabled"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "leader_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "sort_order": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "disabled"
+                      ]
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "部门不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台-部门管理"
+        ],
+        "summary": "删除部门",
+        "x-apifox-folder": "后台/系统管理/部门管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_departments_delete；有下级部门或有用户时返回 400",
+        "parameters": [
+          {
+            "name": "dept_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dept_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "部门不存在"
+          }
+        }
+      }
+    },
+    "/api/admin/departments/{dept_id}/sort": {
+      "post": {
+        "tags": [
+          "后台-部门管理"
+        ],
+        "summary": "部门上移 / 下移",
+        "x-apifox-folder": "后台/系统管理/部门管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_departments_edit；在同级部门之间移动一位",
+        "parameters": [
+          {
+            "name": "dept_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：dept_id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "direction"
+                ],
+                "properties": {
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "up",
+                      "down"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "changed": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "部门不存在"
           }
         }
       }

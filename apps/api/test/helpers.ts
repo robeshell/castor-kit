@@ -4,7 +4,7 @@ import { buildApp, SESSION_COOKIE_NAME } from '../src/app'
 import { generatePasswordHash } from '../src/common/password'
 import { loadConfig, type AppConfig } from '../src/config'
 import { createDb, type DbHandle } from '../src/db/client'
-import { admin_users, login_logs, menus, operation_logs, role_menus, roles, user_roles } from '../src/db/schema'
+import { admin_users, login_logs, menus, operation_logs, role_depts, role_menus, roles, user_roles } from '../src/db/schema'
 
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://wangwenyu@localhost/castor_kit_test'
 
@@ -175,4 +175,58 @@ export function multipartFile(
     payload: Buffer.concat([head, Buffer.isBuffer(content) ? content : Buffer.from(content), tail]),
     headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
   }
+}
+
+// ---- Data-scope sessions: a ck_test_ user with one role of the given data scope ----
+
+/** Menu ids for the given codes; codes missing from the test DB are created as hidden buttons */
+export async function ensureMenus(handle: DbHandle, codes: string[]): Promise<number[]> {
+  const ids: number[] = []
+  for (const code of codes) {
+    const [found] = await handle.db.select({ id: menus.id }).from(menus).where(eq(menus.code, code))
+    if (found) {
+      ids.push(found.id)
+      continue
+    }
+    const [created] = await handle.db
+      .insert(menus)
+      .values({ name: code, code, menu_type: 'button', is_visible: false })
+      .returning({ id: menus.id })
+    ids.push(created!.id)
+  }
+  return ids
+}
+
+export interface ScopedSessionOptions {
+  /** Suffix for the ck_test_ username and role code */
+  name: string
+  /** Menu / button codes granted to the role */
+  codes: string[]
+  dataScope: 'all' | 'dept_and_children' | 'dept' | 'self' | 'custom'
+  deptId?: number | null
+  /** Departments of a 'custom' role */
+  customDeptIds?: number[]
+}
+
+/** Signs in as a fresh user whose only role has the given data scope (cleaned up by cleanupFixture: ck_test_ prefix) */
+export async function scopedSession(app: FastifyInstance, handle: DbHandle, opts: ScopedSessionOptions): Promise<AuthedSession> {
+  const { db } = handle
+  const username = `${FIXTURE_PREFIX}${opts.name}`
+  await db.delete(admin_users).where(eq(admin_users.username, username))
+  await db.delete(roles).where(eq(roles.code, `${FIXTURE_PREFIX}role_${opts.name}`))
+  const [role] = await db
+    .insert(roles)
+    .values({ name: opts.name, code: `${FIXTURE_PREFIX}role_${opts.name}`, data_scope: opts.dataScope })
+    .returning()
+  const menuIds = await ensureMenus(handle, opts.codes)
+  if (menuIds.length > 0) await db.insert(role_menus).values(menuIds.map((menu_id) => ({ role_id: role!.id, menu_id })))
+  if (opts.customDeptIds?.length) {
+    await db.insert(role_depts).values(opts.customDeptIds.map((dept_id) => ({ role_id: role!.id, dept_id })))
+  }
+  const [user] = await db
+    .insert(admin_users)
+    .values({ username, password_hash: await generatePasswordHash(FIXTURE_PASSWORD, 1000), dept_id: opts.deptId ?? null })
+    .returning()
+  await db.insert(user_roles).values({ user_id: user!.id, role_id: role!.id })
+  return loginSession(app, username, FIXTURE_PASSWORD, user!.id)
 }

@@ -2,17 +2,28 @@
  * Roles module schema layer
  */
 
+import type { DataScopeCode } from '@/common/data-scope'
 import { formatDateTime } from '@/common/serialize'
 import type { Menu, Role } from '@/db/schema'
 
 /** Export row: role + its menus in the order they were actually loaded */
 export type RoleExportItem = Role & { menus: Menu[] }
 
+/** Labels for roles.data_scope (export files) */
+export const DATA_SCOPE_LABELS: Record<DataScopeCode, string> = {
+  all: '全部数据',
+  dept_and_children: '本部门及下级',
+  dept: '本部门',
+  self: '仅本人',
+  custom: '自定义部门',
+}
+
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: RoleExportItem) => unknown]> = {
   id: ['ID', (item) => item.id],
   name: ['角色名称', (item) => item.name],
   code: ['角色编码', (item) => item.code],
   description: ['描述', (item) => item.description || ''],
+  data_scope: ['数据范围', (item) => DATA_SCOPE_LABELS[item.data_scope as DataScopeCode] ?? item.data_scope],
   menu_codes: ['菜单编码', (item) => item.menus.map((m) => m.code).join(',')],
   menu_names: ['菜单名称', (item) => item.menus.map((m) => m.name).join(',')],
   created_at: ['创建时间', (item) => formatDateTime(item.created_at)],

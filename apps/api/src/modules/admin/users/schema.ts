@@ -9,6 +9,15 @@ import type { AdminUserWithRoles } from '@/db/schema'
 /** Request body: loose + all optional; normalization happens in the service */
 export const userBodySchema = z.record(z.string(), z.unknown()).nullish()
 
+/**
+ * Data scope declaration (checked by `pnpm verify`): user rows belong to their department, and "own data" means
+ * the user themselves.
+ */
+export const DATA_SCOPE = { deptColumn: 'dept_id', ownerColumn: 'id' } as const
+
+/** A user row plus the department name the service looks up */
+export type UserItem = AdminUserWithRoles & { dept_name?: string | null }
+
 export const USER_STATUSES = ['active', 'disabled'] as const
 export type UserStatus = (typeof USER_STATUSES)[number]
 
@@ -28,12 +37,13 @@ export function parseStatusCell(raw: string): UserStatus | '' | null {
   return hit ? hit[0] : null
 }
 
-export const EXPORT_FIELD_MAP: Record<string, [string, (item: AdminUserWithRoles) => unknown]> = {
+export const EXPORT_FIELD_MAP: Record<string, [string, (item: UserItem) => unknown]> = {
   id: ['ID', (item) => item.id],
   username: ['用户名', (item) => item.username],
   nickname: ['昵称', (item) => item.nickname ?? ''],
   email: ['邮箱', (item) => item.email ?? ''],
   phone: ['手机', (item) => item.phone ?? ''],
+  dept_name: ['部门', (item) => item.dept_name ?? ''],
   status: ['状态', (item) => STATUS_LABELS[item.status as UserStatus] ?? item.status],
   role_names: ['角色名称', (item) => item.roles.map((r) => r.name).join(',')],
   role_codes: ['角色编码', (item) => item.roles.map((r) => r.code).join(',')],
@@ -49,6 +59,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   邮箱: 'email',
   手机: 'phone',
   状态: 'status',
+  部门编码: 'dept_code',
   角色编码: 'role_codes',
 }
 

@@ -11,6 +11,8 @@ castor-kit uses role-based access control: users have roles, and roles are grant
 | `menus` | Menus and button permissions; `parent_id` references the same table to form a tree |
 | `user_roles` | Users ↔ roles, many-to-many (composite primary key) |
 | `role_menus` | Roles ↔ menus, many-to-many (composite primary key) |
+| `departments` | Departments; `parent_id` references the same table to form a tree. Users belong to one through `admin_users.dept_id` |
+| `role_depts` | Roles ↔ departments, used by the "custom departments" data scope |
 
 The `menu_type` column in `menus` distinguishes two kinds of records:
 
@@ -56,6 +58,17 @@ The role with `code = 'super_admin'` has every permission:
 - Every run of `seed-rbac` grants it all menus.
 
 Exception: `GET /api/admin/my-menus` has no super admin shortcut; it returns the menus actually granted to the role. Since `seed-rbac` grants all menus to the super admin, the two normally match.
+
+### Not locking yourself out
+
+So a mistake can't leave nobody able to run the system, the backend enforces these rules (the UI disables the matching controls):
+
+- The super admin role can't be deleted and its code can't change; its data scope is always "All data" and it always has every menu. Only its name and description are editable
+- Only super admins can grant or remove the super admin role, and only super admins can edit, disable or delete super admin accounts (otherwise anyone who can edit users could reset a super admin's password)
+- You can't remove the super admin role from yourself, or disable or delete yourself
+- The last active super admin can't be disabled, deleted or lose the role; imports are checked the same way
+
+If the super admin role or the `admin` account still ends up broken, run `pnpm seed:rbac -- --incremental` (with Docker, restarting the container does it): it recreates the `super_admin` role, grants it every menu again and puts the `admin` account back in it. It doesn't restore other accounts' roles, and doesn't reset passwords or account status.
 
 ## seed-rbac.ts: the single source of truth for menus
 
@@ -129,13 +142,18 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 
 ## Managing RBAC in the UI
 
-Three pages under System map to the RBAC data:
+Four pages under System map to the RBAC data:
 
 | Page | Purpose |
 |---|---|
 | Users | Create users, assign roles, edit nickname / email / phone / avatar, enable or disable accounts |
-| Roles | Create roles and tick the menu and button permissions for each |
+| Roles | Create roles, tick the menu and button permissions for each, and set its data scope |
+| Departments | Maintain the department tree (parent, head, order, status) that users belong to and data scope uses |
 | Menus | View and adjust the menu tree |
+
+::: tip
+Menus added or changed in the UI are not written back to `seed-rbac.ts`. Also, the incremental sync updates the fields of menus with the same `code` from `MENUS_DATA`, so UI changes to menus defined there are overwritten on the next sync (including container restarts). Menus that should persist and ship with the code belong in `MENUS_DATA`.
+:::
 
 ### Disabling accounts
 
@@ -145,6 +163,47 @@ Three pages under System map to the RBAC data:
 - Sessions that are already signed in end on their next request (401, the frontend goes back to the sign-in page) — every signed-in request checks that the account still exists and is active
 - You can't disable yourself, or disable or delete the last active super admin; the same rules apply to the status column on import
 
-::: tip
-Menus added or changed in the UI are not written back to `seed-rbac.ts`. Also, the incremental sync updates the fields of menus with the same `code` from `MENUS_DATA`, so UI changes to menus defined there are overwritten on the next sync (including container restarts). Menus that should persist and ship with the code belong in `MENUS_DATA`.
-:::
+## Data scope
+
+Menu and button permissions decide which features someone can use; data scope decides which rows they can see. It is set per role:
+
+| Data scope | Visible rows |
+|---|---|
+| All data (`all`, default) | Everything |
+| Own department and below (`dept_and_children`) | The user's department and all its sub-departments |
+| Own department (`dept`) | The user's department |
+| Own data only (`self`) | Rows the user created |
+| Custom departments (`custom`) | The departments ticked on the role |
+
+- A user with several roles sees the **union** of their scopes; super admins and anyone with an "All data" role are unrestricted
+- A restricted scope that works out empty (say, a "Own department" role for a user with no department) shows nothing — it never falls back to everything
+- Rows outside the scope are a 404 on detail, update and delete, so their existence doesn't leak; exports are limited the same way
+- Disabled departments still count as sub-departments; the department tree itself is not scoped
+
+To try it quickly, run `pnpm seed:demo`: it adds a sample department tree, two roles (department manager: own department and below; staff: own data only) and six sample users (password `demo123456` by default). Signed in as `zhang.wei` you only see 研发部 (R&D) and its sub-departments; as `li.na`, only yourself.
+
+### What is scoped
+
+- **Users**: filtered by the user's department, and "Own data only" means yourself. A restricted admin can only assign users to departments inside their scope
+- **Modules generated with `--data-scope`**: the table gets `dept_id` (owning department) and `created_by` (creator), stamped with the current user and their department on create
+
+```bash
+pnpm scaffold -- --name contract --domain admin --fields "title:str,amount:float" --data-scope
+```
+
+### Adding it to your own module
+
+Resolve the scope in routes and filter in the repository; the repository never sees `request`:
+
+```ts
+// routes.ts
+import { currentActor, resolveDataScope } from '@/common/data-scope'
+const scope = await resolveDataScope(request)          // cached per request
+return service.listItems(page, per_page, search, scope)
+
+// repository.ts
+import { dataScopeWhere } from '@/common/data-scope'
+const where = and(this.searchWhere(search), dataScopeWhere(scope, { deptColumn: t.dept_id, ownerColumn: t.created_by }))
+```
+
+Declare `export const DATA_SCOPE = { deptColumn: 'dept_id', ownerColumn: 'created_by' }` in the module's `schema.ts`; the `data_scope_filter` check in `pnpm verify` then confirms the repository uses `dataScopeWhere`.

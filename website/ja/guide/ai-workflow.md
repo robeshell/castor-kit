@@ -108,6 +108,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--fields` | フィールドの一覧。形式は `フィールド:型,フィールド:型` | `name:str` |
 | `--dry-run` | 生成される内容を表示するだけで、ファイルの書き込み、登録、マイグレーションの生成は行わない | オフ |
 | `--skip-migration` | drizzle-kit によるマイグレーションの生成を行わない | オフ |
+| `--data-scope` | [データ権限](/ja/guide/rbac#データ権限)を組み込む：テーブルに `dept_id` / `created_by` を追加し、一覧・詳細・編集・削除・エクスポートを現在のユーザーのデータ範囲で絞り込み、作成時に作成者と部署を記録し、対応する API テストも生成する | オフ |
 | `-h` / `--help` | 使い方を表示する | — |
 
 ### 生成される内容
@@ -205,6 +206,7 @@ pnpm verify -- --module customer --json          # 構造化 JSON を出力（st
 | チェック | 内容 |
 |---|---|
 | `backend_file` | バックエンドの routes / repository / service ファイルが存在する |
+| `data_scope_filter` | `schema.ts` で `DATA_SCOPE` を宣言したモジュールは、repository で `dataScopeWhere` による絞り込みが必要。宣言がなければスキップ |
 | `frontend_page` | フロントエンドのページファイルが存在する |
 | `frontend_no_legacy_ui` | ページディレクトリで `@douyinfe/*`、`var(--semi-*)` などの廃止済み UI 体系を使っていない |
 | `frontend_api` | フロントエンドの API ファイルが存在する |

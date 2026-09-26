@@ -13,6 +13,7 @@
     "db:migrate": "tsx src/db/migrate-cli.ts",
     "worker": "tsx src/worker.ts",
     "seed:rbac": "tsx scripts/seed-rbac.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
     "setup-once": "tsx scripts/setup-once.ts",
     "init-ro-role": "tsx scripts/init-ro-role.ts",
     "openapi:generate": "tsx scripts/generate-openapi.ts",

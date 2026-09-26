@@ -11,6 +11,8 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 | `menus` | 菜单与按钮权限，`parent_id` 自引用形成树 |
 | `user_roles` | 用户 ↔ 角色，多对多（复合主键） |
 | `role_menus` | 角色 ↔ 菜单，多对多（复合主键） |
+| `departments` | 部门，`parent_id` 自引用形成树；用户通过 `admin_users.dept_id` 归属部门 |
+| `role_depts` | 角色 ↔ 部门，数据范围为「自定义部门」时使用 |
 
 `menus` 表的 `menu_type` 区分两类记录：
 
@@ -56,6 +58,17 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 - `seed-rbac` 每次运行都会把全部菜单授予它。
 
 例外：`GET /api/admin/my-menus` 不做超级管理员短路，而是按角色实际被授予的菜单返回。因为 `seed-rbac` 会把全部菜单授予超级管理员，正常情况下两者一致。
+
+### 防止把自己锁在外面
+
+为避免误操作导致没人能管理系统，后端做了这些限制（界面上同步禁用）：
+
+- 「超级管理员」角色不能删除，编码不能改；数据范围固定为「全部数据」，菜单权限固定为全部，只有名称和描述可以修改
+- 只有超级管理员能给别人授予或移除超级管理员角色，也只有超级管理员能编辑、停用、删除超级管理员账号（否则有「编辑用户」权限的人可以改超级管理员的密码）
+- 不能移除自己的超级管理员角色，也不能停用或删除自己
+- 最后一个启用中的超级管理员不能被停用、删除或移除角色；导入用户时同样检查
+
+真遇到超级管理员角色或 `admin` 账号出问题，运行 `pnpm seed:rbac -- --incremental`（Docker 部署时重启容器即可）：它会重建 `super_admin` 角色、重新授予全部菜单，并把 `admin` 账号重新挂到超级管理员角色上。它不会恢复其他账号的角色，也不会重置密码或启用状态。
 
 ## 菜单的唯一事实源：seed-rbac.ts
 
@@ -129,13 +142,18 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 
 ## 在界面上管理
 
-系统管理下的三个页面对应 RBAC 数据：
+系统管理下的四个页面对应 RBAC 数据：
 
 | 页面 | 作用 |
 |---|---|
 | 用户管理 | 创建用户、分配角色，维护昵称 / 邮箱 / 手机 / 头像，启用或停用账号 |
-| 角色权限 | 创建角色、为角色勾选菜单和按钮权限 |
+| 角色权限 | 创建角色、为角色勾选菜单和按钮权限、设置数据范围 |
+| 部门管理 | 维护部门树（上级、负责人、排序、状态），供用户归属与数据权限使用 |
 | 菜单管理 | 查看和调整菜单树 |
+
+::: tip
+在界面上新增或修改的菜单不会写回 `seed-rbac.ts`。另外，增量同步会按 `MENUS_DATA` 更新同 `code` 菜单的字段，所以对已定义菜单在界面上做的修改，会在下次同步（包括容器重启）时被覆盖。需要长期保留、随代码部署的菜单，应当写进 `MENUS_DATA`。
+:::
 
 ### 停用账号
 
@@ -145,6 +163,47 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 - 已经登录的会话在下一次请求时失效（401，前端跳回登录页）——每个需要登录的请求都会确认账号仍存在且处于启用状态
 - 不能停用自己，也不能停用或删除最后一个启用中的超级管理员；导入时填了「状态」列同样受这些限制
 
-::: tip
-在界面上新增或修改的菜单不会写回 `seed-rbac.ts`。另外，增量同步会按 `MENUS_DATA` 更新同 `code` 菜单的字段，所以对已定义菜单在界面上做的修改，会在下次同步（包括容器重启）时被覆盖。需要长期保留、随代码部署的菜单，应当写进 `MENUS_DATA`。
-:::
+## 数据权限
+
+菜单和按钮权限决定「能用哪些功能」，数据权限决定「能看到哪些数据」。它由角色的**数据范围**控制：
+
+| 数据范围 | 能看到的数据 |
+|---|---|
+| 全部数据（`all`，默认） | 不限制 |
+| 本部门及下级（`dept_and_children`） | 用户所在部门及其所有下级部门的数据 |
+| 本部门（`dept`） | 用户所在部门的数据 |
+| 仅本人（`self`） | 用户自己创建的数据 |
+| 自定义部门（`custom`） | 在角色上勾选的部门的数据 |
+
+- 用户有多个角色时取各角色范围的**并集**；超级管理员和任一角色为「全部数据」时不受限制
+- 范围受限但算出来为空时（例如「本部门」角色的用户没有部门），什么也看不到，不会退化成看全部
+- 超出范围的记录在详情、修改、删除时一律返回 404，不透露数据是否存在；导出同样只导出范围内的数据
+- 停用的部门仍算在「本部门及下级」的范围内；部门树本身不做数据权限
+
+想快速体验：运行 `pnpm seed:demo`，它会建一棵示例部门树、两个角色（部门主管：本部门及下级；普通员工：仅本人）和 6 个示例用户（密码默认 `demo123456`）。用 `zhang.wei` 登录只能看到研发部及其下级的人，用 `li.na` 登录只能看到自己。
+
+### 哪些数据受控
+
+- **用户管理**：按用户所在部门过滤，「仅本人」即只能看到自己。范围受限的管理员只能把用户分配到自己范围内的部门
+- **用 `--data-scope` 生成的模块**：表上有 `dept_id`（所属部门）和 `created_by`（创建人），新建时自动写入当前用户及其部门
+
+```bash
+pnpm scaffold -- --name contract --domain admin --fields "title:str,amount:float" --data-scope
+```
+
+### 在自己的模块里接入
+
+数据范围在 routes 里解析、在 repository 里过滤，repository 不接触 `request`：
+
+```ts
+// routes.ts
+import { currentActor, resolveDataScope } from '@/common/data-scope'
+const scope = await resolveDataScope(request)          // 按请求缓存
+return service.listItems(page, per_page, search, scope)
+
+// repository.ts
+import { dataScopeWhere } from '@/common/data-scope'
+const where = and(this.searchWhere(search), dataScopeWhere(scope, { deptColumn: t.dept_id, ownerColumn: t.created_by }))
+```
+
+在模块的 `schema.ts` 里声明 `export const DATA_SCOPE = { deptColumn: 'dept_id', ownerColumn: 'created_by' }`，`pnpm verify` 的 `data_scope_filter` 检查会确认 repository 用了 `dataScopeWhere`。

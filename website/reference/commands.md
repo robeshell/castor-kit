@@ -47,6 +47,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 |---|---|
 | `pnpm seed:rbac -- --incremental` | 增量同步菜单与权限：按 `code` upsert，不删除 |
 | `pnpm seed:rbac` | 全量重建：清空用户、角色、菜单后重写，**仅用于空库初始化** |
+| `pnpm seed:demo` | 写入示例部门、角色（部门主管 / 普通员工）和用户，用来体验数据权限；可重复执行，生产环境需加 `--force` |
 
 ## 代码生成与门禁
 
@@ -55,6 +56,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<字段:类型,...>"` | 生成后端模块、前端页面、接口测试和迁移 |
 | `pnpm scaffold -- ... --dry-run` | 只打印将生成的内容，不写文件 |
 | `pnpm scaffold -- ... --skip-migration` | 生成代码但不生成迁移 |
+| `pnpm scaffold -- ... --data-scope` | 生成的模块按数据权限过滤（加 `dept_id` / `created_by`） |
 | `pnpm verify -- --module <name>` | 运行全部门禁检查 |
 | `pnpm verify -- --module <name> --skip-build` | 跳过前端构建 |
 | `pnpm verify -- --module <name> --json` | 输出结构化 JSON |

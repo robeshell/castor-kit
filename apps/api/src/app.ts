@@ -55,6 +55,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   app.decorate('db', handle.db)
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
+  app.decorateRequest('dataScope', undefined)
 
   // ---- Session ----
   const ttlSeconds = config.sessionTtlHours * 3600

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { DatePicker, DateTimePicker } from '@/shared/components/DatePicker'
 import MultiSelect from '@/shared/components/MultiSelect'
 import TagInput from '@/shared/components/TagInput'
+import TreeSelect from '@/shared/components/TreeSelect'
 
 /**
  * react-hook-form form fields (input / select …).
@@ -162,6 +163,29 @@ export function FormMultiSelect({ options = [], placeholder, disabled, ...rest }
       {(field) => (
         <FormControl>
           <MultiSelect value={field.value || []} onChange={field.onChange} options={options} placeholder={placeholder} disabled={disabled} />
+        </FormControl>
+      )}
+    </Field>
+  )
+}
+
+/** Tree select (single pick): tree = [{ id, name, code?, children? }]; see TreeSelect for the other props */
+export function FormTreeSelect({ tree = [], placeholder, disabled, excludeId, noneLabel, searchPlaceholder, emptyText, ...rest }) {
+  return (
+    <Field {...rest}>
+      {(field) => (
+        <FormControl>
+          <TreeSelect
+            value={field.value ?? null}
+            onChange={field.onChange}
+            tree={tree}
+            placeholder={placeholder}
+            disabled={disabled}
+            excludeId={excludeId}
+            noneLabel={noneLabel}
+            searchPlaceholder={searchPlaceholder}
+            emptyText={emptyText}
+          />
         </FormControl>
       )}
     </Field>

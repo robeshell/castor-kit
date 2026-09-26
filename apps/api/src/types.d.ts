@@ -1,5 +1,6 @@
 import type { AppConfig } from './config'
 import type { Db } from './db/client'
+import type { DataScope } from './common/data-scope'
 import type { AdminUserWithRoles } from './db/schema'
 
 declare module 'fastify' {
@@ -10,6 +11,8 @@ declare module 'fastify' {
   interface FastifyRequest {
     /** Per-request cache for getCurrentAdminUser(); undefined = not yet queried */
     currentAdminUser?: AdminUserWithRoles | null
+    /** Per-request cache for resolveDataScope() */
+    dataScope?: DataScope
   }
 }
 

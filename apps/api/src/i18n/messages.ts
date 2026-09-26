@@ -126,6 +126,41 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '头像地址不能超过 500 个字符': { 'en-US': 'The avatar URL must be at most 500 characters', 'ja-JP': 'アバターの URL は 500 文字以内で入力してください' },
   '资料已更新': { 'en-US': 'Profile updated', 'ja-JP': 'プロフィールを更新しました' },
 
+  // super admin protections
+  '超级管理员角色不能删除': { 'en-US': "The super admin role can't be deleted", 'ja-JP': 'スーパー管理者ロールは削除できません' },
+  '超级管理员角色的编码不能修改': { 'en-US': "The super admin role's code can't be changed", 'ja-JP': 'スーパー管理者ロールのコードは変更できません' },
+  '超级管理员角色的数据范围固定为全部数据': { 'en-US': 'The super admin role always sees all data', 'ja-JP': 'スーパー管理者ロールのデータ範囲は常に全データです' },
+  '超级管理员角色的菜单权限固定为全部，不能修改': { 'en-US': "The super admin role always has every menu; its permissions can't be changed", 'ja-JP': 'スーパー管理者ロールは常にすべてのメニュー権限を持つため変更できません' },
+  '只有超级管理员可以操作超级管理员账号': { 'en-US': 'Only super admins can change super admin accounts', 'ja-JP': 'スーパー管理者のアカウントを操作できるのはスーパー管理者のみです' },
+  '只有超级管理员可以分配超级管理员角色': { 'en-US': 'Only super admins can grant or remove the super admin role', 'ja-JP': 'スーパー管理者ロールを付与・解除できるのはスーパー管理者のみです' },
+  '不能移除自己的超级管理员角色': { 'en-US': "You can't remove the super admin role from yourself", 'ja-JP': '自分のスーパー管理者ロールは解除できません' },
+  '不能移除最后一个超级管理员的超级管理员角色': { 'en-US': "You can't remove the super admin role from the last active super admin", 'ja-JP': '有効な最後のスーパー管理者からスーパー管理者ロールを解除することはできません' },
+
+  // users: departments & data scope
+  '部门不存在': { 'en-US': 'Department not found', 'ja-JP': '部署が存在しません' },
+  '不能把用户分配到数据权限范围外的部门': { 'en-US': "You can't assign users to a department outside your data scope", 'ja-JP': 'データ権限の範囲外の部署にユーザーを割り当てることはできません' },
+  '超出数据权限范围，不能修改该用户': { 'en-US': "This user is outside your data scope and can't be changed", 'ja-JP': 'このユーザーはデータ権限の範囲外のため変更できません' },
+
+  '数据范围取值不合法': { 'en-US': 'Invalid data scope', 'ja-JP': 'データ範囲の値が不正です' },
+
+  // departments
+  '无权限查看部门': { 'en-US': "You don't have permission to view departments", 'ja-JP': '部署を閲覧する権限がありません' },
+  '无权限新增部门': { 'en-US': "You don't have permission to create departments", 'ja-JP': '部署を追加する権限がありません' },
+  '无权限编辑部门': { 'en-US': "You don't have permission to edit departments", 'ja-JP': '部署を編集する権限がありません' },
+  '无权限删除部门': { 'en-US': "You don't have permission to delete departments", 'ja-JP': '部署を削除する権限がありません' },
+  '部门名称不能为空': { 'en-US': 'Department name is required', 'ja-JP': '部署名を入力してください' },
+  '部门名称不能超过 100 个字符': { 'en-US': 'The department name must be at most 100 characters', 'ja-JP': '部署名は 100 文字以内で入力してください' },
+  '部门编码不能为空': { 'en-US': 'Department code is required', 'ja-JP': '部署コードを入力してください' },
+  '部门编码不能超过 50 个字符': { 'en-US': 'The department code must be at most 50 characters', 'ja-JP': '部署コードは 50 文字以内で入力してください' },
+  '部门编码已存在': { 'en-US': 'Department code already exists', 'ja-JP': '部署コードは既に存在します' },
+  '上级部门不存在': { 'en-US': 'Parent department not found', 'ja-JP': '上位部署が存在しません' },
+  '上级部门不能是自身或其下级部门': { 'en-US': "A department's parent can't be itself or one of its sub-departments", 'ja-JP': '上位部署に自身または配下の部署は指定できません' },
+  '负责人不存在': { 'en-US': 'Department head not found', 'ja-JP': '責任者が存在しません' },
+  '排序必须是非负整数': { 'en-US': 'Sort order must be a non-negative integer', 'ja-JP': '並び順は 0 以上の整数で入力してください' },
+  '存在下级部门，不能删除': { 'en-US': "This department has sub-departments and can't be deleted", 'ja-JP': '配下に部署があるため削除できません' },
+  '部门下还有用户，不能删除': { 'en-US': "This department still has users and can't be deleted", 'ja-JP': '部署にユーザーが所属しているため削除できません' },
+  '已在当前层级的边界，无需移动': { 'en-US': 'Already at the edge of this level', 'ja-JP': 'すでにこの階層の端にあります' },
+
   // roles
   '无权限查看角色列表': { 'en-US': "You don't have permission to view the role list", 'ja-JP': 'ロール一覧を閲覧する権限がありません' },
   '无权限新增角色': { 'en-US': "You don't have permission to create roles", 'ja-JP': 'ロールを追加する権限がありません' },
@@ -370,6 +405,7 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
 
   // users / roles
   { re: /^角色不存在: (.+)$/, 'en-US': 'Roles not found: $1', 'ja-JP': 'ロールが存在しません：$1' },
+  { re: /^部门编码不存在: (.+)$/, 'en-US': 'Department codes not found: $1', 'ja-JP': '部署コードが存在しません：$1' },
   { re: /^角色编码不存在: (.+)$/, 'en-US': 'Role codes not found: $1', 'ja-JP': 'ロールコードが存在しません：$1' },
   { re: /^菜单编码不存在: (.+)$/, 'en-US': 'Menu codes not found: $1', 'ja-JP': 'メニューコードが存在しません：$1' },
 

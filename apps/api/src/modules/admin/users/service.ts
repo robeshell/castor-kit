@@ -2,6 +2,7 @@
  * Users module service layer
  */
 
+import { scopeCoversDept, UNRESTRICTED, type DataScope } from '@/common/data-scope'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { generatePasswordHash } from '@/common/password'
@@ -21,14 +22,36 @@ import {
   PROFILE_FIELDS,
   type ErrorRow,
   type ProfileValues,
+  type UserItem,
   type UserStatus,
 } from './schema'
 
 type Data = Record<string, unknown>
 
+export interface ListFilters {
+  search: string
+  status: string
+  /** Department filter; includes its sub-departments */
+  deptId: number | null
+}
+
+/** Who is making the change: used by the super admin protections */
+export interface Caller {
+  username?: string
+  /** Only super admins may grant / remove the super_admin role or touch super admin accounts */
+  superAdmin: boolean
+}
+
+const SUPER_ADMIN = 'super_admin'
+const hasSuperRole = (user: { roles: { code: string }[] }) => user.roles.some((r) => r.code === SUPER_ADMIN)
+
 export interface ImportOptions {
   /** Username of the signed-in admin (can't disable themselves) */
   currentUsername?: string
+  /** Whether the importing admin is a super admin (see Caller) */
+  superAdmin?: boolean
+  /** Rows may only touch users (and departments) inside this scope */
+  scope?: DataScope
   /** Whether the caller holds system_users_status; without it a filled-in status cell is an error row */
   canSetStatus: boolean
 }
@@ -47,15 +70,53 @@ export class UserService {
     this.repo = new UserRepository(db)
   }
 
-  async listUsers(page: number, perPage: number, filters: UserFilters) {
-    const { total, items } = await this.repo.listPage(page, perPage, filters)
-    return { items: items.map(adminUserToDict), total, page, per_page: perPage }
+  /** Attach dept_name (one lookup for the whole batch) */
+  private async withDeptNames(users: AdminUserWithRoles[]): Promise<UserItem[]> {
+    const ids = [...new Set(users.map((u) => u.dept_id).filter((id): id is number => id !== null))]
+    const names = await this.repo.deptNames(ids)
+    return users.map((u) => ({ ...u, dept_name: u.dept_id !== null ? (names.get(u.dept_id) ?? null) : null }))
   }
 
-  async getUserOr404(id: number): Promise<AdminUserWithRoles> {
-    const user = await this.repo.getWithRoles(id)
+  private async dict(user: AdminUserWithRoles) {
+    const [item] = await this.withDeptNames([user])
+    return { ...adminUserToDict(item!), dept_name: item!.dept_name }
+  }
+
+  async listUsers(page: number, perPage: number, filters: ListFilters, scope: DataScope) {
+    const repoFilters: UserFilters = {
+      search: filters.search,
+      status: filters.status,
+      deptIds: filters.deptId !== null ? await this.repo.deptSubtree(filters.deptId) : null,
+    }
+    const { total, items } = await this.repo.listPage(page, perPage, repoFilters, scope)
+    const withNames = await this.withDeptNames(items)
+    return {
+      items: withNames.map((u) => ({ ...adminUserToDict(u), dept_name: u.dept_name })),
+      total,
+      page,
+      per_page: perPage,
+    }
+  }
+
+  /** 404 both when the user doesn't exist and when they're outside the caller's data scope (no existence leak) */
+  async getUserOr404(id: number, scope: DataScope = UNRESTRICTED): Promise<AdminUserWithRoles> {
+    const user = await this.repo.getWithRoles(id, scope)
     if (!user) throw notFound()
     return user
+  }
+
+  /**
+   * dept_id from a request body: undefined when absent, null to clear, else an existing department inside the scope.
+   * A restricted admin can't move users into departments they can't see.
+   */
+  private async resolveDept(data: Data, scope: DataScope): Promise<number | null | undefined> {
+    if (!('dept_id' in data)) return undefined
+    const raw = data.dept_id
+    if (raw === null || raw === undefined || raw === '') return null
+    const id = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN
+    if (!Number.isSafeInteger(id) || !(await this.repo.getDeptById(id))) throw new ServiceError('部门不存在', 400)
+    if (!scopeCoversDept(scope, id)) throw new ServiceError('不能把用户分配到数据权限范围外的部门', 400)
+    return id
   }
 
   /** Verify all role_ids exist and return the roles; throws on any invalid id */
@@ -78,6 +139,28 @@ export class UserService {
     return (await this.repo.countOtherActiveUsersWithRole(superAdmin.id, user.id)) === 0
   }
 
+  /** Non-super admins can't edit, disable or delete super admin accounts (password resets would hand them the account) */
+  private assertCanManage(user: AdminUserWithRoles, caller: Caller) {
+    if (!caller.superAdmin && hasSuperRole(user)) throw new ServiceError('只有超级管理员可以操作超级管理员账号', 403)
+  }
+
+  /**
+   * Role changes touching super_admin: only super admins may grant or remove it, nobody may remove it from themselves,
+   * and the last active super admin keeps it.
+   */
+  private async assertRoleChange(user: AdminUserWithRoles | null, roleIds: number[], caller: Caller) {
+    const superRole = await this.repo.getRoleByCode(SUPER_ADMIN)
+    if (!superRole) return
+    const had = user ? hasSuperRole(user) : false
+    const will = roleIds.includes(superRole.id)
+    if (had === will) return
+    if (!caller.superAdmin) throw new ServiceError('只有超级管理员可以分配超级管理员角色', 403)
+    if (had && user) {
+      if (user.username === caller.username) throw new ServiceError('不能移除自己的超级管理员角色', 400)
+      if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能移除最后一个超级管理员的超级管理员角色', 400)
+    }
+  }
+
   /** Throws when the email already belongs to another user */
   private async assertEmailFree(repo: UserRepository, email: string | null | undefined, userId?: number) {
     if (!email) return
@@ -94,7 +177,7 @@ export class UserService {
       await repo.updateProfile(user.id, profile)
       return repo.getWithRoles(user.id)
     })
-    return { message: '资料已更新', user: adminUserToDict(updated!) }
+    return { message: '资料已更新', user: await this.dict(updated!) }
   }
 
   private async inTx<T>(fn: (repo: UserRepository, tx: Executor) => Promise<T>): Promise<T> {
@@ -106,7 +189,7 @@ export class UserService {
     }
   }
 
-  async createUser(data: Data) {
+  async createUser(data: Data, scope: DataScope, caller: Caller) {
     if (!pyTruthy(data.username) || !pyTruthy(data.password)) {
       throw new ServiceError('用户名和密码不能为空', 400)
     }
@@ -114,53 +197,61 @@ export class UserService {
     if (await this.repo.getByUsername(username)) throw new ServiceError('用户名已存在', 400)
     const profile = profileOrThrow(data)
     await this.assertEmailFree(this.repo, profile.email)
+    const deptId = await this.resolveDept(data, scope)
 
     const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
+    if (roleIds) await this.assertRoleChange(null, roleIds, caller)
     const passwordHash = await generatePasswordHash(pyStr(data.password))
     const user = await this.inTx(async (repo) => {
-      const created = await repo.insert(username, passwordHash, profile)
+      const created = await repo.insert(username, passwordHash, profile, undefined, deptId)
       if (roleIds) await repo.setRoles(created.id, roleIds)
       return repo.getWithRoles(created.id)
     })
-    return adminUserToDict(user!)
+    return this.dict(user!)
   }
 
   /** `status` is ignored here: it has its own endpoint and permission (setUserStatus) */
-  async updateUser(user: AdminUserWithRoles, data: Data) {
+  async updateUser(user: AdminUserWithRoles, data: Data, scope: DataScope, caller: Caller) {
+    this.assertCanManage(user, caller)
     const profile = profileOrThrow(data)
     await this.assertEmailFree(this.repo, profile.email, user.id)
+    const deptId = await this.resolveDept(data, scope)
     const passwordHash = 'password' in data && pyTruthy(data.password) ? await generatePasswordHash(pyStr(data.password)) : null
     const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
+    if (roleIds) await this.assertRoleChange(user, roleIds, caller)
     const updated = await this.inTx(async (repo) => {
       await repo.updateProfile(user.id, profile)
+      if (deptId !== undefined) await repo.setDept(user.id, deptId)
       if (passwordHash) await repo.updatePasswordHash(user.id, passwordHash)
       if (roleIds) await repo.setRoles(user.id, roleIds)
       return repo.getWithRoles(user.id)
     })
-    return adminUserToDict(updated!)
+    return this.dict(updated!)
   }
 
-  async setUserStatus(user: AdminUserWithRoles, statusRaw: unknown, currentUsername: string | undefined) {
+  async setUserStatus(user: AdminUserWithRoles, statusRaw: unknown, caller: Caller) {
+    this.assertCanManage(user, caller)
     if (!isUserStatus(statusRaw)) throw new ServiceError('状态取值不合法', 400)
     if (statusRaw === 'disabled') {
-      if (user.username === currentUsername) throw new ServiceError('不能停用当前登录账号', 400)
+      if (user.username === caller.username) throw new ServiceError('不能停用当前登录账号', 400)
       if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能停用最后一个超级管理员', 400)
     }
     const updated = await this.inTx(async (repo) => {
       await repo.setStatus(user.id, statusRaw)
       return repo.getWithRoles(user.id)
     })
-    return adminUserToDict(updated!)
+    return this.dict(updated!)
   }
 
-  async deleteUser(user: AdminUserWithRoles, currentUsername: string | undefined) {
-    if (user.username === currentUsername) throw new ServiceError('不能删除当前登录账号', 400)
+  async deleteUser(user: AdminUserWithRoles, caller: Caller) {
+    this.assertCanManage(user, caller)
+    if (user.username === caller.username) throw new ServiceError('不能删除当前登录账号', 400)
     if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能删除最后一个超级管理员', 400)
     await this.inTx((repo) => repo.delete(user.id))
     return { message: '删除成功' }
   }
 
-  async exportUsers(data: Data) {
+  async exportUsers(data: Data, scope: DataScope = UNRESTRICTED) {
     const ids = pyTruthy(data.ids) ? data.ids : []
     const fields = pyTruthy(data.fields) ? data.fields : []
     const exportMode = pyTruthy(data.export_mode) ? pyStr(data.export_mode).trim() : 'selected'
@@ -169,15 +260,18 @@ export class UserService {
     let validFields = Array.isArray(fields) ? fields.filter((f): f is string => typeof f === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, f)) : []
     if (validFields.length === 0) validFields = Object.keys(EXPORT_FIELD_MAP)
 
-    let items: AdminUserWithRoles[]
+    let users: AdminUserWithRoles[]
     if (exportMode === 'filtered') {
       const search = pyTruthy(filters.search) ? pyStr(filters.search).trim() : ''
       const status = isUserStatus(filters.status) ? filters.status : ''
-      items = await this.repo.listAllOrdered({ search, status })
+      const deptId = Number.isSafeInteger(filters.dept_id) ? (filters.dept_id as number) : null
+      const deptIds = deptId !== null ? await this.repo.deptSubtree(deptId) : null
+      users = await this.repo.listAllOrdered({ search, status, deptIds }, scope)
     } else {
       if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先勾选要导出的用户数据', 400)
-      items = await this.repo.listByIdsOrdered(ids.filter((v): v is number => Number.isInteger(v)))
+      users = await this.repo.listByIdsOrdered(ids.filter((v): v is number => Number.isInteger(v)), scope)
     }
+    const items = await this.withDeptNames(users)
 
     const headers = validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
     const rows = items.map((item) => validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
@@ -186,8 +280,8 @@ export class UserService {
 
   async downloadTemplate(fileTypeRaw: unknown) {
     return buildTable(
-      ['用户名', '密码', '昵称', '邮箱', '手机', '状态', '角色编码'],
-      [['demo_user', '123456', '演示用户', 'demo_user@example.com', '13800000000', '正常', 'super_admin']],
+      ['用户名', '密码', '昵称', '邮箱', '手机', '状态', '部门编码', '角色编码'],
+      [['demo_user', '123456', '演示用户', 'demo_user@example.com', '13800000000', '正常', '', 'super_admin']],
       'users_import_template',
       normalizeTableFileType(fileTypeRaw),
     )
@@ -203,7 +297,21 @@ export class UserService {
     username: string,
     existingId: number | undefined,
     options: ImportOptions,
-  ): Promise<{ profile: ProfileValues; status: UserStatus | '' } | { error: string }> {
+  ): Promise<{ profile: ProfileValues; status: UserStatus | ''; deptId: number | undefined } | { error: string }> {
+    const scope = options.scope ?? UNRESTRICTED
+    if (existingId !== undefined && !(await repo.isInScope(existingId, scope))) {
+      return { error: '超出数据权限范围，不能修改该用户' }
+    }
+
+    let deptId: number | undefined
+    const deptCode = (mapped.dept_code ?? '').trim()
+    if (deptCode) {
+      const dept = await repo.getDeptByCode(deptCode)
+      if (!dept) return { error: `部门编码不存在: ${deptCode}` }
+      if (!scopeCoversDept(scope, dept.id)) return { error: '不能把用户分配到数据权限范围外的部门' }
+      deptId = dept.id
+    }
+
     const filled = Object.fromEntries(PROFILE_FIELDS.filter((f) => (mapped[f] ?? '').trim()).map((f) => [f, mapped[f]]))
     const profile = normalizeProfile(filled)
     if ('error' in profile) return { error: profile.error }
@@ -216,7 +324,26 @@ export class UserService {
     if (status === null) return { error: '状态取值不合法（可填 正常 / 停用）' }
     if (status && !options.canSetStatus) return { error: '无权限修改用户状态' }
     if (status === 'disabled' && username === options.currentUsername) return { error: '不能停用当前登录账号' }
-    return { profile: profile.values, status }
+    return { profile: profile.values, status, deptId }
+  }
+
+  /** Import-row version of assertCanManage / assertRoleChange (the "last super admin" case is checked after the batch) */
+  private async importSuperAdminError(
+    repo: UserRepository,
+    existingId: number | undefined,
+    username: string,
+    roleCodes: string[],
+    options: ImportOptions,
+  ): Promise<string | null> {
+    const existing = existingId !== undefined ? await repo.getWithRoles(existingId) : null
+    const had = existing ? hasSuperRole(existing) : false
+    const grants = roleCodes.includes(SUPER_ADMIN)
+    if (!options.superAdmin) {
+      if (had) return '只有超级管理员可以操作超级管理员账号'
+      if (grants) return '只有超级管理员可以分配超级管理员角色'
+    }
+    if (had && roleCodes.length > 0 && !grants && username === options.currentUsername) return '不能移除自己的超级管理员角色'
+    return null
   }
 
   async importUsers(file: UploadedFile | null, options: ImportOptions = { canSetStatus: false }) {
@@ -271,6 +398,11 @@ export class UserService {
         }
 
         const existing = await repo.getByUsername(username)
+        const superError = await this.importSuperAdminError(repo, existing?.id, username, roleCodes, options)
+        if (superError) {
+          errors.push(buildErrorRow(line, superError, row))
+          continue
+        }
         const parsed = await this.parseImportRow(repo, mapped, username, existing?.id, options)
         if ('error' in parsed) {
           errors.push(buildErrorRow(line, parsed.error, row))
@@ -280,6 +412,7 @@ export class UserService {
           if (password) await repo.updatePasswordHash(existing.id, await generatePasswordHash(password))
           if (roleCodes.length > 0) await repo.setRoles(existing.id, rolesFound.map((r) => r.id))
           await repo.updateProfile(existing.id, parsed.profile)
+          if (parsed.deptId !== undefined) await repo.setDept(existing.id, parsed.deptId)
           if (parsed.status) await repo.setStatus(existing.id, parsed.status)
           updated += 1
         } else {
@@ -287,7 +420,13 @@ export class UserService {
             errors.push(buildErrorRow(line, '新增用户必须提供密码', row))
             continue
           }
-          const createdUser = await repo.insert(username, await generatePasswordHash(password), parsed.profile, parsed.status || undefined)
+          const createdUser = await repo.insert(
+            username,
+            await generatePasswordHash(password),
+            parsed.profile,
+            parsed.status || undefined,
+            parsed.deptId,
+          )
           await repo.setRoles(createdUser.id, rolesFound.map((r) => r.id))
           created += 1
         }
