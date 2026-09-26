@@ -5,6 +5,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm'
 import { loadAdminsWithRolesByIds } from '@/common/auth'
 import { dataScopeWhere, UNRESTRICTED, type DataScope } from '@/common/data-scope'
+import { clearFileRefs, syncFileRefs } from '@/common/file-refs'
 import { descendantIds } from '@/common/tree'
 import type { Executor } from '@/db/client'
 import { admin_users, departments, roles, user_roles, type Department, type Role } from '@/db/schema'
@@ -135,6 +136,7 @@ export class UserRepository {
       .insert(admin_users)
       .values({ username, password_hash: passwordHash, ...profile, ...(status ? { status } : {}), ...(deptId !== undefined ? { dept_id: deptId } : {}) })
       .returning()
+    await this.syncAvatarRef(row!.id, profile)
     return row!
   }
 
@@ -145,6 +147,12 @@ export class UserRepository {
   async updateProfile(id: number, profile: ProfileValues) {
     if (Object.keys(profile).length === 0) return
     await this.db.update(admin_users).set(profile).where(eq(admin_users.id, id))
+    await this.syncAvatarRef(id, profile)
+  }
+
+  /** An avatar uploaded to the file center (/api/admin/files/<id>) is registered as a reference so it isn't cleaned up */
+  private async syncAvatarRef(id: number, profile: ProfileValues) {
+    if ('avatar' in profile) await syncFileRefs(this.db, 'admin_users', id, { avatar: profile.avatar })
   }
 
   async setDept(id: number, deptId: number | null) {
@@ -156,6 +164,7 @@ export class UserRepository {
   }
 
   async delete(id: number) {
+    await clearFileRefs(this.db, 'admin_users', id)
     await this.db.delete(admin_users).where(eq(admin_users.id, id))
   }
 

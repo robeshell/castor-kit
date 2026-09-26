@@ -146,6 +146,30 @@ describe('files: local driver', () => {
     expect((await s.inject({ method: 'DELETE', url: png.url })).statusCode).toBe(200)
   })
 
+  it('头像：个人资料 / 编辑用户保存上传的头像时登记引用，换成外部地址或删除用户时解除', async () => {
+    const avatar = (await upload(s, 'face.png', PNG)).json()
+    const refsOf = async (userId: number) =>
+      (await handle.db.select().from(file_references).where(eq(file_references.ref_table, 'admin_users')))
+        .filter((r) => r.ref_id === String(userId))
+        .map((r) => [r.file_id, r.ref_field])
+
+    expect((await s.inject({ method: 'PUT', url: '/api/admin/profile', payload: { avatar: avatar.url } })).statusCode).toBe(200)
+    expect(await refsOf(s.userId)).toEqual([[avatar.id, 'avatar']])
+    expect((await s.inject({ url: `${avatar.url}/info` })).json().ref_count).toBe(1)
+    await s.inject({ method: 'PUT', url: '/api/admin/profile', payload: { avatar: 'https://example.com/me.png' } })
+    expect(await refsOf(s.userId)).toEqual([])
+
+    const created = await s.inject({
+      method: 'POST',
+      url: '/api/admin/users',
+      payload: { username: 'ck_test_f_avatar', password: 'x-pass-1', avatar: avatar.url },
+    })
+    const userId = created.json().id
+    expect(await refsOf(userId)).toEqual([[avatar.id, 'avatar']])
+    await s.inject({ method: 'DELETE', url: `/api/admin/users/${userId}` })
+    expect(await refsOf(userId)).toEqual([])
+  })
+
   it('权限：未登录 401；普通用户能上传和读取，但看不到列表、不能删除；非法 id → 404', async () => {
     expect((await app.inject({ method: 'POST', url: '/api/admin/files', ...multipartFile('a.png', PNG) })).statusCode).toBe(401)
     const fx = await createFixture(handle)
