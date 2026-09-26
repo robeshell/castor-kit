@@ -34,9 +34,12 @@ export const loginRequired: preHandlerAsyncHookHandler = async (request, reply) 
   }
 }
 
-/** Drop a stale session (no-op when there is none) */
+/**
+ * Drop a stale session (no-op when there is none). A session in a sign-in step (2FA) is kept: the sign-in page may
+ * call a protected endpoint meanwhile, and that must not throw the user back to the password step.
+ */
 function endSession(request: FastifyRequest): void {
-  if (request.session.get('sid')) clearSession(request)
+  if (request.session.get('sid') && !request.authSession?.mfa_state) clearSession(request)
 }
 
 const WITH_ROLES_MENUS = {

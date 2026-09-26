@@ -7,17 +7,29 @@
 import { loadAdminWithRoles } from '@/common/auth'
 import { ServiceError } from '@/common/errors'
 import { checkPasswordHash, generatePasswordHash } from '@/common/password'
+import type { PasswordPolicy } from '@/common/password-policy'
+import type { MfaState } from '@/common/session'
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
 import { adminUserToDict, type AdminUserWithRoles } from '@/db/schema'
 import { AuthRepository } from './repository'
-import type { PasswordPolicy } from '@/common/password-policy'
 import { validateChangePasswordPayload, type ChangePasswordPayload } from './schema'
 
 export interface ClientMeta {
   ip: string
   userAgent: string
 }
+
+/** Whether sign-in asks for a second factor (from 系统设置) */
+export interface TwoFactorPolicy {
+  enabled: boolean
+  requiredRoles: string[]
+}
+
+export type LoginResult =
+  | { kind: 'signed_in'; userId: number; payload: { message: string; user: Awaited<ReturnType<AuthService['userDict']>> } }
+  /** Password was right; the session waits for the code ('verify') or for enrollment ('setup') */
+  | { kind: 'mfa'; userId: number; state: MfaState }
 
 export class AuthService {
   private readonly repo: AuthRepository
@@ -37,6 +49,11 @@ export class AuthService {
    * In DEMO_MODE the username dimension is skipped: the demo credentials are public, so anyone could otherwise lock
    * the shared account for everyone by typing a wrong password on purpose.
    */
+  /** 429 while the IP or the username is locked out (password and 2FA code failures both count) */
+  async assertNotBlocked(username: string, ip: string): Promise<void> {
+    if (await this.isLoginBlocked(username, ip)) throw new ServiceError('登录失败次数过多，请稍后再试', 429)
+  }
+
   private async isLoginBlocked(username: string, ip: string): Promise<boolean> {
     const { loginMaxFailures: max, loginLockoutMinutes: minutes } = this.config
     if (ip && (await this.repo.countRecentFailures({ ip }, minutes)) >= max) return true
@@ -53,12 +70,13 @@ export class AuthService {
     }
   }
 
-  /** Returns `{ message, user }` on success; the caller writes the session and attaches csrf_token */
-  async login(usernameRaw: unknown, password: unknown, meta: ClientMeta) {
+  /**
+   * Check the password. Signed in right away, or — with 2FA on and the user enrolled (or required to enroll by role) —
+   * a second step first; "login succeeded" is only recorded once that step passes. The caller writes the session.
+   */
+  async login(usernameRaw: unknown, password: unknown, meta: ClientMeta, twoFactor: TwoFactorPolicy): Promise<LoginResult> {
     const username = typeof usernameRaw === 'string' ? usernameRaw : ''
-    if (await this.isLoginBlocked(username, meta.ip)) {
-      throw new ServiceError('登录失败次数过多，请稍后再试', 429)
-    }
+    await this.assertNotBlocked(username, meta.ip)
 
     const user = username ? await this.repo.getAdminByUsername(username) : null
 
@@ -77,23 +95,17 @@ export class AuthService {
         )
         throw new ServiceError('账号已停用，请联系管理员', 403)
       }
-      await this.bestEffort('记录登录时间', () => this.repo.recordLogin(user.id, meta.ip))
-      await this.bestEffort('记录登录日志', async () => {
-        await this.repo.addLoginLog({
-          username,
-          user_id: user.id,
-          status: 'success',
-          ip: meta.ip,
-          user_agent: meta.userAgent,
-          message: '登录成功',
-        })
-        // Login succeeded: reset the window's failure count so earlier mistakes don't keep rate limiting
-        await this.repo.clearRecentFailures(username, meta.ip, this.config.loginLockoutMinutes)
-      })
-
       const withRoles = await loadAdminWithRoles(this.db, username)
       if (!withRoles) throw new ServiceError('用户不存在', 500)
-      return { userId: user.id, payload: { message: '登录成功', user: await this.userDict(withRoles) } }
+      const state: MfaState | null = !twoFactor.enabled
+        ? null
+        : user.totp_enabled_at
+          ? 'verify'
+          : withRoles.roles.some((r) => twoFactor.requiredRoles.includes(r.code))
+            ? 'setup'
+            : null
+      if (state) return { kind: 'mfa', userId: user.id, state }
+      return { kind: 'signed_in', userId: user.id, payload: await this.finishSignIn(withRoles, meta) }
     }
 
     await this.bestEffort('记录登录日志', () =>
@@ -107,6 +119,38 @@ export class AuthService {
       }),
     )
     throw new ServiceError('用户名或密码错误', 401)
+  }
+
+  /** Record a completed sign-in (last login, login log, reset the failure window); returns the login response body */
+  async finishSignIn(user: AdminUserWithRoles, meta: ClientMeta) {
+    await this.bestEffort('记录登录时间', () => this.repo.recordLogin(user.id, meta.ip))
+    await this.bestEffort('记录登录日志', async () => {
+      await this.repo.addLoginLog({
+        username: user.username,
+        user_id: user.id,
+        status: 'success',
+        ip: meta.ip,
+        user_agent: meta.userAgent,
+        message: '登录成功',
+      })
+      // Login succeeded: reset the window's failure count so earlier mistakes don't keep rate limiting
+      await this.repo.clearRecentFailures(user.username, meta.ip, this.config.loginLockoutMinutes)
+    })
+    return { message: '登录成功', user: await this.userDict(user) }
+  }
+
+  /** A wrong 2FA code: logged as a failed login, so it counts toward the lockout like a wrong password */
+  async recordSecondFactorFailure(user: { id: number; username: string }, meta: ClientMeta) {
+    await this.bestEffort('记录登录日志', () =>
+      this.repo.addLoginLog({
+        username: user.username,
+        user_id: user.id,
+        status: 'failed',
+        ip: meta.ip,
+        user_agent: meta.userAgent,
+        message: '两步验证码错误',
+      }),
+    )
   }
 
   /** Record the logout operation log; the caller clears the session */
@@ -154,7 +198,7 @@ export class AuthService {
   }
 
   /** The signed-in user as returned by login / me: the usual user dict plus the department name */
-  private async userDict(user: AdminUserWithRoles) {
+  async userDict(user: AdminUserWithRoles) {
     return { ...adminUserToDict(user), dept_name: await this.repo.deptName(user.dept_id) }
   }
 }

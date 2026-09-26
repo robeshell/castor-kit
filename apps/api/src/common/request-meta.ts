@@ -26,6 +26,7 @@ export const SENSITIVE_KEYS = new Set([
   'token',
   'access_token',
   'api_key',
+  'recovery_code',
   'authorization',
 ])
 

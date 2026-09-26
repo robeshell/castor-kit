@@ -16,6 +16,7 @@ import { registerRoleRoutes } from './roles/routes'
 import { registerScheduledTaskRoutes } from './scheduled-task/routes'
 import { registerSessionRoutes } from './sessions/routes'
 import { registerSettingsRoutes } from './settings/routes'
+import { registerTwoFactorRoutes } from './two-factor/routes'
 import { registerUserRoutes } from './users/routes'
 
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
@@ -28,6 +29,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   await registerFileRoutes(app)
   await registerSettingsRoutes(app)
   await registerSessionRoutes(app)
+  await registerTwoFactorRoutes(app)
   await registerMenuRoutes(app)
   await registerDictRoutes(app)
   await registerScheduledTaskRoutes(app)

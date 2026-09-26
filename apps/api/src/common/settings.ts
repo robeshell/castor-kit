@@ -33,7 +33,15 @@ export type SettingValue = boolean | number | string[]
 export const MAX_SESSION_TTL_HOURS = 720
 
 export const SETTING_DEFINITIONS: SettingDefinition[] = [
-  { key: 'security.totp_enabled', group: 'security', type: 'boolean', default: () => false, public: true },
+  {
+    key: 'security.totp_enabled',
+    group: 'security',
+    type: 'boolean',
+    default: () => false,
+    public: true,
+    // The demo account is shared: a 2FA binding on it would lock everyone else out
+    unavailable: (config) => (config.demoMode ? '演示环境不能开启此功能' : null),
+  },
   { key: 'security.totp_required_roles', group: 'security', type: 'string_list', default: () => [] },
   {
     key: 'security.password_reset_enabled',
@@ -42,7 +50,9 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     default: () => false,
     public: true,
     unavailable: (config) =>
-      config.mail.driver === 'none'
+      config.demoMode
+        ? '演示环境不能开启此功能'
+        : config.mail.driver === 'none'
         ? '需要先配置邮件服务（SMTP_HOST 等环境变量）'
         : !config.appBaseUrl
           ? '需要先设置 APP_BASE_URL（重置链接里的网站地址）'
@@ -226,7 +236,7 @@ export class SettingsStore {
   async publicInfo() {
     const s = await this.get()
     return {
-      totp_enabled: s.totpEnabled,
+      totp_enabled: this.isAvailable('security.totp_enabled', s),
       password_reset_enabled: this.isAvailable('security.password_reset_enabled', s),
       password_policy: {
         min_length: s.passwordMinLength,
