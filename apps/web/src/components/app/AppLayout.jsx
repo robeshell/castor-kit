@@ -54,6 +54,18 @@ function PageArea({ keepAlive, container }) {
     if (scrollRef.current) scrollRef.current.scrollTop = cacheable ? (scrollTops.current.get(current) ?? 0) : 0
   }, [current, cacheable, version])
 
+  // Full-height pages (AI chat, prompt studio) size themselves from --page-area-height: the scroll area's real height,
+  // which already leaves out the top bar and the tags view
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const update = () => el.style.setProperty('--page-area-height', `${el.clientHeight}px`)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   const animated = (key, children) => (
     <motion.div
       key={key}

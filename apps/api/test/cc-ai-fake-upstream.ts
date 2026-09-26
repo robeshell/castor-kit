@@ -61,6 +61,17 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
     if (body.stream && Array.isArray((body as { tools?: unknown }).tools)) {
       res.writeHead(200, { 'content-type': 'text/event-stream' })
       const lastMessage = messages.at(-1) as { role?: string; content?: unknown } | undefined
+      // "toolloop": keep calling a tool until tools are switched off (tool_choice "none"), then answer
+      if (messages.some((m) => m.role === 'user' && String(m.content) === 'toolloop')) {
+        if ((body as { tool_choice?: unknown }).tool_choice === 'none') {
+          res.write(sseChunk('final answer'))
+          return res.end(FINISH)
+        }
+        const loopCall = { index: 0, id: `call_${requests.length}`, type: 'function', function: { name: 'search_api', arguments: '{"query":"x"}' } }
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { role: 'assistant', tool_calls: [loopCall] } }] })}\n\n`)
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: 'tool_calls' }] })}\n\n`)
+        return res.end('data: [DONE]\n\n')
+      }
       if (lastMessage?.role === 'tool') {
         res.write(sseChunk(`result: ${String(lastMessage.content).slice(0, 300)}`))
         return res.end(FINISH)

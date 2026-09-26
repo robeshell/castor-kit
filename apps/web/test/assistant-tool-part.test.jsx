@@ -24,6 +24,8 @@ describe('assistant ToolPart', () => {
     expect(screen.getByText('完成')).toBeInTheDocument()
     rerender(<ToolPart part={{ ...read, output: { status: 403, data: '{}' } }} />)
     expect(screen.getByText('没有权限')).toBeInTheDocument()
+    rerender(<ToolPart part={{ ...read, input: { path: '/api/admin/users', query: { page: 2, search: '' } } }} />)
+    expect(screen.getByText('GET /api/admin/users?page=2')).toBeInTheDocument()
   })
 
   it('写操作等待确认：显示说明、方法路径与数据，点击允许 / 拒绝回传审批 ID', () => {

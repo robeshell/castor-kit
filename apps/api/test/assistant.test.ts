@@ -37,7 +37,7 @@ async function assistantMessage(body: string): Promise<UIMessage> {
   return last!
 }
 
-type ToolPart = { type: string; state: string; input?: unknown; output?: { status: number; data: string }; approval?: { id: string; approved?: boolean } }
+type ToolPart = { type: string; state: string; input?: unknown; output?: { status: number; data: unknown; note?: string }; approval?: { id: string; approved?: boolean } }
 const toolParts = (m: UIMessage) => m.parts.filter((p) => p.type.startsWith('tool-')) as unknown as ToolPart[]
 const textOf = (m: UIMessage) => m.parts.filter((p) => p.type === 'text').map((p) => (p as { text: string }).text).join('')
 
@@ -119,7 +119,8 @@ describe('AI assistant', () => {
     )
     const [read] = toolParts(got)
     expect(read!.output!.status).toBe(200)
-    expect(read!.output!.data).toContain('"per_page":1')
+    expect(read!.output!.data).toMatchObject({ per_page: 1 })
+    expect(read!.output!.note).toBeUndefined()
 
     const staff = await scopedSession(app, handle, { name: 'asst_staff', codes: [], dataScope: 'all' })
     const denied = await assistantMessage(
@@ -133,6 +134,29 @@ describe('AI assistant', () => {
       )
       expect(toolParts(refused)[0]!.output!.status, path).toBe(400)
     }
+  })
+
+  it('大结果按结构压缩：角色列表保留每个角色，嵌套的菜单缩短，并说明有删减', async () => {
+    const message = await assistantMessage(
+      (await admin.inject({ method: 'POST', url: URL_PATH, payload: { messages: [say('tool:api_get {"path":"/api/admin/roles"}')] } })).body,
+    )
+    const { output } = toolParts(message)[0]!
+    const roles = output!.data as Array<{ code: string; menus: unknown[] }>
+    const all = (await admin.inject({ url: '/api/admin/roles' })).json() as Array<{ code: string }>
+    expect(JSON.stringify(all).length).toBeGreaterThan(8000)
+    expect(roles.map((r) => r.code)).toEqual(all.map((r) => r.code))
+    expect(JSON.stringify(output!.data).length).toBeLessThanOrEqual(8000)
+    expect(output!.note).toContain('same parameters')
+  })
+
+  it('最后一轮不能再调用工具：回复总以文字收尾', async () => {
+    const before = up.requests.length
+    const message = await assistantMessage((await admin.inject({ method: 'POST', url: URL_PATH, payload: { messages: [say('toolloop')] } })).body)
+    const calls = up.requests.slice(before)
+    expect(calls).toHaveLength(8)
+    expect((calls.at(-1)!.body as { tool_choice?: unknown }).tool_choice).toBe('none')
+    expect(toolParts(message)).toHaveLength(7)
+    expect(textOf(message)).toBe('final answer')
   })
 
   it('api_write：先请用户确认，不确认不执行；确认后以当前用户身份执行并记录操作日志；伪造的确认被拒绝', async () => {

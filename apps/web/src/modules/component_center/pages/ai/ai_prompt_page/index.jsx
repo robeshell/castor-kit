@@ -276,7 +276,7 @@ export default function AiPromptPage() {
   const saving = form.formState.isSubmitting
 
   return (
-    <div className="flex flex-col md:h-[calc(100svh-112px)]">
+    <div className="flex flex-col md:h-[calc(var(--page-area-height,100svh)-3.5rem)]">
       <PageHeader
         title="AI 提示词工坊"
       />

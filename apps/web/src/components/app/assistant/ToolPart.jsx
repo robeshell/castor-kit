@@ -13,6 +13,16 @@ import { cn } from '@/lib/utils'
 
 const running = (state) => state === 'input-streaming' || state === 'input-available'
 
+/** "/api/admin/users" + { page: 2 } → "/api/admin/users?page=2", so repeated reads with different parameters look different */
+function withQuery(path, query) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value !== undefined && value !== null && value !== '') params.set(key, String(value))
+  }
+  const qs = params.toString()
+  return qs ? `${path}?${qs}` : path
+}
+
 /** Outcome of an API call made by a tool: { status, data } */
 function Outcome({ output }) {
   const { t } = useTranslation()
@@ -66,7 +76,9 @@ export default function ToolPart({ part, onRespond }) {
   if (name === 'api_get') {
     return (
       <Line icon={Database} busy={running(part.state)}>
-        <code className="truncate font-mono">GET {input.path}</code>
+        <code className="truncate font-mono" title={withQuery(input.path, input.query)}>
+          GET {withQuery(input.path, input.query)}
+        </code>
         <Outcome output={part.output} />
       </Line>
     )

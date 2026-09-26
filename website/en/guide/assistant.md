@@ -21,7 +21,7 @@ The conversation is kept in the current browser tab (it survives a reload and is
 - **Calls the API as you**: every call goes through the same API the pages use, with your session, so permissions, data scope, demo mode limits and rate limits all apply, and writes are recorded in the operation log (as you, with the User-Agent `castor-kit-assistant`)
 - **Every write is confirmed**: creating, changing and deleting all wait for "Allow" on the confirmation card. Approval requests are signed by the server (with a key derived from `SECRET_KEY`), so an approval forged in the browser is rejected
 - **Off limits**: account and security endpoints (profile and password, two-step verification, sessions, API tokens), system settings, import / export, file upload and download, the other AI endpoints and the assistant itself. Do these on the pages
-- **API results are data**: text such as "ignore the previous rules" inside a record is not followed as an instruction; the model sees at most 8,000 characters of each result
+- **API results are data**: text such as "ignore the previous rules" inside a record is not followed as an instruction; results over 8,000 characters are shrunk by structure — long text cut, nested lists inside records shortened, and only the first records kept if still too large — and the model is told what was left out
 - **Data goes to the model provider**: what the assistant reads is sent to the AI service you configured as context, so choose a provider that fits your data compliance requirements
 - API tokens can't call the assistant endpoint; in demo mode it counts toward the AI quota and uses at most 4 tool rounds per message (8 otherwise)
 
