@@ -4,10 +4,12 @@
  */
 
 import { createHash, randomBytes } from 'node:crypto'
+import { generateText } from 'ai'
+import { AI_CALL_DEFAULTS, aiConfigured, createAiAgent, languageModelFor, upstreamStatusOf } from '@/common/ai'
 import { ServiceError } from '@/common/errors'
 import { notifySuperAdmins } from '@/common/admin-notify'
 import { createMailer, type MailLogger } from '@/common/mailer'
-import { createOutboundAgent, hostOfUrl, outboundHostReason } from '@/common/outbound'
+import { hostOfUrl, outboundHostReason } from '@/common/outbound'
 import {
   SETTING_DEFINITIONS,
   SettingValidationError,
@@ -18,7 +20,6 @@ import {
 import { objectKeyFor, Storage } from '@/common/storage'
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
-import { fetch } from 'undici'
 import { SettingsRepository } from './repository'
 
 const TEST_TIMEOUT_MS = 20_000
@@ -170,26 +171,29 @@ export class SettingsService {
     return { message: '存储可用', driver: storage.current.name }
   }
 
-  /** One tiny chat completion with the (draft) AI settings */
+  /** One tiny model call with the (draft) AI settings */
   async testAi(values: unknown) {
     const settings = await this.draft(values)
     const { ai } = settings
     await this.assertOutbound(settings, ['ai.api_base'])
-    if (!ai.apiKey) throw new ServiceError('未配置 AI 模型，请在「系统设置 → AI」中填写 API Key', 400)
-    let resp: Awaited<ReturnType<typeof fetch>>
+    if (!aiConfigured(ai)) throw new ServiceError('未配置 AI 模型，请在「系统设置 → AI」中填写 API Key 和模型名', 400)
+    // Re-check the address actually connected to (DNS rebinding)
+    const agent = createAiAgent(this.config.settingsAllowPrivateNetwork || this.store.isPinned('ai.api_base'), TEST_TIMEOUT_MS)
     try {
-      resp = await fetch(`${ai.apiBase}/chat/completions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${ai.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: ai.model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 }),
-        signal: AbortSignal.timeout(TEST_TIMEOUT_MS),
-        // Re-check the address actually connected to (DNS rebinding)
-        dispatcher: createOutboundAgent(this.config.settingsAllowPrivateNetwork || this.store.isPinned('ai.api_base'), TEST_TIMEOUT_MS),
+      await generateText({
+        ...AI_CALL_DEFAULTS,
+        model: languageModelFor(ai, agent),
+        prompt: 'ping',
+        maxOutputTokens: 5,
+        abortSignal: AbortSignal.timeout(TEST_TIMEOUT_MS),
       })
     } catch (err) {
+      const status = upstreamStatusOf(err)
+      if (status) throw new ServiceError(`AI 接口返回 ${status}，请检查地址、API Key 和模型名`, 400)
       throw new ServiceError(`连接失败：${reasonOf(err)}`, 400)
+    } finally {
+      await agent.destroy().catch(() => undefined)
     }
-    if (!resp.ok) throw new ServiceError(`AI 接口返回 ${resp.status}，请检查地址、API Key 和模型名`, 400)
     return { message: 'AI 接口可用', model: ai.model }
   }
 }

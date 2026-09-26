@@ -67,6 +67,28 @@ export class DemoAiQuota {
   }
 }
 
+/**
+ * Size of an AI request for the demo's input cap: the text of the chat messages (their ids and part metadata don't
+ * count), or the whole JSON body for other endpoints (the data query's `{ question }`)
+ */
+export function aiInputChars(body: unknown): number {
+  const messages = (body as { messages?: unknown } | null)?.messages
+  if (!Array.isArray(messages)) return JSON.stringify(body ?? '').length
+  let total = 0
+  for (const message of messages) {
+    const parts = (message as { parts?: unknown } | null)?.parts
+    if (!Array.isArray(parts)) {
+      total += JSON.stringify(message ?? '').length
+      continue
+    }
+    for (const part of parts) {
+      const text = (part as { text?: unknown } | null)?.text
+      total += typeof text === 'string' ? text.length : JSON.stringify(part ?? '').length
+    }
+  }
+  return total
+}
+
 type DemoConfig = Pick<AppConfig, 'demoMode' | 'demoAiHourlyPerIp' | 'demoAiDaily' | 'demoAiMaxInputChars'>
 
 export function registerDemoGuard(app: FastifyInstance, config: DemoConfig): void {
@@ -83,7 +105,7 @@ export function registerDemoGuard(app: FastifyInstance, config: DemoConfig): voi
   app.addHook('preHandler', async (request, reply) => {
     if (request.method !== 'POST' || !DEMO_AI_PATHS.has(requestPath(request))) return
     if (!isSignedIn(request)) return
-    if (JSON.stringify(request.body ?? '').length > config.demoAiMaxInputChars) {
+    if (aiInputChars(request.body) > config.demoAiMaxInputChars) {
       return reply.status(400).send({ error: '演示环境单次输入过长，请精简后再试' })
     }
     const result = quota.take(request.ip)

@@ -357,10 +357,12 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '名称和编码不能为空': { 'en-US': 'Name and code are required', 'ja-JP': '名称とコードを入力してください' },
 
   // component center: AI chat / prompt / SQL
-  '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key': { 'en-US': 'The AI model is not configured: add an API key under System settings → AI', 'ja-JP': 'AI モデルが設定されていません。「システム設定 → AI」で API キーを入力してください' },
+  '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key 和模型名': { 'en-US': 'The AI model is not configured: add the API key and model name under System settings → AI', 'ja-JP': 'AI モデルが設定されていません。「システム設定 → AI」で API キーとモデル名を入力してください' },
   // AI chat stream error events (SSE, translated in ai-chat/service.ts)
   '请求超时，请重试': { 'en-US': 'The request timed out. Please try again.', 'ja-JP': 'リクエストがタイムアウトしました。再度お試しください。' },
   'AI 响应异常，请稍后重试': { 'en-US': 'The AI response failed. Please try again later.', 'ja-JP': 'AI の応答でエラーが発生しました。しばらくしてから再度お試しください。' },
+  '对话太长，请清除上下文后再试': { 'en-US': 'The conversation is too long. Clear the context and try again.', 'ja-JP': '会話が長すぎます。コンテキストをクリアしてから再度お試しください。' },
+  '消息格式不正确': { 'en-US': 'The messages are malformed', 'ja-JP': 'メッセージの形式が正しくありません' },
   '消息不能为空': { 'en-US': 'Message is required', 'ja-JP': 'メッセージを入力してください' },
   '无权限新建模板': { 'en-US': "You don't have permission to create templates", 'ja-JP': 'テンプレートを作成する権限がありません' },
   '无权限编辑模板': { 'en-US': "You don't have permission to edit templates", 'ja-JP': 'テンプレートを編集する権限がありません' },

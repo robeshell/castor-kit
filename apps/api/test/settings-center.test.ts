@@ -149,7 +149,7 @@ describe('settings center', () => {
     expect(s3.json().error).toMatch(/^连接失败：/)
 
     expect((await s.inject({ method: 'POST', url: '/api/admin/settings/test/ai', payload: {} })).json()).toEqual({
-      error: '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key',
+      error: '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key 和模型名',
     })
     const ai = await s.inject({
       method: 'POST',
@@ -218,7 +218,7 @@ describe('settings center', () => {
 
     // Production default: no internal networks either, unless the operator pinned the address
     const strict = await buildApp({
-      config: testConfig({ settingsAllowPrivateNetwork: false, settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'k' } }),
+      config: testConfig({ settingsAllowPrivateNetwork: false, settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'k', AI_MODEL: 'm' } }),
     })
     await strict.ready()
     try {

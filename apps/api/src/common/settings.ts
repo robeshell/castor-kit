@@ -21,6 +21,10 @@ import { system_settings } from '@/db/schema'
 import { openSecret, sealSecret } from '@/common/secret-box'
 import type { SettingEnvName } from '@/common/settings-env'
 
+/** Kinds of AI service (common/ai.ts builds the model for each) */
+export const AI_PROVIDERS = ['openai-compatible', 'openai', 'anthropic', 'google'] as const
+export type AiProvider = (typeof AI_PROVIDERS)[number]
+
 export type SettingGroup = 'general' | 'security' | 'mail' | 'storage' | 'upload' | 'ai'
 type SettingType = 'boolean' | 'integer' | 'string' | 'secret' | 'enum' | 'string_list'
 export type SettingValue = boolean | number | string | string[]
@@ -192,7 +196,17 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     env: 'UPLOAD_ALLOWED_TYPES',
   },
 
-  // ---- AI model (OpenAI-compatible API) ----
+  // ---- AI model (common/ai.ts) ----
+  {
+    key: 'ai.provider',
+    label: 'AI 服务类型',
+    group: 'ai',
+    type: 'enum',
+    options: [...AI_PROVIDERS],
+    default: () => 'openai-compatible',
+    env: 'AI_PROVIDER',
+    fromEnv: (raw) => raw.trim().toLowerCase(),
+  },
   { key: 'ai.api_base', label: 'AI 接口地址', group: 'ai', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'AI_API_BASE' },
   { key: 'ai.api_key', label: 'AI API Key', group: 'ai', type: 'secret', default: () => '', env: 'AI_API_KEY' },
   { key: 'ai.model', label: 'AI 模型', group: 'ai', type: 'string', default: () => '', maxLength: 200, env: 'AI_MODEL' },
@@ -229,7 +243,7 @@ export interface Settings {
   }
   /** Effective upload limit: the setting capped by MAX_CONTENT_LENGTH */
   upload: { maxSize: number; allowedTypes: string[] }
-  ai: { apiBase: string; apiKey: string; model: string }
+  ai: { provider: AiProvider; apiBase: string; apiKey: string; model: string }
 }
 
 function toSettings(values: Map<string, SettingValue>, config: AppConfig): Settings {
@@ -277,7 +291,12 @@ function toSettings(values: Map<string, SettingValue>, config: AppConfig): Setti
       maxSize: Math.max(1, Math.min(get<number>('upload.max_size'), config.maxContentLength)),
       allowedTypes: get<string[]>('upload.allowed_types'),
     },
-    ai: { apiBase: get<string>('ai.api_base'), apiKey: get<string>('ai.api_key'), model: get<string>('ai.model') },
+    ai: {
+      provider: get<AiProvider>('ai.provider'),
+      apiBase: get<string>('ai.api_base'),
+      apiKey: get<string>('ai.api_key'),
+      model: get<string>('ai.model'),
+    },
   }
 }
 
