@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Added
 
+- Departments and data scope: a department tree under System (add child, edit, move up / down; users belong to a department) and a data scope per role — all data, own department and below, own department, own data only, or custom departments. User management follows it (list, export, edit, disable, delete, import; out-of-scope rows are a 404), roles can pick custom departments, `pnpm scaffold --data-scope` generates modules that follow it, and `pnpm verify` checks that declared modules filter with `dataScopeWhere`.
 - User profiles: nickname, email, phone, avatar URL, status, last sign-in time and IP on accounts. Admins edit them on the Users page (with search and a status filter, and the new columns in import / export); everyone edits their own on the Profile page. Accounts can be disabled (new `system_users_status` permission): a disabled account can't sign in and its open sessions end on the next request.
 - Demo AI quota: in demo mode the AI endpoints are limited per IP per hour and per day for the whole site, with a max request size and reply length (`DEMO_AI_*`); `render.yaml` points AI at Gemini's OpenAI-compatible endpoint. The AI chat now answers in the user's language.
 - Public demo mode (`DEMO_MODE`): read-only system management, one-click demo sign-in, a "Demo" badge in the top bar and sample data restored every `DEMO_RESET_HOURS`; `render.yaml` deploys it to Render with a free Neon database.

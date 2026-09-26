@@ -108,6 +108,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--fields` | Field list in the form `field:type,field:type` | `name:str` |
 | `--dry-run` | Only print what would be generated; no files written, nothing registered, no migration | Off |
 | `--skip-migration` | Don't call drizzle-kit to generate a migration | Off |
+| `--data-scope` | Adds [data scope](/en/guide/rbac#data-scope): `dept_id` / `created_by` columns, list / detail / edit / delete / export filtered by the caller's scope, creator and department stamped on create, plus matching API tests | Off |
 | `-h` / `--help` | Print usage | — |
 
 ### What gets generated
@@ -205,6 +206,7 @@ Module checks (run when `--module` is passed):
 | Check | What it checks |
 |---|---|
 | `backend_file` | Backend routes / repository / service files exist |
+| `data_scope_filter` | A module whose `schema.ts` declares `DATA_SCOPE` must filter with `dataScopeWhere` in its repository; skipped otherwise |
 | `frontend_page` | The frontend page file exists |
 | `frontend_no_legacy_ui` | The page directory doesn't use retired UI systems such as `@douyinfe/*` or `var(--semi-*)` |
 | `frontend_api` | The frontend API file exists |

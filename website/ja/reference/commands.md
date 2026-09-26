@@ -55,6 +55,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<フィールド:型,...>"` | バックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを生成 |
 | `pnpm scaffold -- ... --dry-run` | 生成される内容を表示するだけで、ファイルは書き込まない |
 | `pnpm scaffold -- ... --skip-migration` | コードは生成するが、マイグレーションは生成しない |
+| `pnpm scaffold -- ... --data-scope` | 生成したモジュールをデータ権限で絞り込む（`dept_id` / `created_by` を追加） |
 | `pnpm verify -- --module <name>` | すべての検証ゲートのチェックを実行 |
 | `pnpm verify -- --module <name> --skip-build` | フロントエンドのビルドをスキップ |
 | `pnpm verify -- --module <name> --json` | 構造化 JSON を出力 |

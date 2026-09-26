@@ -55,6 +55,7 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<field:type,...>"` | Generate the backend module, frontend page, API tests and migration |
 | `pnpm scaffold -- ... --dry-run` | Only print what would be generated; don't write files |
 | `pnpm scaffold -- ... --skip-migration` | Generate code but no migration |
+| `pnpm scaffold -- ... --data-scope` | Generated module filters by data scope (adds `dept_id` / `created_by`) |
 | `pnpm verify -- --module <name>` | Run all gate checks |
 | `pnpm verify -- --module <name> --skip-build` | Skip the frontend build |
 | `pnpm verify -- --module <name> --json` | Output structured JSON |
