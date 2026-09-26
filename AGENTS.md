@@ -243,7 +243,8 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 
 - 只写代码里真实存在的字段和规则，不要编；拿不准就去读 `routes.ts` / `service.ts` / `schema.ts`
 - 参照写法：`/api/admin/departments`、`/api/admin/sessions`、`/api/admin/files` 下的条目
-- 新增或修改路由后：`pnpm openapi:generate`（为缺文档的路由 + 方法补骨架）→ 按上表补全 → `pnpm openapi:generate -- --strict`（逐个列出不合规的接口和原因，全部合规才退出 0）
+- `pnpm scaffold` 生成模块时已按上表写好它的 8 个接口（`scripts/lib/scaffold-openapi.ts`），生成后直接合规；手改了生成的路由、字段或校验时同步改文档
+- 另外新增或修改路由后：`pnpm openapi:generate`（为缺文档的路由 + 方法补骨架）→ 按上表补全 → `pnpm openapi:generate -- --strict`（逐个列出不合规的接口和原因，全部合规才退出 0）
 
 ### 权限检查规范
 
@@ -623,7 +624,7 @@ Step 4  执行实现
         → 在 seed-rbac.ts 添加菜单 + 按钮权限（_add/_edit/_delete/_export/_import），运行 pnpm seed:rbac -- --incremental
         → 审查 apps/api/drizzle/ 下新生成的 SQL，运行 pnpm db:migrate
         → 在本文件「当前菜单树」补上新菜单
-        → pnpm openapi:generate 补骨架，按「OpenAPI 编写规范」补全每个新接口（summary、description、tags、参数、请求体、返回结构），
+        → 接口文档：scaffold 已写好模块的 8 个接口；手改了生成的路由 / 字段 / 校验或新增了路由时，照代码同步修改（新增路由先 pnpm openapi:generate 补骨架），
           pnpm openapi:generate -- --strict 通过（必须项：verify 的 openapi_sync 与 API 测试都会拦截）
 
 Step 5  验证门禁（强制，不得跳过）

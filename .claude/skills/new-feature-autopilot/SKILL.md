@@ -156,12 +156,14 @@ psql -d castor_kit -c '\d <name>s'
 
 **4e. API 文档（必须，verify 的 openapi_sync 与 API 测试都会拦截）**
 
+`pnpm scaffold` 已把模块的 8 个接口写进 `docs/apifox-full.openapi.json`（字段类型、必填、唯一、默认值、选项、字典、权限、数据权限都按规格写好），生成后直接满足「OpenAPI 编写规范」。只有改了生成的路由、字段或校验，或新增了路由时，才需要照代码同步修改文档：
+
 ```bash
-pnpm openapi:generate            # 为新路由补骨架
-pnpm openapi:generate -- --strict  # 补全后复查，列出每个不合规接口的具体问题
+pnpm openapi:generate            # 为新增的路由补骨架（骨架需按规范补全）
+pnpm openapi:generate -- --strict  # 复查，列出每个不合规接口的具体问题
 ```
 
-骨架只有占位内容。按 AGENTS.md「OpenAPI 编写规范」照代码补全每个新接口：中文 summary、description（权限、数据权限）、tags 与 x-apifox-folder、路径 / 查询参数、请求体字段、返回结构和错误码。AI 小助手和外部调用方都只靠这份文档，字段不能编。
+AI 小助手和外部调用方都只靠这份文档，字段不能编。
 
 ### Step 5 — 验证门禁（强制，不得跳过）
 

@@ -51,6 +51,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import { insertMenus, menuNames, planMenus, type MenuEntry, type MenuRequest } from './lib/menus'
+import { applyScaffoldOpenApi } from './lib/scaffold-openapi'
 import { printUsage } from './lib/usage'
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
@@ -2075,6 +2076,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
     updateFile(ctx, join(srcDir, 'db', 'schema', 'index.ts'), (c) => registerSchemaExport(c, s.domainDir, s.kebab))
     updateFile(ctx, join(srcDir, 'modules', s.domainDir, 'router.ts'), (c) => registerRoute(c, s.pascal, s.kebab))
     if (menu) registerModuleMenu(ctx, s, menu)
+    registerOpenApi(ctx, s)
   } catch (err) {
     log(`❌ ${err instanceof Error ? err.message : String(err)}`)
     return 1
@@ -2115,8 +2117,25 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   log('  · 审查 apps/api/drizzle/ 下新生成的迁移 SQL，运行: pnpm db:migrate')
   log(`  · 运行: psql -d <db> -c '\\d ${s.table}' 确认表已落库`)
   log(`  · 按业务规则更新 apps/api/test/${testFilePath(s)}（生成的基础用例）`)
+  log('  · 接口文档已写入 docs/apifox-full.openapi.json；改了生成的路由、字段或校验后同步修改，再运行: pnpm openapi:generate -- --strict')
   log(`  · 运行: pnpm verify -- --module ${name}`)
   return 0
+}
+
+/**
+ * Write the module's OpenAPI entries into docs/apifox-full.openapi.json (scripts/lib/scaffold-openapi.ts), so the new
+ * routes pass the document check right away; skipped when the document isn't there
+ */
+function registerOpenApi(ctx: WriteContext, s: ScaffoldSpec): void {
+  const docPath = join(ctx.root, 'docs', 'apifox-full.openapi.json')
+  if (!existsSync(docPath)) {
+    ctx.log('  [skip] docs/apifox-full.openapi.json 不存在，未写接口文档')
+    return
+  }
+  updateFile(ctx, docPath, (content) => {
+    const next = applyScaffoldOpenApi(content, s, (field) => labelOf(s, field))
+    return next === content ? null : next
+  })
 }
 
 /** Append the module's menu + button permissions to seed-rbac.ts and its names to the menu locales */
