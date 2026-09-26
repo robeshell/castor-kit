@@ -1896,6 +1896,9 @@ const RESERVED_FIELDS = new Set(['id', 'created_at', 'updated_at', 'dept_id', 'c
 /** Types a unique constraint makes sense for (and the generated tests can give distinct samples) */
 const UNIQUE_TYPES = new Set(['str', 'str20', 'str50', 'str500', 'text', 'int', 'float'])
 
+/** Characters a title / label can't hold: they end up in JSX attributes and string literals of the generated page */
+const UNSAFE_TEXT = /["'`\\{}<>\n\r]/
+
 /** Problems in a --spec file (Chinese, shown to the user); an empty list means it can be generated */
 export function validateSpec(spec: SpecFile): string[] {
   const errors: string[] = []
@@ -1908,6 +1911,8 @@ export function validateSpec(spec: SpecFile): string[] {
   }
   if (spec.title !== undefined && (typeof spec.title !== 'string' || spec.title.trim().length === 0 || spec.title.length > 50)) {
     errors.push('标题不能为空，最多 50 个字符')
+  } else if (spec.title !== undefined && UNSAFE_TEXT.test(spec.title)) {
+    errors.push('标题不能包含引号、反斜杠、花括号、尖括号或换行')
   }
   if (!Array.isArray(spec.fields) || spec.fields.length === 0) return [...errors, '至少需要一个字段']
   if (spec.fields.length > 50) errors.push('字段最多 50 个')
@@ -1924,6 +1929,7 @@ export function validateSpec(spec: SpecFile): string[] {
       continue
     }
     if (field.label !== undefined && (typeof field.label !== 'string' || field.label.length > 50)) errors.push(`字段 ${at}：标签最多 50 个字符`)
+    else if (typeof field.label === 'string' && UNSAFE_TEXT.test(field.label)) errors.push(`字段 ${at}：标签不能包含引号、反斜杠、花括号、尖括号或换行`)
     const coerce = fieldSpec(field.type).coerce
     if (field.required && coerce === 'toFileId') errors.push(`字段 ${at}：文件 / 图片字段不能设为必填`)
     if (field.unique && !UNIQUE_TYPES.has(field.type)) errors.push(`字段 ${at}：只有文本和数字字段可以设为唯一`)
@@ -1938,6 +1944,8 @@ export function validateSpec(spec: SpecFile): string[] {
         else values.add(option.value)
         if (typeof option?.label !== 'string' || option.label.trim().length === 0 || option.label.length > 50) {
           errors.push(`字段 ${at}：选项名称不能为空，最多 50 个字符`)
+        } else if (UNSAFE_TEXT.test(option.label)) {
+          errors.push(`字段 ${at}：选项名称不能包含引号、反斜杠、花括号、尖括号或换行`)
         }
       }
     }
