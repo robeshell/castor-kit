@@ -13,6 +13,17 @@ import { cn } from '@/lib/utils'
 
 const running = (state) => state === 'input-streaming' || state === 'input-available'
 
+/** Passwords and other secrets in a write's body are masked on the card (the operation log redacts the same keys) */
+const SECRET_KEY = /pass(word)?|secret|token|api_key/i
+
+function maskSecrets(value) {
+  if (Array.isArray(value)) return value.map(maskSecrets)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, SECRET_KEY.test(k) && typeof v === 'string' ? '••••••' : maskSecrets(v)]))
+  }
+  return value
+}
+
 /** "/api/admin/users" + { page: 2 } → "/api/admin/users?page=2", so repeated reads with different parameters look different */
 function withQuery(path, query) {
   const params = new URLSearchParams()
@@ -94,7 +105,7 @@ export default function ToolPart({ part, onRespond }) {
           </code>
           {input.body && Object.keys(input.body).length > 0 ? (
             <pre className="max-h-40 overflow-auto font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
-              {JSON.stringify(input.body, null, 2)}
+              {JSON.stringify(maskSecrets(input.body), null, 2)}
             </pre>
           ) : null}
         </div>

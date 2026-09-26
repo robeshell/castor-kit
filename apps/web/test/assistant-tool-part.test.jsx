@@ -42,6 +42,16 @@ describe('assistant ToolPart', () => {
     ])
   })
 
+  it('确认卡片上的密码类字段打码', () => {
+    const part = write('approval-requested', {
+      input: { method: 'POST', path: '/api/admin/users', body: { username: 'xiaomei', password: 'secret-123' }, summary: '新建用户小美' },
+    })
+    render(<ToolPart part={part} onRespond={() => {}} />)
+    expect(screen.getByText(/"username": "xiaomei"/)).toBeInTheDocument()
+    expect(screen.getByText(/"password": "••••••"/)).toBeInTheDocument()
+    expect(screen.queryByText(/secret-123/)).toBeNull()
+  })
+
   it('已执行 / 已拒绝：不再显示按钮', () => {
     const { rerender } = render(
       <ToolPart part={write('output-available', { approval: { id: 'ap1', approved: true }, output: { status: 200, data: '{}' } })} />,
