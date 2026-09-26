@@ -106,6 +106,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--name` | 资源名，snake_case，如 `customer_order` | 必填 |
 | `--domain` | 所属域：`admin` 或 `component_center` | `admin` |
 | `--fields` | 字段列表，格式 `字段:类型,字段:类型` | `name:str` |
+| `--spec` | 用 JSON 文件描述模块（代替 `--name` / `--fields`），能写中文标签、必填、唯一、默认值、选项和菜单，见下方 [spec 文件](#spec-文件) | — |
 | `--dry-run` | 只打印将要生成的内容，不写文件、不注册、不生成迁移 | 关闭 |
 | `--skip-migration` | 不调用 drizzle-kit 生成迁移 | 关闭 |
 | `--data-scope` | 接入[数据权限](/guide/rbac#数据权限)：表上加 `dept_id` / `created_by`，列表、详情、修改、删除、导出按当前用户的数据范围过滤，新建时写入创建人与部门，并生成对应的接口测试 | 关闭 |
@@ -149,6 +150,8 @@ scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `comp
 | `datetime` | `timestamp`（字符串模式） | `FormDateTime` | |
 | `file` | `varchar(36)`，存文件中心的文件 ID | `FormFileUpload` | 列表显示「查看」链接；保存时自动登记引用 |
 | `image` | `varchar(36)`，存文件中心的文件 ID | `FormImageUpload` | 列表显示缩略图；保存时自动登记引用 |
+| `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表与导出显示选项名称，导入时名称和值都接受 |
+| `dict` | `varchar(100)`，存字典项的值 | `FormSelect` | 选项来自「数据字典」（`--spec` 写 `dict` 字典编码）；列表显示字典标签 |
 
 未知类型按 `str` 处理。`id`、`created_at`、`updated_at` 会自动添加。
 
@@ -171,14 +174,44 @@ AI 根据业务描述推断类型，你不需要指定：
 | 时间 | `datetime` |
 | 是否、启用、禁用、开关 | `bool` |
 
+### spec 文件
+
+`--spec` 读取一个 JSON 文件。AI 推断出规格后写成这样的文件再生成，中文标签、必填、唯一、默认值、选项和菜单一次到位：
+
+```json
+{
+  "name": "device",
+  "title": "设备台账",
+  "fields": [
+    { "name": "code", "type": "str50", "label": "设备编号", "required": true, "unique": true },
+    { "name": "name", "type": "str", "label": "设备名称", "required": true },
+    { "name": "status", "type": "enum", "label": "状态", "required": true, "default": "idle",
+      "options": [{ "value": "idle", "label": "闲置" }, { "value": "in_use", "label": "使用中" }] },
+    { "name": "category", "type": "dict", "label": "分类", "dict": "device_category" },
+    { "name": "price", "type": "float", "label": "采购价格" }
+  ],
+  "menu": {},
+  "i18n": { "en-US": { "设备台账": "Devices", "设备编号": "Device no." }, "ja-JP": { "设备台账": "設備台帳" } }
+}
+```
+
+```bash
+pnpm scaffold -- --spec device.spec.json
+```
+
+- `required`：列加 `NOT NULL`，新增 / 编辑时为空返回 400「`<标签>不能为空`」，表单标出必填并校验；`image` / `file` 不能必填
+- `unique`：列加 `UNIQUE`，重复时返回 400；只用于文本和数字类型
+- `default`：列默认值，新增时留空就用它，表单也预先填好
+- `label` / `title`：页面、表头、导入导出和报错里的中文；`i18n` 是它们的英文、日文，没写的用字段名代替
+- `menu`：同时把菜单和按钮权限（新增 / 编辑 / 删除 / 导出 / 导入）写进 `apps/api/scripts/seed-rbac.ts`，默认挂在顶级目录「业务管理」下（ID 1000，第一次生成时创建；模块 ID 从 1001 起），`parentId` 可以指定其他目录；菜单的英文、日文名写进 `apps/web/src/locales/menus/`
+- 生成的接口测试多一条「字段规则」用例，覆盖必填、选项、唯一和默认值
+
 ### 已知限制
 
-- `--fields` 表达不了必填、唯一和默认值。推荐流程：先加 `--skip-migration` 生成，再修改 `db/schema` 中的表定义（`.notNull()`、`.unique()`、`.$default(...)`），最后 `pnpm db:generate --name <name>`，这样一张新表只产生一个迁移。
-- 生成的标题和字段标签是英文占位，需要改成中文。
-- 枚举字段按 `str20` 生成，存英文代码；界面显示中文需要手写映射。
+- 只用 `--fields` 时表达不了必填、唯一、默认值，标题和标签是英文占位——需要这些时用 `--spec`。
 - 表名固定为资源名加 `s`，接口路径同理。选资源名时要考虑复数形式。
-- `bool` 列可为空，需要默认值时在 service 里补。
 - 加了业务规则后，要同步维护生成的接口测试。
+- 后端报错里的字段名是中文标签，英文、日文界面下也显示中文标签。
 
 脚手架不可用时，可以照 `docs/templates/` 手写，替换规则见 `docs/templates/backend/README.md`。
 
