@@ -92,7 +92,7 @@ export class AuthService {
 
       const withRoles = await loadAdminWithRoles(this.db, username)
       if (!withRoles) throw new ServiceError('用户不存在', 500)
-      return { username, payload: { message: '登录成功', user: await this.userDict(withRoles) } }
+      return { userId: user.id, payload: { message: '登录成功', user: await this.userDict(withRoles) } }
     }
 
     await this.bestEffort('记录登录日志', () =>
@@ -109,11 +109,10 @@ export class AuthService {
   }
 
   /** Record the logout operation log; the caller clears the session */
-  async logout(username: string, meta: ClientMeta) {
-    const user = username ? await this.repo.getAdminByUsername(username) : null
+  async logout(user: { id: number; username: string } | null, meta: ClientMeta) {
     await this.bestEffort('记录登出日志', () =>
       this.repo.addOperationLog({
-        username: username || 'unknown',
+        username: user?.username || 'unknown',
         user_id: user?.id ?? null,
         module: 'auth',
         action: 'logout',
@@ -129,11 +128,11 @@ export class AuthService {
     return { message: '已退出登录' }
   }
 
-  async changePassword(username: string | undefined, data: ChangePasswordPayload) {
+  async changePassword(userId: number | undefined, data: ChangePasswordPayload) {
     const error = validateChangePasswordPayload(data)
     if (error) throw new ServiceError(error, 400)
 
-    const admin = username ? await this.repo.getAdminByUsername(username) : null
+    const admin = userId !== undefined ? await this.repo.getAdminById(userId) : null
     if (!admin) throw new ServiceError('用户不存在', 404)
     if (!(await checkPasswordHash(admin.password_hash, data?.old_password))) {
       throw new ServiceError('旧密码错误', 400)
@@ -148,9 +147,7 @@ export class AuthService {
     return { message: '密码修改成功' }
   }
 
-  async getCurrentUser(username: string | undefined) {
-    if (!username) throw new ServiceError('未登录', 401)
-    const user = await loadAdminWithRoles(this.db, username)
+  async getCurrentUser(user: AdminUserWithRoles | null) {
     if (!user) throw new ServiceError('登录已失效，请重新登录', 401)
     return { user: await this.userDict(user) }
   }

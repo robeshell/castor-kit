@@ -129,6 +129,12 @@ export const MESSAGES: Record<string, MessageEntry> = {
   // system settings
   '无权限查看系统设置': { 'en-US': "You don't have permission to view system settings", 'ja-JP': 'システム設定を閲覧する権限がありません' },
   '无权限修改系统设置': { 'en-US': "You don't have permission to change system settings", 'ja-JP': 'システム設定を変更する権限がありません' },
+  // sessions (在线用户 / signed-in devices)
+  '无权限查看在线用户': { 'en-US': "You don't have permission to view online users", 'ja-JP': 'オンラインユーザーを表示する権限がありません' },
+  '无权限强制下线': { 'en-US': "You don't have permission to sign sessions out", 'ja-JP': 'セッションを強制ログアウトする権限がありません' },
+  '不能下线当前会话，请直接退出登录': { 'en-US': "You can't sign out the current session here; log out instead", 'ja-JP': '現在のセッションはここではログアウトできません。通常のログアウトをご利用ください' },
+  '已下线': { 'en-US': 'Signed out', 'ja-JP': 'ログアウトさせました' },
+  '已下线其他设备': { 'en-US': 'Signed out of other devices', 'ja-JP': '他のデバイスからログアウトしました' },
   '请提交要保存的设置': { 'en-US': 'Send the settings to save', 'ja-JP': '保存する設定を送信してください' },
   '需要先配置邮件服务（SMTP_HOST 等环境变量）': { 'en-US': 'Configure a mail service first (SMTP_HOST and related environment variables)', 'ja-JP': '先にメールサービス（SMTP_HOST などの環境変数）を設定してください' },
   '需要先设置 APP_BASE_URL（重置链接里的网站地址）': { 'en-US': 'Set APP_BASE_URL first (the site address used in reset links)', 'ja-JP': '先に APP_BASE_URL（リセットリンクに使うサイトのアドレス）を設定してください' },

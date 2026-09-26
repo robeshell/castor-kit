@@ -6,6 +6,7 @@ import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from
 import { loadAdminsWithRolesByIds } from '@/common/auth'
 import { dataScopeWhere, UNRESTRICTED, type DataScope } from '@/common/data-scope'
 import { clearFileRefs, syncFileRefs } from '@/common/file-refs'
+import { revokeSessions } from '@/common/session'
 import { descendantIds } from '@/common/tree'
 import type { Executor } from '@/db/client'
 import { admin_users, departments, roles, user_roles, type Department, type Role } from '@/db/schema'
@@ -140,8 +141,10 @@ export class UserRepository {
     return row!
   }
 
+  /** Set by an admin (edit / import): the user's existing sessions end, they sign in with the new password */
   async updatePasswordHash(id: number, passwordHash: string) {
     await this.db.update(admin_users).set({ password_hash: passwordHash }).where(eq(admin_users.id, id))
+    await revokeSessions(this.db, { userId: id })
   }
 
   async updateProfile(id: number, profile: ProfileValues) {
@@ -161,6 +164,7 @@ export class UserRepository {
 
   async setStatus(id: number, status: UserStatus) {
     await this.db.update(admin_users).set({ status }).where(eq(admin_users.id, id))
+    if (status === 'disabled') await revokeSessions(this.db, { userId: id })
   }
 
   async delete(id: number) {

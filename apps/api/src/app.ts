@@ -17,7 +17,8 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
-import { SettingsStore } from './common/settings'
+import { registerSessionResolver } from './common/session'
+import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
 import { registerDemoGuard } from './common/demo'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
 import { registerResponseTranslation } from './common/i18n'
@@ -60,12 +61,14 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   app.decorateRequest('dataScope', undefined)
 
   // ---- Session ----
+  // The cookie only carries { sid, csrf_token }; the sessions row decides expiry (TTL from 系统设置, sliding), so the
+  // envelope's own expiry is set to the longest TTL the setting allows
   const ttlSeconds = config.sessionTtlHours * 3600
   await app.register(cookie)
   await app.register(secureSession, {
     key: deriveSessionKey(config.secretKey),
     cookieName: SESSION_COOKIE_NAME,
-    expiry: ttlSeconds,
+    expiry: MAX_SESSION_TTL_HOURS * 3600,
     cookie: {
       path: '/',
       httpOnly: true,
@@ -75,10 +78,8 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
       maxAge: ttlSeconds,
     },
   })
-  // Sliding expiration: logged-in sessions are renewed on every request
-  app.addHook('onRequest', async (request) => {
-    if (request.session.get('logged_in')) request.session.touch()
-  })
+  // Resolve the cookie's session row (sliding expiry happens there); must run before the CSRF check
+  registerSessionResolver(app)
 
   registerCsrfProtection(app)
 

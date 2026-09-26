@@ -16,6 +16,7 @@ import type { WebSocket } from 'ws'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { isPlainObject } from '@/common/py'
 import { pyJsonDumps } from '@/common/request-meta'
+import { isSignedIn } from '@/common/session'
 import { metricMessage, systemSnapshot, warmUp } from './service'
 
 const PERMISSION = 'cc_devtools_perf_monitor'
@@ -78,7 +79,7 @@ export async function registerDevtoolsRoutes(app: FastifyInstance): Promise<void
       // WebSocket routes have no auth decorator, so Origin + session + permission must be checked in the handler
       const allowed =
         originAllowed(headerValue(request.headers.origin), headerValue(request.headers.host), app.config.corsOrigins) &&
-        Boolean(request.session.get('logged_in')) &&
+        isSignedIn(request) &&
         (await hasMenuPermission(request, PERMISSION))
       if (!allowed) {
         socket.close(NORMAL_CLOSURE)

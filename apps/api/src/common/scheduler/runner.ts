@@ -9,11 +9,12 @@
  * Runs in the web process (main.ts) when RUN_SCHEDULER_IN_WEB=true; otherwise as a separate process `node dist/worker.js`.
  *
  * Besides user-defined tasks (which only call HTTP endpoints), the loop also runs built-in maintenance jobs such as the
- * file center's orphan cleanup, each at its own interval.
+ * file center's orphan cleanup and the removal of old sessions, each at its own interval.
  */
 
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
+import { purgeSessions } from '@/common/session'
 import { Storage } from '@/common/storage'
 import { FileService } from '@/modules/admin/files/service'
 import { ScheduledTaskService } from '@/modules/admin/scheduled-task/service'
@@ -180,7 +181,7 @@ export function startScheduledTaskRunner(db: Db, config: AppConfig, logger?: Sch
     intervalSeconds: config.taskSchedulerIntervalSeconds,
     leaseSeconds: config.taskSchedulerLeaseSeconds,
     logger,
-    maintenance: [fileCleanupJob(db, config, logger)],
+    maintenance: [fileCleanupJob(db, config, logger), sessionPurgeJob(db, logger)],
   })
   runner.start()
   return runner
@@ -195,6 +196,18 @@ export function fileCleanupJob(db: Db, config: AppConfig, logger: SchedulerLogge
     async run() {
       const removed = await service.cleanupOrphans()
       if (removed) logger.info(`File cleanup removed ${removed} orphan file(s)`)
+    },
+  }
+}
+
+/** Hourly removal of sessions that expired or were revoked more than a day ago */
+export function sessionPurgeJob(db: Db, logger: SchedulerLogger = silentLogger): MaintenanceJob {
+  return {
+    name: 'session-purge',
+    intervalSeconds: 3600,
+    async run() {
+      const removed = await purgeSessions(db)
+      if (removed) logger.info(`Session purge removed ${removed} old session(s)`)
     },
   }
 }

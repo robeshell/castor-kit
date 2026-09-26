@@ -19,6 +19,11 @@ export class AuthRepository {
     return row?.name ?? null
   }
 
+  async getAdminById(id: number) {
+    const [row] = await this.db.select().from(admin_users).where(eq(admin_users.id, id)).limit(1)
+    return row ?? null
+  }
+
   async getAdminByUsername(username: string) {
     const [row] = await this.db.select().from(admin_users).where(eq(admin_users.username, username)).limit(1)
     return row ?? null

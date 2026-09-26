@@ -29,6 +29,9 @@ export interface SettingDefinition {
 
 export type SettingValue = boolean | number | string[]
 
+/** Upper bound of security.session_ttl_hours (the session cookie's own expiry is set to this) */
+export const MAX_SESSION_TTL_HOURS = 720
+
 export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'security.totp_enabled', group: 'security', type: 'boolean', default: () => false, public: true },
   { key: 'security.totp_required_roles', group: 'security', type: 'string_list', default: () => [] },
@@ -54,7 +57,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     type: 'integer',
     default: (config) => config.sessionTtlHours,
     min: 1,
-    max: 720,
+    max: MAX_SESSION_TTL_HOURS,
   },
   { key: 'security.rate_limit_per_minute', group: 'security', type: 'integer', default: () => 600, min: 60, max: 100_000 },
   { key: 'security.auth_rate_limit_per_minute', group: 'security', type: 'integer', default: () => 20, min: 3, max: 1000 },

@@ -50,7 +50,8 @@ export function registerCsrfProtection(app: FastifyInstance): void {
     const path = requestPath(request)
     if (!path.startsWith('/api/')) return
     if (path === '/api/admin/login') return
-    if (!request.session.get('logged_in')) return
+    // Any live session (also one in an MFA step) must send its token; requests without a session are left to the routes
+    if (!request.authSession) return
 
     const header = request.headers['x-csrf-token']
     const token = (Array.isArray(header) ? header[0] : header) ?? ''
