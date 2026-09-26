@@ -80,7 +80,9 @@ describe('modeler', () => {
     expect(bad.json()).toEqual({ errors: ['至少需要一个字段'] })
     // Translated like any API error
     const en = await admin.inject({ method: 'POST', url: `${BASE}/jobs`, headers: { 'accept-language': 'en-US' }, payload: { spec: { ...spec, name: 'users' } } })
-    expect(en.json()).toMatchObject({ error: 'Module users already exists. Choose another name.' })
+    expect(en.json()).toEqual({ error: 'Module users already exists. Choose another name.', errors: ['Module users already exists. Choose another name.'] })
+    const enList = await admin.inject({ method: 'POST', url: `${BASE}/validate`, headers: { 'accept-language': 'ja-JP' }, payload: { spec: { ...spec, fields: [{ name: 'x', type: 'nope' }] } } })
+    expect(enList.json()).toEqual({ errors: ['フィールド x：不明な型 nope'] })
   })
 
   it('生成需要近期验证身份；有任务在跑时拒绝新任务', async () => {

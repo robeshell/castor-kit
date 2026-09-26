@@ -7,6 +7,7 @@
  */
 
 import type { GeneratedModule } from '../../src/modules/admin/modeler/files'
+import { BIZ_GROUP } from './menus'
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -82,4 +83,21 @@ export function removeJournalEntry(content: string, tag: string): string | null 
 export function lastJournalEntry(content: string): { tag: string; when: number } | null {
   const last = (JSON.parse(content) as Journal).entries.at(-1)
   return last ? { tag: last.tag, when: last.when } : null
+}
+
+/** seed-rbac.ts without the business group when no menu hangs under it any more; null when it stays (or isn't there) */
+export function dropEmptyBizGroup(content: string): string | null {
+  const group = content.split('\n').find((line) => new RegExp(`\\bcode:\\s*"${BIZ_GROUP.code}"`).test(line))
+  const id = group ? /\bid:\s*(\d+)/.exec(group)?.[1] : undefined
+  if (!group || !id) return null
+  if (new RegExp(`\\bparent_id:\\s*${id}\\b`).test(content)) return null
+  return dropLines(content, (line) => line === group)
+}
+
+/** Menu locales without the business group's name */
+export function removeGroupName(content: string): string | null {
+  const names = JSON.parse(content) as Record<string, string>
+  if (!(BIZ_GROUP.code in names)) return null
+  delete names[BIZ_GROUP.code]
+  return `${JSON.stringify(names, null, 2)}\n`
 }

@@ -31,11 +31,14 @@ import {
   type GeneratedModule,
   type JobState,
 } from '../src/modules/admin/modeler/files'
+import { BIZ_GROUP } from './lib/menus'
 import {
+  dropEmptyBizGroup,
   lastJournalEntry,
   moduleCodes,
   removeApiPaths,
   removeJournalEntry,
+  removeGroupName,
   removeMenuNames,
   unregisterMenus,
   unregisterRoute,
@@ -114,6 +117,12 @@ async function cleanDatabase(url: string, m: GeneratedModule): Promise<void> {
     // Buttons first: they point at the menu
     await client.query('DELETE FROM menus WHERE code = ANY($1) AND menu_type = $2', [codes, 'button'])
     await client.query('DELETE FROM menus WHERE code = ANY($1)', [codes])
+    // An empty 业务管理 group goes too
+    await client.query(
+      `DELETE FROM role_menus WHERE menu_id IN (SELECT id FROM menus g WHERE g.code = $1 AND NOT EXISTS (SELECT 1 FROM menus c WHERE c.parent_id = g.id))`,
+      [BIZ_GROUP.code],
+    )
+    await client.query('DELETE FROM menus g WHERE g.code = $1 AND NOT EXISTS (SELECT 1 FROM menus c WHERE c.parent_id = g.id)', [BIZ_GROUP.code])
     await client.query('COMMIT')
     console.log(`  ${url.replace(/\/\/[^@]*@/, '//')}: 已删除表 ${m.table} 与菜单`)
   } catch (err) {
@@ -159,9 +168,19 @@ function removeFiles(m: GeneratedModule): void {
   for (const file of m.files) removeFile(file)
   edit(join(API_DIR, 'src', 'db', 'schema', 'index.ts'), (c) => unregisterSchema(c, m))
   edit(join(API_DIR, 'src', 'modules', m.domainDir, 'router.ts'), (c) => unregisterRoute(c, m))
-  edit(join(API_DIR, 'scripts', 'seed-rbac.ts'), (c) => unregisterMenus(c, m))
+  const seedPath = join(API_DIR, 'scripts', 'seed-rbac.ts')
+  edit(seedPath, (c) => unregisterMenus(c, m))
+  // The 业务管理 group goes as well once nothing hangs under it
+  let groupRemoved = false
+  edit(seedPath, (c) => {
+    const next = dropEmptyBizGroup(c)
+    groupRemoved = next !== null
+    return next
+  })
   for (const lang of ['en-US', 'ja-JP']) {
-    edit(join(REPO_ROOT, 'apps', 'web', 'src', 'locales', 'menus', `${lang}.json`), (c) => removeMenuNames(c, m))
+    const path = join(REPO_ROOT, 'apps', 'web', 'src', 'locales', 'menus', `${lang}.json`)
+    edit(path, (c) => removeMenuNames(c, m))
+    if (groupRemoved) edit(path, removeGroupName)
   }
   edit(join(REPO_ROOT, 'docs', 'apifox-full.openapi.json'), (c) => removeApiPaths(c, m))
 }

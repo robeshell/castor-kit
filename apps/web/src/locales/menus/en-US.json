@@ -139,5 +139,6 @@
   "system_webhooks": "Webhooks",
   "system_webhooks_add": "Add webhooks",
   "system_webhooks_edit": "Edit webhooks",
-  "system_webhooks_delete": "Delete webhooks"
+  "system_webhooks_delete": "Delete webhooks",
+  "system_modeler": "Visual Modeler"
 }

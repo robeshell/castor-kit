@@ -15,7 +15,9 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, loginRequired } from '@/common/auth'
+import { ServiceError } from '@/common/errors'
 import { jsonBody, queryString } from '@/common/http'
+import { requestLanguage, translateMessage } from '@/common/i18n'
 import { isSuperAdmin } from '@/common/rbac'
 import { requireRecentAuth } from '@/common/session'
 import type { SpecFile } from '../../../../scripts/scaffold'
@@ -41,11 +43,19 @@ export async function registerModelerRoutes(app: FastifyInstance): Promise<void>
 
   app.get(`${BASE}/meta`, opts, async () => service.meta())
 
-  app.post(`${BASE}/validate`, opts, async (request) => ({ errors: await service.validate(specOf(request)) }))
+  // Validation messages come as a list; the response hook only translates `error`
+  const translated = (request: FastifyRequest, errors: string[]) => errors.map((e) => translateMessage(e, requestLanguage(request)))
+
+  app.post(`${BASE}/validate`, opts, async (request) => ({ errors: translated(request, await service.validate(specOf(request))) }))
 
   app.post(`${BASE}/jobs`, opts, async (request, reply) => {
     requireRecentAuth(request)
-    return reply.status(201).send(await service.generate(specOf(request)))
+    try {
+      return reply.status(201).send(await service.generate(specOf(request)))
+    } catch (err) {
+      if (err instanceof ServiceError && Array.isArray(err.payload.errors)) err.payload.errors = translated(request, err.payload.errors as string[])
+      throw err
+    }
   })
 
   app.get(`${BASE}/jobs/:job_id`, opts, async (request) => {

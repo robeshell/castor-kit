@@ -58,6 +58,7 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 29, name: "系统设置", code: "system_settings", icon: "IconSetting", path: "/system/settings", component: "admin/settings", parent_id: 203, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 38, name: "API Token", code: "system_api_tokens", icon: "IconKey", path: "/system/api-tokens", component: "admin/api_tokens", parent_id: 202, sort_order: 3, menu_type: "menu", is_visible: true, is_active: true },
   { id: 39, name: "Webhook", code: "system_webhooks", icon: "IconWebhook", path: "/system/webhooks", component: "admin/webhooks", parent_id: 203, sort_order: 5, menu_type: "menu", is_visible: true, is_active: true },
+  { id: 2001, name: "在线建模", code: "system_modeler", icon: "IconHammer", path: "/system/modeler", component: "admin/modeler", parent_id: 203, sort_order: 6, menu_type: "menu", is_visible: true, is_active: true },
   // ── Component showcase center: category parent nodes ─────────────────
   { id: 40, name: "管理系统", code: "cc_admin", icon: "IconDesktop", path: null, component: null, parent_id: 3, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 41, name: "数据可视化", code: "cc_dataviz", icon: "IconPieChartStroked", path: null, component: null, parent_id: 3, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },

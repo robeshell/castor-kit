@@ -154,8 +154,9 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
           demo_account: { username: config.adminUsername, password: config.adminPassword },
           upload,
           security,
+          modeler: config.modelerEnabled,
         }
-      : { demo_mode: false, upload, security }
+      : { demo_mode: false, upload, security, modeler: config.modelerEnabled }
   })
 
   app.get('/health', async (request, reply) => {

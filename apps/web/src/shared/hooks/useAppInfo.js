@@ -20,7 +20,8 @@ export function invalidateAppInfo() {
 
 /**
  * Public app info: `{ demo_mode, demo_reset_hours?, demo_account?, upload: { max_size, allowed_types },
- * security: { totp_enabled, password_reset_enabled, password_policy } }`.
+ * security: { totp_enabled, password_reset_enabled, password_policy }, modeler }` (modeler: the visual modeler is
+ * available, i.e. development).
  * Returns null until loaded; failures count as "not a demo".
  */
 export function useAppInfo() {

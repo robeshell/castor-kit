@@ -139,5 +139,6 @@
   "system_webhooks": "Webhook",
   "system_webhooks_add": "Webhook を追加",
   "system_webhooks_edit": "Webhook を編集",
-  "system_webhooks_delete": "Webhook を削除"
+  "system_webhooks_delete": "Webhook を削除",
+  "system_modeler": "オンラインモデリング"
 }

@@ -75,6 +75,10 @@
     {
       "name": "后台-Webhook",
       "description": "Webhook：事件推送、投递记录"
+    },
+    {
+      "name": "后台-在线建模",
+      "description": "在线可视化建模（开发环境）"
     }
   ],
   "components": {
@@ -6836,6 +6840,1229 @@
             "cookieAuth": []
           }
         ]
+      }
+    },
+    "/api/admin/modeler/ai/suggest": {
+      "post": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "AI 起草字段",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。一句话描述 → spec 草稿（标题、字段、固定选项、字典、译文）与校验结果；需要在系统设置里配置 AI",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "description"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "spec": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "snake_case 模块名"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "dataScope": {
+                          "type": "boolean"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "str",
+                                  "str20",
+                                  "str50",
+                                  "str500",
+                                  "text",
+                                  "int",
+                                  "float",
+                                  "bool",
+                                  "date",
+                                  "datetime",
+                                  "enum",
+                                  "dict",
+                                  "image",
+                                  "file"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "required": {
+                                "type": "boolean"
+                              },
+                              "unique": {
+                                "type": "boolean"
+                              },
+                              "default": {
+                                "type": [
+                                  "string",
+                                  "number",
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "options": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "value": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "dict": {
+                                "type": "string",
+                                "description": "dict 类型的字典编码"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "type"
+                            ]
+                          }
+                        },
+                        "menu": {
+                          "type": "object",
+                          "properties": {
+                            "parentId": {
+                              "type": "integer",
+                              "description": "父菜单 ID；缺省挂在「业务管理」下（第一次时创建）"
+                            },
+                            "icon": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "i18n": {
+                          "type": "object",
+                          "properties": {
+                            "en-US": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "ja-JP": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "description": "与 `pnpm scaffold -- --spec` 的文件相同",
+                      "required": [
+                        "name",
+                        "fields"
+                      ]
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/ai/translate": {
+      "post": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "AI 翻译",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。中文界面文字 → 英文、日文（最多 200 条）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "texts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "texts"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zh": {
+                            "type": "string"
+                          },
+                          "en": {
+                            "type": "string"
+                          },
+                          "ja": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/history": {
+      "get": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "生成历史",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。建模器生成的模块（可撤销）与最近 20 个任务",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "modules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "table": {
+                            "type": "string"
+                          },
+                          "permPrefix": {
+                            "type": "string"
+                          },
+                          "apiBase": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "files": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "migration": {
+                            "type": [
+                              "object",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "jobs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "undo"
+                            ]
+                          },
+                          "module": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "running",
+                              "success",
+                              "failed"
+                            ]
+                          },
+                          "steps": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "running",
+                                    "done",
+                                    "failed",
+                                    "skipped"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "error": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "rolledBack": {
+                            "type": "boolean",
+                            "description": "失败后已撤销本次生成的内容"
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "finished_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "running": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/jobs": {
+      "post": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "生成模块",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。需要近期验证身份。启动后台任务：生成代码（含菜单）→ 迁移数据库 → 同步菜单权限 → 更新接口文档 → 门禁检查；任一步失败自动撤销本次生成的内容。一次只能运行一个任务",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spec": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "snake_case 模块名"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "dataScope": {
+                        "type": "boolean"
+                      },
+                      "fields": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "str",
+                                "str20",
+                                "str50",
+                                "str500",
+                                "text",
+                                "int",
+                                "float",
+                                "bool",
+                                "date",
+                                "datetime",
+                                "enum",
+                                "dict",
+                                "image",
+                                "file"
+                              ]
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "unique": {
+                              "type": "boolean"
+                            },
+                            "default": {
+                              "type": [
+                                "string",
+                                "number",
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "dict": {
+                              "type": "string",
+                              "description": "dict 类型的字典编码"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "type"
+                          ]
+                        }
+                      },
+                      "menu": {
+                        "type": "object",
+                        "properties": {
+                          "parentId": {
+                            "type": "integer",
+                            "description": "父菜单 ID；缺省挂在「业务管理」下（第一次时创建）"
+                          },
+                          "icon": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "i18n": {
+                        "type": "object",
+                        "properties": {
+                          "en-US": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "ja-JP": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "与 `pnpm scaffold -- --spec` 的文件相同",
+                    "required": [
+                      "name",
+                      "fields"
+                    ]
+                  }
+                },
+                "required": [
+                  "spec"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已开始",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "generate",
+                        "undo"
+                      ]
+                    },
+                    "module": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "success",
+                        "failed"
+                      ]
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "running",
+                              "done",
+                              "failed",
+                              "skipped"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rolledBack": {
+                      "type": "boolean",
+                      "description": "失败后已撤销本次生成的内容"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "finished_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "任务进度",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。状态与日志；offset 为已读的日志字节数，返回其后的内容（每次最多 64 KB）与新的 offset。生成代码时后端会重启，前端轮询失败时稍后重试即可",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "generate",
+                            "undo"
+                          ]
+                        },
+                        "module": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "running",
+                            "success",
+                            "failed"
+                          ]
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "running",
+                                  "done",
+                                  "failed",
+                                  "skipped"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "rolledBack": {
+                          "type": "boolean",
+                          "description": "失败后已撤销本次生成的内容"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "finished_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "log": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "offset": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/meta": {
+      "get": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "建模器信息",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。字段类型、可选的父菜单（目录）、数据字典、AI 是否已配置、正在运行的任务",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "parents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "parent_id": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "dicts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "ai_configured": {
+                      "type": "boolean"
+                    },
+                    "running": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/modules/{name}/undo": {
+      "post": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "撤销模块",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。需要近期验证身份。启动任务：删除开发库与测试库中的表、迁移记录与菜单，删除生成的文件并从共享文件（注册、seed-rbac、菜单译文、OpenAPI）中去掉；迁移之后还有其他迁移时拒绝",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "已开始",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "generate",
+                        "undo"
+                      ]
+                    },
+                    "module": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "success",
+                        "failed"
+                      ]
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "running",
+                              "done",
+                              "failed",
+                              "skipped"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rolledBack": {
+                      "type": "boolean",
+                      "description": "失败后已撤销本次生成的内容"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "finished_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
+      }
+    },
+    "/api/admin/modeler/validate": {
+      "post": {
+        "tags": [
+          "后台-在线建模"
+        ],
+        "summary": "校验 spec",
+        "x-apifox-folder": "后台/系统管理/在线建模",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "仅开发环境（NODE_ENV=development）注册，仅超级管理员，不接受 API Token。生成器自身的检查，外加模块 / 权限码是否已存在；错误信息按 Accept-Language 翻译",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spec": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "snake_case 模块名"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "dataScope": {
+                        "type": "boolean"
+                      },
+                      "fields": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "str",
+                                "str20",
+                                "str50",
+                                "str500",
+                                "text",
+                                "int",
+                                "float",
+                                "bool",
+                                "date",
+                                "datetime",
+                                "enum",
+                                "dict",
+                                "image",
+                                "file"
+                              ]
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "unique": {
+                              "type": "boolean"
+                            },
+                            "default": {
+                              "type": [
+                                "string",
+                                "number",
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "dict": {
+                              "type": "string",
+                              "description": "dict 类型的字典编码"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "type"
+                          ]
+                        }
+                      },
+                      "menu": {
+                        "type": "object",
+                        "properties": {
+                          "parentId": {
+                            "type": "integer",
+                            "description": "父菜单 ID；缺省挂在「业务管理」下（第一次时创建）"
+                          },
+                          "icon": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "i18n": {
+                        "type": "object",
+                        "properties": {
+                          "en-US": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "ja-JP": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "与 `pnpm scaffold -- --spec` 的文件相同",
+                    "required": [
+                      "name",
+                      "fields"
+                    ]
+                  }
+                },
+                "required": [
+                  "spec"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / spec 有问题（errors 列出全部）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "不是超级管理员，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "非开发环境（路由未注册），或任务 / 模块不存在"
+          },
+          "409": {
+            "description": "已有建模任务在运行"
+          }
+        }
       }
     },
     "/api/admin/my-menus": {
