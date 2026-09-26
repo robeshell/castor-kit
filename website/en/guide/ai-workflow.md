@@ -106,6 +106,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--name` | Resource name in snake_case, e.g. `customer_order` | Required |
 | `--domain` | Domain: `admin` or `component_center` | `admin` |
 | `--fields` | Field list in the form `field:type,field:type` | `name:str` |
+| `--spec` | Describe the module in a JSON file instead of `--name` / `--fields`: Chinese labels, required, unique, defaults, options and the menu; see [Spec files](#spec-files) below | — |
 | `--dry-run` | Only print what would be generated; no files written, nothing registered, no migration | Off |
 | `--skip-migration` | Don't call drizzle-kit to generate a migration | Off |
 | `--data-scope` | Adds [data scope](/en/guide/rbac#data-scope): `dept_id` / `created_by` columns, list / detail / edit / delete / export filtered by the caller's scope, creator and department stamped on create, plus matching API tests | Off |
@@ -149,6 +150,8 @@ scaffold prints the permission code prefix (Perm prefix), the menu `component` v
 | `datetime` | `timestamp` (string mode) | `FormDateTime` | |
 | `file` | `varchar(36)` holding a file-center id | `FormFileUpload` | "View" link in the list; the reference is registered on save |
 | `image` | `varchar(36)` holding a file-center id | `FormImageUpload` | Thumbnail in the list; the reference is registered on save |
+| `enum` | `varchar(50)` holding the option value | `FormSelect` | Fixed options (`options`, `--spec` only); the list and exports show the option name, imports accept name or value |
+| `dict` | `varchar(100)` holding the dictionary item value | `FormSelect` | Options from the Data dictionary (`dict` = dictionary code in `--spec`); the list shows the item label |
 
 Unknown types are treated as `str`. `id`, `created_at` and `updated_at` are added automatically.
 
@@ -171,14 +174,44 @@ The AI infers types from the business description, so you don't have to specify 
 | time | `datetime` |
 | is/whether, enabled, disabled, toggle | `bool` |
 
+### Spec files
+
+`--spec` reads a JSON file. The AI writes the inferred spec into such a file and generates from it, so Chinese labels, required / unique / defaults, options and the menu come out right the first time:
+
+```json
+{
+  "name": "device",
+  "title": "设备台账",
+  "fields": [
+    { "name": "code", "type": "str50", "label": "设备编号", "required": true, "unique": true },
+    { "name": "name", "type": "str", "label": "设备名称", "required": true },
+    { "name": "status", "type": "enum", "label": "状态", "required": true, "default": "idle",
+      "options": [{ "value": "idle", "label": "闲置" }, { "value": "in_use", "label": "使用中" }] },
+    { "name": "category", "type": "dict", "label": "分类", "dict": "device_category" },
+    { "name": "price", "type": "float", "label": "采购价格" }
+  ],
+  "menu": {},
+  "i18n": { "en-US": { "设备台账": "Devices", "设备编号": "Device no." }, "ja-JP": { "设备台账": "設備台帳" } }
+}
+```
+
+```bash
+pnpm scaffold -- --spec device.spec.json
+```
+
+- `required`: the column is `NOT NULL`, an empty value on create / edit returns 400 `<label>不能为空`, and the form marks and checks it; `image` / `file` can't be required
+- `unique`: the column is `UNIQUE`, duplicates return 400; text and number types only
+- `default`: the column default, used when a new record leaves the field empty and prefilled in the form
+- `label` / `title`: the Chinese text of the page, headers, imports / exports and errors; `i18n` holds their English and Japanese (missing ones fall back to the field name)
+- `menu`: also adds the menu and button permissions (add / edit / delete / export / import) to `apps/api/scripts/seed-rbac.ts`, under the top-level 「业务管理」 (Business) group by default (ID 1000, created with the first module; modules from 1001); `parentId` picks another directory. Menu names in English and Japanese go to `apps/web/src/locales/menus/`
+- The generated API test gets a "field rules" case covering required, options, unique and defaults
+
 ### Known limitations
 
-- `--fields` can't express required, unique or default values. Recommended flow: generate with `--skip-migration` first, then edit the table definition in `db/schema` (`.notNull()`, `.unique()`, `.$default(...)`), and finally run `pnpm db:generate --name <name>`. That way a new table produces only one migration.
-- Generated titles and field labels are English placeholders; change them to Chinese.
-- Enum fields are generated as `str20` and store English codes; showing Chinese in the UI needs a hand-written mapping.
+- With `--fields` alone there are no required / unique / default values and the title and labels are English placeholders — use `--spec` for those.
 - The table name is always the resource name plus `s`, and so is the API path. Keep the plural form in mind when choosing a resource name.
-- `bool` columns are nullable; if you need a default, set it in the service.
 - Once you add business rules, keep the generated API tests up to date.
+- Backend errors name fields by their Chinese label, in the English and Japanese UI as well.
 
 If the scaffold isn't available, you can write the files by hand from `docs/templates/`; the substitution rules are in `docs/templates/backend/README.md`.
 

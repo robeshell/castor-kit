@@ -101,18 +101,17 @@ scaffold 会：
 
 （`<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 为下划线换连字符。）
 
-scaffold 的已知限制（生成后手工补）：
+**优先用 `--spec`**：把推断出的规格写成 JSON 文件再生成，中文标题 / 标签、必填、唯一、默认值、固定选项、数据字典和菜单一次到位（格式见 `apps/api/scripts/scaffold.ts` 文件头与 website 的 AI 驱动开发文档「spec 文件」）：
 
-- `--fields` 表达不了**必填 / 唯一 / 默认值**。推荐顺序，一张新表只出一个迁移：
-  1. `pnpm scaffold -- … --skip-migration`
-  2. 改 `db/schema/<domain-dir>/<name-kebab>.ts`：加 `.notNull()` / `.unique()` / `.$default(() => …)`
-  3. `pnpm db:generate --name <name>`
-  
-  加了约束后不用改生成代码的类型；违反约束时 service 自动返回 400（「数据重复：唯一字段的值已存在」「必填字段不能为空」「字段长度超出限制」「数值超出范围」，见 `apps/api/src/common/db-errors.ts`）。想要带字段名的提示（如「设备编号已存在」），在 service 里先查重 / 先校验再写库
-- 生成的标题与字段标签是英文占位，要改成中文（表格列、表单、`EXPORT_FIELD_MAP`、`IMPORT_HEADER_MAP`）。字段校验报错（「XX的值无效」）取 `EXPORT_FIELD_MAP` 的表头，改成中文后报错也是中文
-- `EXPORT_FIELD_MAP` 的值可以是表头字符串，也可以是 `[表头, 取值函数]`（枚举显示中文、布尔显示是/否时用）
-- 生成的接口测试用 `sample()` 造数据：加了必填 / 唯一 / 枚举 / 默认值等规则后，同步改 `sample()`，并补上对应的失败用例（如重复编码 400）
-- `bool` 列可为空，请求里不传时写入 null；需要默认值时在 service 里补
+```bash
+pnpm scaffold -- --spec /tmp/<name>.spec.json            # 含 "menu": {} 时同时写入 seed-rbac.ts 的「业务管理」目录与菜单译文
+```
+
+- `required` → `NOT NULL` + service 报「<标签>不能为空」+ 表单必填；`unique` → `UNIQUE`（只用于文本 / 数字）；`default` → 列默认值，新增留空时使用
+- 状态、类型、级别等固定取值用 `enum` + `options`（值英文 snake_case、名称中文）；取值来自数据字典时用 `dict` + 字典编码
+- `i18n` 写标题、标签、选项名称的英文 / 日文；缺的用字段名代替
+- 生成的接口测试多一条「字段规则」用例；之后再加业务规则要同步维护测试
+- 只用 `--fields` 时没有上述能力，标签是英文占位，需要手改（表格列、表单、`EXPORT_FIELD_MAP`、`IMPORT_HEADER_MAP`）；约束违规由 service 转成 400（`apps/api/src/common/db-errors.ts`）
 - 权限前缀是单数 `system_<name>` / `cc_<name>`，与路由、verify 保持一致即可，不必改成复数
 
 如 scaffold 不可用，手动临摹 `docs/templates/`（占位符替换规则见 `docs/templates/backend/README.md`），并手动完成上面的注册与 `pnpm db:generate --name <描述>`。
@@ -139,7 +138,7 @@ scaffold 生成的页面已可用，按业务打磨：
 
 **4c. RBAC**
 
-在 `apps/api/scripts/seed-rbac.ts` 的 `MENUS_DATA` 中添加菜单条目（`component` 取 scaffold 输出的 Menu component）和按钮权限，然后运行：
+用 `--spec` 且带 `menu` 时菜单与按钮权限已写入（跳过这一步的编辑，只运行下面的同步）；否则在 `apps/api/scripts/seed-rbac.ts` 的 `MENUS_DATA` 中添加菜单条目（`component` 取 scaffold 输出的 Menu component）和按钮权限，然后运行：
 ```bash
 pnpm seed:rbac -- --incremental
 ```
