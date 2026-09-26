@@ -16,7 +16,7 @@ import { intParam, jsonBody, parseIntParam } from '@/common/http'
 import { authRateLimit } from '@/common/rate-limit'
 import { isSuperAdmin } from '@/common/rbac'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
-import { attachSession, createSession, isSignedIn, revokeSessions, type MfaState } from '@/common/session'
+import { attachSession, createSession, isSignedIn, markVerified, revokeSessions, type MfaState } from '@/common/session'
 import type { AdminUserWithRoles } from '@/db/schema'
 import { AuthService } from '../auth/service'
 import { UserService } from '../users/service'
@@ -65,6 +65,30 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
       throw new ServiceError('验证码错误', 400)
     }
     return completeSignIn(request, user)
+  })
+
+  /**
+   * Re-verification before sensitive changes (common/session.ts requireRecentAuth): the password, plus a 2FA code or
+   * recovery code for enrolled users. Failures count toward the sign-in lockout.
+   */
+  app.post('/api/admin/reauth', { preHandler: loginRequired, onRequest: authRateLimit(app) }, async (request) => {
+    const user = (await getCurrentAdminUser(request))!
+    const client = clientOf(request)
+    const body = jsonBody(request)
+    await auth.assertNotBlocked(user.username, client.ip)
+    if (!(await service.passwordMatches(user.id, body.password))) {
+      await auth.recordSecondFactorFailure(user, client, '身份验证密码错误')
+      throw new ServiceError('密码错误', 400)
+    }
+    if (await service.codeRequired(user.id)) {
+      if (!body.code && !body.recovery_code) throw new ServiceError('请输入两步验证码', 400, { mfa_required: true })
+      if (!(await service.verify(user.id, body))) {
+        await auth.recordSecondFactorFailure(user, client)
+        throw new ServiceError('验证码错误', 400, { mfa_required: true })
+      }
+    }
+    await markVerified(app.db, request.authSession!.id)
+    return { message: '验证成功' }
   })
 
   app.get('/api/admin/two-factor', { preHandler: loginRequired }, async (request) => {

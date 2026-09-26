@@ -25,6 +25,8 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
   const service = new AiChatService(app.config, async () => (await app.settings.get()).ai, {
     timeoutMs: CHAT_TIMINGS.upstreamTimeoutMs,
     log: app.log,
+    // An API URL pinned by AI_API_BASE is the operator's choice; one typed on the settings page stays off internal networks
+    allowPrivate: app.config.settingsAllowPrivateNetwork || app.settings.isPinned('ai.api_base'),
   })
   app.addHook('onClose', async () => service.close())
 

@@ -2,13 +2,13 @@ import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
-import { desc, eq, like } from 'drizzle-orm'
+import { and, desc, eq, like } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { buildApp } from '@/app'
 import type { DbHandle } from '@/db/client'
-import { operation_logs, system_settings } from '@/db/schema'
+import { login_logs, notifications, operation_logs, sessions, system_settings } from '@/db/schema'
 import { startFakeUpstream, type FakeUpstream } from './cc-ai-fake-upstream'
-import { cleanupFixture, openTestDb, superAdminSession, testConfig, type AuthedSession } from './helpers'
+import { cleanupFixture, openTestDb, SUPER_PASSWORD, superAdminSession, testConfig, type AuthedSession } from './helpers'
 
 // System settings beyond security: mail, file storage, uploads, AI — stored in the database (secrets sealed),
 // pinned by environment variables, tried with the test buttons, applied without a restart
@@ -35,9 +35,12 @@ beforeAll(async () => {
 beforeEach(async () => {
   await handle.db.delete(system_settings)
   app.settings.reset()
+  // superAdminSession recreates the test super admin, so tests that sign in elsewhere would end this session
+  s = await superAdminSession(app, handle)
 })
 
 afterAll(async () => {
+  await handle.db.delete(notifications).where(eq(notifications.title, '系统设置已修改'))
   await handle.db.delete(system_settings)
   await handle.db.delete(operation_logs).where(like(operation_logs.path, '/api/admin/settings%'))
   await cleanupFixture(handle)
@@ -99,12 +102,17 @@ describe('settings center', () => {
 
   it('操作日志里密钥被脱敏', async () => {
     await put({ 'storage.s3_secret_key': 'very-secret', 'mail.smtp_password': 'pw', 'security.password_min_length': 8 })
-    const [log] = await handle.db
-      .select()
-      .from(operation_logs)
-      .where(eq(operation_logs.path, '/api/admin/settings'))
-      .orderBy(desc(operation_logs.id))
-      .limit(1)
+    // The audit log is written after the response (onResponse hook): wait for this request's entry
+    let log: typeof operation_logs.$inferSelect | undefined
+    for (let i = 0; i < 50 && !log; i++) {
+      ;[log] = await handle.db
+        .select()
+        .from(operation_logs)
+        .where(and(eq(operation_logs.path, '/api/admin/settings'), like(operation_logs.payload, '%s3_secret_key%')))
+        .orderBy(desc(operation_logs.id))
+        .limit(1)
+      if (!log) await new Promise((r) => setTimeout(r, 20))
+    }
     expect(log!.payload).not.toContain('very-secret')
     expect(log!.payload).toContain('"storage.s3_secret_key": "***"')
     expect(log!.payload).toContain('"mail.smtp_password": "***"')
@@ -181,5 +189,76 @@ describe('settings center', () => {
     expect((await viewer.inject({ method: 'POST', url: '/api/admin/settings/test/ai', payload: {} })).json()).toEqual({
       error: '无权限修改系统设置',
     })
+  })
+
+  it('SSRF：云元数据等保留地址一律拒绝；内网地址按 SETTINGS_ALLOW_PRIVATE_NETWORK；环境变量锁定的不检查', async () => {
+    expect((await put({ 'ai.api_base': 'http://169.254.169.254/v1' })).json()).toEqual({
+      error: '不允许访问保留地址（169.254.169.254 解析为 169.254.169.254）',
+    })
+    const mail = await s.inject({
+      method: 'POST',
+      url: '/api/admin/settings/test/mail',
+      payload: { to: 'ops@example.com', values: { 'mail.smtp_host': '169.254.169.254' } },
+    })
+    expect(mail.json().error).toBe('不允许访问保留地址（169.254.169.254 解析为 169.254.169.254）')
+    const storage = await s.inject({
+      method: 'POST',
+      url: '/api/admin/settings/test/storage',
+      payload: {
+        values: {
+          'storage.driver': 's3',
+          'storage.s3_endpoint': 'http://[fe80::1]:9000',
+          'storage.s3_bucket': 'b',
+          'storage.s3_access_key': 'a',
+          'storage.s3_secret_key': 's',
+        },
+      },
+    })
+    expect(storage.json().error).toMatch(/^不允许访问保留地址/)
+
+    // Production default: no internal networks either, unless the operator pinned the address
+    const strict = await buildApp({
+      config: testConfig({ settingsAllowPrivateNetwork: false, settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'k' } }),
+    })
+    await strict.ready()
+    try {
+      const admin = await superAdminSession(strict, handle)
+      const blocked = await admin.inject({ method: 'PUT', url: '/api/admin/settings', payload: { values: { 'mail.smtp_host': '127.0.0.1' } } })
+      expect(blocked.json()).toEqual({ error: '不允许访问内网地址（127.0.0.1 解析为 127.0.0.1）' })
+      expect((await admin.inject({ method: 'POST', url: '/api/admin/settings/test/ai', payload: {} })).statusCode).toBe(200)
+    } finally {
+      await strict.close()
+    }
+  })
+
+  it('敏感修改需要近期验证身份：过期后 403 reauth_required；验证密码后放行；密码错误计入登录失败', async () => {
+    await handle.db.update(sessions).set({ verified_at: '2000-01-01 00:00:00' }).where(eq(sessions.user_id, s.userId))
+    expect((await put({ 'security.password_min_length': 7 })).json()).toEqual({ error: '请先验证身份', reauth_required: true })
+    expect((await s.inject({ method: 'POST', url: '/api/admin/settings/test/ai', payload: {} })).json()).toMatchObject({ reauth_required: true })
+    // Reading still works
+    expect((await s.inject({ url: '/api/admin/settings' })).statusCode).toBe(200)
+
+    expect((await s.inject({ method: 'POST', url: '/api/admin/reauth', payload: { password: 'nope' } })).json()).toEqual({ error: '密码错误' })
+    const [failed] = await handle.db
+      .select()
+      .from(login_logs)
+      .where(and(eq(login_logs.user_id, s.userId), eq(login_logs.message, '身份验证密码错误')))
+      .limit(1)
+    expect(failed).toBeTruthy()
+    expect((await s.inject({ method: 'POST', url: '/api/admin/reauth', payload: { password: SUPER_PASSWORD } })).json()).toEqual({ message: '验证成功' })
+    expect((await put({ 'security.password_min_length': 7 })).statusCode).toBe(200)
+  })
+
+  it('修改设置后通知所有启用的超级管理员：写明改了哪些项，密钥只说已更新', async () => {
+    await handle.db.delete(notifications).where(eq(notifications.title, '系统设置已修改'))
+    await put({ 'mail.smtp_host': 'smtp.example.com', 'mail.smtp_password': 'secret-pw', 'security.totp_enabled': true })
+    const rows = await handle.db.select().from(notifications).where(eq(notifications.title, '系统设置已修改'))
+    const mine = rows.find((r) => r.user_id === s.userId)!
+    expect(mine).toMatchObject({ noti_type: 'warning', is_global: false, link: '/system/settings' })
+    expect(mine.content).toContain('修改了 3 项系统设置')
+    expect(mine.content).toContain('SMTP 服务器 → smtp.example.com')
+    expect(mine.content).toContain('SMTP 密码：已更新')
+    expect(mine.content).not.toContain('secret-pw')
+    expect(mine.content).toContain('两步验证开关 → true')
   })
 })

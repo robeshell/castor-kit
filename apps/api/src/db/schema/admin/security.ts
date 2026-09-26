@@ -25,6 +25,8 @@ export const sessions = pgTable(
     last_seen_at: timestamp({ mode: 'string' }),
     expires_at: timestamp({ mode: 'string' }).notNull(),
     revoked_at: timestamp({ mode: 'string' }),
+    /** Last time the user proved who they are (sign-in, or the re-verification before sensitive changes) */
+    verified_at: timestamp({ mode: 'string' }),
   },
   (table) => [
     foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'sessions_user_id_fkey' }).onDelete('cascade'),

@@ -9,7 +9,8 @@
  * timeout while reading the stream → generic message `AI 响应异常，请稍后重试`.
  */
 
-import { Agent, fetch } from 'undici'
+import { type Agent, fetch } from 'undici'
+import { createOutboundAgent } from '@/common/outbound'
 import { pyTruthy } from '@/common/py'
 import { translateMessage, type Language } from '@/common/i18n'
 import { pyJsonDumps } from '@/common/request-meta'
@@ -113,6 +114,8 @@ async function* iterLines(body: AsyncIterable<Uint8Array>): AsyncGenerator<strin
 
 export interface ChatStreamOptions {
   timeoutMs?: number
+  /** The AI API may be on an internal network (common/outbound.ts) */
+  allowPrivate?: boolean
   /** Server-side log for upstream failures (the client only ever sees a generic message) */
   log?: { warn: (obj: unknown, msg: string) => void }
 }
@@ -129,7 +132,7 @@ export class AiChatService {
   ) {
     const timeout = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS
     this.log = options.log
-    this.dispatcher = new Agent({ connect: { timeout }, headersTimeout: timeout, bodyTimeout: timeout })
+    this.dispatcher = createOutboundAgent(options.allowPrivate ?? false, timeout)
   }
 
   async isConfigured(): Promise<boolean> {

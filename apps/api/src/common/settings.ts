@@ -27,6 +27,8 @@ export type SettingValue = boolean | number | string | string[]
 
 export interface SettingDefinition {
   key: string
+  /** Name used in notifications and logs (the settings page has its own, translated labels) */
+  label: string
   group: SettingGroup
   type: SettingType
   default: (config: AppConfig) => SettingValue
@@ -68,6 +70,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   // ---- general ----
   {
     key: 'general.app_base_url',
+    label: '网站地址',
     group: 'general',
     type: 'string',
     default: () => '',
@@ -79,6 +82,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   // ---- security ----
   {
     key: 'security.totp_enabled',
+    label: '两步验证开关',
     group: 'security',
     type: 'boolean',
     default: () => false,
@@ -86,9 +90,10 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     // The demo account is shared: a 2FA binding on it would lock everyone else out
     unavailable: (config) => (config.demoMode ? '演示环境不能开启此功能' : null),
   },
-  { key: 'security.totp_required_roles', group: 'security', type: 'string_list', default: () => [] },
+  { key: 'security.totp_required_roles', label: '必须开启两步验证的角色', group: 'security', type: 'string_list', default: () => [] },
   {
     key: 'security.password_reset_enabled',
+    label: '邮件找回密码开关',
     group: 'security',
     type: 'boolean',
     default: () => false,
@@ -102,11 +107,12 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
             ? '需要先在「邮件」中填写网站地址（重置链接要用）'
             : null,
   },
-  { key: 'security.password_min_length', group: 'security', type: 'integer', default: () => 6, min: 6, max: 64, public: true },
-  { key: 'security.password_require_letters_digits', group: 'security', type: 'boolean', default: () => false, public: true },
-  { key: 'security.password_require_symbol', group: 'security', type: 'boolean', default: () => false, public: true },
+  { key: 'security.password_min_length', label: '密码最短长度', group: 'security', type: 'integer', default: () => 6, min: 6, max: 64, public: true },
+  { key: 'security.password_require_letters_digits', label: '密码须含字母和数字', group: 'security', type: 'boolean', default: () => false, public: true },
+  { key: 'security.password_require_symbol', label: '密码须含符号', group: 'security', type: 'boolean', default: () => false, public: true },
   {
     key: 'security.session_ttl_hours',
+    label: '登录有效期',
     group: 'security',
     type: 'integer',
     // SESSION_TTL_HOURS only sets the default here; it doesn't pin the value
@@ -114,16 +120,17 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     min: 1,
     max: MAX_SESSION_TTL_HOURS,
   },
-  { key: 'security.login_max_failures', group: 'security', type: 'integer', default: () => 10, min: 3, max: 1000, env: 'LOGIN_MAX_FAILURES' },
-  { key: 'security.login_lockout_minutes', group: 'security', type: 'integer', default: () => 15, min: 1, max: 1440, env: 'LOGIN_LOCKOUT_MINUTES' },
-  { key: 'security.rate_limit_per_minute', group: 'security', type: 'integer', default: () => 600, min: 60, max: 100_000 },
-  { key: 'security.auth_rate_limit_per_minute', group: 'security', type: 'integer', default: () => 20, min: 3, max: 1000 },
+  { key: 'security.login_max_failures', label: '登录失败锁定次数', group: 'security', type: 'integer', default: () => 10, min: 3, max: 1000, env: 'LOGIN_MAX_FAILURES' },
+  { key: 'security.login_lockout_minutes', label: '锁定时长', group: 'security', type: 'integer', default: () => 15, min: 1, max: 1440, env: 'LOGIN_LOCKOUT_MINUTES' },
+  { key: 'security.rate_limit_per_minute', label: '每分钟请求上限', group: 'security', type: 'integer', default: () => 600, min: 60, max: 100_000 },
+  { key: 'security.auth_rate_limit_per_minute', label: '每分钟登录类请求上限', group: 'security', type: 'integer', default: () => 20, min: 3, max: 1000 },
 
   // ---- mail ----
-  { key: 'mail.smtp_host', group: 'mail', type: 'string', default: () => '', maxLength: 200, env: 'SMTP_HOST' },
-  { key: 'mail.smtp_port', group: 'mail', type: 'integer', default: () => 587, min: 1, max: 65535, env: 'SMTP_PORT' },
+  { key: 'mail.smtp_host', label: 'SMTP 服务器', group: 'mail', type: 'string', default: () => '', maxLength: 200, env: 'SMTP_HOST' },
+  { key: 'mail.smtp_port', label: 'SMTP 端口', group: 'mail', type: 'integer', default: () => 587, min: 1, max: 65535, env: 'SMTP_PORT' },
   {
     key: 'mail.smtp_security',
+    label: 'SMTP 加密方式',
     group: 'mail',
     type: 'enum',
     // auto: TLS from the first byte on port 465, STARTTLS (when offered) otherwise
@@ -132,13 +139,14 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     env: 'SMTP_SECURE',
     fromEnv: (raw) => (isTruthy(raw) ? 'tls' : 'starttls'),
   },
-  { key: 'mail.smtp_user', group: 'mail', type: 'string', default: () => '', maxLength: 200, env: 'SMTP_USER' },
-  { key: 'mail.smtp_password', group: 'mail', type: 'secret', default: () => '', env: 'SMTP_PASSWORD' },
-  { key: 'mail.from', group: 'mail', type: 'string', default: () => '', maxLength: 200, env: 'MAIL_FROM' },
+  { key: 'mail.smtp_user', label: 'SMTP 账号', group: 'mail', type: 'string', default: () => '', maxLength: 200, env: 'SMTP_USER' },
+  { key: 'mail.smtp_password', label: 'SMTP 密码', group: 'mail', type: 'secret', default: () => '', env: 'SMTP_PASSWORD' },
+  { key: 'mail.from', label: '发件人', group: 'mail', type: 'string', default: () => '', maxLength: 200, env: 'MAIL_FROM' },
 
   // ---- file storage ----
   {
     key: 'storage.driver',
+    label: '文件存储位置',
     group: 'storage',
     type: 'enum',
     options: ['local', 's3'],
@@ -146,14 +154,15 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     env: 'STORAGE_DRIVER',
     fromEnv: (raw) => raw.trim().toLowerCase(),
   },
-  { key: 'storage.s3_endpoint', group: 'storage', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'S3_ENDPOINT' },
-  { key: 'storage.s3_region', group: 'storage', type: 'string', default: () => '', maxLength: 100, env: 'S3_REGION' },
-  { key: 'storage.s3_bucket', group: 'storage', type: 'string', default: () => '', maxLength: 200, env: 'S3_BUCKET' },
-  { key: 'storage.s3_access_key', group: 'storage', type: 'string', default: () => '', maxLength: 300, env: 'S3_ACCESS_KEY' },
-  { key: 'storage.s3_secret_key', group: 'storage', type: 'secret', default: () => '', env: 'S3_SECRET_KEY' },
-  { key: 'storage.s3_public_url', group: 'storage', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'S3_PUBLIC_URL' },
+  { key: 'storage.s3_endpoint', label: 'S3 接口地址', group: 'storage', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'S3_ENDPOINT' },
+  { key: 'storage.s3_region', label: 'S3 区域', group: 'storage', type: 'string', default: () => '', maxLength: 100, env: 'S3_REGION' },
+  { key: 'storage.s3_bucket', label: 'S3 Bucket', group: 'storage', type: 'string', default: () => '', maxLength: 200, env: 'S3_BUCKET' },
+  { key: 'storage.s3_access_key', label: 'S3 Access Key', group: 'storage', type: 'string', default: () => '', maxLength: 300, env: 'S3_ACCESS_KEY' },
+  { key: 'storage.s3_secret_key', label: 'S3 Secret Key', group: 'storage', type: 'secret', default: () => '', env: 'S3_SECRET_KEY' },
+  { key: 'storage.s3_public_url', label: 'S3 公开访问地址', group: 'storage', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'S3_PUBLIC_URL' },
   {
     key: 'storage.s3_path_style',
+    label: 'S3 访问方式',
     group: 'storage',
     type: 'enum',
     // auto: path-style when an endpoint is set (MinIO and most self-hosted services), virtual-hosted otherwise
@@ -164,9 +173,10 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   },
 
   // ---- uploads ----
-  { key: 'upload.max_size', group: 'upload', type: 'integer', default: () => 10 * MB, min: 1024, max: 1024 * MB, env: 'UPLOAD_MAX_SIZE' },
+  { key: 'upload.max_size', label: '单个文件上限', group: 'upload', type: 'integer', default: () => 10 * MB, min: 1024, max: 1024 * MB, env: 'UPLOAD_MAX_SIZE' },
   {
     key: 'upload.allowed_types',
+    label: '允许的文件类型',
     group: 'upload',
     type: 'string_list',
     default: () => DEFAULT_UPLOAD_TYPES.split(','),
@@ -174,9 +184,9 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   },
 
   // ---- AI model (OpenAI-compatible API) ----
-  { key: 'ai.api_base', group: 'ai', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'AI_API_BASE' },
-  { key: 'ai.api_key', group: 'ai', type: 'secret', default: () => '', env: 'AI_API_KEY' },
-  { key: 'ai.model', group: 'ai', type: 'string', default: () => '', maxLength: 200, env: 'AI_MODEL' },
+  { key: 'ai.api_base', label: 'AI 接口地址', group: 'ai', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'AI_API_BASE' },
+  { key: 'ai.api_key', label: 'AI API Key', group: 'ai', type: 'secret', default: () => '', env: 'AI_API_KEY' },
+  { key: 'ai.model', label: 'AI 模型', group: 'ai', type: 'string', default: () => '', maxLength: 200, env: 'AI_MODEL' },
 ]
 
 const DEFINITIONS = new Map(SETTING_DEFINITIONS.map((d) => [d.key, d]))
@@ -465,6 +475,11 @@ export class SettingsStore {
     })
     this.cache = null
     await this.get()
+  }
+
+  /** Whether an environment variable pins this setting (the operator's choice: not editable, not SSRF-checked) */
+  isPinned(key: string): boolean {
+    return this.env.has(key)
   }
 
   /** Whether a switch-type feature can actually be used right now (on, and its prerequisites still met) */

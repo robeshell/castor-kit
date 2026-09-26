@@ -7216,6 +7216,76 @@
         }
       }
     },
+    "/api/admin/reauth": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "验证身份（敏感修改前）",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录；与登录类接口共用每 IP 限流。敏感修改（保存系统设置、系统设置的测试按钮）要求 10 分钟内登录过或验证过身份，否则返回 403 { error, reauth_required: true }。提交当前密码；已开启两步验证的用户还要提交验证码或恢复码（缺少时返回 400 且 mfa_required: true）。失败计入登录失败锁定",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "6 位验证码"
+                  },
+                  "recovery_code": {
+                    "type": "string",
+                    "description": "恢复码"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "密码或验证码错误；需要验证码时带 mfa_required: true"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "429": {
+            "description": "请求过于频繁，或登录失败次数过多"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
     "/api/admin/roles": {
       "get": {
         "tags": [
@@ -8394,7 +8464,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_settings_edit；只提交要改的项，null = 恢复默认 / 清除密钥。全部校验通过才写入（类型、范围、未知键、角色编码、S3 必填项、开关的前置条件按同一次保存后的值判断）；由环境变量锁定的项不能改。密钥加密存储；其他进程最多 5 秒后生效",
+        "description": "需要 system_settings_edit；只提交要改的项，null = 恢复默认 / 清除密钥。全部校验通过才写入（类型、范围、未知键、角色编码、S3 必填项、开关的前置条件按同一次保存后的值判断）；由环境变量锁定的项不能改。密钥加密存储；其他进程最多 5 秒后生效。需要 10 分钟内登录或验证过身份（/api/admin/reauth）；地址类设置（SMTP 服务器、S3 接口地址、AI 接口地址）不能指向保留地址，生产环境默认也不能指向内网（SETTINGS_ALLOW_PRIVATE_NETWORK）。保存后给所有启用的超级管理员发站内通知",
         "requestBody": {
           "required": true,
           "content": {
@@ -8577,7 +8647,7 @@
             "description": "未授权"
           },
           "403": {
-            "description": "无权限"
+            "description": "无权限，或需要先验证身份（{ error, reauth_required: true }，见 /api/admin/reauth）"
           },
           "500": {
             "description": "服务器错误"
@@ -8597,7 +8667,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_settings_edit；用（草稿 + 已保存的）AI 设置调用一次 <接口地址>/chat/completions（max_tokens=5）",
+        "description": "需要 system_settings_edit；用（草稿 + 已保存的）AI 设置调用一次 <接口地址>/chat/completions（max_tokens=5）。需要 10 分钟内登录或验证过身份；目标地址同样经过保留地址 / 内网检查",
         "requestBody": {
           "required": true,
           "content": {
@@ -8641,7 +8711,7 @@
             "description": "未授权"
           },
           "403": {
-            "description": "无权限"
+            "description": "无权限，或需要先验证身份（{ error, reauth_required: true }，见 /api/admin/reauth）"
           },
           "429": {
             "description": "请求过于频繁"
@@ -8664,7 +8734,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_settings_edit；与登录类接口共用每 IP 限流。用（草稿 + 已保存的）邮件设置发一封测试邮件；MAIL_DRIVER=log 时只写日志",
+        "description": "需要 system_settings_edit；与登录类接口共用每 IP 限流。用（草稿 + 已保存的）邮件设置发一封测试邮件；MAIL_DRIVER=log 时只写日志。需要 10 分钟内登录或验证过身份；目标地址同样经过保留地址 / 内网检查",
         "requestBody": {
           "required": true,
           "content": {
@@ -8712,7 +8782,7 @@
             "description": "未授权"
           },
           "403": {
-            "description": "无权限"
+            "description": "无权限，或需要先验证身份（{ error, reauth_required: true }，见 /api/admin/reauth）"
           },
           "429": {
             "description": "请求过于频繁"
@@ -8735,7 +8805,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_settings_edit；在（草稿 + 已保存的）存储上写入、检查并删除一个小对象",
+        "description": "需要 system_settings_edit；在（草稿 + 已保存的）存储上写入、检查并删除一个小对象。需要 10 分钟内登录或验证过身份；目标地址同样经过保留地址 / 内网检查",
         "requestBody": {
           "required": true,
           "content": {
@@ -8783,7 +8853,7 @@
             "description": "未授权"
           },
           "403": {
-            "description": "无权限"
+            "description": "无权限，或需要先验证身份（{ error, reauth_required: true }，见 /api/admin/reauth）"
           },
           "429": {
             "description": "请求过于频繁"

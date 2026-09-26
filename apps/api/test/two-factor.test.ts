@@ -157,6 +157,22 @@ describe('two-step verification: sign-in', () => {
     expect((await app.inject({ url: '/api/admin/me', cookies: { castor_session: pendingCookie! } })).statusCode).toBe(401)
   })
 
+  it('验证身份（敏感修改前）：已绑定的用户除了密码还要验证码', async () => {
+    const { secret, recoveryCodes } = await enroll()
+    const c = client()
+    await c.login()
+    await post(c, '/api/admin/login/two-factor', { code: nextCode(secret) })
+    expect((await post(c, '/api/admin/reauth', { password: FIXTURE_PASSWORD })).json()).toEqual({
+      error: '请输入两步验证码',
+      mfa_required: true,
+    })
+    expect((await post(c, '/api/admin/reauth', { password: FIXTURE_PASSWORD, code: '000000' })).json()).toMatchObject({ error: '验证码错误' })
+    // The current time step was used by sign-in already: a recovery code works too
+    expect((await post(c, '/api/admin/reauth', { password: FIXTURE_PASSWORD, recovery_code: recoveryCodes[0] })).json()).toEqual({
+      message: '验证成功',
+    })
+  })
+
   it('恢复码可替代验证码，每个只能用一次', async () => {
     const { recoveryCodes } = await enroll()
     const a = client()

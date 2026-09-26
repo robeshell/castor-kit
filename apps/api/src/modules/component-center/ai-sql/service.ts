@@ -7,7 +7,8 @@
  * - other exceptions (network, timeout, unexpected response shape) → 500 `AI 生成失败`
  */
 
-import { Agent, fetch } from 'undici'
+import { type Agent, fetch } from 'undici'
+import { createOutboundAgent } from '@/common/outbound'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
 import type { Settings } from '@/common/settings'
@@ -48,11 +49,12 @@ export class AiSqlService {
     private readonly config: Partial<Pick<AppConfig, 'demoMode'>>,
     /** Current model settings (system settings → AI), read on every call */
     private readonly ai: () => Promise<Settings['ai']>,
-    options: { llmTimeoutMs?: number } = {},
+    /** allowPrivate: the AI API may be on an internal network (common/outbound.ts) */
+    options: { llmTimeoutMs?: number; allowPrivate?: boolean } = {},
   ) {
     this.repo = repo
     const timeout = options.llmTimeoutMs ?? LLM_TIMEOUT_MS
-    this.dispatcher = new Agent({ connect: { timeout }, headersTimeout: timeout, bodyTimeout: timeout })
+    this.dispatcher = createOutboundAgent(options.allowPrivate ?? false, timeout)
   }
 
   async close(): Promise<void> {

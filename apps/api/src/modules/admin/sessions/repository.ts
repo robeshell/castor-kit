@@ -23,6 +23,7 @@ const COLUMNS = {
   last_seen_at: sessions.last_seen_at,
   expires_at: sessions.expires_at,
   revoked_at: sessions.revoked_at,
+  verified_at: sessions.verified_at,
   username: admin_users.username,
   nickname: admin_users.nickname,
 }

@@ -140,6 +140,9 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '两步验证未开启': { 'en-US': 'Two-step verification is not turned on', 'ja-JP': '2段階認証は有効になっていません' },
   '已开启两步验证，如需更换请先关闭': { 'en-US': 'Two-step verification is already on; turn it off first to change it', 'ja-JP': '2段階認証はすでに有効です。変更する場合は先に無効にしてください' },
   '请先获取绑定密钥': { 'en-US': 'Get a setup key first', 'ja-JP': '先に設定用のキーを取得してください' },
+  '身份验证密码错误': { 'en-US': 'Wrong password when confirming identity', 'ja-JP': '本人確認のパスワードが正しくありません' },
+  '请先验证身份': { 'en-US': 'Confirm your identity first', 'ja-JP': '先に本人確認をしてください' },
+  '验证成功': { 'en-US': 'Verified', 'ja-JP': '確認しました' },
   '两步验证码错误': { 'en-US': 'Incorrect two-step verification code', 'ja-JP': '2段階認証コードが正しくありません' },
   '验证码错误': { 'en-US': 'Incorrect code', 'ja-JP': 'コードが正しくありません' },
   '密码错误': { 'en-US': 'Incorrect password', 'ja-JP': 'パスワードが正しくありません' },
@@ -490,6 +493,7 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   { re: /^Cron 区间不合法: (.+)$/, 'en-US': 'Invalid cron range: $1', 'ja-JP': 'Cron の範囲指定が正しくありません：$1' },
   { re: /^Cron 数值不合法: (.+)$/, 'en-US': 'Invalid cron value: $1', 'ja-JP': 'Cron の値が正しくありません：$1' },
   { re: /^Cron 数值超出范围: (.+)$/, 'en-US': 'Cron value out of range: $1', 'ja-JP': 'Cron の値が範囲外です：$1' },
+  { re: /^不允许访问保留地址（(.+) 解析为 (.+)）$/, 'en-US': 'Access to reserved addresses (such as cloud metadata) is not allowed ($1 resolves to $2)', 'ja-JP': '予約済みアドレス（クラウドのメタデータなど）にはアクセスできません（$1 の解決先：$2）' },
   { re: /^不允许访问内网地址（(.+) 解析为 (.+)）$/, 'en-US': 'Access to internal network addresses is not allowed ($1 resolves to $2)', 'ja-JP': '内部ネットワークのアドレスにはアクセスできません（$1 の解決先：$2）' },
 
   // component center: advanced table

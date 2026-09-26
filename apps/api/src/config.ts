@@ -54,6 +54,12 @@ export interface AppConfig {
    * sending (development); 'none' = never send
    */
   mailDriver: '' | 'log' | 'none'
+  /**
+   * SETTINGS_ALLOW_PRIVATE_NETWORK: whether SMTP / S3 / AI addresses typed on the settings page may point into
+   * internal networks (loopback, 10/8, 192.168/16 …). Default: on in development / test, off in production.
+   * Cloud metadata / link-local addresses are always refused (common/outbound.ts)
+   */
+  settingsAllowPrivateNetwork: boolean
 
   // ---- Public demo ----
   /** DEMO_MODE: system management becomes read-only, the demo account is shown on the login page, sample data resets periodically */
@@ -127,6 +133,7 @@ const envSchema = z.object({
   APIFOX_API_VERSION: z.string().optional().default('2024-03-28'),
   STORAGE_LOCAL_DIR: z.string().optional(),
   MAIL_DRIVER: z.string().optional().default(''),
+  SETTINGS_ALLOW_PRIVATE_NETWORK: z.string().optional().default(''),
 })
 
 /** Boolean env var parsing: '1' / 'true' / 'yes' / 'on' are true (case-insensitive, whitespace-trimmed) */
@@ -218,6 +225,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     settingsEnv: collectSettingsEnv(source),
     storageLocalDir: parsed.STORAGE_LOCAL_DIR ? resolve(parsed.STORAGE_LOCAL_DIR) : resolve(instanceDir, 'uploads', 'files'),
     mailDriver: resolveMailDriver(parsed.MAIL_DRIVER),
+    settingsAllowPrivateNetwork:
+      parsed.SETTINGS_ALLOW_PRIVATE_NETWORK.trim() === '' ? env !== 'production' : isTruthy(parsed.SETTINGS_ALLOW_PRIVATE_NETWORK),
     demoMode: isTruthy(parsed.DEMO_MODE),
     demoResetHours: Math.max(1, parsed.DEMO_RESET_HOURS),
     demoAiHourlyPerIp: Math.max(0, parsed.DEMO_AI_HOURLY_PER_IP),

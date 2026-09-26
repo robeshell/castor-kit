@@ -142,8 +142,15 @@ export class AuthService {
     return { message: '登录成功', user: await this.userDict(user) }
   }
 
-  /** A wrong 2FA code: logged as a failed login, so it counts toward the lockout like a wrong password */
-  async recordSecondFactorFailure(user: { id: number; username: string }, meta: ClientMeta) {
+  /**
+   * A wrong 2FA code (or a wrong password when re-verifying before a sensitive change): logged as a failed login, so
+   * it counts toward the lockout like a wrong password at sign-in
+   */
+  async recordSecondFactorFailure(
+    user: { id: number; username: string },
+    meta: ClientMeta,
+    message: '两步验证码错误' | '身份验证密码错误' = '两步验证码错误',
+  ) {
     await this.bestEffort('记录登录日志', () =>
       this.repo.addLoginLog({
         username: user.username,
@@ -151,7 +158,7 @@ export class AuthService {
         status: 'failed',
         ip: meta.ip,
         user_agent: meta.userAgent,
-        message: '两步验证码错误',
+        message,
       }),
     )
   }
