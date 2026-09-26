@@ -190,7 +190,9 @@ castor-kit/
   - 返回：只有 png / jpeg / gif / webp 内联预览，其余一律 `attachment` + `nosniff`；`ETag` 为 sha256（命中返回 304）；`s3` 驱动 302 到 10 分钟有效的签名地址（配置 `S3_PUBLIC_URL` 时跳公开地址）。
   - 引用：业务写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs` / `clearFileRefs`，记录在 `file_references`；被引用的文件不能删除。头像仍存 URL（`/api/admin/files/<id>`），外部地址照常可用。
   - 清理：调度器循环里的内置维护任务（`MaintenanceJob`，不是用户定义的定时任务）每小时删除上传超过 24 小时且没有引用的文件，`pg_try_advisory_xact_lock` 保证多副本只跑一份，删除时再次确认没有引用。
-- 组件示例中心 `list_page` 仍用自己的 `upload-image` / `upload-file`：写入 `instance/uploads/list_page{,_files}/`，经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读（compose 挂载 `app_instance` 卷）。 `upload-image` / `upload-file` 写入 `instance/uploads/list_page{,_files}/`，经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读（compose 挂载 `app_instance` 卷）。
+- 组件示例中心 `list_page` 的图片 / 附件也走文件中心（`image_urls` / `file_urls` 存文件地址，repository 写入时登记引用）；文件中心之前上传的旧文件仍可经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读，不再接受新上传。
+- 上传限制经公开的 `GET /api/admin/app-info` 下发（`upload.max_size` / `upload.allowed_types`），前端上传组件据此先在本地检查；超过 `MAX_CONTENT_LENGTH` 被 multipart 拦下的文件同样返回「文件过大，最大支持 N MB」。
+- 公开演示模式放行 `POST /api/admin/files`（组件示例的上传要用），删除与列表仍按原规则。
 - `@fastify/multipart`，上限 `MAX_CONTENT_LENGTH`（默认 16MB，超限 413）；文件名 `path.basename` + 白名单扩展名 + 随机前缀；回读时校验解析后的路径仍在上传目录内（防目录穿越）。
 
 ### 4.13 WebSocket `/ws/devtools`

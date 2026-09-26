@@ -133,6 +133,8 @@
 - **大小上限**：实际上限取 `UPLOAD_MAX_SIZE` 与 `MAX_CONTENT_LENGTH` 中较小的一个
 - **清理任务**：不能用「定时任务」模块（它只调外部 HTTP 地址），改为调度器进程内置的每小时任务，用 advisory lock 保证多副本只跑一份；`ENABLE_TASK_SCHEDULER=false` 时也不清理
 - `s3` 驱动缺少 bucket / 密钥时，生产环境拒绝启动；`local` 驱动需要持久化磁盘（Render 等临时磁盘平台请用 `s3` / R2）
+- 组件示例列表页的图片 / 附件也改走文件中心，旧文件保留只读回读；上传限制经 `app-info` 下发给前端；演示模式放行上传
+- 已用本机 MinIO 实测 `s3` 驱动（`test/files-s3-live.test.ts`，设置 `S3_TEST_ENDPOINT` 时运行）
 
 ---
 

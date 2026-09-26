@@ -271,7 +271,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 - **文件**：上传 / 存储统一走文件中心（`modules/admin/files` + `common/storage/`，驱动 `local` / `s3`，见 `STORAGE_*` 环境变量）。前端用 `@/shared/api/files` 的 `uploadFile` 和 `upload/*` 组件（表单里用 `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload`）；业务表里存文件 ID（或头像这类存 `/api/admin/files/<id>` 地址），写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs(tx, 表名, 行 id, { 字段: 值 })`、删除时 `clearFileRefs`，否则文件会在上传 24 小时后被当作孤儿清理。scaffold 的 `file` / `image` 类型已自动处理
 - **数据权限**：角色的 `data_scope`（`all` / `dept_and_children` / `dept` / `self` / `custom`）决定能看到哪些行。routes 里 `await resolveDataScope(request)` 取范围，repository 里 `and(..., dataScopeWhere(scope, { deptColumn, ownerColumn }))` 过滤（repository 不碰 `request`）；超出范围的详情 / 修改 / 删除一律 404。受控模块在 `schema.ts` 导出 `DATA_SCOPE`，`verify` 的 `data_scope_filter` 会检查 repository 是否用了 `dataScopeWhere`。新模块需要时用 `pnpm scaffold ... --data-scope` 生成（加 `dept_id` / `created_by`，新建时写入 `currentActor`）。用户管理已接入（部门列 `dept_id`，本人列 `id`）
 - **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
-- **公开演示（`DEMO_MODE`）**：`common/demo.ts` 的白名单之外的写请求一律 403——目前只放行登录 / 登出、`/api/admin/component-center/*`、通知已读；新增的业务域在演示环境默认只读，需要演示可写时把路径加进 `DEMO_WRITABLE`，并在 `src/demo/fixtures.ts` 补示例数据（恢复逻辑见 `src/demo/reset.ts`）
+- **公开演示（`DEMO_MODE`）**：`common/demo.ts` 的白名单之外的写请求一律 403——目前只放行登录 / 登出、`/api/admin/component-center/*`、上传文件（`POST /api/admin/files`，组件示例的图片 / 附件要用）、通知已读；新增的业务域在演示环境默认只读，需要演示可写时把路径加进 `DEMO_WRITABLE`，并在 `src/demo/fixtures.ts` 补示例数据（恢复逻辑见 `src/demo/reset.ts`）
 
 ---
 

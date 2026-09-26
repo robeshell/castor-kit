@@ -75,7 +75,7 @@ The `local` driver needs a persistent disk: Docker Compose already mounts `INSTA
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `DEMO_MODE` | Public demo mode: the login page shows the demo account with one-click sign-in; every write except sign-in, the component gallery and marking notifications read returns 403 (system management is read-only and passwords can't be changed); login lockout counts per IP only; sample data is restored periodically | `false` |
+| `DEMO_MODE` | Public demo mode: the login page shows the demo account with one-click sign-in; every write except sign-in, the component gallery, file uploads and marking notifications read returns 403 (system management is read-only and passwords can't be changed); login lockout counts per IP only; sample data is restored periodically | `false` |
 | `DEMO_RESET_HOURS` | How often the demo data is restored (hours). Checked at startup and then hourly; restores when the last restore is older than this. Run `pnpm demo:reset` to restore right away | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | AI calls (AI chat, AI SQL generation) allowed per IP per hour in demo mode; over the limit returns 429. Signed-out requests don't count | `20` |
 | `DEMO_AI_DAILY` | AI calls allowed per day for the whole site in demo mode; once used up, 429 for the rest of the day | `300` |

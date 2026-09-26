@@ -91,6 +91,7 @@ Run the app on a free [Render](https://render.com) web service and keep the data
 ::: warning Free-plan limits
 These were the free tiers at the time of writing; check each provider's site before you sign up:
 - A free Render instance sleeps after 15 minutes without traffic, and the next visit waits tens of seconds for it to start; scheduled tasks don't run while it sleeps
+- A free Render instance's disk is wiped when it restarts or sleeps, so files stored with the default `local` driver (images and attachments uploaded in the component gallery) are lost then. The demo data resets anyway, so `render.yaml` keeps `local` and caps single files at 2MB; to keep files, add `STORAGE_DRIVER=s3` and the `S3_*` settings of a Cloudflare R2 bucket under **Environment** in Render (see [file center settings](/en/reference/configuration#file-center))
 - A free Neon database suspends compute when idle and wakes up on the next connection
 :::
 
@@ -177,7 +178,7 @@ We recommend backing up the database before updating; see below.
 | Volume | Default name | Contents |
 |---|---|---|
 | `postgres_data` | `castor-kit_postgres_data` | PostgreSQL data |
-| `app_instance` | `castor-kit_app_instance` | Uploaded files |
+| `app_instance` | `castor-kit_app_instance` | Uploaded files (`local` storage driver; with `s3` they live in object storage) |
 
 To reuse existing volumes, set `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` in `.env.production` to the existing volume names.
 

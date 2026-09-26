@@ -91,6 +91,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 ::: warning 免费套餐的限制
 以下是撰写时两家平台的免费额度，开通前请以官网为准：
 - Render 免费实例 15 分钟无人访问会休眠，再次访问需要等待几十秒启动；休眠期间定时任务不运行
+- Render 免费实例的磁盘在重启或休眠后会清空：默认的 `local` 存储驱动保存的上传文件（组件示例里上传的图片、附件）会随之丢失。演示数据本来就会定期恢复，所以 `render.yaml` 保持 `local`，并把单个文件上限设为 2MB；需要保留文件时，在 Render 的 **Environment** 中加上 `STORAGE_DRIVER=s3` 和一个 Cloudflare R2 桶的 `S3_*` 配置（见[文件中心配置](/reference/configuration#文件中心)）
 - Neon 免费数据库空闲时会暂停计算，下次连接时自动唤醒
 :::
 
@@ -142,7 +143,7 @@ CREATE ROLE castor_kit_ro LOGIN PASSWORD '<Render 中 POSTGRES_RO_PASSWORD 的�
 :::
 
 ::: tip 用 Render 部署正式环境
-把 `DEMO_MODE` 改为 `false`，并把 `ADMIN_PASSWORD` 换成强密码即可。但免费实例会休眠、定时任务不会按时运行，正式使用建议选择付费实例，或用方式一、方式二部署到自己的服务器。
+把 `DEMO_MODE` 改为 `false`，并把 `ADMIN_PASSWORD` 换成强密码即可。但免费实例会休眠、定时任务不会按时运行、磁盘会被清空（上传文件必须改用 `s3` 驱动），正式使用建议选择付费实例，或用方式一、方式二部署到自己的服务器。
 :::
 
 ## 常用运维命令
@@ -177,7 +178,7 @@ compose 会用最新代码重新构建镜像并重建 `app` 容器。容器启�
 | 卷 | 默认名称 | 内容 |
 |---|---|---|
 | `postgres_data` | `castor-kit_postgres_data` | PostgreSQL 数据 |
-| `app_instance` | `castor-kit_app_instance` | 上传文件 |
+| `app_instance` | `castor-kit_app_instance` | 上传文件（`local` 存储驱动；用 `s3` 驱动时文件在对象存储里） |
 
 需要复用已有的卷时，在 `.env.production` 中设置 `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` 为已有卷名。
 
