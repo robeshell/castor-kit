@@ -79,14 +79,14 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.post('/api/admin/users/export', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_users'))) {
+    if (!(await hasMenuPermission(request, 'system_users_export'))) {
       return reply.status(403).send({ error: '无权限导出用户' })
     }
     return sendTable(reply, await service.exportUsers(jsonBody(request), await resolveDataScope(request)))
   })
 
   app.get('/api/admin/users/template', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_users'))) {
+    if (!(await hasMenuPermission(request, 'system_users_import'))) {
       return reply.status(403).send({ error: '无权限下载用户导入模板' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type', '') || null))
@@ -99,7 +99,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.post('/api/admin/users/import', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_users_edit'))) {
+    if (!(await hasMenuPermission(request, 'system_users_import'))) {
       return reply.status(403).send({ error: '无权限导入用户' })
     }
     return service.importUsers(await getUploadedFile(request), {

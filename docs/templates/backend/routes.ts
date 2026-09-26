@@ -7,8 +7,8 @@
  *         import { register<Resource>Routes } from './<resource>/routes'
  *         await register<Resource>Routes(app)
  *
- * Permission codes: <domain_resource> (view / template), <domain_resource>_add, <domain_resource>_edit,
- *          <domain_resource>_delete, <domain_resource>_export, <domain_resource>_import
+ * Permission codes: <domain_resource> (view), <domain_resource>_add, <domain_resource>_edit,
+ *          <domain_resource>_delete, <domain_resource>_export, <domain_resource>_import (import and its template)
  * Conventions:
  * - Permission checks are always imported from common/auth (never define a custom hasPermission here)
  * - No raw SQL here (go through service → repository)
@@ -82,7 +82,7 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
   })
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, '<domain_resource>'))) {
+    if (!(await hasMenuPermission(request, '<domain_resource>_import'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type', 'xlsx')))

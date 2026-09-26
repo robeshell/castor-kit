@@ -113,7 +113,6 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   // Log management button permissions
   { id: 241, name: "查看日志", code: "system_logs_view", icon: null, path: null, component: null, parent_id: 24, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 242, name: "导出日志", code: "system_logs_export", icon: null, path: null, component: null, parent_id: 24, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
-  { id: 243, name: "导入日志", code: "system_logs_import", icon: null, path: null, component: null, parent_id: 24, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
   // Data dictionary button permissions
   { id: 251, name: "新增字典", code: "system_dicts_add", icon: null, path: null, component: null, parent_id: 25, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 252, name: "编辑字典", code: "system_dicts_edit", icon: null, path: null, component: null, parent_id: 25, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },

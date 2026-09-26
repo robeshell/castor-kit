@@ -276,8 +276,6 @@ export const MESSAGES: Record<string, MessageEntry> = {
   // logs
   '无权限访问': { 'en-US': "You don't have access to this page", 'ja-JP': 'アクセスする権限がありません' },
   '无权限导出日志': { 'en-US': "You don't have permission to export logs", 'ja-JP': 'ログをエクスポートする権限がありません' },
-  '无权限下载日志模板': { 'en-US': "You don't have permission to download the log template", 'ja-JP': 'ログのテンプレートをダウンロードする権限がありません' },
-  '无权限导入日志': { 'en-US': "You don't have permission to import logs", 'ja-JP': 'ログをインポートする権限がありません' },
   '请先勾选要导出的日志数据': { 'en-US': 'Select the logs to export first', 'ja-JP': 'エクスポートするログを選択してください' },
   '导入文件缺少“用户名”列': { 'en-US': 'The import file is missing the "用户名" column', 'ja-JP': 'インポートファイルに「用户名」列がありません' },
   '用户名不能为空': { 'en-US': 'Username is required', 'ja-JP': 'ユーザー名を入力してください' },

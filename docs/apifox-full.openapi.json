@@ -4358,7 +4358,7 @@
           }
         ],
         "summary": "导出卡片",
-        "description": "需要 system_card_list_page。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
+        "description": "需要 system_card_list_page_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
         "parameters": [
           {
             "name": "fields",
@@ -4480,7 +4480,7 @@
           }
         ],
         "summary": "导出卡片（勾选 / 按条件）",
-        "description": "需要 system_card_list_page。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
+        "description": "需要 system_card_list_page_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -4623,7 +4623,7 @@
           }
         ],
         "summary": "导入卡片",
-        "description": "需要 system_card_list_page_edit。支持 csv / xlsx（最大 5MB），表头须含「标题」「编码」；按编码存在则更新、不存在则新增（不导入封面图）。标题或编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
+        "description": "需要 system_card_list_page_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「标题」「编码」；按编码存在则更新、不存在则新增（不导入封面图）。标题或编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -4741,7 +4741,7 @@
           }
         ],
         "summary": "下载导入模板",
-        "description": "需要 system_card_list_page。模板表头：标题、编码、副标题、分类、标签、发布状态、负责人、优先级、状态、描述（「状态」列填 启用 / 停用），含一行示例数据",
+        "description": "需要 system_card_list_page_import（与导入相同；只有查看权限不能下载）。模板表头：标题、编码、副标题、分类、标签、发布状态、负责人、优先级、状态、描述（「状态」列填 启用 / 停用），含一行示例数据",
         "parameters": [
           {
             "name": "file_type",
@@ -6647,7 +6647,7 @@
           }
         ],
         "summary": "导出表单记录",
-        "description": "需要 system_dynamic_form_page。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
+        "description": "需要 system_dynamic_form_page_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
         "parameters": [
           {
             "name": "fields",
@@ -6769,7 +6769,7 @@
           }
         ],
         "summary": "导出表单记录（勾选 / 按条件）",
-        "description": "需要 system_dynamic_form_page。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
+        "description": "需要 system_dynamic_form_page_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -6911,7 +6911,7 @@
           }
         ],
         "summary": "导入表单记录",
-        "description": "需要 system_dynamic_form_page_edit。支持 csv / xlsx（最大 5MB），表头须含「标题」「记录编码」；按记录编码存在则更新、不存在则新增，只导入记录本身、不含动态字段。标题或记录编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
+        "description": "需要 system_dynamic_form_page_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「标题」「记录编码」；按记录编码存在则更新、不存在则新增，只导入记录本身、不含动态字段。标题或记录编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -7029,7 +7029,7 @@
           }
         ],
         "summary": "下载导入模板",
-        "description": "需要 system_dynamic_form_page。模板表头：标题、记录编码、分类、发布状态、负责人、优先级、启用、描述，含一行示例数据",
+        "description": "需要 system_dynamic_form_page_import（与导入相同；只有查看权限不能下载）。模板表头：标题、记录编码、分类、发布状态、负责人、优先级、启用、描述，含一行示例数据",
         "parameters": [
           {
             "name": "file_type",
@@ -10210,7 +10210,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
+        "description": "需要 system_list_page_export（只有查看权限不能导出）。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
         "parameters": [
           {
             "name": "fields",
@@ -10317,7 +10317,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
+        "description": "需要 system_list_page_export（只有查看权限不能导出）。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
         "requestBody": {
           "required": true,
           "content": {
@@ -10548,7 +10548,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_edit（不是 _add）。表头须包含查询名称（或 名称 / name）与查询编码（或 编码 / query_code）；按查询编码存在则更新（版本号 +1）、否则新增，并写入 import_update / import_create 版本快照；任一行名称或编码为空则整批回滚；发布状态不是 draft/published 时整批直接返回 400（不计入错误行）",
+        "description": "需要 system_list_page_import（_add / _edit 不能代替）。表头须包含查询名称（或 名称 / name）与查询编码（或 编码 / query_code）；按查询编码存在则更新（版本号 +1）、否则新增，并写入 import_update / import_create 版本快照；任一行名称或编码为空则整批回滚；发布状态不是 draft/published 时整批直接返回 400（不计入错误行）",
         "requestBody": {
           "required": true,
           "content": {
@@ -10755,7 +10755,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。返回带一行示例数据的导入模板（列：查询名称、查询编码、查询分类、关键字、数据源、负责人、图片URL列表、文件URL列表、优先级、状态、发布状态、描述）",
+        "description": "需要 system_list_page_import（与导入相同；只有查看权限不能下载）。返回带一行示例数据的导入模板（列：查询名称、查询编码、查询分类、关键字、数据源、负责人、图片URL列表、文件URL列表、优先级、状态、发布状态、描述）",
         "parameters": [
           {
             "name": "file_type",
@@ -12382,7 +12382,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
+        "description": "需要 system_stats_list_page_export（只有查看权限不能导出）。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
         "parameters": [
           {
             "name": "fields",
@@ -12489,7 +12489,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
+        "description": "需要 system_stats_list_page_export（只有查看权限不能导出）。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
         "requestBody": {
           "required": true,
           "content": {
@@ -12612,7 +12612,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_edit（不是 _add）。表头只认中文列名，须包含名称与编码；按编码存在则更新、否则新增；任一行名称或编码为空则整批回滚；发布状态不是 draft/published/archived 时整批直接返回 400（不计入错误行）",
+        "description": "需要 system_stats_list_page_import（_add / _edit 不能代替）。表头只认中文列名，须包含名称与编码；按编码存在则更新、否则新增；任一行名称或编码为空则整批回滚；发布状态不是 draft/published/archived 时整批直接返回 400（不计入错误行）",
         "requestBody": {
           "required": true,
           "content": {
@@ -12785,7 +12785,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。返回带一行示例数据的导入模板（列：名称、编码、分类、发布状态、金额、数量、负责人、优先级、状态、描述）",
+        "description": "需要 system_stats_list_page_import（与导入相同；只有查看权限不能下载）。返回带一行示例数据的导入模板（列：名称、编码、分类、发布状态、金额、数量、负责人、优先级、状态、描述）",
         "parameters": [
           {
             "name": "file_type",
@@ -13687,7 +13687,7 @@
           }
         ],
         "summary": "导出树节点",
-        "description": "需要 system_tree_list_page。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
+        "description": "需要 system_tree_list_page_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
         "parameters": [
           {
             "name": "fields",
@@ -13814,7 +13814,7 @@
           }
         ],
         "summary": "导出树节点（勾选 / 按条件）",
-        "description": "需要 system_tree_list_page。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
+        "description": "需要 system_tree_list_page_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -13962,7 +13962,7 @@
           }
         ],
         "summary": "导入树节点",
-        "description": "需要 system_tree_list_page_edit。支持 csv / xlsx（最大 5MB），表头须含「节点名称」「节点编码」；父节点ID 不校验存在性（指向不存在的节点会触发外键错误）；按节点编码存在则更新、不存在则新增（节点编码本身不改）。节点名称或编码为空、父节点ID 会导致成环的行记为错误行，有任何错误则整批回滚返回 400；状态值不合法直接返回 400",
+        "description": "需要 system_tree_list_page_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「节点名称」「节点编码」；父节点ID 不校验存在性（指向不存在的节点会触发外键错误）；按节点编码存在则更新、不存在则新增（节点编码本身不改）。节点名称或编码为空、父节点ID 会导致成环的行记为错误行，有任何错误则整批回滚返回 400；状态值不合法直接返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -14080,7 +14080,7 @@
           }
         ],
         "summary": "下载导入模板",
-        "description": "需要 system_tree_list_page。模板表头：节点名称、节点编码、父节点ID、节点类型、图标、状态、负责人、排序、启用、描述，含一行示例数据",
+        "description": "需要 system_tree_list_page_import（与导入相同；只有查看权限不能下载）。模板表头：节点名称、节点编码、父节点ID、节点类型、图标、状态、负责人、排序、启用、描述，含一行示例数据",
         "parameters": [
           {
             "name": "file_type",
@@ -16973,7 +16973,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_dicts。导出该字典全部字典项（不受列表筛选影响），列为字典标签、字典值、标签颜色、排序、是否默认、是否启用、备注",
+        "description": "需要 system_dicts_export（只有查看权限不能导出）。导出该字典全部字典项（不受列表筛选影响），列为字典标签、字典值、标签颜色、排序、是否默认、是否启用、备注",
         "parameters": [
           {
             "name": "dict_id",
@@ -17046,7 +17046,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_dicts_edit。必须有“字典标签”“字典值”列（也接受 label / value 等英文表头）；按字典值新增或更新，任一行标签或值为空则整批回滚并返回 400；标为默认的项会取消同字典其他默认项",
+        "description": "需要 system_dicts_import（_add / _edit 不能代替）。必须有“字典标签”“字典值”列（也接受 label / value 等英文表头）；按字典值新增或更新，任一行标签或值为空则整批回滚并返回 400；标为默认的项会取消同字典其他默认项",
         "parameters": [
           {
             "name": "dict_id",
@@ -17138,7 +17138,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_dicts。模板含表头与一行示例",
+        "description": "需要 system_dicts_import（与导入相同；只有查看权限不能下载）。模板含表头与一行示例",
         "parameters": [
           {
             "name": "dict_id",
@@ -18320,7 +18320,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_logs。selected 模式导出勾选的日志（未勾选返回 400），filtered 模式按筛选条件导出全部；按 ID 升序",
+        "description": "需要 system_logs_export（只有查看权限不能导出）。selected 模式导出勾选的日志（未勾选返回 400），filtered 模式按筛选条件导出全部；按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -18411,182 +18411,6 @@
           },
           "400": {
             "description": "未勾选要导出的日志"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        }
-      }
-    },
-    "/api/admin/logs/login/import": {
-      "post": {
-        "tags": [
-          "后台-日志管理"
-        ],
-        "summary": "导入登录日志",
-        "x-apifox-folder": "后台/系统管理/日志管理",
-        "security": [
-          {
-            "cookieAuth": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "需要 system_logs。必须有“用户名”列；状态为 failed / fail / 失败 记为失败，其余记为成功；时间按 ISO 格式解析，缺失或无法解析时取当前时间。只新增不更新，有错误行时整批回滚",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "csv 或 xlsx 文件，最大 5MB；不支持 .xls"
-                  }
-                },
-                "required": [
-                  "file"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "导入结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "created": {
-                      "type": "integer",
-                      "description": "新增条数"
-                    },
-                    "updated": {
-                      "type": "integer",
-                      "description": "固定为 0"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "请求参数错误；有错误行时响应带 error_rows（最多 500 条）与 error_count，整批不入库",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "error_rows": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "line": {
-                            "type": "integer",
-                            "description": "行号（表头下一行为 2）"
-                          },
-                          "reason": {
-                            "type": "string"
-                          },
-                          "row": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "string"
-                            },
-                            "description": "原始行内容"
-                          }
-                        }
-                      }
-                    },
-                    "error_count": {
-                      "type": "integer"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "413": {
-            "description": "文件超过 MAX_CONTENT_LENGTH"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        }
-      }
-    },
-    "/api/admin/logs/login/template": {
-      "get": {
-        "tags": [
-          "后台-日志管理"
-        ],
-        "summary": "下载登录日志导入模板",
-        "x-apifox-folder": "后台/系统管理/日志管理",
-        "security": [
-          {
-            "cookieAuth": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "需要 system_logs。模板含表头（用户名、状态、IP 地址、User-Agent、说明、时间）与一行示例",
-        "parameters": [
-          {
-            "name": "file_type",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "csv",
-                "xlsx"
-              ],
-              "default": "csv"
-            },
-            "description": "文件格式，默认 csv；其他值按 csv 处理"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "表格文件（附件下载）",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
           },
           "401": {
             "description": "未授权"
@@ -18794,7 +18618,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_logs。selected 模式导出勾选的日志（未勾选返回 400），filtered 模式按筛选条件导出全部；按 ID 升序",
+        "description": "需要 system_logs_export（只有查看权限不能导出）。selected 模式导出勾选的日志（未勾选返回 400），filtered 模式按筛选条件导出全部；按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -18890,182 +18714,6 @@
           },
           "400": {
             "description": "未勾选要导出的日志"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        }
-      }
-    },
-    "/api/admin/logs/operation/import": {
-      "post": {
-        "tags": [
-          "后台-日志管理"
-        ],
-        "summary": "导入操作日志",
-        "x-apifox-folder": "后台/系统管理/日志管理",
-        "security": [
-          {
-            "cookieAuth": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "需要 system_logs。必须有用户名、模块、操作、方法、路径列；状态码无法解析时记为 200，时间缺失或无法解析时取当前时间。只新增不更新，有错误行时整批回滚",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "csv 或 xlsx 文件，最大 5MB；不支持 .xls"
-                  }
-                },
-                "required": [
-                  "file"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "导入结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "created": {
-                      "type": "integer",
-                      "description": "新增条数"
-                    },
-                    "updated": {
-                      "type": "integer",
-                      "description": "固定为 0"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "请求参数错误；有错误行时响应带 error_rows（最多 500 条）与 error_count，整批不入库",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "error_rows": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "line": {
-                            "type": "integer",
-                            "description": "行号（表头下一行为 2）"
-                          },
-                          "reason": {
-                            "type": "string"
-                          },
-                          "row": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "string"
-                            },
-                            "description": "原始行内容"
-                          }
-                        }
-                      }
-                    },
-                    "error_count": {
-                      "type": "integer"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "413": {
-            "description": "文件超过 MAX_CONTENT_LENGTH"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        }
-      }
-    },
-    "/api/admin/logs/operation/template": {
-      "get": {
-        "tags": [
-          "后台-日志管理"
-        ],
-        "summary": "下载操作日志导入模板",
-        "x-apifox-folder": "后台/系统管理/日志管理",
-        "security": [
-          {
-            "cookieAuth": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "需要 system_logs。模板含表头（用户名、模块、操作、方法、路径、目标ID、状态码、IP 地址、User-Agent、请求体、时间）与一行示例",
-        "parameters": [
-          {
-            "name": "file_type",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "csv",
-                "xlsx"
-              ],
-              "default": "csv"
-            },
-            "description": "文件格式，默认 csv；其他值按 csv 处理"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "表格文件（附件下载）",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
           },
           "401": {
             "description": "未授权"
@@ -19605,7 +19253,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_menus；按 sort_order、id 排序导出，父级以父级编码输出。selected 模式未勾选时返回 400。",
+        "description": "需要 system_menus_export（只有查看权限不能导出）；按 sort_order、id 排序导出，父级以父级编码输出。selected 模式未勾选时返回 400。",
         "requestBody": {
           "required": true,
           "content": {
@@ -19722,7 +19370,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_menus_edit；按菜单编码新增或更新，类型限 directory / menu / button，父级编码须存在于库中或本文件，且不能指向自身或成环。任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
+        "description": "需要 system_menus_import（_add / _edit 不能代替）；按菜单编码新增或更新，类型限 directory / menu / button，父级编码须存在于库中或本文件，且不能指向自身或成环。任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
         "requestBody": {
           "required": true,
           "content": {
@@ -19800,7 +19448,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_menus；返回带表头（菜单名称、菜单编码、类型、路径、组件、图标、父级编码、排序、是否显示、是否启用、描述）和一行示例的模板文件。",
+        "description": "需要 system_menus_import（与导入相同；只有查看权限不能下载）；返回带表头（菜单名称、菜单编码、类型、路径、组件、图标、父级编码、排序、是否显示、是否启用、描述）和一行示例的模板文件。",
         "parameters": [
           {
             "name": "file_type",
@@ -22273,7 +21921,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_roles；按 ID 正序导出。selected 模式未勾选时返回 400。",
+        "description": "需要 system_roles_export（只有查看权限不能导出）；按 ID 正序导出。selected 模式未勾选时返回 400。",
         "requestBody": {
           "required": true,
           "content": {
@@ -22387,7 +22035,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_roles_edit；按角色编码新增或更新，菜单编码 / 部门编码须存在，数据范围可填编码或中文名称；super_admin 的菜单和数据范围不能改。任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
+        "description": "需要 system_roles_import（_add / _edit 不能代替）；按角色编码新增或更新，菜单编码 / 部门编码须存在，数据范围可填编码或中文名称；super_admin 的菜单和数据范围不能改。任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
         "requestBody": {
           "required": true,
           "content": {
@@ -22465,7 +22113,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_roles；返回带表头（角色名称、角色编码、描述、数据范围、部门编码、菜单编码）和一行示例的模板文件。",
+        "description": "需要 system_roles_import（与导入相同；只有查看权限不能下载）；返回带表头（角色名称、角色编码、描述、数据范围、部门编码、菜单编码）和一行示例的模板文件。",
         "parameters": [
           {
             "name": "file_type",
@@ -26009,7 +25657,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_users；只导出数据权限范围内的用户，按 ID 正序。selected 模式未勾选时返回 400。",
+        "description": "需要 system_users_export（只有查看权限不能导出）；只导出数据权限范围内的用户，按 ID 正序。selected 模式未勾选时返回 400。",
         "requestBody": {
           "required": true,
           "content": {
@@ -26137,7 +25785,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_users_edit；按用户名新增或更新，空白单元格不改原值，新增行必须有密码；填写状态列还需要 system_users_status；只能改数据权限范围内的用户和部门，超级管理员相关限制同编辑接口。任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
+        "description": "需要 system_users_import（_add / _edit 不能代替）；按用户名新增或更新，空白单元格不改原值，新增行必须有密码；填写状态列还需要 system_users_status；只能改数据权限范围内的用户和部门，超级管理员相关限制同编辑接口。任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
         "requestBody": {
           "required": true,
           "content": {
@@ -26215,7 +25863,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_users；返回带表头（用户名、密码、昵称、邮箱、手机、状态、部门编码、角色编码）和一行示例的模板文件。",
+        "description": "需要 system_users_import（与导入相同；只有查看权限不能下载）；返回带表头（用户名、密码、昵称、邮箱、手机、状态、部门编码、角色编码）和一行示例的模板文件。",
         "parameters": [
           {
             "name": "file_type",

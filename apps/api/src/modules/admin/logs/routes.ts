@@ -3,12 +3,14 @@
  *
  * Operation logs are written **centrally**: a global onResponse hook infers module/action from path/method and persists to the DB;
  * errors are swallowed and never affect the response. Don't write operation logs ad hoc in individual services.
+ *
+ * Logs are export-only: there is deliberately no import, so an audit trail can't be padded with fabricated rows.
  */
 
 import type { FastifyInstance } from 'fastify'
 import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
 import { requestPath } from '@/common/csrf'
-import { getUploadedFile, queryString, rawJsonBody } from '@/common/http'
+import { queryString, rawJsonBody } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { sendTable } from '@/common/tabular'
@@ -63,44 +65,16 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.post('/api/admin/logs/login/export', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_logs'))) {
+    if (!(await hasMenuPermission(request, 'system_logs_export'))) {
       return reply.status(403).send({ error: '无权限导出日志' })
     }
     return sendTable(reply, await service.exportLoginLogs(dictBody(rawJsonBody(request))))
   })
 
-  app.get('/api/admin/logs/login/template', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_logs'))) {
-      return reply.status(403).send({ error: '无权限下载日志模板' })
-    }
-    return sendTable(reply, await service.downloadLoginTemplate(queryString(request, 'file_type')))
-  })
-
-  app.post('/api/admin/logs/login/import', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_logs'))) {
-      return reply.status(403).send({ error: '无权限导入日志' })
-    }
-    return service.importLoginLogs(await getUploadedFile(request))
-  })
-
   app.post('/api/admin/logs/operation/export', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_logs'))) {
+    if (!(await hasMenuPermission(request, 'system_logs_export'))) {
       return reply.status(403).send({ error: '无权限导出日志' })
     }
     return sendTable(reply, await service.exportOperationLogs(dictBody(rawJsonBody(request))))
-  })
-
-  app.get('/api/admin/logs/operation/template', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_logs'))) {
-      return reply.status(403).send({ error: '无权限下载日志模板' })
-    }
-    return sendTable(reply, await service.downloadOperationTemplate(queryString(request, 'file_type')))
-  })
-
-  app.post('/api/admin/logs/operation/import', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_logs'))) {
-      return reply.status(403).send({ error: '无权限导入日志' })
-    }
-    return service.importOperationLogs(await getUploadedFile(request))
   })
 }

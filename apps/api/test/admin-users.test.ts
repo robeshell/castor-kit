@@ -395,7 +395,7 @@ describe('users: import / export with profile fields', () => {
   })
 
   it('导入：没有启用 / 停用权限时，填了状态的行记为错误行', async () => {
-    const editor = await operatorSession('editor', ['system_users', 'system_users_edit'])
+    const editor = await operatorSession('editor', ['system_users', 'system_users_import'])
     const file = multipartFile(
       'u.csv',
       `用户名,密码,状态,角色编码\n${P}i4,123456,正常,\n${P}i5,123456,,\n${P}i6,123456,,super_admin\nck_test_super,newpass,,\n`,

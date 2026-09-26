@@ -243,7 +243,7 @@ A whole import batch runs in a single transaction. If any row has errors, it thr
 
 ### Permissions
 
-The button permission codes for export and import are `<perm>_export` and `<perm>_import`. For the frontend components, see [Frontend](/en/guide/frontend#import-and-export).
+Export is gated by the `<perm>_export` button permission; downloading the import template and importing are both gated by `<perm>_import`. Don't reuse the view permission or `_edit` for them. For the frontend components, see [Frontend](/en/guide/frontend#import-and-export).
 
 ## OpenAPI
 
