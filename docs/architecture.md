@@ -135,13 +135,16 @@ castor-kit/
 ### 4.4 认证、密码与会话
 - `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/admin/login'}`。除了会话标记，它还会加载当前用户（按请求缓存，后续权限检查不再查库）：账号已删除或 `status = 'disabled'` 时清掉会话并同样返回 401，停用因此在下一次请求就生效。停用账号在 `getCurrentAdminUser` 里视为未登录，所有权限检查都失败。
 - 当前用户每请求缓存在 `request` 上，一次查询 join `user_roles → roles → role_menus → menus`，避免 N+1。
-- 登录防爆破：基于 `login_logs` 的窗口计数（IP 维度 + 用户名维度，`LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES`），成功后清零窗口内失败记录。
+- 登录防爆破：基于 `login_logs` 的窗口计数（IP 维度 + 用户名维度，阈值与窗口来自系统设置 `security.login_max_failures` / `login_lockout_minutes`，可由 `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES` 锁定），成功后清零窗口内失败记录。
 - 密码哈希格式 `pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`（默认 100 万次迭代，16 位字母数字 salt），`common/password.ts` 负责生成与校验；一律用**异步** `crypto.pbkdf2` + `timingSafeEqual`，同步执行会阻塞事件循环约 0.3–0.5s。
 - 会话：`sessions` 表是唯一事实源（`common/session.ts`）。cookie `castor_session`（`@fastify/secure-session` 加密）只装 `{ sid, csrf_token }`；`onRequest` 钩子按 sid 加载未撤销、未过期的行到 `request.authSession`，无效则清 cookie。有效期来自系统设置 `security.session_ttl_hours`（初值 `SESSION_TTL_HOURS`），`last_seen_at` / `expires_at` 每分钟最多写一次实现滑动续期。cookie 密钥用 `hkdfSync('sha256', SECRET_KEY, '', 'castor-kit-session', 32)` 派生；属性 `HttpOnly`、`SameSite=Lax`、`Secure` 走 auto 策略。
 - 撤销：退出（当前会话）、改密码（本人其他会话）、管理员改密码 / 停用 / 删除、邮件重置密码（该用户全部会话）、强制下线（指定会话）；调度器维护任务每小时删除过期或撤销超过一天的会话与重置令牌。
 - 两步验证（`modules/admin/two-factor`）：登录密码正确后，已绑定或所在角色被要求的用户得到 `mfa_state = 'verify' | 'setup'` 的待定会话（5 分钟），`isSignedIn` 不认它；`POST /api/admin/login/two-factor` 通过后撤销待定会话、换发新会话，才记录登录成功。TOTP 密钥用 `common/secret-box.ts`（HKDF 派生、独立 info 的 AES-256-GCM）加密；`totp_last_step` 防重放；恢复码存 sha256；错误验证码写入 `login_logs` 失败记录，与密码错误共用锁定。
-- 找回密码（`modules/admin/password-reset`）：申请接口不区分邮箱是否存在，邮件在后台发送；令牌 32 字节只存 sha256、30 分钟、单次，新申请作废旧令牌；链接用 `APP_BASE_URL` 拼接；邮件驱动 `common/mailer.ts`（smtp / log / none）。
-- 系统设置（`common/settings.ts` + `system_settings` 表）：带类型、默认值、范围与「不可用原因」的注册表，`SettingsStore` 进程内缓存 5 秒，`peek()` 供热路径同步读取；公开子集经 `app-info` 下发。
+- 找回密码（`modules/admin/password-reset`）：申请接口不区分邮箱是否存在，邮件在后台发送；令牌 32 字节只存 sha256、30 分钟、单次，新申请作废旧令牌；链接用系统设置里的网站地址（`general.app_base_url`）拼接；邮件由 `common/mailer.ts` 的 `MailerProvider` 按当前 SMTP 设置构建（`MAIL_DRIVER=log` 打印到日志、`none` 不发送）。
+- 系统设置（`common/settings.ts` + `system_settings` 表）：带分组、类型、默认值、范围、锁定环境变量与「不可用原因」的注册表。生效值 = 环境变量（`config.settingsEnv`，只收集非空的 `SETTING_ENV_NAMES`，启动时校验，非法即拒绝启动）> 表中的值 > 默认值；`type: 'secret'` 的值用 `secret-box` 加密存储，`describe()` 只返回 `has_value`。`SettingsStore` 进程内缓存 5 秒，`peek()` 供热路径同步读取；`preview(changes)` 在不写库的情况下套用草稿，供保存前的跨项校验（如选 S3 必须有 bucket / 密钥、打开找回密码需要 SMTP 与网站地址）和「测试」接口（`POST /api/admin/settings/test/{mail,storage,ai}`，走 `authRateLimit`）使用；公开子集（安全开关、密码规则、上传限制）经 `app-info` 下发。
+- 按设置重建的客户端：`StorageProvider`（web 进程与独立 worker 各自持有一个 `SettingsStore`，保证清理任务和上传看到同一存储配置）、`MailerProvider`、AI 服务每次调用时读取 `settings.ai`；缓存键是相关设置的 JSON，设置变了才重建。
+- 设置的防护：保存与测试接口要求近期验证身份（`sessions.verified_at`，登录时写入；`POST /api/admin/reauth` 校验密码与两步验证码后刷新；`requireRecentAuth` 窗口 10 分钟，失败计入登录锁定），前端 `useReauth` 捕获 `reauth_required` 后弹窗并重试；每次保存给所有启用的超级管理员发个人通知（标题写明谁改了哪些项，密钥只写已更新 / 已清除）；SMTP 主机、S3 接口地址、AI 接口地址经 `common/outbound.ts` 检查（`169.254/16`、`fe80::/10`、组播等始终拒绝，内网按 `SETTINGS_ALLOW_PRIVATE_NETWORK`，环境变量锁定的值不检查），AI 请求用 `createOutboundAgent` 在连接时复查实际 IP 防 DNS 重绑定。
+- 操作日志脱敏：`request-meta.ts` 的 `isSensitiveKey` 除精确字段名外，还按复合键的末段匹配（`mail.smtp_password`、`storage.s3_secret_key`、`ai.api_key` → `***`）。
 - 限流（`common/rate-limit.ts`）：`@fastify/rate-limit` 全局按 IP 限 `/api`、`/ws`；登录、两步验证、找回密码共用一个 `createRateLimit` 限流器（插件的按路由配置在内存存储下各路由计数独立，做不到共享）；额度来自系统设置，计数在进程内。
 
 ### 4.5 CSRF
@@ -189,10 +192,10 @@ castor-kit/
 
 ### 4.12 文件上传
 - **文件中心**（`modules/admin/files` + `common/storage/`）：`POST /api/admin/files` 上传（只需登录），`GET /api/admin/files/:id` 预览 / 下载（只需登录，ID 是 UUID），列表需要 `system_files`、删除需要 `system_files_delete`。
-  - 校验顺序：大小（`UPLOAD_MAX_SIZE` 与 `MAX_CONTENT_LENGTH` 取小，超限 413）→ 扩展名白名单 → `file-type` 读文件头，与扩展名不一致即拒绝（txt / csv 等纯文本要求检测不到二进制签名）。原文件名只取最后一段并去掉控制字符。
+  - 校验顺序：大小（系统设置 `upload.max_size` 与 `MAX_CONTENT_LENGTH` 取小，超限 413）→ 扩展名白名单 → `file-type` 读文件头，与扩展名不一致即拒绝（txt / csv 等纯文本要求检测不到二进制签名）。原文件名只取最后一段并去掉控制字符。
   - 去重：每次上传一条 `files` 记录；对象键按 sha256 生成（`ab/<sha256>`），相同内容共用一个对象，最后一条记录删除时才删对象。
-  - 驱动：`local`（先写临时文件再 rename）与 `s3`（`@aws-sdk/client-s3`，校验和改为「仅在必需时」以兼容各家 S3 兼容服务）。读取时按记录上的 `storage` 选驱动，切换 `STORAGE_DRIVER` 不影响旧文件（旧驱动仍需配置）。`STORAGE_DRIVER=s3` 缺 bucket / 密钥时拒绝启动。
-  - 返回：只有 png / jpeg / gif / webp 内联预览，其余一律 `attachment` + `nosniff`；`ETag` 为 sha256（命中返回 304）；`s3` 驱动 302 到 10 分钟有效的签名地址（配置 `S3_PUBLIC_URL` 时跳公开地址）。
+  - 驱动：`local`（先写临时文件再 rename）与 `s3`（`@aws-sdk/client-s3`，校验和改为「仅在必需时」以兼容各家 S3 兼容服务）。读取时按记录上的 `storage` 选驱动、按记录上的 `bucket` 取对象，切换存储或改 Bucket 不影响旧文件（旧驱动仍需配置、凭证要能访问原桶）。存储配置在系统设置里，保存时选 S3 必须填齐 bucket / 密钥；环境变量锁定的配置不完整时，上传报「未配置」错误。
+  - 返回：只有 png / jpeg / gif / webp 内联预览，其余一律 `attachment` + `nosniff`；`ETag` 为 sha256（命中返回 304）；`s3` 驱动 302 到 10 分钟有效的签名地址（设置了公开访问地址时跳公开地址）。
   - 引用：业务写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs` / `clearFileRefs`，记录在 `file_references`；被引用的文件不能删除。头像仍存 URL（`/api/admin/files/<id>`），外部地址照常可用。
   - 清理：调度器循环里的内置维护任务（`MaintenanceJob`，不是用户定义的定时任务）每小时删除上传超过 24 小时且没有引用的文件，`pg_try_advisory_xact_lock` 保证多副本只跑一份，删除时再次确认没有引用。
 - 组件示例中心 `list_page` 的图片 / 附件也走文件中心（`image_urls` / `file_urls` 存文件地址，repository 写入时登记引用）；文件中心之前上传的旧文件仍可经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读，不再接受新上传。

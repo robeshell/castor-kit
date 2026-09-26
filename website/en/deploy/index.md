@@ -57,12 +57,9 @@ Optional variables:
 
 ```bash
 APP_PORT=5000          # Host port; 8080 if not set
-AI_API_BASE=
-AI_API_KEY=
-AI_MODEL=
 ```
 
-For every available variable, see [Configuration](/en/reference/configuration#docker). You can generate random strings with `openssl rand -base64 48`.
+Mail, file storage, upload limits and the AI model don't go here: sign in after deploying and configure them on the System settings page. To pin one with an environment variable instead, see [Configuration in System settings](/en/reference/configuration#configuration-in-system-settings). For every available variable, see [Configuration](/en/reference/configuration#docker). You can generate random strings with `openssl rand -base64 48`.
 
 ### 2. Build and start
 
@@ -91,7 +88,7 @@ Run the app on a free [Render](https://render.com) web service and keep the data
 ::: warning Free-plan limits
 These were the free tiers at the time of writing; check each provider's site before you sign up:
 - A free Render instance sleeps after 15 minutes without traffic, and the next visit waits tens of seconds for it to start; scheduled tasks don't run while it sleeps
-- A free Render instance's disk is wiped when it restarts or sleeps, so files stored with the default `local` driver (images and attachments uploaded in the component gallery) are lost then. The demo data resets anyway, so `render.yaml` keeps `local` and caps single files at 2MB; to keep files, add `STORAGE_DRIVER=s3` and the `S3_*` settings of a Cloudflare R2 bucket under **Environment** in Render (see [file center settings](/en/reference/configuration#file-center))
+- A free Render instance's disk is wiped when it restarts or sleeps, so files stored with the default `local` driver (images and attachments uploaded in the component gallery) are lost then. The demo data resets anyway, so `render.yaml` keeps `local` and caps single files at 2MB; to keep files, add `STORAGE_DRIVER=s3` and the `S3_*` settings of a Cloudflare R2 bucket under **Environment** in Render (demo mode makes the System settings page read-only, hence environment variables; see [File storage and uploads](/en/reference/configuration#file-storage-and-uploads))
 - A free Neon database suspends compute when idle and wakes up on the next connection
 :::
 

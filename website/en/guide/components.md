@@ -44,7 +44,7 @@ Group directory `creative/`; frontend-only pages.
 
 ## AI Apps
 
-Group directory `ai/`. Requires an OpenAI-compatible API (`AI_API_BASE`, `AI_API_KEY`, `AI_MODEL`); see [Configuration](/en/reference/configuration).
+Group directory `ai/`. Requires an OpenAI-compatible API, configured on the AI tab of System settings; see [Configuration](/en/reference/configuration#ai-model).
 
 | Page | Route | Description |
 |---|---|---|

@@ -233,5 +233,8 @@
   "去登录": "Sign in",
   "设置新密码": "Set a new password",
   "链接 30 分钟内有效，只能使用一次": "The link is valid for 30 minutes and works once",
-  "重置密码": "Reset password"
+  "重置密码": "Reset password",
+  "验证身份": "Confirm it's you",
+  "这是敏感操作，请先确认是你本人。验证后 10 分钟内不再询问。": "This is a sensitive change. Confirm it's you first; you won't be asked again for 10 minutes.",
+  "两步验证码": "Two-step verification code"
 }

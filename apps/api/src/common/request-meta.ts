@@ -30,14 +30,23 @@ export const SENSITIVE_KEYS = new Set([
   'authorization',
 ])
 
+/**
+ * The last word of a compound key that marks a secret ("mail.smtp_password", "storage.s3_secret_key", "ai.api_key");
+ * only the end counts, so "security.password_min_length" stays readable in the log
+ */
+const SENSITIVE_PART = /(^|[._-])(password|passwd|secret|token|api_key|apikey|access_key|secret_key)$/
+
+/** Whether a request field holds a secret: an exact known name, or a compound key containing one */
+export function isSensitiveKey(key: string): boolean {
+  const lower = key.toLowerCase()
+  return SENSITIVE_KEYS.has(lower) || SENSITIVE_PART.test(lower)
+}
+
 function maskSensitive(data: unknown): unknown {
   if (Array.isArray(data)) return data.map(maskSensitive)
   if (data !== null && typeof data === 'object') {
     return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [
-        key,
-        SENSITIVE_KEYS.has(key.toLowerCase()) ? '***' : maskSensitive(value),
-      ]),
+      Object.entries(data).map(([key, value]) => [key, isSensitiveKey(key) ? '***' : maskSensitive(value)]),
     )
   }
   return data

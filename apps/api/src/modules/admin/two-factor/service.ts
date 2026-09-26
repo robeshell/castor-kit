@@ -102,6 +102,18 @@ export class TwoFactorService {
     return step !== null && (await this.repo.claimStep(userId, step))
   }
 
+  /** For re-verification: whether the password is right */
+  async passwordMatches(userId: number, password: unknown): Promise<boolean> {
+    const row = await this.userOr404(userId)
+    return checkPasswordHash(row.password_hash, password)
+  }
+
+  /** For re-verification: enrolled users also give a code while two-step verification is on */
+  async codeRequired(userId: number): Promise<boolean> {
+    const row = await this.userOr404(userId)
+    return Boolean(row.totp_enabled_at) && (await this.switchOn())
+  }
+
   private async assertPassword(userId: number, password: unknown) {
     const row = await this.userOr404(userId)
     if (!(await checkPasswordHash(row.password_hash, password))) throw new ServiceError('密码错误', 400)

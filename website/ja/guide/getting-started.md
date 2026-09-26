@@ -128,7 +128,9 @@ pnpm test
 
 ## 任意：AI 機能
 
-コンポーネント例の AI チャット、AI プロンプト工房、AI データ検索には OpenAI 互換の API が必要です。`apps/api/.env.development` に次のように設定します。
+コンポーネント例の AI チャット、AI プロンプト工房、AI データ検索には OpenAI 互換の API が必要です。ログイン後、「システム管理 → システム構成 → システム設定」の「AI」タブで API の URL、API キー、モデルを入力し、「テスト呼び出し」で確認して保存すると、すぐに反映されます。
+
+`apps/api/.env.development` に書くこともできます（その場合、ページでは読み取り専用になります）。
 
 ```bash
 AI_API_BASE=https://api.openai.com/v1

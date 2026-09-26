@@ -14,6 +14,7 @@ import { randomBytes } from 'node:crypto'
 import { and, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { requestPath } from '@/common/csrf'
+import { ServiceError } from '@/common/errors'
 import type { Executor } from '@/db/client'
 import { sessions, type SessionRow } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
@@ -25,6 +26,8 @@ const SESSION_PATHS = /^\/(api|ws|admin)(\/|$)/
 const TOUCH_INTERVAL_SECONDS = 60
 /** Lifetime of a session waiting for the TOTP code / enrollment */
 export const MFA_PENDING_MINUTES = 5
+/** How long a sign-in or a re-verification covers sensitive changes (requireRecentAuth) */
+export const REAUTH_WINDOW_MINUTES = 10
 
 export type MfaState = 'verify' | 'setup'
 
@@ -52,6 +55,8 @@ export async function createSession(
     user_agent: client.userAgent ? client.userAgent.slice(0, 500) : null,
     mfa_state: mfaState,
     last_seen_at: sql`${utcNow()}`,
+    // Signing in proves who the user is: sensitive changes right after it don't ask again
+    verified_at: mfaState ? null : sql`${utcNow()}`,
     expires_at: mfaState ? minutesFromNow(MFA_PENDING_MINUTES) : hoursFromNow(options.ttlHours),
   })
   return id
@@ -77,6 +82,24 @@ export async function findLiveSession(db: Executor, id: string): Promise<Session
     .where(and(eq(sessions.id, id), isNull(sessions.revoked_at), gt(sessions.expires_at, utcNow())))
     .limit(1)
   return row ?? null
+}
+
+/** The user just proved who they are again (password, plus the 2FA code when enrolled) */
+export async function markVerified(db: Executor, id: string): Promise<void> {
+  await db.update(sessions).set({ verified_at: sql`${utcNow()}` }).where(eq(sessions.id, id))
+}
+
+/**
+ * Sensitive changes (system settings and their test buttons) need a sign-in or re-verification within the last
+ * REAUTH_WINDOW_MINUTES: a stolen session cookie alone isn't enough. Throws 403 `{ error, reauth_required: true }`;
+ * the page then asks for the password (and 2FA code) through POST /api/admin/reauth and retries.
+ */
+export function requireRecentAuth(request: FastifyRequest): void {
+  const verifiedAt = request.authSession?.verified_at
+  const at = verifiedAt ? Date.parse(`${verifiedAt.replace(' ', 'T').slice(0, 23)}Z`) : 0
+  if (Date.now() - at > REAUTH_WINDOW_MINUTES * 60_000) {
+    throw new ServiceError('请先验证身份', 403, { reauth_required: true })
+  }
 }
 
 /** Revoke sessions: one by id, or all of a user's (optionally keeping one) */

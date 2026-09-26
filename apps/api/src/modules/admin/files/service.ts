@@ -10,9 +10,9 @@ import { fileTypeFromBuffer } from 'file-type'
 import { ServiceError } from '@/common/errors'
 import { isUuid } from '@/common/file-refs'
 import { notFound } from '@/common/http'
-import { contentDisposition, objectKeyFor, type Download, type Storage } from '@/common/storage'
+import type { SettingsStore } from '@/common/settings'
+import { contentDisposition, objectKeyFor, UnconfiguredStorage, type Download, type StorageProvider } from '@/common/storage'
 import type { UploadedFile } from '@/common/tabular'
-import type { StorageConfig } from '@/config'
 import type { Db } from '@/db/client'
 import { fileToDict, type FileRecord } from '@/db/schema'
 import { FileRepository, type FileFilters } from './repository'
@@ -34,8 +34,8 @@ export class FileService {
 
   constructor(
     private readonly db: Db,
-    private readonly storage: Storage,
-    private readonly config: Pick<StorageConfig, 'uploadMaxSize' | 'uploadAllowedTypes'>,
+    private readonly storage: StorageProvider,
+    private readonly settings: Pick<SettingsStore, 'get'>,
     private readonly log: Logger = console,
   ) {
     this.repo = new FileRepository(db)
@@ -44,18 +44,21 @@ export class FileService {
   async upload(file: UploadedFile | null, uploaderId: number | null) {
     if (!file) throw new ServiceError('请选择要上传的文件', 400)
     if (file.data.length === 0) throw new ServiceError('文件内容为空', 400)
-    if (file.data.length > this.config.uploadMaxSize) {
-      throw new ServiceError(`文件过大，最大支持 ${megabytes(this.config.uploadMaxSize)}MB`, 413)
+    const limits = (await this.settings.get()).upload
+    if (file.data.length > limits.maxSize) {
+      throw new ServiceError(`文件过大，最大支持 ${megabytes(limits.maxSize)}MB`, 413)
     }
     const name = sanitizeFilename(file.filename)
     const ext = extensionOf(name)
     if (!ext) throw new ServiceError('文件缺少扩展名，无法判断类型', 400)
-    if (!this.config.uploadAllowedTypes.includes(ext)) throw new ServiceError(`不支持的文件类型：.${ext}`, 400)
+    if (!limits.allowedTypes.includes(ext)) throw new ServiceError(`不支持的文件类型：.${ext}`, 400)
     const mime = resolveMime(ext, await fileTypeFromBuffer(file.data))
     if (!mime) throw new ServiceError('文件内容与扩展名不符', 400)
 
     const sha256 = createHash('sha256').update(file.data).digest('hex')
-    const driver = this.storage.current
+    const driver = (await this.storage.get()).current
+    // S3 chosen (e.g. pinned by STORAGE_DRIVER=s3) without bucket / keys
+    if (driver instanceof UnconfiguredStorage) throw new ServiceError('文件存储未配置完整，请在系统设置的「文件存储」中填写', 400)
     const objectKey = objectKeyFor(sha256)
     // Identical content already stored by this driver → reuse the object
     if (!(await this.repo.objectInUse(driver.name, objectKey)) || !(await driver.exists(objectKey))) {
@@ -93,9 +96,9 @@ export class FileService {
   /** How to serve a file: safe images inline (unless `download`), everything else as an attachment */
   async serve(file: FileRecord, download: boolean): Promise<ServeResult> {
     const inline = !download && INLINE_MIME_TYPES.has(file.mime_type)
-    const result = await this.storage
+    const result = await (await this.storage.get())
       .get(file.storage)
-      .download(file.object_key, { filename: file.original_name, contentType: file.mime_type, inline })
+      .download(file.object_key, { filename: file.original_name, contentType: file.mime_type, inline, bucket: file.bucket })
       .catch((err: unknown) => {
         if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new ServiceError('文件内容已丢失', 404)
         throw err
@@ -124,7 +127,8 @@ export class FileService {
   private async deleteObjectIfUnused(file: FileRecord) {
     if (await this.repo.objectInUse(file.storage, file.object_key)) return
     try {
-      await this.storage.get(file.storage).delete(file.object_key)
+      const storage = await this.storage.get()
+      await storage.get(file.storage).delete(file.object_key, file.bucket)
     } catch (err) {
       // The row is gone either way; a leftover object only costs space
       this.log.warn({ err, key: file.object_key }, '删除文件对象失败')

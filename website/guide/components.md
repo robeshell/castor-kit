@@ -44,7 +44,7 @@
 
 ## AI 应用
 
-分组目录 `ai/`，需要配置 OpenAI 兼容接口（`AI_API_BASE`、`AI_API_KEY`、`AI_MODEL`），见 [配置项](/reference/configuration)。
+分组目录 `ai/`，需要在「系统设置」的「AI」页签配置 OpenAI 兼容接口，见 [配置项](/reference/configuration#ai-模型)。
 
 | 页面 | 路由 | 说明 |
 |---|---|---|

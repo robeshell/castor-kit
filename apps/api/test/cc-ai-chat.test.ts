@@ -42,7 +42,7 @@ beforeAll(async () => {
   handle = openTestDb()
   up = await startFakeUpstream()
   CHAT_TIMINGS.upstreamTimeoutMs = 400
-  app = await buildTestApp({ aiApiBase: up.url, aiApiKey: 'test-key', aiModel: 'test-model' })
+  app = await buildTestApp({ settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'test-key', AI_MODEL: 'test-model' } })
   CHAT_TIMINGS.upstreamTimeoutMs = 60_000
   await createFixture(handle)
   s = await superAdminSession(app, handle)
@@ -66,13 +66,13 @@ describe('ai chat 错误分支（非流式 JSON）', () => {
     expect(denied.json()).toEqual({ error: '无权限' })
   })
 
-  it('未配置 AI_API_KEY → 500（先于消息校验）', async () => {
-    const bare = await buildTestApp({ aiApiKey: '' })
+  it('未配置 AI 模型 → 500（先于消息校验）', async () => {
+    const bare = await buildTestApp()
     try {
       const session = await loginSession(bare, SUPER_USER, SUPER_PASSWORD)
       const res = await session.inject({ method: 'POST', url: URL_PATH, payload: {} })
       expect(res.statusCode).toBe(500)
-      expect(res.json()).toEqual({ error: '未配置 AI_API_KEY' })
+      expect(res.json()).toEqual({ error: '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key' })
     } finally {
       await bare.close()
     }
@@ -149,8 +149,8 @@ describe('ai chat SSE 流', () => {
     const bad = await s.inject({ method: 'POST', url: URL_PATH, payload: say('badutf8') })
     expect(bad.body).toBe(ev('{"content": "ok"}') + ev('{"error": "AI 响应异常，请稍后重试"}') + DONE)
 
-    const refusedApp = await buildTestApp({ aiApiBase: 'http://127.0.0.1:1', aiApiKey: 'x' })
-    const badBaseApp = await buildTestApp({ aiApiBase: '', aiApiKey: 'x' })
+    const refusedApp = await buildTestApp({ settingsEnv: { AI_API_BASE: 'http://127.0.0.1:1', AI_API_KEY: 'x' } })
+    const badBaseApp = await buildTestApp({ settingsEnv: { AI_API_KEY: 'x' } })
     try {
       for (const target of [refusedApp, badBaseApp]) {
         const session = await loginSession(target, SUPER_USER, SUPER_PASSWORD)

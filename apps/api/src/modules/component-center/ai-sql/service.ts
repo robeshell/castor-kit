@@ -7,9 +7,11 @@
  * - other exceptions (network, timeout, unexpected response shape) → 500 `AI 生成失败`
  */
 
-import { Agent, fetch } from 'undici'
+import { type Agent, fetch } from 'undici'
+import { createOutboundAgent } from '@/common/outbound'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
+import type { Settings } from '@/common/settings'
 import { AiSqlRepository, type ColumnInfo } from './repository'
 import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schema'
 import { pgToPy, toResponseValue } from './pg-values'
@@ -44,12 +46,15 @@ export class AiSqlService {
 
   constructor(
     repo: AiSqlRepository,
-    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
-    options: { llmTimeoutMs?: number } = {},
+    private readonly config: Partial<Pick<AppConfig, 'demoMode'>>,
+    /** Current model settings (system settings → AI), read on every call */
+    private readonly ai: () => Promise<Settings['ai']>,
+    /** allowPrivate: the AI API may be on an internal network (common/outbound.ts) */
+    options: { llmTimeoutMs?: number; allowPrivate?: boolean } = {},
   ) {
     this.repo = repo
     const timeout = options.llmTimeoutMs ?? LLM_TIMEOUT_MS
-    this.dispatcher = new Agent({ connect: { timeout }, headersTimeout: timeout, bodyTimeout: timeout })
+    this.dispatcher = createOutboundAgent(options.allowPrivate ?? false, timeout)
   }
 
   async close(): Promise<void> {
@@ -85,8 +90,8 @@ export class AiSqlService {
 
   /** Call the LLM to generate SQL */
   async callLlm(question: string, schema: string): Promise<string> {
-    const { aiApiBase: base, aiApiKey: key, aiModel: model } = this.config
-    if (!key) throw new LlmConfigError('未配置 AI_API_KEY 环境变量')
+    const { apiBase: base, apiKey: key, model } = await this.ai()
+    if (!key) throw new LlmConfigError('未配置 AI 模型，请在「系统设置 → AI」中填写 API Key')
 
     const systemMsg = {
       role: 'system',

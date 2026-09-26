@@ -140,6 +140,9 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '两步验证未开启': { 'en-US': 'Two-step verification is not turned on', 'ja-JP': '2段階認証は有効になっていません' },
   '已开启两步验证，如需更换请先关闭': { 'en-US': 'Two-step verification is already on; turn it off first to change it', 'ja-JP': '2段階認証はすでに有効です。変更する場合は先に無効にしてください' },
   '请先获取绑定密钥': { 'en-US': 'Get a setup key first', 'ja-JP': '先に設定用のキーを取得してください' },
+  '身份验证密码错误': { 'en-US': 'Wrong password when confirming identity', 'ja-JP': '本人確認のパスワードが正しくありません' },
+  '请先验证身份': { 'en-US': 'Confirm your identity first', 'ja-JP': '先に本人確認をしてください' },
+  '验证成功': { 'en-US': 'Verified', 'ja-JP': '確認しました' },
   '两步验证码错误': { 'en-US': 'Incorrect two-step verification code', 'ja-JP': '2段階認証コードが正しくありません' },
   '验证码错误': { 'en-US': 'Incorrect code', 'ja-JP': 'コードが正しくありません' },
   '密码错误': { 'en-US': 'Incorrect password', 'ja-JP': 'パスワードが正しくありません' },
@@ -153,14 +156,20 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '如果该邮箱属于某个账号，重置链接已发送，请查收邮件': { 'en-US': 'If this email belongs to an account, a reset link has been sent. Please check your inbox.', 'ja-JP': 'このメールアドレスがアカウントに登録されている場合、再設定用のリンクを送信しました。メールをご確認ください' },
   '重置链接无效或已过期，请重新申请': { 'en-US': 'This reset link is invalid or has expired. Please request a new one.', 'ja-JP': '再設定リンクが無効か期限切れです。もう一度リクエストしてください' },
   '密码已重置，请使用新密码登录': { 'en-US': 'Your password has been reset. Sign in with the new password.', 'ja-JP': 'パスワードを再設定しました。新しいパスワードでログインしてください' },
+  '需要先在「邮件」中配置 SMTP 服务器': { 'en-US': 'Set up an SMTP server under Mail first', 'ja-JP': '先に「メール」で SMTP サーバーを設定してください' },
+  '需要先在「邮件」中填写网站地址（重置链接要用）': { 'en-US': 'Enter the site URL under Mail first (reset links use it)', 'ja-JP': '先に「メール」でサイトの URL を入力してください（再設定リンクに使います）' },
+  'S3 存储需要填写 Bucket、Access Key 和 Secret Key': { 'en-US': 'S3 storage needs a bucket, access key and secret key', 'ja-JP': 'S3 ストレージにはバケット、アクセスキー、シークレットキーが必要です' },
+  '请先填写 SMTP 服务器': { 'en-US': 'Enter an SMTP server first', 'ja-JP': '先に SMTP サーバーを入力してください' },
+  '测试邮件已发送': { 'en-US': 'Test mail sent', 'ja-JP': 'テストメールを送信しました' },
+  '文件存储未配置完整，请在系统设置的「文件存储」中填写': { 'en-US': 'File storage is not fully configured: fill it in under System settings → File storage', 'ja-JP': 'ファイル保存の設定が不完全です。「システム設定 → ファイル保存」で入力してください' },
+  '存储可用': { 'en-US': 'Storage works', 'ja-JP': 'ストレージは利用できます' },
+  'AI 接口可用': { 'en-US': 'The AI API works', 'ja-JP': 'AI API は利用できます' },
   '无权限查看在线用户': { 'en-US': "You don't have permission to view online users", 'ja-JP': 'オンラインユーザーを表示する権限がありません' },
   '无权限强制下线': { 'en-US': "You don't have permission to sign sessions out", 'ja-JP': 'セッションを強制ログアウトする権限がありません' },
   '不能下线当前会话，请直接退出登录': { 'en-US': "You can't sign out the current session here; log out instead", 'ja-JP': '現在のセッションはここではログアウトできません。通常のログアウトをご利用ください' },
   '已下线': { 'en-US': 'Signed out', 'ja-JP': 'ログアウトさせました' },
   '已下线其他设备': { 'en-US': 'Signed out of other devices', 'ja-JP': '他のデバイスからログアウトしました' },
   '请提交要保存的设置': { 'en-US': 'Send the settings to save', 'ja-JP': '保存する設定を送信してください' },
-  '需要先配置邮件服务（SMTP_HOST 等环境变量）': { 'en-US': 'Configure a mail service first (SMTP_HOST and related environment variables)', 'ja-JP': '先にメールサービス（SMTP_HOST などの環境変数）を設定してください' },
-  '需要先设置 APP_BASE_URL（重置链接里的网站地址）': { 'en-US': 'Set APP_BASE_URL first (the site address used in reset links)', 'ja-JP': '先に APP_BASE_URL（リセットリンクに使うサイトのアドレス）を設定してください' },
 
   // file center
   '请选择要上传的文件': { 'en-US': 'Choose a file to upload', 'ja-JP': 'アップロードするファイルを選択してください' },
@@ -332,7 +341,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '名称和编码不能为空': { 'en-US': 'Name and code are required', 'ja-JP': '名称とコードを入力してください' },
 
   // component center: AI chat / prompt / SQL
-  '未配置 AI_API_KEY': { 'en-US': 'AI_API_KEY is not configured', 'ja-JP': 'AI_API_KEY が設定されていません' },
+  '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key': { 'en-US': 'The AI model is not configured: add an API key under System settings → AI', 'ja-JP': 'AI モデルが設定されていません。「システム設定 → AI」で API キーを入力してください' },
   // AI chat stream error events (SSE, translated in ai-chat/service.ts)
   '请求超时，请重试': { 'en-US': 'The request timed out. Please try again.', 'ja-JP': 'リクエストがタイムアウトしました。再度お試しください。' },
   'AI 响应异常，请稍后重试': { 'en-US': 'The AI response failed. Please try again later.', 'ja-JP': 'AI の応答でエラーが発生しました。しばらくしてから再度お試しください。' },
@@ -458,6 +467,10 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   // password policy
   { re: /^新密码长度至少(\d+)位$/, 'en-US': 'New password must be at least $1 characters', 'ja-JP': '新しいパスワードは$1文字以上で入力してください' },
   { re: /^密码长度至少(\d+)位$/, 'en-US': 'Password must be at least $1 characters', 'ja-JP': 'パスワードは$1文字以上で入力してください' },
+  { re: /^该设置由环境变量 (\w+) 指定，不能在页面上修改$/, 'en-US': 'This setting is set by the environment variable $1 and can’t be changed here', 'ja-JP': 'この設定は環境変数 $1 で指定されているため、ここでは変更できません' },
+  { re: /^发送失败：(.+)$/, 'en-US': 'Sending failed: $1', 'ja-JP': '送信に失敗しました：$1' },
+  { re: /^连接失败：(.+)$/, 'en-US': 'Connection failed: $1', 'ja-JP': '接続に失敗しました：$1' },
+  { re: /^AI 接口返回 (\d+)，请检查地址、API Key 和模型名$/, 'en-US': 'The AI API returned $1: check the URL, API key and model name', 'ja-JP': 'AI API が $1 を返しました。URL、API キー、モデル名を確認してください' },
   { re: /^设置项取值不合法：(.+)$/, 'en-US': 'Invalid value for setting: $1', 'ja-JP': '設定項目の値が不正です：$1' },
   { re: /^部门编码不存在: (.+)$/, 'en-US': 'Department codes not found: $1', 'ja-JP': '部署コードが存在しません：$1' },
   { re: /^角色编码不存在: (.+)$/, 'en-US': 'Role codes not found: $1', 'ja-JP': 'ロールコードが存在しません：$1' },
@@ -480,6 +493,7 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   { re: /^Cron 区间不合法: (.+)$/, 'en-US': 'Invalid cron range: $1', 'ja-JP': 'Cron の範囲指定が正しくありません：$1' },
   { re: /^Cron 数值不合法: (.+)$/, 'en-US': 'Invalid cron value: $1', 'ja-JP': 'Cron の値が正しくありません：$1' },
   { re: /^Cron 数值超出范围: (.+)$/, 'en-US': 'Cron value out of range: $1', 'ja-JP': 'Cron の値が範囲外です：$1' },
+  { re: /^不允许访问保留地址（(.+) 解析为 (.+)）$/, 'en-US': 'Access to reserved addresses (such as cloud metadata) is not allowed ($1 resolves to $2)', 'ja-JP': '予約済みアドレス（クラウドのメタデータなど）にはアクセスできません（$1 の解決先：$2）' },
   { re: /^不允许访问内网地址（(.+) 解析为 (.+)）$/, 'en-US': 'Access to internal network addresses is not allowed ($1 resolves to $2)', 'ja-JP': '内部ネットワークのアドレスにはアクセスできません（$1 の解決先：$2）' },
 
   // component center: advanced table

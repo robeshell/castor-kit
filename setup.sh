@@ -73,8 +73,9 @@ if [ -z "$SKIP_CONFIG" ]; then
 
     # Ask about AI features
     echo ""
-    echo "  是否配置 AI 功能（AI 对话、AI 提示词工坊）？"
-    read -p "  需要配置 AI？[y/N] " SETUP_AI
+    echo "  是否现在配置 AI 功能（AI 对话、AI 提示词工坊）？"
+    echo "  也可以跳过，部署后登录在「系统设置 → AI」页面里配置（在这里填写的值会锁定为只读）。"
+    read -p "  现在配置 AI？[y/N] " SETUP_AI
     SETUP_AI=${SETUP_AI:-N}
 
     AI_API_KEY=""

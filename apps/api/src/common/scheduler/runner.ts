@@ -15,7 +15,8 @@
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
 import { purgeSessions } from '@/common/session'
-import { Storage } from '@/common/storage'
+import { SettingsStore } from '@/common/settings'
+import { StorageProvider } from '@/common/storage'
 import { FileService } from '@/modules/admin/files/service'
 import { PasswordResetRepository } from '@/modules/admin/password-reset/repository'
 import { ScheduledTaskService } from '@/modules/admin/scheduled-task/service'
@@ -190,7 +191,9 @@ export function startScheduledTaskRunner(db: Db, config: AppConfig, logger?: Sch
 
 /** File center: hourly removal of files nothing references 24h after upload */
 export function fileCleanupJob(db: Db, config: AppConfig, logger: SchedulerLogger = silentLogger): MaintenanceJob {
-  const service = new FileService(db, new Storage(config.storage), config.storage, logger)
+  // Storage settings may live in the database (system settings): read them through a store of this process
+  const settings = new SettingsStore(db, config)
+  const service = new FileService(db, new StorageProvider(settings, config.storageLocalDir), settings, logger)
   return {
     name: 'file-orphan-cleanup',
     intervalSeconds: 3600,

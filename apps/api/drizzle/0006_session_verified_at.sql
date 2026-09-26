@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "verified_at" timestamp;

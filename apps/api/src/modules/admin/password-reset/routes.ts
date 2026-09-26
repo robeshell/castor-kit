@@ -10,7 +10,7 @@ import { getClientIp } from '@/common/request-meta'
 import { PasswordResetService } from './service'
 
 export async function registerPasswordResetRoutes(app: FastifyInstance): Promise<void> {
-  const service = new PasswordResetService(app.db, app.settings, app.mailer, app.config.appBaseUrl, app.log)
+  const service = new PasswordResetService(app.db, app.settings, app.mailer, app.log)
 
   app.post('/api/admin/password-reset/request', { onRequest: authRateLimit(app) }, async (request) => {
     const { body } = await service.request(jsonBody(request), getClientIp(request), requestLanguage(request))

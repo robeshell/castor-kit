@@ -3,7 +3,7 @@
  *
  * - request: always answers the same message, whether or not the email belongs to an account (no user enumeration);
  *   the mail is sent in the background so the response time doesn't tell either
- * - The link is built from APP_BASE_URL (never from the request's Host header) and carries a 32-byte random token;
+ * - The link is built from the site URL in system settings (never from the request's Host header) and carries a 32-byte random token;
  *   only its sha256 is stored. Valid for 30 minutes, once; a newer request replaces older links
  * - confirm: the password policy applies, every session of the user is signed out. 2FA is not bypassed: the next
  *   sign-in still asks for the code
@@ -12,7 +12,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { ServiceError } from '@/common/errors'
 import type { Language } from '@/common/i18n'
-import type { Mailer } from '@/common/mailer'
+import type { MailerProvider } from '@/common/mailer'
 import { generatePasswordHash } from '@/common/password'
 import { passwordPolicyError, passwordPolicyOf } from '@/common/password-policy'
 import { revokeSessions } from '@/common/session'
@@ -51,23 +51,25 @@ export class PasswordResetService {
   constructor(
     private readonly db: Db,
     private readonly settings: SettingsStore,
-    private readonly mailer: Mailer | null,
-    private readonly appBaseUrl: string,
+    private readonly mailer: Pick<MailerProvider, 'get'>,
     private readonly log: ResetLogger,
   ) {
     this.repo = new PasswordResetRepository(db)
   }
 
+  /** The mailer and site URL to use; 400 when the feature is off or its prerequisites are gone */
   private async assertAvailable() {
     const settings = await this.settings.get()
-    if (!this.mailer || !this.settings.isAvailable('security.password_reset_enabled', settings)) {
+    const mailer = await this.mailer.get()
+    if (!mailer || !this.settings.isAvailable('security.password_reset_enabled', settings)) {
       throw new ServiceError('找回密码功能未开启', 400)
     }
+    return { mailer, appBaseUrl: settings.appBaseUrl }
   }
 
   /** Send a reset link to the account with this email (if any). Returns the mail job for tests to await. */
   async request(data: Data, ip: string, lang: Language): Promise<{ body: { message: string }; sent: Promise<void> }> {
-    await this.assertAvailable()
+    const { mailer, appBaseUrl } = await this.assertAvailable()
     const email = typeof data.email === 'string' ? data.email.trim() : ''
     if (!email || email.length > 100 || !email.includes('@')) throw new ServiceError('请输入正确的邮箱地址', 400)
     const user = await this.repo.findActiveByEmail(email)
@@ -75,9 +77,9 @@ export class PasswordResetService {
     if (user && user.email) {
       const token = randomBytes(32).toString('base64url')
       await this.repo.issue(user.id, hashToken(token), ip)
-      const link = `${this.appBaseUrl}/reset-password?token=${token}`
+      const link = `${appBaseUrl}/reset-password?token=${token}`
       const mail = MAILS[lang]({ username: user.username, link })
-      sent = this.mailer!.send({ to: user.email, ...mail }).catch((err) => {
+      sent = mailer.send({ to: user.email, ...mail }).catch((err) => {
         this.log.error({ err, userId: user.id }, 'Password reset mail failed')
       })
     }

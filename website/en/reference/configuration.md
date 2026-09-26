@@ -1,6 +1,9 @@
 # Configuration
 
-castor-kit is configured through environment variables. Backend variables are validated and parsed with Zod in `apps/api/src/config.ts`; in Docker deployments, `docker-compose.yml` injects them.
+castor-kit has two kinds of configuration:
+
+- **Environment variables**: what the server needs before it can reach the database (database URL, `SECRET_KEY`, ports …), validated with Zod in `apps/api/src/config.ts` and injected by `docker-compose.yml` in Docker deployments. See "Backend (API)" below
+- **System settings**: mail, file storage, upload limits, the AI model, the site URL, the sign-in lockout and security switches such as two-step verification, edited after signing in under System → Configuration → System settings and applied within seconds, without a restart. Environment variables can pin these too, see [Configuration in System settings](#configuration-in-system-settings)
 
 ## Config files
 
@@ -44,9 +47,8 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `SESSION_TTL_HOURS` | Initial session lifetime (hours); can be changed later in System settings | `8` |
 | `SESSION_COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |
-| `LOGIN_MAX_FAILURES` | Maximum failed login attempts (counted separately per IP and per username; per IP only in demo mode) | `10` |
-| `LOGIN_LOCKOUT_MINUTES` | Failed-login counting window and lockout duration (minutes) | `15` |
 | `RATE_LIMIT_ENABLED` | Per-IP rate limits; the limits themselves are set in System settings, see [Account security & settings](/en/guide/security#rate-limits) | `true` |
+| `SETTINGS_ALLOW_PRIVATE_NETWORK` | Whether the SMTP server, S3 endpoint and AI API URL in System settings may point at internal networks (`127.0.0.1`, `10.x`, `192.168.x` …); reserved addresses such as cloud metadata are never allowed. Addresses pinned by environment variables aren't restricted | `true` in development / test, `false` in production |
 | `MAX_CONTENT_LENGTH` | Maximum request body size (bytes); larger requests get 413 | `16777216` (16MB) |
 
 ### Paths
@@ -56,35 +58,14 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `WEB_DIST_DIR` | Frontend build directory; the backend serves static files and the SPA from here | `apps/web/dist` |
 | `INSTANCE_DIR` | Runtime data directory; the `local` driver stores uploads in its `uploads/files/` by default | `apps/api/instance` |
 
-### File center
+### File storage directory and mail development mode
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `STORAGE_DRIVER` | Storage driver: `local` (a directory on the server) or `s3` (any S3-compatible service: AWS S3, MinIO, Aliyun OSS, Tencent COS, Cloudflare R2) | `local` |
-| `STORAGE_LOCAL_DIR` | Directory for the `local` driver | `<INSTANCE_DIR>/uploads/files` |
-| `S3_ENDPOINT` | Endpoint of the S3-compatible service; leave empty for AWS S3 | empty |
-| `S3_REGION` | Region; `auto` for R2 | `us-east-1` |
-| `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Bucket and keys; with `STORAGE_DRIVER=s3` the service refuses to start if any is missing | empty |
-| `S3_PUBLIC_URL` | Public URL of the bucket; when set, downloads redirect there, otherwise to a signed URL valid for about 10 minutes | empty |
-| `S3_FORCE_PATH_STYLE` | Path-style bucket addressing (needed by MinIO and most self-hosted services) | `true` when `S3_ENDPOINT` is set |
-| `UPLOAD_MAX_SIZE` | Maximum size of one file (bytes); also capped by `MAX_CONTENT_LENGTH`, whichever is smaller | `10485760` (10MB) |
-| `UPLOAD_ALLOWED_TYPES` | Allowed extensions, comma-separated; uploads are also checked for a file signature matching the extension | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+| `STORAGE_LOCAL_DIR` | Directory of the "local disk" storage | `<INSTANCE_DIR>/uploads/files` |
+| `MAIL_DRIVER` | Empty = send through the SMTP server in System settings; `log` prints mails to the backend log instead of sending (local development); `none` never sends | Empty |
 
-The `local` driver needs a persistent disk: Docker Compose already mounts `INSTANCE_DIR` as a volume; on platforms that wipe the disk on every deploy (such as Render) use `s3` instead (Cloudflare R2, for example). Files no record references are removed by the scheduler process 24 hours after upload, so nothing is cleaned up when `ENABLE_TASK_SCHEDULER=false`.
-
-### Mail
-
-Used for password reset emails. Password reset can only be turned on in System settings once `SMTP_HOST` and `APP_BASE_URL` are set.
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `SMTP_HOST` | SMTP server; setting it turns mail on | Empty |
-| `SMTP_PORT` | Port | `587` |
-| `SMTP_SECURE` | `true` uses TLS from the start (usually port 465); otherwise STARTTLS when the server offers it | `false` |
-| `SMTP_USER` / `SMTP_PASSWORD` | Credentials; leave empty if the server needs no authentication | Empty |
-| `MAIL_FROM` | Sender, e.g. `castor-kit <noreply@example.com>`; falls back to `SMTP_USER` | Empty |
-| `MAIL_DRIVER` | Empty = decided by `SMTP_HOST`; `log` prints mails to the backend log instead of sending (local development); `none` turns mail off | Empty |
-| `APP_BASE_URL` | Public URL of the site; links in mails are built from it (never from the request's Host) | Empty |
+Local-disk storage needs a persistent disk: Docker Compose mounts `INSTANCE_DIR` as a volume; on platforms like Render that wipe the disk on redeploy, switch to S3-compatible storage (e.g. Cloudflare R2) in System settings. Files that nothing references are removed by the scheduler process 24 hours after upload, so with `ENABLE_TASK_SCHEDULER=false` they aren't cleaned up either.
 
 ### Public demo
 
@@ -109,18 +90,15 @@ The demo data lives in `apps/api/src/demo/fixtures.ts` and the restore logic in 
 
 Boolean values `1`, `true`, `yes` and `on` (case-insensitive) count as true.
 
-### AI features
+### AI Data Query
+
+The AI model (API URL, key, model name) is configured in System settings, see below. This section only holds the read-only database connection used by AI Data Query:
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `AI_API_BASE` | Base URL of an OpenAI-compatible API, e.g. `https://api.openai.com/v1` | Empty |
-| `AI_API_KEY` | API key | Empty |
-| `AI_MODEL` | Model name | Empty |
 | `AI_SQL_DATABASE_URL` | Read-only connection used by AI Data Query; should point at a non-superuser read-only account | Falls back to the main database connection in development / test (still forced read-only). In production, if unset but `POSTGRES_RO_PASSWORD` is set, it is derived from `DATABASE_URL` (switched to the `castor_kit_ro` account); otherwise startup fails |
 | `AI_SQL_STATEMENT_TIMEOUT_MS` | Per-statement timeout for AI Data Query (milliseconds) | `5000` |
 | `POSTGRES_RO_PASSWORD` | Password of the read-only account `castor_kit_ro`; `setup-once` / `init-ro-role` use it to create the account, and skip that step if it's not set | Empty |
-
-AI Chat, AI Prompt Studio and AI Data Query share the three `AI_API_*` variables. When they are not set, those pages show a "not configured" notice; everything else is unaffected.
 
 ### Apifox (used only by `pnpm openapi:apifox`)
 
@@ -139,6 +117,62 @@ With `NODE_ENV=production`, the server refuses to start if any of these is missi
 - `AI_SQL_DATABASE_URL`, or `POSTGRES_RO_PASSWORD` (the read-only connection is then derived from it and `DATABASE_URL`)
 
 When deploying with `docker-compose.yml`, compose builds `AI_SQL_DATABASE_URL` for you, so you don't need to set it by hand.
+
+## Configuration in System settings
+
+These are edited on the System settings page (viewing needs `system_settings`, saving `system_settings_edit`) and apply within seconds. The Mail, File storage and AI tabs have test buttons that try unsaved values.
+
+- Passwords, the S3 secret key and the API key are stored encrypted with a key derived from `SECRET_KEY`; the page only shows that they are set. After changing `SECRET_KEY`, enter them again
+- **When the matching environment variable is set (and not empty), it wins**: the setting becomes read-only on the page and names the variable. Useful for deployments managed entirely through environment variables; leave them unset to manage settings on the page
+- To pin a setting in Docker, add the variable to `app.environment` in `docker-compose.yml` as well as to `.env.production`
+- Saving and testing need an identity check within the last 10 minutes, and every save notifies all super admins; see [How system settings are protected](/en/guide/security#how-system-settings-are-protected). In production, pin at least `APP_BASE_URL` and `SMTP_HOST` with environment variables
+
+### Mail
+
+| Setting | Environment variable | Default |
+|---|---|---|
+| Site URL (links in mails are built from it, never from the request's Host) | `APP_BASE_URL` | Empty |
+| SMTP server | `SMTP_HOST` | Empty (no mail) |
+| Port | `SMTP_PORT` | `587` |
+| Encryption: auto / SSL/TLS / STARTTLS (auto = SSL/TLS on port 465) | `SMTP_SECURE` (`true` = SSL/TLS, `false` = STARTTLS) | Auto |
+| Account / password | `SMTP_USER` / `SMTP_PASSWORD` | Empty |
+| Sender, e.g. `castor-kit <noreply@example.com>` | `MAIL_FROM` | The account |
+
+Password reset by email can only be turned on once the SMTP server and the site URL are set, see [Account security & settings](/en/guide/security#password-reset).
+
+### File storage and uploads
+
+| Setting | Environment variable | Default |
+|---|---|---|
+| Store in: local disk / S3-compatible storage (AWS S3, MinIO, Alibaba Cloud OSS, Tencent COS, Cloudflare R2) | `STORAGE_DRIVER` (`local` / `s3`) | Local disk |
+| S3 endpoint (empty for AWS S3) | `S3_ENDPOINT` | Empty |
+| Region (`auto` for R2) | `S3_REGION` | `us-east-1` |
+| Bucket / access key / secret key (required for S3) | `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Empty |
+| Public URL (downloads redirect there; otherwise to a signed URL valid for about 10 minutes) | `S3_PUBLIC_URL` | Empty |
+| Addressing: auto / path style / virtual-hosted (auto = path style when an endpoint is set) | `S3_FORCE_PATH_STYLE` (`true` / `false`) | Auto |
+| Max file size, also capped by `MAX_CONTENT_LENGTH` | `UPLOAD_MAX_SIZE` (bytes) | 10MB |
+| Allowed file types; uploads are also checked for a file signature matching the extension | `UPLOAD_ALLOWED_TYPES` (comma-separated) | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+
+Switching the storage only affects new uploads; existing files record where they live (including the bucket) and are still read from there. If new S3 endpoint or keys can't reach the original bucket, files stored there can no longer be read; the page says how many files are affected.
+
+### AI model
+
+| Setting | Environment variable | Default |
+|---|---|---|
+| API URL (OpenAI-compatible, e.g. `https://api.openai.com/v1`) | `AI_API_BASE` | Empty |
+| API key | `AI_API_KEY` | Empty |
+| Model | `AI_MODEL` | Empty |
+
+AI Chat, AI Prompt Studio and AI Data Query share these settings. When they are not set, those pages show a "not configured" notice; everything else is unaffected.
+
+### Sign-in lockout
+
+| Setting | Environment variable | Default |
+|---|---|---|
+| Failed attempts before lockout (counted per IP and per username; per IP only in demo mode) | `LOGIN_MAX_FAILURES` | `10` |
+| Lockout duration (minutes), also the window failures are counted in | `LOGIN_LOCKOUT_MINUTES` | `15` |
+
+Other security settings (two-step verification, password reset, password rules, session lifetime, rate limits) are only on the page, see [Account security & settings](/en/guide/security).
 
 ## Frontend (Web)
 
@@ -174,8 +208,7 @@ Put these in `.env.production` and pass them in with `docker compose --env-file 
 | `SESSION_COOKIE_SECURE` | See above | Empty (auto) |
 | `CORS_ORIGINS` | See above | Empty |
 | `RATE_LIMIT_ENABLED` | See above | `true` |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_FROM` / `APP_BASE_URL` | See above (mail) | Empty / `587` / `false` |
-| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | See above | Empty |
+| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | Optional: pin the AI model settings (see [AI model](#ai-model)); leave empty to configure them in System settings | Empty |
 | `COMPOSE_DB_VOLUME` | Name of the database volume; can point to an existing volume | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | Name of the uploads volume; can point to an existing volume | `castor-kit_app_instance` |
 

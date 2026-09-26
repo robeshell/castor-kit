@@ -26,3 +26,6 @@ export const confirmPasswordReset = (token, newPassword) =>
 export const getMySessions = (params) => request.get('/admin/profile/sessions', { params })
 export const revokeMySession = (key) => request.delete(`/admin/profile/sessions/${key}`)
 export const revokeMyOtherSessions = () => request.post('/admin/profile/sessions/revoke-others')
+
+/** Re-verification before sensitive changes: { password } plus { code } or { recovery_code } when 2FA is on */
+export const reauth = (data) => request.post('/admin/reauth', data)

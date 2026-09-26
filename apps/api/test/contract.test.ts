@@ -183,7 +183,7 @@ describe('登录 / 会话', () => {
   })
 
   it('同一 IP 失败次数达到阈值 → 429', async () => {
-    const strict = await buildTestApp({ loginMaxFailures: 3 })
+    const strict = await buildTestApp({ settingsEnv: { LOGIN_MAX_FAILURES: '3' } })
     try {
       const attempt = () =>
         strict.inject({

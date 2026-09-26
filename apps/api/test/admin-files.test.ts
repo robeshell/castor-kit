@@ -5,7 +5,8 @@ import { eq, inArray, sql } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { syncFileRefs, clearFileRefs, fileIdOf } from '@/common/file-refs'
-import { Storage } from '@/common/storage'
+import { SettingsStore, type Settings } from '@/common/settings'
+import { Storage, StorageProvider } from '@/common/storage'
 import type { DbHandle } from '@/db/client'
 import { file_references, files } from '@/db/schema'
 import { FileService } from '@/modules/admin/files/service'
@@ -34,10 +35,23 @@ let handle: DbHandle
 const createdIds: string[] = []
 const tempDirs: string[] = []
 
-function storageConfig(overrides: Partial<ReturnType<typeof testConfig>['storage']> = {}) {
+/** A fresh directory for the local driver */
+function tempStorageDir(): string {
   const dir = mkdtempSync(join(tmpdir(), 'ck-files-'))
   tempDirs.push(dir)
-  return { ...testConfig().storage, localDir: dir, ...overrides }
+  return dir
+}
+
+/** Storage settings as they come out of the settings store (defaults: local driver) */
+function storageSettings(overrides: Partial<Settings['storage']> = {}): Settings['storage'] {
+  const s3 = { endpoint: '', region: 'us-east-1', bucket: '', accessKey: '', secretKey: '', publicUrl: '', forcePathStyle: false }
+  return { driver: 'local', s3, ...overrides }
+}
+
+/** A FileService outside an app: local driver in `dir`, default upload limits */
+function localFileService(dir: string): FileService {
+  const settings = new SettingsStore(handle.db, testConfig())
+  return new FileService(handle.db, new StorageProvider(settings, dir), settings)
 }
 
 /** All object files under a local storage root */
@@ -67,11 +81,11 @@ afterAll(async () => {
 describe('files: local driver', () => {
   let app: FastifyInstance
   let s: AuthedSession
-  let storage: ReturnType<typeof storageConfig>
+  let storage: { localDir: string }
 
   beforeAll(async () => {
-    storage = storageConfig({ uploadMaxSize: 64 * 1024 })
-    app = await buildTestApp({ storage })
+    storage = { localDir: tempStorageDir() }
+    app = await buildTestApp({ storageLocalDir: storage.localDir, settingsEnv: { UPLOAD_MAX_SIZE: String(64 * 1024) } })
     s = await superAdminSession(app, handle)
   })
   afterAll(() => app.close())
@@ -186,7 +200,11 @@ describe('files: local driver', () => {
 
 describe('files: 超过请求体上限', () => {
   it('超过 MAX_CONTENT_LENGTH 的文件被 multipart 拦下时，也返回「文件过大」和适用的上限', async () => {
-    const app = await buildTestApp({ maxContentLength: 1024 * 1024, storage: storageConfig({ uploadMaxSize: 512 * 1024 }) })
+    const app = await buildTestApp({
+      maxContentLength: 1024 * 1024,
+      storageLocalDir: tempStorageDir(),
+      settingsEnv: { UPLOAD_MAX_SIZE: String(512 * 1024) },
+    })
     try {
       const s = await superAdminSession(app, handle)
       const big = multipartFile('big.txt', 'x'.repeat(2 * 1024 * 1024))
@@ -207,8 +225,18 @@ describe('files: s3 driver（进程内假 S3）', () => {
 
   beforeAll(async () => {
     s3 = await startFakeS3()
-    const s3Config = { endpoint: s3.url, region: 'us-east-1', bucket: 'ck-bucket', accessKey: 'ak', secretKey: 'sk', publicUrl: '', forcePathStyle: true }
-    app = await buildTestApp({ storage: storageConfig({ driver: 's3', s3: s3Config }) })
+    app = await buildTestApp({
+      storageLocalDir: tempStorageDir(),
+      settingsEnv: {
+        STORAGE_DRIVER: 's3',
+        S3_ENDPOINT: s3.url,
+        S3_REGION: 'us-east-1',
+        S3_BUCKET: 'ck-bucket',
+        S3_ACCESS_KEY: 'ak',
+        S3_SECRET_KEY: 'sk',
+        S3_FORCE_PATH_STYLE: 'true',
+      },
+    })
     s = await superAdminSession(app, handle)
   })
   afterAll(async () => {
@@ -239,7 +267,8 @@ describe('files: s3 driver（进程内假 S3）', () => {
 
   it('配置了 S3_PUBLIC_URL 时直接跳到公开地址', async () => {
     const file = (await upload(s, 'public.png', PNG)).json()
-    const storage = new Storage({ ...storageConfig(), driver: 's3', s3: { ...testConfig().storage.s3, bucket: 'b', accessKey: 'a', secretKey: 's', publicUrl: 'https://cdn.example.com' } })
+    const s3Settings = { ...storageSettings().s3, bucket: 'b', accessKey: 'a', secretKey: 's', publicUrl: 'https://cdn.example.com' }
+    const storage = new Storage(storageSettings({ driver: 's3', s3: s3Settings }), tempStorageDir())
     const download = await storage.get('s3').download(`${file.sha256.slice(0, 2)}/${file.sha256}`, { filename: 'x', contentType: 'image/png', inline: true })
     expect(download).toEqual({ kind: 'redirect', url: `https://cdn.example.com/${file.sha256.slice(0, 2)}/${file.sha256}` })
   })
@@ -247,8 +276,8 @@ describe('files: s3 driver（进程内假 S3）', () => {
 
 describe('files: 孤儿清理与引用', () => {
   it('超过 24 小时且没有引用的文件被清理；有引用的、刚上传的保留', async () => {
-    const config = storageConfig()
-    const service = new FileService(handle.db, new Storage(config), config)
+    const config = { localDir: tempStorageDir() }
+    const service = localFileService(config.localDir)
     const upload = (name: string, data: Buffer) => service.upload({ filename: name, data }, null)
     const oldOrphan = await upload('old.txt', Buffer.from('old orphan'))
     const oldUsed = await upload('used.txt', Buffer.from('old but used'))
@@ -268,8 +297,7 @@ describe('files: 孤儿清理与引用', () => {
   })
 
   it('syncFileRefs：接受 id 或文件地址；外部地址与不存在的 id 只清除引用', async () => {
-    const config = storageConfig()
-    const service = new FileService(handle.db, new Storage(config), config)
+    const service = localFileService(tempStorageDir())
     const file = await service.upload({ filename: 'ref.txt', data: Buffer.from('ref') }, null)
     createdIds.push(file.id)
     expect(fileIdOf(file.url)).toBe(file.id)

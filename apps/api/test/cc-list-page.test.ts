@@ -19,7 +19,6 @@ import {
   multipartFile,
   openTestDb,
   superAdminSession,
-  testConfig,
   type AuthedSession,
 } from './helpers'
 
@@ -44,7 +43,7 @@ async function create(body: Record<string, unknown>) {
 beforeAll(async () => {
   handle = openTestDb()
   instanceDir = mkdtempSync(join(tmpdir(), 'ck-r3-instance-'))
-  app = await buildTestApp({ instanceDir, storage: { ...testConfig().storage, localDir: join(instanceDir, 'uploads', 'files') } })
+  app = await buildTestApp({ instanceDir, storageLocalDir: join(instanceDir, 'uploads', 'files') })
   // createFixture first cleans up all ck_test_ users, so it must run before superAdminSession
   await createFixture(handle)
   s = await superAdminSession(app, handle)

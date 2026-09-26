@@ -8,6 +8,7 @@ import { loadAdminWithRoles } from '@/common/auth'
 import { ServiceError } from '@/common/errors'
 import { checkPasswordHash, generatePasswordHash } from '@/common/password'
 import type { PasswordPolicy } from '@/common/password-policy'
+import type { SettingsStore } from '@/common/settings'
 import type { MfaState } from '@/common/session'
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
@@ -36,10 +37,17 @@ export class AuthService {
 
   constructor(
     private readonly db: Db,
-    private readonly config: Pick<AppConfig, 'loginMaxFailures' | 'loginLockoutMinutes'> & Partial<Pick<AppConfig, 'demoMode'>>,
+    private readonly config: Partial<Pick<AppConfig, 'demoMode'>>,
     private readonly log: { warn: (obj: unknown, msg: string) => void } = console,
+    /** Lockout thresholds (security.login_max_failures / login_lockout_minutes) */
+    private readonly settings: Pick<SettingsStore, 'get'>,
   ) {
     this.repo = new AuthRepository(db)
+  }
+
+  /** 429 while the IP or the username is locked out (password and 2FA code failures both count) */
+  async assertNotBlocked(username: string, ip: string): Promise<void> {
+    if (await this.isLoginBlocked(username, ip)) throw new ServiceError('登录失败次数过多，请稍后再试', 429)
   }
 
   /**
@@ -49,13 +57,8 @@ export class AuthService {
    * In DEMO_MODE the username dimension is skipped: the demo credentials are public, so anyone could otherwise lock
    * the shared account for everyone by typing a wrong password on purpose.
    */
-  /** 429 while the IP or the username is locked out (password and 2FA code failures both count) */
-  async assertNotBlocked(username: string, ip: string): Promise<void> {
-    if (await this.isLoginBlocked(username, ip)) throw new ServiceError('登录失败次数过多，请稍后再试', 429)
-  }
-
   private async isLoginBlocked(username: string, ip: string): Promise<boolean> {
-    const { loginMaxFailures: max, loginLockoutMinutes: minutes } = this.config
+    const { loginMaxFailures: max, loginLockoutMinutes: minutes } = await this.settings.get()
     if (ip && (await this.repo.countRecentFailures({ ip }, minutes)) >= max) return true
     if (username && !this.config.demoMode && (await this.repo.countRecentFailures({ username }, minutes)) >= max) return true
     return false
@@ -134,13 +137,20 @@ export class AuthService {
         message: '登录成功',
       })
       // Login succeeded: reset the window's failure count so earlier mistakes don't keep rate limiting
-      await this.repo.clearRecentFailures(user.username, meta.ip, this.config.loginLockoutMinutes)
+      await this.repo.clearRecentFailures(user.username, meta.ip, (await this.settings.get()).loginLockoutMinutes)
     })
     return { message: '登录成功', user: await this.userDict(user) }
   }
 
-  /** A wrong 2FA code: logged as a failed login, so it counts toward the lockout like a wrong password */
-  async recordSecondFactorFailure(user: { id: number; username: string }, meta: ClientMeta) {
+  /**
+   * A wrong 2FA code (or a wrong password when re-verifying before a sensitive change): logged as a failed login, so
+   * it counts toward the lockout like a wrong password at sign-in
+   */
+  async recordSecondFactorFailure(
+    user: { id: number; username: string },
+    meta: ClientMeta,
+    message: '两步验证码错误' | '身份验证密码错误' = '两步验证码错误',
+  ) {
     await this.bestEffort('记录登录日志', () =>
       this.repo.addLoginLog({
         username: user.username,
@@ -148,7 +158,7 @@ export class AuthService {
         status: 'failed',
         ip: meta.ip,
         user_agent: meta.userAgent,
-        message: '两步验证码错误',
+        message,
       }),
     )
   }

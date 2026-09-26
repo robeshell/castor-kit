@@ -1,10 +1,10 @@
 # Account security & settings
 
-castor-kit keeps sign-in state on the server, so sessions can be listed and signed out. On top of that it offers two-step verification, password reset by email, password rules and rate limits. Features that add friction are off by default; administrators turn them on under System → System settings.
+castor-kit keeps sign-in state on the server, so sessions can be listed and signed out. On top of that it offers two-step verification, password reset by email, password rules and rate limits. Features that add friction are off by default; administrators turn them on under System → Configuration → System settings.
 
 ## System settings
 
-The System settings page holds switches and parameters that can change at runtime. They are stored in the `system_settings` table and apply within a few seconds, without a restart.
+The System settings page holds switches and parameters that can change at runtime. They are stored in the `system_settings` table and apply within a few seconds, without a restart. The page has four tabs — Security, Mail, File storage and AI; for mail, storage and AI see [Configuration in System settings](/en/reference/configuration#configuration-in-system-settings). This is the Security tab:
 
 | Setting | Purpose | Default |
 |---|---|---|
@@ -15,17 +15,34 @@ The System settings page holds switches and parameters that can change at runtim
 | `security.password_require_letters_digits` | Passwords must contain letters and digits | Off |
 | `security.password_require_symbol` | Passwords must contain a symbol | Off |
 | `security.session_ttl_hours` | Session lifetime (hours, 1–720, sliding) | `SESSION_TTL_HOURS` |
+| `security.login_max_failures` / `security.login_lockout_minutes` | Failed attempts before lockout / lockout duration (minutes) | `10` / `15` |
 | `security.rate_limit_per_minute` | `/api` requests per IP per minute | `600` |
 | `security.auth_rate_limit_per_minute` | Sign-in requests per IP per minute (sign-in, 2FA code and password reset share it) | `20` |
 
 - The defaults match the previous behavior: after upgrading, nothing changes until a switch is turned on
 - A switch whose prerequisites are missing can't be turned on, and the page says why. For example, password reset needs mail to be configured, and neither two-step verification nor password reset can be turned on in demo mode
-- Secrets and infrastructure (SMTP, S3, database …) stay in environment variables and never go into this table
+- Secrets such as passwords, the S3 secret key and API keys are stored encrypted with a key derived from `SECRET_KEY`; neither the API nor the page returns them again
+- A setting whose environment variable is set (e.g. `SMTP_HOST`, `AI_API_KEY`) follows the variable and is read-only on the page. Only what the server needs before it starts (database URL, `SECRET_KEY`, ports …) must be an environment variable
 - Viewing needs the menu permission `system_settings`; saving needs the button permission `system_settings_edit`
+
+### How system settings are protected
+
+System settings control where data goes — the mail server, file storage, the AI API. A hijacked admin account changing them could intercept password reset mails or send new uploads and AI requests to someone else's server. So:
+
+- **Recent identity check**: saving settings or using a test button needs a sign-in or identity check within the last 10 minutes; otherwise a "Confirm it's you" dialog asks for the current password (plus a two-step code or recovery code for enrolled accounts). A stolen session cookie alone can't change settings, and failures count toward the sign-in lockout. The endpoint is `POST /api/admin/reauth`; the backend protects endpoints with `requireRecentAuth(request)` from `common/session.ts`
+- **Change notifications**: every save sends all active super admins a notification naming who changed which settings (secrets only say "updated / cleared"); the operation log records it too, with secrets masked
+- **No reserved or internal addresses**: the SMTP server, S3 endpoint and AI API URL can't point at reserved addresses such as cloud metadata (`169.254.169.254`), and in production by default not at internal networks either (`127.0.0.1`, `10.x`, `192.168.x` …). Set `SETTINGS_ALLOW_PRIVATE_NETWORK=true` to use a MinIO or mail server on your own network. Saving and testing check this, and AI requests re-check the address actually connected to, so a hostname can't later be pointed inside
+- **Few people with access**: viewing needs the menu permission `system_settings`, changing needs the button permission `system_settings_edit`; by default only super admins have them
+
+Recommended for production:
+
+1. Add the super admin role to "Required for roles" so every super admin uses two-step verification
+2. Pin the key settings with environment variables, e.g. `APP_BASE_URL` (the site URL in password reset links) and `SMTP_HOST`, so even a hijacked admin account can't change them
+3. Don't use a super admin account for everyday work, and give `system_settings_edit` only to those who need it
 
 ### Adding a setting
 
-Settings are defined in `SETTING_DEFINITIONS` in `apps/api/src/common/settings.ts`: type, default, bounds, whether it is public (public ones are sent to signed-out pages through `/api/admin/app-info`) and why it may be unavailable. Code reads them with `app.settings.get()`; on hot paths that run for every request (like rate limiting) use `app.settings.peek()`, which returns the cached values without waiting for the database.
+Settings are defined in `SETTING_DEFINITIONS` in `apps/api/src/common/settings.ts`: group, type (boolean, integer, string, secret, enum, string list), default, bounds, the environment variable that can pin it, whether it is public (public ones are sent to signed-out pages through `/api/admin/app-info`) and why it may be unavailable. New environment variable names also go into `common/settings-env.ts`, and the frontend gets a label and description in `pages/settings/form.js`. Code reads them with `app.settings.get()`; on hot paths that run for every request (like rate limiting) use `app.settings.peek()`, which returns the cached values without waiting for the database.
 
 When a new feature should be "off by default, an admin can turn it on", add a setting here rather than another environment variable.
 
@@ -73,10 +90,10 @@ Details:
 
 ## Password reset
 
-Configure mail (`SMTP_HOST` etc., see [Configuration](/en/reference/configuration#mail)) and `APP_BASE_URL` first, then turn it on in System settings. The sign-in page then shows "Forgot password?":
+First fill in the SMTP server and the site URL on the Mail tab of System settings (the "Send test mail" button checks them, see [Configuration](/en/reference/configuration#mail)), then turn it on in the Security tab. The sign-in page then shows "Forgot password?":
 
 1. The user enters the email on their account. The answer is the same whether or not the email exists, so it doesn't reveal accounts
-2. The link looks like `<APP_BASE_URL>/reset-password?token=…`; it is valid for 30 minutes and works once, and a new request invalidates earlier links
+2. The link looks like `<site URL>/reset-password?token=…`; it is valid for 30 minutes and works once, and a new request invalidates earlier links
 3. The new password is checked against the password rules; afterwards the user is signed out everywhere. Accounts with two-step verification still need a code at the next sign-in
 
 The email follows the user's current interface language. In local development, `MAIL_DRIVER=log` prints mails to the backend log instead of sending them.

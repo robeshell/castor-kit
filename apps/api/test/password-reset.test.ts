@@ -26,7 +26,7 @@ const EMAIL = 'ck_test_reset@example.com'
 
 beforeAll(async () => {
   handle = openTestDb()
-  const config = testConfig({ mail: { ...testConfig().mail, driver: 'log' }, appBaseUrl: 'https://admin.example.com' })
+  const config = testConfig({ mailDriver: 'log', settingsEnv: { APP_BASE_URL: 'https://admin.example.com' } })
   app = await buildApp({ config, mailer: { send: async (m) => void outbox.push(m) } })
   await app.ready()
 })

@@ -3,7 +3,7 @@
  *
  * Behavior is determined by the content of the last message (streaming = ai_chat, non-streaming = ai_sql's call_llm, using the text after "问题：").
  *
- * vitest: `const up = await startFakeUpstream()`, `buildTestApp({ aiApiBase: up.url, aiApiKey: 'x', aiModel: 'm' })`
+ * vitest: `const up = await startFakeUpstream()`, `buildTestApp({ settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'x', AI_MODEL: 'm' } })`
  */
 
 import { createHash } from 'node:crypto'

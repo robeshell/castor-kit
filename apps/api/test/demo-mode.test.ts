@@ -195,9 +195,7 @@ describe('demo AI quota', () => {
       handle = openTestDb()
       up = await startFakeUpstream()
       app = await buildTestApp({
-        aiApiBase: up.url,
-        aiApiKey: 'x',
-        aiModel: 'm',
+        settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'x', AI_MODEL: 'm' },
         demoMode: true,
         demoAiHourlyPerIp: 2,
         demoAiDaily: 100,

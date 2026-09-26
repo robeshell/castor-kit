@@ -128,7 +128,9 @@ pnpm test
 
 ## 可选：AI 功能
 
-组件示例中心的 AI 对话、AI 提示词工坊、AI 数据查询需要一个 OpenAI 兼容接口。在 `apps/api/.env.development` 中设置：
+组件示例中心的 AI 对话、AI 提示词工坊、AI 数据查询需要一个 OpenAI 兼容接口。登录后在「系统管理 → 系统配置 → 系统设置」的「AI」页签填写接口地址、API Key 和模型，点「测试调用」确认可用，保存后立即生效。
+
+也可以写在 `apps/api/.env.development` 里（这样页面上这几项变成只读）：
 
 ```bash
 AI_API_BASE=https://api.openai.com/v1
