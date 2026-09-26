@@ -258,7 +258,7 @@ castor-kit/
 
 | 脚本 | 命令 | 说明 |
 |---|---|---|
-| `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
+| `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；把模块的 8 个接口写进 `docs/apifox-full.openapi.json`（`scripts/lib/scaffold-openapi.ts`，已写过的模块跳过）；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
 | `scripts/verify-feature.ts` | `pnpm verify -- --module <name> [--skip-build] [--json]` | 门禁：`typescript_compile`、`no_local_has_permission`、`migration_chain`、`migration_applied`、`docs_paths`（AI 文档引用路径存在）、`backend_file`、`data_scope_filter`（声明 `DATA_SCOPE` 的模块必须用 `dataScopeWhere`）、`frontend_page`、`frontend_api`、`router_registration`、`rbac_seed`、`frontend_build`、`frontend_tests`、`api_tests` 等 |
 | `scripts/seed-rbac.ts` | `pnpm seed:rbac -- --incremental` | 菜单树唯一事实源；`--incremental` 按 code upsert 不删除，同步序列并刷新超级管理员权限；不带参数是全量重建（仅空库） |
 | （内置）文件孤儿清理 | 调度器进程每小时一次 | 见 §4.12；`ENABLE_TASK_SCHEDULER=false` 时不运行 |

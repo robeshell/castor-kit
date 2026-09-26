@@ -253,7 +253,7 @@ pnpm openapi:generate -- --strict  # 逐个列出不合规的接口和原因，�
 pnpm openapi:apifox                # 推送到 Apifox
 ```
 
-`docs/apifox-full.openapi.json` 是接口的唯一说明书，外部调用方、Apifox 和 [AI 小助手](/guide/assistant) 都只读它，所以每个已注册的 `/api` 接口都必须写完整：中文 summary、description（所需权限、数据权限、关键行为）、一个分组标签和 Apifox 目录、路径和查询参数、请求体字段（不读请求体的写 `"x-no-body": true`）、成功响应的结构和可能的错误码。完整规则见仓库里 `AGENTS.md` 的「OpenAPI 编写规范」，由 API 测试和 `pnpm verify` 强制检查，不合规就不通过。`openapi:generate` 只为缺文档的接口补骨架，骨架本身通不过检查，需要照着代码补全。推送到 Apifox 需要 `APIFOX_PROJECT_ID` 和 `APIFOX_ACCESS_TOKEN`，见 [配置项](/reference/configuration)。
+`docs/apifox-full.openapi.json` 是接口的唯一说明书，外部调用方、Apifox 和 [AI 小助手](/guide/assistant) 都只读它，所以每个已注册的 `/api` 接口都必须写完整：中文 summary、description（所需权限、数据权限、关键行为）、一个分组标签和 Apifox 目录、路径和查询参数、请求体字段（不读请求体的写 `"x-no-body": true`）、成功响应的结构和可能的错误码。完整规则见仓库里 `AGENTS.md` 的「OpenAPI 编写规范」，由 API 测试和 `pnpm verify` 强制检查，不合规就不通过。`pnpm scaffold` 生成模块时会把它的接口直接写成合规的条目；`openapi:generate` 只为缺文档的接口补骨架，骨架本身通不过检查，需要照着代码补全。推送到 Apifox 需要 `APIFOX_PROJECT_ID` 和 `APIFOX_ACCESS_TOKEN`，见 [配置项](/reference/configuration)。
 
 ## 测试
 

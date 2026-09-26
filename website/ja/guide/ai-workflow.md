@@ -77,7 +77,7 @@ AI が追加で質問するのは、データモデルに取り返しのつか�
 3. フロントエンドのページを仕上げます：中国語のラベル、フォームのバリデーション、列挙型フィールド、多言語の翻訳。
 4. `seed-rbac.ts` にメニューとボタン権限を追加し、`pnpm seed:rbac -- --incremental` を実行します。
 5. 新しく生成されたマイグレーション SQL をレビューしてから `pnpm db:migrate` を実行し、`psql -d <データベース名> -c '\d <テーブル名>'` でテーブルが実際に存在することを確認します。
-6. `pnpm openapi:generate` で新しい API に骨格を追加し、`AGENTS.md`「OpenAPI 编写规范」に沿ってコードから書き上げます（必須。`pnpm verify` がチェックします）。
+6. API ドキュメント：`pnpm scaffold` がモジュールの API を `docs/apifox-full.openapi.json` に書き込み済みです。生成されたルート・フィールド・バリデーションを変更したり、ルートを追加したりした場合は、`AGENTS.md`「OpenAPI 编写规范」に沿ってコードから更新します（必須。`pnpm verify` がチェックします）。
 
 ### 5. 検証ゲート
 
