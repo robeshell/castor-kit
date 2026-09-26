@@ -59,6 +59,14 @@
     {
       "name": "后台-文件管理",
       "description": "文件中心：上传、预览下载、管理"
+    },
+    {
+      "name": "后台-在线用户",
+      "description": "在线用户与强制下线"
+    },
+    {
+      "name": "后台-系统设置",
+      "description": "系统设置（功能开关与安全参数）"
     }
   ],
   "components": {
@@ -275,7 +283,7 @@
     "/api/admin/app-info": {
       "GET": {
         "summary": "应用信息（公开）",
-        "description": "无需登录。始终返回上传限制（upload.max_size 字节、upload.allowed_types 扩展名），供上传控件在本地先检查；DEMO_MODE 开启时另外返回演示账号与数据重置间隔，供登录页和演示提示条使用。",
+        "description": "无需登录。始终返回上传限制（upload.max_size 字节、upload.allowed_types 扩展名），供上传控件在本地先检查；DEMO_MODE 开启时另外返回演示账号与数据重置间隔，供登录页和演示提示条使用。 另外始终返回 security：两步验证与找回密码是否可用、密码规则，供登录页与密码表单使用。",
         "responses": {
           "200": {
             "description": "成功",
@@ -319,6 +327,31 @@
                           "description": "允许的扩展名（小写、不带点）"
                         }
                       }
+                    },
+                    "security": {
+                      "type": "object",
+                      "properties": {
+                        "totp_enabled": {
+                          "type": "boolean"
+                        },
+                        "password_reset_enabled": {
+                          "type": "boolean"
+                        },
+                        "password_policy": {
+                          "type": "object",
+                          "properties": {
+                            "min_length": {
+                              "type": "integer"
+                            },
+                            "require_letters_digits": {
+                              "type": "boolean"
+                            },
+                            "require_symbol": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
                     }
                   },
                   "required": [
@@ -355,7 +388,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -371,27 +408,27 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/认证",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "old_password": {
+                    "type": "string"
+                  },
+                  "new_password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_password",
+                  "new_password"
+                ]
               }
             }
           }
@@ -400,7 +437,8 @@
           {
             "cookieAuth": []
           }
-        ]
+        ],
+        "description": "只需登录。新密码按系统设置的密码规则校验；成功后该用户的其他会话全部下线，当前会话保留"
       }
     },
     "/api/admin/component-center/advanced-table/rows": {
@@ -5315,7 +5353,7 @@
         "tags": [
           "后台-认证"
         ],
-        "summary": "创建login",
+        "summary": "登录",
         "responses": {
           "200": {
             "description": "成功",
@@ -5323,7 +5361,28 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true,
+                      "description": "未要求两步验证时返回"
+                    },
+                    "mfa_required": {
+                      "type": "string",
+                      "enum": [
+                        "verify",
+                        "setup"
+                      ],
+                      "description": "需要第二步时返回"
+                    },
+                    "csrf_token": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -5340,28 +5399,102 @@
           "500": {
             "description": "服务器错误"
           },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+          "429": {
+            "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          }
+        },
+        "x-apifox-folder": "后台/系统管理/认证",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "description": "公开。成功时返回 user 与 csrf_token。开启两步验证（系统设置）后，已绑定的用户、或所在角色要求两步验证的用户，密码正确时返回 mfa_required（verify：调用 /api/admin/login/two-factor；setup：先绑定 /api/admin/two-factor/setup → enable），此时尚未登录。失败次数过多返回 429；另有每 IP 每分钟的登录类请求上限"
+      }
+    },
+    "/api/admin/login/two-factor": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "登录第二步：两步验证码",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "description": "登录返回 mfa_required=verify 后调用（带登录响应里的 csrf_token）。验证码或恢复码二选一；同一时间步的验证码只能用一次；错误计入登录失败锁定。成功后换发新会话",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "6 位验证码"
+                  },
+                  "recovery_code": {
+                    "type": "string",
+                    "description": "恢复码（大小写、空格、连字符不敏感）"
+                  }
                 }
               }
             }
           }
         },
-        "x-apifox-folder": "后台/系统管理/认证",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    },
+                    "csrf_token": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "429": {
+            "description": "请求过于频繁，或登录失败次数过多"
           }
         }
       }
@@ -6560,6 +6693,131 @@
         }
       }
     },
+    "/api/admin/password-reset/confirm": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "找回密码：设置新密码",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "description": "公开。token 来自邮件链接；新密码按密码规则校验；成功后该用户所有会话下线（两步验证不会因此跳过）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "new_password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "new_password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "429": {
+            "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          }
+        }
+      }
+    },
+    "/api/admin/password-reset/request": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "找回密码：发送重置邮件",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "description": "公开。需在系统设置打开且配置了邮件与 APP_BASE_URL。无论邮箱是否存在都返回同一提示；邮件语言跟随 Accept-Language，链接 30 分钟内有效、只能用一次，新申请会使旧链接作废",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "429": {
+            "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          }
+        }
+      }
+    },
     "/api/admin/profile": {
       "put": {
         "tags": [
@@ -6719,6 +6977,243 @@
             "cookieAuth": []
           }
         ]
+      }
+    },
+    "/api/admin/profile/sessions": {
+      "get": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "我的登录设备",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录；当前用户自己的有效会话",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "会话标识（强制下线时使用；不能当作 cookie）"
+                          },
+                          "user_id": {
+                            "type": "integer"
+                          },
+                          "username": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "nickname": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ip": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "user_agent": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "登录时间"
+                          },
+                          "last_seen_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "最近活动时间（每分钟最多刷新一次）"
+                          },
+                          "expires_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "到期时间（滑动续期）"
+                          },
+                          "current": {
+                            "type": "boolean",
+                            "description": "是否为发起本次请求的会话"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/profile/sessions/revoke-others": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "下线我的其他设备",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录；保留当前会话",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "revoked": {
+                      "type": "integer",
+                      "description": "下线的会话数"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/profile/sessions/{key}": {
+      "delete": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "下线我的某个设备",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录；只能下线自己的其他会话",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "description": "会话标识（列表里的 key）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "会话不存在或已失效"
+          }
+        }
       }
     },
     "/api/admin/roles": {
@@ -7555,6 +8050,771 @@
         ]
       }
     },
+    "/api/admin/sessions": {
+      "get": {
+        "tags": [
+          "后台-在线用户"
+        ],
+        "summary": "在线用户列表",
+        "x-apifox-folder": "后台/系统管理/在线用户",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_sessions；按数据权限过滤（能看到哪些用户就能看到他们的会话）；只列已登录（不含等待两步验证）的有效会话，按最近活动倒序",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "按用户名、昵称、IP 搜索"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "会话标识（强制下线时使用；不能当作 cookie）"
+                          },
+                          "user_id": {
+                            "type": "integer"
+                          },
+                          "username": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "nickname": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ip": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "user_agent": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "登录时间"
+                          },
+                          "last_seen_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "最近活动时间（每分钟最多刷新一次）"
+                          },
+                          "expires_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "到期时间（滑动续期）"
+                          },
+                          "current": {
+                            "type": "boolean",
+                            "description": "是否为发起本次请求的会话"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/{key}": {
+      "delete": {
+        "tags": [
+          "后台-在线用户"
+        ],
+        "summary": "强制下线",
+        "x-apifox-folder": "后台/系统管理/在线用户",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_sessions_revoke；被下线的会话下一次请求即 401。不能下线自己当前的会话（请直接退出登录）；非超级管理员不能下线超级管理员；数据权限外的会话视为不存在",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "description": "会话标识（列表里的 key）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "会话不存在或已失效"
+          }
+        }
+      }
+    },
+    "/api/admin/settings": {
+      "get": {
+        "tags": [
+          "后台-系统设置"
+        ],
+        "summary": "系统设置",
+        "x-apifox-folder": "后台/系统管理/系统设置",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_settings；返回全部设置项定义与当前值。密钥与基础设施配置（SMTP、S3、数据库…）只在环境变量里，不在这里",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "设置项，如 security.totp_enabled"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "security"
+                            ]
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "boolean",
+                              "integer",
+                              "string_list"
+                            ]
+                          },
+                          "value": {
+                            "description": "当前值（未保存过则为默认值）"
+                          },
+                          "default": {
+                            "description": "默认值"
+                          },
+                          "min": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "max": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "unavailable_reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "当前部署下不能打开的原因（如未配置邮件、演示环境）"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "后台-系统设置"
+        ],
+        "summary": "保存系统设置",
+        "x-apifox-folder": "后台/系统管理/系统设置",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_settings_edit；可只提交要改的项。全部校验通过才写入（类型、范围、未知键、角色编码是否存在、前置条件）；其他进程最多 5 秒后生效",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "properties": {
+                      "security.totp_enabled": {
+                        "type": "boolean",
+                        "description": "两步验证总开关（关闭后登录不再询问，已有绑定保留）"
+                      },
+                      "security.totp_required_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "必须开启两步验证的角色编码"
+                      },
+                      "security.password_reset_enabled": {
+                        "type": "boolean",
+                        "description": "邮件找回密码（需要 SMTP 与 APP_BASE_URL）"
+                      },
+                      "security.password_min_length": {
+                        "type": "integer",
+                        "minimum": 6,
+                        "maximum": 64
+                      },
+                      "security.password_require_letters_digits": {
+                        "type": "boolean"
+                      },
+                      "security.password_require_symbol": {
+                        "type": "boolean"
+                      },
+                      "security.session_ttl_hours": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 720,
+                        "description": "会话有效期（小时，滑动续期）"
+                      },
+                      "security.rate_limit_per_minute": {
+                        "type": "integer",
+                        "minimum": 60,
+                        "maximum": 100000,
+                        "description": "每个 IP 每分钟的 /api 请求上限"
+                      },
+                      "security.auth_rate_limit_per_minute": {
+                        "type": "integer",
+                        "minimum": 3,
+                        "maximum": 1000,
+                        "description": "登录、两步验证、找回密码共用的每 IP 每分钟上限"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "values"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "设置项，如 security.totp_enabled"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "security"
+                            ]
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "boolean",
+                              "integer",
+                              "string_list"
+                            ]
+                          },
+                          "value": {
+                            "description": "当前值（未保存过则为默认值）"
+                          },
+                          "default": {
+                            "description": "默认值"
+                          },
+                          "min": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "max": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "unavailable_reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "当前部署下不能打开的原因（如未配置邮件、演示环境）"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor": {
+      "get": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "我的两步验证状态",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean",
+                      "description": "总开关是否打开且可用"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "enabled_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "required": {
+                      "type": "boolean",
+                      "description": "所在角色要求开启"
+                    },
+                    "recovery_codes_left": {
+                      "type": "integer",
+                      "description": "剩余未使用的恢复码"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/disable": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "关闭两步验证",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要当前密码；所在角色要求两步验证（且总开关打开）时不能关闭。关闭会删除密钥与恢复码",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/enable": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "开启两步验证",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "用验证器 App 的第一个验证码确认绑定，返回恢复码。处于登录「绑定」步骤时，成功后直接完成登录（返回 user 与新的 csrf_token）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "6 位验证码"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "recovery_codes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "10 个恢复码，只显示这一次"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true,
+                      "description": "仅登录流程中返回"
+                    },
+                    "csrf_token": {
+                      "type": "string",
+                      "description": "仅登录流程中返回"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "429": {
+            "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/recovery-codes": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "重新生成恢复码",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要当前密码；旧恢复码全部作废",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recovery_codes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "10 个恢复码，只显示这一次"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/setup": {
+      "post": {
+        "tags": [
+          "后台-认证"
+        ],
+        "summary": "获取两步验证绑定密钥",
+        "x-apifox-folder": "后台/系统管理/认证",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "已登录，或处于登录的「绑定」步骤（mfa_required=setup）。生成新密钥（加密存储，开启前不生效），otpauth_url 用于生成二维码",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string",
+                      "description": "Base32 密钥（手动输入用）"
+                    },
+                    "otpauth_url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
     "/api/admin/users": {
       "get": {
         "tags": [
@@ -8106,6 +9366,64 @@
             "cookieAuth": []
           }
         ]
+      }
+    },
+    "/api/admin/users/{user_id}/two-factor": {
+      "delete": {
+        "tags": [
+          "后台-用户管理"
+        ],
+        "summary": "重置用户的两步验证",
+        "x-apifox-folder": "后台/系统管理/用户管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_users_edit，受数据权限约束；非超级管理员不能重置超级管理员。用于用户丢失手机与恢复码；角色要求时用户下次登录会重新绑定",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "路径参数：user_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "用户不存在"
+          }
+        }
       }
     },
     "/health": {
