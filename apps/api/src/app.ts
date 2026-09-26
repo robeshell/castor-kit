@@ -17,6 +17,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
+import { createMailer, type Mailer } from './common/mailer'
 import { registerRateLimit } from './common/rate-limit'
 import { registerSessionResolver } from './common/session'
 import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
@@ -41,9 +42,11 @@ export interface BuildAppOptions {
   logger?: FastifyServerOptions['logger']
   /** Tests may inject an existing connection; by default one is created from config.databaseUrl and closed in onClose */
   dbHandle?: DbHandle
+  /** Tests may capture outgoing mail; by default built from config.mail */
+  mailer?: Mailer | null
 }
 
-export async function buildApp({ config, logger = false, dbHandle }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({ config, logger = false, dbHandle, mailer }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger,
     // Trust only the nearest reverse-proxy hop (X-Forwarded-For / X-Forwarded-Proto) so request.ip / protocol are the real values
@@ -57,6 +60,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   app.decorate('config', config)
   app.decorate('db', handle.db)
   app.decorate('settings', new SettingsStore(handle.db, config))
+  app.decorate('mailer', mailer !== undefined ? mailer : createMailer(config.mail, app.log))
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
   app.decorateRequest('dataScope', undefined)

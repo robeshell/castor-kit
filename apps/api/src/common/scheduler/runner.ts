@@ -17,6 +17,7 @@ import type { Db } from '@/db/client'
 import { purgeSessions } from '@/common/session'
 import { Storage } from '@/common/storage'
 import { FileService } from '@/modules/admin/files/service'
+import { PasswordResetRepository } from '@/modules/admin/password-reset/repository'
 import { ScheduledTaskService } from '@/modules/admin/scheduled-task/service'
 import { ScheduledTaskRepository, type CrashNextRun } from '@/modules/admin/scheduled-task/repository'
 import { computeNextRunAt } from './cron'
@@ -200,14 +201,15 @@ export function fileCleanupJob(db: Db, config: AppConfig, logger: SchedulerLogge
   }
 }
 
-/** Hourly removal of sessions that expired or were revoked more than a day ago */
+/** Hourly removal of sessions and password reset links that expired or were used / revoked more than a day ago */
 export function sessionPurgeJob(db: Db, logger: SchedulerLogger = silentLogger): MaintenanceJob {
+  const resets = new PasswordResetRepository(db)
   return {
     name: 'session-purge',
     intervalSeconds: 3600,
     async run() {
-      const removed = await purgeSessions(db)
-      if (removed) logger.info(`Session purge removed ${removed} old session(s)`)
+      const removed = (await purgeSessions(db)) + (await resets.purge())
+      if (removed) logger.info(`Session purge removed ${removed} old session / reset link row(s)`)
     },
   }
 }
