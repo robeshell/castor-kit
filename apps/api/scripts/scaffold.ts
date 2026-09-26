@@ -495,7 +495,8 @@ import { notFound } from '@/common/http'
 import { pyTruthy } from '@/common/py'
 import { dbConstraintError } from '@/common/db-errors'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
-${ds ? `import { UNRESTRICTED, type Actor, type DataScope } from '@/common/data-scope'\n` : ''}import type { Db } from '@/db/client'
+${ds ? `import { UNRESTRICTED, type Actor, type DataScope } from '@/common/data-scope'\n` : ''}import type { EventBus } from '@/common/webhooks'
+import type { Db } from '@/db/client'
 import { ${s.camel}ToDict, type ${s.pascal} } from '@/db/schema'
 import { ${s.pascal}Repository } from './repository'
 import { buildErrorRow, buildValues, EXPORT_FIELD_MAP, fieldLabel, IMPORT_HEADER_MAP, type ErrorRow } from './schema'
@@ -505,7 +506,11 @@ ${stampHelper}
 export class ${s.pascal}Service {
   private readonly repo: ${s.pascal}Repository
 
-  constructor(private readonly db: Db) {
+  constructor(
+    private readonly db: Db,
+    /** Webhook events (${s.name}.created / updated / deleted), emitted after the write committed */
+    private readonly events?: Pick<EventBus, 'emit'>,
+  ) {
     this.repo = new ${s.pascal}Repository(db)
   }
 
@@ -537,7 +542,9 @@ export class ${s.pascal}Service {
   async createItem(data: Data${ds ? ', actor?: Actor' : ''}) {
     const values = ${ds ? '{ ...buildValues(data, false), ...stamp(actor) }' : 'buildValues(data, false)'}
     const created = await this.inTx((repo) => repo.insert(values))
-    return ${s.camel}ToDict(created)
+    const dict = ${s.camel}ToDict(created)
+    await this.events?.emit(${q(`${s.name}.created`)}, dict)
+    return dict
   }
 
   async updateItem(item: ${s.pascal}, data: Data) {
@@ -545,11 +552,14 @@ export class ${s.pascal}Service {
     if (Object.keys(values).length === 0) return ${s.camel}ToDict(item)
     const updated = await this.inTx((repo) => repo.update(item.id, values))
     if (!updated) throw notFound()
-    return ${s.camel}ToDict(updated)
+    const dict = ${s.camel}ToDict(updated)
+    await this.events?.emit(${q(`${s.name}.updated`)}, dict)
+    return dict
   }
 
   async deleteItem(item: ${s.pascal}) {
     await this.inTx((repo) => repo.delete(item.id))
+    await this.events?.emit(${q(`${s.name}.deleted`)}, { id: item.id })
     return { message: '删除成功' }
   }
 
@@ -655,12 +665,20 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 ${ds ? `import { currentActor, resolveDataScope } from '@/common/data-scope'\n` : ''}import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
+import { declareEvents } from '@/common/webhooks'
 import { ${s.pascal}Service } from './service'
 
 const BASE = ${q(s.apiBase)}
 
+// Webhook events this module emits (offered on the webhooks page)
+declareEvents({
+  ${q(`${s.name}.created`)}: ${q(`${s.name} 已新增`)},
+  ${q(`${s.name}.updated`)}: ${q(`${s.name} 已修改`)},
+  ${q(`${s.name}.deleted`)}: ${q(`${s.name} 已删除`)},
+})
+
 export async function register${s.pascal}Routes(app: FastifyInstance): Promise<void> {
-  const service = new ${s.pascal}Service(app.db)
+  const service = new ${s.pascal}Service(app.db, app.events)
   const opts = { preHandler: loginRequired }
   const itemPath = \`\${BASE}/\${intParam('item_id')}\`
   const itemId = (params: unknown) => parseIntParam((params as { item_id: string }).item_id)

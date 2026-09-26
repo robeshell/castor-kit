@@ -98,6 +98,17 @@ describe('scaffold 纯函数', () => {
     expect(toLabel('name2x')).toBe('Name2X') // Python str.title()
   })
 
+  it('Webhook 事件：生成的 service 在写入后发出事件，routes 登记事件名', () => {
+    const spec = buildSpec('device_ledger', 'admin', [['title', 'str']])
+    const service = genService(spec)
+    expect(service).toContain("await this.events?.emit('device_ledger.created', dict)")
+    expect(service).toContain("await this.events?.emit('device_ledger.updated', dict)")
+    expect(service).toContain("await this.events?.emit('device_ledger.deleted', { id: item.id })")
+    const routes = genRoutes(spec)
+    expect(routes).toContain("'device_ledger.created': 'device_ledger 已新增'")
+    expect(routes).toContain('new DeviceLedgerService(app.db, app.events)')
+  })
+
   it('字段解析：默认 name:str、缺类型按 str、类型未知回落 str', () => {
     expect(parseFields('')).toEqual([['name', 'str']])
     expect(parseFields(' title : str50 , memo,qty:int ')).toEqual([

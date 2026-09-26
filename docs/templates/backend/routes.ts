@@ -21,12 +21,16 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
+import { declareEvents } from '@/common/webhooks'
 import { <Resource>Service } from './service'
 
 const BASE = '/api/admin/<resource>s'
 
+// Webhook events this module emits (offered on the webhooks page)
+declareEvents({ '<resource>.created': '<资源> 已新增', '<resource>.updated': '<资源> 已修改', '<resource>.deleted': '<资源> 已删除' })
+
 export async function register<Resource>Routes(app: FastifyInstance): Promise<void> {
-  const service = new <Resource>Service(app.db)
+  const service = new <Resource>Service(app.db, app.events)
   const opts = { preHandler: loginRequired }
   const itemPath = `${BASE}/${intParam('item_id')}`
   const itemId = (params: unknown) => parseIntParam((params as { item_id: string }).item_id)
