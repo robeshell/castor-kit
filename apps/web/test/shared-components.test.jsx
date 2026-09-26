@@ -9,7 +9,8 @@ import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
 import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
 import StatusBadge from '@/shared/components/StatusBadge'
-import UserAvatar, { userDisplayName } from '@/shared/components/UserAvatar'
+import { userDisplayName } from '@/lib/user'
+import UserAvatar from '@/shared/components/UserAvatar'
 
 const COLUMNS = [
   { key: 'name', title: '名称', dataIndex: 'name' },

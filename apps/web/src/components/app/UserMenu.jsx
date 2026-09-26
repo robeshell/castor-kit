@@ -12,7 +12,8 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { roleName } from '@/lib/role-label'
-import UserAvatar, { userDisplayName } from '@/shared/components/UserAvatar'
+import { userDisplayName } from '@/lib/user'
+import UserAvatar from '@/shared/components/UserAvatar'
 import { useTranslation } from 'react-i18next'
 
 function MenuAvatar({ user, className }) {

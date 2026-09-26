@@ -1,9 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
-/** Display name for a user: nickname first, then username */
-export const userDisplayName = (user) => user?.nickname || user?.username || ''
-
 /**
  * User avatar: the uploaded image when `src` is set and loads, otherwise the first letter of `name`.
  * Size comes from className (default size-8).

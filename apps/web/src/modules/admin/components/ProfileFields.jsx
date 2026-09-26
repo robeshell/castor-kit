@@ -9,14 +9,6 @@ const AVATAR_RE = /^(https?:\/\/|\/)\S+$/
 
 const optional = (re, message) => (value) => !value?.trim() || re.test(value.trim()) || message
 
-/** Default form values for the profile fields of a user record */
-export const profileDefaults = (user) => ({
-  nickname: user?.nickname || '',
-  email: user?.email || '',
-  phone: user?.phone || '',
-  avatar: user?.avatar || '',
-})
-
 /**
  * Nickname / email / phone / avatar fields, shared by the user dialog and the profile page.
  * `name` is the fallback letter source for the avatar preview.
