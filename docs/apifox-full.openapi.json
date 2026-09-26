@@ -67,6 +67,14 @@
     {
       "name": "后台-系统设置",
       "description": "系统设置（功能开关与安全参数）"
+    },
+    {
+      "name": "后台-API Token",
+      "description": "API Token：个人创建与管理员吊销"
+    },
+    {
+      "name": "后台-Webhook",
+      "description": "Webhook：事件推送、投递记录"
     }
   ],
   "components": {
@@ -74,8 +82,13 @@
       "cookieAuth": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "session",
+        "name": "castor_session",
         "description": "Session Cookie 登录态"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API Token（ck_...，在个人设置中创建；系统设置里需开启）。权限 = token 勾选的权限 ∩ 创建人当前权限；账号与安全类接口不接受 token。带 Bearer 的请求不用 cookie、不需要 CSRF 头"
       }
     }
   },
@@ -276,6 +289,222 @@
           },
           "500": {
             "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/api-tokens": {
+      "get": {
+        "tags": [
+          "后台-API Token"
+        ],
+        "summary": "全部 API Token",
+        "x-apifox-folder": "后台/系统管理/API Token",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_api_tokens（不接受 API Token）；按数据权限过滤创建人",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "名称、前缀、创建人"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "expired",
+                "revoked"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "token_prefix": {
+                            "type": "string",
+                            "description": "ck_ + 8 位，用于辨认"
+                          },
+                          "scopes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "expires_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "last_used_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "last_used_ip": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_by": {
+                            "type": "integer"
+                          },
+                          "creator_username": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "creator_nickname": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "revoked_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/api-tokens/{token_id}": {
+      "delete": {
+        "tags": [
+          "后台-API Token"
+        ],
+        "summary": "吊销 API Token",
+        "x-apifox-folder": "后台/系统管理/API Token",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_api_tokens_revoke（不接受 API Token）；非超级管理员不能吊销超级管理员的 token",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "token ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -6979,6 +7208,402 @@
         ]
       }
     },
+    "/api/admin/profile/api-tokens": {
+      "get": {
+        "tags": [
+          "后台-API Token"
+        ],
+        "summary": "我的 API Token",
+        "x-apifox-folder": "后台/系统管理/API Token",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录（不接受 API Token）。enabled 表示系统设置里是否允许使用 API Token",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "token_prefix": {
+                            "type": "string",
+                            "description": "ck_ + 8 位，用于辨认"
+                          },
+                          "scopes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "expires_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "last_used_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "last_used_ip": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_by": {
+                            "type": "integer"
+                          },
+                          "creator_username": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "creator_nickname": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "revoked_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "后台-API Token"
+        ],
+        "summary": "创建 API Token",
+        "x-apifox-folder": "后台/系统管理/API Token",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录（不接受 API Token），需要 10 分钟内验证过身份；系统设置里需开启。scopes 只能是自己拥有的权限编码；每人最多 20 个有效 token。token 明文只在这里返回一次",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  "expires_in_days": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "null = 永不过期"
+                  }
+                },
+                "required": [
+                  "name",
+                  "scopes",
+                  "expires_in_days"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "ck_...，只返回这一次"
+                    },
+                    "item": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "token_prefix": {
+                          "type": "string",
+                          "description": "ck_ + 8 位，用于辨认"
+                        },
+                        "scopes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "expires_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last_used_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last_used_ip": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "created_by": {
+                          "type": "integer"
+                        },
+                        "creator_username": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "creator_nickname": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "revoked_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/profile/api-tokens/scopes": {
+      "get": {
+        "tags": [
+          "后台-API Token"
+        ],
+        "summary": "可授予的权限",
+        "x-apifox-folder": "后台/系统管理/API Token",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录（不接受 API Token）；自己拥有的菜单 / 按钮权限（grantable=true），附带上级目录便于显示成树",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "parent_id": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "menu_type": {
+                            "type": "string"
+                          },
+                          "grantable": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/profile/api-tokens/{token_id}": {
+      "delete": {
+        "tags": [
+          "后台-API Token"
+        ],
+        "summary": "吊销我的 API Token",
+        "x-apifox-folder": "后台/系统管理/API Token",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录（不接受 API Token）；立即失效",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "token ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
     "/api/admin/profile/sessions": {
       "get": {
         "tags": [
@@ -9792,6 +10417,1012 @@
           },
           "404": {
             "description": "用户不存在"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks": {
+      "get": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "Webhook 列表",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks。事件在业务写入提交后投递：POST JSON { id, event, created_at, data }，头部 X-Castor-Event / X-Castor-Delivery / X-Castor-Timestamp / X-Castor-Signature（sha256=HMAC-SHA256(密钥, \"<timestamp>.<body>\")）；10 秒超时，不跟随重定向，非 2xx 按 1 分钟 / 5 分钟 / 30 分钟 / 2 小时 / 6 小时重试，第 6 次仍失败记为失败。",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "events": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "created_by": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "updated_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "last_status": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "最近一次投递状态（仅列表）"
+                          },
+                          "last_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "failed_24h": {
+                            "type": "integer",
+                            "description": "24 小时内失败次数（仅列表）"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "新增 Webhook",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_add（不接受 API Token），需要近期验证身份；返回签名密钥；通知所有超级管理员",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "http(s)，不能是保留地址；生产默认也不能是内网"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "事件名、\"*\" 或 \"user.*\" 这样的前缀"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        },
+                        "events": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "created_by": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "updated_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last_status": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "最近一次投递状态（仅列表）"
+                        },
+                        "last_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "failed_24h": {
+                          "type": "integer",
+                          "description": "24 小时内失败次数（仅列表）"
+                        }
+                      }
+                    },
+                    "secret": {
+                      "type": "string",
+                      "description": "whsec_..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks/deliveries/{delivery_id}/redeliver": {
+      "post": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "重新投递",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_edit（不接受 API Token）；用同一事件 ID 与内容再发一次（接收方可按 X-Castor-Delivery 去重）",
+        "parameters": [
+          {
+            "name": "delivery_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "投递记录 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "webhook_id": {
+                      "type": "integer"
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "事件 ID，同 X-Castor-Delivery"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "delivering",
+                        "success",
+                        "failed"
+                      ]
+                    },
+                    "attempts": {
+                      "type": "integer"
+                    },
+                    "response_code": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "response_body": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "前 2000 字符或连接错误"
+                    },
+                    "next_retry_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "delivered_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks/events": {
+      "get": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "可订阅的事件",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks；内置 ping、user.*、role.*、department.*，以及脚手架生成模块的 <模块>.created / updated / deleted",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "event": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks/{webhook_id}": {
+      "put": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "编辑 Webhook",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_edit（不接受 API Token），需要近期验证身份；只传要改的字段；改地址会通知所有超级管理员",
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Webhook ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "http(s)，不能是保留地址；生产默认也不能是内网"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "事件名、\"*\" 或 \"user.*\" 这样的前缀"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_by": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "last_status": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "最近一次投递状态（仅列表）"
+                    },
+                    "last_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "failed_24h": {
+                      "type": "integer",
+                      "description": "24 小时内失败次数（仅列表）"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "删除 Webhook",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_delete（不接受 API Token）；投递记录一并删除",
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Webhook ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks/{webhook_id}/deliveries": {
+      "get": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "投递记录",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks",
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Webhook ID"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "delivering",
+                "success",
+                "failed"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "webhook_id": {
+                            "type": "integer"
+                          },
+                          "event_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "事件 ID，同 X-Castor-Delivery"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "delivering",
+                              "success",
+                              "failed"
+                            ]
+                          },
+                          "attempts": {
+                            "type": "integer"
+                          },
+                          "response_code": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "response_body": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "前 2000 字符或连接错误"
+                          },
+                          "next_retry_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "delivered_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks/{webhook_id}/secret": {
+      "get": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "查看签名密钥",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_edit（不接受 API Token），需要近期验证身份",
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Webhook ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "重新生成签名密钥",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_edit（不接受 API Token），需要近期验证身份；旧密钥立即失效",
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Webhook ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/webhooks/{webhook_id}/test": {
+      "post": {
+        "tags": [
+          "后台-Webhook"
+        ],
+        "summary": "发送测试事件",
+        "x-apifox-folder": "后台/系统管理/Webhook",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_webhooks_edit（不接受 API Token）；立即发送一个 ping 事件并返回投递结果",
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Webhook ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "webhook_id": {
+                      "type": "integer"
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "事件 ID，同 X-Castor-Delivery"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "delivering",
+                        "success",
+                        "failed"
+                      ]
+                    },
+                    "attempts": {
+                      "type": "integer"
+                    },
+                    "response_code": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "response_body": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "前 2000 字符或连接错误"
+                    },
+                    "next_retry_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "delivered_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限，或需要先验证身份（reauth_required）"
+          },
+          "404": {
+            "description": "不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
