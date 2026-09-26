@@ -5,6 +5,7 @@
 
 import { createHash, randomBytes } from 'node:crypto'
 import { ServiceError } from '@/common/errors'
+import { notifySuperAdmins } from '@/common/admin-notify'
 import { createMailer, type MailLogger } from '@/common/mailer'
 import { createOutboundAgent, hostOfUrl, outboundHostReason } from '@/common/outbound'
 import {
@@ -33,7 +34,7 @@ export class SettingsService {
   private readonly repo: SettingsRepository
 
   constructor(
-    db: Db,
+    private readonly db: Db,
     private readonly store: SettingsStore,
     private readonly config: AppConfig,
     private readonly log: MailLogger,
@@ -98,16 +99,16 @@ export class SettingsService {
       const text = Array.isArray(value) ? value.join(', ') : String(value)
       return `${def.label} → ${text.length > 80 ? `${text.slice(0, 77)}…` : text}`
     })
-    try {
-      await this.repo.notify(await this.repo.activeSuperAdminIds(), {
+    await notifySuperAdmins(
+      this.db,
+      {
         // The bell shows only the title: say who changed what there
-        title: `${actor} 修改了系统设置：${summary}`.slice(0, 200),
+        title: `${actor} 修改了系统设置：${summary}`,
         content: `${actor} 修改了 ${lines.length} 项系统设置：\n${lines.join('\n')}`,
         link: '/system/settings',
-      })
-    } catch (err) {
-      this.log.info({ err }, 'Settings change notification failed')
-    }
+      },
+      this.log,
+    )
   }
 
   /** Save the given { key: value } pairs (null resets a value); role codes in totp_required_roles must exist */

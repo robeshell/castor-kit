@@ -4,6 +4,7 @@
  * The tree (GET list) is also readable with the users or roles menu permission: those pages pick departments from it.
  */
 
+import { declareEvents } from '@/common/webhooks'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasAnyMenuPermission, hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
@@ -12,8 +13,10 @@ import { DepartmentService } from './service'
 
 const BASE = '/api/admin/departments'
 
+declareEvents({ 'department.created': '部门已新增', 'department.updated': '部门已修改', 'department.deleted': '部门已删除' })
+
 export async function registerDepartmentRoutes(app: FastifyInstance): Promise<void> {
-  const service = new DepartmentService(app.db)
+  const service = new DepartmentService(app.db, app.events)
   const opts = { preHandler: loginRequired }
   const itemPath = `${BASE}/${intParam('dept_id')}`
   const deptId = (request: FastifyRequest) => parseIntParam((request.params as { dept_id: string }).dept_id)

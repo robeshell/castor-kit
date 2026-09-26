@@ -19,6 +19,7 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import { registerApiTokenResolver } from './common/api-token'
 import { registerCsrfProtection, requestPath } from './common/csrf'
 import { MailerProvider, type Mailer } from './common/mailer'
+import { EventBus } from './common/webhooks'
 import { registerRateLimit } from './common/rate-limit'
 import { registerSessionResolver } from './common/session'
 import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
@@ -62,6 +63,7 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   app.decorate('db', handle.db)
   app.decorate('settings', new SettingsStore(handle.db, config))
   app.decorate('mailer', new MailerProvider(app.settings, config, app.log, mailer))
+  app.decorate('events', new EventBus(handle.db, config, app.log))
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
   app.decorateRequest('dataScope', undefined)

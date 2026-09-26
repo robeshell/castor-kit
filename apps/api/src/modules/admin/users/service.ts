@@ -8,6 +8,7 @@ import { notFound } from '@/common/http'
 import { generatePasswordHash } from '@/common/password'
 import { DEFAULT_PASSWORD_POLICY, passwordPolicyError, passwordPolicyOf, type PasswordPolicy } from '@/common/password-policy'
 import type { SettingsStore } from '@/common/settings'
+import type { EventBus } from '@/common/webhooks'
 import { pyStr, pyTruthy, isPlainObject } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import type { Db, Executor } from '@/db/client'
@@ -71,6 +72,8 @@ export class UserService {
   constructor(
     private readonly db: Db,
     private readonly settings?: SettingsStore,
+    /** Webhook events (user.created / updated / deleted), emitted after the write committed */
+    private readonly events?: Pick<EventBus, 'emit'>,
   ) {
     this.repo = new UserRepository(db)
   }
@@ -192,7 +195,9 @@ export class UserService {
       await repo.updateProfile(user.id, profile)
       return repo.getWithRoles(user.id)
     })
-    return { message: '资料已更新', user: await this.dict(updated!) }
+    const dict = await this.dict(updated!)
+    await this.events?.emit('user.updated', dict)
+    return { message: '资料已更新', user: dict }
   }
 
   private async inTx<T>(fn: (repo: UserRepository, tx: Executor) => Promise<T>): Promise<T> {
@@ -223,7 +228,9 @@ export class UserService {
       if (roleIds) await repo.setRoles(created.id, roleIds)
       return repo.getWithRoles(created.id)
     })
-    return this.dict(user!)
+    const dict = await this.dict(user!)
+    await this.events?.emit('user.created', dict)
+    return dict
   }
 
   /** `status` is ignored here: it has its own endpoint and permission (setUserStatus) */
@@ -244,7 +251,9 @@ export class UserService {
       if (roleIds) await repo.setRoles(user.id, roleIds)
       return repo.getWithRoles(user.id)
     })
-    return this.dict(updated!)
+    const dict = await this.dict(updated!)
+    await this.events?.emit('user.updated', dict)
+    return dict
   }
 
   async setUserStatus(user: AdminUserWithRoles, statusRaw: unknown, caller: Caller) {
@@ -258,7 +267,9 @@ export class UserService {
       await repo.setStatus(user.id, statusRaw)
       return repo.getWithRoles(user.id)
     })
-    return this.dict(updated!)
+    const dict = await this.dict(updated!)
+    await this.events?.emit('user.updated', dict)
+    return dict
   }
 
   async deleteUser(user: AdminUserWithRoles, caller: Caller) {
@@ -266,6 +277,7 @@ export class UserService {
     if (user.username === caller.username) throw new ServiceError('不能删除当前登录账号', 400)
     if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能删除最后一个超级管理员', 400)
     await this.inTx((repo) => repo.delete(user.id))
+    await this.events?.emit('user.deleted', { id: user.id, username: user.username })
     return { message: '删除成功' }
   }
 

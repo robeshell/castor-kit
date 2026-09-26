@@ -4,6 +4,7 @@
  * Routes with an id run get_or_404 first, then the permission check (preserves existing API behavior).
  */
 
+import { declareEvents } from '@/common/webhooks'
 import type { FastifyInstance } from 'fastify'
 import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString, rawJsonBody } from '@/common/http'
@@ -11,8 +12,10 @@ import { sendTable } from '@/common/tabular'
 import { dictBody, membershipBody } from '@/common/py-values'
 import { RoleService } from './service'
 
+declareEvents({ 'role.created': '角色已新增', 'role.updated': '角色已修改（含权限、数据范围）', 'role.deleted': '角色已删除' })
+
 export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
-  const service = new RoleService(app.db)
+  const service = new RoleService(app.db, app.events)
   const opts = { preHandler: loginRequired }
 
   app.get('/api/admin/roles', opts, async (request, reply) => {

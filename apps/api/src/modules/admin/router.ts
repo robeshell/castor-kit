@@ -20,6 +20,7 @@ import { registerSessionRoutes } from './sessions/routes'
 import { registerSettingsRoutes } from './settings/routes'
 import { registerTwoFactorRoutes } from './two-factor/routes'
 import { registerUserRoutes } from './users/routes'
+import { registerWebhookRoutes } from './webhooks/routes'
 
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   // Register logs first: it installs the global onResponse audit hook
@@ -33,6 +34,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   await registerSessionRoutes(app)
   await registerTwoFactorRoutes(app)
   await registerApiTokenRoutes(app)
+  await registerWebhookRoutes(app)
   await registerPasswordResetRoutes(app)
   await registerMenuRoutes(app)
   await registerDictRoutes(app)
