@@ -6,7 +6,7 @@ Every page has an AI assistant in the bottom-right corner (shortcut <kbd>⌘</kb
 
 The assistant is off by default. First configure a model under System → Configuration → System settings → AI (see [Configuration → AI model](/en/reference/configuration#ai-model)), then turn on "Enable the AI assistant" (`ai.assistant_enabled`) on the same tab. The switch can't be turned on while no model is configured.
 
-Once it is on, every signed-in user sees the assistant button; turning it off removes the button and the API answers 403.
+Once it is on, every signed-in user sees the assistant button (users who already have the app open see it after a reload); turning it off removes the button the same way, and the API answers 403 right away.
 
 ## What it can do
 
