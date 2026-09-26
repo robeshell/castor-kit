@@ -36,7 +36,6 @@ const paths = (openapi as { paths: Record<string, Record<string, OpenApiOperatio
 const ASSISTANT_DENIED: Array<[string, RegExp]> = [
   ['*', /^\/api\/admin\/assistant(\/|$)/],
   ['*', /^\/api\/admin\/component-center\/ai\//],
-  ['*', /^\/api\/admin\/modeler(\/|$)/],
   ['*', /\/(import|export|template)$/],
   ['POST', /^\/api\/admin\/files$/],
   ['*', /^\/api\/admin\/files\/[^/]+\/(content|download)$/],
