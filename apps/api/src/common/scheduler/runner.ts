@@ -7,10 +7,15 @@
  * - Execution crash (execute_task throws): schedule the next run from cron (5 minutes later if the cron is invalid) and mark failed
  *
  * Runs in the web process (main.ts) when RUN_SCHEDULER_IN_WEB=true; otherwise as a separate process `node dist/worker.js`.
+ *
+ * Besides user-defined tasks (which only call HTTP endpoints), the loop also runs built-in maintenance jobs such as the
+ * file center's orphan cleanup, each at its own interval.
  */
 
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
+import { Storage } from '@/common/storage'
+import { FileService } from '@/modules/admin/files/service'
 import { ScheduledTaskService } from '@/modules/admin/scheduled-task/service'
 import { ScheduledTaskRepository, type CrashNextRun } from '@/modules/admin/scheduled-task/repository'
 import { computeNextRunAt } from './cron'
@@ -26,10 +31,18 @@ export interface SchedulerLogger {
   error(obj: object, msg?: string): void
 }
 
+/** Built-in job run by the scheduler loop every `intervalSeconds` (jobs must be safe to run from several processes) */
+export interface MaintenanceJob {
+  name: string
+  intervalSeconds: number
+  run(): Promise<void>
+}
+
 export interface ScheduledTaskRunnerOptions {
   intervalSeconds?: number
   leaseSeconds?: number
   logger?: SchedulerLogger
+  maintenance?: MaintenanceJob[]
   /** Injectable for tests (e.g. a service with a custom HTTP executor) */
   service?: ScheduledTaskService
 }
@@ -51,6 +64,9 @@ export class ScheduledTaskRunner {
   private loopPromise: Promise<void> | null = null
   private wake: (() => void) | null = null
   private sleepTimer: NodeJS.Timeout | null = null
+  private readonly maintenance: MaintenanceJob[]
+  /** Job name → epoch ms of its next run */
+  private readonly maintenanceDue = new Map<string, number>()
 
   constructor(db: Db, options: ScheduledTaskRunnerOptions = {}) {
     this.intervalSeconds = Math.max(5, intOr(options.intervalSeconds, 20))
@@ -58,6 +74,20 @@ export class ScheduledTaskRunner {
     this.repo = new ScheduledTaskRepository(db)
     this.service = options.service ?? new ScheduledTaskService(db)
     this.logger = options.logger ?? silentLogger
+    this.maintenance = options.maintenance ?? []
+  }
+
+  /** Run the maintenance jobs that are due; a failing job is logged and retried at its next interval */
+  async runMaintenance(now = Date.now()): Promise<void> {
+    for (const job of this.maintenance) {
+      if ((this.maintenanceDue.get(job.name) ?? 0) > now) continue
+      this.maintenanceDue.set(job.name, now + job.intervalSeconds * 1000)
+      try {
+        await job.run()
+      } catch (err) {
+        this.logger.error({ err }, `Maintenance job failed: ${job.name}`)
+      }
+    }
   }
 
   get running(): boolean {
@@ -91,6 +121,7 @@ export class ScheduledTaskRunner {
       } catch (err) {
         if (!this.stopped) this.logger.error({ err }, 'Scheduled task runner loop failed')
       }
+      if (!this.stopped) await this.runMaintenance()
       if (this.stopped) break
       await new Promise<void>((resolve) => {
         this.wake = resolve
@@ -149,7 +180,21 @@ export function startScheduledTaskRunner(db: Db, config: AppConfig, logger?: Sch
     intervalSeconds: config.taskSchedulerIntervalSeconds,
     leaseSeconds: config.taskSchedulerLeaseSeconds,
     logger,
+    maintenance: [fileCleanupJob(db, config, logger)],
   })
   runner.start()
   return runner
+}
+
+/** File center: hourly removal of files nothing references 24h after upload */
+export function fileCleanupJob(db: Db, config: AppConfig, logger: SchedulerLogger = silentLogger): MaintenanceJob {
+  const service = new FileService(db, new Storage(config.storage), config.storage, logger)
+  return {
+    name: 'file-orphan-cleanup',
+    intervalSeconds: 3600,
+    async run() {
+      const removed = await service.cleanupOrphans()
+      if (removed) logger.info(`File cleanup removed ${removed} orphan file(s)`)
+    },
+  }
 }

@@ -126,6 +126,16 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '头像地址不能超过 500 个字符': { 'en-US': 'The avatar URL must be at most 500 characters', 'ja-JP': 'アバターの URL は 500 文字以内で入力してください' },
   '资料已更新': { 'en-US': 'Profile updated', 'ja-JP': 'プロフィールを更新しました' },
 
+  // file center
+  '请选择要上传的文件': { 'en-US': 'Choose a file to upload', 'ja-JP': 'アップロードするファイルを選択してください' },
+  '文件内容为空': { 'en-US': 'The file is empty', 'ja-JP': 'ファイルが空です' },
+  '文件缺少扩展名，无法判断类型': { 'en-US': "The file has no extension, so its type can't be determined", 'ja-JP': 'ファイルに拡張子がないため種類を判別できません' },
+  '文件内容与扩展名不符': { 'en-US': "The file's content doesn't match its extension", 'ja-JP': 'ファイルの内容が拡張子と一致しません' },
+  '文件内容已丢失': { 'en-US': 'The stored file content is missing', 'ja-JP': '保存されたファイルの内容が見つかりません' },
+  '文件正在被使用，不能删除': { 'en-US': "This file is in use and can't be deleted", 'ja-JP': 'このファイルは使用中のため削除できません' },
+  '无权限查看文件列表': { 'en-US': "You don't have permission to view the file list", 'ja-JP': 'ファイル一覧を閲覧する権限がありません' },
+  '无权限删除文件': { 'en-US': "You don't have permission to delete files", 'ja-JP': 'ファイルを削除する権限がありません' },
+
   // super admin protections
   '超级管理员角色不能删除': { 'en-US': "The super admin role can't be deleted", 'ja-JP': 'スーパー管理者ロールは削除できません' },
   '超级管理员角色的编码不能修改': { 'en-US': "The super admin role's code can't be changed", 'ja-JP': 'スーパー管理者ロールのコードは変更できません' },
@@ -405,6 +415,8 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
 
   // users / roles
   { re: /^角色不存在: (.+)$/, 'en-US': 'Roles not found: $1', 'ja-JP': 'ロールが存在しません：$1' },
+  { re: /^文件过大，最大支持 ([\d.]+)MB$/, 'en-US': 'File too large (max $1 MB)', 'ja-JP': 'ファイルが大きすぎます（最大 $1MB）' },
+  { re: /^不支持的文件类型：(.+)$/, 'en-US': 'File type not allowed: $1', 'ja-JP': '許可されていないファイル形式です：$1' },
   { re: /^部门编码不存在: (.+)$/, 'en-US': 'Department codes not found: $1', 'ja-JP': '部署コードが存在しません：$1' },
   { re: /^角色编码不存在: (.+)$/, 'en-US': 'Role codes not found: $1', 'ja-JP': 'ロールコードが存在しません：$1' },
   { re: /^菜单编码不存在: (.+)$/, 'en-US': 'Menu codes not found: $1', 'ja-JP': 'メニューコードが存在しません：$1' },

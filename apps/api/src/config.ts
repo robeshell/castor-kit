@@ -17,6 +17,30 @@ export type AppEnv = 'development' | 'production' | 'test'
 const API_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(API_ROOT, '../..')
 
+export interface StorageConfig {
+  /** STORAGE_DRIVER: 'local' (default, a directory on a persistent disk) or 's3' (any S3-compatible service) */
+  driver: 'local' | 's3'
+  /** STORAGE_LOCAL_DIR, default <instanceDir>/uploads/files */
+  localDir: string
+  s3: {
+    endpoint: string
+    region: string
+    bucket: string
+    accessKey: string
+    secretKey: string
+    /** S3_PUBLIC_URL: public base URL of the bucket; when set, downloads redirect there instead of to a signed URL */
+    publicUrl: string
+    /** Path-style addressing (MinIO and most self-hosted services); defaults to true when S3_ENDPOINT is set */
+    forcePathStyle: boolean
+  }
+  /** UPLOAD_MAX_SIZE (bytes), capped by MAX_CONTENT_LENGTH */
+  uploadMaxSize: number
+  /** UPLOAD_ALLOWED_TYPES: allowed file extensions, lowercase without the dot */
+  uploadAllowedTypes: string[]
+}
+
+export const DEFAULT_UPLOAD_TYPES = 'jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip'
+
 export interface AppConfig {
   env: AppEnv
   isProduction: boolean
@@ -37,6 +61,9 @@ export interface AppConfig {
   webDistDir: string
   /** Runtime data dir (instance/; uploads live in instance/uploads/...) */
   instanceDir: string
+
+  // ---- File center ----
+  storage: StorageConfig
 
   // ---- Public demo ----
   /** DEMO_MODE: system management becomes read-only, the demo account is shown on the login page, sample data resets periodically */
@@ -115,6 +142,17 @@ const envSchema = z.object({
   APIFOX_PROJECT_ID: z.string().optional().default(''),
   APIFOX_ACCESS_TOKEN: z.string().optional().default(''),
   APIFOX_API_VERSION: z.string().optional().default('2024-03-28'),
+  STORAGE_DRIVER: z.string().optional().default('local'),
+  STORAGE_LOCAL_DIR: z.string().optional(),
+  S3_ENDPOINT: z.string().optional().default(''),
+  S3_REGION: z.string().optional().default(''),
+  S3_BUCKET: z.string().optional().default(''),
+  S3_ACCESS_KEY: z.string().optional().default(''),
+  S3_SECRET_KEY: z.string().optional().default(''),
+  S3_PUBLIC_URL: z.string().optional().default(''),
+  S3_FORCE_PATH_STYLE: z.string().optional().default(''),
+  UPLOAD_MAX_SIZE: intFromEnv(10 * 1024 * 1024),
+  UPLOAD_ALLOWED_TYPES: z.string().optional().default(DEFAULT_UPLOAD_TYPES),
 })
 
 /** Boolean env var parsing: '1' / 'true' / 'yes' / 'on' are true (case-insensitive, whitespace-trimmed) */
@@ -164,6 +202,35 @@ function resolveAiSqlUrl(raw: string | undefined, env: AppEnv, mainUrl: string, 
   return mainUrl
 }
 
+/** Storage settings; an unknown driver, or s3 without bucket / keys, is a configuration error in every environment */
+function resolveStorage(parsed: z.infer<typeof envSchema>, instanceDir: string, maxContentLength: number): StorageConfig {
+  const driver = parsed.STORAGE_DRIVER.trim().toLowerCase() || 'local'
+  if (driver !== 'local' && driver !== 's3') throw new Error(`STORAGE_DRIVER 只能是 local 或 s3（当前：${driver}）`)
+  const endpoint = parsed.S3_ENDPOINT.trim()
+  const s3 = {
+    endpoint,
+    region: parsed.S3_REGION.trim() || 'us-east-1',
+    bucket: parsed.S3_BUCKET.trim(),
+    accessKey: parsed.S3_ACCESS_KEY.trim(),
+    secretKey: parsed.S3_SECRET_KEY.trim(),
+    publicUrl: parsed.S3_PUBLIC_URL.trim().replace(/\/+$/, ''),
+    forcePathStyle: parsed.S3_FORCE_PATH_STYLE.trim() === '' ? Boolean(endpoint) : isTruthy(parsed.S3_FORCE_PATH_STYLE),
+  }
+  if (driver === 's3') {
+    const missing = (['S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY'] as const).filter((k) => !parsed[k].trim())
+    if (missing.length > 0) throw new Error(`STORAGE_DRIVER=s3 需要设置 ${missing.join(' / ')}`)
+  }
+  return {
+    driver,
+    localDir: parsed.STORAGE_LOCAL_DIR ? resolve(parsed.STORAGE_LOCAL_DIR) : resolve(instanceDir, 'uploads', 'files'),
+    s3,
+    uploadMaxSize: Math.max(1, Math.min(parsed.UPLOAD_MAX_SIZE, maxContentLength)),
+    uploadAllowedTypes: parsed.UPLOAD_ALLOWED_TYPES.split(',')
+      .map((t) => t.trim().toLowerCase().replace(/^\./, ''))
+      .filter(Boolean),
+  }
+}
+
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = resolveEnv(source.NODE_ENV)
   const parsed = envSchema.parse(source)
@@ -176,6 +243,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
         : parsed.DEV_DATABASE_URL || 'postgresql://localhost/castor_kit_dev'
 
   const defaultPort = env === 'production' ? 5000 : env === 'test' ? 5002 : 5001
+  const instanceDir = parsed.INSTANCE_DIR ? resolve(parsed.INSTANCE_DIR) : resolve(API_ROOT, 'instance')
 
   return {
     env,
@@ -194,7 +262,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     loginMaxFailures: parsed.LOGIN_MAX_FAILURES,
     loginLockoutMinutes: parsed.LOGIN_LOCKOUT_MINUTES,
     webDistDir: parsed.WEB_DIST_DIR ? resolve(parsed.WEB_DIST_DIR) : resolve(REPO_ROOT, 'apps/web/dist'),
-    instanceDir: parsed.INSTANCE_DIR ? resolve(parsed.INSTANCE_DIR) : resolve(API_ROOT, 'instance'),
+    instanceDir,
+    storage: resolveStorage(parsed, instanceDir, parsed.MAX_CONTENT_LENGTH),
     demoMode: isTruthy(parsed.DEMO_MODE),
     demoResetHours: Math.max(1, parsed.DEMO_RESET_HOURS),
     demoAiHourlyPerIp: Math.max(0, parsed.DEMO_AI_HOURLY_PER_IP),
