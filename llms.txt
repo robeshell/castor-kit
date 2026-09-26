@@ -15,6 +15,8 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 - [RBAC Seed Script](./apps/api/scripts/seed-rbac.ts)
 - [Feature Verification Script](./apps/api/scripts/verify-feature.ts)
 - [Scaffold Script](./apps/api/scripts/scaffold.ts)
+- [Module Spec Schema](./docs/spec.schema.json)
+- [Requirement → Spec Examples](./docs/examples/specs/README.md)
 - [Code Templates](./docs/templates/backend/README.md)
 - [Frontend Templates](./docs/templates/frontend/list_page/index.jsx)
 - [MCP Server](./apps/mcp/src/index.ts)

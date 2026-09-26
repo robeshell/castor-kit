@@ -97,7 +97,10 @@ export function specJsonSchema(): Record<string, unknown> {
           { if: { properties: { type: { const: 'enum' } }, required: ['type'] }, then: { required: ['options'] } },
           { if: { properties: { type: { const: 'dict' } }, required: ['type'] }, then: { required: ['dict'] } },
           onlyFor([...UNIQUE_TYPES], 'unique'),
-          { if: { properties: { type: { enum: ['file', 'image'] } }, required: ['type'] }, then: { properties: { required: { const: false } } } },
+          {
+            if: { properties: { type: { enum: ['file', 'image'] } }, required: ['type'] },
+            then: { properties: { required: { const: false }, default: { enum: [null, ''] } } },
+          },
         ],
       },
       option: {

@@ -541,6 +541,9 @@ describe('spec 工具：JSON Schema 与示例', () => {
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'enum', label: 'A' }] })).toContain('/fields/0 required')
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'bool', label: 'A', unique: true }] })).toContain('/fields/0/unique const')
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'id', type: 'str', label: 'A' }] })).toContain('/fields/0/name not')
+    // File / image fields: not required, no default (validateSpec rejects both too)
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toContain('/fields/0/default enum')
+    expect(validateSpec({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toEqual(['字段 a：默认值 x 不符合字段类型'])
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'money', label: 'A' }] })).toContain('/fields/0/type enum')
   })
 

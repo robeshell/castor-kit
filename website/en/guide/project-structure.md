@@ -16,6 +16,8 @@ castor-kit/
 │   ├── architecture.md       # Architecture notes and design decisions
 │   ├── frontend-redesign-plan.md  # Frontend UI system (shadcn/ui)
 │   ├── apifox-full.openapi.json   # OpenAPI document
+│   ├── spec.schema.json      # JSON Schema of module specs (scaffold --spec)
+│   ├── examples/specs/       # Requirement → spec examples
 │   └── templates/            # Code scaffold templates (backend/, frontend/)
 ├── website/                  # This docs site (VitePress; a standalone npm project, not in the pnpm workspace)
 ├── AGENTS.md                 # Shared project context for all AI tools

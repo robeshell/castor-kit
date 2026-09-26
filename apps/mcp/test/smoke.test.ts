@@ -100,6 +100,8 @@ describe('castor-kit MCP server (stdio)', () => {
     assert.match(out, /为什么/)
     assert.match(out, /## JSON Schema/)
     assert.match(out, /"additionalProperties": false/)
+    // Everything an agent needs in one call, but not an unbounded dump
+    assert.ok(out.length < 40_000, `guide is ${out.length} characters`)
   })
 
   it('validate_spec：通过时说明会生成什么；有问题逐条列出', async () => {

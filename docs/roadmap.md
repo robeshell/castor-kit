@@ -289,3 +289,4 @@
 | 2026-09-26 | 放弃「6. 在线可视化建模」（原因见该节）；保留 `scaffold --spec`，后续重点改为提升不同 AI agent 生成功能的准确度 |
 | 2026-09-26 | 新增并完成「全局 AI 小助手」（计划外）：每个页面右下角的对话助手，以当前用户身份经原接口查询数据，写操作逐条经用户确认（签名审批）后执行；开关 `ai.assistant_enabled` 默认关闭 |
 | 2026-09-26 | OpenAPI 文档补全并强制检查（计划外，服务于「提升 AI agent 生成功能的准确度」）：214 个接口全部按 AGENTS.md「OpenAPI 编写规范」照代码写完整，API 测试与 `pnpm verify` 拦截不合规的接口 |
+| 2026-09-26 | 提升 AI agent 生成功能的准确度（放弃在线建模后的方向）：`pnpm scaffold` 直接写出合规的 OpenAPI 条目；spec 的 JSON Schema（由脚手架代码生成）、4 个带推断理由的「需求 → spec」示例、`--validate-only`、更严格的 spec 校验；MCP 新增 `get_spec_guide` / `validate_spec` / `check_openapi`；AGENTS.md 开头加「从一句需求到 spec」 |

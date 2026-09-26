@@ -16,6 +16,8 @@ castor-kit/
 │   ├── architecture.md       # 架构说明与设计决定
 │   ├── frontend-redesign-plan.md  # 前端 UI 体系（shadcn/ui）
 │   ├── apifox-full.openapi.json   # OpenAPI 文档
+│   ├── spec.schema.json      # 模块规格（scaffold --spec）的 JSON Schema
+│   ├── examples/specs/       # 「一句需求 → spec」示例
 │   └── templates/            # 代码骨架模板（backend/、frontend/）
 ├── website/                  # 本文档站（VitePress，独立 npm 项目，不在 pnpm workspace 内）
 ├── AGENTS.md                 # 所有 AI 工具共用的项目上下文

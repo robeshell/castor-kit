@@ -166,6 +166,8 @@ castor-kit/
 │   ├── architecture.md                # 架构说明
 │   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
 │   ├── apifox-full.openapi.json       # OpenAPI 文档（写法见「OpenAPI 编写规范」）
+│   ├── spec.schema.json               # scaffold --spec 规格的 JSON Schema（pnpm scaffold -- --write-schema 生成）
+│   ├── examples/specs/                # 「一句需求 → spec」示例（README.md 写逐字段推断理由）
 │   └── templates/                     # 代码骨架模板（AI 临摹用）
 │       ├── backend/                   # db-schema / schema / repository / service / routes（.ts）+ README.md
 │       └── frontend/                  # list_page / detail_page

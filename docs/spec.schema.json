@@ -249,6 +249,12 @@
             "properties": {
               "required": {
                 "const": false
+              },
+              "default": {
+                "enum": [
+                  null,
+                  ""
+                ]
               }
             }
           }
