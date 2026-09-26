@@ -133,7 +133,7 @@ function SortableItem({ item, index }) {
       {...listeners}
       className={cn(
         'bg-card relative flex cursor-grab touch-none items-center gap-3 rounded-lg px-3 py-2.5 shadow-[0_0_0_1px_var(--border)] outline-none select-none',
-        'focus-visible:ring-ring/50 transition-shadow duration-200 focus-visible:ring-[3px]',
+        'focus-visible:ring-ring/20 transition-shadow duration-200 focus-visible:ring-2',
         isDragging &&
           'z-10 cursor-grabbing shadow-[0_0_0_1px_color-mix(in_srgb,var(--primary)_35%,transparent),0_16px_32px_-14px_rgba(15,23,42,0.35)]',
       )}

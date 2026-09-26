@@ -440,7 +440,7 @@ apps/web/scripts/shadcn-add.sh --view badge         # 只查看 registry 内容�
 apps/web/scripts/shadcn-add.sh badge -o -y          # 覆盖已有文件（会丢掉本地改动，先确认）
 ```
 
-脚本会清掉 `HTTP(S)_PROXY` 再执行 CLI（npm 包下载仍经 `npm_config_proxy` 走原代理），并把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils`、撤掉误装的 `cn` 包。新增后检查 `git diff apps/web/package.json`，并确认组件只用语义色类。
+脚本会清掉 `HTTP(S)_PROXY` 再执行 CLI（npm 包下载仍经 `npm_config_proxy` 走原代理），并把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils`、撤掉误装的 `cn` 包。新增后检查 `git diff apps/web/package.json`，并确认组件只用语义色类；聚焦样式改成项目统一的 `ring-2` + `ring-ring/20`（shadcn 默认的 `ring-[3px]` / `ring-ring/50` 太粗，`apps/web/test/focus-ring.test.js` 会拦截）。
 
 ### 新增 AI Elements 组件
 

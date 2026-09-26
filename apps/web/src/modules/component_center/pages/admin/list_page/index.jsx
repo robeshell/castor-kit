@@ -899,7 +899,7 @@ export default function ListPage() {
             label="Schema 配置"
             rules={{ validate: (value) => (jsonError(value) ? t('JSON 格式错误：{{message}}', { message: jsonError(value) }) : true) }}
             render={({ field, fieldState }) => (
-              <div className="bg-muted/30 focus-within:border-ring focus-within:ring-ring/50 overflow-hidden rounded-lg border transition-[box-shadow,border-color] focus-within:ring-[3px] aria-invalid:border-destructive" aria-invalid={Boolean(fieldState.error)}>
+              <div className="bg-muted/30 focus-within:border-ring focus-within:ring-ring/20 overflow-hidden rounded-lg border transition-[box-shadow,border-color] focus-within:ring-2 aria-invalid:border-destructive" aria-invalid={Boolean(fieldState.error)}>
                 <div className="text-muted-foreground flex items-center justify-between border-b px-3 py-1.5 text-[11px]">
                   <span className="font-mono">schema.json</span>
                   <StatusBadge tone={schemaError ? 'danger' : 'success'} variant="plain" dot>
