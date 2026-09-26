@@ -327,7 +327,7 @@ describe('roles 导入 / 导出数据范围', () => {
       ...csv([`甲,${P}i1,,本部门及下级,,`, `乙,${P}i2,,custom,${P}idept,`, `丙,${P}i3,,,,`]),
     })
     expect(ok.json()).toEqual({ message: '导入成功', created: 3, updated: 0 })
-    const listed = (await s.inject({ url: '/api/admin/roles' })).json() as { code: string; data_scope: string; dept_ids: number[] }[]
+    const listed = (await s.inject({ url: '/api/admin/roles' })).json() as { id: number; code: string; data_scope: string; dept_ids: number[] }[]
     const byCode = Object.fromEntries(listed.map((r) => [r.code, r]))
     expect(byCode[`${P}i1`]).toMatchObject({ data_scope: 'dept_and_children', dept_ids: [] })
     expect(byCode[`${P}i2`]).toMatchObject({ data_scope: 'custom', dept_ids: [dept!.id] })

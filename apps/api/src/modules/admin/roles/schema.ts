@@ -39,7 +39,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   菜单编码: 'menu_codes',
 }
 
-/** Data scope cell on import: the code (e.g. dept) or its label (e.g. 本部门); '' = not given, null = invalid */
+/** Data scope cell on import: the code (e.g. dept) or its Chinese label from DATA_SCOPE_LABELS; '' = not given, null = invalid */
 export function parseDataScopeCell(raw: string | undefined): DataScopeCode | '' | null {
   const text = (raw ?? '').trim()
   if (!text) return ''
