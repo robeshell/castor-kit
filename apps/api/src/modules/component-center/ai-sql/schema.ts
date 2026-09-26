@@ -10,7 +10,7 @@
 export const MAX_SQL_ROWS = 200
 
 // ---- Sensitive tables: AI SQL neither shows their schema to the LLM/frontend nor grants them to the read-only role ----
-const SENSITIVE_EXACT = new Set(['roles', 'menus', 'user_roles', 'role_menus', 'role_depts'])
+const SENSITIVE_EXACT = new Set(['roles', 'menus', 'user_roles', 'role_menus', 'role_depts', 'files', 'file_references'])
 const SENSITIVE_PREFIX = ['admin_', 'audit_', 'scheduled_task']
 const SENSITIVE_SUFFIX = ['_logs']
 

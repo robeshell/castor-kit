@@ -318,3 +318,29 @@ describe('start / stop 循环', () => {
     expect((await runsOf(task.id))[0]!.response_body).toBe('loop')
   })
 })
+
+describe('内置维护任务', () => {
+  it('按各自间隔执行；失败只记日志，下个间隔再试', async () => {
+    const calls: string[] = []
+    const errors: string[] = []
+    const runner = new ScheduledTaskRunner(handle.db, {
+      logger: { info() {}, warn() {}, error: (_o: unknown, msg?: string) => void errors.push(String(msg)) },
+      maintenance: [
+        { name: 'ok', intervalSeconds: 60, run: async () => void calls.push('ok') },
+        {
+          name: 'boom',
+          intervalSeconds: 60,
+          run: async () => {
+            calls.push('boom')
+            throw new Error('x')
+          },
+        },
+      ],
+    })
+    await runner.runMaintenance(1_000_000)
+    await runner.runMaintenance(1_000_000 + 30_000)
+    await runner.runMaintenance(1_000_000 + 60_000)
+    expect(calls).toEqual(['ok', 'boom', 'ok', 'boom'])
+    expect(errors).toEqual(['Maintenance job failed: boom', 'Maintenance job failed: boom'])
+  })
+})

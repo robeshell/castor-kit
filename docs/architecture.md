@@ -183,7 +183,16 @@ castor-kit/
 - `init-ro-role` 脚本创建只读账号 `castor_kit_ro`，只授业务表 SELECT。
 
 ### 4.12 文件上传
-- `list_page` 的 `upload-image` / `upload-file` 写入 `instance/uploads/list_page{,_files}/`，经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读（compose 挂载 `app_instance` 卷）。
+- **文件中心**（`modules/admin/files` + `common/storage/`）：`POST /api/admin/files` 上传（只需登录），`GET /api/admin/files/:id` 预览 / 下载（只需登录，ID 是 UUID），列表需要 `system_files`、删除需要 `system_files_delete`。
+  - 校验顺序：大小（`UPLOAD_MAX_SIZE` 与 `MAX_CONTENT_LENGTH` 取小，超限 413）→ 扩展名白名单 → `file-type` 读文件头，与扩展名不一致即拒绝（txt / csv 等纯文本要求检测不到二进制签名）。原文件名只取最后一段并去掉控制字符。
+  - 去重：每次上传一条 `files` 记录；对象键按 sha256 生成（`ab/<sha256>`），相同内容共用一个对象，最后一条记录删除时才删对象。
+  - 驱动：`local`（先写临时文件再 rename）与 `s3`（`@aws-sdk/client-s3`，校验和改为「仅在必需时」以兼容各家 S3 兼容服务）。读取时按记录上的 `storage` 选驱动，切换 `STORAGE_DRIVER` 不影响旧文件（旧驱动仍需配置）。`STORAGE_DRIVER=s3` 缺 bucket / 密钥时拒绝启动。
+  - 返回：只有 png / jpeg / gif / webp 内联预览，其余一律 `attachment` + `nosniff`；`ETag` 为 sha256（命中返回 304）；`s3` 驱动 302 到 10 分钟有效的签名地址（配置 `S3_PUBLIC_URL` 时跳公开地址）。
+  - 引用：业务写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs` / `clearFileRefs`，记录在 `file_references`；被引用的文件不能删除。头像仍存 URL（`/api/admin/files/<id>`），外部地址照常可用。
+  - 清理：调度器循环里的内置维护任务（`MaintenanceJob`，不是用户定义的定时任务）每小时删除上传超过 24 小时且没有引用的文件，`pg_try_advisory_xact_lock` 保证多副本只跑一份，删除时再次确认没有引用。
+- 组件示例中心 `list_page` 的图片 / 附件也走文件中心（`image_urls` / `file_urls` 存文件地址，repository 写入时登记引用）；文件中心之前上传的旧文件仍可经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读，不再接受新上传。
+- 上传限制经公开的 `GET /api/admin/app-info` 下发（`upload.max_size` / `upload.allowed_types`），前端上传组件据此先在本地检查；超过 `MAX_CONTENT_LENGTH` 被 multipart 拦下的文件同样返回「文件过大，最大支持 N MB」。
+- 公开演示模式放行 `POST /api/admin/files`（组件示例的上传要用），删除与列表仍按原规则。
 - `@fastify/multipart`，上限 `MAX_CONTENT_LENGTH`（默认 16MB，超限 413）；文件名 `path.basename` + 白名单扩展名 + 随机前缀；回读时校验解析后的路径仍在上传目录内（防目录穿越）。
 
 ### 4.13 WebSocket `/ws/devtools`
@@ -229,6 +238,7 @@ castor-kit/
 | `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
 | `scripts/verify-feature.ts` | `pnpm verify -- --module <name> [--skip-build] [--json]` | 门禁：`typescript_compile`、`no_local_has_permission`、`migration_chain`、`migration_applied`、`docs_paths`（AI 文档引用路径存在）、`backend_file`、`data_scope_filter`（声明 `DATA_SCOPE` 的模块必须用 `dataScopeWhere`）、`frontend_page`、`frontend_api`、`router_registration`、`rbac_seed`、`frontend_build`、`frontend_tests`、`api_tests` 等 |
 | `scripts/seed-rbac.ts` | `pnpm seed:rbac -- --incremental` | 菜单树唯一事实源；`--incremental` 按 code upsert 不删除，同步序列并刷新超级管理员权限；不带参数是全量重建（仅空库） |
+| （内置）文件孤儿清理 | 调度器进程每小时一次 | 见 §4.12；`ENABLE_TASK_SCHEDULER=false` 时不运行 |
 | `scripts/seed-demo.ts` | `pnpm seed:demo` | 示例部门树、两个受限角色（`dept_manager` 本部门及下级、`staff` 仅本人）和 6 个示例用户；按编码 / 用户名幂等更新，不删除、不改已有密码；`NODE_ENV=production` 需 `--force` |
 | `scripts/init-ro-role.ts` | `pnpm --filter @castor-kit/api init-ro-role` | 创建 AI SQL 只读账号并按敏感表规则授权 |
 | `scripts/setup-once.ts` | `pnpm setup-once` | `pg_advisory_lock` → migrate → seed-rbac（增量）→ init-ro-role，多副本并发安全 |

@@ -3,11 +3,10 @@
  *
  * - JSON strings stored in Text columns are always written in `json.dumps(ensure_ascii=False)` format (separators with spaces, non-ASCII kept as-is; exported verbatim)
  * - Each write (including the version snapshot) runs in one transaction; a request commits only once
- * - Uploaded files are written to `${instanceDir}/uploads/list_page{,_files}`
+ * - Images / attachments are uploaded to the file center; files uploaded earlier under `${instanceDir}/uploads/list_page{,_files}` stay readable
  */
 
-import { randomUUID } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
@@ -38,13 +37,6 @@ import {
 
 type Data = Record<string, unknown>
 
-export const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp'])
-export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
-export const ALLOWED_FILE_EXTENSIONS = new Set([
-  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'md',
-  'zip', 'rar', '7z', 'json', 'ppt', 'pptx',
-])
-export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024
 const STATUS_VALUES = new Set(['draft', 'published'])
 const LOGIC_VALUES = new Set(['AND', 'OR'])
 const EMPTY_CONDITIONS = () => ({ groups: [] as unknown[], items: [] as unknown[] })
@@ -263,7 +255,7 @@ export class ListPageService {
     this.repo = new ListPageRepository(db)
   }
 
-  // ---- Upload dirs / filenames
+  // ---- Legacy upload dirs (read-only: new uploads go to the file center)
 
   async getImageUploadDir(): Promise<string> {
     const dir = join(this.instanceDir, 'uploads', 'list_page')
@@ -283,14 +275,6 @@ export class ListPageService {
     return safeName
   }
 
-  private static extractImageExt(filename: string): string {
-    const safeName = ListPageService.sanitizeImageFilename(filename)
-    if (!safeName.includes('.')) throw new ServiceError('仅支持 jpg/png/gif/webp 图片', 400)
-    const ext = safeName.slice(safeName.lastIndexOf('.') + 1).toLowerCase()
-    if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) throw new ServiceError('仅支持 jpg/png/gif/webp 图片', 400)
-    return ext
-  }
-
   private async inTx<T>(fn: (repo: ListPageRepository) => Promise<T>): Promise<T> {
     try {
       return await this.db.transaction((tx) => fn(new ListPageRepository(tx)))
@@ -308,49 +292,6 @@ export class ListPageService {
       operator,
       snapshot_json: buildSnapshot(item),
     })
-  }
-
-  async saveImage(file: UploadedFile | null) {
-    if (!file) throw new ServiceError('请先选择图片文件', 400)
-    const ext = ListPageService.extractImageExt(file.filename)
-    const size = file.data.length
-    if (size <= 0) throw new ServiceError('图片文件不能为空', 400)
-    if (size > MAX_IMAGE_SIZE_BYTES) throw new ServiceError('图片不能超过 5MB', 400)
-
-    const finalName = `${randomUUID().replace(/-/g, '')}.${ext}`
-    try {
-      await writeFile(join(await this.getImageUploadDir(), finalName), file.data)
-    } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
-    }
-    return {
-      message: '上传成功',
-      filename: finalName,
-      url: `/api/admin/component-center/list-page/image/${finalName}`,
-    }
-  }
-
-  async saveFile(file: UploadedFile | null) {
-    if (!file) throw new ServiceError('请先选择文件', 400)
-    const safeName = ListPageService.sanitizeImageFilename(file.filename)
-    if (!safeName.includes('.')) throw new ServiceError('无效的文件类型', 400)
-    const ext = safeName.slice(safeName.lastIndexOf('.') + 1).toLowerCase()
-    if (!ALLOWED_FILE_EXTENSIONS.has(ext)) throw new ServiceError('仅支持常见文档/压缩包格式', 400)
-    const size = file.data.length
-    if (size <= 0) throw new ServiceError('文件不能为空', 400)
-    if (size > MAX_FILE_SIZE_BYTES) throw new ServiceError('文件不能超过 20MB', 400)
-
-    const finalName = `${randomUUID().replace(/-/g, '')}_${safeName}`
-    try {
-      await writeFile(join(await this.getFileUploadDir(), finalName), file.data)
-    } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
-    }
-    return {
-      message: '上传成功',
-      filename: finalName,
-      url: `/api/admin/component-center/list-page/file/${finalName}`,
-    }
   }
 
   // ---- CRUD

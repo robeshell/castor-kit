@@ -12,8 +12,9 @@ let seq = 0
 const nextUid = () => `up-${Date.now()}-${seq++}`
 
 /**
- * Upload state machine: validate extension / size → call uploadApi(file) → fill in url.
- * fileList entry shape: { uid, name, url, status: 'uploading' | 'success' | 'error', response }
+ * Upload state machine: validate extension / size → call uploadApi(file, { onProgress }) → fill in url.
+ * fileList entry shape: { uid, name, url, status: 'uploading' | 'success' | 'error', percent, response }
+ * uploadApi resolves to an object with `url` (the file center's uploadFile does); onProgress(percent) is optional.
  */
 export function useUploader({ fileList, onFileListChange, uploadApi, limit, accept, maxSizeMB, kind = '文件' }) {
   const listRef = useRef(fileList)
@@ -44,14 +45,14 @@ export function useUploader({ fileList, onFileListChange, uploadApi, limit, acce
       }
       const uid = nextUid()
       const preview = file.type?.startsWith('image/') ? URL.createObjectURL(file) : undefined
-      const next = [...listRef.current, { uid, name: file.name, size: file.size, status: 'uploading', preview }]
+      const next = [...listRef.current, { uid, name: file.name, size: file.size, status: 'uploading', percent: 0, preview }]
       listRef.current = next
       onFileListChange?.(next)
-      Promise.resolve(uploadApi?.(file))
+      Promise.resolve(uploadApi?.(file, { onProgress: (percent) => update(uid, { percent }) }))
         .then((res) => {
           const url = res?.url || ''
           if (!url) throw new Error('上传成功但未返回文件地址')
-          update(uid, { status: 'success', url, response: res })
+          update(uid, { status: 'success', percent: 100, url, response: res })
           toast.success(i18n.t('{{kind}}上传成功', { kind: i18n.t(kind) }))
         })
         .catch((err) => {

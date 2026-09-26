@@ -37,6 +37,7 @@ const ROLE_EXPORT_FIELDS = [
   { label: '角色编码', value: 'code' },
   { label: '描述', value: 'description' },
   { label: '数据范围', value: 'data_scope' },
+  { label: '部门编码', value: 'dept_codes' },
   { label: '菜单编码', value: 'menu_codes' },
   { label: '菜单名称', value: 'menu_names' },
   { label: '创建时间', value: 'created_at' },

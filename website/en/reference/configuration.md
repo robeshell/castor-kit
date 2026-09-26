@@ -53,13 +53,29 @@ The file loaded first wins. Environment variables that are already set (for exam
 | Variable | Purpose | Default |
 |---|---|---|
 | `WEB_DIST_DIR` | Frontend build directory; the backend serves static files and the SPA from here | `apps/web/dist` |
-| `INSTANCE_DIR` | Runtime data directory; uploaded files go in its `uploads/` subdirectory | `apps/api/instance` |
+| `INSTANCE_DIR` | Runtime data directory; the `local` driver stores uploads in its `uploads/files/` by default | `apps/api/instance` |
+
+### File center
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `STORAGE_DRIVER` | Storage driver: `local` (a directory on the server) or `s3` (any S3-compatible service: AWS S3, MinIO, Aliyun OSS, Tencent COS, Cloudflare R2) | `local` |
+| `STORAGE_LOCAL_DIR` | Directory for the `local` driver | `<INSTANCE_DIR>/uploads/files` |
+| `S3_ENDPOINT` | Endpoint of the S3-compatible service; leave empty for AWS S3 | empty |
+| `S3_REGION` | Region; `auto` for R2 | `us-east-1` |
+| `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Bucket and keys; with `STORAGE_DRIVER=s3` the service refuses to start if any is missing | empty |
+| `S3_PUBLIC_URL` | Public URL of the bucket; when set, downloads redirect there, otherwise to a signed URL valid for about 10 minutes | empty |
+| `S3_FORCE_PATH_STYLE` | Path-style bucket addressing (needed by MinIO and most self-hosted services) | `true` when `S3_ENDPOINT` is set |
+| `UPLOAD_MAX_SIZE` | Maximum size of one file (bytes); also capped by `MAX_CONTENT_LENGTH`, whichever is smaller | `10485760` (10MB) |
+| `UPLOAD_ALLOWED_TYPES` | Allowed extensions, comma-separated; uploads are also checked for a file signature matching the extension | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+
+The `local` driver needs a persistent disk: Docker Compose already mounts `INSTANCE_DIR` as a volume; on platforms that wipe the disk on every deploy (such as Render) use `s3` instead (Cloudflare R2, for example). Files no record references are removed by the scheduler process 24 hours after upload, so nothing is cleaned up when `ENABLE_TASK_SCHEDULER=false`.
 
 ### Public demo
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `DEMO_MODE` | Public demo mode: the login page shows the demo account with one-click sign-in; every write except sign-in, the component gallery and marking notifications read returns 403 (system management is read-only and passwords can't be changed); login lockout counts per IP only; sample data is restored periodically | `false` |
+| `DEMO_MODE` | Public demo mode: the login page shows the demo account with one-click sign-in; every write except sign-in, the component gallery, file uploads and marking notifications read returns 403 (system management is read-only and passwords can't be changed); login lockout counts per IP only; sample data is restored periodically | `false` |
 | `DEMO_RESET_HOURS` | How often the demo data is restored (hours). Checked at startup and then hourly; restores when the last restore is older than this. Run `pnpm demo:reset` to restore right away | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | AI calls (AI chat, AI SQL generation) allowed per IP per hour in demo mode; over the limit returns 429. Signed-out requests don't count | `20` |
 | `DEMO_AI_DAILY` | AI calls allowed per day for the whole site in demo mode; once used up, 429 for the rest of the day | `300` |

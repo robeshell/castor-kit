@@ -91,6 +91,7 @@ Besides the component examples, the System menu holds the business features that
 | Users | `/system/users` | Create, edit and delete users, assign roles, enable / disable, import/export (the reference implementation of a standard list page) |
 | Roles | `/system/roles` | Role management, menu / button authorization and data scope |
 | Departments | `/system/departments` | Department tree: add children, edit, move up / down; the basis for user membership and data scope |
+| Files | `/system/files` | Everything in the file center: preview, download, see whether a file is in use, delete unused files |
 | Menus | `/system/menus` | Menu tree management |
 | Logs | `/system/logs` | Operation logs and login logs |
 | Dictionaries | `/system/dicts` | Maintains dictionary data and serves as a data source for dropdown options |

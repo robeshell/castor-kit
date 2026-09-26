@@ -126,7 +126,7 @@ describe('登录 / 会话', () => {
 
     const user = body.user
     expect(Object.keys(user).sort()).toEqual([
-      'avatar', 'created_at', 'dept_id', 'email', 'id', 'last_login_at', 'last_login_ip', 'menu_codes', 'nickname',
+      'avatar', 'created_at', 'dept_id', 'dept_name', 'email', 'id', 'last_login_at', 'last_login_ip', 'menu_codes', 'nickname',
       'phone', 'roles', 'status', 'updated_at', 'username',
     ])
     expect(user.status).toBe('active')

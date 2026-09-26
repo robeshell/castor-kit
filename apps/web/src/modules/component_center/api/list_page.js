@@ -1,4 +1,3 @@
-import i18n from '@/i18n'
 import request from '@/shared/api/request'
 
 export const getListPageList = (params) => request.get('/admin/component-center/list-page', { params })
@@ -20,30 +19,6 @@ export const importListPage = (file) => {
   const formData = new FormData()
   formData.append('file', file)
   return request.post('/admin/component-center/list-page/import', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-}
-
-export const uploadListPageImage = (file) => {
-  const uploadFile = file?.fileInstance || file
-  if (!uploadFile) {
-    return Promise.reject(new Error(i18n.t('请先选择图片文件')))
-  }
-  const formData = new FormData()
-  formData.append('file', uploadFile, uploadFile?.name || 'list-page-image')
-  return request.post('/admin/component-center/list-page/upload-image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-}
-
-export const uploadListPageFile = (file) => {
-  const uploadFile = file?.fileInstance || file
-  if (!uploadFile) {
-    return Promise.reject(new Error(i18n.t('请先选择文件')))
-  }
-  const formData = new FormData()
-  formData.append('file', uploadFile, uploadFile?.name || 'list-page-file')
-  return request.post('/admin/component-center/list-page/upload-file', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }

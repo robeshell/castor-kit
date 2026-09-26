@@ -55,6 +55,10 @@
     {
       "name": "后台-部门管理",
       "description": "部门树与部门管理"
+    },
+    {
+      "name": "后台-文件管理",
+      "description": "文件中心：上传、预览下载、管理"
     }
   ],
   "components": {
@@ -271,7 +275,7 @@
     "/api/admin/app-info": {
       "GET": {
         "summary": "应用信息（公开）",
-        "description": "无需登录。DEMO_MODE 开启时返回演示账号与数据重置间隔，供登录页和演示提示条使用；未开启时只返回 demo_mode: false。",
+        "description": "无需登录。始终返回上传限制（upload.max_size 字节、upload.allowed_types 扩展名），供上传控件在本地先检查；DEMO_MODE 开启时另外返回演示账号与数据重置间隔，供登录页和演示提示条使用。",
         "responses": {
           "200": {
             "description": "成功",
@@ -296,6 +300,23 @@
                         },
                         "password": {
                           "type": "string"
+                        }
+                      }
+                    },
+                    "upload": {
+                      "type": "object",
+                      "description": "上传限制（文件中心）",
+                      "properties": {
+                        "max_size": {
+                          "type": "integer",
+                          "description": "单个文件上限（字节），取 UPLOAD_MAX_SIZE 与 MAX_CONTENT_LENGTH 的较小值"
+                        },
+                        "allowed_types": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "允许的扩展名（小写、不带点）"
                         }
                       }
                     }
@@ -2224,106 +2245,6 @@
           }
         },
         "x-apifox-folder": "后台/组件示例中心/查询示例/导入导出",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/admin/component-center/list-page/upload-file": {
-      "post": {
-        "tags": [
-          "后台-查询示例"
-        ],
-        "summary": "上传list-page附件",
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "请求参数错误"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        },
-        "x-apifox-folder": "后台/组件示例中心/查询示例/文件",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/admin/component-center/list-page/upload-image": {
-      "post": {
-        "tags": [
-          "后台-查询示例"
-        ],
-        "summary": "上传list-page图片",
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "请求参数错误"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        },
-        "x-apifox-folder": "后台/组件示例中心/查询示例/图片",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
-        },
         "security": [
           {
             "cookieAuth": []
@@ -4879,6 +4800,512 @@
           },
           "500": {
             "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/files": {
+      "post": {
+        "tags": [
+          "后台-文件管理"
+        ],
+        "summary": "上传文件",
+        "x-apifox-folder": "后台/系统管理/文件管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录。校验大小（UPLOAD_MAX_SIZE 与 MAX_CONTENT_LENGTH 取小，超限 413）、扩展名白名单（UPLOAD_ALLOWED_TYPES）以及文件头与扩展名是否一致；相同内容共用存储对象",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已上传",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "original_name": {
+                      "type": "string"
+                    },
+                    "mime_type": {
+                      "type": "string"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    },
+                    "storage": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "s3"
+                      ]
+                    },
+                    "uploader_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "uploader_name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "ref_count": {
+                      "type": "integer",
+                      "description": "被多少个业务字段引用"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "/api/admin/files/<id>"
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "413": {
+            "description": "文件过大"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "后台-文件管理"
+        ],
+        "summary": "文件列表",
+        "x-apifox-folder": "后台/系统管理/文件管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_files",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "按文件名搜索"
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "document",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "referenced",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            },
+            "description": "是否被业务记录引用"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "original_name": {
+                            "type": "string"
+                          },
+                          "mime_type": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": "integer"
+                          },
+                          "sha256": {
+                            "type": "string"
+                          },
+                          "storage": {
+                            "type": "string",
+                            "enum": [
+                              "local",
+                              "s3"
+                            ]
+                          },
+                          "uploader_id": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "uploader_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ref_count": {
+                            "type": "integer",
+                            "description": "被多少个业务字段引用"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "/api/admin/files/<id>"
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/files/{file_id}": {
+      "get": {
+        "tags": [
+          "后台-文件管理"
+        ],
+        "summary": "预览 / 下载文件",
+        "x-apifox-folder": "后台/系统管理/文件管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录。png / jpeg / gif / webp 内联显示，其余作为附件下载；?download=1 强制下载；ETag 命中返回 304。s3 驱动返回 302 到约 10 分钟有效的签名地址（或 S3_PUBLIC_URL）",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "文件 ID"
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件内容",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "跳转到存储服务"
+          },
+          "304": {
+            "description": "未修改"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "404": {
+            "description": "文件不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台-文件管理"
+        ],
+        "summary": "删除文件",
+        "x-apifox-folder": "后台/系统管理/文件管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_files_delete；被业务记录引用时返回 400",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "文件 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          },
+          "404": {
+            "description": "文件不存在"
+          }
+        }
+      }
+    },
+    "/api/admin/files/{file_id}/info": {
+      "get": {
+        "tags": [
+          "后台-文件管理"
+        ],
+        "summary": "文件信息",
+        "x-apifox-folder": "后台/系统管理/文件管理",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录；包含引用位置",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "文件 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "original_name": {
+                          "type": "string"
+                        },
+                        "mime_type": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "type": "string"
+                        },
+                        "storage": {
+                          "type": "string",
+                          "enum": [
+                            "local",
+                            "s3"
+                          ]
+                        },
+                        "uploader_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "uploader_name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "ref_count": {
+                          "type": "integer",
+                          "description": "被多少个业务字段引用"
+                        },
+                        "url": {
+                          "type": "string",
+                          "description": "/api/admin/files/<id>"
+                        },
+                        "created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "references": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "ref_table": {
+                                "type": "string"
+                              },
+                              "ref_id": {
+                                "type": "string"
+                              },
+                              "ref_field": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "404": {
+            "description": "文件不存在"
           }
         }
       }

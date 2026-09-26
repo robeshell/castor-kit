@@ -36,8 +36,6 @@ import {
   getListPageList,
   importListPage,
   updateListPage,
-  uploadListPageFile,
-  uploadListPageImage,
 } from '@/modules/component_center/api/list_page'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable from '@/shared/components/DataTable'
@@ -48,8 +46,10 @@ import { DescriptionList, DetailSheet, FormSheet } from '@/shared/components/For
 import { FormCustom, FormGrid, FormInput, FormNumber, FormSelect, FormSwitch } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { uploadFile } from '@/shared/api/files'
 import FileUpload from '@/shared/components/upload/FileUpload'
 import ImageUpload from '@/shared/components/upload/ImageUpload'
+import { useUploadLimits } from '@/shared/hooks/useAppInfo'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
 
@@ -390,6 +390,8 @@ function ConditionEditor({ items, fieldOptions, onChange, onRemove }) {
 /* ─── Page ─────────────────────────────────────────────────────────── */
 
 export default function ListPage() {
+  // Upload size / type limits come from the server (the file center stores the images and attachments)
+  const uploadLimits = useUploadLimits()
   const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
@@ -923,11 +925,14 @@ export default function ListPage() {
             <ImageUpload
               fileList={imageFileList}
               onFileListChange={setImageFileList}
-              uploadApi={uploadListPageImage}
+              uploadApi={uploadFile}
               limit={MAX_QUERY_IMAGE_COUNT}
-              accept=".jpg,.jpeg,.png,.gif,.webp"
-              maxSizeMB={5}
-              promptText={t('照片墙上传，最多 {{limit}} 张，支持 JPG/PNG/GIF/WEBP，最大 5MB', { limit: MAX_QUERY_IMAGE_COUNT })}
+              accept={uploadLimits.imageAccept || '.jpg,.jpeg,.png,.gif,.webp'}
+              maxSizeMB={uploadLimits.maxSizeMB}
+              promptText={t('照片墙上传，最多 {{limit}} 张，支持 JPG/PNG/GIF/WEBP，单张不超过 {{size}}MB', {
+                limit: MAX_QUERY_IMAGE_COUNT,
+                size: uploadLimits.maxSizeMB ?? '-',
+              })}
               imageSize={96}
             />
           </div>
@@ -940,11 +945,11 @@ export default function ListPage() {
             <FileUpload
               fileList={attachmentFileList}
               onFileListChange={setAttachmentFileList}
-              uploadApi={uploadListPageFile}
+              uploadApi={uploadFile}
               limit={MAX_QUERY_FILE_COUNT}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.zip,.rar,.7z,.json,.ppt,.pptx"
-              maxSizeMB={20}
-              promptText={t('最多 {{limit}} 个附件，支持文档/表格/压缩包，最大 20MB', { limit: MAX_QUERY_FILE_COUNT })}
+              accept={uploadLimits.accept}
+              maxSizeMB={uploadLimits.maxSizeMB}
+              promptText={t('最多 {{limit}} 个附件，单个不超过 {{size}}MB', { limit: MAX_QUERY_FILE_COUNT, size: uploadLimits.maxSizeMB ?? '-' })}
               triggerText="上传附件"
             />
           </div>

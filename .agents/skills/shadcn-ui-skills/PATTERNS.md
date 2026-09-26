@@ -43,6 +43,7 @@ const reset = () => { setSearch(''); setStatus(''); list.handleReset() }
 | `bool` | `FormSwitch` | `StatusBadge`（是 / 否） | `false` / `Boolean(record.x)` |
 | `date` | `FormDate` | `formatDate` | `''` / `formatDate(record.x, '')` |
 | `datetime` | `FormDateTime` | `formatDateTime` | `''` / `formatDateTime(record.x, '')` |
+| `file` / `image` | `FormFileUpload` / `FormImageUpload` | 「查看」链接 / 缩略图（`fileUrl(id)`） | `null` / `record.x ?? null` |
 | 枚举（手写） | `FormSelect` / `FormRadioGroup` | `StatusBadge` + tone 映射 | 枚举默认值 |
 
 ## 2. 新增 / 编辑表单

@@ -1,21 +1,19 @@
 import { useWatch } from 'react-hook-form'
-import { FormGrid, FormInput } from '@/shared/components/FormFields'
-import UserAvatar from '@/shared/components/UserAvatar'
+import { FormAvatarUpload, FormGrid, FormInput } from '@/shared/components/FormFields'
 
-// Mirrors the backend checks in apps/api/src/modules/admin/users/schema.ts (normalizeProfile)
+// Mirrors the backend checks in apps/api/src/modules/admin/users/schema.ts (normalizeProfile); the avatar is uploaded
+// to the file center, so it needs no format check here
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^\+?[0-9][0-9 -]{4,19}$/
-const AVATAR_RE = /^(https?:\/\/|\/)\S+$/
 
 const optional = (re, message) => (value) => !value?.trim() || re.test(value.trim()) || message
 
 /**
  * Nickname / email / phone / avatar fields, shared by the user dialog and the profile page.
- * `name` is the fallback letter source for the avatar preview.
+ * `name` is the fallback letter source for the avatar.
  */
 export default function ProfileFields({ control, name }) {
-  const [nickname, avatar] = useWatch({ control, name: ['nickname', 'avatar'] })
-  const previewSrc = AVATAR_RE.test((avatar || '').trim()) ? avatar.trim() : undefined
+  const nickname = useWatch({ control, name: 'nickname' })
   return (
     <>
       <FormGrid>
@@ -39,18 +37,7 @@ export default function ProfileFields({ control, name }) {
           rules={{ maxLength: { value: 20, message: '手机号不能超过 20 个字符' }, validate: optional(PHONE_RE, '手机号格式不正确') }}
         />
       </FormGrid>
-      <div className="flex items-start gap-3">
-        <UserAvatar src={previewSrc} name={nickname || name} className="mt-6 size-9" />
-        <FormInput
-          className="min-w-0 flex-1"
-          control={control}
-          name="avatar"
-          label="头像地址"
-          placeholder="https://… 或 /…"
-          description="填写图片地址；上传功能随文件中心提供"
-          rules={{ maxLength: { value: 500, message: '头像地址不能超过 500 个字符' }, validate: optional(AVATAR_RE, '头像地址需以 http(s):// 或 / 开头') }}
-        />
-      </div>
+      <FormAvatarUpload control={control} name="avatar" label="头像" displayName={nickname || name} />
     </>
   )
 }

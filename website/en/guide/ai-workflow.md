@@ -147,6 +147,8 @@ scaffold prints the permission code prefix (Perm prefix), the menu `component` v
 | `bool` | `boolean` | `FormSwitch` | |
 | `date` | `date` (string mode) | `FormDate` | `YYYY-MM-DD` |
 | `datetime` | `timestamp` (string mode) | `FormDateTime` | |
+| `file` | `varchar(36)` holding a file-center id | `FormFileUpload` | "View" link in the list; the reference is registered on save |
+| `image` | `varchar(36)` holding a file-center id | `FormImageUpload` | Thumbnail in the list; the reference is registered on save |
 
 Unknown types are treated as `str`. `id`, `created_at` and `updated_at` are added automatically.
 
@@ -159,7 +161,9 @@ The AI infers types from the business description, so you don't have to specify 
 | name, title, person's name, email | `str` |
 | code, identifier, number (as in an ID or serial number) | `str50` |
 | mobile, phone, status, type, color | `str20` |
-| URL, link, address, image, avatar, cover | `str500` |
+| URL, link, address (external) | `str500` |
+| image, avatar, cover, photo | `image` |
+| attachment, file, contract, scan | `file` |
 | description, remarks, summary, content, body, tags (JSON string) | `text` |
 | amount, price, fee, cost | `float` |
 | quantity, count, progress, percentage, sort order, weight | `int` |

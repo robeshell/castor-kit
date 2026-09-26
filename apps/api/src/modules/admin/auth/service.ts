@@ -9,7 +9,7 @@ import { ServiceError } from '@/common/errors'
 import { checkPasswordHash, generatePasswordHash } from '@/common/password'
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
-import { adminUserToDict } from '@/db/schema'
+import { adminUserToDict, type AdminUserWithRoles } from '@/db/schema'
 import { AuthRepository } from './repository'
 import { validateChangePasswordPayload, type ChangePasswordPayload } from './schema'
 
@@ -92,7 +92,7 @@ export class AuthService {
 
       const withRoles = await loadAdminWithRoles(this.db, username)
       if (!withRoles) throw new ServiceError('用户不存在', 500)
-      return { username, payload: { message: '登录成功', user: adminUserToDict(withRoles) } }
+      return { username, payload: { message: '登录成功', user: await this.userDict(withRoles) } }
     }
 
     await this.bestEffort('记录登录日志', () =>
@@ -152,6 +152,11 @@ export class AuthService {
     if (!username) throw new ServiceError('未登录', 401)
     const user = await loadAdminWithRoles(this.db, username)
     if (!user) throw new ServiceError('登录已失效，请重新登录', 401)
-    return { user: adminUserToDict(user) }
+    return { user: await this.userDict(user) }
+  }
+
+  /** The signed-in user as returned by login / me: the usual user dict plus the department name */
+  private async userDict(user: AdminUserWithRoles) {
+    return { ...adminUserToDict(user), dept_name: await this.repo.deptName(user.dept_id) }
   }
 }

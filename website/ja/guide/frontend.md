@@ -132,13 +132,14 @@ export const importItems = (file) => {
 | `DataTable` + `DataPagination` | テーブル：列定義、ページング、行選択、読み込み中のスケルトンと空の状態 |
 | `FilterBar` / `SearchInput` / `FilterSelect` | フィルターバー。`FilterSelect` の `''` は「すべて」を表す |
 | `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | 新規作成・編集ダイアログ / サイドシート / 読み取り専用の詳細シート / キーと値のリスト |
-| `FormFields`：`FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormCustom` / `FormGrid` | react-hook-form のフォームフィールド |
+| `FormFields`：`FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormTreeSelect` / `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload` / `FormCustom` / `FormGrid` | react-hook-form のフォームフィールド。アップロード系フィールドの値はファイルセンターのファイル ID（アバターはファイル URL） |
 | `ConfirmAction` / `RowActions` | 危険な操作の確認 / 行操作 |
 | `StatusBadge` | ステータスバッジ。`tone` は neutral / brand / info / success / warning / danger から選択 |
 | `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | 空の状態 / セグメントタブ / ツリー / 指標カード |
 | `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | 日付の値の形式は `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | インポート / エクスポートダイアログ |
-| `upload/FileUpload` / `upload/ImageUpload` | ファイル / 画像のアップロード |
+| `TreeSelect` / `CheckableTree` | 検索できるツリーの単一選択 / 親子連動のツリー複数選択 |
+| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | ファイル（ドラッグ＆ドロップ、進捗表示）/ 画像 / アバターのアップロード。`@/shared/api/files` の `uploadFile` と組み合わせてファイルセンターに保存 |
 
 フォームフィールドの例：
 

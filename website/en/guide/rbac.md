@@ -179,6 +179,7 @@ Menu and button permissions decide which features someone can use; data scope de
 - A restricted scope that works out empty (say, a "Own department" role for a user with no department) shows nothing — it never falls back to everything
 - Rows outside the scope are a 404 on detail, update and delete, so their existence doesn't leak; exports are limited the same way
 - Disabled departments still count as sub-departments; the department tree itself is not scoped
+- The roles import template and export carry a 数据范围 column (label or code) and a 部门编码 column (custom departments, comma-separated)
 
 To try it quickly, run `pnpm seed:demo`: it adds a sample department tree, two roles (department manager: own department and below; staff: own data only) and six sample users (password `demo123456` by default). Signed in as `zhang.wei` you only see 研发部 (R&D) and its sub-departments; as `li.na`, only yourself.
 

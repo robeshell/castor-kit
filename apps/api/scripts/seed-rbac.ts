@@ -48,6 +48,7 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 24, name: "日志管理", code: "system_logs", icon: "IconFile", path: "/system/logs", component: "admin/logs", parent_id: 2, sort_order: 4, menu_type: "menu", is_visible: true, is_active: true },
   { id: 25, name: "数据字典", code: "system_dicts", icon: "IconList", path: "/system/dicts", component: "admin/dicts", parent_id: 2, sort_order: 5, menu_type: "menu", is_visible: true, is_active: true },
   { id: 26, name: "部门管理", code: "system_departments", icon: "IconOrg", path: "/system/departments", component: "admin/departments", parent_id: 2, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
+  { id: 27, name: "文件管理", code: "system_files", icon: "IconFolder", path: "/system/files", component: "admin/files", parent_id: 2, sort_order: 6, menu_type: "menu", is_visible: true, is_active: true },
   // ── Component showcase center: category parent nodes ─────────────────
   { id: 40, name: "管理系统", code: "cc_admin", icon: "IconDesktop", path: null, component: null, parent_id: 3, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 41, name: "数据可视化", code: "cc_dataviz", icon: "IconPieChartStroked", path: null, component: null, parent_id: 3, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
@@ -81,6 +82,7 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 261, name: "新增部门", code: "system_departments_add", icon: null, path: null, component: null, parent_id: 26, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 262, name: "编辑部门", code: "system_departments_edit", icon: null, path: null, component: null, parent_id: 26, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
   { id: 263, name: "删除部门", code: "system_departments_delete", icon: null, path: null, component: null, parent_id: 26, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
+  { id: 271, name: "删除文件", code: "system_files_delete", icon: null, path: null, component: null, parent_id: 27, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   // Role management button permissions
   { id: 221, name: "新增角色", code: "system_roles_add", icon: null, path: null, component: null, parent_id: 22, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 222, name: "编辑角色", code: "system_roles_edit", icon: null, path: null, component: null, parent_id: 22, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },

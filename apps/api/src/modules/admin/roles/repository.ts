@@ -191,6 +191,25 @@ export class RoleRepository {
     if (deptIds.length > 0) await this.db.insert(role_depts).values(deptIds.map((dept_id) => ({ role_id: roleId, dept_id })))
   }
 
+  async listDeptsByCodes(codes: string[]): Promise<{ id: number; code: string }[]> {
+    if (codes.length === 0) return []
+    return this.db.select({ id: departments.id, code: departments.code }).from(departments).where(inArray(departments.code, codes))
+  }
+
+  /** role_id → codes of its custom-scope departments */
+  async deptCodesByRole(roleIds: number[]): Promise<Map<number, string[]>> {
+    const map = new Map<number, string[]>()
+    if (roleIds.length === 0) return map
+    const rows = await this.db
+      .select({ role_id: role_depts.role_id, code: departments.code })
+      .from(role_depts)
+      .innerJoin(departments, eq(departments.id, role_depts.dept_id))
+      .where(inArray(role_depts.role_id, roleIds))
+      .orderBy(asc(departments.code))
+    for (const r of rows) map.set(r.role_id, [...(map.get(r.role_id) ?? []), r.code])
+    return map
+  }
+
   async existingDeptIds(ids: number[]): Promise<number[]> {
     if (ids.length === 0) return []
     const rows = await this.db.select({ id: departments.id }).from(departments).where(inArray(departments.id, ids))

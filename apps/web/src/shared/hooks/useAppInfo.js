@@ -13,7 +13,7 @@ function load() {
 }
 
 /**
- * Public app info: `{ demo_mode, demo_reset_hours?, demo_account? }`.
+ * Public app info: `{ demo_mode, demo_reset_hours?, demo_account?, upload: { max_size, allowed_types } }`.
  * Returns null until loaded; failures count as "not a demo".
  */
 export function useAppInfo() {
@@ -29,4 +29,22 @@ export function useAppInfo() {
     }
   }, [])
   return info
+}
+
+const IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+
+/**
+ * Server-side upload limits, for checking a file before sending it: `{ maxSizeMB, accept, imageAccept }`.
+ * `accept` / `imageAccept` are '.ext,.ext' lists; until app-info loads they are undefined (no client-side check).
+ */
+export function useUploadLimits() {
+  const upload = useAppInfo()?.upload
+  if (!upload) return { maxSizeMB: undefined, accept: undefined, imageAccept: undefined }
+  const types = upload.allowed_types || []
+  const images = IMAGE_TYPES.filter((t) => types.includes(t))
+  return {
+    maxSizeMB: Math.round((upload.max_size / 1024 / 1024) * 10) / 10,
+    accept: types.map((t) => `.${t}`).join(','),
+    imageAccept: images.map((t) => `.${t}`).join(','),
+  }
 }

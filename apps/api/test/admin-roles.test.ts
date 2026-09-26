@@ -212,11 +212,11 @@ describe('roles 导出 / 模板 / 导入', () => {
     await wb.xlsx.load(res.rawPayload as unknown as ArrayBuffer)
     const rows: unknown[][] = []
     wb.worksheets[0]!.eachRow((row) => rows.push((row.values as unknown[]).slice(1)))
-    expect(rows[0]).toEqual(['ID', '角色名称', '角色编码', '描述', '数据范围', '菜单编码', '菜单名称', '创建时间'])
+    expect(rows[0]).toEqual(['ID', '角色名称', '角色编码', '描述', '数据范围', '部门编码', '菜单编码', '菜单名称', '创建时间'])
     expect(rows).toHaveLength(2)
     expect(rows[1]![2]).toBe(`${P}c`)
     expect(rows[1]![4]).toBe('全部数据')
-    expect(String(rows[1]![7])).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/)
+    expect(String(rows[1]![8])).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/)
   })
 
   it('导出：非法参数 → 500', async () => {
@@ -228,7 +228,7 @@ describe('roles 导出 / 模板 / 导入', () => {
   it('模板 csv 精确字节 / xlsx', async () => {
     const csv = await s.inject({ url: '/api/admin/roles/template?file_type=xls' })
     expect(csv.headers['content-disposition']).toBe('attachment; filename=roles_import_template.csv')
-    expect(csv.body).toBe('\ufeff角色名称,角色编码,描述,菜单编码\r\n示例角色,demo_role,示例描述,"dashboard,system_users"\r\n')
+    expect(csv.body).toBe('\ufeff角色名称,角色编码,描述,数据范围,部门编码,菜单编码\r\n示例角色,demo_role,示例描述,全部数据,,"dashboard,system_users"\r\n')
     const xlsx = await s.inject({ url: '/api/admin/roles/template?file_type=xlsx' })
     expect(xlsx.headers['content-disposition']).toBe('attachment; filename=roles_import_template.xlsx')
     expect(xlsx.rawPayload.subarray(0, 2).toString()).toBe('PK')
@@ -302,6 +302,48 @@ describe('roles 数据范围', () => {
     expect(plain.json()).toMatchObject({ data_scope: 'all', dept_ids: [] })
 
     await handle.db.delete(roles).where(inArray(roles.code, [`${P}scoped`, `${P}plain`]))
+    await handle.db.delete(departments).where(eq(departments.id, dept!.id))
+  })
+})
+
+describe('roles 导入 / 导出数据范围', () => {
+  it('导入：按名称或编码识别数据范围，自定义部门按部门编码关联；取值 / 部门编码校验；导出带数据范围与部门编码', async () => {
+    const [dept] = await handle.db.insert(departments).values({ name: 'r1 导入部门', code: `${P}idept` }).returning()
+    const csv = (rows: string[]) => multipartFile('r.csv', ['角色名称,角色编码,描述,数据范围,部门编码,菜单编码', ...rows].join('\n') + '\n')
+
+    const bad = await s.inject({
+      method: 'POST',
+      url: '/api/admin/roles/import',
+      ...csv([`甲,${P}i1,,全公司,,`, `乙,${P}i2,,自定义部门,${P}nope,`]),
+    })
+    expect(bad.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])).toEqual([
+      [2, '数据范围取值不合法（可填 全部数据 / 本部门及下级 / 本部门 / 仅本人 / 自定义部门）'],
+      [3, `部门编码不存在: ${P}nope`],
+    ])
+
+    const ok = await s.inject({
+      method: 'POST',
+      url: '/api/admin/roles/import',
+      ...csv([`甲,${P}i1,,本部门及下级,,`, `乙,${P}i2,,custom,${P}idept,`, `丙,${P}i3,,,,`]),
+    })
+    expect(ok.json()).toEqual({ message: '导入成功', created: 3, updated: 0 })
+    const listed = (await s.inject({ url: '/api/admin/roles' })).json() as { id: number; code: string; data_scope: string; dept_ids: number[] }[]
+    const byCode = Object.fromEntries(listed.map((r) => [r.code, r]))
+    expect(byCode[`${P}i1`]).toMatchObject({ data_scope: 'dept_and_children', dept_ids: [] })
+    expect(byCode[`${P}i2`]).toMatchObject({ data_scope: 'custom', dept_ids: [dept!.id] })
+    expect(byCode[`${P}i3`]).toMatchObject({ data_scope: 'all' })
+
+    const superRow = await s.inject({ method: 'POST', url: '/api/admin/roles/import', ...csv(['超级管理员,super_admin,,仅本人,,']) })
+    expect(superRow.json().error_rows.map((r: { reason: string }) => r.reason)).toEqual(['超级管理员角色的数据范围固定为全部数据'])
+
+    const exported = await s.inject({
+      method: 'POST',
+      url: '/api/admin/roles/export',
+      payload: { ids: [byCode[`${P}i2`]!.id], fields: ['code', 'data_scope', 'dept_codes'] },
+    })
+    expect(exported.body).toBe(`\ufeff角色编码,数据范围,部门编码\r\n${P}i2,自定义部门,${P}idept\r\n`)
+
+    await handle.db.delete(roles).where(inArray(roles.code, [`${P}i1`, `${P}i2`, `${P}i3`]))
     await handle.db.delete(departments).where(eq(departments.id, dept!.id))
   })
 })
