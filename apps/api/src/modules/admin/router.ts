@@ -5,6 +5,7 @@
 import type { FastifyInstance } from 'fastify'
 import { registerAnnouncementRoutes } from './announcement/routes'
 import { registerApiTokenRoutes } from './api-tokens/routes'
+import { registerAssistantRoutes } from './assistant/routes'
 import { registerAuthRoutes } from './auth/routes'
 import { registerDashboardRoutes } from './dashboard/routes'
 import { registerDepartmentRoutes } from './departments/routes'
@@ -42,4 +43,5 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   await registerDashboardRoutes(app)
   await registerNotificationRoutes(app)
   await registerAnnouncementRoutes(app)
+  await registerAssistantRoutes(app)
 }

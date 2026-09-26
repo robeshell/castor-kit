@@ -31,7 +31,11 @@ export function isDemoWritable(path: string): boolean {
 }
 
 /** Endpoints that call the upstream AI model (prompt preview only substitutes variables locally) */
-export const DEMO_AI_PATHS = new Set(['/api/admin/component-center/ai/chat/stream', '/api/admin/component-center/ai/sql/generate'])
+export const DEMO_AI_PATHS = new Set([
+  '/api/admin/component-center/ai/chat/stream',
+  '/api/admin/component-center/ai/sql/generate',
+  '/api/admin/assistant/chat',
+])
 
 const HOUR_MS = 3_600_000
 const DAY_MS = 86_400_000

@@ -64,6 +64,11 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   app.decorate('settings', new SettingsStore(handle.db, config))
   app.decorate('mailer', new MailerProvider(app.settings, config, app.log, mailer))
   app.decorate('events', new EventBus(handle.db, config, app.log))
+  // Every route as registered (method + URL pattern): the AI assistant's API catalog is built from it
+  app.decorate('routeTable', [] as Array<{ method: string; url: string }>)
+  app.addHook('onRoute', (route) => {
+    for (const method of [route.method].flat()) app.routeTable.push({ method: String(method), url: route.url })
+  })
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
   app.decorateRequest('dataScope', undefined)
@@ -146,7 +151,7 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   // Public: lets the login page show the demo account, the layout show the demo banner, and upload controls check
   // size / type before sending a file
   app.get('/api/admin/app-info', async () => {
-    const { security, upload } = await app.settings.publicInfo()
+    const { security, upload, assistant } = await app.settings.publicInfo()
     return config.demoMode
       ? {
           demo_mode: true,
@@ -154,8 +159,9 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
           demo_account: { username: config.adminUsername, password: config.adminPassword },
           upload,
           security,
+          assistant,
         }
-      : { demo_mode: false, upload, security }
+      : { demo_mode: false, upload, security, assistant }
   })
 
   app.get('/health', async (request, reply) => {

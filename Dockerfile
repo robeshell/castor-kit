@@ -20,6 +20,8 @@ RUN pnpm config set registry ${NPM_REGISTRY} && \
     CI=true pnpm install --frozen-lockfile
 
 COPY apps/ apps/
+# The API bundles the OpenAPI document (the AI assistant's API catalog)
+COPY docs/apifox-full.openapi.json docs/
 RUN pnpm --filter @castor-kit/web build && \
     pnpm --filter @castor-kit/api build && \
     CI=true pnpm --filter @castor-kit/api deploy --prod --legacy /out
