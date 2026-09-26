@@ -11,46 +11,12 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config as loadDotenv } from 'dotenv'
 import { z } from 'zod'
+import { collectSettingsEnv, type SettingEnvName } from './common/settings-env'
 
 export type AppEnv = 'development' | 'production' | 'test'
 
 const API_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(API_ROOT, '../..')
-
-export interface StorageConfig {
-  /** STORAGE_DRIVER: 'local' (default, a directory on a persistent disk) or 's3' (any S3-compatible service) */
-  driver: 'local' | 's3'
-  /** STORAGE_LOCAL_DIR, default <instanceDir>/uploads/files */
-  localDir: string
-  s3: {
-    endpoint: string
-    region: string
-    bucket: string
-    accessKey: string
-    secretKey: string
-    /** S3_PUBLIC_URL: public base URL of the bucket; when set, downloads redirect there instead of to a signed URL */
-    publicUrl: string
-    /** Path-style addressing (MinIO and most self-hosted services); defaults to true when S3_ENDPOINT is set */
-    forcePathStyle: boolean
-  }
-  /** UPLOAD_MAX_SIZE (bytes), capped by MAX_CONTENT_LENGTH */
-  uploadMaxSize: number
-  /** UPLOAD_ALLOWED_TYPES: allowed file extensions, lowercase without the dot */
-  uploadAllowedTypes: string[]
-}
-
-export interface MailConfig {
-  /** 'smtp' when SMTP_HOST is set, 'log' (MAIL_DRIVER=log: print mails to the server log, for development), else 'none' */
-  driver: 'smtp' | 'log' | 'none'
-  host: string
-  port: number
-  /** SMTP_SECURE: TLS from the first byte (port 465); otherwise STARTTLS when the server offers it */
-  secure: boolean
-  user: string
-  password: string
-  /** MAIL_FROM, e.g. "castor-kit <noreply@example.com>" */
-  from: string
-}
 
 export const DEFAULT_UPLOAD_TYPES = 'jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip'
 
@@ -68,8 +34,6 @@ export interface AppConfig {
   /** SESSION_COOKIE_SECURE: true/false forces it; empty = auto (by request protocol, Secure only over TLS) */
   sessionCookieSecure: boolean | 'auto'
   corsOrigins: string[]
-  loginMaxFailures: number
-  loginLockoutMinutes: number
   /** RATE_LIMIT_ENABLED (default true): per-IP request limits; the limits themselves are in system settings */
   rateLimitEnabled: boolean
   /** Frontend build output dir (apps/web/dist); if missing, the SPA fallback returns a JSON hint */
@@ -77,13 +41,19 @@ export interface AppConfig {
   /** Runtime data dir (instance/; uploads live in instance/uploads/...) */
   instanceDir: string
 
-  // ---- File center ----
-  storage: StorageConfig
-
-  // ---- Mail / links in mails ----
-  mail: MailConfig
-  /** APP_BASE_URL: public URL of the app (links in mails are built from it, never from the request's Host) */
-  appBaseUrl: string
+  // ---- System settings pinned by environment variables ----
+  /**
+   * Raw values of the variables in SETTING_ENV_NAMES that are set and non-empty (mail, file storage, uploads, AI,
+   * site URL, login lockout). SettingsStore validates them and lets them override the settings page.
+   */
+  settingsEnv: Partial<Record<SettingEnvName, string>>
+  /** STORAGE_LOCAL_DIR: directory of the `local` file storage driver, default <instanceDir>/uploads/files */
+  storageLocalDir: string
+  /**
+   * MAIL_DRIVER: '' = SMTP when configured in system settings; 'log' = print mails to the server log instead of
+   * sending (development); 'none' = never send
+   */
+  mailDriver: '' | 'log' | 'none'
 
   // ---- Public demo ----
   /** DEMO_MODE: system management becomes read-only, the demo account is shown on the login page, sample data resets periodically */
@@ -102,10 +72,7 @@ export interface AppConfig {
   /** When true, run the scheduler loop inside the web process; otherwise use the standalone `node dist/worker.js` process */
   runSchedulerInWeb: boolean
 
-  // ---- AI (OpenAI-compatible API) ----
-  aiApiBase: string
-  aiApiKey: string
-  aiModel: string
+  // ---- AI SQL ----
   /**
    * Read-only connection string for AI SQL. Production: AI_SQL_DATABASE_URL, or derived from DATABASE_URL with the
    * castor_kit_ro role when POSTGRES_RO_PASSWORD is set; otherwise startup fails (fail-closed).
@@ -140,8 +107,6 @@ const envSchema = z.object({
   SESSION_TTL_HOURS: intFromEnv(8),
   SESSION_COOKIE_SECURE: z.string().optional().default(''),
   CORS_ORIGINS: z.string().optional().default(''),
-  LOGIN_MAX_FAILURES: intFromEnv(10),
-  LOGIN_LOCKOUT_MINUTES: intFromEnv(15),
   RATE_LIMIT_ENABLED: z.string().optional().default('true'),
   WEB_DIST_DIR: z.string().optional(),
   INSTANCE_DIR: z.string().optional(),
@@ -154,34 +119,14 @@ const envSchema = z.object({
   TASK_SCHEDULER_INTERVAL_SECONDS: intFromEnv(20),
   TASK_SCHEDULER_LEASE_SECONDS: intFromEnv(1800),
   RUN_SCHEDULER_IN_WEB: z.string().optional().default('false'),
-  AI_API_BASE: z.string().optional().default(''),
-  AI_API_KEY: z.string().optional().default(''),
-  AI_MODEL: z.string().optional().default(''),
   AI_SQL_DATABASE_URL: z.string().optional(),
   AI_SQL_STATEMENT_TIMEOUT_MS: intFromEnv(5000),
   POSTGRES_RO_PASSWORD: z.string().optional().default(''),
   APIFOX_PROJECT_ID: z.string().optional().default(''),
   APIFOX_ACCESS_TOKEN: z.string().optional().default(''),
   APIFOX_API_VERSION: z.string().optional().default('2024-03-28'),
-  STORAGE_DRIVER: z.string().optional().default('local'),
   STORAGE_LOCAL_DIR: z.string().optional(),
-  S3_ENDPOINT: z.string().optional().default(''),
-  S3_REGION: z.string().optional().default(''),
-  S3_BUCKET: z.string().optional().default(''),
-  S3_ACCESS_KEY: z.string().optional().default(''),
-  S3_SECRET_KEY: z.string().optional().default(''),
-  S3_PUBLIC_URL: z.string().optional().default(''),
-  S3_FORCE_PATH_STYLE: z.string().optional().default(''),
-  UPLOAD_MAX_SIZE: intFromEnv(10 * 1024 * 1024),
-  UPLOAD_ALLOWED_TYPES: z.string().optional().default(DEFAULT_UPLOAD_TYPES),
   MAIL_DRIVER: z.string().optional().default(''),
-  SMTP_HOST: z.string().optional().default(''),
-  SMTP_PORT: intFromEnv(587),
-  SMTP_SECURE: z.string().optional().default(''),
-  SMTP_USER: z.string().optional().default(''),
-  SMTP_PASSWORD: z.string().optional().default(''),
-  MAIL_FROM: z.string().optional().default(''),
-  APP_BASE_URL: z.string().optional().default(''),
 })
 
 /** Boolean env var parsing: '1' / 'true' / 'yes' / 'on' are true (case-insensitive, whitespace-trimmed) */
@@ -231,50 +176,12 @@ function resolveAiSqlUrl(raw: string | undefined, env: AppEnv, mainUrl: string, 
   return mainUrl
 }
 
-/** Storage settings; an unknown driver, or s3 without bucket / keys, is a configuration error in every environment */
-function resolveStorage(parsed: z.infer<typeof envSchema>, instanceDir: string, maxContentLength: number): StorageConfig {
-  const driver = parsed.STORAGE_DRIVER.trim().toLowerCase() || 'local'
-  if (driver !== 'local' && driver !== 's3') throw new Error(`STORAGE_DRIVER 只能是 local 或 s3（当前：${driver}）`)
-  const endpoint = parsed.S3_ENDPOINT.trim()
-  const s3 = {
-    endpoint,
-    region: parsed.S3_REGION.trim() || 'us-east-1',
-    bucket: parsed.S3_BUCKET.trim(),
-    accessKey: parsed.S3_ACCESS_KEY.trim(),
-    secretKey: parsed.S3_SECRET_KEY.trim(),
-    publicUrl: parsed.S3_PUBLIC_URL.trim().replace(/\/+$/, ''),
-    forcePathStyle: parsed.S3_FORCE_PATH_STYLE.trim() === '' ? Boolean(endpoint) : isTruthy(parsed.S3_FORCE_PATH_STYLE),
-  }
-  if (driver === 's3') {
-    const missing = (['S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY'] as const).filter((k) => !parsed[k].trim())
-    if (missing.length > 0) throw new Error(`STORAGE_DRIVER=s3 需要设置 ${missing.join(' / ')}`)
-  }
-  return {
-    driver,
-    localDir: parsed.STORAGE_LOCAL_DIR ? resolve(parsed.STORAGE_LOCAL_DIR) : resolve(instanceDir, 'uploads', 'files'),
-    s3,
-    uploadMaxSize: Math.max(1, Math.min(parsed.UPLOAD_MAX_SIZE, maxContentLength)),
-    uploadAllowedTypes: parsed.UPLOAD_ALLOWED_TYPES.split(',')
-      .map((t) => t.trim().toLowerCase().replace(/^\./, ''))
-      .filter(Boolean),
-  }
-}
-
-function resolveMail(parsed: z.infer<typeof envSchema>): MailConfig {
-  const host = parsed.SMTP_HOST.trim()
-  const explicit = parsed.MAIL_DRIVER.trim().toLowerCase()
-  if (explicit && !['smtp', 'log', 'none'].includes(explicit)) throw new Error(`MAIL_DRIVER 只能是 smtp、log 或 none（当前：${explicit}）`)
-  const driver = (explicit || (host ? 'smtp' : 'none')) as MailConfig['driver']
-  if (driver === 'smtp' && !host) throw new Error('MAIL_DRIVER=smtp 需要设置 SMTP_HOST')
-  return {
-    driver,
-    host,
-    port: parsed.SMTP_PORT,
-    secure: parsed.SMTP_SECURE.trim() === '' ? parsed.SMTP_PORT === 465 : isTruthy(parsed.SMTP_SECURE),
-    user: parsed.SMTP_USER.trim(),
-    password: parsed.SMTP_PASSWORD,
-    from: parsed.MAIL_FROM.trim() || (parsed.SMTP_USER.trim() ? parsed.SMTP_USER.trim() : 'castor-kit <noreply@localhost>'),
-  }
+/** MAIL_DRIVER: only the development / kill-switch values; SMTP itself is configured in system settings */
+function resolveMailDriver(raw: string): AppConfig['mailDriver'] {
+  const value = raw.trim().toLowerCase()
+  if (value === '' || value === 'smtp') return ''
+  if (value === 'log' || value === 'none') return value
+  throw new Error(`MAIL_DRIVER 只能是 log 或 none（当前：${value}）`)
 }
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -305,14 +212,12 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: parsed.CORS_ORIGINS.split(',')
       .map((o) => o.trim())
       .filter(Boolean),
-    loginMaxFailures: parsed.LOGIN_MAX_FAILURES,
     rateLimitEnabled: isTruthy(parsed.RATE_LIMIT_ENABLED),
-    loginLockoutMinutes: parsed.LOGIN_LOCKOUT_MINUTES,
     webDistDir: parsed.WEB_DIST_DIR ? resolve(parsed.WEB_DIST_DIR) : resolve(REPO_ROOT, 'apps/web/dist'),
     instanceDir,
-    storage: resolveStorage(parsed, instanceDir, parsed.MAX_CONTENT_LENGTH),
-    mail: resolveMail(parsed),
-    appBaseUrl: parsed.APP_BASE_URL.trim().replace(/\/+$/, ''),
+    settingsEnv: collectSettingsEnv(source),
+    storageLocalDir: parsed.STORAGE_LOCAL_DIR ? resolve(parsed.STORAGE_LOCAL_DIR) : resolve(instanceDir, 'uploads', 'files'),
+    mailDriver: resolveMailDriver(parsed.MAIL_DRIVER),
     demoMode: isTruthy(parsed.DEMO_MODE),
     demoResetHours: Math.max(1, parsed.DEMO_RESET_HOURS),
     demoAiHourlyPerIp: Math.max(0, parsed.DEMO_AI_HOURLY_PER_IP),
@@ -322,9 +227,6 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     taskSchedulerIntervalSeconds: parsed.TASK_SCHEDULER_INTERVAL_SECONDS,
     taskSchedulerLeaseSeconds: parsed.TASK_SCHEDULER_LEASE_SECONDS,
     runSchedulerInWeb: isTruthy(parsed.RUN_SCHEDULER_IN_WEB),
-    aiApiBase: parsed.AI_API_BASE,
-    aiApiKey: parsed.AI_API_KEY,
-    aiModel: parsed.AI_MODEL,
     aiSqlDatabaseUrl: resolveAiSqlUrl(parsed.AI_SQL_DATABASE_URL, env, databaseUrl, parsed.POSTGRES_RO_PASSWORD.trim()),
     aiSqlStatementTimeoutMs: parsed.AI_SQL_STATEMENT_TIMEOUT_MS,
     postgresRoPassword: parsed.POSTGRES_RO_PASSWORD.trim(),

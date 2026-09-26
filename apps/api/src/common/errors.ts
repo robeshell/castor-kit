@@ -42,8 +42,8 @@ export function registerErrorHandler(app: FastifyInstance): void {
 
     // An uploaded file over the multipart limit: name the limit that applies to this upload
     if (error.code === 'FST_REQ_FILE_TOO_LARGE') {
-      const config = request.server.config
-      const limit = request.url.startsWith('/api/admin/files') ? config.storage.uploadMaxSize : config.maxContentLength
+      const { config, settings } = request.server
+      const limit = request.url.startsWith('/api/admin/files') ? settings.peek().upload.maxSize : config.maxContentLength
       return reply.status(413).send({ error: `文件过大，最大支持 ${Math.round((limit / 1024 / 1024) * 10) / 10}MB` })
     }
 

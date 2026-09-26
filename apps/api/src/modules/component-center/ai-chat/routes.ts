@@ -22,7 +22,10 @@ const PERMISSION = 'cc_ai_chat'
 export const CHAT_TIMINGS = { upstreamTimeoutMs: 60_000 }
 
 export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> {
-  const service = new AiChatService(app.config, { timeoutMs: CHAT_TIMINGS.upstreamTimeoutMs, log: app.log })
+  const service = new AiChatService(app.config, async () => (await app.settings.get()).ai, {
+    timeoutMs: CHAT_TIMINGS.upstreamTimeoutMs,
+    log: app.log,
+  })
   app.addHook('onClose', async () => service.close())
 
   app.post(
@@ -32,8 +35,8 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
       if (!(await hasMenuPermission(request, PERMISSION))) {
         return reply.status(403).send({ error: '无权限' })
       }
-      if (!service.configured) {
-        return reply.status(500).send({ error: '未配置 AI_API_KEY' })
+      if (!(await service.isConfigured())) {
+        return reply.status(500).send({ error: '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key' })
       }
 
       // The frontend sends the full message history, format: [{role, content}, ...]

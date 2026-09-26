@@ -30,7 +30,7 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
     readonlyDb ??= new ReadonlyDb(app.config.aiSqlDatabaseUrl, app.config.aiSqlStatementTimeoutMs)
     return readonlyDb
   }
-  const service = new AiSqlService(new AiSqlRepository(getReadonlyDb), app.config)
+  const service = new AiSqlService(new AiSqlRepository(getReadonlyDb), app.config, async () => (await app.settings.get()).ai)
   app.addHook('onClose', async () => {
     await service.close()
     if (readonlyDb) await readonlyDb.close()

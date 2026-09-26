@@ -44,7 +44,7 @@ describe('system settings', () => {
     expect(byKey['security.totp_enabled']!.value).toBe(false)
     expect(byKey['security.password_min_length']!.value).toBe(6)
     expect(byKey['security.session_ttl_hours']!.value).toBe(8)
-    expect(byKey['security.password_reset_enabled']!.unavailable_reason).toBe('需要先配置邮件服务（SMTP_HOST 等环境变量）')
+    expect(byKey['security.password_reset_enabled']!.unavailable_reason).toBe('需要先在「邮件」中配置 SMTP 服务器')
   })
 
   it('保存：校验类型与范围、未知键、角色编码；前置条件缺失时不能打开；公开部分经 app-info 下发', async () => {
@@ -52,7 +52,7 @@ describe('system settings', () => {
     expect((await put({ 'security.password_min_length': 3 })).json()).toEqual({ error: '设置项取值不合法：security.password_min_length' })
     expect((await put({ 'security.totp_enabled': 'yes' })).json()).toEqual({ error: '设置项取值不合法：security.totp_enabled' })
     expect((await put({ 'security.totp_required_roles': ['no_such_role'] })).json()).toEqual({ error: '角色编码不存在: no_such_role' })
-    expect((await put({ 'security.password_reset_enabled': true })).json()).toEqual({ error: '需要先配置邮件服务（SMTP_HOST 等环境变量）' })
+    expect((await put({ 'security.password_reset_enabled': true })).json()).toEqual({ error: '需要先在「邮件」中配置 SMTP 服务器' })
     // One invalid value → nothing is saved
     await put({ 'security.password_min_length': 10, 'security.rate_limit_per_minute': 1 })
     expect((await s.inject({ url: '/api/admin/app-info' })).json().security.password_policy.min_length).toBe(6)

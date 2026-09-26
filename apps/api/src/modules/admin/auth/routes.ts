@@ -15,7 +15,7 @@ import { AuthService } from './service'
 
 export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void> {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
-  const service = new AuthService(app.db, app.config, app.log)
+  const service = new AuthService(app.db, app.config, app.log, app.settings)
 
   app.get('/admin/login', async (request, reply) => {
     return reply.redirect(isSignedIn(request) ? '/admin' : '/')

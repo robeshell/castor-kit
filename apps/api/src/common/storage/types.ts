@@ -13,6 +13,8 @@ export interface DownloadOptions {
   contentType: string
   /** Show in the browser (images) instead of downloading */
   inline: boolean
+  /** Bucket recorded on the file row (s3), so changing the configured bucket doesn't strand older files */
+  bucket?: string | null
 }
 
 /** How to serve an object: stream it from this process, or redirect the client */
@@ -25,8 +27,8 @@ export interface StorageDriver {
   /** Store an object; overwriting an existing key with the same content is fine */
   put(key: string, data: Buffer, contentType: string): Promise<void>
   exists(key: string): Promise<boolean>
-  /** Remove an object; a missing object is not an error */
-  delete(key: string): Promise<void>
+  /** Remove an object; a missing object is not an error. `bucket`: the one recorded on the file row (s3) */
+  delete(key: string, bucket?: string | null): Promise<void>
   download(key: string, options: DownloadOptions): Promise<Download>
 }
 

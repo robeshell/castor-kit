@@ -1,11 +1,11 @@
 /**
  * S3 driver: any S3-compatible service (AWS S3, MinIO, Aliyun OSS, Tencent COS, Cloudflare R2).
- * Downloads redirect to a short-lived signed URL, or to S3_PUBLIC_URL when the bucket is public.
+ * Downloads redirect to a short-lived signed URL, or to the bucket's public URL when one is set.
  */
 
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { StorageConfig } from '@/config'
+import type { Settings } from '@/common/settings'
 import { assertObjectKey, contentDisposition, type Download, type DownloadOptions, type StorageDriver } from './types'
 
 /** Lifetime of signed download URLs */
@@ -17,7 +17,7 @@ export class S3Storage implements StorageDriver {
   private readonly client: S3Client
   private readonly publicUrl: string
 
-  constructor(config: StorageConfig['s3']) {
+  constructor(config: Settings['storage']['s3']) {
     this.bucket = config.bucket
     this.publicUrl = config.publicUrl
     this.client = new S3Client({
@@ -48,16 +48,16 @@ export class S3Storage implements StorageDriver {
     }
   }
 
-  async delete(key: string): Promise<void> {
+  async delete(key: string, bucket?: string | null): Promise<void> {
     assertObjectKey(key)
-    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
+    await this.client.send(new DeleteObjectCommand({ Bucket: bucket || this.bucket, Key: key }))
   }
 
   async download(key: string, options: DownloadOptions): Promise<Download> {
     assertObjectKey(key)
     if (this.publicUrl) return { kind: 'redirect', url: `${this.publicUrl}/${key}` }
     const command = new GetObjectCommand({
-      Bucket: this.bucket,
+      Bucket: options.bucket || this.bucket,
       Key: key,
       ResponseContentType: options.contentType,
       ResponseContentDisposition: contentDisposition(options.filename, options.inline),

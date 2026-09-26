@@ -10,6 +10,7 @@
 import { Agent, fetch } from 'undici'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
+import type { Settings } from '@/common/settings'
 import { AiSqlRepository, type ColumnInfo } from './repository'
 import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schema'
 import { pgToPy, toResponseValue } from './pg-values'
@@ -44,7 +45,9 @@ export class AiSqlService {
 
   constructor(
     repo: AiSqlRepository,
-    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
+    private readonly config: Partial<Pick<AppConfig, 'demoMode'>>,
+    /** Current model settings (system settings → AI), read on every call */
+    private readonly ai: () => Promise<Settings['ai']>,
     options: { llmTimeoutMs?: number } = {},
   ) {
     this.repo = repo
@@ -85,8 +88,8 @@ export class AiSqlService {
 
   /** Call the LLM to generate SQL */
   async callLlm(question: string, schema: string): Promise<string> {
-    const { aiApiBase: base, aiApiKey: key, aiModel: model } = this.config
-    if (!key) throw new LlmConfigError('未配置 AI_API_KEY 环境变量')
+    const { apiBase: base, apiKey: key, model } = await this.ai()
+    if (!key) throw new LlmConfigError('未配置 AI 模型，请在「系统设置 → AI」中填写 API Key')
 
     const systemMsg = {
       role: 'system',

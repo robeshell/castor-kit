@@ -27,7 +27,7 @@ const MAX_FAILURES = 4
 
 beforeAll(async () => {
   handle = openTestDb()
-  app = await buildTestApp({ loginMaxFailures: MAX_FAILURES })
+  app = await buildTestApp({ settingsEnv: { LOGIN_MAX_FAILURES: String(MAX_FAILURES) } })
 })
 
 beforeEach(async () => {

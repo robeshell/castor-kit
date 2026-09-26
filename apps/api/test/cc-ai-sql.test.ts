@@ -261,8 +261,8 @@ describe('AI SQL 路由', () => {
   beforeAll(async () => {
     handle = openTestDb()
     up = await startFakeUpstream()
-    app = await buildTestApp({ aiApiBase: up.url, aiApiKey: 'x', aiModel: 'm' })
-    unconfigured = await buildTestApp({ aiApiKey: '' })
+    app = await buildTestApp({ settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'x', AI_MODEL: 'm' } })
+    unconfigured = await buildTestApp()
     // createFixture first removes all ck_test_ users (including the super test account), so create fixtures before logging in as super
     await createFixture(handle)
     s = await superAdminSession(app, handle)
@@ -496,9 +496,9 @@ describe('AI SQL 路由', () => {
     expect(res.json()).toEqual(configError)
   })
 
-  it('generate：AI_API_BASE 非法 → 配置错误；上游连不上 → 通用错误', async () => {
-    const badBase = await buildTestApp({ aiApiBase: 'localhost:1', aiApiKey: 'x' })
-    const refused = await buildTestApp({ aiApiBase: 'http://127.0.0.1:1', aiApiKey: 'x' })
+  it('generate：没有接口地址 → 配置错误；上游连不上 → 通用错误', async () => {
+    const badBase = await buildTestApp({ settingsEnv: { AI_API_KEY: 'x' } })
+    const refused = await buildTestApp({ settingsEnv: { AI_API_BASE: 'http://127.0.0.1:1', AI_API_KEY: 'x' } })
     try {
       const a = await loginSession(badBase, SUPER_USER, SUPER_PASSWORD)
       const r1 = await a.inject({ method: 'POST', url: GENERATE, payload: { question: 'x' } })

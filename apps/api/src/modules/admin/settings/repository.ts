@@ -3,9 +3,9 @@
  * (common/settings.ts, shared by the whole app); this layer holds the lookups the settings page needs.
  */
 
-import { inArray } from 'drizzle-orm'
+import { count, inArray } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
-import { roles } from '@/db/schema'
+import { files, roles } from '@/db/schema'
 
 export class SettingsRepository {
   constructor(private readonly db: Executor) {}
@@ -15,5 +15,11 @@ export class SettingsRepository {
     if (codes.length === 0) return new Set()
     const rows = await this.db.select({ code: roles.code }).from(roles).where(inArray(roles.code, codes))
     return new Set(rows.map((r) => r.code))
+  }
+
+  /** Files per storage driver (the storage tab warns that changing the S3 connection strands existing s3 files) */
+  async fileCountsByStorage(): Promise<Record<string, number>> {
+    const rows = await this.db.select({ storage: files.storage, n: count() }).from(files).groupBy(files.storage)
+    return Object.fromEntries(rows.map((r) => [r.storage, Number(r.n)]))
   }
 }

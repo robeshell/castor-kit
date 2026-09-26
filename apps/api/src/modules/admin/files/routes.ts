@@ -9,14 +9,14 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
-import { Storage } from '@/common/storage'
+import { StorageProvider } from '@/common/storage'
 import { FILE_KINDS, type FileKind } from './schema'
 import { FileService } from './service'
 
 const BASE = '/api/admin/files'
 
 export async function registerFileRoutes(app: FastifyInstance): Promise<void> {
-  const service = new FileService(app.db, new Storage(app.config.storage), app.config.storage, app.log)
+  const service = new FileService(app.db, new StorageProvider(app.settings, app.config.storageLocalDir), app.settings, app.log)
   const opts = { preHandler: loginRequired }
   const fileOf = (request: FastifyRequest) => service.getOr404((request.params as { file_id: string }).file_id)
 

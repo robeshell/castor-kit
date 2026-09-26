@@ -15,6 +15,7 @@ import { translateMessage, type Language } from '@/common/i18n'
 import { pyJsonDumps } from '@/common/request-meta'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { AppConfig } from '@/config'
+import type { Settings } from '@/common/settings'
 import { pyStrip } from '../ai-sql/schema'
 
 const UPSTREAM_TIMEOUT_MS = 60_000
@@ -121,7 +122,9 @@ export class AiChatService {
   private readonly log: ChatStreamOptions['log']
 
   constructor(
-    private readonly config: Pick<AppConfig, 'aiApiBase' | 'aiApiKey' | 'aiModel'> & Partial<Pick<AppConfig, 'demoMode'>>,
+    private readonly config: Partial<Pick<AppConfig, 'demoMode'>>,
+    /** Current model settings (system settings → AI), read on every request */
+    private readonly ai: () => Promise<Settings['ai']>,
     options: ChatStreamOptions = {},
   ) {
     const timeout = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS
@@ -129,8 +132,8 @@ export class AiChatService {
     this.dispatcher = new Agent({ connect: { timeout }, headersTimeout: timeout, bodyTimeout: timeout })
   }
 
-  get configured(): boolean {
-    return Boolean(this.config.aiApiKey)
+  async isConfigured(): Promise<boolean> {
+    return Boolean((await this.ai()).apiKey)
   }
 
   async close(): Promise<void> {
@@ -143,7 +146,7 @@ export class AiChatService {
    * lang translates the error events: SSE bypasses the JSON response translation hook.
    */
   async *stream(messages: unknown[], signal: AbortSignal, lang: Language = 'zh-CN'): AsyncGenerator<string> {
-    const { aiApiBase, aiApiKey, aiModel } = this.config
+    const { apiBase: aiApiBase, apiKey: aiApiKey, model: aiModel } = await this.ai()
     const fullMessages = [SYSTEM_PROMPT, ...messages]
     try {
       const resp = await fetch(`${aiApiBase}/chat/completions`, {

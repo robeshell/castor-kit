@@ -24,7 +24,7 @@ import { TwoFactorService } from './service'
 
 export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<void> {
   const service = new TwoFactorService(app.db, app.config.secretKey, app.settings)
-  const auth = new AuthService(app.db, app.config, app.log)
+  const auth = new AuthService(app.db, app.config, app.log, app.settings)
   const users = new UserService(app.db, app.settings)
   const clientOf = (request: FastifyRequest) => ({ ip: getClientIp(request), userAgent: getUserAgent(request) })
 

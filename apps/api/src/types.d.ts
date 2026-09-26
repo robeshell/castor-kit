@@ -1,7 +1,7 @@
 import type { AppConfig } from './config'
 import type { Db } from './db/client'
 import type { DataScope } from './common/data-scope'
-import type { Mailer } from './common/mailer'
+import type { MailerProvider } from './common/mailer'
 import type { SettingsStore } from './common/settings'
 import type { AdminUserWithRoles, SessionRow } from './db/schema'
 
@@ -11,8 +11,8 @@ declare module 'fastify' {
     db: Db
     /** System settings, cached per process */
     settings: SettingsStore
-    /** Outgoing mail; null when MAIL_DRIVER / SMTP_HOST isn't configured */
-    mailer: Mailer | null
+    /** Outgoing mail for the current settings (`await app.mailer.get()`: null when mail isn't configured) */
+    mailer: MailerProvider
   }
   interface FastifyRequest {
     /** Per-request cache for getCurrentAdminUser(); undefined = not yet queried */

@@ -13,7 +13,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { files } from '@/db/schema'
-import { buildTestApp, multipartFile, openTestDb, superAdminSession, testConfig, type AuthedSession } from './helpers'
+import { buildTestApp, multipartFile, openTestDb, superAdminSession, type AuthedSession } from './helpers'
 
 const endpoint = process.env.S3_TEST_ENDPOINT ?? ''
 const PNG = Buffer.from(
@@ -49,7 +49,17 @@ describe.skipIf(!endpoint)('files: s3 driver against a live endpoint', () => {
   beforeAll(async () => {
     if (ownBucket) await client.send(new CreateBucketCommand({ Bucket: bucket }))
     handle = openTestDb()
-    app = await buildTestApp({ storage: { ...testConfig().storage, driver: 's3', s3 } })
+    app = await buildTestApp({
+      settingsEnv: {
+        STORAGE_DRIVER: 's3',
+        S3_ENDPOINT: endpoint,
+        S3_REGION: s3.region,
+        S3_BUCKET: s3.bucket,
+        S3_ACCESS_KEY: s3.accessKey,
+        S3_SECRET_KEY: s3.secretKey,
+        S3_FORCE_PATH_STYLE: 'true',
+      },
+    })
     s = await superAdminSession(app, handle)
   })
 

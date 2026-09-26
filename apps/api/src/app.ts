@@ -17,7 +17,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
-import { createMailer, type Mailer } from './common/mailer'
+import { MailerProvider, type Mailer } from './common/mailer'
 import { registerRateLimit } from './common/rate-limit'
 import { registerSessionResolver } from './common/session'
 import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
@@ -42,7 +42,7 @@ export interface BuildAppOptions {
   logger?: FastifyServerOptions['logger']
   /** Tests may inject an existing connection; by default one is created from config.databaseUrl and closed in onClose */
   dbHandle?: DbHandle
-  /** Tests may capture outgoing mail; by default built from config.mail */
+  /** Tests may capture outgoing mail; by default built from the mail settings */
   mailer?: Mailer | null
 }
 
@@ -60,7 +60,7 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   app.decorate('config', config)
   app.decorate('db', handle.db)
   app.decorate('settings', new SettingsStore(handle.db, config))
-  app.decorate('mailer', mailer !== undefined ? mailer : createMailer(config.mail, app.log))
+  app.decorate('mailer', new MailerProvider(app.settings, config, app.log, mailer))
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
   app.decorateRequest('dataScope', undefined)
@@ -140,9 +140,8 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   // ---- Built-in routes ----
   // Public: lets the login page show the demo account, the layout show the demo banner, and upload controls check
   // size / type before sending a file
-  const upload = { max_size: config.storage.uploadMaxSize, allowed_types: config.storage.uploadAllowedTypes }
   app.get('/api/admin/app-info', async () => {
-    const security = await app.settings.publicInfo()
+    const { security, upload } = await app.settings.publicInfo()
     return config.demoMode
       ? {
           demo_mode: true,
