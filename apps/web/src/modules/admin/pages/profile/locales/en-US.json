@@ -82,5 +82,6 @@
   "{{time}} 到期": "Expires {{time}}",
   "最近使用 {{time}}": "Used {{time}}",
   "API Token 已创建": "API token created",
-  "Token 只显示这一次，关闭后无法再查看。请立即复制并妥善保存；泄露时到这里吊销。": "The token is shown only this once. Copy it now and keep it safe; if it leaks, revoke it here."
+  "Token 只显示这一次，关闭后无法再查看。请立即复制并妥善保存；泄露时到这里吊销。": "The token is shown only this once. Copy it now and keep it safe; if it leaks, revoke it here.",
+  "我已保存好 Token": "I've saved the token"
 }

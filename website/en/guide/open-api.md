@@ -41,7 +41,7 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 
 Error messages follow the `Accept-Language` header like every other API error.
 
-These account and security endpoints never accept tokens, even a token with every permission: sign-in / sign-out, password reset, changing the password, identity checks, two-step verification (including an admin resetting someone else's), the profile, online users and sessions, API token management itself, changing System settings and its test buttons, and adding / changing / deleting webhooks or viewing their secret. Read-only endpoints such as reading System settings or the webhook list do accept tokens.
+These account and security endpoints never accept tokens, even a token with every permission: sign-in / sign-out, password reset, changing the password, identity checks, two-step verification (including an admin resetting someone else's), the profile, online users and sessions, API token management itself, changing System settings and its test buttons, and every webhook write (add, change, delete, regenerate the secret, send a test, redeliver) or viewing its secret. Read-only endpoints such as reading System settings or the webhook list do accept tokens.
 
 ### Managing tokens
 

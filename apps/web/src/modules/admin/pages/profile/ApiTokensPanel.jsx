@@ -301,7 +301,7 @@ export default function ApiTokensPanel() {
         title="API Token 已创建"
         secret={created?.token}
         warning="Token 只显示这一次，关闭后无法再查看。请立即复制并妥善保存；泄露时到这里吊销。"
-        doneText="我已保存"
+        doneText="我已保存好 Token"
       >
         <pre className="bg-muted/50 overflow-x-auto rounded-lg border px-3 py-2.5 font-mono text-xs leading-relaxed">
           {`curl -H "Authorization: Bearer <Token>" \\\n  ${window.location.origin}/api/admin/me`}
