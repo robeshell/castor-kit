@@ -77,7 +77,7 @@ The AI asks additional questions only when the data model has an ambiguity that 
 3. Polish the frontend page: Chinese labels, form validation, enum fields, translations.
 4. Add the menu and button permissions to `seed-rbac.ts` and run `pnpm seed:rbac -- --incremental`.
 5. Review the newly generated migration SQL, run `pnpm db:migrate`, and confirm the table really exists with `psql -d <database> -c '\d <table>'`.
-6. Run `pnpm openapi:generate` to fill in the API docs (recommended).
+6. Run `pnpm openapi:generate` to add skeletons for the new endpoints, then write them up from the code per `AGENTS.md` ("OpenAPI 编写规范") — required; `pnpm verify` checks it.
 
 ### 5. Verification gate
 

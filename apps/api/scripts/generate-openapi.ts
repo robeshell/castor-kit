@@ -15,9 +15,8 @@
  *
  * Path and merge rules:
  * - Path params are converted to standard OpenAPI form: `:user_id(^\d+$)` → `{user_id}`, wildcard `*` → `{path}`.
- *   The document also has legacy keys like `{int:user_id}` / `{path:filename}` (some duplicate hand-maintained detailed `{user_id}` entries);
- *   "is the path already in the document" compares by param position (ignoring param names and converter prefixes), so legacy `{int:x}` entries still count as covered and no third copy is added.
- * - All methods of the same path are merged before generating the stub (e.g. PUT and DELETE of announcements/:id are recorded together).
+ * - "Is it documented" compares by path shape (parameter names ignored) and method, so a stub joins an existing key of
+ *   the same shape instead of creating a second one; the lint then reports keys whose names differ from the route.
  * - Write-back preserves the document's original key order (including integer-like keys such as "201" before "200"), with output formatted like Python `json.dumps(indent=2, ensure_ascii=False)`, byte-for-byte stable.
  */
 

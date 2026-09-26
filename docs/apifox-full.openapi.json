@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "castor-kit 接口文档（自动生成）",
+    "title": "castor-kit 接口文档",
     "version": "1.0.0",
-    "description": "castor-kit 接口文档（由脚本自动生成）。"
+    "description": "castor-kit 后台接口。每个接口按 AGENTS.md「OpenAPI 编写规范」照代码编写：summary / description 写明用途与所需权限，参数、请求体和返回结构与代码一致；security 中列出 bearerAuth 的接口可用 API Token 调用。"
   },
   "servers": [
     {
