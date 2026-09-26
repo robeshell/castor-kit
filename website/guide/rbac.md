@@ -11,6 +11,8 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 | `menus` | 菜单与按钮权限，`parent_id` 自引用形成树 |
 | `user_roles` | 用户 ↔ 角色，多对多（复合主键） |
 | `role_menus` | 角色 ↔ 菜单，多对多（复合主键） |
+| `departments` | 部门，`parent_id` 自引用形成树；用户通过 `admin_users.dept_id` 归属部门 |
+| `role_depts` | 角色 ↔ 部门，数据范围为「自定义部门」时使用 |
 
 `menus` 表的 `menu_type` 区分两类记录：
 
@@ -129,13 +131,18 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 
 ## 在界面上管理
 
-系统管理下的三个页面对应 RBAC 数据：
+系统管理下的四个页面对应 RBAC 数据：
 
 | 页面 | 作用 |
 |---|---|
 | 用户管理 | 创建用户、分配角色，维护昵称 / 邮箱 / 手机 / 头像，启用或停用账号 |
-| 角色权限 | 创建角色、为角色勾选菜单和按钮权限 |
+| 角色权限 | 创建角色、为角色勾选菜单和按钮权限、设置数据范围 |
+| 部门管理 | 维护部门树（上级、负责人、排序、状态），供用户归属与数据权限使用 |
 | 菜单管理 | 查看和调整菜单树 |
+
+::: tip
+在界面上新增或修改的菜单不会写回 `seed-rbac.ts`。另外，增量同步会按 `MENUS_DATA` 更新同 `code` 菜单的字段，所以对已定义菜单在界面上做的修改，会在下次同步（包括容器重启）时被覆盖。需要长期保留、随代码部署的菜单，应当写进 `MENUS_DATA`。
+:::
 
 ### 停用账号
 
@@ -145,6 +152,45 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 - 已经登录的会话在下一次请求时失效（401，前端跳回登录页）——每个需要登录的请求都会确认账号仍存在且处于启用状态
 - 不能停用自己，也不能停用或删除最后一个启用中的超级管理员；导入时填了「状态」列同样受这些限制
 
-::: tip
-在界面上新增或修改的菜单不会写回 `seed-rbac.ts`。另外，增量同步会按 `MENUS_DATA` 更新同 `code` 菜单的字段，所以对已定义菜单在界面上做的修改，会在下次同步（包括容器重启）时被覆盖。需要长期保留、随代码部署的菜单，应当写进 `MENUS_DATA`。
-:::
+## 数据权限
+
+菜单和按钮权限决定「能用哪些功能」，数据权限决定「能看到哪些数据」。它由角色的**数据范围**控制：
+
+| 数据范围 | 能看到的数据 |
+|---|---|
+| 全部数据（`all`，默认） | 不限制 |
+| 本部门及下级（`dept_and_children`） | 用户所在部门及其所有下级部门的数据 |
+| 本部门（`dept`） | 用户所在部门的数据 |
+| 仅本人（`self`） | 用户自己创建的数据 |
+| 自定义部门（`custom`） | 在角色上勾选的部门的数据 |
+
+- 用户有多个角色时取各角色范围的**并集**；超级管理员和任一角色为「全部数据」时不受限制
+- 范围受限但算出来为空时（例如「本部门」角色的用户没有部门），什么也看不到，不会退化成看全部
+- 超出范围的记录在详情、修改、删除时一律返回 404，不透露数据是否存在；导出同样只导出范围内的数据
+- 停用的部门仍算在「本部门及下级」的范围内；部门树本身不做数据权限
+
+### 哪些数据受控
+
+- **用户管理**：按用户所在部门过滤，「仅本人」即只能看到自己。范围受限的管理员只能把用户分配到自己范围内的部门
+- **用 `--data-scope` 生成的模块**：表上有 `dept_id`（所属部门）和 `created_by`（创建人），新建时自动写入当前用户及其部门
+
+```bash
+pnpm scaffold -- --name contract --domain admin --fields "title:str,amount:float" --data-scope
+```
+
+### 在自己的模块里接入
+
+数据范围在 routes 里解析、在 repository 里过滤，repository 不接触 `request`：
+
+```ts
+// routes.ts
+import { currentActor, resolveDataScope } from '@/common/data-scope'
+const scope = await resolveDataScope(request)          // 按请求缓存
+return service.listItems(page, per_page, search, scope)
+
+// repository.ts
+import { dataScopeWhere } from '@/common/data-scope'
+const where = and(this.searchWhere(search), dataScopeWhere(scope, { deptColumn: t.dept_id, ownerColumn: t.created_by }))
+```
+
+在模块的 `schema.ts` 里声明 `export const DATA_SCOPE = { deptColumn: 'dept_id', ownerColumn: 'created_by' }`，`pnpm verify` 的 `data_scope_filter` 检查会确认 repository 用了 `dataScopeWhere`。

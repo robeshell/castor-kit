@@ -55,6 +55,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<字段:类型,...>"` | 生成后端模块、前端页面、接口测试和迁移 |
 | `pnpm scaffold -- ... --dry-run` | 只打印将生成的内容，不写文件 |
 | `pnpm scaffold -- ... --skip-migration` | 生成代码但不生成迁移 |
+| `pnpm scaffold -- ... --data-scope` | 生成的模块按数据权限过滤（加 `dept_id` / `created_by`） |
 | `pnpm verify -- --module <name>` | 运行全部门禁检查 |
 | `pnpm verify -- --module <name> --skip-build` | 跳过前端构建 |
 | `pnpm verify -- --module <name> --json` | 输出结构化 JSON |

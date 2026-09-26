@@ -108,6 +108,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--fields` | 字段列表，格式 `字段:类型,字段:类型` | `name:str` |
 | `--dry-run` | 只打印将要生成的内容，不写文件、不注册、不生成迁移 | 关闭 |
 | `--skip-migration` | 不调用 drizzle-kit 生成迁移 | 关闭 |
+| `--data-scope` | 接入[数据权限](/guide/rbac#数据权限)：表上加 `dept_id` / `created_by`，列表、详情、修改、删除、导出按当前用户的数据范围过滤，新建时写入创建人与部门，并生成对应的接口测试 | 关闭 |
 | `-h` / `--help` | 打印用法 | — |
 
 ### 生成内容
@@ -205,6 +206,7 @@ pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout
 | 检查 | 内容 |
 |---|---|
 | `backend_file` | 后端 routes / repository / service 文件存在 |
+| `data_scope_filter` | `schema.ts` 声明了 `DATA_SCOPE` 的模块，repository 必须用 `dataScopeWhere` 过滤；未声明时跳过 |
 | `frontend_page` | 前端页面文件存在 |
 | `frontend_no_legacy_ui` | 页面目录不使用 `@douyinfe/*`、`var(--semi-*)` 等已下线的 UI 体系 |
 | `frontend_api` | 前端 API 文件存在 |

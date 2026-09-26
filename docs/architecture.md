@@ -150,6 +150,7 @@ castor-kit/
 - `my-menus` 的叶子节点没有 `children` 键；`menu_codes` 与角色顺序不保证，比较时按集合。
 - 菜单 `component` 字段格式 `<module>/<subdir>/<page>`，前端 `App.jsx` 用 `import.meta.glob` 解析。
 - 菜单与权限的唯一事实源是 `apps/api/scripts/seed-rbac.ts`；菜单 ID 不重排（`role_menus` 以 ID 引用）。
+- **数据权限**（`common/data-scope.ts`）：`roles.data_scope` 为 `all` / `dept_and_children` / `dept` / `self` / `custom`（`custom` 的部门在 `role_depts`），默认 `all`。`resolveDataScope(request)` 按请求缓存，多角色取并集，`super_admin` 或任一 `all` 不限制；部门子树用递归 CTE（`common/tree.ts` 的 `descendantIds`）。`dataScopeWhere(scope, { deptColumn, ownerColumn })` 是纯函数：不限制时返回 `undefined`，受限但为空时返回恒假条件（失败即关闭，不能退化成不过滤）。超出范围的记录在详情 / 修改 / 删除时按 404 处理。部门表本身不做数据权限。
 
 ### 4.7 分页
 - `parsePagination(query)`：page ≥ 1，1 ≤ per_page ≤ 200，默认 20。
@@ -224,8 +225,8 @@ castor-kit/
 
 | 脚本 | 命令 | 说明 |
 |---|---|---|
-| `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；字段类型映射见 `FIELD_TYPE_MAP` |
-| `scripts/verify-feature.ts` | `pnpm verify -- --module <name> [--skip-build] [--json]` | 门禁：`typescript_compile`、`no_local_has_permission`、`migration_chain`、`migration_applied`、`docs_paths`（AI 文档引用路径存在）、`backend_file`、`frontend_page`、`frontend_api`、`router_registration`、`rbac_seed`、`frontend_build`、`frontend_tests`、`api_tests` 等 |
+| `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
+| `scripts/verify-feature.ts` | `pnpm verify -- --module <name> [--skip-build] [--json]` | 门禁：`typescript_compile`、`no_local_has_permission`、`migration_chain`、`migration_applied`、`docs_paths`（AI 文档引用路径存在）、`backend_file`、`data_scope_filter`（声明 `DATA_SCOPE` 的模块必须用 `dataScopeWhere`）、`frontend_page`、`frontend_api`、`router_registration`、`rbac_seed`、`frontend_build`、`frontend_tests`、`api_tests` 等 |
 | `scripts/seed-rbac.ts` | `pnpm seed:rbac -- --incremental` | 菜单树唯一事实源；`--incremental` 按 code upsert 不删除，同步序列并刷新超级管理员权限；不带参数是全量重建（仅空库） |
 | `scripts/init-ro-role.ts` | `pnpm --filter @castor-kit/api init-ro-role` | 创建 AI SQL 只读账号并按敏感表规则授权 |
 | `scripts/setup-once.ts` | `pnpm setup-once` | `pg_advisory_lock` → migrate → seed-rbac（增量）→ init-ro-role，多副本并发安全 |
