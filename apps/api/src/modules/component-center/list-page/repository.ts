@@ -4,6 +4,7 @@
 
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'
 import type { PgInsertValue, PgUpdateSetSource } from 'drizzle-orm/pg-core'
+import { clearFileRefs, syncFileRefs } from '@/common/file-refs'
 import type { Executor } from '@/db/client'
 import { query_management_versions, query_managements, type QueryManagement } from '@/db/schema'
 
@@ -80,16 +81,27 @@ export class ListPageRepository {
 
   async insert(values: QueryManagementInsert): Promise<QueryManagement> {
     const [row] = await this.db.insert(query_managements).values(values).returning()
+    await this.syncFiles(row!)
     return row!
   }
 
   async update(id: number, values: QueryManagementUpdate): Promise<QueryManagement> {
     const [row] = await this.db.update(query_managements).set(values).where(eq(query_managements.id, id)).returning()
+    await this.syncFiles(row!)
     return row!
   }
 
   async delete(id: number): Promise<void> {
+    await clearFileRefs(this.db, 'query_managements', id)
     await this.db.delete(query_managements).where(eq(query_managements.id, id))
+  }
+
+  /** Images / attachments uploaded to the file center are registered as this row's references (other URLs are ignored) */
+  private async syncFiles(row: QueryManagement) {
+    await syncFileRefs(this.db, 'query_managements', row.id, {
+      images: urlList(row.image_urls, row.image_url),
+      attachments: urlList(row.file_urls, row.file_url),
+    })
   }
 
   async insertVersion(values: QueryManagementVersionInsert): Promise<void> {
@@ -113,4 +125,16 @@ export class ListPageRepository {
       .offset((page - 1) * perPage)
     return { total: totalRow?.n ?? 0, items }
   }
+}
+
+/** URLs stored as a JSON array (plus the legacy single-URL column) */
+function urlList(json: string | null, single: string | null): string[] {
+  let urls: string[] = []
+  try {
+    const parsed: unknown = json ? JSON.parse(json) : []
+    if (Array.isArray(parsed)) urls = parsed.filter((v): v is string => typeof v === 'string')
+  } catch {
+    urls = []
+  }
+  return single ? [...urls, single] : urls
 }

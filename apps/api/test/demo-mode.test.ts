@@ -57,10 +57,11 @@ describe('demo write guard', () => {
       '/api/admin/component-center/kanban/cards',
       '/api/admin/notifications/12/read',
       '/api/admin/notifications/read-all',
+      '/api/admin/files',
     ]) {
       expect(isDemoWritable(path), path).toBe(true)
     }
-    for (const path of ['/api/admin/users', '/api/admin/roles/1', '/api/admin/change-password', '/api/admin/notifications', '/api/admin/scheduled-tasks']) {
+    for (const path of ['/api/admin/files/00000000-0000-4000-8000-000000000000', '/api/admin/users', '/api/admin/roles/1', '/api/admin/change-password', '/api/admin/notifications', '/api/admin/scheduled-tasks']) {
       expect(isDemoWritable(path), path).toBe(false)
     }
   })

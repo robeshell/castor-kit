@@ -8,7 +8,7 @@
 import { stat } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { hasAnyMenuPermission, hasMenuPermission, loginRequired } from '@/common/auth'
+import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, jsonBody, notFound, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
@@ -107,21 +107,8 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     return service.importItems(await getUploadedFile(request))
   })
 
-  app.post(`${BASE}/upload-image`, opts, async (request, reply) => {
-    if (!(await hasAnyMenuPermission(request, 'system_list_page_add', 'system_list_page_edit'))) {
-      return reply.status(403).send({ error: '无权限上传图片' })
-    }
-    return service.saveImage(await getUploadedFile(request))
-  })
-
-  app.post(`${BASE}/upload-file`, opts, async (request, reply) => {
-    if (!(await hasAnyMenuPermission(request, 'system_list_page_add', 'system_list_page_edit'))) {
-      return reply.status(403).send({ error: '无权限上传附件' })
-    }
-    return service.saveFile(await getUploadedFile(request))
-  })
-
-  // Read-back: `<path:filename>` → wildcard `*`. reply.sendFile comes from @fastify/static, registered globally in app.ts.
+  // Read-back of files uploaded before the file center existed (new uploads go through /api/admin/files).
+  // `<path:filename>` → wildcard `*`. reply.sendFile comes from @fastify/static, registered globally in app.ts.
   await app.register(async (scope) => {
 
     /**

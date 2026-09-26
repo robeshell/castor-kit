@@ -1,7 +1,7 @@
 /**
  * Public demo guard (DEMO_MODE).
  *
- * Everything outside the component gallery is read-only: accounts, roles, menus, dictionaries, scheduled tasks,
+ * Everything outside the component gallery (and file uploads it uses) is read-only: accounts, roles, menus, dictionaries, scheduled tasks,
  * announcements and password changes all reject writes, so visitors can't lock others out or break the demo.
  * The gallery stays fully editable and is restored by src/demo/reset.ts.
  *
@@ -21,6 +21,8 @@ export const DEMO_WRITABLE: RegExp[] = [
   /^\/api\/admin\/(login|logout)$/,
   /^\/api\/admin\/component-center\//,
   /^\/api\/admin\/notifications\/(\d+\/read|read-all)$/,
+  // Uploads back the component gallery's image / attachment fields; unused files are cleaned up after 24h
+  /^\/api\/admin\/files$/,
 ]
 
 export function isDemoWritable(path: string): boolean {

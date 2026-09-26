@@ -7,6 +7,7 @@
   "使用情况": "Usage",
   "其他": "Other",
   "删除文件 {{name}}？": "Delete {{name}}?",
+  "单个文件不超过 {{size}}MB": "{{size}} MB per file at most",
   "引用": "Usage",
   "搜索文件名": "Search file name",
   "文件已删除": "File deleted",

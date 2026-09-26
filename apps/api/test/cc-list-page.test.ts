@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import ExcelJS from 'exceljs'
@@ -6,7 +6,7 @@ import { eq, inArray, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { query_management_versions, query_managements } from '@/db/schema'
+import { file_references, files, query_management_versions, query_managements } from '@/db/schema'
 import { pyTitle, secureFilename } from '@/modules/component-center/list-page/schema'
 import { normalizeImageUrls, parseSchemaConfig } from '@/modules/component-center/list-page/service'
 import {
@@ -19,6 +19,7 @@ import {
   multipartFile,
   openTestDb,
   superAdminSession,
+  testConfig,
   type AuthedSession,
 } from './helpers'
 
@@ -43,7 +44,7 @@ async function create(body: Record<string, unknown>) {
 beforeAll(async () => {
   handle = openTestDb()
   instanceDir = mkdtempSync(join(tmpdir(), 'ck-r3-instance-'))
-  app = await buildTestApp({ instanceDir })
+  app = await buildTestApp({ instanceDir, storage: { ...testConfig().storage, localDir: join(instanceDir, 'uploads', 'files') } })
   // createFixture first cleans up all ck_test_ users, so it must run before superAdminSession
   await createFixture(handle)
   s = await superAdminSession(app, handle)
@@ -180,7 +181,7 @@ describe('list-page CRUD', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/abc`, payload: {} })).statusCode).toBe(405)
   })
 
-  it('权限 403：列表/新增/导出/模板/导入/上传/预览/版本/回滚', async () => {
+  it('权限 403：列表/新增/导出/模板/导入/回读/预览/版本/回滚', async () => {
     const checks: [string, string, string][] = [
       ['GET', B, '无权限查看列表页数据'],
       ['POST', B, '无权限新增记录'],
@@ -188,8 +189,6 @@ describe('list-page CRUD', () => {
       ['POST', `${B}/export`, '无权限导出数据'],
       ['GET', `${B}/template`, '无权限下载导入模板'],
       ['POST', `${B}/import`, '无权限导入数据'],
-      ['POST', `${B}/upload-image`, '无权限上传图片'],
-      ['POST', `${B}/upload-file`, '无权限上传附件'],
       ['GET', `${B}/image/x.png`, '无权限查看图片'],
       ['GET', `${B}/file/x.pdf`, '无权限查看附件'],
       ['POST', `${B}/run-preview`, '无权限执行数据预览'],
@@ -423,52 +422,52 @@ describe('list-page 导入导出', () => {
   })
 })
 
-describe('list-page 上传与回读', () => {
-  it('图片：上传 → 文件落盘 → 回读字节一致（inline）', async () => {
+describe('list-page 图片 / 附件（文件中心）与旧文件回读', () => {
+  it('保存文件中心的图片 / 附件地址时登记引用；改掉或删除记录时解除', async () => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+    const up = async (name: string, data: Buffer | string) =>
+      (await s.inject({ method: 'POST', url: '/api/admin/files', ...multipartFile(name, data) })).json()
+    const image = await up('cover.png', png)
+    const doc = await up('spec.pdf', '%PDF-1.4 spec')
+    const refs = async (id: number) =>
+      (await handle.db.select().from(file_references).where(eq(file_references.ref_table, 'query_managements')))
+        .filter((r) => r.ref_id === String(id))
+        .map((r) => [r.ref_field, r.file_id])
+        .sort()
+
+    const created = await s.inject({
+      method: 'POST',
+      url: B,
+      payload: { name: `${P}files`, query_code: `${P}files`, image_urls: [image.url, 'https://example.com/x.png'], file_urls: [doc.url] },
+    })
+    expect(created.statusCode, created.body).toBe(201)
+    const id = created.json().id
+    expect(await refs(id)).toEqual([['attachments', doc.id], ['images', image.id]].sort())
+    expect((await s.inject({ method: 'DELETE', url: image.url })).json()).toEqual({ error: '文件正在被使用，不能删除' })
+
+    await s.inject({ method: 'PUT', url: `${B}/${id}`, payload: { image_urls: [] } })
+    expect(await refs(id)).toEqual([['attachments', doc.id]])
+    await s.inject({ method: 'DELETE', url: `${B}/${id}` })
+    expect(await refs(id)).toEqual([])
+    await handle.db.delete(files).where(inArray(files.id, [image.id, doc.id]))
+  })
+
+  it('旧文件回读：图片 inline、附件 attachment', async () => {
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
-    const file = multipartFile('../../x.PNG', png, 'file', 'image/png')
-    const res = await s.inject({ method: 'POST', url: `${B}/upload-image`, payload: file.payload, headers: file.headers })
-    expect(res.statusCode).toBe(200)
-    const body = res.json()
-    expect(body.message).toBe('上传成功')
-    expect(body.filename).toMatch(/^[0-9a-f]{32}\.png$/)
-    expect(body.url).toBe(`${B}/image/${body.filename}`)
-    expect(readdirSync(join(instanceDir, 'uploads', 'list_page'))).toContain(body.filename)
+    mkdirSync(join(instanceDir, 'uploads', 'list_page'), { recursive: true })
+    mkdirSync(join(instanceDir, 'uploads', 'list_page_files'), { recursive: true })
+    writeFileSync(join(instanceDir, 'uploads', 'list_page', 'legacy.png'), png)
+    writeFileSync(join(instanceDir, 'uploads', 'list_page_files', 'legacy_r3.pdf'), 'hello pdf')
 
-    const got = await s.inject({ url: body.url })
-    expect(got.statusCode).toBe(200)
-    expect(got.headers['content-type']).toBe('image/png')
-    expect(got.headers['content-disposition']).toBe(`inline; filename=${body.filename}`)
-    expect(got.rawPayload.equals(png)).toBe(true)
-  })
-
-  it('附件：上传 → 回读 attachment；文件名 secure_filename + uuid 前缀', async () => {
-    const file = multipartFile('r3 报告 test.pdf', 'hello pdf')
-    const res = await s.inject({ method: 'POST', url: `${B}/upload-file`, payload: file.payload, headers: file.headers })
-    const body = res.json()
-    expect(body.filename).toMatch(/^[0-9a-f]{32}_r3_test\.pdf$/)
-    expect(readFileSync(join(instanceDir, 'uploads', 'list_page_files', body.filename), 'utf8')).toBe('hello pdf')
-    const got = await s.inject({ url: body.url })
-    expect(got.headers['content-disposition']).toBe(`attachment; filename=${body.filename}`)
-    expect(got.headers['cache-control']).toBe('no-cache')
-    expect(got.body).toBe('hello pdf')
-  })
-
-  it('上传校验分支', async () => {
-    const up = async (url: string, name: string, content: string | Buffer = 'x') => {
-      const f = multipartFile(name, content)
-      return (await s.inject({ method: 'POST', url, payload: f.payload, headers: f.headers })).json()
-    }
-    expect((await s.inject({ method: 'POST', url: `${B}/upload-image` })).json()).toEqual({ error: '请先选择图片文件' })
-    expect((await s.inject({ method: 'POST', url: `${B}/upload-file` })).json()).toEqual({ error: '请先选择文件' })
-    expect(await up(`${B}/upload-image`, '中文')).toEqual({ error: '无效的图片文件名' })
-    expect(await up(`${B}/upload-image`, 'a.bmp')).toEqual({ error: '仅支持 jpg/png/gif/webp 图片' })
-    expect(await up(`${B}/upload-image`, 'noext')).toEqual({ error: '仅支持 jpg/png/gif/webp 图片' })
-    expect(await up(`${B}/upload-image`, 'a.png', '')).toEqual({ error: '图片文件不能为空' })
-    expect(await up(`${B}/upload-image`, 'a.png', Buffer.alloc(5 * 1024 * 1024 + 1))).toEqual({ error: '图片不能超过 5MB' })
-    expect(await up(`${B}/upload-file`, '报告.pdf')).toEqual({ error: '无效的文件类型' })
-    expect(await up(`${B}/upload-file`, 'a.exe')).toEqual({ error: '仅支持常见文档/压缩包格式' })
-    expect(await up(`${B}/upload-file`, 'a.pdf', '')).toEqual({ error: '文件不能为空' })
+    const img = await s.inject({ url: `${B}/image/legacy.png` })
+    expect(img.statusCode).toBe(200)
+    expect(img.headers['content-type']).toBe('image/png')
+    expect(img.headers['content-disposition']).toBe('inline; filename=legacy.png')
+    expect(img.rawPayload.equals(png)).toBe(true)
+    const file = await s.inject({ url: `${B}/file/legacy_r3.pdf` })
+    expect(file.headers['content-disposition']).toBe('attachment; filename=legacy_r3.pdf')
+    expect(file.headers['cache-control']).toBe('no-cache')
+    expect(file.body).toBe('hello pdf')
   })
 
   it('回读：不存在 404、空名 404、无效名 400、目录穿越被 secure_filename 化解', async () => {
