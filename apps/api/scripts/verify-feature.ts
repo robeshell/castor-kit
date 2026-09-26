@@ -14,6 +14,7 @@
  *   5. OpenAPI docs in sync (warning; runs scripts/generate-openapi.ts --dry-run)
  *   6. Paths referenced by AI context docs exist (warning; blocking with --strict-docs)
  *   7. Backend routes/repository/service files exist
+ *      + Data scope: a module whose schema.ts exports DATA_SCOPE must filter with dataScopeWhere in repository.ts
  *   8. Frontend page file exists
  *   9. Frontend page uses only the new shadcn/ui system (no @douyinfe/*, var(--semi-*) or retired legacy shared components in the page directory)
  *  10. Frontend API file exists
@@ -647,6 +648,31 @@ export async function resolveDatabaseUrl(ctx: VerifyContext): Promise<string | n
   }
 }
 
+/**
+ * Modules that declare data scope (`export const DATA_SCOPE` in schema.ts) must filter their queries with
+ * dataScopeWhere in repository.ts; modules without the declaration are skipped.
+ */
+export function checkDataScopeFilter(ctx: VerifyContext, module: string): CheckResult {
+  const name = 'data_scope_filter'
+  const dir = BACKEND_DOMAINS.flatMap((d) => moduleCandidates(module).map((n) => join(ctx.srcDir, 'modules', d, toKebab(n)))).find(
+    (candidate) => existsSync(join(candidate, 'routes.ts')),
+  )
+  const schemaPath = dir ? join(dir, 'schema.ts') : ''
+  if (!dir || !existsSync(schemaPath) || !/export const DATA_SCOPE\b/.test(readFileSync(schemaPath, 'utf8'))) {
+    return { name, passed: true, skipped: true, detail: '模块未声明数据权限（schema.ts 没有 DATA_SCOPE）' }
+  }
+  const repoPath = join(dir, 'repository.ts')
+  const repo = existsSync(repoPath) ? readFileSync(repoPath, 'utf8') : ''
+  if (!/\bdataScopeWhere\(/.test(repo)) {
+    return {
+      name,
+      passed: false,
+      error: `${rel(ctx, schemaPath)} 声明了 DATA_SCOPE，但 ${rel(ctx, repoPath)} 没有用 dataScopeWhere 过滤查询（见 src/common/data-scope.ts）`,
+    }
+  }
+  return { name, passed: true, detail: `${rel(ctx, repoPath)} 已按数据权限过滤` }
+}
+
 export async function verify(options: VerifyOptions = {}): Promise<VerifyReport> {
   const ctx = makeContext(options.root)
   const progress = options.progress ?? (() => {})
@@ -676,6 +702,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
   if (options.module) {
     const m = options.module
     step('backend_file', () => checkBackendFile(ctx, m))
+    step('data_scope_filter', () => checkDataScopeFilter(ctx, m))
     step('frontend_page', () => checkFrontendPage(ctx, m))
     step('frontend_no_legacy_ui', () => checkFrontendNoLegacyUi(ctx, m))
     step('frontend_api', () => checkFrontendApi(ctx, m))
