@@ -13,6 +13,7 @@ export * from './admin/announcement'
 export * from './admin/app-state'
 export * from './admin/files'
 export * from './admin/security'
+export * from './admin/open-api'
 
 // component_center
 export * from './component-center/list-page'

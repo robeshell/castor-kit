@@ -107,6 +107,15 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
             ? '需要先在「邮件」中填写网站地址（重置链接要用）'
             : null,
   },
+  {
+    key: 'security.api_tokens_enabled',
+    label: '允许使用 API Token',
+    group: 'security',
+    type: 'boolean',
+    default: () => false,
+    // The demo account is shared: nobody should mint long-lived credentials for it
+    unavailable: (config) => (config.demoMode ? '演示环境不能开启此功能' : null),
+  },
   { key: 'security.password_min_length', label: '密码最短长度', group: 'security', type: 'integer', default: () => 6, min: 6, max: 64, public: true },
   { key: 'security.password_require_letters_digits', label: '密码须含字母和数字', group: 'security', type: 'boolean', default: () => false, public: true },
   { key: 'security.password_require_symbol', label: '密码须含符号', group: 'security', type: 'boolean', default: () => false, public: true },
@@ -196,6 +205,7 @@ export interface Settings {
   totpEnabled: boolean
   totpRequiredRoles: string[]
   passwordResetEnabled: boolean
+  apiTokensEnabled: boolean
   passwordMinLength: number
   passwordRequireLettersDigits: boolean
   passwordRequireSymbol: boolean
@@ -234,6 +244,7 @@ function toSettings(values: Map<string, SettingValue>, config: AppConfig): Setti
     totpEnabled: get<boolean>('security.totp_enabled'),
     totpRequiredRoles: get<string[]>('security.totp_required_roles'),
     passwordResetEnabled: get<boolean>('security.password_reset_enabled'),
+    apiTokensEnabled: get<boolean>('security.api_tokens_enabled'),
     passwordMinLength: get<number>('security.password_min_length'),
     passwordRequireLettersDigits: get<boolean>('security.password_require_letters_digits'),
     passwordRequireSymbol: get<boolean>('security.password_require_symbol'),
@@ -483,8 +494,16 @@ export class SettingsStore {
   }
 
   /** Whether a switch-type feature can actually be used right now (on, and its prerequisites still met) */
-  isAvailable(key: 'security.totp_enabled' | 'security.password_reset_enabled', settings: Settings): boolean {
-    const on = key === 'security.totp_enabled' ? settings.totpEnabled : settings.passwordResetEnabled
+  isAvailable(
+    key: 'security.totp_enabled' | 'security.password_reset_enabled' | 'security.api_tokens_enabled',
+    settings: Settings,
+  ): boolean {
+    const on =
+      key === 'security.totp_enabled'
+        ? settings.totpEnabled
+        : key === 'security.password_reset_enabled'
+          ? settings.passwordResetEnabled
+          : settings.apiTokensEnabled
     return on && !DEFINITIONS.get(key)!.unavailable?.(this.config, settings)
   }
 

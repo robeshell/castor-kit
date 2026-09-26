@@ -3,7 +3,7 @@ import type { Db } from './db/client'
 import type { DataScope } from './common/data-scope'
 import type { MailerProvider } from './common/mailer'
 import type { SettingsStore } from './common/settings'
-import type { AdminUserWithRoles, SessionRow } from './db/schema'
+import type { AdminUserWithRoles, ApiToken, SessionRow } from './db/schema'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,6 +21,8 @@ declare module 'fastify' {
     dataScope?: DataScope
     /** The `sessions` row behind the cookie, resolved once per request (null = no valid session) */
     authSession: SessionRow | null
+    /** Set when the request authenticated with `Authorization: Bearer ck_…` (common/api-token.ts); no session then */
+    apiToken: ApiToken | null
   }
 }
 

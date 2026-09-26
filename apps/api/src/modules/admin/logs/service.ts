@@ -37,6 +37,8 @@ export interface OperationContext {
   ip: string
   userAgent: string
   statusCode: number
+  /** The API token the request authenticated with, if any */
+  apiTokenId?: number | null
 }
 
 type Data = Record<string, unknown>
@@ -94,6 +96,7 @@ export class LogsService {
       ip: ctx.ip,
       user_agent: ctx.userAgent,
       status_code: ctx.statusCode,
+      api_token_id: ctx.apiTokenId ?? null,
     })
   }
 

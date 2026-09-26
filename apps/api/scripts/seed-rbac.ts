@@ -56,6 +56,8 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 27, name: "文件管理", code: "system_files", icon: "IconFolder", path: "/system/files", component: "admin/files", parent_id: 204, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 28, name: "在线用户", code: "system_sessions", icon: "IconDesktop", path: "/system/sessions", component: "admin/sessions", parent_id: 202, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 29, name: "系统设置", code: "system_settings", icon: "IconSetting", path: "/system/settings", component: "admin/settings", parent_id: 203, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
+  { id: 38, name: "API Token", code: "system_api_tokens", icon: "IconKey", path: "/system/api-tokens", component: "admin/api_tokens", parent_id: 202, sort_order: 3, menu_type: "menu", is_visible: true, is_active: true },
+  { id: 39, name: "Webhook", code: "system_webhooks", icon: "IconWebhook", path: "/system/webhooks", component: "admin/webhooks", parent_id: 203, sort_order: 5, menu_type: "menu", is_visible: true, is_active: true },
   // ── Component showcase center: category parent nodes ─────────────────
   { id: 40, name: "管理系统", code: "cc_admin", icon: "IconDesktop", path: null, component: null, parent_id: 3, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 41, name: "数据可视化", code: "cc_dataviz", icon: "IconPieChartStroked", path: null, component: null, parent_id: 3, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
@@ -92,6 +94,10 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 271, name: "删除文件", code: "system_files_delete", icon: null, path: null, component: null, parent_id: 27, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 281, name: "强制下线", code: "system_sessions_revoke", icon: null, path: null, component: null, parent_id: 28, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 291, name: "修改系统设置", code: "system_settings_edit", icon: null, path: null, component: null, parent_id: 29, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+  { id: 381, name: "吊销 API Token", code: "system_api_tokens_revoke", icon: null, path: null, component: null, parent_id: 38, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+  { id: 391, name: "新增 Webhook", code: "system_webhooks_add", icon: null, path: null, component: null, parent_id: 39, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+  { id: 392, name: "编辑 Webhook", code: "system_webhooks_edit", icon: null, path: null, component: null, parent_id: 39, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
+  { id: 393, name: "删除 Webhook", code: "system_webhooks_delete", icon: null, path: null, component: null, parent_id: 39, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
   // Role management button permissions
   { id: 221, name: "新增角色", code: "system_roles_add", icon: null, path: null, component: null, parent_id: 22, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 222, name: "编辑角色", code: "system_roles_edit", icon: null, path: null, component: null, parent_id: 22, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
@@ -399,10 +405,15 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
     log('初始化菜单数据...')
     const { rows: idRows } = await client.query<{ id: number }>('SELECT id FROM menus')
     const existingIds = new Set(idRows.map((r) => r.id))
+    // Fixed id in MENUS_DATA → the id the row really has. A menu whose fixed id was taken (legacy data) gets another
+    // one, and its children must point there, not at whatever holds the fixed id
+    const actualId = new Map<number, number>()
 
-    for (const menu of MENUS_DATA) {
+    for (const entry of MENUS_DATA) {
+      const menu = { ...entry, parent_id: entry.parent_id === null ? null : (actualId.get(entry.parent_id) ?? entry.parent_id) }
       const existing = await findMenuByCode(client, menu.code)
       if (existing) {
+        actualId.set(entry.id, existing.id)
         const changed = MENU_UPDATE_FIELDS.some((field) => existing[field] !== menu[field])
         if (changed) {
           await client.query(
@@ -450,6 +461,7 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
         useFixedId ? [...values, menu.id] : values,
       )
       const newId = rows[0]!.id
+      actualId.set(entry.id, newId)
       added += 1
       existingIds.add(newId)
       log(`  创建菜单: [${menu.code}] ${menu.name} (ID: ${newId})`)

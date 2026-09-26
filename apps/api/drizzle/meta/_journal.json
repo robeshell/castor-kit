@@ -50,6 +50,13 @@
       "when": 1790405162804,
       "tag": "0006_session_verified_at",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790408901593,
+      "tag": "0007_open_api",
+      "breakpoints": true
     }
   ]
 }

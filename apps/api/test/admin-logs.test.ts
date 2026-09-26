@@ -114,7 +114,7 @@ describe('日志列表', () => {
     expect(res.total).toBe(1)
     expect(res.items[0]).toMatchObject({ id: opIds[1], module: 'menus', action: 'update', target_id: '12', payload: '{"a":1}', status_code: 200, created_at: '2026-02-01T12:00:00' })
     expect(Object.keys(res.items[0]).sort()).toEqual(
-      ['action', 'created_at', 'id', 'ip', 'method', 'module', 'path', 'payload', 'status_code', 'target_id', 'user_agent', 'user_id', 'username'].sort(),
+      ['action', 'api_token_id', 'created_at', 'id', 'ip', 'method', 'module', 'path', 'payload', 'status_code', 'target_id', 'user_agent', 'user_id', 'username'].sort(),
     )
     expect((await s.inject({ url: `/api/admin/logs/operation?username=${P}&module=MENUS` })).json().total).toBe(0)
   })

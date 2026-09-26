@@ -4,6 +4,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { registerAnnouncementRoutes } from './announcement/routes'
+import { registerApiTokenRoutes } from './api-tokens/routes'
 import { registerAuthRoutes } from './auth/routes'
 import { registerDashboardRoutes } from './dashboard/routes'
 import { registerDepartmentRoutes } from './departments/routes'
@@ -31,6 +32,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   await registerSettingsRoutes(app)
   await registerSessionRoutes(app)
   await registerTwoFactorRoutes(app)
+  await registerApiTokenRoutes(app)
   await registerPasswordResetRoutes(app)
   await registerMenuRoutes(app)
   await registerDictRoutes(app)

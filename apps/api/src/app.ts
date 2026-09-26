@@ -16,6 +16,7 @@ import secureSession from '@fastify/secure-session'
 import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import { registerApiTokenResolver } from './common/api-token'
 import { registerCsrfProtection, requestPath } from './common/csrf'
 import { MailerProvider, type Mailer } from './common/mailer'
 import { registerRateLimit } from './common/rate-limit'
@@ -84,6 +85,8 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
     },
   })
   // Resolve the cookie's session row (sliding expiry happens there); must run before the CSRF check
+  // API tokens first: a Bearer request never reads the session cookie
+  registerApiTokenResolver(app)
   registerSessionResolver(app)
 
   registerCsrfProtection(app)
