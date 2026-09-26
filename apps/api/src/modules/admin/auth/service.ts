@@ -11,6 +11,7 @@ import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
 import { adminUserToDict, type AdminUserWithRoles } from '@/db/schema'
 import { AuthRepository } from './repository'
+import type { PasswordPolicy } from '@/common/password-policy'
 import { validateChangePasswordPayload, type ChangePasswordPayload } from './schema'
 
 export interface ClientMeta {
@@ -128,8 +129,8 @@ export class AuthService {
     return { message: '已退出登录' }
   }
 
-  async changePassword(userId: number | undefined, data: ChangePasswordPayload) {
-    const error = validateChangePasswordPayload(data)
+  async changePassword(userId: number | undefined, data: ChangePasswordPayload, policy: PasswordPolicy) {
+    const error = validateChangePasswordPayload(data, policy)
     if (error) throw new ServiceError(error, 400)
 
     const admin = userId !== undefined ? await this.repo.getAdminById(userId) : null

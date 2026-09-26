@@ -79,7 +79,10 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
   // auth
   '请填写完整信息': { 'en-US': 'Please fill in all fields', 'ja-JP': 'すべての項目を入力してください' },
-  '新密码长度至少6位': { 'en-US': 'New password must be at least 6 characters', 'ja-JP': '新しいパスワードは6文字以上で入力してください' },
+  '新密码需同时包含字母和数字': { 'en-US': 'New password must contain both letters and digits', 'ja-JP': '新しいパスワードには英字と数字の両方を含めてください' },
+  '新密码需包含至少一个符号': { 'en-US': 'New password must contain at least one symbol', 'ja-JP': '新しいパスワードには記号を1つ以上含めてください' },
+  '密码需同时包含字母和数字': { 'en-US': 'Password must contain both letters and digits', 'ja-JP': 'パスワードには英字と数字の両方を含めてください' },
+  '密码需包含至少一个符号': { 'en-US': 'Password must contain at least one symbol', 'ja-JP': 'パスワードには記号を1つ以上含めてください' },
   '登录失败次数过多，请稍后再试': { 'en-US': 'Too many failed sign-in attempts. Please try again later.', 'ja-JP': 'ログインの失敗回数が上限に達しました。しばらくしてから再度お試しください。' },
   '演示环境不允许此操作': { 'en-US': 'This action is disabled in the demo.', 'ja-JP': 'デモ環境ではこの操作はできません。' },
   'AI 生成失败：模型服务的调用次数已达上限（429），请稍后再试': { 'en-US': 'AI generation failed: the model service rate limit was reached (429). Please try again later.', 'ja-JP': 'AI による生成に失敗しました：モデルサービスの呼び出し回数が上限に達しました（429）。しばらくしてから再度お試しください。' },
@@ -432,6 +435,9 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   { re: /^文件过大，最大支持 ([\d.]+)MB$/, 'en-US': 'File too large (max $1 MB)', 'ja-JP': 'ファイルが大きすぎます（最大 $1MB）' },
   { re: /^不支持的文件类型：(.+)$/, 'en-US': 'File type not allowed: $1', 'ja-JP': '許可されていないファイル形式です：$1' },
   { re: /^未知的设置项：(.+)$/, 'en-US': 'Unknown setting: $1', 'ja-JP': '不明な設定項目です：$1' },
+  // password policy
+  { re: /^新密码长度至少(\d+)位$/, 'en-US': 'New password must be at least $1 characters', 'ja-JP': '新しいパスワードは$1文字以上で入力してください' },
+  { re: /^密码长度至少(\d+)位$/, 'en-US': 'Password must be at least $1 characters', 'ja-JP': 'パスワードは$1文字以上で入力してください' },
   { re: /^设置项取值不合法：(.+)$/, 'en-US': 'Invalid value for setting: $1', 'ja-JP': '設定項目の値が不正です：$1' },
   { re: /^部门编码不存在: (.+)$/, 'en-US': 'Department codes not found: $1', 'ja-JP': '部署コードが存在しません：$1' },
   { re: /^角色编码不存在: (.+)$/, 'en-US': 'Role codes not found: $1', 'ja-JP': 'ロールコードが存在しません：$1' },

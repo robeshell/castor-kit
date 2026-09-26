@@ -16,7 +16,7 @@ import { isUserStatus } from './schema'
 import { UserService, type Caller } from './service'
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
-  const service = new UserService(app.db)
+  const service = new UserService(app.db, app.settings)
   const opts = { preHandler: loginRequired }
   const callerOf = async (request: FastifyRequest): Promise<Caller> => {
     const current = await getCurrentAdminUser(request)

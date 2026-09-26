@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { getCurrentAdminUser, loginRequired } from '@/common/auth'
 import { ensureCsrfToken } from '@/common/csrf'
+import { passwordPolicyOf } from '@/common/password-policy'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { attachSession, clearSession, createSession, isSignedIn, revokeSessions } from '@/common/session'
 import { changePasswordBodySchema, loginBodySchema } from './schema'
@@ -44,7 +45,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     { preHandler: loginRequired, schema: { body: changePasswordBodySchema } },
     async (request) => {
       const user = await getCurrentAdminUser(request)
-      const result = await service.changePassword(user?.id, request.body)
+      const result = await service.changePassword(user?.id, request.body, passwordPolicyOf(await app.settings.get()))
       // Other devices must sign in again with the new password; this one stays signed in
       await revokeSessions(app.db, { userId: user!.id, exceptId: request.authSession!.id })
       return result
