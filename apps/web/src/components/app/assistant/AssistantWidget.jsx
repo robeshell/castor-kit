@@ -231,7 +231,7 @@ export default function AssistantWidget() {
             onClick={() => setOpen(true)}
             aria-label={t('打开 AI 小助手')}
             title={`${t('AI 小助手')} (${shortcut})`}
-            className="bg-brand-gradient-strong shadow-brand focus-visible:ring-ring/50 fixed right-5 bottom-5 z-40 flex size-12 items-center justify-center rounded-full text-white outline-none hover:brightness-110 focus-visible:ring-[3px]"
+            className="bg-brand-gradient-strong shadow-brand focus-visible:ring-ring/20 fixed right-5 bottom-5 z-40 flex size-12 items-center justify-center rounded-full text-white outline-none hover:brightness-110 focus-visible:ring-2"
           >
             <Sparkles className="size-5" />
           </motion.button>

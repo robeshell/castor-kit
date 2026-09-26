@@ -10,6 +10,7 @@ tokens 定义在 `apps/web/src/index.css`（`:root` 亮色、`.dark` 暗色，`@
 | 页面 / 卡片 / 弹层背景 | `bg-background` / `bg-card` / `bg-popover` |
 | 正文 / 次要文字 | `text-foreground` / `text-muted-foreground` |
 | 边框 / 输入框边 / 焦点环 | `border`（默认色即 `--border`）/ `border-input` / `ring-ring` |
+| 聚焦样式（统一） | `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20`（外层容器用 `focus-within:`）。shadcn 默认的 `ring-[3px]` + `ring-ring/50` 配上品牌橙色太粗，新装组件后照此改掉 |
 | 弱底色（hover、占位） | `bg-muted` / `bg-accent` / `hover:bg-muted/60` |
 | 品牌色 | `text-primary` / `bg-primary` / `bg-brand-soft`（选中态浅底） |
 | 状态 | `text-success` `bg-success-soft` / `text-warning` `bg-warning-soft` / `text-danger` `bg-danger-soft` / `text-info` `bg-info-soft` |

@@ -235,7 +235,7 @@ function SortableCard({ card, onEdit, onDelete }) {
       {...listeners}
       aria-roledescription={t('可拖拽卡片')}
       className={cn(
-        'group/card relative cursor-grab touch-manipulation rounded-lg outline-none select-none focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+        'group/card relative cursor-grab touch-manipulation rounded-lg outline-none select-none focus-visible:ring-ring/20 focus-visible:ring-2',
         isDragging && 'z-10',
       )}
     >

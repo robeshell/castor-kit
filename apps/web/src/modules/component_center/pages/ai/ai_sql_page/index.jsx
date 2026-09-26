@@ -294,7 +294,7 @@ export default function AiSqlPage() {
               }}
               spellCheck={false}
               aria-label={t('SQL 编辑区')}
-              className="bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 min-h-[110px] w-full resize-y rounded-lg border px-3 py-2.5 font-mono text-[13px] leading-relaxed outline-none focus-visible:ring-[3px]"
+              className="bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/20 min-h-[110px] w-full resize-y rounded-lg border px-3 py-2.5 font-mono text-[13px] leading-relaxed outline-none focus-visible:ring-2"
             />
             <p className="text-muted-foreground mt-1.5 text-xs">{t('仅允许只读查询 · Ctrl / ⌘ + Enter 执行')}</p>
           </Panel>
