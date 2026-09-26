@@ -17,7 +17,6 @@ import {
 } from './helpers'
 
 const P = 'ck_test_r2_t_'
-const INTERNAL = { error: '服务器内部错误，请稍后重试' }
 let app: FastifyInstance
 let handle: DbHandle
 let s: AuthedSession
@@ -100,14 +99,14 @@ describe('notification', () => {
     toSuperId = t2.json().id
   })
 
-  it('新增校验：标题为空 400；非字符串标题/用户不存在 → 500 通用文案；无权限 403', async () => {
+  it('新增校验：标题为空 400；非字符串标题 / 非法内容 / 用户不存在 → 400；无权限 403', async () => {
     const post = (session: AuthedSession, payload: object) =>
       session.inject({ method: 'POST', url: '/api/admin/notifications', payload })
     expect((await post(s, {})).json()).toEqual({ error: '标题不能为空' })
     expect((await post(s, { title: ' ' })).json()).toEqual({ error: '标题不能为空' })
     for (const bad of [{ title: 123 }, { title: `${P}x`, is_global: false, user_id: 99999999 }, { title: `${P}x`, content: { a: 1 } }]) {
       const res = await post(s, bad)
-      expect([res.statusCode, res.json()]).toEqual([500, INTERNAL])
+      expect([res.statusCode, res.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
     }
     expect((await post(u, { title: 'x' })).json()).toEqual({ error: '无权限创建通知' })
   })

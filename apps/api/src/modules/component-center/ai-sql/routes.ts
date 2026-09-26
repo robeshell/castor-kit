@@ -12,15 +12,16 @@ import { pyTruthy } from '@/common/py'
 import { ReadonlyDb } from '@/db/readonly'
 import { AiSqlRepository } from './repository'
 import { isSafeSql, pyStrip } from './schema'
+import { invalidInput } from '@/common/py-values'
 import { AiSqlService, LlmConfigError } from './service'
 
 const PERMISSION = 'cc_ai_sql'
 
-/** Get a field trimmed of surrounding whitespace: falsy → empty string; truthy non-string → 500 */
+/** Get a field trimmed of surrounding whitespace: falsy → empty string; truthy non-string → 400 */
 function strippedField(data: Record<string, unknown>, key: string): string {
   const value = data[key]
   if (!pyTruthy(value)) return ''
-  if (typeof value !== 'string') throw new TypeError(`'${typeof value}' object has no attribute 'strip'`)
+  if (typeof value !== 'string') throw invalidInput()
   return pyStrip(value)
 }
 

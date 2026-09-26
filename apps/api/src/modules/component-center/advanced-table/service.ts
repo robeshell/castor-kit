@@ -2,7 +2,9 @@
  * Advanced table page service layer
  */
 
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
 import { isPlainObject, pyStr, pyTruthy } from '@/common/py'
 import type { Db, Executor } from '@/db/client'
@@ -67,9 +69,20 @@ function changedFields(row: AdvancedTableRow, patch: AdvancedTableRowPatch, newS
   return out as AdvancedTableRowPatch
 }
 
-/** `except Exception as e: rollback; raise ServiceError(str(e), 500)`: every exception in the transaction (including 400 business errors) becomes a 500 */
-function as500(err: unknown): ServiceError {
-  return new ServiceError(err instanceof Error ? err.message : String(err), 500)
+/** A failed transaction: business errors keep their status, the database rejecting the input is a 400, the rest a 500 */
+function txError(err: unknown): ServiceError {
+  if (err instanceof ServiceError) return err
+  return dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
+}
+
+/**
+ * Record ids from a request body: integers, digit strings and nulls pass (nulls and unknown ids simply match
+ * nothing); booleans, objects and other strings are the caller's error
+ */
+function idList(ids: unknown[]): unknown[] {
+  const ok = (id: unknown) => id === null || Number.isInteger(id) || (typeof id === 'string' && /^\s*[+-]?\d+\s*$/.test(id))
+  if (!ids.every(ok)) throw invalidInput()
+  return ids
 }
 
 export class AdvancedTableService {
@@ -174,7 +187,7 @@ export class AdvancedTableService {
     try {
       return await this.db.transaction((tx) => fn(new AdvancedTableRepository(tx), tx))
     } catch (err) {
-      throw as500(err)
+      throw txError(err)
     }
   }
 
@@ -185,7 +198,7 @@ export class AdvancedTableService {
       const loaded = new Map<number, AdvancedTableRow | null>()
       const finalSort = new Map<number, number>()
       for (const item of items) {
-        if (!isPlainObject(item)) throw new Error(`'${typeof item}' object has no attribute 'get'`)
+        if (!isPlainObject(item)) throw invalidInput()
         const rowId = parseIntOr(item.id, 0)
         const sortOrder = normalizeSortOrder(item.sort_order, 0)
         if (!rowId) continue
@@ -203,7 +216,7 @@ export class AdvancedTableService {
     const ids = pyTruthy(data.ids) ? data.ids : []
     if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先选择要操作的数据')
 
-    const items = await this.repo.listByIds(ids)
+    const items = await this.repo.listByIds(idList(ids))
     if (items.length === 0) throw new ServiceError('未找到可更新的数据')
 
     await this.inTx(async (repo) => {
@@ -225,7 +238,7 @@ export class AdvancedTableService {
     const ids = pyTruthy(data.ids) ? data.ids : []
     if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先选择要删除的数据')
 
-    const items = await this.repo.listByIds(ids)
+    const items = await this.repo.listByIds(idList(ids))
     if (items.length === 0) throw new ServiceError('未找到可删除的数据')
 
     await this.inTx(async (repo) => {

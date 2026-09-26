@@ -97,7 +97,7 @@ describe('roles 列表 / 新增', () => {
     expect(noMenus.json()).toMatchObject({ menu_ids: [], menus: [] })
   })
 
-  it('新增校验：缺名称 / 缺编码 / 编码重复 / 非法类型 → 500', async () => {
+  it('新增校验：缺名称 / 缺编码 / 编码重复 / 非法类型 → 400', async () => {
     const post = (payload: unknown) => s.inject({ method: 'POST', url: '/api/admin/roles', payload: payload as object })
     expect((await post({ code: 'x' })).json()).toEqual({ error: '角色名称不能为空' })
     expect((await post({ name: 'x', code: 0 })).json()).toEqual({ error: '角色编码不能为空' })
@@ -106,7 +106,6 @@ describe('roles 列表 / 新增', () => {
     expect(dup.statusCode).toBe(400)
     expect(dup.json()).toEqual({ error: '角色编码已存在' })
 
-    const internal = { error: '服务器内部错误，请稍后重试' }
     for (const payload of [
       { name: 'x', code: 5 },
       { name: 'x', code: `${P}z`, menu_ids: 5 },
@@ -117,17 +116,17 @@ describe('roles 列表 / 新增', () => {
       { name: 'x', code: `${P}z`, description: { a: 1 } },
     ]) {
       const res = await post(payload)
-      expect(res.statusCode, JSON.stringify(payload)).toBe(500)
-      expect(res.json()).toEqual(internal)
+      expect(res.statusCode, JSON.stringify(payload)).toBe(400)
+      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     }
     expect(await handle.db.select().from(roles).where(eq(roles.code, `${P}z`))).toHaveLength(0)
   })
 
-  it('请求体不是对象：真值 → 500，假值当作 {}', async () => {
+  it('请求体不是对象：真值 → 400，假值当作 {}', async () => {
     const json = { 'content-type': 'application/json' }
     const post = (payload: unknown) => s.inject({ method: 'POST', url: '/api/admin/roles', payload: JSON.stringify(payload), headers: json })
-    expect((await post([1, 2])).statusCode).toBe(500)
-    expect((await post('abc')).statusCode).toBe(500)
+    expect((await post([1, 2])).statusCode).toBe(400)
+    expect((await post('abc')).statusCode).toBe(400)
     expect((await post([])).json()).toEqual({ error: '角色名称不能为空' })
     expect((await post(0)).json()).toEqual({ error: '角色名称不能为空' })
     const role = await roleByCode(`${P}a`)
@@ -136,8 +135,8 @@ describe('roles 列表 / 新增', () => {
       s.inject({ method: 'PUT', url: `/api/admin/roles/${role.id}`, payload: JSON.stringify(payload), headers: json })
     expect((await put([1])).json()).toMatchObject({ id: role.id, code: `${P}a` })
     expect((await put('xyz')).json()).toMatchObject({ id: role.id })
-    expect((await put('has name')).statusCode).toBe(500)
-    expect((await put(5)).statusCode).toBe(500)
+    expect((await put('has name')).statusCode).toBe(400)
+    expect((await put(5)).statusCode).toBe(400)
   })
 })
 
@@ -155,14 +154,14 @@ describe('roles 编辑 / 删除', () => {
     expect(clear.json().menu_ids).toEqual([])
   })
 
-  it('编辑失败整体回滚：编码冲突 / name=null → 500', async () => {
+  it('编辑失败整体回滚：编码冲突 / name=null → 400', async () => {
     const role = await roleByCode(`${P}a`)
     await s.inject({ method: 'PUT', url: `/api/admin/roles/${role.id}`, payload: { menu_ids: [menuA] } })
     const conflict = await s.inject({ method: 'PUT', url: `/api/admin/roles/${role.id}`, payload: { code: `${P}b`, menu_ids: [menuB] } })
-    expect(conflict.statusCode).toBe(500)
-    expect(conflict.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+    expect(conflict.statusCode).toBe(400)
+    expect(conflict.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     const nullName = await s.inject({ method: 'PUT', url: `/api/admin/roles/${role.id}`, payload: { name: null } })
-    expect(nullName.statusCode).toBe(500)
+    expect(nullName.statusCode).toBe(400)
     expect((await roleByCode(`${P}a`)).name).toBe('改名')
     expect(await menuIdsOf(role.id)).toEqual([menuA])
   })
@@ -219,9 +218,9 @@ describe('roles 导出 / 模板 / 导入', () => {
     expect(String(rows[1]![8])).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/)
   })
 
-  it('导出：非法参数 → 500', async () => {
+  it('导出：非法参数 → 400', async () => {
     for (const payload of [{ export_mode: 1 }, { export_mode: 'filtered', filters: [1] }, { ids: [1], fields: 5 }, { ids: [1], fields: [[1]] }, { ids: ['x'] }]) {
-      expect((await s.inject({ method: 'POST', url: '/api/admin/roles/export', payload })).statusCode, JSON.stringify(payload)).toBe(500)
+      expect((await s.inject({ method: 'POST', url: '/api/admin/roles/export', payload })).statusCode, JSON.stringify(payload)).toBe(400)
     }
   })
 

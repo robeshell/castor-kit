@@ -102,14 +102,14 @@ describe('gantt', () => {
     expect(both.every((t) => t.status === 'not_started' && t.priority === 'critical')).toBe(true)
   })
 
-  it('编辑：进度钳制、日期置空 → 500（NOT NULL）；标题清空 400；404', async () => {
+  it('编辑：进度钳制、日期置空 → 400；标题清空 400；404', async () => {
     const res = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { progress: -3, status: 'nope', color: '', end_date: '2024-04-01' } })
     expect(res.json()).toMatchObject({ progress: 0, status: 'not_started', color: '#4080FF', end_date: '2024-04-01' })
     const keep = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { progress: 'x' } })
     expect(keep.json().progress).toBe(0)
     const nul = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { start_date: null } })
-    expect(nul.statusCode).toBe(500)
-    expect(nul.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+    expect(nul.statusCode).toBe(400)
+    expect(nul.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     expect((await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { title: null } })).json()).toEqual({ error: '任务标题不能为空' })
     expect((await s.inject({ method: 'PUT', url: `${B}/tasks/99999999`, payload: {} })).statusCode).toBe(404)
   })

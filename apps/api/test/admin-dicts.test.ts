@@ -18,7 +18,6 @@ import {
 } from './helpers'
 
 const P = 'ck_test_r2_t_'
-const INTERNAL = { error: '服务器内部错误，请稍后重试' }
 let app: FastifyInstance
 let handle: DbHandle
 let s: AuthedSession
@@ -90,15 +89,15 @@ describe('dicts：字典类型', () => {
     expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/)
   })
 
-  it('新增校验：名称/编码为空、编码重复、非法布尔/整数 → 500 且不落库', async () => {
+  it('新增校验：名称/编码为空、编码重复、非法布尔/整数 → 400 且不落库', async () => {
     const post = (payload: unknown) => s.inject({ method: 'POST', url: '/api/admin/dicts', payload: payload as object })
     expect((await post({ code: 'x' })).json()).toEqual({ error: '字典名称不能为空' })
     expect((await post({ name: 'x' })).json()).toEqual({ error: '字典编码不能为空' })
     expect((await post({ name: 'x', code: `${P}a` })).json()).toEqual({ error: '字典编码已存在' })
     for (const bad of [{ is_active: 'yes' }, { sort_order: 'abc' }, { sort_order: true }, { description: { a: 1 } }]) {
       const res = await post({ name: 'x', code: `${P}bad`, ...bad })
-      expect(res.statusCode).toBe(500)
-      expect(res.json()).toEqual(INTERNAL)
+      expect(res.statusCode).toBe(400)
+      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     }
     expect(await handle.db.select().from(dict_types).where(eq(dict_types.code, `${P}bad`))).toHaveLength(0)
   })
@@ -177,7 +176,7 @@ describe('dicts：字典项', () => {
     expect((await post({ label: 'x', value: 'a' })).json()).toEqual({ error: '同一字典下字典值不能重复' })
     // is_default is an invalid boolean: clearing the default then failing the insert → the whole thing rolls back, b is still the default
     const bad = await post({ label: 'x', value: 'zz', is_default: 'yes' })
-    expect(bad.statusCode).toBe(500)
+    expect(bad.statusCode).toBe(400)
     expect((await itemsOf(typeId)).find((r) => r.id === b)!.is_default).toBe(true)
   })
 
@@ -207,7 +206,7 @@ describe('dicts：字典项', () => {
     await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${a}`, payload: { is_active: true } })
   })
 
-  it('编辑：默认项互斥、类型迁移、值重复、唯一约束冲突 → 500 回滚', async () => {
+  it('编辑：默认项互斥、类型迁移、值重复、唯一约束冲突 → 400 回滚', async () => {
     const res = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${a}`, payload: { is_default: true } })
     expect(res.json()).toMatchObject({ is_default: true })
     expect((await itemsOf(typeId)).find((r) => r.id === b)!.is_default).toBe(false)
@@ -226,8 +225,8 @@ describe('dicts：字典项', () => {
     const spaced = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { value: ' c ' } })
     expect(spaced.json().value).toBe(' c ')
     const conflict = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${a}`, payload: { value: ' c ', is_default: true, label: '冲突' } })
-    expect(conflict.statusCode).toBe(500)
-    expect(conflict.json()).toEqual(INTERNAL)
+    expect(conflict.statusCode).toBe(400)
+    expect(conflict.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     const [stillA] = await handle.db.select().from(dict_items).where(eq(dict_items.id, a))
     expect(stillA).toMatchObject({ value: 'a', label: '甲' })
 

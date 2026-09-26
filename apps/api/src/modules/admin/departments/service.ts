@@ -6,6 +6,7 @@
  */
 
 import type { EventBus } from '@/common/webhooks'
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import type { Db } from '@/db/client'
@@ -48,7 +49,7 @@ export class DepartmentService {
       return await this.db.transaction((tx) => fn(new DepartmentRepository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
 

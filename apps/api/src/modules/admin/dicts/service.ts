@@ -2,6 +2,7 @@
  * Data dictionary service layer
  */
 
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyTruthy } from '@/common/py'
@@ -70,7 +71,7 @@ export class DictsService {
       return await this.db.transaction((tx) => fn(new DictsRepository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
 

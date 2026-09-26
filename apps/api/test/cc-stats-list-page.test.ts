@@ -234,8 +234,8 @@ describe('stats-list-page', () => {
 
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的数据' })
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: { a: 1 } } })).statusCode).toBe(400)
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: ['abc'] } })).statusCode).toBe(500)
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [1], fields: 3 } })).statusCode).toBe(500)
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: ['abc'] } })).statusCode).toBe(400)
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [1], fields: 3 } })).statusCode).toBe(400)
     const dictFields = await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [a.id], fields: { name: 1 } } })
     expect(dictFields.body).toBe('\ufeff名称\r\n甲\r\n')
   })

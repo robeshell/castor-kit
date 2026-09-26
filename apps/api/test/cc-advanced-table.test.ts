@@ -127,7 +127,7 @@ describe('advanced-table', () => {
       expect(r.json()).toEqual({ error })
     }
     const overflow = await s.inject({ method: 'POST', url: `${B}/rows`, payload: { name: 'x', row_code: `${P}z`, score: 1e6 } })
-    expect(overflow.statusCode).toBe(500)
+    expect(overflow.statusCode).toBe(400)
   })
 
   it('列表：形状、置顶优先、排序字段、筛选、分页', async () => {
@@ -211,7 +211,7 @@ describe('advanced-table', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/abc`, payload: {} })).statusCode).toBe(405)
   })
 
-  it('排序：批量改 sort_order；非数组 400；越界 / 非对象 → 500 且回滚', async () => {
+  it('排序：批量改 sort_order；非数组 400；越界 / 非对象 → 400 且回滚', async () => {
     const ok = await s.inject({
       method: 'PUT',
       url: `${B}/rows/reorder`,
@@ -224,14 +224,14 @@ describe('advanced-table', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: {} })).json()).toEqual({ message: '排序已保存' })
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: { a: 1 } })).json()).toEqual({ error: '参数格式错误，需要数组' })
     const bad = await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, { id: ids.c, sort_order: 2147483648 }] })
-    expect(bad.statusCode).toBe(500)
-    expect(bad.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
-    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, 'x'] })).statusCode).toBe(500)
+    expect(bad.statusCode).toBe(400)
+    expect(bad.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, 'x'] })).statusCode).toBe(400)
     const [b] = await handle.db.select().from(cc_advanced_table_rows).where(eq(cc_advanced_table_rows.id, ids.b!))
     expect(b!.sort_order).toBe(20)
   })
 
-  it('批量更新：按找到的行计数；校验；非法状态 → 500 回滚', async () => {
+  it('批量更新：按找到的行计数；校验；非法状态 → 400 回滚', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/rows/batch-update`,
@@ -244,9 +244,9 @@ describe('advanced-table', () => {
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: {} })).json()).toEqual({ error: '请先选择要操作的数据' })
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: 'x' } })).json()).toEqual({ error: '请先选择要操作的数据' })
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: [99999999] } })).json()).toEqual({ error: '未找到可更新的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: ['abc'] } })).statusCode).toBe(500)
+    expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: ['abc'] } })).statusCode).toBe(400)
     const bad = await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: [ids.b, ids.c], status: 'nope', priority: 1 } })
-    expect(bad.statusCode).toBe(500)
+    expect(bad.statusCode).toBe(400)
     const [b] = await handle.db.select().from(cc_advanced_table_rows).where(eq(cc_advanced_table_rows.id, ids.b!))
     expect(b!.priority).toBe(9)
   })

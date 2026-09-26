@@ -6,15 +6,16 @@
  *   objects (dict) cannot be adapted and error out;
  * - boolean columns accept only true/false/null/0/1; anything else errors.
  * node-pg sends every param as text, which behaves differently, so values are converted here first (or a 500 is thrown).
- * Externally these errors all surface as the generic 500 message, so they uniformly throw ServiceError(..., 500).
+ * These are the caller's input errors: they throw ServiceError(400, 「请求参数格式不正确」).
  *
  * Currently shared by dicts / notification / announcement; consider moving up into common/py.ts.
  */
 
 import { ServiceError } from '@/common/errors'
 
-function bindError(message: string): ServiceError {
-  return new ServiceError(message, 500)
+/** A value that can't be written to its column → 400 (see common/py-values.ts invalidInput) */
+function bindError(_message: string): ServiceError {
+  return new ServiceError('请求参数格式不正确', 400)
 }
 
 const PG_INT_MIN = -2_147_483_648

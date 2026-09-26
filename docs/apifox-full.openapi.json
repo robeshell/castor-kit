@@ -328,7 +328,7 @@
           }
         ],
         "summary": "新增公告",
-        "description": "需要 system_announcements_add。标题必填；公告类型与状态不做取值校验；超出列长度等数据库错误返回 500。",
+        "description": "需要 system_announcements_add。标题必填；公告类型与状态不做取值校验；超出列长度等数据库拒绝的值返回 400。announce_type 只能是 system、activity、update，status 只能是 draft、published，否则 400。",
         "requestBody": {
           "required": true,
           "content": {
@@ -2354,7 +2354,7 @@
           }
         ],
         "summary": "批量更新高级表格记录",
-        "description": "需要 cc_admin_advanced_table_edit。对 ids 命中的记录在一个事务里统一修改请求中出现的字段（status、owner、is_active、is_pinned、priority）；ids 为空返回 400「请先选择要操作的数据」，一条都没命中返回 400「未找到可更新的数据」。注意：status 非法时整体回滚并返回 500 而不是 400",
+        "description": "需要 cc_admin_advanced_table_edit。对 ids 命中的记录在一个事务里统一修改请求中出现的字段（status、owner、is_active、is_pinned、priority）；ids 为空返回 400「请先选择要操作的数据」，一条都没命中返回 400「未找到可更新的数据」。status 非法时整体回滚并返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -2438,7 +2438,7 @@
             "description": "无权限"
           },
           "500": {
-            "description": "服务器错误（含 status 非法、ids 元素类型错误）"
+            "description": "服务器错误"
           }
         }
       }
@@ -2458,7 +2458,7 @@
           }
         ],
         "summary": "保存高级表格排序",
-        "description": "需要 cc_admin_advanced_table_edit。请求体是数组，在一个事务里更新各记录的 sort_order；id 无效或不存在的元素会被跳过，同一 id 多次出现以最后一次为准。请求体不是数组返回 400；元素不是对象或排序值超出范围会整体回滚并返回 500",
+        "description": "需要 cc_admin_advanced_table_edit。请求体是数组，在一个事务里更新各记录的 sort_order；id 无效或不存在的元素会被跳过，同一 id 多次出现以最后一次为准。请求体不是数组返回 400；元素不是对象或排序值超出范围会整体回滚并返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -2511,7 +2511,7 @@
             "description": "无权限"
           },
           "500": {
-            "description": "服务器错误（含元素格式错误、排序值超出范围）"
+            "description": "服务器错误"
           }
         }
       }
@@ -3084,7 +3084,7 @@
           }
         ],
         "summary": "预览提示词",
-        "description": "需要 cc_ai_prompt。只在服务端做变量替换，不调用 AI 模型、不写库：把 content 里的 {{键}} 替换成 variables 中对应的值，并列出替换后仍未赋值的变量。content 不是字符串或 variables 不是对象时返回 500",
+        "description": "需要 cc_ai_prompt。只在服务端做变量替换，不调用 AI 模型、不写库：把 content 里的 {{键}} 替换成 variables 中对应的值，并列出替换后仍未赋值的变量。content 不是字符串或 variables 不是对象时返回 400「请求参数格式不正确」",
         "requestBody": {
           "required": true,
           "content": {
@@ -3130,6 +3130,9 @@
               }
             }
           },
+          "400": {
+            "description": "请求参数格式不正确（content 不是字符串或 variables 不是对象）"
+          },
           "401": {
             "description": "未授权"
           },
@@ -3137,7 +3140,7 @@
             "description": "无权限"
           },
           "500": {
-            "description": "请求体字段类型不对"
+            "description": "服务器错误"
           }
         }
       }
@@ -3265,7 +3268,7 @@
           }
         ],
         "summary": "新增提示词模板",
-        "description": "需要 cc_ai_prompt_add。name、content 去空白后不能为空，variables 由服务端从 content 的 {{变量名}} 自动提取（请求里传了也会忽略）。name / content / category / description 传非字符串或 is_active 传布尔与 0 / 1 以外的值都会返回 500",
+        "description": "需要 cc_ai_prompt_add。name、content 去空白后不能为空，variables 由服务端从 content 的 {{变量名}} 自动提取（请求里传了也会忽略）。name / content / category / description 传非字符串或 is_active 传布尔与 0 / 1 以外的值返回 400「请求参数格式不正确」",
         "requestBody": {
           "required": true,
           "content": {
@@ -3404,7 +3407,7 @@
             "description": "无权限新建模板"
           },
           "500": {
-            "description": "保存模板失败，请稍后重试（字段类型不对时也返回 500）"
+            "description": "保存模板失败，请稍后重试"
           }
         }
       }
@@ -5441,7 +5444,7 @@
           }
         ],
         "summary": "新增成员",
-        "description": "需要 cc_admin_detail_tabs_add。只校验姓名必填，其余字段按下方规则规整后保存；超出列长度的文本不会被提前拦截（数据库报错返回 500）",
+        "description": "需要 cc_admin_detail_tabs_add。只校验姓名必填，其余字段按下方规则规整后保存；超出列长度的文本返回 400「字段长度超出限制」",
         "requestBody": {
           "required": true,
           "content": {
@@ -5645,7 +5648,7 @@
             "description": "无权限新建成员"
           },
           "500": {
-            "description": "服务器错误（如文本超出列长度）"
+            "description": "服务器错误"
           }
         }
       }
@@ -6016,7 +6019,7 @@
             "description": "成员不存在"
           },
           "500": {
-            "description": "服务器错误（如文本超出列长度）"
+            "description": "服务器错误"
           }
         }
       },
@@ -7966,7 +7969,7 @@
           }
         ],
         "summary": "编辑甘特图任务",
-        "description": "需要 cc_admin_gantt_edit（先校验权限，再查任务，不存在返回 404）。只更新请求中出现的字段，值未变化的字段不写库；传入空标题返回 400。开始 / 结束日期传 null 或无法解析时会触发数据库非空约束，返回 500",
+        "description": "需要 cc_admin_gantt_edit（先校验权限，再查任务，不存在返回 404）。只更新请求中出现的字段，值未变化的字段不写库；传入空标题返回 400。开始 / 结束日期传 null 或无法解析返回 400，开始日期晚于结束日期也返回 400",
         "parameters": [
           {
             "name": "task_id",
@@ -9102,7 +9105,7 @@
           }
         ],
         "summary": "保存看板卡片排序",
-        "description": "需要 cc_admin_kanban_edit。请求体是数组，在一个事务里批量更新卡片的所属列和 sort_order（拖拽跨列后使用）；不存在的卡片跳过，同一卡片多次出现以最后一次为准。请求体不是数组返回 400，任一 board_id 指向不存在的列返回 400「目标列不存在」，元素不是对象返回 500",
+        "description": "需要 cc_admin_kanban_edit。请求体是数组，在一个事务里批量更新卡片的所属列和 sort_order（拖拽跨列后使用）；不存在的卡片跳过，同一卡片多次出现以最后一次为准。请求体不是数组返回 400，任一 board_id 指向不存在的列返回 400「目标列不存在」，元素不是对象返回 400「请求参数格式不正确」",
         "requestBody": {
           "required": true,
           "content": {
@@ -9157,7 +9160,7 @@
             "description": "无权限"
           },
           "500": {
-            "description": "服务器错误（含元素格式错误）"
+            "description": "服务器错误"
           }
         }
       }
@@ -10411,7 +10414,7 @@
             }
           },
           "400": {
-            "description": "请求参数错误：按勾选导出但未勾选任何记录"
+            "description": "请求参数错误：按勾选导出但未勾选任何记录；filters 不是对象、fields 不是数组或 ids 含非数字字符串（请求参数格式不正确）"
           },
           "401": {
             "description": "未授权"
@@ -10420,7 +10423,7 @@
             "description": "无权限"
           },
           "500": {
-            "description": "服务器错误（filters 不是对象、fields 不可迭代或 ids 含非数字字符串时也会返回 500）"
+            "description": "服务器错误"
           }
         }
       }
@@ -12583,7 +12586,7 @@
             }
           },
           "400": {
-            "description": "请求参数错误：按勾选导出但未勾选任何记录"
+            "description": "请求参数错误：按勾选导出但未勾选任何记录；filters 不是对象、fields 不是数组或 ids 含非数字字符串（请求参数格式不正确）"
           },
           "401": {
             "description": "未授权"
@@ -12592,7 +12595,7 @@
             "description": "无权限"
           },
           "500": {
-            "description": "服务器错误（filters 不是对象、fields 不可迭代或 ids 含非数字字符串时也会返回 500）"
+            "description": "服务器错误"
           }
         }
       }
@@ -20273,7 +20276,7 @@
           }
         ],
         "summary": "新建通知",
-        "description": "需要 system_notifications_add。is_global 默认 true（全员可见）；设为 false 时发给 user_id 指定的用户（未传 user_id 则无人可见）；user_id 不存在等写库失败返回 500。",
+        "description": "需要 system_notifications_add。is_global 默认 true（全员可见）；设为 false 时发给 user_id 指定的用户（未传 user_id 则无人可见）；is_global 为 false 时必须指定存在的 user_id，否则 400。",
         "requestBody": {
           "required": true,
           "content": {

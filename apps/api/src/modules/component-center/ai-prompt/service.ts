@@ -6,6 +6,7 @@
  */
 
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { isPlainObject, pyStr, pyStrOrEmpty, pyTruthy } from '@/common/py'
 import type { Db } from '@/db/client'
 import { aiPromptTemplateToDict, type AiPromptTemplate } from '@/db/schema'
@@ -24,7 +25,7 @@ export class AiPromptPersistError extends Error {}
 /** Get a value trimmed of surrounding whitespace: falsy → fallback; truthy non-string → generic 500 */
 function strictStripOr(value: unknown, fallback: string): string {
   const raw = pyTruthy(value) ? value : fallback
-  if (typeof raw !== 'string') throw new ServiceError(`'${typeof raw}' object has no attribute 'strip'`, 500)
+  if (typeof raw !== 'string') throw invalidInput(`'${typeof raw}' object has no attribute 'strip'`)
   return raw.trim()
 }
 
@@ -160,8 +161,8 @@ export class AiPromptService {
   preview(data: Data) {
     const content = pyTruthy(data.content) ? data.content : ''
     const variables = pyTruthy(data.variables) ? data.variables : {}
-    if (!isPlainObject(variables)) throw new ServiceError("'variables' has no attribute 'items'", 500)
-    if (typeof content !== 'string') throw new ServiceError("'content' is not a string", 500)
+    if (!isPlainObject(variables)) throw invalidInput("'variables' has no attribute 'items'")
+    if (typeof content !== 'string') throw invalidInput("'content' is not a string")
     let result = content
     for (const [key, val] of Object.entries(variables)) {
       result = result.split(`{{${key}}}`).join(pyStr(val))

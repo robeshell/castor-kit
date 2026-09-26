@@ -97,11 +97,11 @@ describe('menus 新增', () => {
       parent_id: String(rootId),
       sort_order: 5.5,
       is_visible: 0,
-      menu_type: 5,
+      menu_type: 'button',
       description: true,
     })
     expect(res.statusCode).toBe(201)
-    expect(res.json()).toMatchObject({ name: '{"a b",NULL,""}', parent_id: rootId, sort_order: 6, is_visible: false, menu_type: '5', description: 'true' })
+    expect(res.json()).toMatchObject({ name: '{"a b",NULL,""}', parent_id: rootId, sort_order: 6, is_visible: false, menu_type: 'button', description: 'true' })
 
     const neg = await post('/api/admin/menus', { name: ' x ', code: `${P}c2`, parent_id: rootId, sort_order: ' -2 ' })
     expect(neg.json()).toMatchObject({ name: ' x ', sort_order: -2 })
@@ -109,7 +109,7 @@ describe('menus 新增', () => {
     expect(half.json().sort_order).toBe(-3)
   })
 
-  it('校验：名称/编码为空、编码重复、非法值 → 500 且不落库', async () => {
+  it('校验：名称/编码为空、编码重复、非法值 → 400 且不落库', async () => {
     expect((await post('/api/admin/menus', { name: ' ', code: 'x' })).json()).toEqual({ error: '菜单名称和编码不能为空' })
     expect((await post('/api/admin/menus', { name: 'x', code: [] })).json()).toEqual({ error: '菜单名称和编码不能为空' })
     expect((await post('/api/admin/menus', {})).json()).toEqual({ error: '菜单名称和编码不能为空' })
@@ -128,18 +128,21 @@ describe('menus 新增', () => {
       { is_visible: 'yes' },
       { is_visible: 2 },
       { description: { a: 1 } },
+      { menu_type: 'zzz' },
     ]) {
       const res = await post('/api/admin/menus', { name: 'x', code: `${P}bad`, ...extra })
-      expect(res.statusCode, JSON.stringify(extra)).toBe(500)
-      expect(res.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+      expect(res.statusCode, JSON.stringify(extra)).toBe(400)
+      expect(res.json().error, JSON.stringify(extra)).not.toBe('服务器内部错误，请稍后重试')
     }
+    expect((await post('/api/admin/menus', { name: 'x', code: `${P}bad`, menu_type: 'zzz' })).json()).toEqual({ error: '菜单类型只能是 directory、menu 或 button' })
+    expect((await post('/api/admin/menus', { name: 'x', code: `${P}bad`, parent_id: 99999999 })).json()).toEqual({ error: '关联的数据不存在或仍被引用' })
     expect(await menuByCode(`${P}bad`)).toBeUndefined()
-    // Truthy non-object request body → 500; falsy is treated as {}
-    expect((await post('/api/admin/menus', [1])).statusCode).toBe(500)
+    // Truthy non-object request body → 400; falsy is treated as {}
+    expect((await post('/api/admin/menus', [1])).statusCode).toBe(400)
     expect((await post('/api/admin/menus', [])).json()).toEqual({ error: '菜单名称和编码不能为空' })
-    expect((await post(`/api/admin/menus/${rootId}/sort`, [1])).statusCode).toBe(500)
-    expect((await put(`/api/admin/menus/${rootId}`, ['name'])).statusCode).toBe(500)
-    expect((await post('/api/admin/menus/export', [1])).statusCode).toBe(500)
+    expect((await post(`/api/admin/menus/${rootId}/sort`, [1])).statusCode).toBe(400)
+    expect((await put(`/api/admin/menus/${rootId}`, ['name'])).statusCode).toBe(400)
+    expect((await post('/api/admin/menus/export', [1])).statusCode).toBe(400)
   })
 })
 
@@ -214,13 +217,14 @@ describe('menus 编辑 / 删除 / 排序', () => {
     expect((await s.inject({ url: `/api/admin/menus/${root.id}` })).statusCode).toBe(200)
   })
 
-  it('编辑校验：空名称/空编码、编码冲突、非法值 → 500；权限先于 404；非数字 405', async () => {
+  it('编辑校验：空名称/空编码、编码冲突、非法值 → 400；权限先于 404；非数字 405', async () => {
     const c2 = (await menuByCode(`${P}c2`))!
     expect((await put(`/api/admin/menus/${c2.id}`, { name: '' })).json()).toEqual({ error: '菜单名称不能为空' })
     expect((await put(`/api/admin/menus/${c2.id}`, { code: null })).json()).toEqual({ error: '菜单编码不能为空' })
     expect((await put(`/api/admin/menus/${c2.id}`, { code: `${P}c1` })).json()).toEqual({ error: `菜单编码 ${P}c1 已存在` })
-    expect((await put(`/api/admin/menus/${c2.id}`, { code: 5 })).statusCode).toBe(500)
-    expect((await put(`/api/admin/menus/${c2.id}`, { is_visible: 'no', name: 'zz' })).statusCode).toBe(500)
+    expect((await put(`/api/admin/menus/${c2.id}`, { code: 5 })).json()).toEqual({ error: '请求参数格式不正确' })
+    expect((await put(`/api/admin/menus/${c2.id}`, { is_visible: 'no', name: 'zz' })).statusCode).toBe(400)
+    expect((await put(`/api/admin/menus/${c2.id}`, { menu_type: 'zzz' })).json()).toEqual({ error: '菜单类型只能是 directory、menu 或 button' })
     expect((await menuByCode(`${P}c2`))!.name).toBe('c2')
     expect((await u.inject({ method: 'PUT', url: '/api/admin/menus/99999999', payload: {} })).statusCode).toBe(403)
     expect((await put('/api/admin/menus/abc', {})).statusCode).toBe(405)

@@ -33,7 +33,6 @@ const EXECUTE = '/api/admin/component-center/ai/sql/execute'
 const GENERATE = '/api/admin/component-center/ai/sql/generate'
 const SCHEMA = '/api/admin/component-center/ai/sql/schema'
 const EXEC_ERROR = 'SQL 执行错误，请检查语法或表权限'
-const INTERNAL = '服务器内部错误，请稍后重试'
 
 // ---- SQL safety checks ----
 
@@ -358,8 +357,8 @@ describe('AI SQL 路由', () => {
     // Non-string truthy value → global 500 generic message
     for (const sql of [5, ['SELECT 1'], { a: 1 }, true]) {
       const res = await s.inject({ method: 'POST', url: EXECUTE, payload: { sql } })
-      expect(res.statusCode).toBe(500)
-      expect(res.json()).toEqual({ error: INTERNAL })
+      expect(res.statusCode).toBe(400)
+      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     }
   })
 
@@ -437,8 +436,8 @@ describe('AI SQL 路由', () => {
       expect(res.json()).toEqual({ error: '问题不能为空' })
     }
     const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question: { a: 1 } } })
-    expect(res.statusCode).toBe(500)
-    expect(res.json()).toEqual({ error: INTERNAL })
+    expect(res.statusCode).toBe(400)
+    expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
   })
 
   it('generate：成功（系统提示词 + schema 文本 + 问题发给上游）', async () => {

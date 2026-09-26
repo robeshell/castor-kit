@@ -468,6 +468,14 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '不能将节点移动到自身或其子节点下': { 'en-US': 'A node cannot be moved under itself or its descendants', 'ja-JP': 'ノードを自身またはその子孫ノードの下に移動することはできません' },
   '导入文件缺少"节点名称/节点编码"列': { 'en-US': 'The import file is missing the "节点名称/节点编码" columns', 'ja-JP': 'インポートファイルに「节点名称/节点编码」列がありません' },
   '节点名称和编码不能为空': { 'en-US': 'Node name and code are required', 'ja-JP': 'ノード名とノードコードを入力してください' },
+  '请求参数格式不正确': { 'en-US': 'Invalid request parameters', 'ja-JP': 'リクエストパラメーターの形式が正しくありません' },
+  '公告类型只能是 system、activity 或 update': { 'en-US': 'Announcement type must be system, activity or update', 'ja-JP': 'お知らせの種類は system、activity、update のいずれかです' },
+  '状态只能是 draft 或 published': { 'en-US': 'Status must be draft or published', 'ja-JP': 'ステータスは draft または published です' },
+  '菜单类型只能是 directory、menu 或 button': { 'en-US': 'Menu type must be directory, menu or button', 'ja-JP': 'メニューの種類は directory、menu、button のいずれかです' },
+  '请选择接收通知的用户': { 'en-US': 'Choose the user who receives the notification', 'ja-JP': '通知を受け取るユーザーを選択してください' },
+  '接收通知的用户不存在': { 'en-US': 'The user receiving the notification does not exist', 'ja-JP': '通知を受け取るユーザーが存在しません' },
+  'role_ids 必须是数组': { 'en-US': 'role_ids must be an array', 'ja-JP': 'role_ids は配列で指定してください' },
+  '开始日期不能晚于结束日期': { 'en-US': 'The start date cannot be after the end date', 'ja-JP': '開始日は終了日より後にできません' },
 }
 
 /** First match wins: keep specific patterns first and the scaffold catch-alls at the end */

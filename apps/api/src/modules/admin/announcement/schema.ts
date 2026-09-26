@@ -2,7 +2,7 @@
  * Announcement management schema layer: field mapping and normalization
  */
 
-import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { isPlainObject, pyTruthy } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { Announcement } from '@/db/schema'
@@ -53,7 +53,7 @@ function pyTypeName(value: unknown): string {
  */
 export function stripOrEmpty(value: unknown): string {
   if (!pyTruthy(value)) return ''
-  if (typeof value !== 'string') throw new ServiceError(`'${pyTypeName(value)}' object has no attribute 'strip'`, 500)
+  if (typeof value !== 'string') throw invalidInput(`'${pyTypeName(value)}' object has no attribute 'strip'`)
   return value.trim()
 }
 
@@ -67,10 +67,10 @@ export function pickExportFields(raw: unknown): string[] {
   if (typeof raw === 'string') candidates = [...raw]
   else if (Array.isArray(raw)) candidates = raw
   else if (isPlainObject(raw)) candidates = Object.keys(raw)
-  else throw new ServiceError(`'${pyTypeName(raw)}' object is not iterable`, 500)
+  else throw invalidInput(`'${pyTypeName(raw)}' object is not iterable`)
   const result: string[] = []
   for (const f of candidates) {
-    if (Array.isArray(f) || isPlainObject(f)) throw new ServiceError('unhashable type', 500)
+    if (Array.isArray(f) || isPlainObject(f)) throw invalidInput('unhashable type')
     if (typeof f === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, f)) result.push(f)
   }
   return result
@@ -83,7 +83,7 @@ export function pickExportFields(raw: unknown): string[] {
 export function idsForInClause(ids: unknown): number[] {
   // dicts are iterable (over keys); str and scalars are not valid IN lists
   const values = Array.isArray(ids) ? ids : isPlainObject(ids) ? Object.keys(ids) : null
-  if (!values) throw new ServiceError('IN expression list expected', 500)
+  if (!values) throw invalidInput('IN expression list expected')
   const result: number[] = []
   for (const v of values) {
     if (v === null) continue
@@ -93,11 +93,11 @@ export function idsForInClause(ids: unknown): number[] {
     }
     if (typeof v === 'string' && /^\s*[+-]?\d+\s*$/.test(v)) {
       const n = Number(v.trim())
-      if (n < -2_147_483_648 || n > 2_147_483_647) throw new ServiceError('integer out of range', 500)
+      if (n < -2_147_483_648 || n > 2_147_483_647) throw invalidInput('integer out of range')
       result.push(n)
       continue
     }
-    throw new ServiceError('invalid IN element', 500)
+    throw invalidInput('invalid IN element')
   }
   return result
 }

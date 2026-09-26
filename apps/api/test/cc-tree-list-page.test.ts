@@ -94,8 +94,8 @@ describe('tree-list-page', () => {
     expect((await post({ name: 'x', node_code: `${P}zz`, status: 'draft' })).json()).toEqual({ error: '状态仅支持 active/inactive/archived' })
     // parent_id=0 skips the existence check; FK failure → 500 generic message
     const zero = await post({ name: 'x', node_code: `${P}zz`, parent_id: 0 })
-    expect(zero.statusCode).toBe(500)
-    expect(zero.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+    expect(zero.statusCode).toBe(400)
+    expect(zero.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     expect(await rowByCode(`${P}zz`)).toBeUndefined()
   })
 
@@ -201,7 +201,7 @@ describe('tree-list-page', () => {
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 1 } })).json()).toEqual({ error: '请先勾选要导出的数据' })
   })
 
-  it('导入：成功（父节点 ID、已存在更新）/ 外键失败 500 回滚 / 错误行 / 缺列', async () => {
+  it('导入：成功（父节点 ID、已存在更新）/ 父节点不存在 400 回滚 / 错误行 / 缺列', async () => {
     const csv = `节点名称,节点编码,父节点ID,节点类型,图标,状态,负责人,排序,启用,描述\n导入,${P}i1,${ids.root},item,ic,ARCHIVED,me,3,停用,d\nsolo,${P}solo,${ids.root},,,,,,,\n`
     const ok = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', csv) })
     expect(ok.json()).toEqual({ message: '导入成功', created: 1, updated: 1 })
@@ -209,7 +209,7 @@ describe('tree-list-page', () => {
     expect((await rowByCode(`${P}solo`))!.parent_id).toBe(ids.root)
 
     const fk = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称,节点编码,父节点ID\na,${P}i2,\nb,${P}i3,0\n`) })
-    expect(fk.statusCode).toBe(500)
+    expect(fk.statusCode).toBe(400)
     expect(await rowByCode(`${P}i2`)).toBeUndefined()
 
     const bad = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称,节点编码\na,\n`) })

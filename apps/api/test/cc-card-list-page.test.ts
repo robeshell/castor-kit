@@ -159,7 +159,7 @@ describe('card-list-page', () => {
     const g = await s.inject({ url: `${B}/export?search=${P}&category=product&fields=card_code` })
     expect(g.body).toBe(`\ufeff编码\r\n${P}b\r\n`)
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [] } })).json()).toEqual({ error: '请先勾选要导出的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [true] } })).statusCode).toBe(500)
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [true] } })).statusCode).toBe(400)
   })
 
   it('模板 csv 字节精确', async () => {

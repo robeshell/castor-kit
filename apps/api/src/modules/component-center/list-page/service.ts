@@ -9,6 +9,7 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
 import { isPlainObject, pyStr, pyStrOrEmpty, pyTruthy } from '@/common/py'
 import { pyJsonDumps } from '@/common/request-meta'
@@ -196,13 +197,13 @@ function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value === 'string') return [...value]
   if (isPlainObject(value)) return Object.keys(value)
-  throw new ServiceError('object is not iterable', 500)
+  throw invalidInput('object is not iterable')
 }
 
 function validExportFields(fields: unknown): string[] {
   const valid: string[] = []
   for (const field of pyIterate(fields)) {
-    if (field !== null && typeof field === 'object') throw new ServiceError('unhashable type', 500)
+    if (field !== null && typeof field === 'object') throw invalidInput('unhashable type')
     if (typeof field === 'string' && hasOwn(EXPORT_FIELD_MAP, field)) valid.push(field)
   }
   return valid.length > 0 ? valid : Object.keys(EXPORT_FIELD_MAP)
@@ -219,11 +220,11 @@ function coerceIdsForIn(ids: unknown[]): number[] {
     }
     if (typeof id === 'string' && /^\s*[+-]?\d+\s*$/.test(id)) {
       const n = Number.parseInt(id.trim(), 10)
-      if (Math.abs(n) > PG_INT_MAX) throw new ServiceError('value out of range for type integer', 500)
+      if (Math.abs(n) > PG_INT_MAX) throw invalidInput('value out of range for type integer')
       result.push(n)
       continue
     }
-    throw new ServiceError('invalid input for integer id', 500)
+    throw invalidInput('invalid input for integer id')
   }
   return result
 }
@@ -280,7 +281,7 @@ export class ListPageService {
       return await this.db.transaction((tx) => fn(new ListPageRepository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw invalidInput(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -575,7 +576,7 @@ export class ListPageService {
 
     let items: QueryManagement[]
     if (exportMode === 'filtered') {
-      if (!isPlainObject(filters)) throw new ServiceError("'filters' has no attribute 'get'", 500)
+      if (!isPlainObject(filters)) throw invalidInput("'filters' has no attribute 'get'")
       items = await this.repo.listFiltered(filtersFrom(filters))
     } else {
       if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先勾选要导出的查询数据', 400)

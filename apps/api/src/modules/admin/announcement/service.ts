@@ -3,7 +3,9 @@
  */
 
 import { sql, type SQL } from 'drizzle-orm'
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
@@ -29,13 +31,29 @@ import {
 
 type Data = Record<string, unknown>
 
-/** Integer conversion failures are treated as uncaught errors → global 500 */
-function pyIntOr500(value: unknown): number {
+/** Integer conversion: a value that isn't an integer is the caller's input error → 400 */
+function pyIntOrInvalid(value: unknown): number {
   try {
     return pyInt(value)
-  } catch (err) {
-    throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+  } catch {
+    throw invalidInput()
   }
+}
+
+/** announce_type / status, when given, must be one of the allowed values */
+function assertChoices(data: Data): void {
+  if (pyTruthy(data.announce_type) && !ANNOUNCE_TYPES.includes(String(data.announce_type))) {
+    throw new ServiceError('公告类型只能是 system、activity 或 update', 400)
+  }
+  if (pyTruthy(data.status) && !STATUSES.includes(String(data.status))) {
+    throw new ServiceError('状态只能是 draft 或 published', 400)
+  }
+}
+
+/** A failed write: the database rejecting the request's data is a 400, anything else a 500 */
+function writeError(err: unknown): ServiceError {
+  if (err instanceof ServiceError) return err
+  return dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
 }
 
 /** Value to write for publish_at: parsed result / current UTC time / None */
@@ -92,6 +110,7 @@ export class AnnouncementService {
   async createItem(data: Data) {
     const title = stripOrEmpty(data.title)
     if (!title) throw new ServiceError('标题不能为空', 400)
+    assertChoices(data)
 
     const publishAt = pyTruthy(data.publish_at) ? parsePublishAt(data.publish_at) : null
 
@@ -99,7 +118,7 @@ export class AnnouncementService {
     const announceType = bindText(pyTruthy(data.announce_type) ? data.announce_type : 'system')
     const status = bindText(pyTruthy(data.status) ? data.status : 'draft')
     const isTop = pyTruthy('is_top' in data ? data.is_top : false)
-    const sortOrder = pyIntOr500(pyTruthy(data.sort_order) ? data.sort_order : 0)
+    const sortOrder = pyIntOrInvalid(pyTruthy(data.sort_order) ? data.sort_order : 0)
 
     try {
       const created = await this.repo.insert({
@@ -113,7 +132,7 @@ export class AnnouncementService {
       })
       return announcementToDict(created)
     } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw writeError(err)
     }
   }
 
@@ -137,11 +156,12 @@ export class AnnouncementService {
     try {
       return announcementToDict(await this.repo.update(item.id, changes))
     } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw writeError(err)
     }
   }
 
   async updateItem(item: Announcement, data: Data) {
+    assertChoices(data)
     const assigned: Record<string, unknown> = {}
     let publishAt: PublishAtValue | undefined
 
@@ -157,7 +177,7 @@ export class AnnouncementService {
       if (data.status === 'published' && item.publish_at === null) publishAt = 'now'
     }
     if ('is_top' in data) assigned.is_top = pyTruthy(data.is_top)
-    if ('sort_order' in data) assigned.sort_order = pyIntOr500(pyTruthy(data.sort_order) ? data.sort_order : 0)
+    if ('sort_order' in data) assigned.sort_order = pyIntOrInvalid(pyTruthy(data.sort_order) ? data.sort_order : 0)
     if ('publish_at' in data) {
       if (pyTruthy(data.publish_at)) {
         const parsed = parsePublishAt(data.publish_at)
@@ -173,7 +193,7 @@ export class AnnouncementService {
     try {
       await this.repo.delete(item.id)
     } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw writeError(err)
     }
     return { message: '删除成功' }
   }

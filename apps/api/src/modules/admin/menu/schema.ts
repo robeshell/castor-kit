@@ -92,15 +92,25 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   }
 }
 
+/** menu_type, when given, must be one of MENU_TYPES (import checks the same) */
+function assertMenuType(data: Record<string, unknown>): void {
+  const type = data.menu_type
+  if (type !== undefined && type !== null && type !== '' && !MENU_TYPES.has(String(type))) {
+    throw new ServiceError('菜单类型只能是 directory、menu 或 button', 400)
+  }
+}
+
 export function validateCreatePayload(data: Record<string, unknown>): void {
   if (!pyStrOrEmpty(data.name) || !pyStrOrEmpty(data.code)) {
     throw new ServiceError('菜单名称和编码不能为空', 400)
   }
+  assertMenuType(data)
 }
 
 export function validateUpdatePayload(data: Record<string, unknown>): void {
   if ('name' in data && !pyStrOrEmpty(data.name)) throw new ServiceError('菜单名称不能为空', 400)
   if ('code' in data && !pyStrOrEmpty(data.code)) throw new ServiceError('菜单编码不能为空', 400)
+  assertMenuType(data)
 }
 
 export function mapImportHeaders(fieldnames: string[]): Map<string, string> {

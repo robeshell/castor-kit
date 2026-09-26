@@ -15,10 +15,12 @@ import {
   adaptText,
   dictGet,
   internalError,
+  invalidInput,
   parseExportArgs,
   pyEq,
   selectedIdsOrNull,
 } from '@/common/py-values'
+import { dbConstraintError } from '@/common/db-errors'
 import { RoleRepository } from './repository'
 import {
   buildErrorRow,
@@ -48,13 +50,13 @@ export class RoleService {
     this.repo = new RoleRepository(db)
   }
 
-  /** Run in a transaction: any error rolls back; ServiceError is rethrown as-is, other errors become a 500 with the original message */
+  /** Run in a transaction: any error rolls back; ServiceError is rethrown as-is, DB input errors become a 400, others a 500 */
   private async inTx<T>(fn: (repo: RoleRepository) => Promise<T>): Promise<T> {
     try {
       return await this.db.transaction((tx) => fn(new RoleRepository(tx)))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw internalError(err instanceof Error ? err.message : String(err))
+      throw dbConstraintError(err) ?? internalError(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -109,8 +111,7 @@ export class RoleService {
   async createRole(data: Data) {
     if (!pyTruthy(data.name)) throw new ServiceError('角色名称不能为空', 400)
     if (!pyTruthy(data.code)) throw new ServiceError('角色编码不能为空', 400)
-    // Non-string code: querying `roles.code = 5` makes PG raise operator does not exist → 500
-    if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
+    if (typeof data.code !== 'string') throw invalidInput()
     if (await this.repo.getByCode(data.code)) throw new ServiceError('角色编码已存在', 400)
 
     const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
@@ -149,6 +150,12 @@ export class RoleService {
   }
 
   async updateRole(role: Role, data: Data) {
+    if ('name' in data && !pyTruthy(data.name)) throw new ServiceError('角色名称不能为空', 400)
+    if ('code' in data) {
+      if (!pyTruthy(data.code)) throw new ServiceError('角色编码不能为空', 400)
+      if (typeof data.code !== 'string') throw invalidInput()
+      if (data.code !== role.code && (await this.repo.getByCode(data.code))) throw new ServiceError('角色编码已存在', 400)
+    }
     const changes: Record<string, unknown> = {}
     for (const field of ['name', 'code', 'description'] as const) {
       if (field in data && !pyEq(data[field], role[field])) changes[field] = data[field]

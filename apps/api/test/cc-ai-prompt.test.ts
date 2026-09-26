@@ -127,7 +127,7 @@ describe('ai-prompt', () => {
     expect(off.json()).toMatchObject({ is_active: false, category: 'dev', description: 'd', variables: [], tags: [] })
   })
 
-  it('新增 失败分支：400 / 保存失败 500（具体文案）/ 类型错误 500（通用文案）', async () => {
+  it('新增 失败分支：400 / 保存失败 500（具体文案）/ 类型错误 400', async () => {
     for (const payload of [{}, { name: 'x' }, { name: ' ', content: 'y' }, { name: 'x', content: 0 }]) {
       const res = await s.inject({ method: 'POST', url: `${B}/templates`, payload })
       expect(res.statusCode).toBe(400)
@@ -150,8 +150,8 @@ describe('ai-prompt', () => {
       { name: `${P}x`, content: 'y', description: true },
     ]) {
       const res = await s.inject({ method: 'POST', url: `${B}/templates`, payload })
-      expect(res.statusCode).toBe(500)
-      expect(res.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+      expect(res.statusCode).toBe(400)
+      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     }
     expect(await handle.db.select().from(ai_prompt_templates).where(eq(ai_prompt_templates.name, `${P}x`))).toHaveLength(0)
   })
@@ -196,7 +196,7 @@ describe('ai-prompt', () => {
     expect(again.json()).toEqual({ error: '模板不存在' })
   })
 
-  it('预览：逐个替换、str() 语义、未定义变量；非对象 variables / 非字符串 content → 500', async () => {
+  it('预览：逐个替换、str() 语义、未定义变量；非对象 variables / 非字符串 content → 400', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/preview`,
@@ -206,8 +206,8 @@ describe('ai-prompt', () => {
     expect((await s.inject({ method: 'POST', url: `${B}/preview`, payload: {} })).json()).toEqual({ preview: '', undefined_vars: [] })
     for (const payload of [{ content: '{{a}}', variables: ['a'] }, { content: 5 }, { content: 'x', variables: 'a' }]) {
       const r = await s.inject({ method: 'POST', url: `${B}/preview`, payload })
-      expect(r.statusCode).toBe(500)
-      expect(r.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+      expect(r.statusCode).toBe(400)
+      expect(r.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     }
   })
 })

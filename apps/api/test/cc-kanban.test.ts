@@ -207,7 +207,7 @@ describe('kanban', () => {
     const missing = await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [{ id: c2.id, board_id: 99999999 }] })
     expect(missing.statusCode).toBe(400)
     expect(missing.json()).toEqual({ error: '目标列不存在' })
-    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [1] })).statusCode).toBe(500)
+    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [1] })).statusCode).toBe(400)
 
     // Second write is out of range → everything rolls back, the first one doesn't take effect either
     const bad = await s.inject({
@@ -215,8 +215,8 @@ describe('kanban', () => {
       url: `${B}/cards/reorder`,
       payload: [{ id: c2.id, sort_order: 42 }, { id: c3.id, sort_order: 99999999999 }],
     })
-    expect(bad.statusCode).toBe(500)
-    expect(bad.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+    expect(bad.statusCode).toBe(400)
+    expect(bad.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     const [c2After] = await handle.db.select().from(kanban_cards).where(eq(kanban_cards.id, c2.id))
     expect(c2After!.sort_order).toBe(5)
   })
