@@ -49,6 +49,7 @@ castor-kit 的配置分两类：
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
 | `RATE_LIMIT_ENABLED` | 按 IP 限流；具体额度在「系统设置」里调整，见 [账号安全与系统设置](/guide/security#接口限流) | `true` |
 | `MAX_CONTENT_LENGTH` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
+| `SETTINGS_ALLOW_PRIVATE_NETWORK` | 是否允许系统设置里的 SMTP 服务器、S3 接口地址、AI 接口地址指向内网（`127.0.0.1`、`10.x`、`192.168.x` 等）；云服务器元数据等保留地址始终不允许。用环境变量锁定的地址不受限制 | 开发 / 测试 `true`，生产 `false` |
 
 ### 路径
 
@@ -125,6 +126,7 @@ AI 模型（接口地址、API Key、模型名）在系统设置里配置，见�
 - 密码、Secret Key、API Key 用由 `SECRET_KEY` 派生的密钥加密后存进数据库，页面上只显示「已设置」，不会再显示明文；更换 `SECRET_KEY` 后需要重新填写
 - **设置了对应的环境变量（且不为空）时，以环境变量为准**，页面上该项变成只读并注明变量名。适合全部用环境变量管理的部署；不设置就在页面上管理
 - Docker 部署想用环境变量锁定某一项时，除了写进 `.env.production`，还要加到 `docker-compose.yml` 的 `app.environment`
+- 保存和测试前要求 10 分钟内验证过身份，每次保存都会通知所有超级管理员，详见 [系统设置的安全措施](/guide/security#系统设置的安全措施)。生产环境建议至少用环境变量锁定 `APP_BASE_URL` 和 `SMTP_HOST`
 
 ### 邮件
 

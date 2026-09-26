@@ -25,6 +25,21 @@ The System settings page holds switches and parameters that can change at runtim
 - A setting whose environment variable is set (e.g. `SMTP_HOST`, `AI_API_KEY`) follows the variable and is read-only on the page. Only what the server needs before it starts (database URL, `SECRET_KEY`, ports …) must be an environment variable
 - Viewing needs the menu permission `system_settings`; saving needs the button permission `system_settings_edit`
 
+### How system settings are protected
+
+System settings control where data goes — the mail server, file storage, the AI API. A hijacked admin account changing them could intercept password reset mails or send new uploads and AI requests to someone else's server. So:
+
+- **Recent identity check**: saving settings or using a test button needs a sign-in or identity check within the last 10 minutes; otherwise a "Confirm it's you" dialog asks for the current password (plus a two-step code or recovery code for enrolled accounts). A stolen session cookie alone can't change settings, and failures count toward the sign-in lockout. The endpoint is `POST /api/admin/reauth`; the backend protects endpoints with `requireRecentAuth(request)` from `common/session.ts`
+- **Change notifications**: every save sends all active super admins a notification naming who changed which settings (secrets only say "updated / cleared"); the operation log records it too, with secrets masked
+- **No reserved or internal addresses**: the SMTP server, S3 endpoint and AI API URL can't point at reserved addresses such as cloud metadata (`169.254.169.254`), and in production by default not at internal networks either (`127.0.0.1`, `10.x`, `192.168.x` …). Set `SETTINGS_ALLOW_PRIVATE_NETWORK=true` to use a MinIO or mail server on your own network. Saving and testing check this, and AI requests re-check the address actually connected to, so a hostname can't later be pointed inside
+- **Few people with access**: viewing needs the menu permission `system_settings`, changing needs the button permission `system_settings_edit`; by default only super admins have them
+
+Recommended for production:
+
+1. Add the super admin role to "Required for roles" so every super admin uses two-step verification
+2. Pin the key settings with environment variables, e.g. `APP_BASE_URL` (the site URL in password reset links) and `SMTP_HOST`, so even a hijacked admin account can't change them
+3. Don't use a super admin account for everyday work, and give `system_settings_edit` only to those who need it
+
 ### Adding a setting
 
 Settings are defined in `SETTING_DEFINITIONS` in `apps/api/src/common/settings.ts`: group, type (boolean, integer, string, secret, enum, string list), default, bounds, the environment variable that can pin it, whether it is public (public ones are sent to signed-out pages through `/api/admin/app-info`) and why it may be unavailable. New environment variable names also go into `common/settings-env.ts`, and the frontend gets a label and description in `pages/settings/form.js`. Code reads them with `app.settings.get()`; on hot paths that run for every request (like rate limiting) use `app.settings.peek()`, which returns the cached values without waiting for the database.

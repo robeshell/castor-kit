@@ -48,6 +48,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `SESSION_COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |
 | `RATE_LIMIT_ENABLED` | Per-IP rate limits; the limits themselves are set in System settings, see [Account security & settings](/en/guide/security#rate-limits) | `true` |
+| `SETTINGS_ALLOW_PRIVATE_NETWORK` | Whether the SMTP server, S3 endpoint and AI API URL in System settings may point at internal networks (`127.0.0.1`, `10.x`, `192.168.x` …); reserved addresses such as cloud metadata are never allowed. Addresses pinned by environment variables aren't restricted | `true` in development / test, `false` in production |
 | `MAX_CONTENT_LENGTH` | Maximum request body size (bytes); larger requests get 413 | `16777216` (16MB) |
 
 ### Paths
@@ -124,6 +125,7 @@ These are edited on the System settings page (viewing needs `system_settings`, s
 - Passwords, the S3 secret key and the API key are stored encrypted with a key derived from `SECRET_KEY`; the page only shows that they are set. After changing `SECRET_KEY`, enter them again
 - **When the matching environment variable is set (and not empty), it wins**: the setting becomes read-only on the page and names the variable. Useful for deployments managed entirely through environment variables; leave them unset to manage settings on the page
 - To pin a setting in Docker, add the variable to `app.environment` in `docker-compose.yml` as well as to `.env.production`
+- Saving and testing need an identity check within the last 10 minutes, and every save notifies all super admins; see [How system settings are protected](/en/guide/security#how-system-settings-are-protected). In production, pin at least `APP_BASE_URL` and `SMTP_HOST` with environment variables
 
 ### Mail
 
