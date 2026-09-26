@@ -93,7 +93,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(`${dictPath}/items/export`, opts, async (request, reply) => {
     const type = await service.getTypeOr404(dictIdOf(request))
-    if (!(await hasMenuPermission(request, 'system_dicts'))) {
+    if (!(await hasMenuPermission(request, 'system_dicts_export'))) {
       return reply.status(403).send({ error: '无权限导出字典项' })
     }
     return sendTable(reply, await service.exportDictItems(type, queryArg(request, 'file_type')))
@@ -101,7 +101,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(`${dictPath}/items/template`, opts, async (request, reply) => {
     const type = await service.getTypeOr404(dictIdOf(request))
-    if (!(await hasMenuPermission(request, 'system_dicts'))) {
+    if (!(await hasMenuPermission(request, 'system_dicts_import'))) {
       return reply.status(403).send({ error: '无权限下载模板' })
     }
     return sendTable(reply, await service.downloadDictItemsTemplate(type, queryArg(request, 'file_type')))
@@ -109,7 +109,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(`${dictPath}/items/import`, opts, async (request, reply) => {
     const type = await service.getTypeOr404(dictIdOf(request))
-    if (!(await hasMenuPermission(request, 'system_dicts_edit'))) {
+    if (!(await hasMenuPermission(request, 'system_dicts_import'))) {
       return reply.status(403).send({ error: '无权限导入字典项' })
     }
     return service.importDictItems(type, await getUploadedFile(request))

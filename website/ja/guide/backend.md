@@ -243,7 +243,7 @@ psql -d castor_kit -c '\d customers'
 
 ### 権限
 
-エクスポートとインポートに対応するボタン権限のコードは `<perm>_export` と `<perm>_import` です。フロントエンドのコンポーネントは [フロントエンド](/ja/guide/frontend#import-export) を参照してください。
+エクスポートはボタン権限 `<perm>_export`、インポート用テンプレートのダウンロードとインポートはどちらも `<perm>_import` で判定します。閲覧権限や `_edit` で代用しないでください。フロントエンドのコンポーネントは [フロントエンド](/ja/guide/frontend#import-export) を参照してください。
 
 ## OpenAPI
 

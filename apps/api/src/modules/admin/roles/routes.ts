@@ -49,21 +49,21 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.post('/api/admin/roles/export', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_roles'))) {
+    if (!(await hasMenuPermission(request, 'system_roles_export'))) {
       return reply.status(403).send({ error: '无权限导出角色' })
     }
     return sendTable(reply, await service.exportRoles(dictBody(rawJsonBody(request)), await currentUsername(request)))
   })
 
   app.get('/api/admin/roles/template', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_roles'))) {
+    if (!(await hasMenuPermission(request, 'system_roles_import'))) {
       return reply.status(403).send({ error: '无权限下载角色导入模板' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type')))
   })
 
   app.post('/api/admin/roles/import', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_roles_edit'))) {
+    if (!(await hasMenuPermission(request, 'system_roles_import'))) {
       return reply.status(403).send({ error: '无权限导入角色' })
     }
     return service.importRoles(await getUploadedFile(request))

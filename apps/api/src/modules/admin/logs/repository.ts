@@ -2,7 +2,7 @@
  * Logs module repository layer
  */
 
-import { and, asc, count, desc, eq, ilike, inArray, sql, type SQL } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm'
 import type { PgInsertValue } from 'drizzle-orm/pg-core'
 import type { Executor } from '@/db/client'
 import { admin_users, login_logs, operation_logs, type LoginLog, type OperationLog } from '@/db/schema'
@@ -32,10 +32,6 @@ export class LogsRepository {
 
   async addOperationLog(item: PgInsertValue<typeof operation_logs>): Promise<void> {
     await this.db.insert(operation_logs).values(item)
-  }
-
-  async addLoginLog(item: PgInsertValue<typeof login_logs>): Promise<void> {
-    await this.db.insert(login_logs).values(item)
   }
 
   private loginWhere(f: LoginLogFilters): SQL | undefined {
@@ -96,10 +92,4 @@ export class LogsRepository {
     if (ids.length === 0) return []
     return this.db.select().from(operation_logs).where(inArray(operation_logs.id, ids)).orderBy(asc(operation_logs.id))
   }
-}
-
-/** created_at on import: naive values are written as-is; aware values are converted to UTC and then assigned to the timestamp column in the session time zone (equivalent to writing via ::timestamptz) */
-export function importedTimestamp(naive: string, offsetMicros: number | null): SQL {
-  if (offsetMicros === null) return sql`${naive}::timestamp`
-  return sql`((${naive}::timestamp - make_interval(secs => ${offsetMicros / 1_000_000})) AT TIME ZONE 'UTC')`
 }

@@ -70,21 +70,21 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.post('/api/admin/menus/export', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_menus'))) {
+    if (!(await hasMenuPermission(request, 'system_menus_export'))) {
       return reply.status(403).send({ error: '无权限导出菜单' })
     }
     return sendTable(reply, await service.exportMenus(dictBody(rawJsonBody(request))))
   })
 
   app.get('/api/admin/menus/template', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_menus'))) {
+    if (!(await hasMenuPermission(request, 'system_menus_import'))) {
       return reply.status(403).send({ error: '无权限下载菜单导入模板' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type')))
   })
 
   app.post('/api/admin/menus/import', opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_menus_edit'))) {
+    if (!(await hasMenuPermission(request, 'system_menus_import'))) {
       return reply.status(403).send({ error: '无权限导入菜单' })
     }
     return service.importMenus(await getUploadedFile(request))

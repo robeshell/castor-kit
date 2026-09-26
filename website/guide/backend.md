@@ -243,7 +243,7 @@ psql -d castor_kit -c '\d customers'
 
 ### 权限
 
-导出和导入对应的按钮权限编码为 `<perm>_export` 和 `<perm>_import`。前端组件见 [前端开发](/guide/frontend#导入导出)。
+导出对应的按钮权限编码为 `<perm>_export`，下载导入模板和导入都用 `<perm>_import`，不要用查看权限或 `_edit` 代替。前端组件见 [前端开发](/guide/frontend#导入导出)。
 
 ## OpenAPI
 

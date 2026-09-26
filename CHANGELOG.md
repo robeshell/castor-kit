@@ -48,6 +48,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
+- Import / export permissions: every export now needs its `<perm>_export` button and every import template and import its `<perm>_import` button (users, roles, menus, dictionary items, logs and the component gallery list pages); before, the view permission was enough to export or download a template and `_edit` was enough to import. Roles that relied on that lose it until they are granted the button (super admins are unaffected). The scaffold and `docs/templates` generate the template route with `_import` too.
 - After signing in, the "no accessible pages" screen flashed before the dashboard (menus are now loaded before the redirect); list pages and dashboard panels show skeletons instead of "no data" / zero values until their first response.
 - AI Data Query sample questions asked about system tables (users, roles, menus, logs, scheduled tasks) that AI SQL never exposes, so they came back empty; they now ask about the component gallery data, and the demo data has members who joined across the last six months.
 - AI Data Query timed out in the browser after 10 s with thinking models; the generate request now allows 60 s. A startup warning flags Neon pooler URLs, which break the AI SQL read-only connection.
@@ -56,6 +57,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Removed
 
+- Login-log and operation-log import (and their templates): an audit trail shouldn't accept rows from a file. Logs can still be exported with `system_logs_export`. The `system_logs_import` button is gone from `seed-rbac.ts`; `--incremental` never deletes, so existing databases drop it with `DELETE FROM role_menus WHERE menu_id = (SELECT id FROM menus WHERE code = 'system_logs_import'); DELETE FROM menus WHERE code = 'system_logs_import';`.
 - Continuous deployment workflows for the server and the docs site ([#7]).
 
 [Unreleased]: https://github.com/robeshell/castor-kit/commits/main

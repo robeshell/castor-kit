@@ -476,7 +476,8 @@ component_center/dataviz/realtime_chart_page
   - 上传文件用 `getUploadedFile(request)`（`@/common/http`）
 - 在 `modules/<domain>/<name>/schema.ts` 定义 `EXPORT_FIELD_MAP`（字段 → 中文表头，值取 toDict 的同名字段；需要转换时写成 `[中文表头, 取值函数]`，如枚举显示中文）和 `IMPORT_HEADER_MAP`（中文表头 → 字段）
 - 导入整批一个事务：有错误行时抛 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` 整体回滚
-- 路由：`POST /export`、`GET /template`、`POST /import`（挂在资源路径下）；权限编码 `<perm>_export` / `<perm>_import`
+- 路由：`POST /export`、`GET /template`、`POST /import`（挂在资源路径下）；权限编码：导出 `<perm>_export`，下载模板与导入都是 `<perm>_import`——不要用查看权限或 `_edit` 代替（能看的人不一定能导出，能编辑的人不一定能批量写入）
+- 日志（登录日志 / 操作日志）只能导出、不提供导入：审计记录不能被文件补写
 - 参考实现：`apps/api/src/modules/admin/users/`
 
 **前端**

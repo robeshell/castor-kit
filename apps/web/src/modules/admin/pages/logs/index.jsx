@@ -1,23 +1,18 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Download, Upload, X } from 'lucide-react'
+import { Download, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/lib/toast'
 import { formatDateTime } from '@/lib/format'
 import {
-  downloadLoginLogsTemplate,
-  downloadOperationLogsTemplate,
   exportLoginLogs,
   exportOperationLogs,
   getLoginLogs,
   getOperationLogs,
-  importLoginLogs,
-  importOperationLogs,
 } from '@/modules/admin/api/logs'
 import DataTable from '@/shared/components/DataTable'
 import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
-import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
 import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
 import PageHeader from '@/shared/components/PageHeader'
 import SegmentedTabs from '@/shared/components/SegmentedTabs'
@@ -167,7 +162,6 @@ export default function Logs() {
   const [loginStatus, setLoginStatus] = useState('')
   const [loginSelectedKeys, setLoginSelectedKeys] = useState([])
   const [loginExportOpen, setLoginExportOpen] = useState(false)
-  const [loginImportOpen, setLoginImportOpen] = useState(false)
 
   // Operation logs
   const opList = useCrudList(withErrorToast(getOperationLogs), { defaultPerPage: 20 })
@@ -175,7 +169,6 @@ export default function Logs() {
   const [opModule, setOpModule] = useState('')
   const [opSelectedKeys, setOpSelectedKeys] = useState([])
   const [opExportOpen, setOpExportOpen] = useState(false)
-  const [opImportOpen, setOpImportOpen] = useState(false)
 
   useEffect(() => {
     loginList.handleSearch({ username: '', status: '' })
@@ -245,16 +238,10 @@ export default function Logs() {
       <PageHeader
         title="日志管理"
         actions={
-          <>
-            <Button variant="outline" size="sm" onClick={() => (isLogin ? setLoginImportOpen(true) : setOpImportOpen(true))}>
-              <Upload />
-              {t('导入')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => (isLogin ? setLoginExportOpen(true) : setOpExportOpen(true))}>
-              <Download />
-              {t('导出')}
-            </Button>
-          </>
+          <Button variant="outline" size="sm" onClick={() => (isLogin ? setLoginExportOpen(true) : setOpExportOpen(true))}>
+            <Download />
+            {t('导出')}
+          </Button>
         }
       />
 
@@ -333,48 +320,6 @@ export default function Logs() {
         fieldOptions={OPERATION_EXPORT_FIELDS}
         defaultFields={['username', 'module', 'action', 'method', 'path', 'status_code', 'created_at']}
         onConfirm={handleOperationExport}
-      />
-
-      <ImportDialog
-        open={loginImportOpen}
-        onOpenChange={setLoginImportOpen}
-        title="导入登录日志"
-        targetLabel="日志管理 / 登录日志"
-        onDownloadTemplate={(fileType) =>
-          downloadLoginLogsTemplate(normalizeFileType(fileType))
-            .then((blob) => {
-              downloadBlobFile(blob, `login_logs_import_template.${normalizeFileType(fileType)}`)
-              toast.success('模板下载成功')
-            })
-            .catch((err) => toast.apiError(err, '模板下载失败'))
-        }
-        onImport={(file) => importLoginLogs(file)}
-        onImported={(res) => {
-          loginList.fetchData()
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
-        }}
-        errorExportFileName="login_logs_import_error_rows.csv"
-      />
-
-      <ImportDialog
-        open={opImportOpen}
-        onOpenChange={setOpImportOpen}
-        title="导入操作日志"
-        targetLabel="日志管理 / 操作日志"
-        onDownloadTemplate={(fileType) =>
-          downloadOperationLogsTemplate(normalizeFileType(fileType))
-            .then((blob) => {
-              downloadBlobFile(blob, `operation_logs_import_template.${normalizeFileType(fileType)}`)
-              toast.success('模板下载成功')
-            })
-            .catch((err) => toast.apiError(err, '模板下载失败'))
-        }
-        onImport={(file) => importOperationLogs(file)}
-        onImported={(res) => {
-          opList.fetchData()
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
-        }}
-        errorExportFileName="operation_logs_import_error_rows.csv"
       />
     </div>
   )

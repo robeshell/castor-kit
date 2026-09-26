@@ -75,7 +75,7 @@ export async function registerCardListPageRoutes(app: FastifyInstance): Promise<
   })
 
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!(await hasMenuPermission(request, 'system_card_list_page'))) {
+    if (!(await hasMenuPermission(request, 'system_card_list_page_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
     const payload = request.method === 'GET' ? queryArgs(request) : jsonBody(request)
@@ -85,14 +85,14 @@ export async function registerCardListPageRoutes(app: FastifyInstance): Promise<
   app.post(`${BASE}/export`, opts, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_card_list_page'))) {
+    if (!(await hasMenuPermission(request, 'system_card_list_page_import'))) {
       return reply.status(403).send({ error: '无权限下载导入模板' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type', '') || null))
   })
 
   app.post(`${BASE}/import`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_card_list_page_edit'))) {
+    if (!(await hasMenuPermission(request, 'system_card_list_page_import'))) {
       return reply.status(403).send({ error: '无权限导入数据' })
     }
     return service.importItems(await getUploadedFile(request))
