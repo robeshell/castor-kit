@@ -23,6 +23,15 @@ export class ServiceError extends Error {
   }
 }
 
+/**
+ * A failure that isn't the caller's fault → 500. The detail goes to the log only: the response carries the generic
+ * message. Use this for every 500 (never `new ServiceError(…, 500)` by hand; test/conventions.test.ts checks), so a
+ * reader can tell real server errors from input errors, which are 4xx.
+ */
+export function internalError(detail: unknown): ServiceError {
+  return new ServiceError(detail instanceof Error ? detail.message : String(detail), 500)
+}
+
 export function serviceErrorBody(error: ServiceError): Record<string, unknown> {
   const body: Record<string, unknown> = {
     error: error.statusCode >= 500 ? INTERNAL_ERROR_MESSAGE : error.message,

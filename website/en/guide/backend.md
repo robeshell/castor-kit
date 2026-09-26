@@ -170,7 +170,7 @@ Write error messages in Chinese; the backend translates them into English or Jap
 
 ### Database constraint error mapping
 
-The global error handler calls `dbConstraintError()` from `apps/api/src/common/db-errors.ts`, which turns database errors caused by the request's values into a 400; services that catch errors in a transaction pass them to it first (the scaffolded services and the `docs/templates/backend/service.ts` template already do). The rule: the caller's input problems are 4xx, only the server's own problems are 500:
+The global error handler calls `dbConstraintError()` from `apps/api/src/common/db-errors.ts`, which turns database errors caused by the request's values into a 400; services that catch a failed write throw `writeError(err)` (business errors as they are, input the database rejects → 400, anything else → 500), and real server failures use `internalError(err)` — never a hand-written `new ServiceError(…, 500)`. The scaffolded services and the `docs/templates/backend/service.ts` template already do this, and `test/conventions.test.ts` checks it. The rule: the caller's input problems are 4xx, only the server's own problems are 500:
 
 | PostgreSQL error code | Message returned (English UI) |
 |---|---|

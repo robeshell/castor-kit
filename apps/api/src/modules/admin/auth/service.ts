@@ -5,7 +5,7 @@
  */
 
 import { loadAdminWithRoles } from '@/common/auth'
-import { ServiceError } from '@/common/errors'
+import { internalError, ServiceError } from '@/common/errors'
 import { checkPasswordHash, generatePasswordHash } from '@/common/password'
 import type { PasswordPolicy } from '@/common/password-policy'
 import type { SettingsStore } from '@/common/settings'
@@ -99,7 +99,7 @@ export class AuthService {
         throw new ServiceError('账号已停用，请联系管理员', 403)
       }
       const withRoles = await loadAdminWithRoles(this.db, username)
-      if (!withRoles) throw new ServiceError('用户不存在', 500)
+      if (!withRoles) throw internalError('用户不存在')
       const state: MfaState | null = !twoFactor.enabled
         ? null
         : user.totp_enabled_at
@@ -197,7 +197,7 @@ export class AuthService {
       // New hashes keep the existing `pbkdf2:sha256:<iterations>$<salt>$<hex>` format, compatible with hashes already stored
       await this.repo.updatePasswordHash(admin.id, await generatePasswordHash(String(data?.new_password)))
     } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw internalError(err)
     }
     return { message: '密码修改成功' }
   }

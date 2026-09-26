@@ -170,7 +170,7 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 
 ### 数据库约束错误映射
 
-全局错误处理器会调用 `apps/api/src/common/db-errors.ts` 的 `dbConstraintError()`，把由请求里的值引起的数据库错误转成 400；service 在事务里捕获错误时也先交给它（scaffold 生成的 service 和 `docs/templates/backend/service.ts` 模板已经这样做）。原则是调用方的输入问题一律 4xx，只有服务器自身的问题才是 500：
+全局错误处理器会调用 `apps/api/src/common/db-errors.ts` 的 `dbConstraintError()`，把由请求里的值引起的数据库错误转成 400；service 在事务里捕获错误时用 `writeError(err)`（业务错误原样、数据库拒绝的输入 400、其余 500），真正的服务器错误用 `internalError(err)`，不要手写 `new ServiceError(…, 500)`；scaffold 生成的 service 和 `docs/templates/backend/service.ts` 模板已经这样做，`test/conventions.test.ts` 会检查。原则是调用方的输入问题一律 4xx，只有服务器自身的问题才是 500：
 
 | PostgreSQL 错误码 | 返回文案 |
 |---|---|

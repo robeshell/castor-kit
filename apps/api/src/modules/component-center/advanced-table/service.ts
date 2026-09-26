@@ -2,7 +2,7 @@
  * Advanced table page service layer
  */
 
-import { dbConstraintError } from '@/common/db-errors'
+import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
@@ -67,12 +67,6 @@ function changedFields(row: AdvancedTableRow, patch: AdvancedTableRowPatch, newS
     }
   }
   return out as AdvancedTableRowPatch
-}
-
-/** A failed transaction: business errors keep their status, the database rejecting the input is a 400, the rest a 500 */
-function txError(err: unknown): ServiceError {
-  if (err instanceof ServiceError) return err
-  return dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
 }
 
 /**
@@ -187,7 +181,7 @@ export class AdvancedTableService {
     try {
       return await this.db.transaction((tx) => fn(new AdvancedTableRepository(tx), tx))
     } catch (err) {
-      throw txError(err)
+      throw writeError(err)
     }
   }
 

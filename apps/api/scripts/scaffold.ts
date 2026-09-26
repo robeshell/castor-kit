@@ -657,7 +657,7 @@ function stamp(actor: Actor | undefined) {
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyTruthy } from '@/common/py'
-import { dbConstraintError } from '@/common/db-errors'
+import { dbConstraintError, writeError } from '@/common/db-errors'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 ${ds ? `import { UNRESTRICTED, type Actor, type DataScope } from '@/common/data-scope'\n` : ''}import type { EventBus } from '@/common/webhooks'
 import type { Db } from '@/db/client'
@@ -682,9 +682,8 @@ export class ${s.pascal}Service {
     try {
       return await this.db.transaction((tx) => fn(new ${s.pascal}Repository(tx)))
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      // Input problems such as unique conflicts / values too long / numeric overflow → 400; anything else → 500
-      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      // Business errors as they are; input the database rejects (unique conflicts, too long …) → 400; anything else → 500
+      throw writeError(err)
     }
   }
 

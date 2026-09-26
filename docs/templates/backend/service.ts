@@ -7,7 +7,7 @@
  * One commit per request: multi-step writes go inside inTx (db.transaction) and roll back entirely on failure.
  */
 
-import { dbConstraintError } from '@/common/db-errors'
+import { dbConstraintError, writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyStr, pyTruthy } from '@/common/py'
@@ -35,9 +35,8 @@ export class <Resource>Service {
     try {
       return await this.db.transaction((tx) => fn(new <Resource>Repository(tx)))
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      // Input problems like unique conflicts / too long / numeric overflow → 400; everything else → 500
-      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      // Business errors as they are; input the database rejects (unique conflicts, too long …) → 400; anything else → 500
+      throw writeError(err)
     }
   }
 

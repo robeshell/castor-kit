@@ -244,10 +244,11 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
   POST   /api/admin/<resource>s/import       导入（multipart/form-data，字段名 file）
 错误响应：{ error: string, ...payload }；5xx 一律「服务器内部错误，请稍后重试」
 输入问题一律 400：必填 / 取值 / 唯一先在 service 里校验并给出中文提示；类型不对抛 invalidInput()（@/common/py-values）；
-  事务 catch 里先 dbConstraintError(err)（@/common/db-errors）再兜底 500；只有服务器自身的问题才返回 500
+  事务 catch 里 throw writeError(err)（@/common/db-errors：业务错误原样、数据库拒绝的输入 400、其余 500）；
+  真正的服务器错误用 internalError(err)（@/common/errors），不要手写 new ServiceError(…, 500)（test/conventions.test.ts 检查）
 ```
 
-- 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），**先做权限检查（403）再 `service.getOr404(id)`（404）**：没有权限的人不能靠 404 / 403 的差别试探某个 id 是否存在；有权限但不在数据权限范围内的记录同样返回 404
+- 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），**先做权限检查（403）再 `service.getOr404(id)`（404）**：没有权限的人不能靠 404 / 403 的差别试探某个 id 是否存在；有权限但不在数据权限范围内的记录同样返回 404。`test/conventions.test.ts` 会检查所有路由、后端模板和 scaffold 生成的路由
 - 请求体用 `jsonBody(request)`，查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`
 
 ### OpenAPI 编写规范
