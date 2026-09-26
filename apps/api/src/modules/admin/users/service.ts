@@ -3,6 +3,7 @@
  */
 
 import { scopeCoversDept, UNRESTRICTED, type DataScope } from '@/common/data-scope'
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { generatePasswordHash } from '@/common/password'
@@ -140,7 +141,7 @@ export class UserService {
   /** Verify all role_ids exist and return the roles; throws on any invalid id */
   private async resolveRoles(repo: UserRepository, roleIdsRaw: unknown): Promise<Role[]> {
     const ids = pyTruthy(roleIdsRaw) ? roleIdsRaw : []
-    if (!Array.isArray(ids)) throw new ServiceError('role_ids 必须是数组', 500)
+    if (!Array.isArray(ids)) throw new ServiceError('role_ids 必须是数组', 400)
     const numericIds = ids.filter((v): v is number => typeof v === 'number' && Number.isInteger(v))
     const found = await repo.listRolesByIds(numericIds)
     const validIds = new Set(found.map((r) => r.id))
@@ -205,7 +206,7 @@ export class UserService {
       return await this.db.transaction((tx) => fn(new UserRepository(tx), tx))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
 

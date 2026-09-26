@@ -90,7 +90,7 @@ describe('dynamic-form-page', () => {
     expect(b.json()).toMatchObject({ fields_count: 0, fields: [] })
   })
 
-  it('新增：校验分支（顺序：标题 → 编码 → 重复 → 字段数 → 状态），fields 类型异常 500 且不落库', async () => {
+  it('新增：校验分支（顺序：标题 → 编码 → 重复 → 字段数 → 状态），fields 类型异常 400 且不落库', async () => {
     const post = (payload: object) => s.inject({ method: 'POST', url: B, payload })
     const many = Array.from({ length: 21 }, (_, i) => ({ field_key: `k${i}` }))
     expect((await post({ record_code: 'x', fields: many })).json()).toEqual({ error: '标题不能为空' })
@@ -99,9 +99,9 @@ describe('dynamic-form-page', () => {
     expect((await post({ title: 'x', record_code: `${P}z`, fields: many, status: 'bad' })).json()).toEqual({ error: '动态字段最多支持 20 条' })
     expect((await post({ title: 'x', record_code: `${P}z`, fields: 'x'.repeat(21) })).json()).toEqual({ error: '动态字段最多支持 20 条' })
     expect((await post({ title: 'x', record_code: `${P}z`, status: 'bad' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
-    expect((await post({ title: 'x', record_code: `${P}z`, fields: 3 })).statusCode).toBe(500)
+    expect((await post({ title: 'x', record_code: `${P}z`, fields: 3 })).statusCode).toBe(400)
     const partial = await post({ title: 'x', record_code: `${P}z`, fields: [{ field_key: 'ok' }, 'bad'] })
-    expect(partial.statusCode).toBe(500)
+    expect(partial.statusCode).toBe(400)
     expect(await rowByCode(`${P}z`)).toBeUndefined()
     // Empty values ('' / {} / false) are treated as []
     const empty = await post({ title: 'x', record_code: `${P}e`, fields: {} })
@@ -124,11 +124,11 @@ describe('dynamic-form-page', () => {
     expect((await s.inject({ url: `${B}?search=${P}&per_page=2&page=2` })).json()).toMatchObject({ total: 3, page: 2, per_page: 2 })
   })
 
-  it('详情 / 404 先于 403 / 403 文案', async () => {
+  it('详情 / 403 先于 404 / 403 文案', async () => {
     const a = (await rowByCode(`${P}a`))!
     const detail = (await s.inject({ url: `${B}/${a.id}` })).json()
     expect(detail.fields.map((f: { field_key: string }) => f.field_key)).toEqual(['first', 'color', 'size'])
-    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
+    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     expect((await u.inject({ url: `${B}/${a.id}` })).json()).toEqual({ error: '无权限查看记录详情' })
     expect((await u.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: {} })).json()).toEqual({ error: '无权限编辑记录' })
     expect((await u.inject({ method: 'DELETE', url: `${B}/${a.id}` })).json()).toEqual({ error: '无权限删除记录' })
@@ -154,9 +154,9 @@ describe('dynamic-form-page', () => {
     expect((await put({ title: ' ' })).json()).toEqual({ error: '标题不能为空' })
     expect((await put({ fields: Array.from({ length: 21 }, () => ({})) })).json()).toEqual({ error: '动态字段最多支持 20 条' })
     expect((await put({ title: '改', status: 'x' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
-    expect((await put({ fields: false })).statusCode).toBe(500)
+    expect((await put({ fields: false })).statusCode).toBe(400)
     const rolled = await put({ title: '改', fields: [null] })
-    expect(rolled.statusCode).toBe(500)
+    expect(rolled.statusCode).toBe(400)
     expect((await rowByCode(`${P}a`))!.title).toBe('表单A')
     expect(await fieldRows(a.id)).toHaveLength(1)
 

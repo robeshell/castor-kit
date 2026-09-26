@@ -47,7 +47,7 @@
 
 - 权限判断一律 `import { hasMenuPermission, loginRequired } from '@/common/auth'`，禁止在 routes 里自定义 `hasPermission`
 - routes 不直接写 SQL；service 不碰 `reply` / `session`
-- 带 id 的路由先 get_or_404（404）再做权限检查（403）
+- 带 id 的路由先做权限检查（403）再 get_or_404（404），没有权限时无法试探 id 是否存在
 - 时间输出一律 `toIso()`，禁止 `Date#toISOString()`；numeric 保持字符串
 - 导入整批一个事务，有错误行时抛 `ServiceError(400, { error_rows, error_count })` 整体回滚
 

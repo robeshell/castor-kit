@@ -1,7 +1,7 @@
 /**
  * Data dictionary routes
  *
- * Routes with an id run get_or_404 first, then the permission check.
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -52,92 +52,92 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
   const dictPath = `/api/admin/dicts/${intParam('dict_id')}`
 
   app.get(dictPath, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts'))) {
       return reply.status(403).send({ error: '无权限查看数据字典' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return service.getDictType(type, parseBool(queryArg(request, 'include_items')) === true)
   })
 
   app.put(dictPath, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_edit'))) {
       return reply.status(403).send({ error: '无权限编辑数据字典' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return service.updateDictType(type, jsonBody(request))
   })
 
   app.delete(dictPath, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_delete'))) {
       return reply.status(403).send({ error: '无权限删除数据字典' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return service.deleteDictType(type)
   })
 
   app.get(`${dictPath}/items`, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts'))) {
       return reply.status(403).send({ error: '无权限查看字典项' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return service.listDictItems(type, queryString(request, 'search').trim(), parseBool(queryArg(request, 'is_active')))
   })
 
   app.post(`${dictPath}/items`, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_add'))) {
       return reply.status(403).send({ error: '无权限新增字典项' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return reply.status(201).send(await service.createDictItem(type, jsonBody(request)))
   })
 
   app.get(`${dictPath}/items/export`, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_export'))) {
       return reply.status(403).send({ error: '无权限导出字典项' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return sendTable(reply, await service.exportDictItems(type, queryArg(request, 'file_type')))
   })
 
   app.get(`${dictPath}/items/template`, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_import'))) {
       return reply.status(403).send({ error: '无权限下载模板' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return sendTable(reply, await service.downloadDictItemsTemplate(type, queryArg(request, 'file_type')))
   })
 
   app.post(`${dictPath}/items/import`, opts, async (request, reply) => {
-    const type = await service.getTypeOr404(dictIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_import'))) {
       return reply.status(403).send({ error: '无权限导入字典项' })
     }
+    const type = await service.getTypeOr404(dictIdOf(request))
     return service.importDictItems(type, await getUploadedFile(request))
   })
 
   const itemPath = `/api/admin/dicts/items/${intParam('item_id')}`
 
   app.get(itemPath, opts, async (request, reply) => {
-    const item = await service.getItemOr404(itemIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts'))) {
       return reply.status(403).send({ error: '无权限查看字典项' })
     }
+    const item = await service.getItemOr404(itemIdOf(request))
     return service.getDictItem(item)
   })
 
   app.put(itemPath, opts, async (request, reply) => {
-    const item = await service.getItemOr404(itemIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_edit'))) {
       return reply.status(403).send({ error: '无权限编辑字典项' })
     }
+    const item = await service.getItemOr404(itemIdOf(request))
     return service.updateDictItem(item, jsonBody(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
-    const item = await service.getItemOr404(itemIdOf(request))
     if (!(await hasMenuPermission(request, 'system_dicts_delete'))) {
       return reply.status(403).send({ error: '无权限删除字典项' })
     }
+    const item = await service.getItemOr404(itemIdOf(request))
     return service.deleteDictItem(item)
   })
 }

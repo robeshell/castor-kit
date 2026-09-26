@@ -118,7 +118,7 @@ castor-kit/
 ### 4.1 响应格式与错误处理
 - 路由前缀 `/api/admin/...`；另有 `/ws/devtools`、`/health` 与 SPA fallback。
 - 列表响应 `{ items, total, page, per_page }`；登录 / `me` / `csrf-token` 响应携带 `csrf_token`。
-- 错误响应 `{ error: string, ...payload }`：统一 `setErrorHandler` 把 `ServiceError` 转成该形状；Zod 校验失败 → 400 `{error: <首条消息>}`；未知异常 → 500「服务器内部错误，请稍后重试」，不透传内部信息，pino 记录堆栈。
+- 错误响应 `{ error: string, ...payload }`：统一 `setErrorHandler` 把 `ServiceError` 转成该形状；Zod 校验失败 → 400 `{error: <首条消息>}`；数据库因请求里的值拒绝写入（唯一冲突、超长、非空、外键、格式，`common/db-errors.ts`）→ 400 对应中文提示，服务里捕获事务错误时同样先交给 `dbConstraintError`；类型或结构不对的请求值 → `invalidInput()`（`common/py-values.ts`）400「请求参数格式不正确」；其余未知异常 → 500「服务器内部错误，请稍后重试」，不透传内部信息，pino 记录堆栈。原则：调用方的输入问题一律 4xx，只有服务器自身的问题才是 500。
 - `/api/*` 下 404 / 405 / 500 均返回 JSON，永远不落到 SPA `index.html`。405 规则见 §9。
 - 输出 UTF-8 紧凑 JSON。
 - 反代：`trustProxy` 取一跳，`request.ip` 即真实 IP，不手动读 `X-Forwarded-For`。
@@ -155,6 +155,7 @@ castor-kit/
 ### 4.6 权限（RBAC）
 - `common/rbac.ts` 是纯函数（`isSuperAdmin` / 菜单编码收集）；`common/auth.ts` 提供 `hasMenuPermission` / `hasAnyMenuPermission` / `menuPermissionRequired`。
 - `super_admin` 角色短路放行；唯一例外是 `GET /api/admin/my-menus`，它按角色实际授予的菜单返回。
+- 检查顺序：带 id 的路由先查权限（403）再查记录（404），没有权限的人无法靠状态码差别试探 id 是否存在（例外：通知删除要先看是不是发给自己的，再决定需要什么权限）。`scaffold` 与 `docs/templates/backend/routes.ts` 按这个顺序生成。
 - 防锁死：`super_admin` 角色不能删除、改编码、改数据范围或减少菜单（只能改名称 / 描述）；授予 / 移除这个角色、操作超级管理员账号都只允许超级管理员；不能移除自己的角色；最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色（这条在 HTTP 上已被前几条覆盖，保留为兜底）。
 - `my-menus` 的叶子节点没有 `children` 键；`menu_codes` 与角色顺序不保证，比较时按集合。
 - 菜单 `component` 字段格式 `<module>/<subdir>/<page>`，前端 `App.jsx` 用 `import.meta.glob` 解析。
@@ -303,6 +304,7 @@ castor-kit/
 - **SSRF 连接阶段复检**：除了保存时校验地址，执行时在 `connect.lookup` 阶段再检查一次解析结果（含 IPv4-mapped IPv6 等变体），防 DNS rebinding 和重定向到内网。
 - **`setup-once` 用增量模式同步 RBAC**：容器每次启动都会跑 setup-once，全量重建会清空账号与角色，所以只 upsert 不删除。
 - **AI SQL 原样执行**：用户 SQL 不走参数占位符，直接交给只读连接执行，所以 `LIKE '%x%'` 这类含 `%` 的语句可以正常运行；安全边界由只读连接、关键字拦截和敏感表过滤保证（§4.11）。
+- **输入问题一律 4xx**：迁移初期为了与旧接口行为一致，把类型不对、数据库拒绝的值等都当作 500（模仿 Python 的异常）；现在统一改为 400 并给出可读的提示，只有服务器自身的问题才返回 500（§4.1）。代价是：写库路径里真正的代码缺陷（如漏设外键、迁移加了非空约束而代码没跟上）也会以 400 的通用提示出现，所以这类错误在服务端按 warn 记录，便于排查。
 - **`jsonBody` 宽松**：非对象 JSON 体、非 JSON Content-Type 一律按 `{}` 处理，后续由 service 的必填校验返回 400，不产生 415 / 500。
 - **定时任务地址校验返回 400 + 具体原因**：校验顺序在名称 / 编码 / Cron 之后；地址格式错误新增、编辑都返回 400「请求地址格式不合法」；域名解析到禁止网段时文案附带解析结果（如「不允许访问内网地址（localhost 解析为 127.0.0.1）」），方便用户自查。
 - **成环校验**：菜单与树形列表修改父级时，不能改成自身或自己的子孙（400）；导入同样按最终父子关系检查，成环的行记为错误行、整批回滚。否则树接口会无限递归。

@@ -2,10 +2,12 @@
  * Business exceptions and unified error handling (ServiceError definition + global error handler)
  *
  * There is a single response shape: `{ error: string, ...payload }`. 5xx always returns a generic message and never leaks internal details.
+ * Database errors caused by the request's data (common/db-errors.ts) are 400s, wherever they are thrown.
  */
 
 import type { FastifyError, FastifyInstance } from 'fastify'
 import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod'
+import { dbConstraintError } from './db-errors'
 
 export const INTERNAL_ERROR_MESSAGE = '服务器内部错误，请稍后重试'
 
@@ -53,6 +55,14 @@ export function registerErrorHandler(app: FastifyInstance): void {
       const message =
         status === 413 ? '请求体过大' : error.code?.startsWith('FST_ERR_CTP') ? '请求体格式错误' : error.message
       return reply.status(status).send({ error: message })
+    }
+
+    // The database rejected a value from the request (unique conflict, too long, missing, unknown reference, bad
+    // format): the caller's input is at fault, so 400 with a generic message instead of a 500
+    const rejected = dbConstraintError(error)
+    if (rejected) {
+      request.log.warn({ err: error }, '数据库拒绝了请求中的数据')
+      return reply.status(400).send({ error: rejected.message })
     }
 
     request.log.error({ err: error }, '未处理的服务器错误')

@@ -5,7 +5,7 @@
 import { and, count, desc, eq, inArray, notInArray, or, type SQL } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
 import { utcNow } from '@/db/schema/columns'
-import { notification_reads, notifications, type Notification } from '@/db/schema'
+import { admin_users, notification_reads, notifications, type Notification } from '@/db/schema'
 
 export type NotificationInsert = typeof notifications.$inferInsert
 
@@ -62,6 +62,12 @@ export class NotificationRepository {
       .from(notifications)
       .where(and(this.visible(userId), notInArray(notifications.id, this.readIds(userId))))
     return row?.n ?? 0
+  }
+
+  /** Whether a user with this id exists (the recipient of a targeted notification) */
+  async userExists(id: number): Promise<boolean> {
+    const [row] = await this.db.select({ id: admin_users.id }).from(admin_users).where(eq(admin_users.id, id)).limit(1)
+    return Boolean(row)
   }
 
   async getVisible(userId: number, id: number): Promise<Notification | null> {

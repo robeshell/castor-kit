@@ -11,6 +11,7 @@
 
 import { wouldCreateCycle } from '@/common/tree'
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
 import { isPlainObject, pyStr, pyStrOrEmpty, pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
@@ -239,7 +240,7 @@ export class TreeListPageService {
     let items: TreeNode[]
     if (exportMode === 'filtered') {
       // Return 500 when filters is not an object (e.g. list/str)
-      if (!isPlainObject(filters)) throw new ServiceError("'filters' object has no attribute 'get'", 500)
+      if (!isPlainObject(filters)) throw invalidInput("'filters' object has no attribute 'get'")
       items = await this.repo.listAllOrdered({
         search: pyStrOrEmpty(filters.search),
         nodeType: pyStrOrEmpty(filters.node_type),

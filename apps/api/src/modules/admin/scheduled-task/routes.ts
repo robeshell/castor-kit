@@ -1,9 +1,7 @@
 /**
  * Scheduled task routes
  *
- * Check order (preserves existing API behavior):
- * - GET/PUT/DELETE /scheduled-tasks/<id>: get_or_404 first, then the permission check
- * - POST /scheduled-tasks/<id>/run: permission check first, then get_or_404
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  * - Manual run: 200 when run.status is success, otherwise 500 (the body is still the full result)
  */
 
@@ -55,26 +53,26 @@ export async function registerScheduledTaskRoutes(app: FastifyInstance): Promise
   })
 
   app.get(`/api/admin/scheduled-tasks/${intParam('task_id')}`, opts, async (request, reply) => {
-    const task = await service.getTaskOr404(taskIdOf(request.params))
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks'))) {
       return reply.status(403).send({ error: '无权限查看定时任务' })
     }
+    const task = await service.getTaskOr404(taskIdOf(request.params))
     return scheduledTaskToDict(task)
   })
 
   app.put(`/api/admin/scheduled-tasks/${intParam('task_id')}`, opts, async (request, reply) => {
-    const task = await service.getTaskOr404(taskIdOf(request.params))
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks_edit'))) {
       return reply.status(403).send({ error: '无权限编辑定时任务' })
     }
+    const task = await service.getTaskOr404(taskIdOf(request.params))
     return service.updateTask(task, jsonBody(request))
   })
 
   app.delete(`/api/admin/scheduled-tasks/${intParam('task_id')}`, opts, async (request, reply) => {
-    const task = await service.getTaskOr404(taskIdOf(request.params))
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks_delete'))) {
       return reply.status(403).send({ error: '无权限删除定时任务' })
     }
+    const task = await service.getTaskOr404(taskIdOf(request.params))
     return service.deleteTask(task)
   })
 

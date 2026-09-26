@@ -149,8 +149,8 @@ describe('list-page CRUD', () => {
       expect(res.json()).toEqual({ error })
     }
     const long = await s.inject({ method: 'POST', url: B, payload: { name: 'n'.repeat(121), query_code: `${P}z` } })
-    expect(long.statusCode).toBe(500)
-    expect(long.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+    expect(long.statusCode).toBe(400)
+    expect(long.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
   })
 
   it('列表：形状、筛选、per_page 钳制、排序 priority desc', async () => {
@@ -166,11 +166,11 @@ describe('list-page CRUD', () => {
     expect(inactive.json().items.map((i: { query_code: string }) => i.query_code)).toEqual([`${P}a`])
   })
 
-  it('详情 / 404 先于 403 / 非数字 id', async () => {
+  it('详情 / 403 先于 404 / 非数字 id', async () => {
     const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}a`))
     expect((await s.inject({ url: `${B}/${row!.id}` })).json().query_code).toBe(`${P}a`)
     expect((await s.inject({ url: `${B}/99999999` })).json()).toEqual({ error: '资源不存在' })
-    expect((await noPerm.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
+    expect((await noPerm.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     const forbidden = await noPerm.inject({ url: `${B}/${row!.id}` })
     expect(forbidden.statusCode).toBe(403)
     expect(forbidden.json()).toEqual({ error: '无权限查看记录详情' })
@@ -342,7 +342,7 @@ describe('list-page 导入导出', () => {
     expect(filtered.rawPayload.toString('utf8')).toBe('﻿名称\r\n导出2\r\n')
   })
 
-  it('导出 错误分支（400 / 未捕获异常 → 500）', async () => {
+  it('导出 错误分支（非法参数 → 400）', async () => {
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的查询数据' })
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 1 } })).statusCode).toBe(400)
     for (const payload of [
@@ -353,8 +353,8 @@ describe('list-page 导入导出', () => {
       { export_mode: 'filtered', filters: [1] },
     ]) {
       const res = await s.inject({ method: 'POST', url: `${B}/export`, payload })
-      expect(res.statusCode, JSON.stringify(payload)).toBe(500)
-      expect(res.json()).toEqual({ error: '服务器内部错误，请稍后重试' })
+      expect(res.statusCode, JSON.stringify(payload)).toBe(400)
+      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
     }
   })
 

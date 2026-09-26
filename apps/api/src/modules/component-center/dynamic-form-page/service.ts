@@ -10,6 +10,7 @@
  */
 
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
 import { isPlainObject, pyStr, pyStrOrEmpty, pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
@@ -73,7 +74,7 @@ function buildFieldRows(recordId: number, fieldsData: unknown): DynamicFormField
   const rows: DynamicFormFieldInsert[] = []
   const items = pyTruthy(fieldsData) ? pyIterate(fieldsData) : []
   items.forEach((f, idx) => {
-    if (!isPlainObject(f)) throw new ServiceError("object has no attribute 'get'", 500)
+    if (!isPlainObject(f)) throw invalidInput("object has no attribute 'get'")
     const fieldKey = pyStrOrEmpty(f.field_key)
     if (!fieldKey) return
     rows.push({
@@ -222,7 +223,7 @@ export class DynamicFormPageService {
     let items: DynamicFormExportRow[]
     if (exportMode === 'filtered') {
       // Return 500 when filters is not an object (e.g. list/str)
-      if (!isPlainObject(filters)) throw new ServiceError("'filters' object has no attribute 'get'", 500)
+      if (!isPlainObject(filters)) throw invalidInput("'filters' object has no attribute 'get'")
       items = await this.repo.listAllOrdered({
         search: pyStrOrEmpty(filters.search),
         category: pyStrOrEmpty(filters.category),

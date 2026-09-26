@@ -2,7 +2,7 @@
  * Notification schema layer: request normalization
  */
 
-import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { pyTruthy } from '@/common/py'
 
 export const NOTI_TYPES = ['info', 'warning', 'success', 'error'] as const
@@ -13,7 +13,7 @@ export const NOTI_TYPES = ['info', 'warning', 'success', 'error'] as const
  */
 export function stripOrEmpty(value: unknown): string {
   if (!pyTruthy(value)) return ''
-  if (typeof value !== 'string') throw new ServiceError(`'${typeof value}' object has no attribute 'strip'`, 500)
+  if (typeof value !== 'string') throw invalidInput(`'${typeof value}' object has no attribute 'strip'`)
   return value.trim()
 }
 

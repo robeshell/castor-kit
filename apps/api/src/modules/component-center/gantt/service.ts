@@ -49,6 +49,7 @@ export class GanttService {
     const endDate = parseLooseDate(data.end_date)
     if (!startDate) throw new ServiceError('开始日期不能为空')
     if (!endDate) throw new ServiceError('结束日期不能为空')
+    if (startDate > endDate) throw new ServiceError('开始日期不能晚于结束日期')
 
     const task = await this.repo.insert({
       title,
@@ -77,8 +78,17 @@ export class GanttService {
     if (hasKey(data, 'priority')) patch.priority = normalizeEnum(data.priority, PRIORITY_VALUES, 'medium')
     if (hasKey(data, 'status')) patch.status = normalizeEnum(data.status, STATUS_VALUES, 'not_started')
     if (hasKey(data, 'progress')) patch.progress = clampProgress(parseIntOr(data.progress, task.progress || 0))
-    if (hasKey(data, 'start_date')) patch.start_date = parseLooseDate(data.start_date)
-    if (hasKey(data, 'end_date')) patch.end_date = parseLooseDate(data.end_date)
+    if (hasKey(data, 'start_date')) {
+      const start = parseLooseDate(data.start_date)
+      if (!start) throw new ServiceError('开始日期不能为空')
+      patch.start_date = start
+    }
+    if (hasKey(data, 'end_date')) {
+      const end = parseLooseDate(data.end_date)
+      if (!end) throw new ServiceError('结束日期不能为空')
+      patch.end_date = end
+    }
+    if ((patch.start_date ?? task.start_date) > (patch.end_date ?? task.end_date)) throw new ServiceError('开始日期不能晚于结束日期')
 
     const changed = changedFields(task as unknown as Record<string, unknown>, patch)
     if (Object.keys(changed).length > 0) await this.repo.update(task.id, changed)

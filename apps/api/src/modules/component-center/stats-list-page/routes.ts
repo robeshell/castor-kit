@@ -1,7 +1,7 @@
 /**
  * List page with stats routes
  *
- * Routes with an id run get_or_404 first, then check permissions (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -58,26 +58,26 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
     service.getItemOr404(parseIntParam((request.params as { item_id: string }).item_id))
 
   app.get(detailPath, opts, async (request, reply) => {
-    const item = await loadItem(request)
     if (!(await hasMenuPermission(request, 'system_stats_list_page'))) {
       return reply.status(403).send({ error: '无权限查看详情' })
     }
+    const item = await loadItem(request)
     return service.toDict(item)
   })
 
   app.put(detailPath, opts, async (request, reply) => {
-    const item = await loadItem(request)
     if (!(await hasMenuPermission(request, 'system_stats_list_page_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
+    const item = await loadItem(request)
     return service.updateItem(item, jsonBody(request))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
-    const item = await loadItem(request)
     if (!(await hasMenuPermission(request, 'system_stats_list_page_delete'))) {
       return reply.status(403).send({ error: '无权限删除记录' })
     }
+    const item = await loadItem(request)
     return service.deleteItem(item)
   })
 

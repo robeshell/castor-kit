@@ -18,7 +18,6 @@ import {
 } from './helpers'
 
 const P = 'ck_test_r2_t_'
-const INTERNAL = { error: '服务器内部错误，请稍后重试' }
 let app: FastifyInstance
 let handle: DbHandle
 let s: AuthedSession
@@ -93,12 +92,12 @@ describe('announcement', () => {
     b = rb.json().id
   })
 
-  it('新增校验：标题为空 400；非字符串标题 / 非法 sort_order / 超长 → 500', async () => {
+  it('新增校验：标题为空 400；非字符串标题 / 非法 sort_order / 超长 → 400', async () => {
     const post = (payload: object) => s.inject({ method: 'POST', url: '/api/admin/announcements', payload })
     expect([(await post({})).statusCode, (await post({ title: ' ' })).json()]).toEqual([400, { error: '标题不能为空' }])
     for (const bad of [{ title: 123 }, { title: `${P}x`, sort_order: 'abc' }, { title: `${P}${'x'.repeat(100)}` }, { title: `${P}x`, content: { a: 1 } }]) {
       const res = await post(bad)
-      expect([res.statusCode, res.json()]).toEqual([500, INTERNAL])
+      expect([res.statusCode, res.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
     }
     expect(await handle.db.select().from(announcements).where(eq(announcements.title, `${P}x`))).toHaveLength(0)
   })
@@ -137,7 +136,7 @@ describe('announcement', () => {
     })
     for (const bad of [{ announce_type: null }, { sort_order: [1] }, { title: ['x'] }]) {
       const res = await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: bad })
-      expect([res.statusCode, res.json()]).toEqual([500, INTERNAL])
+      expect([res.statusCode, res.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
     }
     expect((await s.inject({ method: 'PUT', url: '/api/admin/announcements/99999999', payload: {} })).statusCode).toBe(404)
   })
@@ -185,7 +184,7 @@ describe('announcement', () => {
       { label: '创建时间', value: 'created_at' },
     ])
     const bad = await s.inject({ method: 'POST', url: '/api/admin/announcements/export', payload: { export_mode: 'selected', ids: 'abc' } })
-    expect([bad.statusCode, bad.json()]).toEqual([500, INTERNAL])
+    expect([bad.statusCode, bad.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
   })
 
   it('模板：默认 xlsx，csv 精确字节', async () => {

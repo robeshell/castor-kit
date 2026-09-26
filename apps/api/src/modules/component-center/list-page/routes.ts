@@ -1,8 +1,7 @@
 /**
  * List page routes
  *
- * Check order (preserves existing API behavior): detail GET/PUT/DELETE run get_or_404 before the permission check;
- * versions / rollback check permissions first, then get_or_404.
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import { stat } from 'node:fs/promises'
@@ -54,26 +53,26 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   const detailPath = `${BASE}/${intParam('item_id')}`
 
   app.get(detailPath, opts, async (request, reply) => {
-    const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
     if (!(await hasMenuPermission(request, 'system_list_page'))) {
       return reply.status(403).send({ error: '无权限查看记录详情' })
     }
+    const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
     return service.toDict(item)
   })
 
   app.put(detailPath, opts, async (request, reply) => {
-    const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
     if (!(await hasMenuPermission(request, 'system_list_page_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
+    const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
     return service.updateItem(item, jsonBody(request))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
-    const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
     if (!(await hasMenuPermission(request, 'system_list_page_delete'))) {
       return reply.status(403).send({ error: '无权限删除记录' })
     }
+    const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
     return service.deleteItem(item)
   })
 

@@ -1,7 +1,7 @@
 /**
  * Roles module routes
  *
- * Routes with an id run get_or_404 first, then the permission check (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import { declareEvents } from '@/common/webhooks'
@@ -33,18 +33,18 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.put(`/api/admin/roles/${intParam('role_id')}`, opts, async (request, reply) => {
-    const role = await service.getRoleOr404(parseIntParam((request.params as { role_id: string }).role_id))
     if (!(await hasMenuPermission(request, 'system_roles_edit'))) {
       return reply.status(403).send({ error: '无权限编辑角色' })
     }
+    const role = await service.getRoleOr404(parseIntParam((request.params as { role_id: string }).role_id))
     return service.updateRole(role, membershipBody(rawJsonBody(request), ['name', 'code', 'description', 'menu_ids']))
   })
 
   app.delete(`/api/admin/roles/${intParam('role_id')}`, opts, async (request, reply) => {
-    const role = await service.getRoleOr404(parseIntParam((request.params as { role_id: string }).role_id))
     if (!(await hasMenuPermission(request, 'system_roles_delete'))) {
       return reply.status(403).send({ error: '无权限删除角色' })
     }
+    const role = await service.getRoleOr404(parseIntParam((request.params as { role_id: string }).role_id))
     return service.deleteRole(role)
   })
 

@@ -51,10 +51,10 @@ export async function registerFileRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.delete(`${BASE}/:file_id`, opts, async (request, reply) => {
-    const file = await fileOf(request)
     if (!(await hasMenuPermission(request, 'system_files_delete'))) {
       return reply.status(403).send({ error: '无权限删除文件' })
     }
+    const file = await fileOf(request)
     return service.remove(file)
   })
 }

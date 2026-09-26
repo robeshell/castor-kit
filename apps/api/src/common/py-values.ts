@@ -2,12 +2,12 @@
  * Rules for handling "loosely typed request body values" on writes/queries (shared by roles / menu / logs).
  *
  * When raw request body values are used directly as column values or `id IN (...)` params, they behave like "SQL literal + PostgreSQL assignment cast":
- * - text columns: str as-is; int/float → numeric text; bool → 'true'/'false'; list → PG array text (e.g. `{1,2}`); dict → 500
- * - integer columns: int as-is; float → rounded (half away from 0); str → PG int4 parsing (invalid → 500); bool/list/dict → 500
- * - boolean columns: strict, only None/True/False/0/1 accepted, anything else → 500
+ * - text columns: str as-is; int/float → numeric text; bool → 'true'/'false'; list → PG array text (e.g. `{1,2}`); dict → 400
+ * - integer columns: int as-is; float → rounded (half away from 0); str → PG int4 parsing (invalid → 400); bool/list/dict → 400
+ * - boolean columns: strict, only None/True/False/0/1 accepted, anything else → 400
  * - `id IN (...)`: the param must be a list (dict → its keys); int elements beyond int4 range or non-integer floats simply "don't match",
- *   str goes through int4 parsing (invalid → 500), None doesn't match, bool/list/dict → 500
- * All these errors throw `ServiceError(..., 500)`; the global error handler emits the generic message.
+ *   str goes through int4 parsing (invalid → 400), None doesn't match, bool/list/dict → 400
+ * All these throw invalidInput(): 400 「请求参数格式不正确」 (the technical detail isn't shown).
  */
 
 import { ServiceError } from '@/common/errors'
@@ -19,7 +19,15 @@ const INT4_MAX = 2_147_483_647
 /** Leading/trailing whitespace accepted by PostgreSQL int4in (isspace) */
 const PG_INT_RE = /^[ \t\n\r\v\f]*([+-]?\d+)[ \t\n\r\v\f]*$/
 
-/** Input with an invalid type / missing attribute / that makes the DB error → 500 */
+/** Shown for request values of the wrong type / shape (the technical detail stays out of the response) */
+export const INVALID_INPUT_MESSAGE = '请求参数格式不正确'
+
+/** A request value of the wrong type or shape → 400 */
+export function invalidInput(_detail?: string): ServiceError {
+  return new ServiceError(INVALID_INPUT_MESSAGE, 400)
+}
+
+/** A failure that isn't the caller's fault → 500 (the global handler shows a generic message) */
 export function internalError(detail: string): ServiceError {
   return new ServiceError(detail, 500)
 }
@@ -41,7 +49,7 @@ export function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value === 'string') return [...value]
   if (isPlainObject(value)) return Object.keys(value)
-  throw internalError(`'${typeof value}' object is not iterable`)
+  throw invalidInput(`'${typeof value}' object is not iterable`)
 }
 
 /** Python `==` (covers JSON values and DB scalars only): bool and numbers compare numerically, everything else requires same type and strict equality */
@@ -57,9 +65,9 @@ export function pyEq(a: unknown, b: unknown): boolean {
 
 function parsePgInt(text: string): number {
   const m = PG_INT_RE.exec(text)
-  if (!m) throw internalError(`invalid input syntax for type integer: "${text}"`)
+  if (!m) throw invalidInput(`invalid input syntax for type integer: "${text}"`)
   const n = Number(m[1])
-  if (n < INT4_MIN || n > INT4_MAX) throw internalError(`value "${text}" is out of range for type integer`)
+  if (n < INT4_MIN || n > INT4_MAX) throw invalidInput(`value "${text}" is out of range for type integer`)
   return n
 }
 
@@ -91,7 +99,7 @@ function arrayElementText(text: string): string {
 function pgArrayText(items: unknown[]): string {
   const kinds = new Set(items.filter((v) => v !== null && v !== undefined).map((v) => typeof v))
   if (kinds.size > 1 || [...kinds].some((k) => !['string', 'number', 'boolean'].includes(k))) {
-    throw internalError('cannot adapt list value')
+    throw invalidInput('cannot adapt list value')
   }
   const parts = items.map((v) => {
     if (v === null || v === undefined) return 'NULL'
@@ -109,7 +117,7 @@ export function adaptText(value: unknown): string | null {
   if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'number') return numberText(value)
   if (Array.isArray(value)) return pgArrayText(value)
-  throw internalError("can't adapt type 'dict'")
+  throw invalidInput("can't adapt type 'dict'")
 }
 
 /** Value assigned to an integer column */
@@ -117,11 +125,11 @@ export function adaptInt(value: unknown): number | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') {
     const n = Number.isInteger(value) ? value : Math.sign(value) * Math.round(Math.abs(value))
-    if (n < INT4_MIN || n > INT4_MAX) throw internalError('integer out of range')
+    if (n < INT4_MIN || n > INT4_MAX) throw invalidInput('integer out of range')
     return n
   }
   if (typeof value === 'string') return parsePgInt(value)
-  throw internalError(`column is of type integer but expression is of type ${typeof value}`)
+  throw invalidInput(`column is of type integer but expression is of type ${typeof value}`)
 }
 
 /** Value assigned to a boolean column (strict: only null/true/false/0/1 accepted) */
@@ -130,7 +138,7 @@ export function adaptBool(value: unknown): boolean | null {
   if (typeof value === 'boolean') return value
   if (value === 0) return false
   if (value === 1) return true
-  throw internalError(`Value ${pyStr(value)} is not None, True, or False`)
+  throw invalidInput(`Value ${pyStr(value)} is not None, True, or False`)
 }
 
 /** Equivalent to `Model.id.in_(values)`: returns integer ids safe for inArray (may be empty = matches no rows) */
@@ -138,7 +146,7 @@ export function adaptIdsForIn(values: unknown): number[] {
   let items: unknown[]
   if (Array.isArray(values)) items = values
   else if (isPlainObject(values)) items = Object.keys(values)
-  else throw internalError('IN expression list, SELECT construct, or bound parameter object expected')
+  else throw invalidInput('IN expression list, SELECT construct, or bound parameter object expected')
 
   const out: number[] = []
   for (const v of items) {
@@ -151,14 +159,14 @@ export function adaptIdsForIn(values: unknown): number[] {
       out.push(parsePgInt(v))
       continue
     }
-    throw internalError('operator does not exist: integer = <non-integer>')
+    throw invalidInput('operator does not exist: integer = <non-integer>')
   }
   return [...new Set(out)]
 }
 
 /** `filters.get(key)` → 500 when filters is not a dict */
 export function dictGet(obj: unknown, key: string): unknown {
-  if (!isPlainObject(obj)) throw internalError(`'${typeof obj}' object has no attribute 'get'`)
+  if (!isPlainObject(obj)) throw invalidInput(`'${typeof obj}' object has no attribute 'get'`)
   return obj[key]
 }
 
@@ -185,13 +193,13 @@ export function parseExportArgs(data: Record<string, unknown>, fieldMap: Record<
   const ids = pyTruthy(data.ids) ? data.ids : []
   const fields = pyTruthy(data.fields) ? data.fields : []
   const modeRaw = pyTruthy(data.export_mode) ? data.export_mode : 'selected'
-  if (typeof modeRaw !== 'string') throw internalError("object has no attribute 'strip'")
+  if (typeof modeRaw !== 'string') throw invalidInput("object has no attribute 'strip'")
   const filters = pyTruthy(data.filters) ? data.filters : {}
   const fileType = normalizeTableFileType(pyTruthy(data.file_type) ? pyStr(data.file_type) : '')
 
   const validFields: string[] = []
   for (const field of pyIterate(fields)) {
-    if (field !== null && typeof field === 'object') throw internalError('unhashable type')
+    if (field !== null && typeof field === 'object') throw invalidInput('unhashable type')
     if (typeof field === 'string' && Object.hasOwn(fieldMap, field)) validFields.push(field)
   }
   return {
@@ -216,7 +224,7 @@ export function selectedIdsOrNull(ids: unknown): unknown[] | null {
 export function dictBody(raw: unknown): Record<string, unknown> {
   if (isPlainObject(raw)) return raw
   if (!pyTruthy(raw)) return {}
-  throw internalError("object has no attribute 'get'")
+  throw invalidInput("object has no attribute 'get'")
 }
 
 /**
@@ -227,5 +235,5 @@ export function membershipBody(raw: unknown, keys: readonly string[]): Record<st
   if (isPlainObject(raw)) return raw
   if (!pyTruthy(raw) || Array.isArray(raw)) return {}
   if (typeof raw === 'string' && !keys.some((k) => raw.includes(k))) return {}
-  throw internalError('argument of type is not iterable')
+  throw invalidInput('argument of type is not iterable')
 }

@@ -120,7 +120,7 @@ describe('detail-tabs', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/members/99999999`, payload: {} })).statusCode).toBe(404)
   })
 
-  it('无权限 → 403；404 先于 403', async () => {
+  it('无权限 → 403；403 先于 404', async () => {
     const fx = await createFixture(handle)
     const u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
     expect((await u.inject({ url: `${B}/members` })).json()).toEqual({ error: '无权限' })
@@ -130,7 +130,7 @@ describe('detail-tabs', () => {
     const del = await u.inject({ method: 'DELETE', url: `${B}/members/${memberId}` })
     expect(del.statusCode).toBe(403)
     expect(del.json()).toEqual({ error: '无权限删除成员' })
-    expect((await u.inject({ url: `${B}/members/99999999` })).statusCode).toBe(404)
+    expect((await u.inject({ url: `${B}/members/99999999` })).statusCode).toBe(403)
   })
 
   it('删除', async () => {

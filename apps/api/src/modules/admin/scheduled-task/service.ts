@@ -12,6 +12,7 @@
  * "Now" is always the DB UTC time text (never JS Date), and cron is computed from it.
  */
 
+import { dbConstraintError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
@@ -46,11 +47,13 @@ export interface ScheduledTaskServiceOptions {
 
 const RESPONSE_BODY_LIMIT = 2000
 
-/** ScheduledTaskSchemaError → schemaStatus (default 400); malformed URL → 400; other unexpected errors → 500 */
+/** ScheduledTaskSchemaError → schemaStatus (default 400); malformed URL → 400; DB input errors → 400; other unexpected errors → 500 */
 function toServiceError(err: unknown, schemaStatus = 400): never {
   if (err instanceof ServiceError) throw err
   if (err instanceof ScheduledTaskSchemaError) throw new ServiceError(err.message, schemaStatus)
   if (err instanceof PyUncaughtError) throw new ServiceError('请求地址格式不合法', 400)
+  const rejected = dbConstraintError(err)
+  if (rejected) throw rejected
   throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
 }
 
@@ -137,7 +140,7 @@ export class ScheduledTaskService {
     try {
       requestHeaders = normalizeJsonString(data.request_headers)
     } catch (err) {
-      toServiceError(err, 500)
+      toServiceError(err)
     }
 
     try {
@@ -158,7 +161,7 @@ export class ScheduledTaskService {
       })
       return scheduledTaskToDict(task)
     } catch (err) {
-      toServiceError(err, 500)
+      toServiceError(err)
     }
   }
 
@@ -201,7 +204,7 @@ export class ScheduledTaskService {
       if (has('remark')) next.remark = normalizeText(data.remark)
     } catch (err) {
       // Already validated above, so this shouldn't fail; if it somehow does, treat it as a 500
-      toServiceError(err, 500)
+      toServiceError(err)
     }
 
     try {
@@ -226,7 +229,7 @@ export class ScheduledTaskService {
       if (!updated) throw new Error('任务已被删除')
       return scheduledTaskToDict(updated)
     } catch (err) {
-      toServiceError(err, 500)
+      toServiceError(err)
     }
   }
 
@@ -235,7 +238,7 @@ export class ScheduledTaskService {
       await this.repo.deleteTask(task.id)
       return { message: '删除成功' }
     } catch (err) {
-      toServiceError(err, 500)
+      toServiceError(err)
     }
   }
 
@@ -244,7 +247,7 @@ export class ScheduledTaskService {
       return await this.executeTask(task, 'manual')
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
     }
   }
 

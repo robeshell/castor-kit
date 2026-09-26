@@ -4,6 +4,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
 import { isPlainObject } from '@/common/py'
 import type { Db } from '@/db/client'
@@ -205,7 +206,7 @@ export class KanbanService {
         const repo = new KanbanRepository(tx)
         // Return 500 when an element is not an object
         const get = (item: unknown, key: string): unknown => {
-          if (!isPlainObject(item)) throw new ServiceError(`'${typeof item}' object has no attribute 'get'`, 500)
+          if (!isPlainObject(item)) throw invalidInput(`'${typeof item}' object has no attribute 'get'`)
           return item[key]
         }
         const cardIds = items.map((item) => parseIntOr(get(item, 'id'), 0)).filter((id) => id)
@@ -240,7 +241,7 @@ export class KanbanService {
       })
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw invalidInput(err instanceof Error ? err.message : String(err))
     }
   }
 }

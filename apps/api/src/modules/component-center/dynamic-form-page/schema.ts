@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { ServiceError } from '@/common/errors'
+import { invalidInput } from '@/common/py-values'
 import { isPlainObject, pyInt, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
 import type { DynamicFormRecord } from '@/db/schema'
@@ -86,7 +86,7 @@ export function pyLen(value: unknown): number {
   if (Array.isArray(value)) return value.length
   if (typeof value === 'string') return Array.from(value).length
   if (isPlainObject(value)) return Object.keys(value).length
-  throw new ServiceError(`object of type '${typeof value}' has no len()`, 500)
+  throw invalidInput(`object of type '${typeof value}' has no len()`)
 }
 
 /**
@@ -97,12 +97,12 @@ export function pyIterate(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value === 'string') return Array.from(value)
   if (isPlainObject(value)) return Object.keys(value)
-  throw new ServiceError(`'${typeof value}' object is not iterable`, 500)
+  throw invalidInput(`'${typeof value}' object is not iterable`)
 }
 
 /** Whether f is an exportable field; returns 500 when f is a list/dict (not usable as a field name) */
 export function isExportField(field: unknown): field is string {
-  if (field !== null && typeof field === 'object') throw new ServiceError('unhashable type', 500)
+  if (field !== null && typeof field === 'object') throw invalidInput('unhashable type')
   return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
 }
 
@@ -130,7 +130,7 @@ export function resolveIdList(ids: unknown[]): number[] {
         continue
       }
     }
-    throw new ServiceError(`invalid id: ${pyStr(raw)}`, 500)
+    throw invalidInput(`invalid id: ${pyStr(raw)}`)
   }
   return result
 }

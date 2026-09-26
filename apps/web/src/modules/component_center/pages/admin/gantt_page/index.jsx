@@ -585,7 +585,11 @@ export default function GanttPage() {
             name="end_date"
             label="结束日期"
             placeholder="请选择结束日期"
-            rules={{ required: '结束日期不能为空' }}
+            rules={{
+              required: '结束日期不能为空',
+              // Same rule as the API: the start can't be after the end (YYYY-MM-DD compares as text)
+              validate: (value, values) => !value || !values.start_date || values.start_date <= value || '开始日期不能晚于结束日期',
+            }}
           />
           <FormNumber
             control={form.control}

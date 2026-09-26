@@ -1,7 +1,7 @@
 /**
  * Announcement management routes
  *
- * Note: unlike dicts/users, this **checks permission first (403 '无权限'), then get_or_404** (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'

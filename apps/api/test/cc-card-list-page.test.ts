@@ -107,10 +107,10 @@ describe('card-list-page', () => {
     expect(paged.items[0].card_code).toBe(`${P}a`)
   })
 
-  it('详情 / 编辑（同值不写库、变更、校验、失败不落库）/ 404 先于 403', async () => {
+  it('详情 / 编辑（同值不写库、变更、校验、失败不落库）/ 403 先于 404', async () => {
     const a = (await rowByCode(`${P}a`))!
     expect((await s.inject({ url: `${B}/${a.id}` })).json()).toMatchObject({ id: a.id, title: '卡A' })
-    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
+    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     expect((await u.inject({ url: `${B}/${a.id}` })).json()).toEqual({ error: '无权限查看记录详情' })
     expect((await u.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: {} })).json()).toEqual({ error: '无权限编辑记录' })
     expect((await u.inject({ method: 'DELETE', url: `${B}/${a.id}` })).json()).toEqual({ error: '无权限删除记录' })
@@ -159,7 +159,7 @@ describe('card-list-page', () => {
     const g = await s.inject({ url: `${B}/export?search=${P}&category=product&fields=card_code` })
     expect(g.body).toBe(`\ufeff编码\r\n${P}b\r\n`)
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [] } })).json()).toEqual({ error: '请先勾选要导出的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [true] } })).statusCode).toBe(500)
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [true] } })).statusCode).toBe(400)
   })
 
   it('模板 csv 字节精确', async () => {

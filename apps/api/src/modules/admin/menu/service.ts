@@ -17,10 +17,12 @@ import {
   dbErrorMentions,
   dictGet,
   internalError,
+  invalidInput,
   parseExportArgs,
   pyEq,
   selectedIdsOrNull,
 } from '@/common/py-values'
+import { dbConstraintError } from '@/common/db-errors'
 import { MenuRepository, type MenuUpdateValues, type NewMenuValues } from './repository'
 import {
   buildErrorRow,
@@ -82,7 +84,7 @@ export class MenuService {
       return await this.db.transaction((tx) => fn(new MenuRepository(tx), tx))
     } catch (err) {
       if (err instanceof ServiceError) throw err
-      throw internalError(err instanceof Error ? err.message : String(err))
+      throw dbConstraintError(err) ?? internalError(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -185,8 +187,7 @@ export class MenuService {
 
   async createMenu(data: Data): Promise<MenuDict> {
     validateCreatePayload(data)
-    // Non-string code: querying `menus.code = 5` makes PG raise operator does not exist → 500
-    if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
+    if (typeof data.code !== 'string') throw invalidInput()
     const code = data.code
     if (await this.repo.getByCode(code)) throw new ServiceError(`菜单编码 ${code} 已存在`, 400)
 
@@ -199,17 +200,17 @@ export class MenuService {
           return menuToDict(await this.insertWithSequenceSync(data, code))
         } catch (retryErr) {
           if (retryErr instanceof ServiceError) throw retryErr
-          throw internalError(retryErr instanceof Error ? retryErr.message : String(retryErr))
+          throw dbConstraintError(retryErr) ?? internalError(retryErr instanceof Error ? retryErr.message : String(retryErr))
         }
       }
-      throw internalError(err instanceof Error ? err.message : String(err))
+      throw dbConstraintError(err) ?? internalError(err instanceof Error ? err.message : String(err))
     }
   }
 
   async updateMenu(menu: Menu, data: Data): Promise<MenuDict> {
     validateUpdatePayload(data)
     if (pyTruthy(data.code) && !pyEq(data.code, menu.code)) {
-      if (typeof data.code !== 'string') throw internalError('operator does not exist: character varying = non-text')
+      if (typeof data.code !== 'string') throw invalidInput()
       if (await this.repo.getByCode(data.code)) throw new ServiceError(`菜单编码 ${data.code} 已存在`, 400)
     }
 
