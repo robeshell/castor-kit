@@ -57,12 +57,9 @@ POSTGRES_RO_PASSWORD=<AI SQL 只读账号密码>
 
 ```bash
 APP_PORT=5000          # 宿主机端口，不设置时为 8080
-AI_API_BASE=
-AI_API_KEY=
-AI_MODEL=
 ```
 
-全部可用变量见 [配置项](/reference/configuration#docker)。随机字符串可以用 `openssl rand -base64 48` 生成。
+邮件、文件存储、上传限制、AI 模型不用写在这里：部署后登录，在「系统设置」页面里配置即可。想用环境变量锁定某一项时，见 [系统设置里的配置](/reference/configuration#系统设置里的配置)。全部可用变量见 [配置项](/reference/configuration#docker)。随机字符串可以用 `openssl rand -base64 48` 生成。
 
 ### 2. 构建并启动
 
@@ -91,7 +88,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 ::: warning 免费套餐的限制
 以下是撰写时两家平台的免费额度，开通前请以官网为准：
 - Render 免费实例 15 分钟无人访问会休眠，再次访问需要等待几十秒启动；休眠期间定时任务不运行
-- Render 免费实例的磁盘在重启或休眠后会清空：默认的 `local` 存储驱动保存的上传文件（组件示例里上传的图片、附件）会随之丢失。演示数据本来就会定期恢复，所以 `render.yaml` 保持 `local`，并把单个文件上限设为 2MB；需要保留文件时，在 Render 的 **Environment** 中加上 `STORAGE_DRIVER=s3` 和一个 Cloudflare R2 桶的 `S3_*` 配置（见[文件中心配置](/reference/configuration#文件中心)）
+- Render 免费实例的磁盘在重启或休眠后会清空：默认的 `local` 存储驱动保存的上传文件（组件示例里上传的图片、附件）会随之丢失。演示数据本来就会定期恢复，所以 `render.yaml` 保持 `local`，并把单个文件上限设为 2MB；需要保留文件时，在 Render 的 **Environment** 中加上 `STORAGE_DRIVER=s3` 和一个 Cloudflare R2 桶的 `S3_*` 配置（演示模式下系统设置页只读，所以这里用环境变量，见[文件存储与上传](/reference/configuration#文件存储与上传)）
 - Neon 免费数据库空闲时会暂停计算，下次连接时自动唤醒
 :::
 

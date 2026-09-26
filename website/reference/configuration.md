@@ -1,6 +1,9 @@
 # 配置项
 
-castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` 用 Zod 校验和解析；Docker 部署时由 `docker-compose.yml` 注入。
+castor-kit 的配置分两类：
+
+- **环境变量**：服务启动、连上数据库之前就要用到的（数据库地址、`SECRET_KEY`、端口等），由 `apps/api/src/config.ts` 用 Zod 校验；Docker 部署时由 `docker-compose.yml` 注入。见本页「后端（API）」一节
+- **系统设置**：邮件、文件存储、上传限制、AI 模型、网站地址、登录锁定，以及两步验证等安全开关，登录后在「系统管理 → 系统配置 → 系统设置」页面修改，保存后几秒内生效，不用重启。这些也可以用环境变量锁定，见 [系统设置里的配置](#系统设置里的配置)
 
 ## 配置文件
 
@@ -44,8 +47,6 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 | `SESSION_TTL_HOURS` | 会话有效期（小时）的初始值；之后可以在「系统设置」里修改 | `8` |
 | `SESSION_COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
-| `LOGIN_MAX_FAILURES` | 登录失败次数上限（按 IP 和用户名分别计数；演示模式下只按 IP 计数） | `10` |
-| `LOGIN_LOCKOUT_MINUTES` | 登录失败计数窗口与锁定时长（分钟） | `15` |
 | `RATE_LIMIT_ENABLED` | 按 IP 限流；具体额度在「系统设置」里调整，见 [账号安全与系统设置](/guide/security#接口限流) | `true` |
 | `MAX_CONTENT_LENGTH` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
 
@@ -56,35 +57,14 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 | `WEB_DIST_DIR` | 前端构建产物目录，后端从这里提供静态文件和 SPA | `apps/web/dist` |
 | `INSTANCE_DIR` | 运行时数据目录；`local` 驱动的上传文件默认存在其下的 `uploads/files/` | `apps/api/instance` |
 
-### 文件中心
+### 文件存储目录与邮件开发模式
 
 | 变量 | 作用 | 默认值 |
 |---|---|---|
-| `STORAGE_DRIVER` | 存储驱动：`local`（服务器上的目录）或 `s3`（任何 S3 兼容服务：AWS S3、MinIO、阿里云 OSS、腾讯云 COS、Cloudflare R2） | `local` |
-| `STORAGE_LOCAL_DIR` | `local` 驱动的存储目录 | `<INSTANCE_DIR>/uploads/files` |
-| `S3_ENDPOINT` | S3 兼容服务的地址；用 AWS S3 时留空 | 空 |
-| `S3_REGION` | 区域；R2 填 `auto` | `us-east-1` |
-| `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | 桶与密钥；`STORAGE_DRIVER=s3` 时缺任一项会拒绝启动 | 空 |
-| `S3_PUBLIC_URL` | 桶的公开访问地址；设置后下载直接跳到这里，否则跳到约 10 分钟有效的签名地址 | 空 |
-| `S3_FORCE_PATH_STYLE` | 用路径风格访问桶（MinIO 等自建服务需要） | 设置了 `S3_ENDPOINT` 时为 `true` |
-| `UPLOAD_MAX_SIZE` | 单个文件大小上限（字节），同时受 `MAX_CONTENT_LENGTH` 限制，取两者较小值 | `10485760`（10MB） |
-| `UPLOAD_ALLOWED_TYPES` | 允许上传的扩展名，逗号分隔；上传时还会检查文件头与扩展名是否一致 | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+| `STORAGE_LOCAL_DIR` | 「本机磁盘」存储的目录 | `<INSTANCE_DIR>/uploads/files` |
+| `MAIL_DRIVER` | 留空时按系统设置里的 SMTP 发送；`log` 表示不发送，把邮件打印到后端日志（本地开发用）；`none` 表示永远不发送 | 空 |
 
-`local` 驱动需要持久化磁盘：Docker Compose 已把 `INSTANCE_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请改用 `s3`（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
-
-### 邮件
-
-用于发送找回密码邮件。配置 `SMTP_HOST` 和 `APP_BASE_URL` 后，才能在「系统设置」里打开邮件找回密码。
-
-| 变量 | 作用 | 默认值 |
-|---|---|---|
-| `SMTP_HOST` | SMTP 服务器地址，设置后启用邮件 | 空 |
-| `SMTP_PORT` | 端口 | `587` |
-| `SMTP_SECURE` | `true` 表示连接一开始就用 TLS（通常是 465 端口）；否则在服务器支持时使用 STARTTLS | `false` |
-| `SMTP_USER` / `SMTP_PASSWORD` | 登录账号与密码；服务器不需要认证时留空 | 空 |
-| `MAIL_FROM` | 发件人，如 `castor-kit <noreply@example.com>`；留空时用 `SMTP_USER` | 空 |
-| `MAIL_DRIVER` | 留空时按 `SMTP_HOST` 自动判断；`log` 表示不发送，把邮件打印到后端日志（本地开发用）；`none` 表示关闭 | 空 |
-| `APP_BASE_URL` | 网站的公开地址，邮件中的链接用它拼接（不使用请求里的 Host） | 空 |
+「本机磁盘」存储需要持久化磁盘：Docker Compose 已把 `INSTANCE_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请在系统设置里改用 S3 兼容存储（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
 
 ### 公开演示
 
@@ -109,18 +89,16 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 
 布尔值 `1`、`true`、`yes`、`on`（不区分大小写）视为真。
 
-### AI 功能
+### AI 数据查询
+
+AI 模型（接口地址、API Key、模型名）在系统设置里配置，见下文。这里只有 AI 数据查询用的只读数据库连接：
 
 | 变量 | 作用 | 默认值 |
 |---|---|---|
-| `AI_API_BASE` | OpenAI 兼容接口的 Base URL，例如 `https://api.openai.com/v1` | 空 |
-| `AI_API_KEY` | API Key | 空 |
-| `AI_MODEL` | 模型名称 | 空 |
 | `AI_SQL_DATABASE_URL` | AI 数据查询使用的只读连接，应指向非超级用户的只读账号 | 开发 / 测试回退到主库连接（仍强制只读）；生产环境未设置时，若设置了 `POSTGRES_RO_PASSWORD`，则由 `DATABASE_URL` 推导（换成 `castor_kit_ro` 账号），否则拒绝启动 |
 | `AI_SQL_STATEMENT_TIMEOUT_MS` | AI 数据查询的单条语句超时（毫秒） | `5000` |
 | `POSTGRES_RO_PASSWORD` | 只读账号 `castor_kit_ro` 的密码，`setup-once` / `init-ro-role` 用它创建账号；未设置时跳过 | 空 |
 
-AI 对话、AI 提示词工坊、AI 数据查询共用 `AI_API_*` 三个变量。未配置时这些页面提示未配置，其他功能不受影响。
 
 ### Apifox（仅 `pnpm openapi:apifox` 使用）
 
@@ -139,6 +117,61 @@ AI 对话、AI 提示词工坊、AI 数据查询共用 `AI_API_*` 三个变量�
 - `AI_SQL_DATABASE_URL`，或 `POSTGRES_RO_PASSWORD`（由它和 `DATABASE_URL` 推导出只读连接）
 
 使用 `docker-compose.yml` 部署时，`AI_SQL_DATABASE_URL` 由 compose 自动拼出，不需要手动设置。
+
+## 系统设置里的配置
+
+下面这些在「系统设置」页面修改（查看需要 `system_settings`，保存需要 `system_settings_edit`），保存后几秒内生效。邮件、文件存储、AI 页签都有「测试」按钮，可以用还没保存的值试一下。
+
+- 密码、Secret Key、API Key 用由 `SECRET_KEY` 派生的密钥加密后存进数据库，页面上只显示「已设置」，不会再显示明文；更换 `SECRET_KEY` 后需要重新填写
+- **设置了对应的环境变量（且不为空）时，以环境变量为准**，页面上该项变成只读并注明变量名。适合全部用环境变量管理的部署；不设置就在页面上管理
+- Docker 部署想用环境变量锁定某一项时，除了写进 `.env.production`，还要加到 `docker-compose.yml` 的 `app.environment`
+
+### 邮件
+
+| 系统设置 | 环境变量 | 默认值 |
+|---|---|---|
+| 网站地址（邮件中的链接用它拼接，不使用请求里的 Host） | `APP_BASE_URL` | 空 |
+| SMTP 服务器 | `SMTP_HOST` | 空（不发邮件） |
+| 端口 | `SMTP_PORT` | `587` |
+| 加密方式：自动 / SSL/TLS / STARTTLS（自动 = 465 端口用 SSL/TLS） | `SMTP_SECURE`（`true` = SSL/TLS，`false` = STARTTLS） | 自动 |
+| 账号 / 密码 | `SMTP_USER` / `SMTP_PASSWORD` | 空 |
+| 发件人，如 `castor-kit <noreply@example.com>` | `MAIL_FROM` | 账号 |
+
+邮件找回密码需要 SMTP 服务器和网站地址都填好才能打开，见 [账号安全与系统设置](/guide/security#找回密码)。
+
+### 文件存储与上传
+
+| 系统设置 | 环境变量 | 默认值 |
+|---|---|---|
+| 保存到：本机磁盘 / S3 兼容存储（AWS S3、MinIO、阿里云 OSS、腾讯云 COS、Cloudflare R2） | `STORAGE_DRIVER`（`local` / `s3`） | 本机磁盘 |
+| S3 接口地址（用 AWS S3 时留空） | `S3_ENDPOINT` | 空 |
+| 区域（R2 填 `auto`） | `S3_REGION` | `us-east-1` |
+| Bucket / Access Key / Secret Key（选 S3 时必填） | `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | 空 |
+| 公开访问地址（设置后下载直接跳到这里，否则跳到约 10 分钟有效的签名地址） | `S3_PUBLIC_URL` | 空 |
+| 访问方式：自动 / 路径风格 / 虚拟主机风格（自动 = 填了接口地址时用路径风格） | `S3_FORCE_PATH_STYLE`（`true` / `false`） | 自动 |
+| 单个文件上限，同时受 `MAX_CONTENT_LENGTH` 限制 | `UPLOAD_MAX_SIZE`（字节） | 10MB |
+| 允许的文件类型；上传时还会检查文件头与扩展名是否一致 | `UPLOAD_ALLOWED_TYPES`（逗号分隔） | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+
+切换存储位置只影响之后上传的文件；已有文件记录了自己存在哪里（包括 Bucket），仍从原处读取。修改 S3 的接口地址或密钥后，如果新配置访问不到原来的桶，那里的文件就读不到了，页面会提示有多少个文件受影响。
+
+### AI 模型
+
+| 系统设置 | 环境变量 | 默认值 |
+|---|---|---|
+| 接口地址（OpenAI 兼容，如 `https://api.openai.com/v1`） | `AI_API_BASE` | 空 |
+| API Key | `AI_API_KEY` | 空 |
+| 模型 | `AI_MODEL` | 空 |
+
+AI 对话、AI 提示词工坊、AI 数据查询共用这组设置。未配置时这些页面提示未配置，其他功能不受影响。
+
+### 登录锁定
+
+| 系统设置 | 环境变量 | 默认值 |
+|---|---|---|
+| 登录失败锁定次数（按 IP 和用户名分别计数；演示模式下只按 IP） | `LOGIN_MAX_FAILURES` | `10` |
+| 锁定时长（分钟），也是失败次数的统计窗口 | `LOGIN_LOCKOUT_MINUTES` | `15` |
+
+两步验证、找回密码、密码规则、登录有效期、接口限流等其他安全设置只能在页面上修改，见 [账号安全与系统设置](/guide/security)。
 
 ## 前端（Web）
 
@@ -174,8 +207,7 @@ AI 对话、AI 提示词工坊、AI 数据查询共用 `AI_API_*` 三个变量�
 | `SESSION_COOKIE_SECURE` | 同上文 | 空（自动） |
 | `CORS_ORIGINS` | 同上文 | 空 |
 | `RATE_LIMIT_ENABLED` | 同上文 | `true` |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_FROM` / `APP_BASE_URL` | 同上文（邮件） | 空 / `587` / `false` |
-| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 同上文 | 空 |
+| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 可选，锁定 AI 模型设置（见 [AI 模型](#ai-模型)）；留空则在系统设置里配置 | 空 |
 | `COMPOSE_DB_VOLUME` | 数据库数据卷名，可指向已有的卷 | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | 上传文件数据卷名，可指向已有的卷 | `castor-kit_app_instance` |
 

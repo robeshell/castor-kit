@@ -317,7 +317,7 @@
                       "properties": {
                         "max_size": {
                           "type": "integer",
-                          "description": "单个文件上限（字节），取 UPLOAD_MAX_SIZE 与 MAX_CONTENT_LENGTH 的较小值"
+                          "description": "单个文件上限（字节），取系统设置 upload.max_size 与 MAX_CONTENT_LENGTH 的较小值"
                         },
                         "allowed_types": {
                           "type": "array",
@@ -4854,7 +4854,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "只需登录。校验大小（UPLOAD_MAX_SIZE 与 MAX_CONTENT_LENGTH 取小，超限 413）、扩展名白名单（UPLOAD_ALLOWED_TYPES）以及文件头与扩展名是否一致；相同内容共用存储对象",
+        "description": "只需登录。校验大小（系统设置的上传上限与 MAX_CONTENT_LENGTH 取小，超限 413）、扩展名白名单（系统设置的允许类型）以及文件头与扩展名是否一致；相同内容共用存储对象",
         "requestBody": {
           "required": true,
           "content": {
@@ -5119,7 +5119,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "只需登录。png / jpeg / gif / webp 内联显示，其余作为附件下载；?download=1 强制下载；ETag 命中返回 304。s3 驱动返回 302 到约 10 分钟有效的签名地址（或 S3_PUBLIC_URL）",
+        "description": "只需登录。png / jpeg / gif / webp 内联显示，其余作为附件下载；?download=1 强制下载；ETag 命中返回 304。s3 驱动返回 302 到约 10 分钟有效的签名地址（或系统设置里的公开访问地址）",
         "parameters": [
           {
             "name": "file_id",
@@ -6764,7 +6764,7 @@
         ],
         "summary": "找回密码：发送重置邮件",
         "x-apifox-folder": "后台/系统管理/认证",
-        "description": "公开。需在系统设置打开且配置了邮件与 APP_BASE_URL。无论邮箱是否存在都返回同一提示；邮件语言跟随 Accept-Language，链接 30 分钟内有效、只能用一次，新申请会使旧链接作废",
+        "description": "公开。需在系统设置打开，且配置了 SMTP 与网站地址。无论邮箱是否存在都返回同一提示；邮件语言跟随 Accept-Language，链接 30 分钟内有效、只能用一次，新申请会使旧链接作废",
         "requestBody": {
           "required": true,
           "content": {
@@ -8259,7 +8259,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_settings；返回全部设置项定义与当前值。密钥与基础设施配置（SMTP、S3、数据库…）只在环境变量里，不在这里",
+        "description": "需要 system_settings；返回全部设置项定义、当前值与来源。密钥（SMTP 密码、S3 Secret Key、AI API Key）不返回明文。只有服务启动前需要的配置（数据库、SECRET_KEY、端口等）不在这里",
         "responses": {
           "200": {
             "description": "成功",
@@ -8275,12 +8275,17 @@
                         "properties": {
                           "key": {
                             "type": "string",
-                            "description": "设置项，如 security.totp_enabled"
+                            "description": "设置项，如 mail.smtp_host"
                           },
                           "group": {
                             "type": "string",
                             "enum": [
-                              "security"
+                              "general",
+                              "security",
+                              "mail",
+                              "storage",
+                              "upload",
+                              "ai"
                             ]
                           },
                           "type": {
@@ -8288,14 +8293,21 @@
                             "enum": [
                               "boolean",
                               "integer",
+                              "string",
+                              "secret",
+                              "enum",
                               "string_list"
                             ]
                           },
                           "value": {
-                            "description": "当前值（未保存过则为默认值）"
+                            "description": "当前生效值；密钥类恒为 null"
+                          },
+                          "has_value": {
+                            "type": "boolean",
+                            "description": "仅密钥类：是否已设置"
                           },
                           "default": {
-                            "description": "默认值"
+                            "description": "默认值；密钥类为 null"
                           },
                           "min": {
                             "type": [
@@ -8309,15 +8321,48 @@
                               "null"
                             ]
                           },
+                          "options": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "枚举的可选值"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "env",
+                              "db",
+                              "default"
+                            ],
+                            "description": "值的来源；env = 由环境变量锁定，页面只读"
+                          },
+                          "env": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "可锁定该项的环境变量名"
+                          },
                           "unavailable_reason": {
                             "type": [
                               "string",
                               "null"
                             ],
-                            "description": "当前部署下不能打开的原因（如未配置邮件、演示环境）"
+                            "description": "开关当前不能打开的原因"
                           }
                         }
                       }
+                    },
+                    "file_counts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "description": "各存储驱动上的文件数（S3 连接变更时提示受影响的文件）"
                     }
                   }
                 }
@@ -8349,7 +8394,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_settings_edit；可只提交要改的项。全部校验通过才写入（类型、范围、未知键、角色编码是否存在、前置条件）；其他进程最多 5 秒后生效",
+        "description": "需要 system_settings_edit；只提交要改的项，null = 恢复默认 / 清除密钥。全部校验通过才写入（类型、范围、未知键、角色编码、S3 必填项、开关的前置条件按同一次保存后的值判断）；由环境变量锁定的项不能改。密钥加密存储；其他进程最多 5 秒后生效",
         "requestBody": {
           "required": true,
           "content": {
@@ -8373,7 +8418,7 @@
                       },
                       "security.password_reset_enabled": {
                         "type": "boolean",
-                        "description": "邮件找回密码（需要 SMTP 与 APP_BASE_URL）"
+                        "description": "邮件找回密码（需要 SMTP 与网站地址）"
                       },
                       "security.password_min_length": {
                         "type": "integer",
@@ -8405,7 +8450,8 @@
                         "description": "登录、两步验证、找回密码共用的每 IP 每分钟上限"
                       }
                     },
-                    "additionalProperties": false
+                    "additionalProperties": true,
+                    "description": "{ 设置项: 值 }；除下列安全项外，还有 general.app_base_url、mail.*、storage.*、upload.*、ai.*、security.login_max_failures / login_lockout_minutes，见 GET 返回的定义"
                   }
                 },
                 "required": [
@@ -8430,12 +8476,17 @@
                         "properties": {
                           "key": {
                             "type": "string",
-                            "description": "设置项，如 security.totp_enabled"
+                            "description": "设置项，如 mail.smtp_host"
                           },
                           "group": {
                             "type": "string",
                             "enum": [
-                              "security"
+                              "general",
+                              "security",
+                              "mail",
+                              "storage",
+                              "upload",
+                              "ai"
                             ]
                           },
                           "type": {
@@ -8443,14 +8494,21 @@
                             "enum": [
                               "boolean",
                               "integer",
+                              "string",
+                              "secret",
+                              "enum",
                               "string_list"
                             ]
                           },
                           "value": {
-                            "description": "当前值（未保存过则为默认值）"
+                            "description": "当前生效值；密钥类恒为 null"
+                          },
+                          "has_value": {
+                            "type": "boolean",
+                            "description": "仅密钥类：是否已设置"
                           },
                           "default": {
-                            "description": "默认值"
+                            "description": "默认值；密钥类为 null"
                           },
                           "min": {
                             "type": [
@@ -8464,15 +8522,48 @@
                               "null"
                             ]
                           },
+                          "options": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "枚举的可选值"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "env",
+                              "db",
+                              "default"
+                            ],
+                            "description": "值的来源；env = 由环境变量锁定，页面只读"
+                          },
+                          "env": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "可锁定该项的环境变量名"
+                          },
                           "unavailable_reason": {
                             "type": [
                               "string",
                               "null"
                             ],
-                            "description": "当前部署下不能打开的原因（如未配置邮件、演示环境）"
+                            "description": "开关当前不能打开的原因"
                           }
                         }
                       }
+                    },
+                    "file_counts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "description": "各存储驱动上的文件数（S3 连接变更时提示受影响的文件）"
                     }
                   }
                 }
@@ -8487,6 +8578,215 @@
           },
           "403": {
             "description": "无权限"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/test/ai": {
+      "post": {
+        "tags": [
+          "后台-系统设置"
+        ],
+        "summary": "测试 AI 接口",
+        "x-apifox-folder": "后台/系统管理/系统设置",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_settings_edit；用（草稿 + 已保存的）AI 设置调用一次 <接口地址>/chat/completions（max_tokens=5）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "表单里还没保存的修改（{ 设置项: 值 }），套在已保存的值上使用；不写入。密钥：字符串 = 用这个值，null = 视为清除，不传 = 用已保存的值"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / 测试失败（error 为原因）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/test/mail": {
+      "post": {
+        "tags": [
+          "后台-系统设置"
+        ],
+        "summary": "发送测试邮件",
+        "x-apifox-folder": "后台/系统管理/系统设置",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_settings_edit；与登录类接口共用每 IP 限流。用（草稿 + 已保存的）邮件设置发一封测试邮件；MAIL_DRIVER=log 时只写日志",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "表单里还没保存的修改（{ 设置项: 值 }），套在已保存的值上使用；不写入。密钥：字符串 = 用这个值，null = 视为清除，不传 = 用已保存的值"
+                  }
+                },
+                "required": [
+                  "to"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / 测试失败（error 为原因）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
+    "/api/admin/settings/test/storage": {
+      "post": {
+        "tags": [
+          "后台-系统设置"
+        ],
+        "summary": "测试文件存储",
+        "x-apifox-folder": "后台/系统管理/系统设置",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "需要 system_settings_edit；在（草稿 + 已保存的）存储上写入、检查并删除一个小对象",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "表单里还没保存的修改（{ 设置项: 值 }），套在已保存的值上使用；不写入。密钥：字符串 = 用这个值，null = 视为清除，不传 = 用已保存的值"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "driver": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "s3"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误 / 测试失败（error 为原因）"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "429": {
+            "description": "请求过于频繁"
           },
           "500": {
             "description": "服务器错误"

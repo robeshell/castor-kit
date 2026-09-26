@@ -775,7 +775,7 @@ ID=3   组件示例中心 (component_center)
 - `.xls` 不支持，只支持 csv / xlsx
 - 密码哈希格式 `pbkdf2:sha256:<iter>$<salt>$<hex>`（`common/password.ts`，异步 pbkdf2）
 - 会话：服务端会话表 `sessions` 是唯一事实源（可列出、可强制下线、改密码 / 停用 / 重置密码即失效）；`@fastify/secure-session` 的 cookie `castor_session` 只装 `{ sid, csrf_token }`，密钥用 HKDF 从 `SECRET_KEY` 派生。判断登录一律用 `common/session.ts` 的 `isSignedIn(request)`，不要读 cookie 字段
-- 系统设置（`common/settings.ts` 注册表 + `system_settings` 表）只放功能开关和参数；密钥、SMTP、S3、数据库等基础设施只放环境变量。新功能需要「默认关闭、管理员可打开」时，在注册表加一项，而不是加环境变量
+- 配置分两层：服务启动前就要用的（数据库地址、`SECRET_KEY`、端口、调度器开关等）放环境变量；其余一律进系统设置（`common/settings.ts` 注册表 + `system_settings` 表）——功能开关、安全参数、邮件、文件存储、上传限制、AI 模型、网站地址。密钥类（`type: 'secret'`）用 `secret-box` 加密存储、从不回显；注册表项可声明 `env`，该环境变量非空时锁定取值（页面只读），变量名同时登记在 `common/settings-env.ts`。新功能需要配置时加注册表项，不要再加只能改环境变量的配置；读取用 `app.settings.get()`（热路径 `peek()`），邮件 / 存储这类客户端通过 `MailerProvider` / `StorageProvider` 按当前设置重建
 - 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，补齐后格式稳定）
 - cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
 - 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
