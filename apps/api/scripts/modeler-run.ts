@@ -213,16 +213,20 @@ async function runGenerate(state: JobState, spec: SpecFile): Promise<void> {
   try {
     await step(state, 'scaffold', () => {
       const before = existsSync(JOURNAL) ? lastJournalEntry(readFileSync(JOURNAL, 'utf8')) : null
-      const code = scaffoldFromSpec(spec, {
-        log: (line) => console.log(line),
-        onChange: ({ path, before: previous }) => {
-          if (previous === null) created.push(relative(REPO_ROOT, path))
-        },
-      })
-      const after = existsSync(JOURNAL) ? lastJournalEntry(readFileSync(JOURNAL, 'utf8')) : null
-      const migration = after && after.tag !== before?.tag ? after : null
-      // Recorded right away: whatever happens next, the module can be undone
-      record(moduleOf(spec, created, migration, state.id))
+      let code = 1
+      try {
+        code = scaffoldFromSpec(spec, {
+          log: (line) => console.log(line),
+          onChange: ({ path, before: previous }) => {
+            if (previous === null) created.push(relative(REPO_ROOT, path))
+          },
+        })
+      } finally {
+        // Recorded right away — even when the generator threw halfway — so whatever happens next can be undone
+        const after = existsSync(JOURNAL) ? lastJournalEntry(readFileSync(JOURNAL, 'utf8')) : null
+        const migration = after && after.tag !== before?.tag ? after : null
+        record(moduleOf(spec, created, migration, state.id))
+      }
       if (code !== 0) throw new StepError('生成代码失败')
     })
     await step(state, 'migrate', () => sh('迁移数据库', ['src/db/migrate-cli.ts']))

@@ -21,15 +21,17 @@ const STEP_ICON = {
 /**
  * A running (or finished) modeler job: its steps and the runner's output. Polls the job every 800 ms while it runs;
  * failed polls are ignored — the API restarts when the generated code lands, and answers again a few seconds later.
- * `onFinished(job)` fires once when the job ends.
+ * `onFinished(job)` fires once when a job this view saw running ends (not for past jobs opened from the history).
+ * `onRunning(running)` reports whether the job is still running.
  */
-export default function JobView({ jobId, openPath, onFinished, onClose }) {
+export default function JobView({ jobId, openPath, onFinished, onRunning, onClose }) {
   const { t } = useTranslation()
   const [job, setJob] = useState(null)
   const [log, setLog] = useState('')
   const [reconnecting, setReconnecting] = useState(false)
   const logRef = useRef(null)
   const finished = useRef(false)
+  const sawRunning = useRef(false)
 
   useEffect(() => {
     let offset = 0
@@ -42,9 +44,11 @@ export default function JobView({ jobId, openPath, onFinished, onClose }) {
         offset = res.log.offset
         setReconnecting(false)
         setJob(res.job)
+        if (res.job.status === 'running') sawRunning.current = true
+        onRunning?.(res.job.status === 'running')
         if (res.log.text) setLog((text) => text + res.log.text)
         if (res.job.status !== 'running' && res.log.text === '') {
-          if (!finished.current) {
+          if (!finished.current && sawRunning.current) {
             finished.current = true
             onFinished?.(res.job)
           }

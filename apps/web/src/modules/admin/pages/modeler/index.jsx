@@ -45,6 +45,8 @@ export default function Modeler() {
   const [errors, setErrors] = useState([])
   const [generating, setGenerating] = useState(false)
   const [job, setJob] = useState(null)
+  /** A job is running (generate / undo disabled meanwhile) */
+  const [running, setRunning] = useState(false)
   const [history, setHistory] = useState({ modules: [], jobs: [] })
   const reauth = useReauth()
 
@@ -68,7 +70,10 @@ export default function Modeler() {
           .then((res) => {
             setMeta(res)
             // A job still running (e.g. the page was reloaded): follow it
-            if (res.running) setJob({ id: res.running })
+            if (res.running) {
+          setJob({ id: res.running })
+          setRunning(true)
+        }
           })
           .catch((err) => toast.apiError(err, '加载失败'))
         loadHistory()
@@ -102,6 +107,7 @@ export default function Modeler() {
       if (check.errors?.length) return
       const started = await reauth.run(() => startGenerate(payload))
       setJob({ id: started.id })
+      setRunning(true)
     } catch (err) {
       if (err?.cancelled) return
       const list = err?.response?.data?.errors ?? err?.errors
@@ -116,6 +122,7 @@ export default function Modeler() {
     try {
       const started = await reauth.run(() => undoModule(m.name))
       setJob({ id: started.id })
+      setRunning(true)
       setTab('new')
     } catch (err) {
       if (!err?.cancelled) toast.apiError(err, '操作失败')
@@ -162,12 +169,12 @@ export default function Modeler() {
 
       {job ? (
         <div className="mb-4">
-          <JobView key={job.id} jobId={job.id} onFinished={finished} onClose={() => setJob(null)} />
+          <JobView key={job.id} jobId={job.id} onFinished={finished} onRunning={setRunning} onClose={() => setJob(null)} />
         </div>
       ) : null}
 
       {tab === 'history' ? (
-        <HistoryPanel history={history} busy={Boolean(job)} onUndo={undo} onOpenJob={(j) => setJob({ id: j.id })} />
+        <HistoryPanel history={history} busy={running} onUndo={undo} onOpenJob={(j) => setJob({ id: j.id })} />
       ) : meta === null ? (
         <div className="grid gap-4 xl:grid-cols-2">
           <Skeleton className="h-72" />
@@ -269,7 +276,7 @@ export default function Modeler() {
                 {t('生成会依次执行：生成代码 → 迁移数据库 → 同步菜单权限 → 更新接口文档 → 门禁检查，任何一步失败都会撤销本次生成的内容。生成的代码在仓库里，可以继续手动修改后提交。')}
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button variant="brand" disabled={generating || Boolean(job) || !spec.name || !spec.title} onClick={generate}>
+                <Button variant="brand" disabled={generating || running || !spec.name || !spec.title} onClick={generate}>
                   {generating ? <Spinner /> : <Hammer />}
                   {t('生成模块')}
                 </Button>

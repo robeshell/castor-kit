@@ -361,6 +361,21 @@ describe('scaffold --spec 纯函数', () => {
       '字段 s：默认值 z 不符合字段类型',
     ])
     expect(validateSpec({ name: 'ok', fields: [] })).toEqual(['至少需要一个字段'])
+    // Titles and labels land in JSX attributes / string literals of the page
+    expect(
+      validateSpec({
+        name: 'ok',
+        title: '设备"台账',
+        fields: [
+          { name: 'a', type: 'str', label: '名{称}' },
+          { name: 'b', type: 'enum', options: [{ value: 'x', label: '<b>' }] },
+        ],
+      }),
+    ).toEqual([
+      '标题不能包含引号、反斜杠、花括号、尖括号或换行',
+      '字段 a：标签不能包含引号、反斜杠、花括号、尖括号或换行',
+      '字段 b：选项名称不能包含引号、反斜杠、花括号、尖括号或换行',
+    ])
   })
 
   it('菜单：第一次建「业务管理」目录（1000），模块取 1001 起第一个空闲 ID，按钮 = ID × 10 + 1…5；已有同名权限码不再添加', () => {
