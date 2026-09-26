@@ -298,11 +298,37 @@ describe('users: enable / disable', () => {
     expect(again.json().user.last_login_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })
 
-  it('不能停用 / 删除最后一个可登录的超级管理员', async () => {
+  it('非超级管理员不能编辑 / 停用 / 删除超级管理员账号，也不能授予超级管理员角色', async () => {
     const [superRole] = await handle.db.select().from(roles).where(eq(roles.code, 'super_admin'))
     const target = await createUser(`${P}s3`, { role_ids: [superRole!.id] })
-    const operator = await operatorSession('operator', ['system_users', 'system_users_status', 'system_users_delete'])
-    // Temporarily disable every other super admin so the target is the last active one
+    const plain = await createUser(`${P}s4`)
+    const operator = await operatorSession('operator', ['system_users', 'system_users_add', 'system_users_edit', 'system_users_status', 'system_users_delete'])
+    const denied = { error: '只有超级管理员可以操作超级管理员账号' }
+    const edit = await operator.inject({ method: 'PUT', url: `/api/admin/users/${target.id}`, payload: { password: 'taken-over' } })
+    expect([edit.statusCode, edit.json()]).toEqual([403, denied])
+    expect((await operator.inject({ method: 'PUT', url: `/api/admin/users/${target.id}/status`, payload: { status: 'disabled' } })).json()).toEqual(denied)
+    expect((await operator.inject({ method: 'DELETE', url: `/api/admin/users/${target.id}` })).json()).toEqual(denied)
+
+    const grant = { error: '只有超级管理员可以分配超级管理员角色' }
+    expect((await operator.inject({ method: 'PUT', url: `/api/admin/users/${plain.id}`, payload: { role_ids: [superRole!.id] } })).json()).toEqual(grant)
+    expect((await operator.inject({ method: 'PUT', url: `/api/admin/users/${operator.userId}`, payload: { role_ids: [superRole!.id] } })).json()).toEqual(grant)
+    const create = await operator.inject({ method: 'POST', url: '/api/admin/users', payload: { username: `${P}s5`, password: 'x-pass-1', role_ids: [superRole!.id] } })
+    expect([create.statusCode, create.json()]).toEqual([403, grant])
+    // Ordinary edits still work
+    expect((await operator.inject({ method: 'PUT', url: `/api/admin/users/${plain.id}`, payload: { nickname: '普通' } })).json().nickname).toBe('普通')
+  })
+
+  it('超级管理员不能移除自己的超级管理员角色', async () => {
+    const res = await s.inject({ method: 'PUT', url: `/api/admin/users/${s.userId}`, payload: { role_ids: [] } })
+    expect([res.statusCode, res.json()]).toEqual([400, { error: '不能移除自己的超级管理员角色' }])
+  })
+
+  it('兜底：最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色（直接调用 service）', async () => {
+    const { UserService } = await import('@/modules/admin/users/service')
+    const { UNRESTRICTED } = await import('@/common/data-scope')
+    const service = new UserService(handle.db)
+    const [superRole] = await handle.db.select().from(roles).where(eq(roles.code, 'super_admin'))
+    const target = await createUser(`${P}s6`, { role_ids: [superRole!.id] })
     const others = await handle.db
       .select({ id: admin_users.id })
       .from(admin_users)
@@ -311,10 +337,13 @@ describe('users: enable / disable', () => {
     const otherIds = others.map((o) => o.id)
     await handle.db.update(admin_users).set({ status: 'disabled' }).where(inArray(admin_users.id, otherIds))
     try {
-      const disable = await operator.inject({ method: 'PUT', url: `/api/admin/users/${target.id}/status`, payload: { status: 'disabled' } })
-      expect(disable.json()).toEqual({ error: '不能停用最后一个超级管理员' })
-      const del = await operator.inject({ method: 'DELETE', url: `/api/admin/users/${target.id}` })
-      expect(del.json()).toEqual({ error: '不能删除最后一个超级管理员' })
+      const user = await service.getUserOr404(target.id)
+      const caller = { username: 'someone-else', superAdmin: true }
+      await expect(service.setUserStatus(user, 'disabled', caller)).rejects.toThrow('不能停用最后一个超级管理员')
+      await expect(service.deleteUser(user, caller)).rejects.toThrow('不能删除最后一个超级管理员')
+      await expect(service.updateUser(user, { role_ids: [] }, UNRESTRICTED, caller)).rejects.toThrow(
+        '不能移除最后一个超级管理员的超级管理员角色',
+      )
     } finally {
       await handle.db.update(admin_users).set({ status: 'active' }).where(inArray(admin_users.id, otherIds))
     }
@@ -367,8 +396,15 @@ describe('users: import / export with profile fields', () => {
 
   it('导入：没有启用 / 停用权限时，填了状态的行记为错误行', async () => {
     const editor = await operatorSession('editor', ['system_users', 'system_users_edit'])
-    const file = multipartFile('u.csv', `用户名,密码,状态\n${P}i4,123456,正常\n${P}i5,123456,\n`)
+    const file = multipartFile(
+      'u.csv',
+      `用户名,密码,状态,角色编码\n${P}i4,123456,正常,\n${P}i5,123456,,\n${P}i6,123456,,super_admin\nck_test_super,newpass,,\n`,
+    )
     const res = await editor.inject({ method: 'POST', url: '/api/admin/users/import', ...file })
-    expect(res.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])).toEqual([[2, '无权限修改用户状态']])
+    expect(res.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])).toEqual([
+      [2, '无权限修改用户状态'],
+      [4, '只有超级管理员可以分配超级管理员角色'],
+      [5, '只有超级管理员可以操作超级管理员账号'],
+    ])
   })
 })

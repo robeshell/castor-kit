@@ -32,6 +32,9 @@ import {
 
 type Data = Record<string, unknown>
 
+/** The built-in super admin role (common/rbac.ts short-circuits every check for it) */
+const SUPER_ADMIN = 'super_admin'
+
 export class RoleService {
   private readonly repo: RoleRepository
 
@@ -120,12 +123,30 @@ export class RoleService {
     })
   }
 
+  /**
+   * The super admin role is locked: its code, data scope ('all') and menus (all of them) can't change — changing them
+   * would either do nothing (permission checks skip super admins) or lock every super admin out. Name and description
+   * stay editable.
+   */
+  private async assertSuperAdminEdit(role: Role, data: Data, menuList: Menu[] | null) {
+    if (role.code !== SUPER_ADMIN) return
+    if ('code' in data && !pyEq(data.code, role.code)) throw new ServiceError('超级管理员角色的编码不能修改', 400)
+    if ('data_scope' in data && data.data_scope !== 'all') throw new ServiceError('超级管理员角色的数据范围固定为全部数据', 400)
+    if (menuList) {
+      const granted = new Set(menuList.map((m) => m.id))
+      if (!(await this.repo.allMenuIds()).every((id) => granted.has(id))) {
+        throw new ServiceError('超级管理员角色的菜单权限固定为全部，不能修改', 400)
+      }
+    }
+  }
+
   async updateRole(role: Role, data: Data) {
     const changes: Record<string, unknown> = {}
     for (const field of ['name', 'code', 'description'] as const) {
       if (field in data && !pyEq(data[field], role[field])) changes[field] = data[field]
     }
     const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
+    await this.assertSuperAdminEdit(role, data, menuList)
     const scope = await this.resolveDataScope(data, role.data_scope)
 
     return this.inTx(async (repo) => {
@@ -138,6 +159,7 @@ export class RoleService {
   }
 
   async deleteRole(role: Role) {
+    if (role.code === SUPER_ADMIN) throw new ServiceError('超级管理员角色不能删除', 400)
     await this.inTx((repo) => repo.delete(role.id))
     return { message: '删除成功' }
   }
@@ -227,6 +249,10 @@ export class RoleService {
         }
 
         const existing = await repo.getByCode(code)
+        if (existing?.code === SUPER_ADMIN && menuCodes.length > 0) {
+          errors.push(buildErrorRow(line, '超级管理员角色的菜单权限固定为全部，不能修改', row))
+          continue
+        }
         if (existing) {
           const values: Partial<Pick<Role, 'name' | 'description'>> = {}
           if (existing.name !== name) values.name = name

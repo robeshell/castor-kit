@@ -126,6 +126,16 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '头像地址不能超过 500 个字符': { 'en-US': 'The avatar URL must be at most 500 characters', 'ja-JP': 'アバターの URL は 500 文字以内で入力してください' },
   '资料已更新': { 'en-US': 'Profile updated', 'ja-JP': 'プロフィールを更新しました' },
 
+  // super admin protections
+  '超级管理员角色不能删除': { 'en-US': "The super admin role can't be deleted", 'ja-JP': 'スーパー管理者ロールは削除できません' },
+  '超级管理员角色的编码不能修改': { 'en-US': "The super admin role's code can't be changed", 'ja-JP': 'スーパー管理者ロールのコードは変更できません' },
+  '超级管理员角色的数据范围固定为全部数据': { 'en-US': 'The super admin role always sees all data', 'ja-JP': 'スーパー管理者ロールのデータ範囲は常に全データです' },
+  '超级管理员角色的菜单权限固定为全部，不能修改': { 'en-US': "The super admin role always has every menu; its permissions can't be changed", 'ja-JP': 'スーパー管理者ロールは常にすべてのメニュー権限を持つため変更できません' },
+  '只有超级管理员可以操作超级管理员账号': { 'en-US': 'Only super admins can change super admin accounts', 'ja-JP': 'スーパー管理者のアカウントを操作できるのはスーパー管理者のみです' },
+  '只有超级管理员可以分配超级管理员角色': { 'en-US': 'Only super admins can grant or remove the super admin role', 'ja-JP': 'スーパー管理者ロールを付与・解除できるのはスーパー管理者のみです' },
+  '不能移除自己的超级管理员角色': { 'en-US': "You can't remove the super admin role from yourself", 'ja-JP': '自分のスーパー管理者ロールは解除できません' },
+  '不能移除最后一个超级管理员的超级管理员角色': { 'en-US': "You can't remove the super admin role from the last active super admin", 'ja-JP': '有効な最後のスーパー管理者からスーパー管理者ロールを解除することはできません' },
+
   // users: departments & data scope
   '部门不存在': { 'en-US': 'Department not found', 'ja-JP': '部署が存在しません' },
   '不能把用户分配到数据权限范围外的部门': { 'en-US': "You can't assign users to a department outside your data scope", 'ja-JP': 'データ権限の範囲外の部署にユーザーを割り当てることはできません' },

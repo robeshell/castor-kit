@@ -35,9 +35,21 @@ export interface ListFilters {
   deptId: number | null
 }
 
+/** Who is making the change: used by the super admin protections */
+export interface Caller {
+  username?: string
+  /** Only super admins may grant / remove the super_admin role or touch super admin accounts */
+  superAdmin: boolean
+}
+
+const SUPER_ADMIN = 'super_admin'
+const hasSuperRole = (user: { roles: { code: string }[] }) => user.roles.some((r) => r.code === SUPER_ADMIN)
+
 export interface ImportOptions {
   /** Username of the signed-in admin (can't disable themselves) */
   currentUsername?: string
+  /** Whether the importing admin is a super admin (see Caller) */
+  superAdmin?: boolean
   /** Rows may only touch users (and departments) inside this scope */
   scope?: DataScope
   /** Whether the caller holds system_users_status; without it a filled-in status cell is an error row */
@@ -127,6 +139,28 @@ export class UserService {
     return (await this.repo.countOtherActiveUsersWithRole(superAdmin.id, user.id)) === 0
   }
 
+  /** Non-super admins can't edit, disable or delete super admin accounts (password resets would hand them the account) */
+  private assertCanManage(user: AdminUserWithRoles, caller: Caller) {
+    if (!caller.superAdmin && hasSuperRole(user)) throw new ServiceError('只有超级管理员可以操作超级管理员账号', 403)
+  }
+
+  /**
+   * Role changes touching super_admin: only super admins may grant or remove it, nobody may remove it from themselves,
+   * and the last active super admin keeps it.
+   */
+  private async assertRoleChange(user: AdminUserWithRoles | null, roleIds: number[], caller: Caller) {
+    const superRole = await this.repo.getRoleByCode(SUPER_ADMIN)
+    if (!superRole) return
+    const had = user ? hasSuperRole(user) : false
+    const will = roleIds.includes(superRole.id)
+    if (had === will) return
+    if (!caller.superAdmin) throw new ServiceError('只有超级管理员可以分配超级管理员角色', 403)
+    if (had && user) {
+      if (user.username === caller.username) throw new ServiceError('不能移除自己的超级管理员角色', 400)
+      if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能移除最后一个超级管理员的超级管理员角色', 400)
+    }
+  }
+
   /** Throws when the email already belongs to another user */
   private async assertEmailFree(repo: UserRepository, email: string | null | undefined, userId?: number) {
     if (!email) return
@@ -155,7 +189,7 @@ export class UserService {
     }
   }
 
-  async createUser(data: Data, scope: DataScope = UNRESTRICTED) {
+  async createUser(data: Data, scope: DataScope, caller: Caller) {
     if (!pyTruthy(data.username) || !pyTruthy(data.password)) {
       throw new ServiceError('用户名和密码不能为空', 400)
     }
@@ -166,6 +200,7 @@ export class UserService {
     const deptId = await this.resolveDept(data, scope)
 
     const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
+    if (roleIds) await this.assertRoleChange(null, roleIds, caller)
     const passwordHash = await generatePasswordHash(pyStr(data.password))
     const user = await this.inTx(async (repo) => {
       const created = await repo.insert(username, passwordHash, profile, undefined, deptId)
@@ -176,12 +211,14 @@ export class UserService {
   }
 
   /** `status` is ignored here: it has its own endpoint and permission (setUserStatus) */
-  async updateUser(user: AdminUserWithRoles, data: Data, scope: DataScope = UNRESTRICTED) {
+  async updateUser(user: AdminUserWithRoles, data: Data, scope: DataScope, caller: Caller) {
+    this.assertCanManage(user, caller)
     const profile = profileOrThrow(data)
     await this.assertEmailFree(this.repo, profile.email, user.id)
     const deptId = await this.resolveDept(data, scope)
     const passwordHash = 'password' in data && pyTruthy(data.password) ? await generatePasswordHash(pyStr(data.password)) : null
     const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
+    if (roleIds) await this.assertRoleChange(user, roleIds, caller)
     const updated = await this.inTx(async (repo) => {
       await repo.updateProfile(user.id, profile)
       if (deptId !== undefined) await repo.setDept(user.id, deptId)
@@ -192,10 +229,11 @@ export class UserService {
     return this.dict(updated!)
   }
 
-  async setUserStatus(user: AdminUserWithRoles, statusRaw: unknown, currentUsername: string | undefined) {
+  async setUserStatus(user: AdminUserWithRoles, statusRaw: unknown, caller: Caller) {
+    this.assertCanManage(user, caller)
     if (!isUserStatus(statusRaw)) throw new ServiceError('状态取值不合法', 400)
     if (statusRaw === 'disabled') {
-      if (user.username === currentUsername) throw new ServiceError('不能停用当前登录账号', 400)
+      if (user.username === caller.username) throw new ServiceError('不能停用当前登录账号', 400)
       if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能停用最后一个超级管理员', 400)
     }
     const updated = await this.inTx(async (repo) => {
@@ -205,8 +243,9 @@ export class UserService {
     return this.dict(updated!)
   }
 
-  async deleteUser(user: AdminUserWithRoles, currentUsername: string | undefined) {
-    if (user.username === currentUsername) throw new ServiceError('不能删除当前登录账号', 400)
+  async deleteUser(user: AdminUserWithRoles, caller: Caller) {
+    this.assertCanManage(user, caller)
+    if (user.username === caller.username) throw new ServiceError('不能删除当前登录账号', 400)
     if (await this.isLastActiveSuperAdmin(user)) throw new ServiceError('不能删除最后一个超级管理员', 400)
     await this.inTx((repo) => repo.delete(user.id))
     return { message: '删除成功' }
@@ -288,6 +327,25 @@ export class UserService {
     return { profile: profile.values, status, deptId }
   }
 
+  /** Import-row version of assertCanManage / assertRoleChange (the "last super admin" case is checked after the batch) */
+  private async importSuperAdminError(
+    repo: UserRepository,
+    existingId: number | undefined,
+    username: string,
+    roleCodes: string[],
+    options: ImportOptions,
+  ): Promise<string | null> {
+    const existing = existingId !== undefined ? await repo.getWithRoles(existingId) : null
+    const had = existing ? hasSuperRole(existing) : false
+    const grants = roleCodes.includes(SUPER_ADMIN)
+    if (!options.superAdmin) {
+      if (had) return '只有超级管理员可以操作超级管理员账号'
+      if (grants) return '只有超级管理员可以分配超级管理员角色'
+    }
+    if (had && roleCodes.length > 0 && !grants && username === options.currentUsername) return '不能移除自己的超级管理员角色'
+    return null
+  }
+
   async importUsers(file: UploadedFile | null, options: ImportOptions = { canSetStatus: false }) {
     if (!file) throw new ServiceError('请上传导入文件', 400)
     let table
@@ -340,6 +398,11 @@ export class UserService {
         }
 
         const existing = await repo.getByUsername(username)
+        const superError = await this.importSuperAdminError(repo, existing?.id, username, roleCodes, options)
+        if (superError) {
+          errors.push(buildErrorRow(line, superError, row))
+          continue
+        }
         const parsed = await this.parseImportRow(repo, mapped, username, existing?.id, options)
         if ('error' in parsed) {
           errors.push(buildErrorRow(line, parsed.error, row))

@@ -306,6 +306,29 @@ describe('roles 数据范围', () => {
   })
 })
 
+describe('roles 超级管理员角色保护', () => {
+  it('不能删除、改编码、改数据范围、减少菜单；名称 / 描述可改', async () => {
+    const [superRole] = await handle.db.select().from(roles).where(eq(roles.code, 'super_admin'))
+    const url = `/api/admin/roles/${superRole!.id}`
+    const put = (payload: Record<string, unknown>) => s.inject({ method: 'PUT', url, payload })
+    expect((await s.inject({ method: 'DELETE', url })).json()).toEqual({ error: '超级管理员角色不能删除' })
+    expect((await put({ code: 'renamed' })).json()).toEqual({ error: '超级管理员角色的编码不能修改' })
+    expect((await put({ data_scope: 'self' })).json()).toEqual({ error: '超级管理员角色的数据范围固定为全部数据' })
+    expect((await put({ menu_ids: [] })).json()).toEqual({ error: '超级管理员角色的菜单权限固定为全部，不能修改' })
+
+    // Re-sending the full menu set / same code / 'all' is fine, and name + description stay editable
+    const allMenus = (await handle.db.select({ id: menus.id }).from(menus)).map((m) => m.id)
+    const ok = await put({ code: 'super_admin', data_scope: 'all', menu_ids: allMenus, description: '改过的描述' })
+    expect(ok.statusCode).toBe(200)
+    expect(ok.json()).toMatchObject({ code: 'super_admin', data_scope: 'all', description: '改过的描述' })
+    await put({ description: superRole!.description })
+
+    const file = multipartFile('r.csv', `角色名称,角色编码,描述,菜单编码\n超级管理员,super_admin,,dashboard\n`)
+    const imported = await s.inject({ method: 'POST', url: '/api/admin/roles/import', ...file })
+    expect(imported.json().error_rows.map((r: { reason: string }) => r.reason)).toEqual(['超级管理员角色的菜单权限固定为全部，不能修改'])
+  })
+})
+
 describe('roles 权限', () => {
   it('无权限用户 → 403 文案', async () => {
     const role = await roleByCode(`${P}a`)
