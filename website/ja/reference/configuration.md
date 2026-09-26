@@ -159,11 +159,12 @@ AI モデル（API の URL、キー、モデル名）はシステム設定で設
 
 | システム設定 | 環境変数 | デフォルト値 |
 |---|---|---|
-| API の URL（OpenAI 互換。例：`https://api.openai.com/v1`） | `AI_API_BASE` | 空 |
+| サービスの種類：OpenAI 互換 API / OpenAI / Anthropic / Google | `AI_PROVIDER`（`openai-compatible` / `openai` / `anthropic` / `google`） | OpenAI 互換 API |
+| API の URL：OpenAI 互換 API では必須（例：`https://api.deepseek.com/v1`）。他の種類では空欄で公式 API、またはプロキシを指定 | `AI_API_BASE` | 空 |
 | API キー | `AI_API_KEY` | 空 |
 | モデル | `AI_MODEL` | 空 |
 
-AI チャット、AI プロンプト工房、AI データ検索はこの設定を共有します。未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
+AI チャット、AI プロンプト工房、AI データ検索はこの設定を共有します。呼び出しは Vercel AI SDK 経由で、自動の再試行はしません。「OpenAI 互換 API」は DeepSeek、Qwen、Gemini の互換エンドポイント、Ollama など `/chat/completions` を提供するサービスすべてに使えます。未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
 
 ### ログインのロック {#login-lockout}
 
@@ -208,7 +209,7 @@ AI チャット、AI プロンプト工房、AI データ検索はこの設定�
 | `SESSION_COOKIE_SECURE` | 前述のとおり | 空（自動） |
 | `CORS_ORIGINS` | 前述のとおり | 空 |
 | `RATE_LIMIT_ENABLED` | 前述のとおり | `true` |
-| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 任意。AI モデルの設定を固定します（[AI モデル](#ai-model)を参照）。空ならシステム設定で設定 | 空 |
+| `AI_PROVIDER` / `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 任意。AI モデルの設定を固定します（[AI モデル](#ai-model)を参照）。空ならシステム設定で設定 | 空 |
 | `COMPOSE_DB_VOLUME` | データベースのデータボリューム名。既存のボリュームを指定可能 | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | アップロードファイルのデータボリューム名。既存のボリュームを指定可能 | `castor-kit_app_instance` |
 

@@ -6,7 +6,7 @@
 
 | 分类 | 组件（文件名即导入路径，如 `@/components/ui/button`） |
 |---|---|
-| 操作 | `button`（variant：default / brand / outline / secondary / ghost / link / destructive；size：xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg）、`toggle`、`toggle-group`、`dropdown-menu`、`context-menu`、`command`（cmdk） |
+| 操作 | `button-group`、`button`（variant：default / brand / outline / secondary / ghost / link / destructive；size：xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg）、`toggle`、`toggle-group`、`dropdown-menu`、`context-menu`、`command`（cmdk） |
 | 输入 | `input`、`textarea`、`select`、`checkbox`、`switch`、`radio-group`、`slider`、`calendar`、`input-group`、`label`、`field`、`form`（react-hook-form 绑定） |
 | 弹层 | `dialog`、`alert-dialog`、`sheet`、`drawer`（vaul）、`popover`、`tooltip`、`hover-card` |
 | 展示 | `card`、`badge`、`avatar`、`table`、`tabs`、`accordion`、`collapsible`、`separator`、`scroll-area`、`breadcrumb`、`pagination`、`kbd`、`alert`、`empty` |
@@ -19,6 +19,20 @@
 - 按钮里的图标直接放 lucide 组件：`<Button><Plus />新增</Button>`（尺寸由 button 统一处理）
 - `dialog` / `sheet` / `alert-dialog` 的进出场动画来自 `tw-animate-css`，不要再包 motion
 - 页面很少直接用 `table` / `dialog` / `alert-dialog`：优先用下面的 DataTable / FormDialog / ConfirmAction
+
+### AI Elements（`@/components/ai-elements/*`）
+
+Vercel 的 AI 组件（https://elements.ai-sdk.dev ，基于 shadcn），配合 AI SDK 的 `useChat` 用，参考实现 `apps/web/src/modules/component_center/pages/ai/ai_chat_page/`。已装：
+
+| 文件 | 组件 |
+|---|---|
+| `conversation` | `Conversation` / `ConversationContent`（自动贴底，use-stick-to-bottom）/ `ConversationScrollButton` |
+| `message` | `Message` / `MessageContent` / `MessageResponse`（Streamdown 流式 Markdown）/ `MessageActions` / `MessageAction` |
+| `prompt-input` | `PromptInput` / `PromptInputTextarea` / `PromptInputFooter` / `PromptInputTools` / `PromptInputSubmit`（按 useChat 的 `status` 显示发送 / 停止） |
+| `suggestion` | `Suggestions` / `Suggestion` |
+| `code-highlighter.js` | castor-kit 自己的 Streamdown 代码高亮插件：只带常用语言、按需加载（官方 `@streamdown/code` 会打包 200 多种语法） |
+
+要点：组件自带的英文文案要覆盖（`aria-label` / `tooltip` 传 `t('中文')`，`MessageResponse` 传 `translations`，见 ai_chat_page/ChatMessage.jsx）；`useChat` 的请求不走 axios，`DefaultChatTransport` 要自己带 `X-CSRF-Token` 和 `Accept-Language`；数学公式与 mermaid 插件没装（体积大）。新增 AI Elements 组件见 AGENTS.md「新增 AI Elements 组件」。
 
 ## 2. castor-kit 业务公共组件（`@/shared/components/*`）
 

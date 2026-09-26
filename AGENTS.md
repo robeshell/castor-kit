@@ -422,6 +422,17 @@ apps/web/scripts/shadcn-add.sh badge -o -y          # 覆盖已有文件（会�
 
 脚本会清掉 `HTTP(S)_PROXY` 再执行 CLI（npm 包下载仍经 `npm_config_proxy` 走原代理），并把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils`、撤掉误装的 `cn` 包。新增后检查 `git diff apps/web/package.json`，并确认组件只用语义色类。
 
+### 新增 AI Elements 组件
+
+AI 界面用 Vercel 的 AI Elements（`apps/web/src/components/ai-elements/`，清单与用法见 `.claude/skills/shadcn-ui-skills/COMPONENTS.md`）。中转脚本只转发 ui.shadcn.com，所以先用 curl 把组件的 registry JSON 下载到本地，再把本地文件交给脚本（依赖的 shadcn 原子组件仍经中转解析；`yes n` 回答「不覆盖已有文件」，保住项目改过的 `components/ui/*`）：
+
+```bash
+curl -sSo /tmp/el-reasoning.json https://elements.ai-sdk.dev/api/registry/reasoning.json
+yes n | apps/web/scripts/shadcn-add.sh /tmp/el-reasoning.json -y
+```
+
+CLI 会按 `components.json`（`tsx: false`）转成 JSX。装完检查新依赖体积（`npx vite build` 前后对比），组件里的英文文案改成 `t('中文')` 或由调用方传入；registry 里引用其他 AI Elements 组件的完整 URL 依赖也要先下载到本地再装。
+
 ### 纯前端页面（无后端 API）
 
 ```

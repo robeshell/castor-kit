@@ -43,6 +43,7 @@ services:
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       # Mail, file storage, uploads and the AI model are configured on the System settings page. Adding a variable here
       # (SMTP_HOST, S3_BUCKET, AI_API_KEY …, see .env.example) pins that value instead; empty values don't pin.
+      AI_PROVIDER: ${AI_PROVIDER:-}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_API_BASE: ${AI_API_BASE:-}
       AI_MODEL: ${AI_MODEL:-}

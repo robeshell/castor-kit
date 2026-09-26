@@ -44,11 +44,11 @@
 
 ## AI 应用
 
-分组目录 `ai/`，需要在「系统设置」的「AI」页签配置 OpenAI 兼容接口，见 [配置项](/reference/configuration#ai-模型)。
+分组目录 `ai/`，需要在「系统设置」的「AI」页签配置模型服务，见 [配置项](/reference/configuration#ai-模型)。
 
 | 页面 | 路由 | 说明 |
 |---|---|---|
-| AI 对话 | `/component-center/ai/chat` | 流式（SSE）对话界面 |
+| AI 对话 | `/component-center/ai/chat` | 流式对话界面（Vercel AI SDK `useChat` + AI Elements） |
 | AI 提示词工坊 | `/component-center/ai/prompt` | 提示词模板库，提取模板变量并实时预览 |
 | AI 数据查询 | `/component-center/ai/sql` | 用自然语言生成 SQL，在只读连接上执行并展示结果与图表 |
 

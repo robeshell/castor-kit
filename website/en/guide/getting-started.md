@@ -128,11 +128,12 @@ pnpm test
 
 ## Optional: AI features
 
-AI Chat, AI Prompt Studio and AI Data Query in the Component Gallery need an OpenAI-compatible API. After signing in, fill in the API URL, API key and model on the AI tab of System → Configuration → System settings, check them with "Test call", and save; they apply right away.
+AI Chat, AI Prompt Studio and AI Data Query in the Component Gallery need a model service: an OpenAI-compatible API (DeepSeek, Qwen, Ollama …) or OpenAI / Anthropic / Google directly. After signing in, pick the service type and fill in the API URL, API key and model on the AI tab of System → Configuration → System settings, check them with "Test call", and save; they apply right away.
 
 You can also put them in `apps/api/.env.development` (the page then shows them read-only):
 
 ```bash
+AI_PROVIDER=openai-compatible   # or openai / anthropic / google
 AI_API_BASE=https://api.openai.com/v1
 AI_API_KEY=<your API key>
 AI_MODEL=<model name>
