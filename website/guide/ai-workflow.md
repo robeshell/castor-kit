@@ -199,7 +199,7 @@ AI 根据业务描述推断类型，你不需要指定：
 pnpm scaffold -- --spec device.spec.json
 ```
 
-- `required`：列加 `NOT NULL`，新增 / 编辑时为空返回 400「<标签>不能为空」，表单标出必填并校验；`image` / `file` 不能必填
+- `required`：列加 `NOT NULL`，新增 / 编辑时为空返回 400「`<标签>不能为空`」，表单标出必填并校验；`image` / `file` 不能必填
 - `unique`：列加 `UNIQUE`，重复时返回 400；只用于文本和数字类型
 - `default`：列默认值，新增时留空就用它，表单也预先填好
 - `label` / `title`：页面、表头、导入导出和报错里的中文；`i18n` 是它们的英文、日文，没写的用字段名代替

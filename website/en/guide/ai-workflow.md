@@ -199,7 +199,7 @@ The AI infers types from the business description, so you don't have to specify 
 pnpm scaffold -- --spec device.spec.json
 ```
 
-- `required`: the column is `NOT NULL`, an empty value on create / edit returns 400 "<label>不能为空", and the form marks and checks it; `image` / `file` can't be required
+- `required`: the column is `NOT NULL`, an empty value on create / edit returns 400 `<label>不能为空`, and the form marks and checks it; `image` / `file` can't be required
 - `unique`: the column is `UNIQUE`, duplicates return 400; text and number types only
 - `default`: the column default, used when a new record leaves the field empty and prefilled in the form
 - `label` / `title`: the Chinese text of the page, headers, imports / exports and errors; `i18n` holds their English and Japanese (missing ones fall back to the field name)

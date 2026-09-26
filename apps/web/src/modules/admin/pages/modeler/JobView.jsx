@@ -71,6 +71,8 @@ export default function JobView({ jobId, openPath, onFinished, onClose }) {
   }, [log])
 
   const status = job?.status
+  // Generated pages live at /biz/<name-kebab>s (the same path whatever the parent menu)
+  const pagePath = openPath ?? (job?.module ? `/biz/${job.module.replaceAll('_', '-')}s` : null)
   const badge =
     status === 'success' ? (
       <StatusBadge tone="success" dot>
@@ -116,9 +118,9 @@ export default function JobView({ jobId, openPath, onFinished, onClose }) {
           ) : null}
           {status && status !== 'running' ? (
             <div className="flex flex-wrap gap-2">
-              {status === 'success' && job.kind === 'generate' && openPath ? (
+              {status === 'success' && job.kind === 'generate' && pagePath ? (
                 <Button asChild size="sm" variant="brand">
-                  <Link to={openPath}>
+                  <Link to={pagePath}>
                     <ExternalLink />
                     {t('打开页面')}
                   </Link>

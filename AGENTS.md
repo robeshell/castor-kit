@@ -506,7 +506,7 @@ user_roles：用户-角色 多对多（复合主键）
   AI 应用（parent_id=44）：    ID 441-449
   编辑器（parent_id=45）：     ID 451-459
   工具类（parent_id=46）：     ID 461-469
-新业务域菜单：                  从 1000 开始
+新业务域菜单：                  从 1000 开始（ID 1000 = 「业务管理」目录 code `biz`，scaffold --spec 第一次登记菜单时创建；生成的模块 1001–1999，按钮 = ID × 10 + 1…5）
 ```
 
 > **取 ID 前先查实际占用**，不要按「区间里的下一个数」推算——区间里夹着历史遗留 ID：31、33–37 属于组件示例中心，32 是定时任务，都落在系统管理的 21–39 区间里。
@@ -545,7 +545,7 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 | 内容、正文、详情 | `text` | `text()` | 富文本 |
 | 标签、tags | `text` | `text()` | JSON 字符串 |
 
-**scaffold 的已知限制**（详见 `new-feature-autopilot` 技能 4a）：`--fields` 表达不了必填 / 唯一 / 默认值——用 `--skip-migration` 生成后改 `db/schema` 再 `pnpm db:generate`，一张表只出一个迁移，违反约束自动返回 400（`common/db-errors.ts`）；生成的标签是英文占位；`bool` 列可为空；枚举字段按 `str20` 生成，存英文代码、界面显示中文需手写映射；表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。
+**scaffold 的 `--spec`**（详见 `new-feature-autopilot` 技能 4a）：用 JSON 文件描述模块时可以写中文标题 / 标签、必填、唯一、默认值、固定选项（`enum`，存英文值显示中文）、数据字典（`dict`）和菜单（`menu`：自动写进 `seed-rbac.ts` 的「业务管理」目录与菜单译文），生成的接口测试多一条字段规则用例；只用 `--fields` 时没有这些，标签是英文占位。表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。「系统管理 → 系统配置 → 在线建模」（仅开发环境、仅超级管理员）在页面上编辑 spec 并依次执行 scaffold → db:migrate → seed:rbac → openapi:generate → verify，失败自动撤销，生成的模块可撤销（见 `docs/architecture.md` §4.17）。
 
 ---
 
@@ -739,6 +739,7 @@ ID=2   系统管理 (system)
     ID=25  数据字典 → /system/dicts → admin/dicts
     ID=32  定时任务 → /system/scheduled-tasks → admin/scheduled_tasks
     ID=39  Webhook → /system/webhooks → admin/webhooks（按钮 391 新增 / 392 编辑 / 393 删除 system_webhooks_*）
+    ID=2001 在线建模 → /system/modeler → admin/modeler（仅开发环境可用，仅超级管理员）
   ID=204 内容消息 (system_group_content)
     ID=27  文件管理 → /system/files → admin/files
     ID=100002 消息通知 → /system/notifications → admin/notifications

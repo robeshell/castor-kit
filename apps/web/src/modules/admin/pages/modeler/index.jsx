@@ -101,7 +101,7 @@ export default function Modeler() {
       setErrors(check.errors ?? [])
       if (check.errors?.length) return
       const started = await reauth.run(() => startGenerate(payload))
-      setJob({ id: started.id, path: `/biz/${payload.name.replaceAll('_', '-')}s` })
+      setJob({ id: started.id })
     } catch (err) {
       if (err?.cancelled) return
       const list = err?.response?.data?.errors ?? err?.errors
@@ -162,7 +162,7 @@ export default function Modeler() {
 
       {job ? (
         <div className="mb-4">
-          <JobView key={job.id} jobId={job.id} openPath={job.path} onFinished={finished} onClose={() => setJob(null)} />
+          <JobView key={job.id} jobId={job.id} onFinished={finished} onClose={() => setJob(null)} />
         </div>
       ) : null}
 
