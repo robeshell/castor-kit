@@ -22,6 +22,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   'CSRF 校验失败，请刷新页面后重试': { 'en-US': 'CSRF check failed. Please refresh the page and try again.', 'ja-JP': 'CSRF 検証に失敗しました。ページを再読み込みしてから再度お試しください。' },
   '未登录': { 'en-US': 'Not signed in', 'ja-JP': 'ログインしていません' },
   '未授权访问': { 'en-US': 'Unauthorized', 'ja-JP': '認証されていません' },
+  '请求过于频繁，请稍后再试': { 'en-US': 'Too many requests. Please try again later.', 'ja-JP': 'リクエストが多すぎます。しばらくしてから再度お試しください' },
   '会话异常': { 'en-US': 'Session error', 'ja-JP': 'セッションに異常があります' },
   '用户不存在': { 'en-US': 'User not found', 'ja-JP': 'ユーザーが存在しません' },
   '无权限': { 'en-US': 'Permission denied', 'ja-JP': '権限がありません' },

@@ -70,6 +70,8 @@ export interface AppConfig {
   corsOrigins: string[]
   loginMaxFailures: number
   loginLockoutMinutes: number
+  /** RATE_LIMIT_ENABLED (default true): per-IP request limits; the limits themselves are in 系统设置 */
+  rateLimitEnabled: boolean
   /** Frontend build output dir (apps/web/dist); if missing, the SPA fallback returns a JSON hint */
   webDistDir: string
   /** Runtime data dir (instance/; uploads live in instance/uploads/...) */
@@ -140,6 +142,7 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().optional().default(''),
   LOGIN_MAX_FAILURES: intFromEnv(10),
   LOGIN_LOCKOUT_MINUTES: intFromEnv(15),
+  RATE_LIMIT_ENABLED: z.string().optional().default('true'),
   WEB_DIST_DIR: z.string().optional(),
   INSTANCE_DIR: z.string().optional(),
   DEMO_MODE: z.string().optional().default('false'),
@@ -303,6 +306,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
       .map((o) => o.trim())
       .filter(Boolean),
     loginMaxFailures: parsed.LOGIN_MAX_FAILURES,
+    rateLimitEnabled: isTruthy(parsed.RATE_LIMIT_ENABLED),
     loginLockoutMinutes: parsed.LOGIN_LOCKOUT_MINUTES,
     webDistDir: parsed.WEB_DIST_DIR ? resolve(parsed.WEB_DIST_DIR) : resolve(REPO_ROOT, 'apps/web/dist'),
     instanceDir,

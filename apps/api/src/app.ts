@@ -17,6 +17,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
+import { registerRateLimit } from './common/rate-limit'
 import { registerSessionResolver } from './common/session'
 import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
 import { registerDemoGuard } from './common/demo'
@@ -82,6 +83,8 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   registerSessionResolver(app)
 
   registerCsrfProtection(app)
+  // Per-IP limits (before any route is registered: the plugin hooks routes as they are added)
+  await registerRateLimit(app)
 
   await app.register(compress, { threshold: 500 })
   // Upload limit is MAX_CONTENT_LENGTH (413 when exceeded); see common/http.getUploadedFile for per-field file access
