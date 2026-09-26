@@ -59,6 +59,17 @@ The role with `code = 'super_admin'` has every permission:
 
 Exception: `GET /api/admin/my-menus` has no super admin shortcut; it returns the menus actually granted to the role. Since `seed-rbac` grants all menus to the super admin, the two normally match.
 
+### Not locking yourself out
+
+So a mistake can't leave nobody able to run the system, the backend enforces these rules (the UI disables the matching controls):
+
+- The super admin role can't be deleted and its code can't change; its data scope is always "All data" and it always has every menu. Only its name and description are editable
+- Only super admins can grant or remove the super admin role, and only super admins can edit, disable or delete super admin accounts (otherwise anyone who can edit users could reset a super admin's password)
+- You can't remove the super admin role from yourself, or disable or delete yourself
+- The last active super admin can't be disabled, deleted or lose the role; imports are checked the same way
+
+If the super admin role or the `admin` account still ends up broken, run `pnpm seed:rbac -- --incremental` (with Docker, restarting the container does it): it recreates the `super_admin` role, grants it every menu again and puts the `admin` account back in it. It doesn't restore other accounts' roles, and doesn't reset passwords or account status.
+
 ## seed-rbac.ts: the single source of truth for menus
 
 All menus and button permissions are defined in `MENUS_DATA` in `apps/api/scripts/seed-rbac.ts`. To add or change a menu, edit this file and then sync it to the database.
@@ -168,6 +179,8 @@ Menu and button permissions decide which features someone can use; data scope de
 - A restricted scope that works out empty (say, a "Own department" role for a user with no department) shows nothing — it never falls back to everything
 - Rows outside the scope are a 404 on detail, update and delete, so their existence doesn't leak; exports are limited the same way
 - Disabled departments still count as sub-departments; the department tree itself is not scoped
+
+To try it quickly, run `pnpm seed:demo`: it adds a sample department tree, two roles (department manager: own department and below; staff: own data only) and six sample users (password `demo123456` by default). Signed in as `zhang.wei` you only see 研发部 (R&D) and its sub-departments; as `li.na`, only yourself.
 
 ### What is scoped
 

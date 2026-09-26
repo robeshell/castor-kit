@@ -462,6 +462,8 @@ user_roles：用户-角色 多对多（复合主键）
 
 `code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
 
+保护（roles / users service 里强制，界面同步禁用）：超级管理员角色不能删除、编码不能改、数据范围固定 `all`、菜单固定全部；只有超级管理员能授予 / 移除这个角色、能编辑 / 停用 / 删除超级管理员账号；不能移除自己的这个角色；最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色。锁死后的恢复：`pnpm seed:rbac -- --incremental` 会重建角色并把 `admin` 挂回去。
+
 ### 菜单变更流程
 
 1. 在 `apps/api/scripts/seed-rbac.ts` 的 `MENUS_DATA`（唯一事实源）中添加 / 修改菜单条目和按钮权限
@@ -647,6 +649,7 @@ psql -d castor_kit -c '\d <table>'       # 实证落库（库名取 apps/api/.en
 # RBAC（菜单变更后必跑）
 pnpm seed:rbac -- --incremental         # 增量 upsert，不删除
 pnpm seed:rbac                          # 全量重建（仅空库初始化）
+pnpm seed:demo                          # 示例部门 / 角色（部门主管、普通员工）/ 用户，体验数据权限；生产环境需 --force
 
 # 一次性初始化（迁移 + RBAC 增量 + AI SQL 只读账号，advisory lock 保证并发安全）
 pnpm setup-once

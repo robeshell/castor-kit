@@ -16,6 +16,7 @@
     "db:generate": "pnpm --filter @castor-kit/api db:generate",
     "db:migrate": "pnpm --filter @castor-kit/api db:migrate",
     "seed:rbac": "pnpm --filter @castor-kit/api seed:rbac",
+    "seed:demo": "pnpm --filter @castor-kit/api seed:demo",
     "setup-once": "pnpm --filter @castor-kit/api setup-once",
     "openapi:generate": "pnpm --filter @castor-kit/api openapi:generate",
     "openapi:apifox": "pnpm --filter @castor-kit/api openapi:apifox",

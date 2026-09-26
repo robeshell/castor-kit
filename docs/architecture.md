@@ -147,6 +147,7 @@ castor-kit/
 ### 4.6 权限（RBAC）
 - `common/rbac.ts` 是纯函数（`isSuperAdmin` / 菜单编码收集）；`common/auth.ts` 提供 `hasMenuPermission` / `hasAnyMenuPermission` / `menuPermissionRequired`。
 - `super_admin` 角色短路放行；唯一例外是 `GET /api/admin/my-menus`，它按角色实际授予的菜单返回。
+- 防锁死：`super_admin` 角色不能删除、改编码、改数据范围或减少菜单（只能改名称 / 描述）；授予 / 移除这个角色、操作超级管理员账号都只允许超级管理员；不能移除自己的角色；最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色（这条在 HTTP 上已被前几条覆盖，保留为兜底）。
 - `my-menus` 的叶子节点没有 `children` 键；`menu_codes` 与角色顺序不保证，比较时按集合。
 - 菜单 `component` 字段格式 `<module>/<subdir>/<page>`，前端 `App.jsx` 用 `import.meta.glob` 解析。
 - 菜单与权限的唯一事实源是 `apps/api/scripts/seed-rbac.ts`；菜单 ID 不重排（`role_menus` 以 ID 引用）。
@@ -228,6 +229,7 @@ castor-kit/
 | `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
 | `scripts/verify-feature.ts` | `pnpm verify -- --module <name> [--skip-build] [--json]` | 门禁：`typescript_compile`、`no_local_has_permission`、`migration_chain`、`migration_applied`、`docs_paths`（AI 文档引用路径存在）、`backend_file`、`data_scope_filter`（声明 `DATA_SCOPE` 的模块必须用 `dataScopeWhere`）、`frontend_page`、`frontend_api`、`router_registration`、`rbac_seed`、`frontend_build`、`frontend_tests`、`api_tests` 等 |
 | `scripts/seed-rbac.ts` | `pnpm seed:rbac -- --incremental` | 菜单树唯一事实源；`--incremental` 按 code upsert 不删除，同步序列并刷新超级管理员权限；不带参数是全量重建（仅空库） |
+| `scripts/seed-demo.ts` | `pnpm seed:demo` | 示例部门树、两个受限角色（`dept_manager` 本部门及下级、`staff` 仅本人）和 6 个示例用户；按编码 / 用户名幂等更新，不删除、不改已有密码；`NODE_ENV=production` 需 `--force` |
 | `scripts/init-ro-role.ts` | `pnpm --filter @castor-kit/api init-ro-role` | 创建 AI SQL 只读账号并按敏感表规则授权 |
 | `scripts/setup-once.ts` | `pnpm setup-once` | `pg_advisory_lock` → migrate → seed-rbac（增量）→ init-ro-role，多副本并发安全 |
 | `src/worker.ts` | `pnpm --filter @castor-kit/api worker` | 独立调度进程 |

@@ -47,6 +47,7 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 |---|---|
 | `pnpm seed:rbac -- --incremental` | Incremental sync of menus and permissions: upserts by `code`, never deletes |
 | `pnpm seed:rbac` | Full rebuild: wipes users, roles and menus, then rewrites them. **Only for initializing an empty database** |
+| `pnpm seed:demo` | Adds sample departments, roles (department manager / staff) and users for trying data scope; safe to re-run, needs `--force` in production |
 
 ## Code generation and the gate
 
