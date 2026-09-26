@@ -1,7 +1,7 @@
 /**
  * Menu module routes
  *
- * Check order (preserves existing API behavior): `/menus/<id>` runs get_or_404 before the permission check; `/menus/<id>/sort` is the reverse, permission first, then 404.
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -34,26 +34,26 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get(`/api/admin/menus/${intParam('menu_id')}`, opts, async (request, reply) => {
-    const menu = await service.getMenuOr404(menuIdOf(request))
     if (!(await hasMenuPermission(request, 'system_menus'))) {
       return reply.status(403).send({ error: '无权限查看菜单' })
     }
+    const menu = await service.getMenuOr404(menuIdOf(request))
     return service.getMenuDetail(menu)
   })
 
   app.put(`/api/admin/menus/${intParam('menu_id')}`, opts, async (request, reply) => {
-    const menu = await service.getMenuOr404(menuIdOf(request))
     if (!(await hasMenuPermission(request, 'system_menus_edit'))) {
       return reply.status(403).send({ error: '无权限编辑菜单' })
     }
+    const menu = await service.getMenuOr404(menuIdOf(request))
     return service.updateMenu(menu, dictBody(rawJsonBody(request)))
   })
 
   app.delete(`/api/admin/menus/${intParam('menu_id')}`, opts, async (request, reply) => {
-    const menu = await service.getMenuOr404(menuIdOf(request))
     if (!(await hasMenuPermission(request, 'system_menus_delete'))) {
       return reply.status(403).send({ error: '无权限删除菜单' })
     }
+    const menu = await service.getMenuOr404(menuIdOf(request))
     return service.deleteMenu(menu)
   })
 

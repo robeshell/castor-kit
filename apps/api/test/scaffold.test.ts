@@ -656,7 +656,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(table).toContain('  created_at: createdAt(),')
     expect(table).toContain('    visited_at: toIso(item.visited_at),')
 
-    // Routes: permission codes and messages; routes with an id check 404 before 403
+    // Routes: permission codes and messages; routes with an id check permissions (403) before loading the record (404)
     const routes = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts'), 'utf8')
     expect(routes).toContain("const BASE = '/api/admin/ck-scaffold-demos'")
     for (const [code, msg] of [
@@ -670,7 +670,10 @@ describe('scaffold CLI（临时目录副本）', () => {
       expect(routes).toContain(`hasMenuPermission(request, '${code}')))`)
       expect(routes).toContain(`{ error: '${msg}' }`)
     }
-    expect(routes.indexOf('service.getOr404(itemId(request.params))')).toBeLessThan(routes.indexOf("'system_ck_scaffold_demo_edit'"))
+    for (const code of ['system_ck_scaffold_demo', 'system_ck_scaffold_demo_edit', 'system_ck_scaffold_demo_delete']) {
+      expect(routes, code).toMatch(new RegExp(`hasMenuPermission\\(request, '${code}'\\)\\)\\) \\{\\n[^\\n]*\\n    \\}\\n    const item = await service\\.getOr404`))
+    }
+    expect(routes).not.toMatch(/const item = await service\.getOr404[^\n]*\n {4}if \(!\(await hasMenuPermission/)
 
     // Frontend: api file format; page uses the new shadcn/ui system (same structure as the users page)
     const api = readFileSync(join(root, 'apps/web/src/modules/admin/api/ck_scaffold_demo.js'), 'utf8')

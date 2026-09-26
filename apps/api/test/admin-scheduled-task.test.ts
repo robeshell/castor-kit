@@ -220,13 +220,13 @@ describe('新增', () => {
 })
 
 describe('详情 / 编辑 / 删除', () => {
-  it('详情：200 / 404 / 先 404 再 403 / 非数字 id', async () => {
+  it('详情：200 / 404 / 先 403 再 404 / 非数字 id', async () => {
     const task = await seedTask()
     const ok = await s.inject({ url: `${T}/${task.id}` })
     expect(ok.statusCode).toBe(200)
     expect(ok.json()).toMatchObject({ id: task.id, task_code: task.task_code, is_active: false })
     expect((await s.inject({ url: `${T}/99999999` })).json()).toEqual({ error: '资源不存在' })
-    expect((await nobody.inject({ url: `${T}/99999999` })).statusCode).toBe(404)
+    expect((await nobody.inject({ url: `${T}/99999999` })).statusCode).toBe(403)
     const denied = await nobody.inject({ url: `${T}/${task.id}` })
     expect([denied.statusCode, denied.json()]).toEqual([403, { error: '无权限查看定时任务' }])
     expect((await s.inject({ url: `${T}/abc` })).statusCode).toBe(404)
@@ -286,9 +286,9 @@ describe('详情 / 编辑 / 删除', () => {
     expect([bad.statusCode, bad.json()]).toEqual([400, { error: '请求地址格式不合法' }])
   })
 
-  it('编辑：404 先于 403；无权限 403', async () => {
+  it('编辑：403 先于 404；无权限 403', async () => {
     const task = await seedTask()
-    expect((await nobody.inject({ method: 'PUT', url: `${T}/99999999`, payload: {} })).statusCode).toBe(404)
+    expect((await nobody.inject({ method: 'PUT', url: `${T}/99999999`, payload: {} })).statusCode).toBe(403)
     const denied = await nobody.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: {} })
     expect([denied.statusCode, denied.json()]).toEqual([403, { error: '无权限编辑定时任务' }])
   })

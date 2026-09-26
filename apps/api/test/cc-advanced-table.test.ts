@@ -251,7 +251,7 @@ describe('advanced-table', () => {
     expect(b!.priority).toBe(9)
   })
 
-  it('无权限 → 403；404 先于 403', async () => {
+  it('无权限 → 403；403 先于 404', async () => {
     const fx = await createFixture(handle)
     const u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
     const expectErr = async (opts: Parameters<typeof u.inject>[0], error: string) => {
@@ -267,7 +267,7 @@ describe('advanced-table', () => {
     await expectErr({ method: 'PUT', url: `${B}/rows/reorder`, payload: [] }, '无权限排序')
     await expectErr({ method: 'POST', url: `${B}/rows/batch-update`, payload: {} }, '无权限批量更新')
     await expectErr({ method: 'POST', url: `${B}/rows/batch-delete`, payload: {} }, '无权限批量删除')
-    expect((await u.inject({ method: 'DELETE', url: `${B}/rows/99999999` })).statusCode).toBe(404)
+    expect((await u.inject({ method: 'DELETE', url: `${B}/rows/99999999` })).statusCode).toBe(403)
   })
 
   it('删除 / 批量删除', async () => {

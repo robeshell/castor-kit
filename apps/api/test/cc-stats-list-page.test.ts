@@ -119,12 +119,12 @@ describe('stats-list-page', () => {
     expect(byName).toContain(`${P}b`)
   })
 
-  it('详情 / 404 先于 403 / 403 文案', async () => {
+  it('详情 / 403 先于 404 / 403 文案', async () => {
     const row = await rowByCode(`${P}a`)
     const res = await s.inject({ url: `${B}/${row!.id}` })
     expect(res.json()).toMatchObject({ id: row!.id, amount: 12.35 })
     expect((await s.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
-    expect((await u.inject({ url: `${B}/99999999` })).json()).toEqual({ error: '资源不存在' })
+    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     expect((await u.inject({ url: `${B}/${row!.id}` })).json()).toEqual({ error: '无权限查看详情' })
     expect((await u.inject({ method: 'PUT', url: `${B}/${row!.id}`, payload: {} })).json()).toEqual({ error: '无权限编辑记录' })
     expect((await u.inject({ method: 'DELETE', url: `${B}/${row!.id}` })).json()).toEqual({ error: '无权限删除记录' })

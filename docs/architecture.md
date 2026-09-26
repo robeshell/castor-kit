@@ -155,6 +155,7 @@ castor-kit/
 ### 4.6 权限（RBAC）
 - `common/rbac.ts` 是纯函数（`isSuperAdmin` / 菜单编码收集）；`common/auth.ts` 提供 `hasMenuPermission` / `hasAnyMenuPermission` / `menuPermissionRequired`。
 - `super_admin` 角色短路放行；唯一例外是 `GET /api/admin/my-menus`，它按角色实际授予的菜单返回。
+- 检查顺序：带 id 的路由先查权限（403）再查记录（404），没有权限的人无法靠状态码差别试探 id 是否存在（例外：通知删除要先看是不是发给自己的，再决定需要什么权限）。`scaffold` 与 `docs/templates/backend/routes.ts` 按这个顺序生成。
 - 防锁死：`super_admin` 角色不能删除、改编码、改数据范围或减少菜单（只能改名称 / 描述）；授予 / 移除这个角色、操作超级管理员账号都只允许超级管理员；不能移除自己的角色；最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色（这条在 HTTP 上已被前几条覆盖，保留为兜底）。
 - `my-menus` 的叶子节点没有 `children` 键；`menu_codes` 与角色顺序不保证，比较时按集合。
 - 菜单 `component` 字段格式 `<module>/<subdir>/<page>`，前端 `App.jsx` 用 `import.meta.glob` 解析。

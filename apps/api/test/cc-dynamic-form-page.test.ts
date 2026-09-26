@@ -124,11 +124,11 @@ describe('dynamic-form-page', () => {
     expect((await s.inject({ url: `${B}?search=${P}&per_page=2&page=2` })).json()).toMatchObject({ total: 3, page: 2, per_page: 2 })
   })
 
-  it('详情 / 404 先于 403 / 403 文案', async () => {
+  it('详情 / 403 先于 404 / 403 文案', async () => {
     const a = (await rowByCode(`${P}a`))!
     const detail = (await s.inject({ url: `${B}/${a.id}` })).json()
     expect(detail.fields.map((f: { field_key: string }) => f.field_key)).toEqual(['first', 'color', 'size'])
-    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
+    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     expect((await u.inject({ url: `${B}/${a.id}` })).json()).toEqual({ error: '无权限查看记录详情' })
     expect((await u.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: {} })).json()).toEqual({ error: '无权限编辑记录' })
     expect((await u.inject({ method: 'DELETE', url: `${B}/${a.id}` })).json()).toEqual({ error: '无权限删除记录' })

@@ -37,34 +37,34 @@ export async function registerDepartmentRoutes(app: FastifyInstance): Promise<vo
   })
 
   app.get(itemPath, opts, async (request, reply) => {
-    const dept = await service.getOr404(deptId(request))
     if (!(await hasMenuPermission(request, 'system_departments'))) {
       return reply.status(403).send({ error: '无权限查看部门' })
     }
+    const dept = await service.getOr404(deptId(request))
     return service.getItem(dept)
   })
 
   app.put(itemPath, opts, async (request, reply) => {
-    const dept = await service.getOr404(deptId(request))
     if (!(await hasMenuPermission(request, 'system_departments_edit'))) {
       return reply.status(403).send({ error: '无权限编辑部门' })
     }
+    const dept = await service.getOr404(deptId(request))
     return service.updateItem(dept, jsonBody(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
-    const dept = await service.getOr404(deptId(request))
     if (!(await hasMenuPermission(request, 'system_departments_delete'))) {
       return reply.status(403).send({ error: '无权限删除部门' })
     }
+    const dept = await service.getOr404(deptId(request))
     return service.deleteItem(dept)
   })
 
   app.post(`${itemPath}/sort`, opts, async (request, reply) => {
-    const dept = await service.getOr404(deptId(request))
     if (!(await hasMenuPermission(request, 'system_departments_edit'))) {
       return reply.status(403).send({ error: '无权限编辑部门' })
     }
+    const dept = await service.getOr404(deptId(request))
     return service.sortItem(dept, jsonBody(request).direction)
   })
 }

@@ -42,41 +42,41 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
   })
 
   app.put(ONE, opts, async (request, reply) => {
-    const hook = await hookOf(request)
     if (!(await hasMenuPermission(request, 'system_webhooks_edit'))) return reply.status(403).send({ error: '无权限编辑 Webhook' })
+    const hook = await hookOf(request)
     requireRecentAuth(request)
     return service.update(hook, jsonBody(request), (await actorOf(request)).name)
   })
 
   app.delete(ONE, opts, async (request, reply) => {
-    const hook = await hookOf(request)
     if (!(await hasMenuPermission(request, 'system_webhooks_delete'))) return reply.status(403).send({ error: '无权限删除 Webhook' })
+    const hook = await hookOf(request)
     return service.remove(hook)
   })
 
   app.get(`${ONE}/secret`, opts, async (request, reply) => {
-    const hook = await hookOf(request)
     if (!(await hasMenuPermission(request, 'system_webhooks_edit'))) return reply.status(403).send({ error: '无权限编辑 Webhook' })
+    const hook = await hookOf(request)
     requireRecentAuth(request)
     return service.secret(hook)
   })
 
   app.post(`${ONE}/secret`, opts, async (request, reply) => {
-    const hook = await hookOf(request)
     if (!(await hasMenuPermission(request, 'system_webhooks_edit'))) return reply.status(403).send({ error: '无权限编辑 Webhook' })
+    const hook = await hookOf(request)
     requireRecentAuth(request)
     return service.rotateSecret(hook)
   })
 
   app.post(`${ONE}/test`, opts, async (request, reply) => {
-    const hook = await hookOf(request)
     if (!(await hasMenuPermission(request, 'system_webhooks_edit'))) return reply.status(403).send({ error: '无权限编辑 Webhook' })
+    const hook = await hookOf(request)
     return service.test(hook)
   })
 
   app.get(`${ONE}/deliveries`, opts, async (request, reply) => {
-    const hook = await hookOf(request)
     if (!(await hasMenuPermission(request, 'system_webhooks'))) return reply.status(403).send({ error: '无权限查看 Webhook' })
+    const hook = await hookOf(request)
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
     const status = queryString(request, 'status').trim()
     return service.deliveries(hook, page, per_page, (STATUSES as readonly string[]).includes(status) ? (status as (typeof STATUSES)[number]) : '')

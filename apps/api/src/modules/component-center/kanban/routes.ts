@@ -1,7 +1,7 @@
 /**
  * Kanban page routes
  *
- * Routes with an id run get_or_404 first, then check permissions (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -33,18 +33,18 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
   })
 
   app.put(`${BASE}/boards/${intParam('board_id')}`, opts, async (request, reply) => {
-    const board = await service.getBoardOr404(parseIntParam((request.params as { board_id: string }).board_id))
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_edit'))) {
       return reply.status(403).send({ error: '无权限编辑列' })
     }
+    const board = await service.getBoardOr404(parseIntParam((request.params as { board_id: string }).board_id))
     return service.updateBoard(board, jsonBody(request))
   })
 
   app.delete(`${BASE}/boards/${intParam('board_id')}`, opts, async (request, reply) => {
-    const board = await service.getBoardOr404(parseIntParam((request.params as { board_id: string }).board_id))
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_delete'))) {
       return reply.status(403).send({ error: '无权限删除列' })
     }
+    const board = await service.getBoardOr404(parseIntParam((request.params as { board_id: string }).board_id))
     return service.deleteBoard(board)
   })
 
@@ -67,18 +67,18 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
   })
 
   app.put(`${BASE}/cards/${intParam('card_id')}`, opts, async (request, reply) => {
-    const card = await service.getCardOr404(parseIntParam((request.params as { card_id: string }).card_id))
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_edit'))) {
       return reply.status(403).send({ error: '无权限编辑卡片' })
     }
+    const card = await service.getCardOr404(parseIntParam((request.params as { card_id: string }).card_id))
     return service.updateCard(card, jsonBody(request))
   })
 
   app.delete(`${BASE}/cards/${intParam('card_id')}`, opts, async (request, reply) => {
-    const card = await service.getCardOr404(parseIntParam((request.params as { card_id: string }).card_id))
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_delete'))) {
       return reply.status(403).send({ error: '无权限删除卡片' })
     }
+    const card = await service.getCardOr404(parseIntParam((request.params as { card_id: string }).card_id))
     return service.deleteCard(card)
   })
 }

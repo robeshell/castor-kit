@@ -115,10 +115,10 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}/two-factor`, { preHandler: loginRequired }, async (request, reply) => {
-    const target = await users.getUserOr404(parseIntParam((request.params as { user_id: string }).user_id), await resolveDataScope(request))
     if (!(await hasMenuPermission(request, 'system_users_edit'))) {
       return reply.status(403).send({ error: '无权限编辑用户' })
     }
+    const target = await users.getUserOr404(parseIntParam((request.params as { user_id: string }).user_id), await resolveDataScope(request))
     const caller = (await getCurrentAdminUser(request))!
     if (isSuperAdmin(target) && !isSuperAdmin(caller)) throw new ServiceError('只有超级管理员可以操作超级管理员账号', 403)
     return service.reset(target.id)

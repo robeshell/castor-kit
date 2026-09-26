@@ -118,11 +118,11 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
   })
 
   app.put(`/api/admin/customers/${intParam('item_id')}`, opts, async (request, reply) => {
-    // Look up the record first (404), then check the permission (403)
-    const item = await service.getOr404(parseIntParam((request.params as { item_id: string }).item_id))
+    // Check the permission first (403), then look up the record (404): no permission, no probing of ids
     if (!(await hasMenuPermission(request, 'system_customer_edit'))) {
       return reply.status(403).send({ error: '无权限' })
     }
+    const item = await service.getOr404(parseIntParam((request.params as { item_id: string }).item_id))
     return service.updateItem(item, jsonBody(request))
   })
 }

@@ -166,11 +166,11 @@ describe('list-page CRUD', () => {
     expect(inactive.json().items.map((i: { query_code: string }) => i.query_code)).toEqual([`${P}a`])
   })
 
-  it('详情 / 404 先于 403 / 非数字 id', async () => {
+  it('详情 / 403 先于 404 / 非数字 id', async () => {
     const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}a`))
     expect((await s.inject({ url: `${B}/${row!.id}` })).json().query_code).toBe(`${P}a`)
     expect((await s.inject({ url: `${B}/99999999` })).json()).toEqual({ error: '资源不存在' })
-    expect((await noPerm.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
+    expect((await noPerm.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     const forbidden = await noPerm.inject({ url: `${B}/${row!.id}` })
     expect(forbidden.statusCode).toBe(403)
     expect(forbidden.json()).toEqual({ error: '无权限查看记录详情' })

@@ -1,7 +1,7 @@
 /**
  * Gantt page routes
  *
- * Routes with an id do get_or_404 first, then the permission check (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -33,18 +33,18 @@ export async function registerGanttRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.put(`${BASE}/tasks/${intParam('task_id')}`, opts, async (request, reply) => {
-    const task = await service.getTaskOr404(taskId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_gantt_edit'))) {
       return reply.status(403).send({ error: '无权限编辑任务' })
     }
+    const task = await service.getTaskOr404(taskId(request))
     return service.updateTask(task, jsonBody(request))
   })
 
   app.delete(`${BASE}/tasks/${intParam('task_id')}`, opts, async (request, reply) => {
-    const task = await service.getTaskOr404(taskId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_gantt_delete'))) {
       return reply.status(403).send({ error: '无权限删除任务' })
     }
+    const task = await service.getTaskOr404(taskId(request))
     return service.deleteTask(task)
   })
 }

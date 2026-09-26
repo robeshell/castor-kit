@@ -116,7 +116,7 @@ describe('dicts：字典类型', () => {
     expect(byName.items.map((i: { code: string }) => i.code)).toContain(`${P}b`)
   })
 
-  it('编辑：同值/空 body 不改 updated_at；原始值落库（不去空白）；编码重复 400；404 先于 403', async () => {
+  it('编辑：同值/空 body 不改 updated_at；原始值落库（不去空白）；编码重复 400；403 先于 404', async () => {
     const [before] = await handle.db.select().from(dict_types).where(eq(dict_types.id, typeId))
     const same = await s.inject({ method: 'PUT', url: `/api/admin/dicts/${typeId}`, payload: { name: '测试字典', sort_order: false, is_active: 1 } })
     expect(same.statusCode).toBe(200)
@@ -318,7 +318,7 @@ describe('dicts：字典项', () => {
 })
 
 describe('dicts：权限', () => {
-  it('无权限用户：各接口 403 文案；带 id 的路由先 404 后 403', async () => {
+  it('无权限用户：各接口 403 文案；带 id 的路由先 403 后 404', async () => {
     const [t] = await handle.db.select().from(dict_types).where(eq(dict_types.code, `${P}b`))
     const id = t!.id
     const [item] = await handle.db
@@ -345,7 +345,7 @@ describe('dicts：权限', () => {
       expect([res.statusCode, res.json()], `${method} ${url}`).toEqual([403, { error }])
     }
     for (const url of ['/api/admin/dicts/99999999', '/api/admin/dicts/99999999/items', '/api/admin/dicts/items/99999999']) {
-      expect((await u.inject({ url })).json()).toEqual({ error: '资源不存在' })
+      expect((await u.inject({ url })).statusCode, url).toBe(403)
     }
     // Not logged in
     const anon = await app.inject({ url: '/api/admin/dicts/options?codes=a' })

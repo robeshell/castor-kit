@@ -214,7 +214,7 @@ describe('menus 编辑 / 删除 / 排序', () => {
     expect((await s.inject({ url: `/api/admin/menus/${root.id}` })).statusCode).toBe(200)
   })
 
-  it('编辑校验：空名称/空编码、编码冲突、非法值 → 500；404 先于权限；非数字 405', async () => {
+  it('编辑校验：空名称/空编码、编码冲突、非法值 → 500；权限先于 404；非数字 405', async () => {
     const c2 = (await menuByCode(`${P}c2`))!
     expect((await put(`/api/admin/menus/${c2.id}`, { name: '' })).json()).toEqual({ error: '菜单名称不能为空' })
     expect((await put(`/api/admin/menus/${c2.id}`, { code: null })).json()).toEqual({ error: '菜单编码不能为空' })
@@ -222,7 +222,7 @@ describe('menus 编辑 / 删除 / 排序', () => {
     expect((await put(`/api/admin/menus/${c2.id}`, { code: 5 })).statusCode).toBe(500)
     expect((await put(`/api/admin/menus/${c2.id}`, { is_visible: 'no', name: 'zz' })).statusCode).toBe(500)
     expect((await menuByCode(`${P}c2`))!.name).toBe('c2')
-    expect((await u.inject({ method: 'PUT', url: '/api/admin/menus/99999999', payload: {} })).statusCode).toBe(404)
+    expect((await u.inject({ method: 'PUT', url: '/api/admin/menus/99999999', payload: {} })).statusCode).toBe(403)
     expect((await put('/api/admin/menus/abc', {})).statusCode).toBe(405)
   })
 
@@ -366,7 +366,7 @@ describe('menus 权限 / my-menus', () => {
     expect('children' in root.children[0]).toBe(false)
   })
 
-  it('无权限用户 → 403 文案（GET/PUT/DELETE 先 404 再 403）', async () => {
+  it('无权限用户 → 403 文案（GET/PUT/DELETE 先 403 再 404）', async () => {
     const cases: [string, string, string][] = [
       ['GET', '/api/admin/menus', '无权限查看菜单列表'],
       ['POST', '/api/admin/menus', '无权限新增菜单'],
@@ -383,6 +383,6 @@ describe('menus 权限 / my-menus', () => {
       expect(res.statusCode, url).toBe(403)
       expect(res.json()).toEqual({ error })
     }
-    expect((await u.inject({ url: '/api/admin/menus/99999999' })).statusCode).toBe(404)
+    expect((await u.inject({ url: '/api/admin/menus/99999999' })).statusCode).toBe(403)
   })
 })

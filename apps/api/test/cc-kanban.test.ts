@@ -241,7 +241,7 @@ describe('kanban', () => {
     expect(res.json().id).toBe(rows[0].m)
   })
 
-  it('无权限 → 403；404 先于 403', async () => {
+  it('无权限 → 403；403 先于 404', async () => {
     const fx = await createFixture(handle)
     const u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
     expect((await u.inject({ url: `${B}/boards` })).json()).toEqual({ error: '无权限' })
@@ -255,7 +255,7 @@ describe('kanban', () => {
     expect(put.statusCode).toBe(403)
     expect(put.json()).toEqual({ error: '无权限编辑卡片' })
     expect((await u.inject({ method: 'DELETE', url: `${B}/cards/${c2!.id}` })).json()).toEqual({ error: '无权限删除卡片' })
-    expect((await u.inject({ method: 'PUT', url: `${B}/cards/99999999`, payload: {} })).statusCode).toBe(404)
+    expect((await u.inject({ method: 'PUT', url: `${B}/cards/99999999`, payload: {} })).statusCode).toBe(403)
     expect((await app.inject({ url: `${B}/boards` })).statusCode).toBe(401)
   })
 })

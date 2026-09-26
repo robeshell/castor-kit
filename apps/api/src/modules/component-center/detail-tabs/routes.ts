@@ -1,7 +1,7 @@
 /**
  * Detail tabs page routes
  *
- * Routes with an id do get_or_404 first, then the permission check (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -32,26 +32,26 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
   })
 
   app.get(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
-    const member = await service.getMemberOr404(memberId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_page'))) {
       return reply.status(403).send({ error: '无权限' })
     }
+    const member = await service.getMemberOr404(memberId(request))
     return service.getMember(member.id)
   })
 
   app.put(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
-    const member = await service.getMemberOr404(memberId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_edit'))) {
       return reply.status(403).send({ error: '无权限编辑成员' })
     }
+    const member = await service.getMemberOr404(memberId(request))
     return service.updateMember(member, jsonBody(request))
   })
 
   app.delete(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
-    const member = await service.getMemberOr404(memberId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_delete'))) {
       return reply.status(403).send({ error: '无权限删除成员' })
     }
+    const member = await service.getMemberOr404(memberId(request))
     return service.deleteMember(member)
   })
 }

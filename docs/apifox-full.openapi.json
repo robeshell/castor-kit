@@ -2531,7 +2531,7 @@
           }
         ],
         "summary": "编辑高级表格记录",
-        "description": "需要 cc_admin_advanced_table_edit（先查记录，不存在返回 404，再校验权限）。只更新请求中出现的字段，值未变化的字段不写库；编码与其他记录重复返回 400",
+        "description": "需要 cc_admin_advanced_table_edit（先校验权限，再查记录，不存在返回 404）。只更新请求中出现的字段，值未变化的字段不写库；编码与其他记录重复返回 400",
         "parameters": [
           {
             "name": "item_id",
@@ -2797,7 +2797,7 @@
           }
         ],
         "summary": "删除高级表格记录",
-        "description": "需要 cc_admin_advanced_table_delete（先查记录，不存在返回 404，再校验权限）",
+        "description": "需要 cc_admin_advanced_table_delete（先校验权限，再查记录，不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -4802,7 +4802,7 @@
           }
         ],
         "summary": "卡片详情",
-        "description": "需要 system_card_list_page。先按 ID 查找，不存在返回 404（早于权限检查）",
+        "description": "需要 system_card_list_page。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -4942,7 +4942,7 @@
           }
         ],
         "summary": "编辑卡片",
-        "description": "需要 system_card_list_page_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）；可修改 card_code，但不能与其他卡片重复。先按 ID 查找，不存在返回 404",
+        "description": "需要 system_card_list_page_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）；可修改 card_code，但不能与其他卡片重复。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -5178,7 +5178,7 @@
           }
         ],
         "summary": "删除卡片",
-        "description": "需要 system_card_list_page_delete。先按 ID 查找，不存在返回 404",
+        "description": "需要 system_card_list_page_delete。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -5665,7 +5665,7 @@
           }
         ],
         "summary": "成员详情",
-        "description": "需要 cc_admin_detail_tabs_page。先查成员再校验权限：成员不存在时无论有无权限都返回 404",
+        "description": "需要 cc_admin_detail_tabs_page。先校验权限再查成员：没有权限时返回 403，有权限但成员不存在返回 404",
         "parameters": [
           {
             "name": "member_id",
@@ -5801,7 +5801,7 @@
           }
         ],
         "summary": "编辑成员",
-        "description": "需要 cc_admin_detail_tabs_edit（成员不存在时先返回 404）。部分更新：只处理请求体里出现的字段，规则同新增；传了 name 就不能为空；只更新值有变化的列",
+        "description": "需要 cc_admin_detail_tabs_edit（先校验权限，成员不存在返回 404）。部分更新：只处理请求体里出现的字段，规则同新增；传了 name 就不能为空；只更新值有变化的列",
         "parameters": [
           {
             "name": "member_id",
@@ -6034,7 +6034,7 @@
           }
         ],
         "summary": "删除成员",
-        "description": "需要 cc_admin_detail_tabs_delete（成员不存在时先返回 404）。物理删除",
+        "description": "需要 cc_admin_detail_tabs_delete（先校验权限，成员不存在返回 404）。物理删除",
         "parameters": [
           {
             "name": "member_id",
@@ -7090,7 +7090,7 @@
           }
         ],
         "summary": "表单记录详情",
-        "description": "需要 system_dynamic_form_page。返回记录及其动态字段明细（fields）。先按 ID 查找，不存在返回 404（早于权限检查）",
+        "description": "需要 system_dynamic_form_page。返回记录及其动态字段明细（fields）。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -7259,7 +7259,7 @@
           }
         ],
         "summary": "编辑表单记录",
-        "description": "需要 system_dynamic_form_page_edit。部分更新，只写入实际变化的字段；record_code 不可修改（传了也忽略）；传 fields 时整体替换动态字段（仅替换字段不会刷新 updated_at）。先按 ID 查找，不存在返回 404",
+        "description": "需要 system_dynamic_form_page_edit。部分更新，只写入实际变化的字段；record_code 不可修改（传了也忽略）；传 fields 时整体替换动态字段（仅替换字段不会刷新 updated_at）。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -7543,7 +7543,7 @@
           }
         ],
         "summary": "删除表单记录",
-        "description": "需要 system_dynamic_form_page_delete。同时级联删除其全部动态字段。先按 ID 查找，不存在返回 404",
+        "description": "需要 system_dynamic_form_page_delete。同时级联删除其全部动态字段。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -7966,7 +7966,7 @@
           }
         ],
         "summary": "编辑甘特图任务",
-        "description": "需要 cc_admin_gantt_edit（先查任务，不存在返回 404，再校验权限）。只更新请求中出现的字段，值未变化的字段不写库；传入空标题返回 400。开始 / 结束日期传 null 或无法解析时会触发数据库非空约束，返回 500",
+        "description": "需要 cc_admin_gantt_edit（先校验权限，再查任务，不存在返回 404）。只更新请求中出现的字段，值未变化的字段不写库；传入空标题返回 400。开始 / 结束日期传 null 或无法解析时会触发数据库非空约束，返回 500",
         "parameters": [
           {
             "name": "task_id",
@@ -8182,7 +8182,7 @@
           }
         ],
         "summary": "删除甘特图任务",
-        "description": "需要 cc_admin_gantt_delete（先查任务，不存在返回 404，再校验权限）",
+        "description": "需要 cc_admin_gantt_delete（先校验权限，再查任务，不存在返回 404）",
         "parameters": [
           {
             "name": "task_id",
@@ -8626,7 +8626,7 @@
           }
         ],
         "summary": "编辑看板列",
-        "description": "需要 cc_admin_kanban_edit（先查列，不存在返回 404，再校验权限）。只更新请求中出现的字段，列编码不可修改；传入空标题返回 400。返回该列及其卡片",
+        "description": "需要 cc_admin_kanban_edit（先校验权限，再查列，不存在返回 404）。只更新请求中出现的字段，列编码不可修改；传入空标题返回 400。返回该列及其卡片",
         "parameters": [
           {
             "name": "board_id",
@@ -8844,7 +8844,7 @@
           }
         ],
         "summary": "删除看板列",
-        "description": "需要 cc_admin_kanban_delete（先查列，不存在返回 404，再校验权限）。列下的所有卡片会被级联删除",
+        "description": "需要 cc_admin_kanban_delete（先校验权限，再查列，不存在返回 404）。列下的所有卡片会被级联删除",
         "parameters": [
           {
             "name": "board_id",
@@ -9177,7 +9177,7 @@
           }
         ],
         "summary": "编辑看板卡片",
-        "description": "需要 cc_admin_kanban_edit（先查卡片，不存在返回 404，再校验权限）。只更新请求中出现的字段，卡片编码不可修改；传入空标题返回 400；board_id 指向不存在的列返回 404，为 0 或无法解析时忽略",
+        "description": "需要 cc_admin_kanban_edit（先校验权限，再查卡片，不存在返回 404）。只更新请求中出现的字段，卡片编码不可修改；传入空标题返回 400；board_id 指向不存在的列返回 404，为 0 或无法解析时忽略",
         "parameters": [
           {
             "name": "card_id",
@@ -9376,7 +9376,7 @@
           }
         ],
         "summary": "删除看板卡片",
-        "description": "需要 cc_admin_kanban_delete（先查卡片，不存在返回 404，再校验权限）",
+        "description": "需要 cc_admin_kanban_delete（先校验权限，再查卡片，不存在返回 404）",
         "parameters": [
           {
             "name": "card_id",
@@ -10816,7 +10816,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。先查记录（不存在返回 404），再检查权限",
+        "description": "需要 system_list_page。先检查权限，再查记录（不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -11061,7 +11061,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_edit。先查记录（不存在返回 404），再检查权限；只更新请求中出现的字段，传了 name / query_code 就不能为空且编码不能与其他记录重复；每次保存版本号 +1 并写入 update 版本快照（即使没有字段变化）",
+        "description": "需要 system_list_page_edit。先检查权限，再查记录（不存在返回 404）；只更新请求中出现的字段，传了 name / query_code 就不能为空且编码不能与其他记录重复；每次保存版本号 +1 并写入 update 版本快照（即使没有字段变化）",
         "parameters": [
           {
             "name": "item_id",
@@ -11532,7 +11532,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_delete。先查记录（不存在返回 404），再检查权限；同时删除其版本历史并解除文件中心引用",
+        "description": "需要 system_list_page_delete。先检查权限，再查记录（不存在返回 404）；同时删除其版本历史并解除文件中心引用",
         "parameters": [
           {
             "name": "item_id",
@@ -12846,7 +12846,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。先查记录（不存在返回 404），再检查权限",
+        "description": "需要 system_stats_list_page。先检查权限，再查记录（不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -12971,7 +12971,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_edit。先查记录（不存在返回 404），再检查权限；只更新请求中出现的字段，传了 name / item_code 就不能为空且编码不能与其他记录重复；没有实际变化时不写库，updated_at 不变",
+        "description": "需要 system_stats_list_page_edit。先检查权限，再查记录（不存在返回 404）；只更新请求中出现的字段，传了 name / item_code 就不能为空且编码不能与其他记录重复；没有实际变化时不写库，updated_at 不变",
         "parameters": [
           {
             "name": "item_id",
@@ -13187,7 +13187,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_delete。先查记录（不存在返回 404），再检查权限",
+        "description": "需要 system_stats_list_page_delete。先检查权限，再查记录（不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -14340,7 +14340,7 @@
           }
         ],
         "summary": "树节点详情",
-        "description": "需要 system_tree_list_page。先按 ID 查找，不存在返回 404（早于权限检查）",
+        "description": "需要 system_tree_list_page。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -14475,7 +14475,7 @@
           }
         ],
         "summary": "编辑树节点",
-        "description": "需要 system_tree_list_page_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）。node_code 只校验不修改；修改父节点时校验父节点存在且不会成环（移到自身或子孙节点下返回 400）。先按 ID 查找，不存在返回 404",
+        "description": "需要 system_tree_list_page_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）。node_code 只校验不修改；修改父节点时校验父节点存在且不会成环（移到自身或子孙节点下返回 400）。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -14695,7 +14695,7 @@
           }
         ],
         "summary": "删除树节点",
-        "description": "需要 system_tree_list_page_delete。只删除该节点：其直接子节点的 parent_id 先被清空（变为根节点），不会级联删除。先按 ID 查找，不存在返回 404",
+        "description": "需要 system_tree_list_page_delete。只删除该节点：其直接子节点的 parent_id 先被清空（变为根节点），不会级联删除。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -15128,7 +15128,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_departments；先查部门再校验权限；不按数据权限过滤，不含子部门。",
+        "description": "需要 system_departments；先校验权限再查部门；不按数据权限过滤，不含子部门。",
         "parameters": [
           {
             "name": "dept_id",
@@ -15789,7 +15789,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_dicts。先查字典项再校验权限，字典项不存在返回 404",
+        "description": "需要 system_dicts。先校验权限再查字典项，字典项不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -16221,7 +16221,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_dicts。先查字典再校验权限，字典不存在返回 404；include_items 为真时附带全部字典项",
+        "description": "需要 system_dicts。先校验权限再查字典，字典不存在返回 404；include_items 为真时附带全部字典项",
         "parameters": [
           {
             "name": "dict_id",
@@ -19509,7 +19509,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_menus；先查菜单再校验权限；返回该菜单及其完整子树。",
+        "description": "需要 system_menus；先校验权限再查菜单；返回该菜单及其完整子树。",
         "parameters": [
           {
             "name": "menu_id",
@@ -19646,7 +19646,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_menus_edit；先查菜单再校验权限。只更新请求里出现且有变化的字段（无变化时原样返回、不更新 updated_at）；name / code 出现时不能为空，编码不能与其他菜单重复，父菜单不能是自身或其子菜单。",
+        "description": "需要 system_menus_edit；先校验权限再查菜单。只更新请求里出现且有变化的字段（无变化时原样返回、不更新 updated_at）；name / code 出现时不能为空，编码不能与其他菜单重复，父菜单不能是自身或其子菜单。",
         "parameters": [
           {
             "name": "menu_id",
@@ -19853,7 +19853,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_menus_delete；先查菜单再校验权限；还有子菜单时不能删除（400）；角色上的该菜单授权一并移除。",
+        "description": "需要 system_menus_delete；先校验权限再查菜单；还有子菜单时不能删除（400）；角色上的该菜单授权一并移除。",
         "parameters": [
           {
             "name": "menu_id",
@@ -22174,7 +22174,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_roles_edit；先查角色再校验权限。只更新请求里出现的字段，menu_ids 整体替换授权菜单；data_scope 改为非 custom 时清空自定义部门。super_admin 角色只能改名称和描述（编码、数据范围、菜单固定）；成功后触发 role.updated 事件。",
+        "description": "需要 system_roles_edit；先校验权限再查角色。只更新请求里出现的字段，menu_ids 整体替换授权菜单；data_scope 改为非 custom 时清空自定义部门。super_admin 角色只能改名称和描述（编码、数据范围、菜单固定）；成功后触发 role.updated 事件。",
         "parameters": [
           {
             "name": "role_id",
@@ -23102,7 +23102,7 @@
           }
         ],
         "summary": "定时任务详情",
-        "description": "需要 system_scheduled_tasks。先查任务再校验权限：任务不存在时即使无权限也返回 404。",
+        "description": "需要 system_scheduled_tasks。先校验权限再查任务：没有权限时返回 403，有权限但任务不存在返回 404。",
         "parameters": [
           {
             "name": "task_id",
@@ -23284,7 +23284,7 @@
           }
         ],
         "summary": "编辑定时任务",
-        "description": "需要 system_scheduled_tasks_edit（先查任务再校验权限，不存在时返回 404）。只更新请求体里出现的字段，校验规则同新增；每次保存都按当前时间重新计算 next_run_at（停用时置空），没有变化时不写库。",
+        "description": "需要 system_scheduled_tasks_edit（先校验权限再查任务，不存在时返回 404）。只更新请求体里出现的字段，校验规则同新增；每次保存都按当前时间重新计算 next_run_at（停用时置空），没有变化时不写库。",
         "parameters": [
           {
             "name": "task_id",
@@ -23548,7 +23548,7 @@
           }
         ],
         "summary": "删除定时任务",
-        "description": "需要 system_scheduled_tasks_delete（先查任务再校验权限，不存在时返回 404）。任务的执行记录随之级联删除。",
+        "description": "需要 system_scheduled_tasks_delete（先校验权限再查任务，不存在时返回 404）。任务的执行记录随之级联删除。",
         "parameters": [
           {
             "name": "task_id",
@@ -25924,7 +25924,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_users_edit；先查用户再校验权限，用户不存在或超出数据权限范围都返回 404。只更新请求里出现的字段，status 在此忽略（用启用 / 停用接口）；password 非空时重置密码。非超级管理员不能编辑超级管理员账号或变更 super_admin 角色（403），不能移除自己或最后一个超级管理员的 super_admin 角色；成功后触发 user.updated 事件。",
+        "description": "需要 system_users_edit；先校验权限再查用户，用户不存在或超出数据权限范围都返回 404。只更新请求里出现的字段，status 在此忽略（用启用 / 停用接口）；password 非空时重置密码。非超级管理员不能编辑超级管理员账号或变更 super_admin 角色（403），不能移除自己或最后一个超级管理员的 super_admin 角色；成功后触发 user.updated 事件。",
         "parameters": [
           {
             "name": "user_id",
@@ -27284,7 +27284,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_webhooks_edit，不接受 API Token，且需在 10 分钟内登录或验证过身份（否则 403 且带 reauth_required: true，先调用「验证身份」再重试）。生成新的 whsec_ 开头密钥并返回，旧密钥立即失效；Webhook 不存在返回 404（先于权限检查）。",
+        "description": "需要 system_webhooks_edit，不接受 API Token，且需在 10 分钟内登录或验证过身份（否则 403 且带 reauth_required: true，先调用「验证身份」再重试）。生成新的 whsec_ 开头密钥并返回，旧密钥立即失效；先校验权限，Webhook 不存在返回 404。",
         "parameters": [
           {
             "name": "webhook_id",
@@ -27338,7 +27338,7 @@
             "cookieAuth": []
           }
         ],
-        "description": "需要 system_webhooks_edit，不接受 API Token。立即向该 Webhook 发送一个 ping 事件（最长等待 10 秒）并返回这次投递记录；失败按常规安排重试，Webhook 已停用则直接失败（响应内容为「Webhook 已停用」）。Webhook 不存在返回 404（先于权限检查）。",
+        "description": "需要 system_webhooks_edit，不接受 API Token。立即向该 Webhook 发送一个 ping 事件（最长等待 10 秒）并返回这次投递记录；失败按常规安排重试，Webhook 已停用则直接失败（响应内容为「Webhook 已停用」）。先校验权限，Webhook 不存在返回 404。",
         "parameters": [
           {
             "name": "webhook_id",

@@ -137,8 +137,8 @@ describe('tree-list-page', () => {
     expect(body.items).toHaveLength(2)
   })
 
-  it('权限：404 先于 403；各路由 403 文案', async () => {
-    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(404)
+  it('权限：403 先于 404；各路由 403 文案', async () => {
+    expect((await u.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
     expect((await u.inject({ url: `${B}/${ids.root}` })).json()).toEqual({ error: '无权限查看节点详情' })
     expect((await u.inject({ method: 'PUT', url: `${B}/${ids.root}`, payload: {} })).json()).toEqual({ error: '无权限编辑节点' })
     expect((await u.inject({ method: 'DELETE', url: `${B}/${ids.root}` })).json()).toEqual({ error: '无权限删除节点' })

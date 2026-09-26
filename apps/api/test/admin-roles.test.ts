@@ -167,10 +167,10 @@ describe('roles 编辑 / 删除', () => {
     expect(await menuIdsOf(role.id)).toEqual([menuA])
   })
 
-  it('404 先于权限；非数字 id → 405', async () => {
+  it('权限先于 404；非数字 id → 405', async () => {
     expect((await s.inject({ method: 'PUT', url: '/api/admin/roles/99999999', payload: {} })).json()).toEqual({ error: '资源不存在' })
-    expect((await u.inject({ method: 'PUT', url: '/api/admin/roles/99999999', payload: {} })).statusCode).toBe(404)
-    expect((await u.inject({ method: 'DELETE', url: '/api/admin/roles/99999999' })).statusCode).toBe(404)
+    expect((await u.inject({ method: 'PUT', url: '/api/admin/roles/99999999', payload: {} })).statusCode).toBe(403)
+    expect((await u.inject({ method: 'DELETE', url: '/api/admin/roles/99999999' })).statusCode).toBe(403)
     expect((await s.inject({ method: 'PUT', url: '/api/admin/roles/abc', payload: {} })).statusCode).toBe(405)
     expect((await s.inject({ url: '/api/admin/roles/1' })).statusCode).toBe(404)
   })

@@ -1,7 +1,7 @@
 /**
  * Advanced table page routes
  *
- * Routes with an id do get_or_404 first, then the permission check (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -63,18 +63,18 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
   })
 
   app.put(`${BASE}/rows/${intParam('item_id')}`, opts, async (request, reply) => {
-    const item = await service.getOr404(itemId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
+    const item = await service.getOr404(itemId(request))
     return service.updateItem(item, jsonBody(request))
   })
 
   app.delete(`${BASE}/rows/${intParam('item_id')}`, opts, async (request, reply) => {
-    const item = await service.getOr404(itemId(request))
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_delete'))) {
       return reply.status(403).send({ error: '无权限删除记录' })
     }
+    const item = await service.getOr404(itemId(request))
     return service.deleteItem(item)
   })
 

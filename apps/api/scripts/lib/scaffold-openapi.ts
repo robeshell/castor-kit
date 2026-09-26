@@ -137,7 +137,7 @@ export function scaffoldOperations(s: ScaffoldSpec, label: (field: string) => st
     description: '文件格式，缺省或其他值按 xlsx',
   }
   const scope = s.dataScope ? '按数据权限过滤，范围外的记录视同不存在（404）。' : ''
-  const lookup = `先查记录（不存在${s.dataScope ? '或不在数据权限范围内' : ''}返回 404）再查权限（403）。`
+  const lookup = `先查权限（403）再查记录（不存在${s.dataScope ? '或不在数据权限范围内' : ''}返回 404），没有权限时无法判断记录是否存在。`
   const invalid = '唯一字段重复、值超长或类型不对返回 400。'
   const importLabels = s.importFields.map(([f]) => label(f))
   const op = (method: string, path: string, body: Operation): Operation => ({

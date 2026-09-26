@@ -12,7 +12,7 @@
  * Conventions:
  * - Permission checks are always imported from common/auth (never define a custom hasPermission here)
  * - No raw SQL here (go through service → repository)
- * - Routes with an id do get_or_404 (404) first, then the permission check (403)
+ * - Routes with an id check permissions (403) first, then get_or_404 (404): a caller without permission can't probe ids
  * - Business errors are thrown by the service as ServiceError; the global error handler turns them into { error, ...payload }
  */
 
@@ -51,26 +51,26 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
   })
 
   app.get(itemPath, opts, async (request, reply) => {
-    const item = await service.getOr404(itemId(request.params))
     if (!(await hasMenuPermission(request, '<domain_resource>'))) {
       return reply.status(403).send({ error: '无权限' })
     }
+    const item = await service.getOr404(itemId(request.params))
     return service.getItem(item)
   })
 
   app.put(itemPath, opts, async (request, reply) => {
-    const item = await service.getOr404(itemId(request.params))
     if (!(await hasMenuPermission(request, '<domain_resource>_edit'))) {
       return reply.status(403).send({ error: '无权限编辑' })
     }
+    const item = await service.getOr404(itemId(request.params))
     return service.updateItem(item, jsonBody(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
-    const item = await service.getOr404(itemId(request.params))
     if (!(await hasMenuPermission(request, '<domain_resource>_delete'))) {
       return reply.status(403).send({ error: '无权限删除' })
     }
+    const item = await service.getOr404(itemId(request.params))
     return service.deleteItem(item)
   })
 

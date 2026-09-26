@@ -1,7 +1,7 @@
 /**
  * Users module routes
  *
- * Mind the order: routes with an id run get_or_404 first, then the permission check (preserves existing API behavior).
+ * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  * Data scope: every read and write goes through the caller's scope; a user outside it is a 404, like a missing one.
  */
 
@@ -55,26 +55,26 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.put(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
-    const user = await scopedUserOr404(request)
     if (!(await hasMenuPermission(request, 'system_users_edit'))) {
       return reply.status(403).send({ error: '无权限编辑用户' })
     }
+    const user = await scopedUserOr404(request)
     return service.updateUser(user, jsonBody(request), await resolveDataScope(request), await callerOf(request))
   })
 
   app.put(`/api/admin/users/${intParam('user_id')}/status`, opts, async (request, reply) => {
-    const user = await scopedUserOr404(request)
     if (!(await hasMenuPermission(request, 'system_users_status'))) {
       return reply.status(403).send({ error: '无权限启用或停用用户' })
     }
+    const user = await scopedUserOr404(request)
     return service.setUserStatus(user, jsonBody(request).status, await callerOf(request))
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
-    const user = await scopedUserOr404(request)
     if (!(await hasMenuPermission(request, 'system_users_delete'))) {
       return reply.status(403).send({ error: '无权限删除用户' })
     }
+    const user = await scopedUserOr404(request)
     return service.deleteUser(user, await callerOf(request))
   })
 
