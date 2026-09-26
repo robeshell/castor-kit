@@ -95,7 +95,7 @@ export class SettingsService {
   /** Write, check and delete a small object with the (draft) storage settings */
   async testStorage(values: unknown) {
     const settings = await this.draft(values)
-    const storage = new Storage(settings.storage, this.config.storageLocalDir)
+    const storage = new Storage(settings.storage, this.config.storageLocalDir, { quick: true })
     const data = randomBytes(32)
     const key = objectKeyFor(createHash('sha256').update(data).digest('hex'))
     try {

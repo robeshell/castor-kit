@@ -161,6 +161,19 @@ describe('settings center', () => {
     expect(up.requests.at(-1)!.headers.authorization).toBe('Bearer saved-key')
   })
 
+  it('环境变量选了 S3 但没填全：上传返回明确的提示', async () => {
+    const pinned = await buildApp({ config: testConfig({ storageLocalDir: storageDir, settingsEnv: { STORAGE_DRIVER: 's3', S3_BUCKET: 'b' } }) })
+    await pinned.ready()
+    try {
+      const admin = await superAdminSession(pinned, handle)
+      const { multipartFile } = await import('./helpers')
+      const res = await admin.inject({ method: 'POST', url: '/api/admin/files', ...multipartFile('a.txt', 'hello') })
+      expect([res.statusCode, res.json()]).toEqual([400, { error: '文件存储未配置完整，请在系统设置的「文件存储」中填写' }])
+    } finally {
+      await pinned.close()
+    }
+  })
+
   it('权限：测试按钮需要 system_settings_edit', async () => {
     const { scopedSession } = await import('./helpers')
     const viewer = await scopedSession(app, handle, { name: 'settings_viewer', codes: ['system_settings'], dataScope: 'all' })

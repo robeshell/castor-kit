@@ -17,7 +17,11 @@ export class S3Storage implements StorageDriver {
   private readonly client: S3Client
   private readonly publicUrl: string
 
-  constructor(config: Settings['storage']['s3']) {
+  /**
+   * `quick`: one attempt with short timeouts (the settings page's connection test answers within seconds instead of
+   * retrying an unreachable host); normal use keeps the SDK's retries
+   */
+  constructor(config: Settings['storage']['s3'], options: { quick?: boolean } = {}) {
     this.bucket = config.bucket
     this.publicUrl = config.publicUrl
     this.client = new S3Client({
@@ -28,6 +32,8 @@ export class S3Storage implements StorageDriver {
       // Newer SDKs add checksums to every request by default, which several S3-compatible services reject
       requestChecksumCalculation: 'WHEN_REQUIRED',
       responseChecksumValidation: 'WHEN_REQUIRED',
+      ...(options.quick ? { maxAttempts: 1 } : {}),
+      requestHandler: options.quick ? { connectionTimeout: 8_000, requestTimeout: 15_000 } : { connectionTimeout: 15_000 },
     })
   }
 

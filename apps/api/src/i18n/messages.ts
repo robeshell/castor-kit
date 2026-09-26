@@ -158,6 +158,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   'S3 存储需要填写 Bucket、Access Key 和 Secret Key': { 'en-US': 'S3 storage needs a bucket, access key and secret key', 'ja-JP': 'S3 ストレージにはバケット、アクセスキー、シークレットキーが必要です' },
   '请先填写 SMTP 服务器': { 'en-US': 'Enter an SMTP server first', 'ja-JP': '先に SMTP サーバーを入力してください' },
   '测试邮件已发送': { 'en-US': 'Test mail sent', 'ja-JP': 'テストメールを送信しました' },
+  '文件存储未配置完整，请在系统设置的「文件存储」中填写': { 'en-US': 'File storage is not fully configured: fill it in under System settings → File storage', 'ja-JP': 'ファイル保存の設定が不完全です。「システム設定 → ファイル保存」で入力してください' },
   '存储可用': { 'en-US': 'Storage works', 'ja-JP': 'ストレージは利用できます' },
   'AI 接口可用': { 'en-US': 'The AI API works', 'ja-JP': 'AI API は利用できます' },
   '无权限查看在线用户': { 'en-US': "You don't have permission to view online users", 'ja-JP': 'オンラインユーザーを表示する権限がありません' },

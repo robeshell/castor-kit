@@ -15,10 +15,11 @@ export class Storage {
   readonly current: StorageDriver
   private readonly drivers = new Map<StorageName, StorageDriver>()
 
-  constructor(settings: Settings['storage'], localDir: string) {
+  /** `quick`: see S3Storage (used by the settings page's connection test) */
+  constructor(settings: Settings['storage'], localDir: string, options: { quick?: boolean } = {}) {
     this.drivers.set('local', new LocalStorage(localDir))
     const { s3 } = settings
-    if (s3.bucket && s3.accessKey && s3.secretKey) this.drivers.set('s3', new S3Storage(s3))
+    if (s3.bucket && s3.accessKey && s3.secretKey) this.drivers.set('s3', new S3Storage(s3, options))
     // s3 chosen but not complete (settings validation prevents this; a pinned environment might not): uploads fail
     this.current = this.drivers.get(settings.driver) ?? new UnconfiguredStorage(settings.driver)
   }
@@ -32,7 +33,7 @@ export class Storage {
 }
 
 /** Stand-in for a selected driver that can't be built; every operation fails */
-class UnconfiguredStorage implements StorageDriver {
+export class UnconfiguredStorage implements StorageDriver {
   readonly bucket = null
   constructor(readonly name: StorageName) {}
   private async fail(): Promise<never> {

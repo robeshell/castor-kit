@@ -11,7 +11,7 @@ import { ServiceError } from '@/common/errors'
 import { isUuid } from '@/common/file-refs'
 import { notFound } from '@/common/http'
 import type { SettingsStore } from '@/common/settings'
-import { contentDisposition, objectKeyFor, type Download, type StorageProvider } from '@/common/storage'
+import { contentDisposition, objectKeyFor, UnconfiguredStorage, type Download, type StorageProvider } from '@/common/storage'
 import type { UploadedFile } from '@/common/tabular'
 import type { Db } from '@/db/client'
 import { fileToDict, type FileRecord } from '@/db/schema'
@@ -57,6 +57,8 @@ export class FileService {
 
     const sha256 = createHash('sha256').update(file.data).digest('hex')
     const driver = (await this.storage.get()).current
+    // S3 chosen (e.g. pinned by STORAGE_DRIVER=s3) without bucket / keys
+    if (driver instanceof UnconfiguredStorage) throw new ServiceError('文件存储未配置完整，请在系统设置的「文件存储」中填写', 400)
     const objectKey = objectKeyFor(sha256)
     // Identical content already stored by this driver → reuse the object
     if (!(await this.repo.objectInUse(driver.name, objectKey)) || !(await driver.exists(objectKey))) {

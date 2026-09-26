@@ -30,6 +30,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Mail, file storage, upload limits, AI, site URL and sign-in lockout environment variables (`SMTP_*`, `MAIL_FROM`, `STORAGE_DRIVER`, `S3_*`, `UPLOAD_*`, `AI_API_*`, `AI_MODEL`, `APP_BASE_URL`, `LOGIN_*`) are now optional: when set, they pin the value on the System settings page. Out-of-range values now stop the server at startup with an error naming the variable (e.g. `UPLOAD_MAX_SIZE` below 1 KB or above 1 GB, `LOGIN_MAX_FAILURES` below 3, `LOGIN_LOCKOUT_MINUTES` above 1440). `STORAGE_DRIVER=s3` without bucket / keys no longer refuses to start; uploads report that storage isn't fully configured instead. `MAIL_DRIVER` only takes `log` or `none`.
 - The System menu is split into four groups — Organization, Security & Audit, Configuration, Content & Messages — instead of one flat list of twelve pages. Page paths and permissions are unchanged; `pnpm seed:rbac -- --incremental` moves existing menus, and roles see a group as soon as they may open a page in it.
 - Sessions live on the server: the cookie now only carries a session ID, so everyone signs in once more after upgrading. Changing your password signs out your other devices; disabling a user or resetting their password ends their sessions immediately.
 - A session whose account was deleted now gets 401 (back to sign-in) on its next request instead of 403 / 404 responses.
