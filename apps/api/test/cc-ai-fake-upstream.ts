@@ -106,6 +106,26 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
       return res.end(FINISH)
     }
 
+    // JSON mode (visual modeler): a module spec for a description, or translations
+    if ((body as { response_format?: unknown }).response_format) {
+      const json = (value: unknown) => {
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(value) }, finish_reason: 'stop' }] }))
+      }
+      if (last.includes('需求：')) {
+        return json({
+          name: 'ck_ai_asset',
+          title: '资产',
+          fields: [
+            { name: 'code', type: 'str50', label: '资产编号', required: true, unique: true, default: null, options: null, dict: null },
+            { name: 'status', type: 'enum', label: '状态', required: true, unique: false, default: 'idle', options: [{ value: 'idle', label: '闲置' }], dict: null },
+          ],
+          translations: [{ zh: '资产', en: 'Assets', ja: '資産' }],
+        })
+      }
+      return json({ items: [...last.matchAll(/^- (.+)$/gm)].map(([, zh]) => ({ zh, en: `en:${zh}`, ja: `ja:${zh}` })) })
+    }
+
     // Non-streaming (ai_sql call_llm)
     const q = /问题：([\s\S]*)$/.exec(last)?.[1] ?? ''
     const reply = (content: unknown) => {

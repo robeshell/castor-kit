@@ -12,6 +12,7 @@ import { registerDictRoutes } from './dicts/routes'
 import { registerFileRoutes } from './files/routes'
 import { registerLogsRoutes } from './logs/routes'
 import { registerMenuRoutes } from './menu/routes'
+import { registerModelerRoutes } from './modeler/routes'
 import { registerNotificationRoutes } from './notification/routes'
 import { registerPasswordResetRoutes } from './password-reset/routes'
 import { registerRoleRoutes } from './roles/routes'
@@ -42,4 +43,6 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   await registerDashboardRoutes(app)
   await registerNotificationRoutes(app)
   await registerAnnouncementRoutes(app)
+  // Development only (it writes code); the registration is a no-op elsewhere
+  await registerModelerRoutes(app)
 }

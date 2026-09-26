@@ -42,6 +42,7 @@ export const API_TOKEN_DENIED: Array<[string, RegExp]> = [
   ['*', /^\/api\/admin\/profile(\/|$)/],
   ['*', /^\/api\/admin\/sessions(\/|$)/],
   ['*', /^\/api\/admin\/api-tokens(\/|$)/],
+  ['*', /^\/api\/admin\/modeler(\/|$)/],
   ['PUT', /^\/api\/admin\/settings$/],
   ['*', /^\/api\/admin\/settings\/test(\/|$)/],
   ['POST', /^\/api\/admin\/webhooks(\/|$)/],

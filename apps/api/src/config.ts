@@ -60,6 +60,11 @@ export interface AppConfig {
    * Cloud metadata / link-local addresses are always refused (common/outbound.ts)
    */
   settingsAllowPrivateNetwork: boolean
+  /**
+   * Visual modeler routes (/api/admin/modeler): development only — they write code into the repository and run
+   * migrations. Not an environment variable on purpose.
+   */
+  modelerEnabled: boolean
 
   // ---- Public demo ----
   /** DEMO_MODE: system management becomes read-only, the demo account is shown on the login page, sample data resets periodically */
@@ -242,5 +247,6 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     apifoxProjectId: parsed.APIFOX_PROJECT_ID,
     apifoxAccessToken: parsed.APIFOX_ACCESS_TOKEN,
     apifoxApiVersion: parsed.APIFOX_API_VERSION,
+    modelerEnabled: env === 'development',
   }
 }
