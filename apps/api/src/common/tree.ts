@@ -5,6 +5,9 @@
 import { sql } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
 
+/** Self-referencing tables these helpers may run on (constant names from code, never user input) */
+export type TreeTable = 'menus' | 'tree_nodes' | 'departments'
+
 /** Max depth when walking up ancestors: guarantees termination even if the DB already contains a cycle */
 const MAX_DEPTH = 1000
 
@@ -15,7 +18,7 @@ const MAX_DEPTH = 1000
  */
 export async function wouldCreateCycle(
   db: Executor,
-  table: 'menus' | 'tree_nodes',
+  table: TreeTable,
   nodeId: number,
   newParentId: number,
 ): Promise<boolean> {
@@ -32,4 +35,28 @@ export async function wouldCreateCycle(
     SELECT 1 AS hit FROM ancestors WHERE id = ${nodeId} LIMIT 1
   `)
   return result.rows.length > 0
+}
+
+/**
+ * Ids of rootIds and all their descendants (walks down parent_id). Depth-capped like wouldCreateCycle, and the UNION
+ * drops duplicates, so an existing cycle can't loop forever.
+ */
+export async function descendantIds(db: Executor, table: TreeTable, rootIds: number[]): Promise<number[]> {
+  if (rootIds.length === 0) return []
+  const t = sql.identifier(table)
+  const roots = sql.join(
+    rootIds.map((id) => sql`${id}`),
+    sql`, `,
+  )
+  const result = await db.execute<{ id: number }>(sql`
+    WITH RECURSIVE subtree(id, depth) AS (
+      SELECT id, 0 FROM ${t} WHERE id IN (${roots})
+      UNION
+      SELECT c.id, s.depth + 1
+      FROM ${t} c JOIN subtree s ON c.parent_id = s.id
+      WHERE s.depth < ${MAX_DEPTH}
+    )
+    SELECT DISTINCT id FROM subtree
+  `)
+  return result.rows.map((r) => r.id)
 }
