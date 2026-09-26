@@ -131,6 +131,8 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '不能把用户分配到数据权限范围外的部门': { 'en-US': "You can't assign users to a department outside your data scope", 'ja-JP': 'データ権限の範囲外の部署にユーザーを割り当てることはできません' },
   '超出数据权限范围，不能修改该用户': { 'en-US': "This user is outside your data scope and can't be changed", 'ja-JP': 'このユーザーはデータ権限の範囲外のため変更できません' },
 
+  '数据范围取值不合法': { 'en-US': 'Invalid data scope', 'ja-JP': 'データ範囲の値が不正です' },
+
   // departments
   '无权限查看部门': { 'en-US': "You don't have permission to view departments", 'ja-JP': '部署を閲覧する権限がありません' },
   '无权限新增部门': { 'en-US': "You don't have permission to create departments", 'ja-JP': '部署を追加する権限がありません' },

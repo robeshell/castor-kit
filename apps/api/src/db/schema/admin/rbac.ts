@@ -216,7 +216,7 @@ export type Role = typeof roles.$inferSelect
 export type Menu = typeof menus.$inferSelect
 export type Department = typeof departments.$inferSelect
 
-export type RoleWithMenus = Role & { menus: Menu[] }
+export type RoleWithMenus = Role & { menus: Menu[]; dept_ids?: number[] }
 /** User with roles → menus preloaded */
 export type AdminUserWithRoles = AdminUser & { roles: RoleWithMenus[] }
 
@@ -231,6 +231,8 @@ export function roleToDict(role: Role | RoleWithMenus, includeMenus = false) {
     created_at: toIso(role.created_at),
   }
   if (includeMenus && 'menus' in role) {
+    result.data_scope = role.data_scope
+    result.dept_ids = 'dept_ids' in role && Array.isArray(role.dept_ids) ? role.dept_ids : []
     const sorted = [...role.menus].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
     result.menu_ids = sorted.map((m) => m.id)
     result.menus = sorted.map((m) => ({
