@@ -18,6 +18,7 @@ castor-kit 的登录状态保存在服务端，可以查看和强制下线；在
 | `security.login_max_failures` / `security.login_lockout_minutes` | 登录失败锁定次数 / 锁定时长（分钟） | `10` / `15` |
 | `security.rate_limit_per_minute` | 每个 IP 每分钟的 `/api` 请求上限 | `600` |
 | `security.auth_rate_limit_per_minute` | 每个 IP 每分钟的登录类请求上限（登录、两步验证码、找回密码共用） | `20` |
+| `security.api_tokens_enabled` | 允许使用 API Token，见 [开放接口](/guide/open-api) | 关闭 |
 
 - 默认值与之前的行为一致，升级后不打开任何开关就和原来一样
 - 前置条件不满足的开关不能打开，页面上会写明原因。例如没有配置邮件时，「邮件找回密码」不能打开；演示模式下两步验证和找回密码都不能打开

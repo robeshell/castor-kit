@@ -49,7 +49,7 @@ castor-kit 的配置分两类：
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
 | `RATE_LIMIT_ENABLED` | 按 IP 限流；具体额度在「系统设置」里调整，见 [账号安全与系统设置](/guide/security#接口限流) | `true` |
 | `MAX_CONTENT_LENGTH` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
-| `SETTINGS_ALLOW_PRIVATE_NETWORK` | 是否允许系统设置里的 SMTP 服务器、S3 接口地址、AI 接口地址指向内网（`127.0.0.1`、`10.x`、`192.168.x` 等）；云服务器元数据等保留地址始终不允许。用环境变量锁定的地址不受限制 | 开发 / 测试 `true`，生产 `false` |
+| `SETTINGS_ALLOW_PRIVATE_NETWORK` | 是否允许系统设置里的 SMTP 服务器、S3 接口地址、AI 接口地址以及 Webhook 推送地址指向内网（`127.0.0.1`、`10.x`、`192.168.x` 等）；云服务器元数据等保留地址始终不允许。用环境变量锁定的地址不受限制 | 开发 / 测试 `true`，生产 `false` |
 
 ### 路径
 

@@ -18,6 +18,7 @@ castor-kit はログイン状態をサーバー側で管理するため、セッ
 | `security.login_max_failures` / `security.login_lockout_minutes` | ロックまでの失敗回数 / ロック時間（分） | `10` / `15` |
 | `security.rate_limit_per_minute` | IP ごとの 1分あたりの `/api` リクエスト上限 | `600` |
 | `security.auth_rate_limit_per_minute` | IP ごとの 1分あたりのログイン系リクエスト上限（ログイン・2段階認証コード・パスワード再設定で共有） | `20` |
+| `security.api_tokens_enabled` | API トークンを許可（[オープン API](/ja/guide/open-api) を参照） | オフ |
 
 - 既定値は従来の動作と同じです。アップグレード後もスイッチを有効にしない限り何も変わりません
 - 前提条件を満たしていないスイッチは有効にできず、理由がページに表示されます。たとえばメールが未設定だとパスワード再設定は有効にできず、デモモードでは 2段階認証もパスワード再設定も有効にできません

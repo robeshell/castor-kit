@@ -48,7 +48,7 @@ castor-kit の設定は 2 種類です。
 | `SESSION_COOKIE_SECURE` | cookie の `Secure` フラグ：`true` / `false` で強制。空にするとリクエストのプロトコルから自動判定（HTTPS の場合のみ付与） | 空（自動） |
 | `CORS_ORIGINS` | クロスオリジンを許可するオリジン。カンマ区切り。WebSocket ハンドシェイクの Origin 許可リストにも使用 | 空 |
 | `RATE_LIMIT_ENABLED` | IP ごとのレート制限。上限値は「システム設定」で調整します（[アカウントセキュリティとシステム設定](/ja/guide/security#rate-limits)） | `true` |
-| `SETTINGS_ALLOW_PRIVATE_NETWORK` | システム設定の SMTP サーバー、S3 エンドポイント、AI API の URL が内部ネットワーク（`127.0.0.1`、`10.x`、`192.168.x` など）を指してよいか。クラウドのメタデータなどの予約済みアドレスは常に不可。環境変数で固定したアドレスは制限されません | 開発 / テストは `true`、本番は `false` |
+| `SETTINGS_ALLOW_PRIVATE_NETWORK` | システム設定の SMTP サーバー、S3 エンドポイント、AI API の URL と Webhook の送信先 URL が内部ネットワーク（`127.0.0.1`、`10.x`、`192.168.x` など）を指してよいか。クラウドのメタデータなどの予約済みアドレスは常に不可。環境変数で固定したアドレスは制限されません | 開発 / テストは `true`、本番は `false` |
 | `MAX_CONTENT_LENGTH` | リクエストボディのサイズ上限（バイト）。超えると 413 を返す | `16777216`（16MB） |
 
 ### パス

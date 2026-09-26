@@ -27,6 +27,7 @@ function localeTheme(prefix, t) {
         { text: t.frontend, link: link('/guide/frontend') },
         { text: t.rbac, link: link('/guide/rbac') },
         { text: t.security, link: link('/guide/security') },
+        { text: t.openApi, link: link('/guide/open-api') },
         { text: t.i18n, link: link('/guide/i18n') },
         { text: t.appearance, link: link('/guide/appearance') },
         { text: t.components, link: link('/guide/components') },
@@ -55,7 +56,7 @@ function localeTheme(prefix, t) {
 
 const zh = {
   guide: '指南', start: '开始', intro: '介绍', gettingStarted: '快速开始', structure: '项目结构',
-  develop: '开发', ai: 'AI 驱动开发', backend: '后端开发', frontend: '前端开发', rbac: '权限 RBAC', security: '账号安全与系统设置',
+  develop: '开发', ai: 'AI 驱动开发', backend: '后端开发', frontend: '前端开发', rbac: '权限 RBAC', security: '账号安全与系统设置', openApi: '开放接口',
   i18n: '多语言', appearance: '主题与布局', components: '组件示例',
   reference: '参考', commands: '命令速查', configuration: '配置项', deploy: '部署', deployGuide: '部署指南',
   edit: '在 GitHub 上编辑此页',
@@ -75,7 +76,7 @@ const zh = {
 
 const en = {
   guide: 'Guide', start: 'Getting started', intro: 'Introduction', gettingStarted: 'Quick start', structure: 'Project structure',
-  develop: 'Development', ai: 'AI-driven workflow', backend: 'Backend', frontend: 'Frontend', rbac: 'Permissions (RBAC)', security: 'Account security & settings',
+  develop: 'Development', ai: 'AI-driven workflow', backend: 'Backend', frontend: 'Frontend', rbac: 'Permissions (RBAC)', security: 'Account security & settings', openApi: 'Open API',
   i18n: 'Internationalization', appearance: 'Theme & layout', components: 'Component gallery',
   reference: 'Reference', commands: 'Commands', configuration: 'Configuration', deploy: 'Deploy', deployGuide: 'Deployment guide',
   edit: 'Edit this page on GitHub',
@@ -84,7 +85,7 @@ const en = {
 
 const ja = {
   guide: 'ガイド', start: 'はじめに', intro: '概要', gettingStarted: 'クイックスタート', structure: 'プロジェクト構成',
-  develop: '開発', ai: 'AI 駆動開発', backend: 'バックエンド', frontend: 'フロントエンド', rbac: '権限（RBAC）', security: 'アカウントセキュリティとシステム設定',
+  develop: '開発', ai: 'AI 駆動開発', backend: 'バックエンド', frontend: 'フロントエンド', rbac: '権限（RBAC）', security: 'アカウントセキュリティとシステム設定', openApi: 'オープン API',
   i18n: '多言語対応', appearance: 'テーマとレイアウト', components: 'コンポーネント例',
   reference: 'リファレンス', commands: 'コマンド一覧', configuration: '設定', deploy: 'デプロイ', deployGuide: 'デプロイガイド',
   edit: 'GitHub でこのページを編集',

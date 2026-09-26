@@ -278,6 +278,8 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 - **文件**：上传 / 存储统一走文件中心（`modules/admin/files` + `common/storage/`，驱动 `local` / `s3`，见 `STORAGE_*` 环境变量）。前端用 `@/shared/api/files` 的 `uploadFile` 和 `upload/*` 组件（表单里用 `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload`）；业务表里存文件 ID（或头像这类存 `/api/admin/files/<id>` 地址），写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs(tx, 表名, 行 id, { 字段: 值 })`、删除时 `clearFileRefs`，否则文件会在上传 24 小时后被当作孤儿清理。scaffold 的 `file` / `image` 类型已自动处理
 - **数据权限**：角色的 `data_scope`（`all` / `dept_and_children` / `dept` / `self` / `custom`）决定能看到哪些行。routes 里 `await resolveDataScope(request)` 取范围，repository 里 `and(..., dataScopeWhere(scope, { deptColumn, ownerColumn }))` 过滤（repository 不碰 `request`）；超出范围的详情 / 修改 / 删除一律 404。受控模块在 `schema.ts` 导出 `DATA_SCOPE`，`verify` 的 `data_scope_filter` 会检查 repository 是否用了 `dataScopeWhere`。新模块需要时用 `pnpm scaffold ... --data-scope` 生成（加 `dept_id` / `created_by`，新建时写入 `currentActor`）。用户管理已接入（部门列 `dept_id`，本人列 `id`）
 - **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
+- **API Token**：带 `Authorization: Bearer ck_…` 的请求由 `common/api-token.ts` 认证（不读 cookie、不校验 CSRF），`request.apiToken` 有值；`hasMenuPermission` 先比 token 的 scopes 再看超级管理员，所以业务代码照常用它即可。账号与安全类接口在 `API_TOKEN_DENIED` 里统一拒绝——新增这类接口（改密码、密钥、会话等）时要把路径加进去
+- **Webhook 事件**：service 在写操作的事务提交**之后**调用 `this.events?.emit('<模块>.created' | '.updated' | '.deleted', 数据)`（`created` / `updated` 发 `xxxToDict` 结果，`deleted` 发 `{ id }`），routes 里 `declareEvents({ ... })` 登记事件名与中文说明，构造 service 时传 `app.events`。`emit` 不会抛错，不要 `await` 它来决定业务结果。scaffold 生成的模块已自动处理
 - **公开演示（`DEMO_MODE`）**：`common/demo.ts` 的白名单之外的写请求一律 403——目前只放行登录 / 登出、`/api/admin/component-center/*`、上传文件（`POST /api/admin/files`，组件示例的图片 / 附件要用）、通知已读；新增的业务域在演示环境默认只读，需要演示可写时把路径加进 `DEMO_WRITABLE`，并在 `src/demo/fixtures.ts` 补示例数据（恢复逻辑见 `src/demo/reset.ts`）
 
 ---
@@ -485,7 +487,7 @@ user_roles：用户-角色 多对多（复合主键）
 
 ```
 系统管理分组（parent_id=2）：  ID 201-209（组织权限 201 / 安全审计 202 / 系统配置 203 / 内容消息 204）
-系统管理页面（parent_id=分组）：ID 21-39（消息通知/公告为历史遗留 100002/100003；页面挂在分组下，不直接挂 2）
+系统管理页面（parent_id=分组）：ID 21-39 已用满；新页面从 2001 开始（消息通知/公告为历史遗留 100002/100003；页面挂在分组下，不直接挂 2）
 组件示例中心（parent_id=3）：  ID 40-499
   管理系统（parent_id=40）：   ID 401-409
   数据可视化（parent_id=41）： ID 411-419
@@ -719,11 +721,13 @@ ID=2   系统管理 (system)
   ID=202 安全审计 (system_group_security)
     ID=28  在线用户 → /system/sessions → admin/sessions（按钮 281 强制下线 system_sessions_revoke）
     ID=24  日志管理 → /system/logs → admin/logs
+    ID=38  API Token → /system/api-tokens → admin/api_tokens（按钮 381 吊销 system_api_tokens_revoke）
   ID=203 系统配置 (system_group_config)
     ID=29  系统设置 → /system/settings → admin/settings（按钮 291 编辑 system_settings_edit）
     ID=23  菜单管理 → /system/menus → admin/menus
     ID=25  数据字典 → /system/dicts → admin/dicts
     ID=32  定时任务 → /system/scheduled-tasks → admin/scheduled_tasks
+    ID=39  Webhook → /system/webhooks → admin/webhooks（按钮 391 新增 / 392 编辑 / 393 删除 system_webhooks_*）
   ID=204 内容消息 (system_group_content)
     ID=27  文件管理 → /system/files → admin/files
     ID=100002 消息通知 → /system/notifications → admin/notifications
