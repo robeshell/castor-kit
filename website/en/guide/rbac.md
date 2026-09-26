@@ -160,7 +160,7 @@ Menus added or changed in the UI are not written back to `seed-rbac.ts`. Also, t
 "Disable" on the Users page needs the `system_users_status` button permission (edit permission doesn't include it). Once an account is disabled:
 
 - It can't sign in even with the right password: the API returns 403 "This account has been disabled" and records a failed sign-in
-- Sessions that are already signed in end on their next request (401, the frontend goes back to the sign-in page) — every signed-in request checks that the account still exists and is active
+- Their signed-in sessions end right away (the next request gets 401 and the frontend goes back to the sign-in page)
 - You can't disable yourself, or disable or delete the last active super admin; the same rules apply to the status column on import
 
 ## Data scope
