@@ -484,7 +484,8 @@ user_roles：用户-角色 多对多（复合主键）
 ### 菜单 ID 分配规则
 
 ```
-系统管理域（parent_id=2）：    ID 21-39（消息通知/公告为历史遗留 100002/100003）
+系统管理分组（parent_id=2）：  ID 201-209（组织权限 201 / 安全审计 202 / 系统配置 203 / 内容消息 204）
+系统管理页面（parent_id=分组）：ID 21-39（消息通知/公告为历史遗留 100002/100003；页面挂在分组下，不直接挂 2）
 组件示例中心（parent_id=3）：  ID 40-499
   管理系统（parent_id=40）：   ID 401-409
   数据可视化（parent_id=41）： ID 411-419
@@ -711,18 +712,22 @@ Claude Desktop 配置（`claude_desktop_config.json`）：
 ```
 ID=1   首页 (dashboard) → /dashboard → admin/dashboard
 ID=2   系统管理 (system)
-  ID=21  用户管理 → /system/users → admin/users
-  ID=22  角色权限 → /system/roles → admin/roles
-  ID=26  部门管理 → /system/departments → admin/departments
-  ID=27  文件管理 → /system/files → admin/files
-  ID=28  在线用户 → /system/sessions → admin/sessions（按钮 281 强制下线 system_sessions_revoke）
-  ID=29  系统设置 → /system/settings → admin/settings（按钮 291 编辑 system_settings_edit）
-  ID=23  菜单管理 → /system/menus → admin/menus
-  ID=24  日志管理 → /system/logs → admin/logs
-  ID=25  数据字典 → /system/dicts → admin/dicts
-  ID=32  定时任务 → /system/scheduled-tasks → admin/scheduled_tasks
-  ID=100002 消息通知 → /system/notifications → admin/notifications
-  ID=100003 公告管理 → /system/announcements → admin/announcement_page
+  ID=201 组织权限 (system_group_org)
+    ID=21  用户管理 → /system/users → admin/users
+    ID=22  角色权限 → /system/roles → admin/roles
+    ID=26  部门管理 → /system/departments → admin/departments
+  ID=202 安全审计 (system_group_security)
+    ID=28  在线用户 → /system/sessions → admin/sessions（按钮 281 强制下线 system_sessions_revoke）
+    ID=24  日志管理 → /system/logs → admin/logs
+  ID=203 系统配置 (system_group_config)
+    ID=29  系统设置 → /system/settings → admin/settings（按钮 291 编辑 system_settings_edit）
+    ID=23  菜单管理 → /system/menus → admin/menus
+    ID=25  数据字典 → /system/dicts → admin/dicts
+    ID=32  定时任务 → /system/scheduled-tasks → admin/scheduled_tasks
+  ID=204 内容消息 (system_group_content)
+    ID=27  文件管理 → /system/files → admin/files
+    ID=100002 消息通知 → /system/notifications → admin/notifications
+    ID=100003 公告管理 → /system/announcements → admin/announcement_page
 ID=3   组件示例中心 (component_center)
   ID=40  管理系统 (cc_admin)
     ID=31  列表页 → /component-center/list-page → component_center/admin/list_page

@@ -129,5 +129,9 @@
   "system_sessions": "オンラインユーザー",
   "system_sessions_revoke": "強制ログアウト",
   "system_settings": "システム設定",
-  "system_settings_edit": "設定の編集"
+  "system_settings_edit": "設定の編集",
+  "system_group_org": "組織と権限",
+  "system_group_security": "セキュリティと監査",
+  "system_group_config": "システム構成",
+  "system_group_content": "コンテンツとメッセージ"
 }

@@ -129,5 +129,9 @@
   "system_sessions": "Online Users",
   "system_sessions_revoke": "Force sign-out",
   "system_settings": "System Settings",
-  "system_settings_edit": "Edit settings"
+  "system_settings_edit": "Edit settings",
+  "system_group_org": "Organization",
+  "system_group_security": "Security & Audit",
+  "system_group_config": "Configuration",
+  "system_group_content": "Content & Messages"
 }

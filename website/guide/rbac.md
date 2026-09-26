@@ -76,17 +76,17 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 
 ### 添加菜单
 
-以在“系统管理”下添加“客户管理”为例（ID 仅为示意，实际取值见下文“菜单 ID 分配”）：
+以在“系统管理 → 组织权限”下添加“客户管理”为例（ID 仅为示意，实际取值见下文“菜单 ID 分配”）：
 
 ```ts
 // Page menu
-{ id: 26, name: "客户管理", code: "system_customer", icon: "IconUser", path: "/system/customers", component: "admin/customer", parent_id: 2, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
+{ id: 38, name: "客户管理", code: "system_customer", icon: "IconUser", path: "/system/customers", component: "admin/customer", parent_id: 201, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
 // Button permissions: id = menu id × 10 + index
-{ id: 261, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 26, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
-{ id: 262, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 26, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
-{ id: 263, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 26, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
-{ id: 264, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 26, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
-{ id: 265, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 26, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
+{ id: 381, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 38, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+{ id: 382, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 38, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
+{ id: 383, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 38, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
+{ id: 384, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 38, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
+{ id: 385, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 38, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
 ```
 
 - `component` 使用 `pnpm scaffold` 输出的 Menu component 值。
@@ -123,7 +123,8 @@ Docker 部署时，容器每次启动都会执行 `setup-once`，其中包含增
 
 | 范围 | ID 区间 |
 |---|---|
-| 系统管理（`parent_id=2`） | 21–39 |
+| 系统管理的分组（`parent_id=2`） | 201–209 |
+| 系统管理的页面（`parent_id` 为所在分组，如 201） | 21–39 |
 | 组件示例中心（`parent_id=3`） | 40–499 |
 | 　管理系统（`parent_id=40`） | 401–409 |
 | 　数据可视化（`parent_id=41`） | 411–419 |

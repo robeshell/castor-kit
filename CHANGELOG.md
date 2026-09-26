@@ -29,6 +29,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- The System menu is split into four groups — Organization, Security & Audit, Configuration, Content & Messages — instead of one flat list of twelve pages. Page paths and permissions are unchanged; `pnpm seed:rbac -- --incremental` moves existing menus, and roles see a group as soon as they may open a page in it.
 - Sessions live on the server: the cookie now only carries a session ID, so everyone signs in once more after upgrading. Changing your password signs out your other devices; disabling a user or resetting their password ends their sessions immediately.
 - A session whose account was deleted now gets 401 (back to sign-in) on its next request instead of 403 / 404 responses.
 - The user menu no longer has a light / dark toggle; the top bar button and the ⌘K command menu cover it.

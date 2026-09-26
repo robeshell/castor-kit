@@ -84,7 +84,7 @@ The WebSocket and Performance Monitor pages depend on `/ws/devtools`. Behind a r
 
 ## System
 
-Besides the component examples, the System menu holds the business features that ship with the scaffold:
+Besides the component examples, the System menu holds the business features that ship with the scaffold, in four groups: Organization (users, roles, departments), Security & Audit (online users, logs), Configuration (system settings, menus, dictionaries, scheduled tasks) and Content & Messages (files, notifications, announcements):
 
 | Page | Route | Description |
 |---|---|---|
