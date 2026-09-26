@@ -47,6 +47,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 |---|---|
 | `pnpm seed:rbac -- --incremental` | メニューと権限の増分同期：`code` で upsert し、削除はしない |
 | `pnpm seed:rbac` | 全件再構築：ユーザー、ロール、メニューを空にしてから書き込み直す。**空のデータベースの初期化専用** |
+| `pnpm seed:demo` | データ権限を試すためのサンプル部署・ロール（部門主管 / 一般社員）・ユーザーを登録。何度実行しても安全。本番環境では `--force` が必要 |
 
 ## コード生成と検証ゲート
 

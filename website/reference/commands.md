@@ -47,6 +47,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 |---|---|
 | `pnpm seed:rbac -- --incremental` | 增量同步菜单与权限：按 `code` upsert，不删除 |
 | `pnpm seed:rbac` | 全量重建：清空用户、角色、菜单后重写，**仅用于空库初始化** |
+| `pnpm seed:demo` | 写入示例部门、角色（部门主管 / 普通员工）和用户，用来体验数据权限；可重复执行，生产环境需加 `--force` |
 
 ## 代码生成与门禁
 
