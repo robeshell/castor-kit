@@ -279,8 +279,9 @@ export default function Settings() {
 
             {tab === 'ai' ? (
               <div className="grid items-start gap-4 xl:grid-cols-2">
-                <Panel title="模型接口" description="AI 对话、AI 数据查询等功能使用的 OpenAI 兼容接口">
+                <Panel title="模型接口" description="AI 对话、AI 数据查询等功能使用的模型">
                   <div className="space-y-4">
+                    {field('ai.provider')}
                     {field('ai.api_base')}
                     {field('ai.api_key')}
                     {field('ai.model')}

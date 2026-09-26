@@ -31,8 +31,8 @@ export default defineConfig([
     },
   },
   {
-    // By convention Context files export both the Provider and a useXxx hook
-    files: ['src/context/**/*.{js,jsx}', 'src/components/ui/**/*.{js,jsx}'],
+    // By convention Context files export both the Provider and a useXxx hook; shadcn / AI Elements files export helpers next to components
+    files: ['src/context/**/*.{js,jsx}', 'src/components/ui/**/*.{js,jsx}', 'src/components/ai-elements/**/*.{js,jsx}'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {

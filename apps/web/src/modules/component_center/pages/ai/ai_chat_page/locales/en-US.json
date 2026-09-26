@@ -15,5 +15,21 @@
   "请求失败：{{message}}": "Request failed: {{message}}",
   "输入消息": "Message",
   "输入消息，Enter 发送...": "Type a message, press Enter to send...",
-  "重新生成": "Regenerate"
+  "重新生成": "Regenerate",
+  "复制链接": "Copy link",
+  "复制表格": "Copy table",
+  "复制为 CSV": "Copy as CSV",
+  "复制为 Markdown": "Copy as Markdown",
+  "复制为 TSV": "Copy as TSV",
+  "下载文件": "Download file",
+  "下载图片": "Download image",
+  "下载表格": "Download table",
+  "下载为 CSV": "Download as CSV",
+  "下载为 Markdown": "Download as Markdown",
+  "退出全屏": "Exit full screen",
+  "即将打开外部链接，请确认链接可信": "You're about to open an external link. Make sure you trust it.",
+  "图片无法显示": "Image not available",
+  "打开外部链接": "Open external link",
+  "打开链接": "Open link",
+  "全屏查看": "View full screen"
 }

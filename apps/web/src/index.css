@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "streamdown/styles.css";
+
+/* Streamdown (AI Elements' MessageResponse) ships Tailwind classes in its bundle */
+@source "../node_modules/streamdown/dist/*.js";
 
 /*
  * castor-kit design system (docs/frontend-redesign-plan.md §3)

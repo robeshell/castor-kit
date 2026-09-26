@@ -78,6 +78,16 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
         }
         return
       }
+      if (last === 'demo:markdown') {
+        // For trying the chat page by hand: a short markdown reply with a list, a table and a code block
+        const text =
+          '## 示例回复\n\n用 **castor-kit** 新增一个模块：\n\n1. 运行脚手架\n2. 补充业务逻辑\n\n| 命令 | 作用 |\n|---|---|\n| `pnpm scaffold` | 生成模块 |\n\n```ts\nexport async function hello(name: string): Promise<string> {\n  return `Hello, ${name}`\n}\n```\n'
+        for (let i = 0; i < text.length; i += 12) {
+          res.write(sseChunk(text.slice(i, i + 12)))
+          await sleep(30)
+        }
+        return res.end(FINISH)
+      }
       if (last === 'cutoff') {
         // Ends without a finish reason (connection dropped mid-reply)
         res.write(sseChunk('only'))

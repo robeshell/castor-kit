@@ -64,7 +64,16 @@ export const FIELD_META = {
   'upload.max_size': { label: '单个文件上限', description: '同时受服务器请求体上限 MAX_CONTENT_LENGTH 限制', unit: 'MB', input: 'mb' },
   'upload.allowed_types': { label: '允许的文件类型', description: '扩展名，回车添加；上传时还会检查文件内容与扩展名是否一致', placeholder: '如 pdf', input: 'tags' },
 
-  'ai.api_base': { label: '接口地址', description: 'OpenAI 兼容接口，请求发往 <地址>/chat/completions', placeholder: 'https://api.openai.com/v1' },
+  'ai.provider': {
+    label: '服务类型',
+    description: 'OpenAI 兼容接口适用于 DeepSeek、通义千问、Gemini 兼容接口、Ollama 等；其余三项直接使用各家官方接口',
+    options: { 'openai-compatible': 'OpenAI 兼容接口', openai: 'OpenAI', anthropic: 'Anthropic (Claude)', google: 'Google (Gemini)' },
+  },
+  'ai.api_base': {
+    label: '接口地址',
+    description: 'OpenAI 兼容接口必填，请求发往 <地址>/chat/completions；其他服务类型留空使用官方地址，也可以填代理地址',
+    placeholder: 'https://api.openai.com/v1',
+  },
   'ai.api_key': { label: 'API Key', description: '加密保存，保存后不再显示' },
   'ai.model': { label: '模型', placeholder: 'gpt-4o-mini' },
 }
