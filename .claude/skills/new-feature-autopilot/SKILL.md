@@ -101,11 +101,14 @@ scaffold 会：
 
 （`<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 为下划线换连字符。）
 
-**优先用 `--spec`**：把推断出的规格写成 JSON 文件再生成，中文标题 / 标签、必填、唯一、默认值、固定选项、数据字典和菜单一次到位（格式见 `apps/api/scripts/scaffold.ts` 文件头与 website 的 AI 驱动开发文档「spec 文件」）：
+**优先用 `--spec`**：把推断出的规格写成 JSON 文件再生成，中文标题 / 标签、必填、唯一、默认值、固定选项、数据字典、菜单和 OpenAPI 文档一次到位。格式见 `docs/spec.schema.json`，推断方法见 AGENTS.md「从一句需求到 spec」，4 个带逐字段推断理由的示例在 `docs/examples/specs/`（先读一个再写）：
 
 ```bash
-pnpm scaffold -- --spec /tmp/<name>.spec.json            # 含 "menu": {} 时同时写入 seed-rbac.ts 的「业务管理」目录与菜单译文
+pnpm scaffold -- --spec /tmp/<name>.spec.json --validate-only   # 先校验：逐条列出问题，或说明会生成的接口 / 权限 / 表 / 菜单
+pnpm scaffold -- --spec /tmp/<name>.spec.json                   # 含 "menu": {} 时同时写入 seed-rbac.ts 的「业务管理」目录与菜单译文
 ```
+
+- `title` 和每个字段的 `label` 必填（中文）；拼错的属性名（如 `requried`）会直接报错
 
 - `required` → `NOT NULL` + service 报「<标签>不能为空」+ 表单必填；`unique` → `UNIQUE`（只用于文本 / 数字）；`default` → 列默认值，新增留空时使用
 - 状态、类型、级别等固定取值用 `enum` + `options`（值英文 snake_case、名称中文）；取值来自数据字典时用 `dict` + 字典编码

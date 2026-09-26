@@ -1,0 +1,27 @@
+{
+  "$schema": "../../spec.schema.json",
+  "name": "customer",
+  "title": "客户管理",
+  "dataScope": true,
+  "fields": [
+    { "name": "name", "type": "str", "label": "客户名称", "required": true },
+    { "name": "contact_name", "type": "str50", "label": "联系人" },
+    { "name": "phone", "type": "str20", "label": "联系电话" },
+    { "name": "email", "type": "str", "label": "邮箱" },
+    {
+      "name": "level",
+      "type": "enum",
+      "label": "客户等级",
+      "default": "normal",
+      "options": [
+        { "value": "normal", "label": "普通" },
+        { "value": "important", "label": "重要" },
+        { "value": "vip", "label": "VIP" }
+      ]
+    },
+    { "name": "source", "type": "dict", "label": "客户来源", "dict": "customer_source" },
+    { "name": "city", "type": "str50", "label": "所在城市" },
+    { "name": "remark", "type": "text", "label": "备注" }
+  ],
+  "menu": {}
+}

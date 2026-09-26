@@ -108,6 +108,8 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--fields` | 字段列表，格式 `字段:类型,字段:类型` | `name:str` |
 | `--spec` | 用 JSON 文件描述模块（代替 `--name` / `--fields`），能写中文标签、必填、唯一、默认值、选项和菜单，见下方 [spec 文件](#spec-文件) | — |
 | `--dry-run` | 只打印将要生成的内容，不写文件、不注册、不生成迁移 | 关闭 |
+| `--validate-only` | 配合 `--spec`：只校验规格并说明会生成的接口、权限、表和菜单，不写任何文件；有问题时逐条列出并以 1 退出 | 关闭 |
+| `--write-schema` | 按脚手架当前的字段类型等规则重新生成 `docs/spec.schema.json` | 关闭 |
 | `--skip-migration` | 不调用 drizzle-kit 生成迁移 | 关闭 |
 | `--data-scope` | 接入[数据权限](/guide/rbac#数据权限)：表上加 `dept_id` / `created_by`，列表、详情、修改、删除、导出按当前用户的数据范围过滤，新建时写入创建人与部门，并生成对应的接口测试 | 关闭 |
 | `-h` / `--help` | 打印用法 | — |
@@ -196,9 +198,12 @@ AI 根据业务描述推断类型，你不需要指定：
 ```
 
 ```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # 先校验，看清会生成什么
 pnpm scaffold -- --spec device.spec.json
 ```
 
+- `title` 和每个字段的 `label` 必填；拼错的属性名（如 `requried`）直接报错，不会被悄悄忽略
+- 完整格式见 [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json)（在 JSON 里写 `"$schema": "<相对路径>/docs/spec.schema.json"`，编辑器就能补全和提示）；4 个「一句需求 → spec」示例及逐字段的推断理由见 [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs)
 - `required`：列加 `NOT NULL`，新增 / 编辑时为空返回 400「`<标签>不能为空`」，表单标出必填并校验；`image` / `file` 不能必填
 - `unique`：列加 `UNIQUE`，重复时返回 400；只用于文本和数字类型
 - `default`：列默认值，新增时留空就用它，表单也预先填好
@@ -278,7 +283,10 @@ pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout
 |---|---|
 | `get_project_context` | 返回 `AGENTS.md` 全文和当前模块结构，实现新功能前调用 |
 | `get_menu_tree` | 返回数据库中的菜单树，用于确定 `parent_id` 和可用 ID |
-| `scaffold_feature` | 调用 `pnpm scaffold`（参数 `name`、`domain`、`fields`、`dry_run`） |
+| `get_spec_guide` | 返回 spec 的 JSON Schema 和「需求 → spec」示例，写 spec 前调用 |
+| `validate_spec` | 校验 spec（参数 `spec`），说明会生成什么；不写文件 |
+| `scaffold_feature` | 调用 `pnpm scaffold`：传 `spec`（推荐），或旧的 `name`、`domain`、`fields`；`dry_run` 只预览 |
+| `check_openapi` | 按 OpenAPI 编写规范检查接口文档，列出不合规的接口 |
 | `run_verify` | 调用 `pnpm verify --json` 并返回结果（参数 `module`、`skip_build`） |
 | `init_rbac` | 调用 `pnpm seed:rbac -- --incremental` |
 | `run_migration` | 执行 `db:generate` + `db:migrate`（参数 `message` 作为迁移描述） |

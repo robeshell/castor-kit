@@ -61,6 +61,7 @@
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/ws": "^8.18.1",
+    "ajv": "8.20.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
     "globals": "^17.12.0",

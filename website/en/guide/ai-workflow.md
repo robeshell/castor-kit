@@ -108,6 +108,8 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--fields` | Field list in the form `field:type,field:type` | `name:str` |
 | `--spec` | Describe the module in a JSON file instead of `--name` / `--fields`: Chinese labels, required, unique, defaults, options and the menu; see [Spec files](#spec-files) below | — |
 | `--dry-run` | Only print what would be generated; no files written, nothing registered, no migration | Off |
+| `--validate-only` | With `--spec`: only check the spec and say which endpoints, permissions, table and menu it would generate; writes nothing, lists problems and exits 1 if any | Off |
+| `--write-schema` | Regenerate `docs/spec.schema.json` from the scaffold's current field types and rules | Off |
 | `--skip-migration` | Don't call drizzle-kit to generate a migration | Off |
 | `--data-scope` | Adds [data scope](/en/guide/rbac#data-scope): `dept_id` / `created_by` columns, list / detail / edit / delete / export filtered by the caller's scope, creator and department stamped on create, plus matching API tests | Off |
 | `-h` / `--help` | Print usage | — |
@@ -196,9 +198,12 @@ The AI infers types from the business description, so you don't have to specify 
 ```
 
 ```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # check first and see what it would generate
 pnpm scaffold -- --spec device.spec.json
 ```
 
+- `title` and every field's `label` are required; a misspelled key (such as `requried`) is an error instead of being ignored silently
+- The full format is in [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json) (add `"$schema": "<relative path>/docs/spec.schema.json"` to the JSON for editor completion and hints); four requirement → spec examples with the reasoning behind every field are in [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs)
 - `required`: the column is `NOT NULL`, an empty value on create / edit returns 400 `<label>不能为空`, and the form marks and checks it; `image` / `file` can't be required
 - `unique`: the column is `UNIQUE`, duplicates return 400; text and number types only
 - `default`: the column default, used when a new record leaves the field empty and prefilled in the form
@@ -278,7 +283,10 @@ Use the skip flags to speed things up while debugging, but run the full gate onc
 |---|---|
 | `get_project_context` | Returns the full text of `AGENTS.md` and the current module structure; call it before implementing a new feature |
 | `get_menu_tree` | Returns the menu tree from the database, for picking `parent_id` and a free ID |
-| `scaffold_feature` | Calls `pnpm scaffold` (parameters `name`, `domain`, `fields`, `dry_run`) |
+| `get_spec_guide` | Returns the spec JSON Schema and the requirement → spec examples; call it before writing a spec |
+| `validate_spec` | Checks a spec (parameter `spec`) and says what it would generate; writes nothing |
+| `scaffold_feature` | Calls `pnpm scaffold` with `spec` (recommended) or the legacy `name`, `domain`, `fields`; `dry_run` only previews |
+| `check_openapi` | Checks the API document against the OpenAPI rules and lists the operations that break them |
 | `run_verify` | Calls `pnpm verify --json` and returns the result (parameters `module`, `skip_build`) |
 | `init_rbac` | Calls `pnpm seed:rbac -- --incremental` |
 | `run_migration` | Runs `db:generate` + `db:migrate` (parameter `message` is used as the migration description) |
