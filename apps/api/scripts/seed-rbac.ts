@@ -76,6 +76,7 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 213, name: "删除用户", code: "system_users_delete", icon: null, path: null, component: null, parent_id: 21, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
   { id: 214, name: "导出用户", code: "system_users_export", icon: null, path: null, component: null, parent_id: 21, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
   { id: 215, name: "导入用户", code: "system_users_import", icon: null, path: null, component: null, parent_id: 21, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
+  { id: 216, name: "启用/停用用户", code: "system_users_status", icon: null, path: null, component: null, parent_id: 21, sort_order: 6, menu_type: "button", is_visible: false, is_active: true },
   // Role management button permissions
   { id: 221, name: "新增角色", code: "system_roles_add", icon: null, path: null, component: null, parent_id: 22, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 222, name: "编辑角色", code: "system_roles_edit", icon: null, path: null, component: null, parent_id: 22, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },

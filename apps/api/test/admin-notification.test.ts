@@ -175,15 +175,15 @@ describe('notification', () => {
     expect((await s.inject({ method: 'DELETE', url: '/api/admin/notifications/abc' })).statusCode).toBe(405)
   })
 
-  it('会话用户已被删除：unread-count → {count:0}，其余 → 404 用户不存在', async () => {
+  it('会话用户已被删除：所有接口 → 401 并清掉会话', async () => {
     const [ghost] = await handle.db
       .insert(admin_users)
       .values({ username: `${P}ghost`, password_hash: await generatePasswordHash('ghost-pass', 1000) })
       .returning()
     const g = await loginSession(app, `${P}ghost`, 'ghost-pass', ghost!.id)
     await handle.db.delete(admin_users).where(eq(admin_users.id, ghost!.id))
-    expect((await g.inject({ url: '/api/admin/notifications/unread-count' })).json()).toEqual({ count: 0 })
     for (const [method, url] of [
+      ['GET', '/api/admin/notifications/unread-count'],
       ['GET', '/api/admin/notifications'],
       ['POST', '/api/admin/notifications'],
       ['POST', '/api/admin/notifications/1/read'],
@@ -191,7 +191,7 @@ describe('notification', () => {
       ['DELETE', '/api/admin/notifications/1'],
     ] as const) {
       const res = await g.inject({ method, url, ...(method === 'POST' ? { payload: {} } : {}) })
-      expect([res.statusCode, res.json()], `${method} ${url}`).toEqual([404, { error: '用户不存在' }])
+      expect([res.statusCode, res.json()], `${method} ${url}`).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
     }
   })
 

@@ -12,16 +12,11 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { roleName } from '@/lib/role-label'
+import UserAvatar, { userDisplayName } from '@/shared/components/UserAvatar'
 import { useTranslation } from 'react-i18next'
 
-export function UserAvatar({ name, className = 'size-8' }) {
-  return (
-    <span
-      className={`bg-muted text-foreground ring-border flex shrink-0 items-center justify-center rounded-full text-xs font-medium ring-1 ${className}`}
-    >
-      {(name || '?').slice(0, 1).toUpperCase()}
-    </span>
-  )
+function MenuAvatar({ user, className }) {
+  return <UserAvatar src={user?.avatar} name={userDisplayName(user)} className={className} />
 }
 
 function useUserMenu() {
@@ -44,9 +39,9 @@ function UserMenuItems({ user, roleText, onLogout }) {
   return (
     <>
       <DropdownMenuLabel className="flex items-center gap-2.5 py-2 font-normal">
-        <UserAvatar name={user?.username} />
+        <MenuAvatar user={user} />
         <div className="grid leading-tight">
-          <span className="text-sm font-medium">{user?.username}</span>
+          <span className="text-sm font-medium">{userDisplayName(user)}</span>
           <span className="text-muted-foreground text-xs">{roleText}</span>
         </div>
       </DropdownMenuLabel>
@@ -74,7 +69,7 @@ export function UserMenuCompact() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" aria-label={t('个人设置')} className="ml-1 flex rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <UserAvatar name={user?.username} className="size-7" />
+          <MenuAvatar user={user} className="size-7" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-56" align="end" sideOffset={8}>
@@ -97,9 +92,9 @@ export default function UserMenu() {
               size="lg"
               className="bg-background data-[state=open]:bg-sidebar-accent shadow-[0_0_0_1px_var(--sidebar-border)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:shadow-none"
             >
-              <UserAvatar name={user?.username} />
+              <MenuAvatar user={user} />
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-[13px] font-medium">{user?.username}</span>
+                <span className="truncate text-[13px] font-medium">{userDisplayName(user)}</span>
                 <span className="text-muted-foreground truncate text-[11px]">{roleText}</span>
               </div>
               <ChevronsUpDown className="text-muted-foreground ml-auto size-4" />

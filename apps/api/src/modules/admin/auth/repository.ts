@@ -26,6 +26,13 @@ export class AuthRepository {
     await this.db.insert(operation_logs).values(item)
   }
 
+  async recordLogin(userId: number, ip: string): Promise<void> {
+    await this.db
+      .update(admin_users)
+      .set({ last_login_at: sql`${utcNow()}`, last_login_ip: ip || null })
+      .where(eq(admin_users.id, userId))
+  }
+
   async updatePasswordHash(userId: number, passwordHash: string): Promise<void> {
     await this.db.update(admin_users).set({ password_hash: passwordHash }).where(eq(admin_users.id, userId))
   }

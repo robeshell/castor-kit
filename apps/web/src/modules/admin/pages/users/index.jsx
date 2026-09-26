@@ -4,8 +4,10 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Download, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/lib/toast'
-import { formatDateTime } from '@/lib/format'
+import { formatDateTime, formatRelative } from '@/lib/format'
+import ProfileFields, { profileDefaults } from '@/modules/admin/components/ProfileFields'
 import { getRoles } from '@/modules/admin/api/roles'
 import {
   createUser,
@@ -14,27 +16,40 @@ import {
   exportUsers,
   getUsers,
   importUsers,
+  setUserStatus,
   updateUser,
 } from '@/modules/admin/api/users'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable from '@/shared/components/DataTable'
 import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
 import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
-import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput, FormMultiSelect } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
+import UserAvatar, { userDisplayName } from '@/shared/components/UserAvatar'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
 
 const EXPORT_FIELDS = [
   { label: 'ID', value: 'id' },
   { label: '用户名', value: 'username' },
+  { label: '昵称', value: 'nickname' },
+  { label: '邮箱', value: 'email' },
+  { label: '手机', value: 'phone' },
+  { label: '状态', value: 'status' },
   { label: '角色名称', value: 'role_names' },
   { label: '角色编码', value: 'role_codes' },
+  { label: '最后登录时间', value: 'last_login_at' },
+  { label: '最后登录 IP', value: 'last_login_ip' },
   { label: '创建时间', value: 'created_at' },
 ]
+const STATUS_OPTIONS = [
+  { label: '正常', value: 'active' },
+  { label: '停用', value: 'disabled' },
+]
+const emptyForm = () => ({ username: '', password: '', role_ids: [], ...profileDefaults(null) })
 const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
 /**
@@ -48,6 +63,7 @@ const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx'
  */
 export default function Users() {
   const { t } = useTranslation()
+  const { user: currentUser } = useAuth()
   const list = useCrudList(
     (params) =>
       getUsers(params).catch((err) => {
@@ -58,6 +74,7 @@ export default function Users() {
   )
   const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
   const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
   const [roles, setRoles] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
   const [editing, setEditing] = useState(null)
@@ -65,7 +82,7 @@ export default function Users() {
   const [exportOpen, setExportOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
 
-  const form = useForm({ defaultValues: { username: '', password: '', role_ids: [] } })
+  const form = useForm({ defaultValues: emptyForm() })
 
   useEffect(() => {
     fetchData()
@@ -79,25 +96,31 @@ export default function Users() {
 
   const openCreate = () => {
     setEditing(null)
-    form.reset({ username: '', password: '', role_ids: [] })
+    form.reset(emptyForm())
     setFormOpen(true)
   }
 
   const openEdit = (record) => {
     setEditing(record)
-    form.reset({ username: record.username, password: '', role_ids: record.roles?.map((r) => r.id) || [] })
+    form.reset({
+      username: record.username,
+      password: '',
+      role_ids: record.roles?.map((r) => r.id) || [],
+      ...profileDefaults(record),
+    })
     setFormOpen(true)
   }
 
   const submit = async (values) => {
     try {
+      const { username, password, ...rest } = values
       if (editing) {
-        const payload = { role_ids: values.role_ids }
-        if (values.password) payload.password = values.password
+        const payload = { ...rest }
+        if (password) payload.password = password
         await updateUser(editing.id, payload)
         toast.success('用户已更新')
       } else {
-        await createUser({ username: values.username, password: values.password, role_ids: values.role_ids })
+        await createUser({ username, password, ...rest })
         toast.success('用户已创建')
       }
       setFormOpen(false)
@@ -120,12 +143,24 @@ export default function Users() {
     }
   }
 
+  const changeStatus = async (record, next) => {
+    try {
+      await setUserStatus(record.id, next)
+      toast.success(next === 'disabled' ? '用户已停用' : '用户已启用')
+      fetchData(page)
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
+  }
+
   const runSearch = () => {
     setSelectedKeys([])
-    list.handleSearch({ search: search.trim() })
+    list.handleSearch({ search: search.trim(), status })
   }
   const reset = () => {
     setSearch('')
+    setStatus('')
     setSelectedKeys([])
     list.handleReset()
   }
@@ -134,7 +169,7 @@ export default function Users() {
     const type = normalizeFileType(fileType)
     const payload = { fields, file_type: type, export_mode: selectedKeys.length ? 'selected' : 'filtered' }
     if (selectedKeys.length) payload.ids = selectedKeys
-    else payload.filters = { search: filters.search ?? '' }
+    else payload.filters = { search: filters.search ?? '', status: filters.status ?? '' }
     try {
       const blob = await exportUsers(payload)
       downloadBlobFile(blob, `users_export.${type}`)
@@ -149,16 +184,31 @@ export default function Users() {
     { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },
     {
       key: 'username',
-      title: '用户名',
+      title: '用户',
       dataIndex: 'username',
-      render: (value) => (
-        <div className="flex items-center gap-2.5">
-          <span className="bg-muted ring-border flex size-7 items-center justify-center rounded-full text-xs font-medium ring-1">
-            {(value || '?').slice(0, 1).toUpperCase()}
-          </span>
-          <span className="font-medium">{value}</span>
+      minWidth: 180,
+      render: (value, record) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <UserAvatar src={record.avatar} name={userDisplayName(record)} className="size-7" />
+          <div className="grid min-w-0 leading-tight">
+            <span className="truncate font-medium">{userDisplayName(record)}</span>
+            {record.nickname ? <span className="text-muted-foreground truncate text-xs">@{value}</span> : null}
+          </div>
         </div>
       ),
+    },
+    {
+      key: 'contact',
+      title: '联系方式',
+      dataIndex: 'email',
+      minWidth: 180,
+      render: (value, record) =>
+        value || record.phone ? (
+          <div className="grid min-w-0 leading-tight">
+            {value ? <span className="truncate">{value}</span> : null}
+            {record.phone ? <span className="text-muted-foreground truncate text-xs tabular-nums">{record.phone}</span> : null}
+          </div>
+        ) : null,
     },
     {
       key: 'roles',
@@ -176,23 +226,60 @@ export default function Users() {
         ) : null,
     },
     {
-      key: 'created_at',
-      title: '创建时间',
-      dataIndex: 'created_at',
-      width: 180,
+      key: 'status',
+      title: '状态',
+      dataIndex: 'status',
+      width: 88,
+      render: (value) =>
+        value === 'disabled' ? (
+          <StatusBadge tone="neutral" dot>
+            {t('停用')}
+          </StatusBadge>
+        ) : (
+          <StatusBadge tone="success" dot>
+            {t('正常')}
+          </StatusBadge>
+        ),
+    },
+    {
+      key: 'last_login_at',
+      title: '最后登录',
+      dataIndex: 'last_login_at',
+      width: 150,
       className: 'text-muted-foreground tabular-nums',
-      render: (value) => formatDateTime(value),
+      render: (value, record) =>
+        value ? (
+          <span title={[formatDateTime(value), record.last_login_ip].filter(Boolean).join(' · ')}>{formatRelative(value)}</span>
+        ) : (
+          t('从未登录')
+        ),
     },
     {
       key: 'actions',
       title: '',
       align: 'right',
-      width: 132,
+      width: 172,
       render: (_, record) => (
         <div className="flex justify-end gap-0.5">
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
             {t('编辑')}
           </Button>
+          {record.status === 'disabled' ? (
+            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => changeStatus(record, 'active').catch(() => {})}>
+              {t('启用账号')}
+            </Button>
+          ) : record.username !== currentUser?.username ? (
+            <ConfirmAction
+              title={t('停用用户 {{name}}？', { name: userDisplayName(record) })}
+              description="停用后该账号无法登录，已登录的会话会在下一次操作时失效。"
+              confirmText="停用账号"
+              onConfirm={() => changeStatus(record, 'disabled')}
+            >
+              <Button variant="ghost" size="sm" className="h-7 px-2">
+                {t('停用账号')}
+              </Button>
+            </ConfirmAction>
+          ) : null}
           <ConfirmAction
             title={t('删除用户 {{name}}？', { name: record.username })}
             description="删除后不可恢复。"
@@ -231,7 +318,8 @@ export default function Users() {
       />
 
       <FilterBar onSearch={runSearch} onReset={reset}>
-        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索用户名" />
+        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索用户名、昵称、邮箱、手机" className="sm:w-72" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
       </FilterBar>
 
       <AnimatePresence>
@@ -263,12 +351,13 @@ export default function Users() {
         columns={columns}
         data={data}
         loading={loading}
+        minWidth={960}
         selectable
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="没有找到用户"
-        emptyDescription={filters.search ? '换个关键词试试' : '点击右上角「新建用户」添加第一个账号'}
+        emptyDescription={filters.search || filters.status ? '换个关键词试试' : '点击右上角「新建用户」添加第一个账号'}
       />
 
       <FormDialog
@@ -278,7 +367,6 @@ export default function Users() {
         description={editing ? t('正在编辑 {{name}}', { name: editing.username }) : undefined}
         form={form}
         onSubmit={submit}
-        size="sm"
       >
         {!editing ? (
           <FormInput control={form.control} name="username" label="用户名" placeholder="例如 zhangsan" rules={{ required: '请输入用户名' }} />
@@ -292,6 +380,7 @@ export default function Users() {
           placeholder={editing ? '留空则不修改' : '请输入密码'}
           rules={editing ? undefined : { required: '请输入密码' }}
         />
+        <ProfileFields control={form.control} name={editing?.username} />
         <FormMultiSelect
           control={form.control}
           name="role_ids"
@@ -312,7 +401,7 @@ export default function Users() {
             : '未勾选数据时，按当前查询条件导出全部结果。'
         }
         fieldOptions={EXPORT_FIELDS}
-        defaultFields={['username', 'role_names', 'created_at']}
+        defaultFields={['username', 'nickname', 'email', 'status', 'role_names', 'last_login_at']}
         onConfirm={handleExport}
       />
 

@@ -2,10 +2,12 @@
   "{{count}} 项": "{{count}} items",
   "{{count}} 项_one": "{{count}} item",
   "两次输入的新密码不一致": "The two passwords don't match",
+  "保存资料": "Save profile",
   "修改失败": "Update failed",
   "修改密码": "Change password",
   "修改成功后需要重新登录": "You'll need to sign in again after changing it",
   "再次输入新密码": "Enter the new password again",
+  "基本资料": "Profile",
   "密码已修改，请重新登录": "Password changed. Please sign in again.",
   "当前密码": "Current password",
   "新密码": "New password",
@@ -17,5 +19,6 @@
   "请输入当前密码": "Enter your current password",
   "请输入当前登录密码": "Enter your current password",
   "请输入新密码": "Enter a new password",
-  "账号 ID": "Account ID"
+  "账号 ID": "Account ID",
+  "资料已保存": "Profile saved"
 }

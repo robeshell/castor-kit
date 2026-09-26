@@ -2,20 +2,38 @@
  * Users module repository layer
  */
 
-import { and, asc, count, desc, eq, ilike, inArray, ne, type SQL } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, ne, or, type SQL } from 'drizzle-orm'
 import { loadAdminsWithRolesByIds } from '@/common/auth'
 import type { Executor } from '@/db/client'
 import { admin_users, roles, user_roles, type Role } from '@/db/schema'
+import type { ProfileValues, UserStatus } from './schema'
+
+export interface UserFilters {
+  search: string
+  /** '' = all */
+  status: string
+}
 
 export class UserRepository {
   constructor(private readonly db: Executor) {}
 
-  private searchWhere(search: string): SQL | undefined {
-    return search ? ilike(admin_users.username, `%${search}%`) : undefined
+  private searchWhere({ search, status }: UserFilters): SQL | undefined {
+    const pattern = `%${search}%`
+    return and(
+      search
+        ? or(
+            ilike(admin_users.username, pattern),
+            ilike(admin_users.nickname, pattern),
+            ilike(admin_users.email, pattern),
+            ilike(admin_users.phone, pattern),
+          )
+        : undefined,
+      status ? eq(admin_users.status, status) : undefined,
+    )
   }
 
-  async listPage(page: number, perPage: number, search: string) {
-    const where = this.searchWhere(search)
+  async listPage(page: number, perPage: number, filters: UserFilters) {
+    const where = this.searchWhere(filters)
     const [totalRow] = await this.db.select({ n: count() }).from(admin_users).where(where)
     const idRows = await this.db
       .select({ id: admin_users.id })
@@ -30,11 +48,11 @@ export class UserRepository {
     }
   }
 
-  async listAllOrdered(search: string) {
+  async listAllOrdered(filters: UserFilters) {
     const rows = await this.db
       .select({ id: admin_users.id })
       .from(admin_users)
-      .where(this.searchWhere(search))
+      .where(this.searchWhere(filters))
       .orderBy(asc(admin_users.id))
     return loadAdminsWithRolesByIds(this.db, rows.map((r) => r.id))
   }
@@ -59,13 +77,31 @@ export class UserRepository {
     return row ?? null
   }
 
-  async insert(username: string, passwordHash: string) {
-    const [row] = await this.db.insert(admin_users).values({ username, password_hash: passwordHash }).returning()
+  /** Case-insensitive lookup; emails are stored lowercased but older rows may not be */
+  async getByEmail(email: string) {
+    const [row] = await this.db.select().from(admin_users).where(ilike(admin_users.email, email)).limit(1)
+    return row ?? null
+  }
+
+  async insert(username: string, passwordHash: string, profile: ProfileValues = {}, status?: UserStatus) {
+    const [row] = await this.db
+      .insert(admin_users)
+      .values({ username, password_hash: passwordHash, ...profile, ...(status ? { status } : {}) })
+      .returning()
     return row!
   }
 
   async updatePasswordHash(id: number, passwordHash: string) {
     await this.db.update(admin_users).set({ password_hash: passwordHash }).where(eq(admin_users.id, id))
+  }
+
+  async updateProfile(id: number, profile: ProfileValues) {
+    if (Object.keys(profile).length === 0) return
+    await this.db.update(admin_users).set(profile).where(eq(admin_users.id, id))
+  }
+
+  async setStatus(id: number, status: UserStatus) {
+    await this.db.update(admin_users).set({ status }).where(eq(admin_users.id, id))
   }
 
   async delete(id: number) {
@@ -95,12 +131,23 @@ export class UserRepository {
     return row ?? null
   }
 
-  /** Number of users other than userId that have this role */
-  async countOtherUsersWithRole(roleId: number, userId: number) {
+  /** Number of active users other than userId that have this role (disabled accounts can't sign in, so they don't count) */
+  async countOtherActiveUsersWithRole(roleId: number, userId: number) {
     const [row] = await this.db
       .select({ n: count() })
       .from(user_roles)
-      .where(and(eq(user_roles.role_id, roleId), ne(user_roles.user_id, userId)))
+      .innerJoin(admin_users, eq(admin_users.id, user_roles.user_id))
+      .where(and(eq(user_roles.role_id, roleId), ne(user_roles.user_id, userId), eq(admin_users.status, 'active')))
+    return row?.n ?? 0
+  }
+
+  /** Number of active users that have this role */
+  async countActiveUsersWithRole(roleId: number) {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(user_roles)
+      .innerJoin(admin_users, eq(admin_users.id, user_roles.user_id))
+      .where(and(eq(user_roles.role_id, roleId), eq(admin_users.status, 'active')))
     return row?.n ?? 0
   }
 }

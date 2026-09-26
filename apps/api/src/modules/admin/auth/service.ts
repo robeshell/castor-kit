@@ -62,6 +62,21 @@ export class AuthService {
     const user = username ? await this.repo.getAdminByUsername(username) : null
 
     if (user && (await checkPasswordHash(user.password_hash, password))) {
+      // Checked only after the password matches, so the message doesn't reveal which usernames exist
+      if (user.status !== 'active') {
+        await this.bestEffort('记录登录日志', () =>
+          this.repo.addLoginLog({
+            username,
+            user_id: user.id,
+            status: 'failed',
+            ip: meta.ip,
+            user_agent: meta.userAgent,
+            message: '账号已停用',
+          }),
+        )
+        throw new ServiceError('账号已停用，请联系管理员', 403)
+      }
+      await this.bestEffort('记录登录时间', () => this.repo.recordLogin(user.id, meta.ip))
       await this.bestEffort('记录登录日志', async () => {
         await this.repo.addLoginLog({
           username,

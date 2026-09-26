@@ -17,3 +17,6 @@ export const importUsers = (file) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+export const setUserStatus = (id, status) => request.put(`/admin/users/${id}/status`, { status })
+/** The signed-in user's own profile (nickname / email / phone / avatar) */
+export const updateProfile = (data) => request.put('/admin/profile', data)

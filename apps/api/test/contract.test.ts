@@ -125,7 +125,12 @@ describe('登录 / 会话', () => {
     expect(body.csrf_token).toMatch(/^[0-9a-f]{32}$/)
 
     const user = body.user
-    expect(Object.keys(user).sort()).toEqual(['created_at', 'id', 'menu_codes', 'roles', 'username'])
+    expect(Object.keys(user).sort()).toEqual([
+      'avatar', 'created_at', 'dept_id', 'email', 'id', 'last_login_at', 'last_login_ip', 'menu_codes', 'nickname',
+      'phone', 'roles', 'status', 'updated_at', 'username',
+    ])
+    expect(user.status).toBe('active')
+    expect(user.last_login_at).toMatch(ISO_RE)
     expect(user).toMatchObject({ id: fx.userId, username: FIXTURE_USER })
     expect(user.created_at).toMatch(ISO_RE)
     expect(user.roles).toHaveLength(1)

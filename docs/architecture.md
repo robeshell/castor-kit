@@ -133,7 +133,7 @@ castor-kit/
 - 请求体统一用 `jsonBody(request)` 读取（见 §9）。
 
 ### 4.4 认证、密码与会话
-- `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/admin/login'}`。
+- `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/admin/login'}`。除了会话标记，它还会加载当前用户（按请求缓存，后续权限检查不再查库）：账号已删除或 `status = 'disabled'` 时清掉会话并同样返回 401，停用因此在下一次请求就生效。停用账号在 `getCurrentAdminUser` 里视为未登录，所有权限检查都失败。
 - 当前用户每请求缓存在 `request` 上，一次查询 join `user_roles → roles → role_menus → menus`，避免 N+1。
 - 登录防爆破：基于 `login_logs` 的窗口计数（IP 维度 + 用户名维度，`LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES`），成功后清零窗口内失败记录。
 - 密码哈希格式 `pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`（默认 100 万次迭代，16 位字母数字 salt），`common/password.ts` 负责生成与校验；一律用**异步** `crypto.pbkdf2` + `timingSafeEqual`，同步执行会阻塞事件循环约 0.3–0.5s。

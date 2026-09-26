@@ -133,9 +133,17 @@ Three pages under System map to the RBAC data:
 
 | Page | Purpose |
 |---|---|
-| Users | Create users and assign roles |
+| Users | Create users, assign roles, edit nickname / email / phone / avatar, enable or disable accounts |
 | Roles | Create roles and tick the menu and button permissions for each |
 | Menus | View and adjust the menu tree |
+
+### Disabling accounts
+
+"Disable" on the Users page needs the `system_users_status` button permission (edit permission doesn't include it). Once an account is disabled:
+
+- It can't sign in even with the right password: the API returns 403 "This account has been disabled" and records a failed sign-in
+- Sessions that are already signed in end on their next request (401, the frontend goes back to the sign-in page) — every signed-in request checks that the account still exists and is active
+- You can't disable yourself, or disable or delete the last active super admin; the same rules apply to the status column on import
 
 ::: tip
 Menus added or changed in the UI are not written back to `seed-rbac.ts`. Also, the incremental sync updates the fields of menus with the same `code` from `MENUS_DATA`, so UI changes to menus defined there are overwritten on the next sync (including container restarts). Menus that should persist and ship with the code belong in `MENUS_DATA`.

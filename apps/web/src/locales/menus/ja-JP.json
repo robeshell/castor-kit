@@ -31,6 +31,7 @@
   "system_users_delete": "ユーザーの削除",
   "system_users_export": "ユーザーのエクスポート",
   "system_users_import": "ユーザーのインポート",
+  "system_users_status": "ユーザーの有効化・無効化",
   "system_roles_add": "ロールの追加",
   "system_roles_edit": "ロールの編集",
   "system_roles_delete": "ロールの削除",

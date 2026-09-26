@@ -11,6 +11,7 @@ import {
   primaryKey,
   serial,
   text,
+  timestamp,
   unique,
   varchar,
 } from 'drizzle-orm/pg-core'
@@ -24,9 +25,21 @@ export const admin_users = pgTable(
     id: serial().primaryKey().notNull(),
     username: varchar({ length: 50 }).notNull(),
     password_hash: varchar({ length: 200 }).notNull(),
+    nickname: varchar({ length: 100 }),
+    email: varchar({ length: 100 }),
+    phone: varchar({ length: 20 }),
+    /** Avatar URL for now; becomes a file id once the file center lands */
+    avatar: varchar({ length: 500 }),
+    /** 'active' | 'disabled'. A real DB default (unlike the timestamp columns) so existing rows and raw INSERTs get it */
+    status: varchar({ length: 20 }).notNull().default('active'),
+    /** Department (used from roadmap stage 1; no FK until the departments table exists) */
+    dept_id: integer(),
+    last_login_at: timestamp({ mode: 'string' }),
+    last_login_ip: varchar({ length: 64 }),
     created_at: createdAt(),
+    updated_at: updatedAt(),
   },
-  (table) => [unique('admin_users_username_key').on(table.username)],
+  (table) => [unique('admin_users_username_key').on(table.username), unique('admin_users_email_key').on(table.email)],
 )
 
 export const roles = pgTable(
@@ -176,7 +189,16 @@ export function adminUserToDict(user: AdminUserWithRoles) {
   return {
     id: user.id,
     username: user.username,
+    nickname: user.nickname,
+    email: user.email,
+    phone: user.phone,
+    avatar: user.avatar,
+    status: user.status,
+    dept_id: user.dept_id,
+    last_login_at: toIso(user.last_login_at),
+    last_login_ip: user.last_login_ip,
     created_at: toIso(user.created_at),
+    updated_at: toIso(user.updated_at),
     roles: user.roles.map((role) => roleToDict(role)),
     menu_codes: collectMenuCodes(user),
   }
