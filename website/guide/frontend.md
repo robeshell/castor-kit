@@ -132,13 +132,14 @@ export const importItems = (file) => {
 | `DataTable` + `DataPagination` | 表格：列定义、分页、勾选、加载骨架与空态 |
 | `FilterBar` / `SearchInput` / `FilterSelect` | 筛选栏；`FilterSelect` 的 `''` 表示全部 |
 | `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | 新建编辑弹窗 / 侧边抽屉 / 只读详情抽屉 / 键值列表 |
-| `FormFields`：`FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormCustom` / `FormGrid` | react-hook-form 表单字段 |
+| `FormFields`：`FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormTreeSelect` / `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload` / `FormCustom` / `FormGrid` | react-hook-form 表单字段；上传类字段的值是文件中心的文件 ID（头像是文件地址） |
 | `ConfirmAction` / `RowActions` | 危险操作二次确认 / 行操作 |
 | `StatusBadge` | 状态徽章，`tone` 可选 neutral / brand / info / success / warning / danger |
 | `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | 空态 / 分段标签 / 树 / 指标卡 |
 | `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | 日期值格式为 `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | 导入 / 导出弹窗 |
-| `upload/FileUpload` / `upload/ImageUpload` | 文件 / 图片上传 |
+| `TreeSelect` / `CheckableTree` | 可搜索的树形单选 / 带父子联动的树形多选 |
+| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | 文件（拖拽、进度）/ 图片 / 头像上传；配合 `@/shared/api/files` 的 `uploadFile` 上传到文件中心 |
 
 表单字段示例：
 

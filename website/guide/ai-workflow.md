@@ -147,6 +147,8 @@ scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `comp
 | `bool` | `boolean` | `FormSwitch` | |
 | `date` | `date`（字符串模式） | `FormDate` | `YYYY-MM-DD` |
 | `datetime` | `timestamp`（字符串模式） | `FormDateTime` | |
+| `file` | `varchar(36)`，存文件中心的文件 ID | `FormFileUpload` | 列表显示「查看」链接；保存时自动登记引用 |
+| `image` | `varchar(36)`，存文件中心的文件 ID | `FormImageUpload` | 列表显示缩略图；保存时自动登记引用 |
 
 未知类型按 `str` 处理。`id`、`created_at`、`updated_at` 会自动添加。
 
@@ -159,7 +161,9 @@ AI 根据业务描述推断类型，你不需要指定：
 | 名称、标题、姓名、邮箱 | `str` |
 | 编码、代码、编号 | `str50` |
 | 手机、电话、状态、类型、颜色 | `str20` |
-| URL、链接、地址、图片、头像、封面 | `str500` |
+| URL、链接、地址（外部地址） | `str500` |
+| 图片、头像、封面、照片 | `image` |
+| 附件、文件、合同、扫描件 | `file` |
 | 描述、备注、简介、内容、正文、标签（JSON 字符串） | `text` |
 | 金额、价格、费用、成本 | `float` |
 | 数量、次数、进度、百分比、排序、权重 | `int` |

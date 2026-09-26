@@ -53,7 +53,23 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 | 变量 | 作用 | 默认值 |
 |---|---|---|
 | `WEB_DIST_DIR` | 前端构建产物目录，后端从这里提供静态文件和 SPA | `apps/web/dist` |
-| `INSTANCE_DIR` | 运行时数据目录，上传文件存放在其下的 `uploads/` | `apps/api/instance` |
+| `INSTANCE_DIR` | 运行时数据目录；`local` 驱动的上传文件默认存在其下的 `uploads/files/` | `apps/api/instance` |
+
+### 文件中心
+
+| 变量 | 作用 | 默认值 |
+|---|---|---|
+| `STORAGE_DRIVER` | 存储驱动：`local`（服务器上的目录）或 `s3`（任何 S3 兼容服务：AWS S3、MinIO、阿里云 OSS、腾讯云 COS、Cloudflare R2） | `local` |
+| `STORAGE_LOCAL_DIR` | `local` 驱动的存储目录 | `<INSTANCE_DIR>/uploads/files` |
+| `S3_ENDPOINT` | S3 兼容服务的地址；用 AWS S3 时留空 | 空 |
+| `S3_REGION` | 区域；R2 填 `auto` | `us-east-1` |
+| `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | 桶与密钥；`STORAGE_DRIVER=s3` 时缺任一项会拒绝启动 | 空 |
+| `S3_PUBLIC_URL` | 桶的公开访问地址；设置后下载直接跳到这里，否则跳到约 10 分钟有效的签名地址 | 空 |
+| `S3_FORCE_PATH_STYLE` | 用路径风格访问桶（MinIO 等自建服务需要） | 设置了 `S3_ENDPOINT` 时为 `true` |
+| `UPLOAD_MAX_SIZE` | 单个文件大小上限（字节），同时受 `MAX_CONTENT_LENGTH` 限制，取两者较小值 | `10485760`（10MB） |
+| `UPLOAD_ALLOWED_TYPES` | 允许上传的扩展名，逗号分隔；上传时还会检查文件头与扩展名是否一致 | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+
+`local` 驱动需要持久化磁盘：Docker Compose 已把 `INSTANCE_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请改用 `s3`（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
 
 ### 公开演示
 

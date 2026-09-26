@@ -53,7 +53,23 @@ castor-kit は環境変数で設定します。バックエンドの変数は `a
 | 変数 | 役割 | デフォルト値 |
 |---|---|---|
 | `WEB_DIST_DIR` | フロントエンドのビルド成果物のディレクトリ。バックエンドはここから静的ファイルと SPA を配信 | `apps/web/dist` |
-| `INSTANCE_DIR` | 実行時データのディレクトリ。アップロードされたファイルはその下の `uploads/` に保存 | `apps/api/instance` |
+| `INSTANCE_DIR` | 実行時データのディレクトリ。`local` ドライバーのアップロードは既定でその下の `uploads/files/` に保存 | `apps/api/instance` |
+
+### ファイルセンター
+
+| 変数 | 役割 | デフォルト値 |
+|---|---|---|
+| `STORAGE_DRIVER` | ストレージドライバー：`local`（サーバー上のディレクトリ）または `s3`（AWS S3、MinIO、Aliyun OSS、Tencent COS、Cloudflare R2 などの S3 互換サービス） | `local` |
+| `STORAGE_LOCAL_DIR` | `local` ドライバーの保存先ディレクトリ | `<INSTANCE_DIR>/uploads/files` |
+| `S3_ENDPOINT` | S3 互換サービスのエンドポイント。AWS S3 の場合は空 | 空 |
+| `S3_REGION` | リージョン。R2 は `auto` | `us-east-1` |
+| `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | バケットとキー。`STORAGE_DRIVER=s3` でいずれかが欠けていると起動を拒否 | 空 |
+| `S3_PUBLIC_URL` | バケットの公開 URL。設定するとダウンロードはここへリダイレクトし、未設定の場合は約 10 分有効な署名付き URL へリダイレクト | 空 |
+| `S3_FORCE_PATH_STYLE` | パス形式でバケットにアクセス（MinIO などのセルフホストで必要） | `S3_ENDPOINT` 設定時は `true` |
+| `UPLOAD_MAX_SIZE` | 1 ファイルのサイズ上限（バイト）。`MAX_CONTENT_LENGTH` とのうち小さいほうが適用される | `10485760`（10MB） |
+| `UPLOAD_ALLOWED_TYPES` | アップロードを許可する拡張子（カンマ区切り）。ファイルヘッダーと拡張子の一致も確認 | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
+
+`local` ドライバーには永続ディスクが必要です。Docker Compose では `INSTANCE_DIR` をボリュームとしてマウント済みです。Render のようにデプロイのたびにディスクが消えるプラットフォームでは `s3`（例：Cloudflare R2）を使ってください。どのレコードにも参照されていないファイルは、アップロードから 24 時間後にスケジューラーのプロセスが削除します。そのため `ENABLE_TASK_SCHEDULER=false` の場合は削除されません。
 
 ### 公開デモ {#public-demo}
 

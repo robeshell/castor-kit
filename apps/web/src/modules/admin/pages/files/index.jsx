@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatBytes, formatDateTime } from '@/lib/format'
 import { toast } from '@/lib/toast'
-import { deleteFile, getFiles, uploadFile } from '@/shared/api/files'
+import { deleteFile, getFiles, uploadFile } from '@/modules/admin/api/files'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable from '@/shared/components/DataTable'
 import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'

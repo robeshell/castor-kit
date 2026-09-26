@@ -132,13 +132,14 @@ Components come in two layers: shadcn/ui primitives in `@/components/ui/*` (sour
 | `DataTable` + `DataPagination` | Table: column definitions, pagination, row selection, loading skeleton and empty state |
 | `FilterBar` / `SearchInput` / `FilterSelect` | Filter bar; in `FilterSelect`, `''` means "all" |
 | `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | Create/edit dialog / side sheet / read-only detail sheet / key-value list |
-| `FormFields`: `FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormCustom` / `FormGrid` | react-hook-form form fields |
+| `FormFields`: `FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormTreeSelect` / `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload` / `FormCustom` / `FormGrid` | react-hook-form form fields; upload fields hold file-center ids (avatars hold the file URL) |
 | `ConfirmAction` / `RowActions` | Confirmation for destructive actions / row actions |
 | `StatusBadge` | Status badge; `tone` can be neutral / brand / info / success / warning / danger |
 | `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | Empty state / segmented tabs / tree / stat card |
 | `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | Date values are formatted as `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | Import / export dialogs |
-| `upload/FileUpload` / `upload/ImageUpload` | File / image upload |
+| `TreeSelect` / `CheckableTree` | Searchable single-pick tree / multi-select tree with cascading checks |
+| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | File (drag and drop, progress) / image / avatar upload; pair with `uploadFile` from `@/shared/api/files` to store in the file center |
 
 Form field example:
 

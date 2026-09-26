@@ -147,6 +147,8 @@ scaffold は出力に権限コードのプレフィックス（Perm prefix）、
 | `bool` | `boolean` | `FormSwitch` | |
 | `date` | `date`（文字列モード） | `FormDate` | `YYYY-MM-DD` |
 | `datetime` | `timestamp`（文字列モード） | `FormDateTime` | |
+| `file` | `varchar(36)`。ファイルセンターのファイル ID を保存 | `FormFileUpload` | 一覧に「表示」リンク。保存時に参照を登録 |
+| `image` | `varchar(36)`。ファイルセンターのファイル ID を保存 | `FormImageUpload` | 一覧にサムネイル。保存時に参照を登録 |
 
 未知の型は `str` として扱われます。`id`、`created_at`、`updated_at` は自動で追加されます。
 
@@ -159,7 +161,9 @@ AI は業務上の説明から型を推測するので、あなたが指定す�
 | 名称、タイトル、氏名、メールアドレス | `str` |
 | コード、番号 | `str50` |
 | 携帯電話、電話、ステータス、種類、色 | `str20` |
-| URL、リンク、アドレス、画像、アバター、カバー | `str500` |
+| URL、リンク、アドレス（外部） | `str500` |
+| 画像、アバター、カバー、写真 | `image` |
+| 添付ファイル、ファイル、契約書、スキャン | `file` |
 | 説明、備考、概要、内容、本文、タグ（JSON 文字列） | `text` |
 | 金額、価格、費用、コスト | `float` |
 | 数量、回数、進捗、パーセンテージ、並び順、重み | `int` |
