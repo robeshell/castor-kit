@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fileUrl, getFileInfo, uploadFile } from '@/shared/api/files'
+import { useUploadLimits } from '@/shared/hooks/useAppInfo'
 import FileUpload from '@/shared/components/upload/FileUpload'
 import ImageUpload from '@/shared/components/upload/ImageUpload'
 
@@ -13,6 +14,7 @@ const idsOf = (value) => (Array.isArray(value) ? value : value ? [value] : [])
  * so edit forms show what is already attached.
  */
 export default function FileIdUpload({ value, onChange, variant = 'file', multiple = false, accept, maxSizeMB, disabled }) {
+  const limits = useUploadLimits()
   const ids = idsOf(value)
   const idsKey = ids.join(',')
   /** id → { name, size } */
@@ -63,8 +65,8 @@ export default function FileIdUpload({ value, onChange, variant = 'file', multip
       onFileListChange={handleChange}
       uploadApi={uploadFile}
       limit={multiple ? 20 : 1}
-      accept={accept || (variant === 'image' ? IMAGE_ACCEPT : undefined)}
-      maxSizeMB={maxSizeMB}
+      accept={accept || (variant === 'image' ? limits.imageAccept || IMAGE_ACCEPT : limits.accept)}
+      maxSizeMB={maxSizeMB ?? limits.maxSizeMB}
       disabled={disabled}
     />
   )

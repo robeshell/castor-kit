@@ -8,15 +8,20 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { uploadFile } from '@/shared/api/files'
 import UserAvatar from '@/shared/components/UserAvatar'
+import { useUploadLimits } from '@/shared/hooks/useAppInfo'
 
-const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+const DEFAULT_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
 
 /**
  * Avatar picker: uploads an image to the file center and reports its URL (/api/admin/files/<id>) through onChange.
  * value is the current avatar URL (older records may hold an external URL, which still displays).
  */
-export default function AvatarUpload({ value, onChange, name, maxSizeMB = 5, disabled, className, ...rest }) {
+export default function AvatarUpload({ value, onChange, name, maxSizeMB, disabled, className, ...rest }) {
   const tx = useTx()
+  const limits = useUploadLimits()
+  // Server limits win once app-info has loaded; images the server doesn't allow aren't offered
+  const extensions = limits.imageAccept ? limits.imageAccept.split(',') : DEFAULT_IMAGE_EXTENSIONS
+  const sizeLimit = maxSizeMB ?? limits.maxSizeMB ?? 5
   const inputRef = useRef(null)
   const [percent, setPercent] = useState(null)
   const uploading = percent !== null
@@ -24,12 +29,12 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB = 5, dis
   const pick = async (file) => {
     if (!file) return
     const lower = file.name.toLowerCase()
-    if (!IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+    if (!extensions.some((ext) => lower.endsWith(ext))) {
       toast.warning(i18n.t('{{kind}}类型不支持', { kind: i18n.t('图片') }))
       return
     }
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      toast.warning(i18n.t('{{kind}}不能超过 {{size}}MB', { kind: i18n.t('图片'), size: maxSizeMB }))
+    if (file.size > sizeLimit * 1024 * 1024) {
+      toast.warning(i18n.t('{{kind}}不能超过 {{size}}MB', { kind: i18n.t('图片'), size: sizeLimit }))
       return
     }
     setPercent(0)
@@ -48,7 +53,7 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB = 5, dis
       <input
         ref={inputRef}
         type="file"
-        accept={IMAGE_EXTENSIONS.join(',')}
+        accept={extensions.join(',')}
         className="hidden"
         onChange={(e) => {
           pick(e.target.files?.[0])

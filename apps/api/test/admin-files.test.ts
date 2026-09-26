@@ -184,6 +184,22 @@ describe('files: local driver', () => {
   })
 })
 
+describe('files: 超过请求体上限', () => {
+  it('超过 MAX_CONTENT_LENGTH 的文件被 multipart 拦下时，也返回「文件过大」和适用的上限', async () => {
+    const app = await buildTestApp({ maxContentLength: 1024 * 1024, storage: storageConfig({ uploadMaxSize: 512 * 1024 }) })
+    try {
+      const s = await superAdminSession(app, handle)
+      const big = multipartFile('big.txt', 'x'.repeat(2 * 1024 * 1024))
+      const res = await s.inject({ method: 'POST', url: '/api/admin/files', ...big })
+      expect([res.statusCode, res.json()]).toEqual([413, { error: '文件过大，最大支持 0.5MB' }])
+      const en = await s.inject({ method: 'POST', url: '/api/admin/files', payload: big.payload, headers: { ...big.headers, 'accept-language': 'en-US' } })
+      expect(en.json().error).toBe('File too large (max 0.5 MB)')
+    } finally {
+      await app.close()
+    }
+  })
+})
+
 describe('files: s3 driver（进程内假 S3）', () => {
   let s3: FakeS3
   let app: FastifyInstance

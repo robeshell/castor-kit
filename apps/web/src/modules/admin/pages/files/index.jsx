@@ -13,6 +13,7 @@ import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filter
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
 import FileUpload from '@/shared/components/upload/FileUpload'
+import { useUploadLimits } from '@/shared/hooks/useAppInfo'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 
 const KIND_OPTIONS = [
@@ -63,6 +64,7 @@ export default function Files() {
   const [referenced, setReferenced] = useState('')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [uploads, setUploads] = useState([])
+  const limits = useUploadLimits()
 
   useEffect(() => {
     fetchData()
@@ -223,7 +225,14 @@ export default function Files() {
             <DialogTitle>{t('上传文件')}</DialogTitle>
             <DialogDescription>{t('未被任何记录使用的文件会在上传 24 小时后自动清理。')}</DialogDescription>
           </DialogHeader>
-          <FileUpload fileList={uploads} onFileListChange={setUploads} uploadApi={uploadFile} accept="" maxSizeMB={100} />
+          <FileUpload
+            fileList={uploads}
+            onFileListChange={setUploads}
+            uploadApi={uploadFile}
+            accept={limits.accept ?? ''}
+            maxSizeMB={limits.maxSizeMB}
+            promptText={limits.maxSizeMB ? t('单个文件不超过 {{size}}MB', { size: limits.maxSizeMB }) : ''}
+          />
         </DialogContent>
       </Dialog>
     </div>

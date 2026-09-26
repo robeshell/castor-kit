@@ -40,6 +40,13 @@ export function registerErrorHandler(app: FastifyInstance): void {
       return reply.status(400).send({ error: first?.message ?? '请求参数不合法' })
     }
 
+    // An uploaded file over the multipart limit: name the limit that applies to this upload
+    if (error.code === 'FST_REQ_FILE_TOO_LARGE') {
+      const config = request.server.config
+      const limit = request.url.startsWith('/api/admin/files') ? config.storage.uploadMaxSize : config.maxContentLength
+      return reply.status(413).send({ error: `文件过大，最大支持 ${Math.round((limit / 1024 / 1024) * 10) / 10}MB` })
+    }
+
     // Fastify's own 4xx errors (JSON parse failure, body too large, etc.)
     const status = error.statusCode
     if (status !== undefined && status >= 400 && status < 500) {

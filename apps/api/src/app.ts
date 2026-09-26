@@ -128,15 +128,18 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   })
 
   // ---- Built-in routes ----
-  // Public: lets the login page show the demo account and the layout show the demo banner
+  // Public: lets the login page show the demo account, the layout show the demo banner, and upload controls check
+  // size / type before sending a file
+  const upload = { max_size: config.storage.uploadMaxSize, allowed_types: config.storage.uploadAllowedTypes }
   app.get('/api/admin/app-info', async () =>
     config.demoMode
       ? {
           demo_mode: true,
           demo_reset_hours: config.demoResetHours,
           demo_account: { username: config.adminUsername, password: config.adminPassword },
+          upload,
         }
-      : { demo_mode: false },
+      : { demo_mode: false, upload },
   )
 
   app.get('/health', async (request, reply) => {
