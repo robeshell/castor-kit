@@ -75,7 +75,7 @@ castor-kit 的配置分两类：
 | `DEMO_RESET_HOURS` | 演示数据恢复周期（小时）。服务启动时和运行中每小时检查一次，距上次恢复超过该时长就恢复；也可手动执行 `pnpm demo:reset` | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | 演示模式下每个 IP 每小时可调用 AI 的次数（AI 对话、AI 生成 SQL），超出返回 429；未登录的请求不计数 | `20` |
 | `DEMO_AI_DAILY` | 演示模式下全站每天可调用 AI 的总次数，用完后当天返回 429 | `300` |
-| `DEMO_AI_MAX_INPUT_CHARS` | 演示模式下单次 AI 请求的最大长度（字符），超出返回 400。演示模式还会限制模型回复长度 | `4000` |
+| `DEMO_AI_MAX_INPUT_CHARS` | 演示模式下单次 AI 请求的最大长度（字符；AI 对话只计消息文字），超出返回 400。演示模式还会限制模型回复长度 | `4000` |
 
 演示数据的内容在 `apps/api/src/demo/fixtures.ts`，恢复逻辑在 `apps/api/src/demo/reset.ts`。恢复只涉及组件示例、公告、数据字典、定时任务、通知与日志，不会动账号、角色和菜单。
 
@@ -160,11 +160,12 @@ AI 模型（接口地址、API Key、模型名）在系统设置里配置，见�
 
 | 系统设置 | 环境变量 | 默认值 |
 |---|---|---|
-| 接口地址（OpenAI 兼容，如 `https://api.openai.com/v1`） | `AI_API_BASE` | 空 |
+| 服务类型：OpenAI 兼容接口 / OpenAI / Anthropic / Google | `AI_PROVIDER`（`openai-compatible` / `openai` / `anthropic` / `google`） | OpenAI 兼容接口 |
+| 接口地址：OpenAI 兼容接口必填（如 `https://api.deepseek.com/v1`），其他类型留空用官方地址或填代理 | `AI_API_BASE` | 空 |
 | API Key | `AI_API_KEY` | 空 |
 | 模型 | `AI_MODEL` | 空 |
 
-AI 对话、AI 提示词工坊、AI 数据查询共用这组设置。未配置时这些页面提示未配置，其他功能不受影响。
+AI 对话、AI 提示词工坊、AI 数据查询共用这组设置，调用经 Vercel AI SDK 发出，不自动重试。「OpenAI 兼容接口」适用于 DeepSeek、通义千问、Gemini 的兼容接口、Ollama 等所有提供 `/chat/completions` 的服务。未配置时这些页面提示未配置，其他功能不受影响。
 
 ### 登录锁定
 
@@ -209,7 +210,7 @@ AI 对话、AI 提示词工坊、AI 数据查询共用这组设置。未配置�
 | `SESSION_COOKIE_SECURE` | 同上文 | 空（自动） |
 | `CORS_ORIGINS` | 同上文 | 空 |
 | `RATE_LIMIT_ENABLED` | 同上文 | `true` |
-| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 可选，锁定 AI 模型设置（见 [AI 模型](#ai-模型)）；留空则在系统设置里配置 | 空 |
+| `AI_PROVIDER` / `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 可选，锁定 AI 模型设置（见 [AI 模型](#ai-模型)）；留空则在系统设置里配置 | 空 |
 | `COMPOSE_DB_VOLUME` | 数据库数据卷名，可指向已有的卷 | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | 上传文件数据卷名，可指向已有的卷 | `castor-kit_app_instance` |
 

@@ -12,7 +12,7 @@
 | 1 | [文件中心](#2-文件中心) | 高 | 0（头像） | 已完成 |
 | 2 | [账号安全](#3-账号安全) | 中 | 0 | 已完成（含系统设置） |
 | 2 | [开放接口：API Token 与 Webhook](#4-开放接口api-token-与-webhook) | 中 | — | 已完成 |
-| 3 | [在线可视化建模与 AI 助手](#6-在线可视化建模与-ai-助手) | 中 | 1、2 | 未开始（含 AI 调用层迁移到 Vercel AI SDK） |
+| 3 | [在线可视化建模与 AI 助手](#6-在线可视化建模与-ai-助手) | 中 | 1、2 | 未开始（AI 调用层已先行迁移到 Vercel AI SDK） |
 | 3 | [审批流](#7-审批流) | 低 | 1 | 未开始 |
 | 3 | [多租户](#8-多租户) | 低 | 1、2、4 | 未开始 |
 | — | 公开演示模式与 Render + Neon 部署（计划外，按需加入） | — | — | 已完成 |
@@ -228,7 +228,7 @@
 - **生成**：后端依次执行 `scaffold` → `db:migrate` → `seed:rbac --incremental` → `verify --module`，通过 WebSocket（已注册 `@fastify/websocket`）实时推送日志；失败时展示错误并可回滚未提交的生成文件
 - 顺带解决 `scaffold` 的已知限制：必填 / 唯一 / 默认值直接由建模器表达，不再需要手改 `db/schema`
 
-**AI 调用层迁移到 Vercel AI SDK**：现在 AI 对话、AI 数据查询各自手写 OpenAI 兼容请求与 SSE 解析。随本项一起迁移到 Vercel AI SDK（`ai` 包）：各家模型（Gemini、Claude、OpenAI 等）原生接入；建模器的「AI 生成字段清单」用结构化输出（schema 校验）；前端对话改用 `useChat`。迁移后保持现有接口路径与演示模式的 AI 限流不变。
+**AI 调用层迁移到 Vercel AI SDK**（已单独完成，见变更记录）：现在 AI 对话、AI 数据查询各自手写 OpenAI 兼容请求与 SSE 解析。随本项一起迁移到 Vercel AI SDK（`ai` 包）：各家模型（Gemini、Claude、OpenAI 等）原生接入；建模器的「AI 生成字段清单」用结构化输出（schema 校验）；前端对话改用 `useChat`。迁移后保持现有接口路径与演示模式的 AI 限流不变。
 
 **安全边界**：生成代码会写入仓库文件并执行迁移，**只在开发环境（`NODE_ENV=development`）且仅超级管理员可用**，生产环境不注册相关路由。
 
@@ -282,3 +282,4 @@
 | 2026-09-26 | 完成「3. 账号安全」（迁移 `0005_account_security`），新增「系统设置」：功能开关与安全参数存数据库，两步验证、找回密码默认关闭；实现补充见该节 |
 | 2026-09-26 | 完成「1. 部门与数据权限」（迁移 `0003_departments_data_scope`）；方案调整：`dataScopeWhere` 拆成 `resolveDataScope`（routes）+ 纯函数 `dataScopeWhere`（repository），用户管理本身接入数据权限 |
 | 2026-09-26 | 完成「4. 开放接口：API Token 与 Webhook」（迁移 `0007_open_api`）；实现补充见该节 |
+| 2026-09-26 | AI 调用层迁移到 Vercel AI SDK（从「6. 在线可视化建模」中拆出先做）：`common/ai.ts` 统一创建模型，新增服务类型设置 `ai.provider`（OpenAI 兼容 / OpenAI / Anthropic / Google）；AI 对话改为 UI message stream + `useChat`，界面换成 AI Elements；接口路径与演示模式限流不变（输入上限改按消息文字计算） |

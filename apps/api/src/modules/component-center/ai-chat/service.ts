@@ -1,26 +1,32 @@
 /**
- * AI chat SSE stream
+ * AI chat: streams the model's reply as an AI SDK UI message stream (what `useChat` reads on the page).
  *
- * Upstream is an OpenAI-compatible API (`${AI_API_BASE}/chat/completions`, stream:true). Parses `data:` line by line,
- * forwards `choices[0].delta.content` as `data: {"content": "..."}\n\n`, and ends with `data: [DONE]\n\n`.
- * Event text follows the `json.dumps(..., ensure_ascii=False)` format (separators `", "` / `": "`, non-ASCII kept as-is).
+ * The page sends the conversation as UI messages; they are validated, converted to model messages and sent with the
+ * system prompt through the model from common/ai.ts. Upstream problems never reach the client as-is: the stream ends
+ * with a generic, translated error (status code only), and the details go to the server log.
  *
- * 60 s timeout: timeout while connecting / waiting for response headers → `请求超时，请重试`;
- * timeout while reading the stream → generic message `AI 响应异常，请稍后重试`.
+ * The timeout (60 s by default) bounds connecting, waiting for the response and each gap between chunks.
  */
 
-import { type Agent, fetch } from 'undici'
-import { createOutboundAgent } from '@/common/outbound'
-import { pyTruthy } from '@/common/py'
-import { translateMessage, type Language } from '@/common/i18n'
-import { pyJsonDumps } from '@/common/request-meta'
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  safeValidateUIMessages,
+  streamText,
+  type UIMessage,
+} from 'ai'
+import type { Agent } from 'undici'
+import { AI_CALL_DEFAULTS, aiConfigured, createAiAgent, isTimeoutError, languageModelFor, upstreamStatusOf } from '@/common/ai'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
-import type { AppConfig } from '@/config'
+import { ServiceError } from '@/common/errors'
+import { translateMessage, type Language } from '@/common/i18n'
 import type { Settings } from '@/common/settings'
-import { pyStrip } from '../ai-sql/schema'
+import type { AppConfig } from '@/config'
 
 const UPSTREAM_TIMEOUT_MS = 60_000
-const DONE_EVENT = 'data: [DONE]\n\n'
+/** Longest conversation accepted (messages after the last "clear context") */
+const MAX_MESSAGES = 200
 
 /** Injected system prompt: describes castor-kit's positioning, tech stack, feature modules and dev conventions */
 export const SYSTEM_PROMPT = {
@@ -55,63 +61,6 @@ export const SYSTEM_PROMPT = {
     '请使用用户提问所用的语言回答（中文提问用中文，English questions in English，日本語の質問には日本語で），回答要结合 castor-kit 的实际技术栈和实现方式。',
 }
 
-/** `data: {json.dumps(obj, ensure_ascii=False)}\n\n` (obj has a single key) */
-function event(key: string, value: unknown): string {
-  return `data: {${JSON.stringify(key)}: ${pyJsonDumps(value)}}\n\n`
-}
-
-const TIMEOUT_CODES = new Set(['UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT'])
-
-function isRequestTimeout(err: unknown): boolean {
-  let cur: unknown = err
-  for (let depth = 0; cur && depth < 5; depth++) {
-    const code = (cur as { code?: unknown }).code
-    if (typeof code === 'string' && TIMEOUT_CODES.has(code)) return true
-    cur = (cur as { cause?: unknown }).cause
-  }
-  return false
-}
-
-/**
- * Extract `chunk['choices'][0]['delta'].get('content', '')` from one data: payload;
- * returns undefined on a shape mismatch (missing field, wrong type, empty choices, etc.) → the line is skipped
- */
-function extractContent(chunk: unknown): unknown {
-  if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) return undefined
-  if (!Object.hasOwn(chunk, 'choices')) return undefined
-  const choices = (chunk as { choices: unknown }).choices
-  if (!Array.isArray(choices) || choices.length === 0) return undefined
-  const first: unknown = choices[0]
-  if (!first || typeof first !== 'object' || Array.isArray(first) || !Object.hasOwn(first, 'delta')) return undefined
-  const delta = (first as { delta: unknown }).delta
-  if (!delta || typeof delta !== 'object' || Array.isArray(delta)) return undefined
-  return Object.hasOwn(delta, 'content') ? (delta as { content: unknown }).content : ''
-}
-
-/** requests.iter_lines(): split lines on \r\n / \r / \n (at the byte level), strictly UTF-8 decoding each line */
-async function* iterLines(body: AsyncIterable<Uint8Array>): AsyncGenerator<string> {
-  const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
-  let pending = Buffer.alloc(0)
-  for await (const chunk of body) {
-    pending = pending.length ? Buffer.concat([pending, chunk]) : Buffer.from(chunk)
-    let start = 0
-    for (let i = 0; i < pending.length; i++) {
-      const b = pending[i]
-      if (b !== 0x0a && b !== 0x0d) continue
-      // \r landed exactly at the end of a chunk: wait for the next chunk to tell whether it is \r\n
-      if (b === 0x0d && i === pending.length - 1) break
-      yield decoder.decode(pending.subarray(start, i))
-      if (b === 0x0d && pending[i + 1] === 0x0a) i++
-      start = i + 1
-    }
-    pending = pending.subarray(start)
-  }
-  if (pending.length) {
-    const tail = pending[pending.length - 1] === 0x0d ? pending.subarray(0, -1) : pending
-    yield decoder.decode(tail)
-  }
-}
-
 export interface ChatStreamOptions {
   timeoutMs?: number
   /** The AI API may be on an internal network (common/outbound.ts) */
@@ -120,8 +69,16 @@ export interface ChatStreamOptions {
   log?: { warn: (obj: unknown, msg: string) => void }
 }
 
+/** Generic, translated text for a failed call: the upstream status at most, never its body */
+export function chatErrorMessage(err: unknown, lang: Language): string {
+  if (isTimeoutError(err)) return translateMessage('请求超时，请重试', lang)
+  const status = upstreamStatusOf(err)
+  if (status) return translateMessage(`AI 服务暂时不可用（${status}），请稍后重试`, lang)
+  return translateMessage('AI 响应异常，请稍后重试', lang)
+}
+
 export class AiChatService {
-  private readonly dispatcher: Agent
+  private readonly agent: Agent
   private readonly log: ChatStreamOptions['log']
 
   constructor(
@@ -130,79 +87,59 @@ export class AiChatService {
     private readonly ai: () => Promise<Settings['ai']>,
     options: ChatStreamOptions = {},
   ) {
-    const timeout = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS
     this.log = options.log
-    this.dispatcher = createOutboundAgent(options.allowPrivate ?? false, timeout)
+    this.agent = createAiAgent(options.allowPrivate ?? false, options.timeoutMs ?? UPSTREAM_TIMEOUT_MS)
   }
 
   async isConfigured(): Promise<boolean> {
-    return Boolean((await this.ai()).apiKey)
+    return aiConfigured(await this.ai())
   }
 
   async close(): Promise<void> {
-    await this.dispatcher.destroy()
+    await this.agent.destroy()
+  }
+
+  /** The request's messages as UI messages; 400 when missing or malformed */
+  async parseMessages(raw: unknown): Promise<UIMessage[]> {
+    if (!Array.isArray(raw) || raw.length === 0) throw new ServiceError('消息不能为空', 400)
+    if (raw.length > MAX_MESSAGES) throw new ServiceError('对话太长，请清除上下文后再试', 400)
+    const result = await safeValidateUIMessages({ messages: raw })
+    if (!result.success) throw new ServiceError('消息格式不正确', 400)
+    // A reply that failed before any text arrived stays in the page's history as an empty assistant message;
+    // model APIs reject empty assistant turns, so they are dropped here
+    const hasContent = (m: UIMessage) =>
+      m.parts.some((p) => (p.type === 'text' ? Boolean(p.text.trim()) : p.type === 'file' || p.type.startsWith('tool-')))
+    const messages = result.data.filter((m) => m.role !== 'assistant' || hasContent(m))
+    if (!messages.some((m) => m.role === 'user')) throw new ServiceError('消息不能为空', 400)
+    return messages
   }
 
   /**
-   * Yields SSE event text. messages is the full history from the frontend (already validated as a non-empty array); the system prompt is prepended.
-   * signal fires when the client disconnects and is used to abort the upstream request.
-   * lang translates the error events: SSE bypasses the JSON response translation hook.
+   * Start the reply. Resolves to a streaming Response (UI message stream); `signal` fires when the client disconnects
+   * and aborts the upstream request; `lang` translates the error text sent inside the stream.
    */
-  async *stream(messages: unknown[], signal: AbortSignal, lang: Language = 'zh-CN'): AsyncGenerator<string> {
-    const { apiBase: aiApiBase, apiKey: aiApiKey, model: aiModel } = await this.ai()
-    const fullMessages = [SYSTEM_PROMPT, ...messages]
-    try {
-      const resp = await fetch(`${aiApiBase}/chat/completions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: aiModel,
-          messages: fullMessages,
-          stream: true,
-          ...(this.config.demoMode ? { max_tokens: DEMO_MAX_OUTPUT_TOKENS.chat } : {}),
-        }),
-        dispatcher: this.dispatcher,
-        signal,
-      })
-
-      if (resp.status !== 200) {
-        // Don't pass the upstream response body through to the client (it may contain internal info); only a generic error code.
-        // Log the start of it server-side so the cause (bad model name, quota, overload...) is visible in the logs.
-        const detail = await resp.text().catch(() => '')
-        this.log?.warn({ status: resp.status, body: detail.slice(0, 500) }, 'AI 上游返回错误')
-        yield event('error', translateMessage(`AI 服务暂时不可用（${resp.status}），请稍后重试`, lang))
-        yield DONE_EVENT
-        return
-      }
-
-      if (resp.body) {
-        for await (const line of iterLines(resp.body)) {
-          if (!line) continue
-          if (!line.startsWith('data:')) continue
-          const raw = pyStrip(line.slice(5))
-          if (raw === '[DONE]') {
-            yield DONE_EVENT
-            return
-          }
-          let content: unknown
-          try {
-            content = extractContent(JSON.parse(raw))
-          } catch {
-            continue
-          }
-          if (pyTruthy(content)) yield event('content', content)
-        }
-      }
-      yield DONE_EVENT
-    } catch (err) {
-      if (signal.aborted) return
-      if (isRequestTimeout(err)) {
-        yield event('error', translateMessage('请求超时，请重试', lang))
-      } else {
-        // Don't send the raw exception to the client (it may contain internal details); generic message only
-        yield event('error', translateMessage('AI 响应异常，请稍后重试', lang))
-      }
-      yield DONE_EVENT
+  async stream(messages: UIMessage[], signal: AbortSignal, lang: Language = 'zh-CN'): Promise<Response> {
+    const ai = await this.ai()
+    const result = streamText({
+      ...AI_CALL_DEFAULTS,
+      model: languageModelFor(ai, this.agent),
+      system: SYSTEM_PROMPT.content,
+      messages: await convertToModelMessages(messages),
+      abortSignal: signal,
+      ...(this.config.demoMode ? { maxOutputTokens: DEMO_MAX_OUTPUT_TOKENS.chat } : {}),
+      // Reported through the UI stream's onError below; this only keeps the SDK from printing to stderr
+      onError: () => {},
+    })
+    const onError = (err: unknown) => {
+      if (!signal.aborted) this.log?.warn({ err, status: upstreamStatusOf(err) }, 'AI 上游返回错误')
+      return chatErrorMessage(err, lang)
     }
+    // Merged into an outer stream: an error while reading the upstream body (e.g. it stalls) makes the model stream
+    // throw instead of emitting an error chunk; the outer stream turns that into an error chunk as well
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => writer.merge(result.toUIMessageStream({ onError })),
+      onError,
+    })
+    return createUIMessageStreamResponse({ stream })
   }
 }

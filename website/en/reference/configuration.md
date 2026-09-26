@@ -75,7 +75,7 @@ Local-disk storage needs a persistent disk: Docker Compose mounts `INSTANCE_DIR`
 | `DEMO_RESET_HOURS` | How often the demo data is restored (hours). Checked at startup and then hourly; restores when the last restore is older than this. Run `pnpm demo:reset` to restore right away | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | AI calls (AI chat, AI SQL generation) allowed per IP per hour in demo mode; over the limit returns 429. Signed-out requests don't count | `20` |
 | `DEMO_AI_DAILY` | AI calls allowed per day for the whole site in demo mode; once used up, 429 for the rest of the day | `300` |
-| `DEMO_AI_MAX_INPUT_CHARS` | Max size of one AI request in demo mode (characters); larger requests return 400. Demo mode also caps the length of the model's reply | `4000` |
+| `DEMO_AI_MAX_INPUT_CHARS` | Max size of one AI request in demo mode (characters; for AI chat only the message text counts); larger requests return 400. Demo mode also caps the length of the model's reply | `4000` |
 
 The demo data lives in `apps/api/src/demo/fixtures.ts` and the restore logic in `apps/api/src/demo/reset.ts`. A restore only touches the component gallery, announcements, dictionaries, scheduled tasks, notifications and logs — never accounts, roles or menus.
 
@@ -159,11 +159,12 @@ Switching the storage only affects new uploads; existing files record where they
 
 | Setting | Environment variable | Default |
 |---|---|---|
-| API URL (OpenAI-compatible, e.g. `https://api.openai.com/v1`) | `AI_API_BASE` | Empty |
+| Service type: OpenAI-compatible / OpenAI / Anthropic / Google | `AI_PROVIDER` (`openai-compatible` / `openai` / `anthropic` / `google`) | OpenAI-compatible |
+| API URL: required for OpenAI-compatible (e.g. `https://api.deepseek.com/v1`); leave empty for the others to use the official API, or enter a proxy | `AI_API_BASE` | Empty |
 | API key | `AI_API_KEY` | Empty |
 | Model | `AI_MODEL` | Empty |
 
-AI Chat, AI Prompt Studio and AI Data Query share these settings. When they are not set, those pages show a "not configured" notice; everything else is unaffected.
+AI Chat, AI Prompt Studio and AI Data Query share these settings; calls go through the Vercel AI SDK without automatic retries. "OpenAI-compatible" covers every service with a `/chat/completions` API: DeepSeek, Qwen, Gemini's compatible endpoint, Ollama and more. When they are not set, those pages show a "not configured" notice; everything else is unaffected.
 
 ### Sign-in lockout
 
@@ -208,7 +209,7 @@ Put these in `.env.production` and pass them in with `docker compose --env-file 
 | `SESSION_COOKIE_SECURE` | See above | Empty (auto) |
 | `CORS_ORIGINS` | See above | Empty |
 | `RATE_LIMIT_ENABLED` | See above | `true` |
-| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | Optional: pin the AI model settings (see [AI model](#ai-model)); leave empty to configure them in System settings | Empty |
+| `AI_PROVIDER` / `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | Optional: pin the AI model settings (see [AI model](#ai-model)); leave empty to configure them in System settings | Empty |
 | `COMPOSE_DB_VOLUME` | Name of the database volume; can point to an existing volume | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | Name of the uploads volume; can point to an existing volume | `castor-kit_app_instance` |
 

@@ -44,11 +44,11 @@
 
 ## AI アプリ
 
-グループのディレクトリは `ai/` です。「システム設定」の「AI」タブで OpenAI 互換 API を設定する必要があります。[設定](/ja/reference/configuration#ai-model)を参照してください。
+グループのディレクトリは `ai/` です。「システム設定」の「AI」タブでモデルサービスを設定する必要があります。[設定](/ja/reference/configuration#ai-model)を参照してください。
 
 | ページ | ルート | 説明 |
 |---|---|---|
-| AI チャット | `/component-center/ai/chat` | ストリーミング（SSE）のチャット画面 |
+| AI チャット | `/component-center/ai/chat` | ストリーミングのチャット画面（Vercel AI SDK の `useChat` + AI Elements） |
 | AI プロンプト工房 | `/component-center/ai/prompt` | プロンプトテンプレートのライブラリ。テンプレート変数を抽出してリアルタイムにプレビュー |
 | AI データ検索 | `/component-center/ai/sql` | 自然言語から SQL を生成し、読み取り専用の接続で実行して結果とグラフを表示 |
 

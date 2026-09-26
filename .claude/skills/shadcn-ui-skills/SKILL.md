@@ -12,7 +12,7 @@ castor-kit 的前端已从 Semi Design 整体迁移到 **shadcn/ui（new-york，
 
 | 文件 | 内容 | 何时看 |
 |---|---|---|
-| [COMPONENTS.md](COMPONENTS.md) | shadcn 原子组件清单（`@/components/ui/*`）+ castor-kit 业务公共组件（`@/shared/components/*`）与 lib 的 props / 用法 | 选组件、查 props |
+| [COMPONENTS.md](COMPONENTS.md) | shadcn 原子组件清单（`@/components/ui/*`）+ AI Elements（`@/components/ai-elements/*`）+ castor-kit 业务公共组件（`@/shared/components/*`）与 lib 的 props / 用法 | 选组件、查 props |
 | [DESIGN.md](DESIGN.md) | 设计 tokens（语义色类、品牌渐变工具类、圆角 / 字号 / 间距）+ 动效规范（`@/lib/motion`） | 写样式、加动效 |
 | [PATTERNS.md](PATTERNS.md) | 常见模式：CRUD 列表页、表单弹窗 / 抽屉、详情抽屉、导入导出、状态徽章、图表、空态与加载 | 新建 / 改写页面 |
 

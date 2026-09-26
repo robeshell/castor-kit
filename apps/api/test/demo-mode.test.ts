@@ -4,7 +4,7 @@
 import type { FastifyInstance } from 'fastify'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { DemoAiQuota, isDemoWritable } from '@/common/demo'
+import { aiInputChars, DemoAiQuota, isDemoWritable } from '@/common/demo'
 import { deriveReadonlyUrl, loadConfig } from '@/config'
 import type { DbHandle } from '@/db/client'
 import { login_logs } from '@/db/schema'
@@ -219,6 +219,15 @@ describe('demo AI quota', () => {
       const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question: 'x'.repeat(300) } })
       expect(res.statusCode).toBe(400)
       expect(res.json()).toEqual({ error: '演示环境单次输入过长，请精简后再试' })
+    })
+
+    it('measures chat input by message text, not by the UI message JSON around it', () => {
+      const chat = (text: string, n = 1) => ({
+        messages: Array.from({ length: n }, (_, i) => ({ id: `message-${i}`, role: 'user', parts: [{ type: 'text', text }] })),
+      })
+      expect(aiInputChars(chat('x'.repeat(150)))).toBe(150)
+      expect(aiInputChars(chat('ab', 3))).toBe(6)
+      expect(aiInputChars({ question: 'abc' })).toBe(JSON.stringify({ question: 'abc' }).length)
     })
 
     it('caps the reply length upstream and returns a translated 429 once the hourly quota is used', async () => {

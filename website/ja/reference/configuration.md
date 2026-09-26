@@ -75,7 +75,7 @@ castor-kit の設定は 2 種類です。
 | `DEMO_RESET_HOURS` | デモデータを復元する間隔（時間）。起動時と、その後 1 時間ごとに確認し、前回の復元からこの時間を過ぎていれば復元します。すぐに復元するには `pnpm demo:reset` を実行します | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | デモモードで IP ごとに 1 時間あたり AI を呼び出せる回数（AI チャット、AI による SQL 生成）。超えると 429 を返します。未ログインのリクエストはカウントしません | `20` |
 | `DEMO_AI_DAILY` | デモモードでサイト全体が 1 日に AI を呼び出せる回数。使い切ると、その日は 429 を返します | `300` |
-| `DEMO_AI_MAX_INPUT_CHARS` | デモモードでの 1 回の AI リクエストの最大文字数。超えると 400 を返します。デモモードではモデルの返答の長さも制限します | `4000` |
+| `DEMO_AI_MAX_INPUT_CHARS` | デモモードでの 1 回の AI リクエストの最大文字数（AI チャットはメッセージの本文だけを数えます）。超えると 400 を返します。デモモードではモデルの返答の長さも制限します | `4000` |
 
 デモデータの内容は `apps/api/src/demo/fixtures.ts`、復元の処理は `apps/api/src/demo/reset.ts` にあります。復元の対象はコンポーネント例、お知らせ、データ辞書、定期タスク、通知、ログだけで、アカウント・ロール・メニューには触れません。
 
@@ -159,11 +159,12 @@ AI モデル（API の URL、キー、モデル名）はシステム設定で設
 
 | システム設定 | 環境変数 | デフォルト値 |
 |---|---|---|
-| API の URL（OpenAI 互換。例：`https://api.openai.com/v1`） | `AI_API_BASE` | 空 |
+| サービスの種類：OpenAI 互換 API / OpenAI / Anthropic / Google | `AI_PROVIDER`（`openai-compatible` / `openai` / `anthropic` / `google`） | OpenAI 互換 API |
+| API の URL：OpenAI 互換 API では必須（例：`https://api.deepseek.com/v1`）。他の種類では空欄で公式 API、またはプロキシを指定 | `AI_API_BASE` | 空 |
 | API キー | `AI_API_KEY` | 空 |
 | モデル | `AI_MODEL` | 空 |
 
-AI チャット、AI プロンプト工房、AI データ検索はこの設定を共有します。未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
+AI チャット、AI プロンプト工房、AI データ検索はこの設定を共有します。呼び出しは Vercel AI SDK 経由で、自動の再試行はしません。「OpenAI 互換 API」は DeepSeek、Qwen、Gemini の互換エンドポイント、Ollama など `/chat/completions` を提供するサービスすべてに使えます。未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
 
 ### ログインのロック {#login-lockout}
 
@@ -208,7 +209,7 @@ AI チャット、AI プロンプト工房、AI データ検索はこの設定�
 | `SESSION_COOKIE_SECURE` | 前述のとおり | 空（自動） |
 | `CORS_ORIGINS` | 前述のとおり | 空 |
 | `RATE_LIMIT_ENABLED` | 前述のとおり | `true` |
-| `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 任意。AI モデルの設定を固定します（[AI モデル](#ai-model)を参照）。空ならシステム設定で設定 | 空 |
+| `AI_PROVIDER` / `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 任意。AI モデルの設定を固定します（[AI モデル](#ai-model)を参照）。空ならシステム設定で設定 | 空 |
 | `COMPOSE_DB_VOLUME` | データベースのデータボリューム名。既存のボリュームを指定可能 | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | アップロードファイルのデータボリューム名。既存のボリュームを指定可能 | `castor-kit_app_instance` |
 

@@ -1,50 +1,42 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Bot, Check, Copy, RotateCcw, Trash2, User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from '@/components/ai-elements/message'
 import { EASE_OUT } from '@/lib/motion'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import MarkdownView from '@/shared/components/markdown/MarkdownView'
-import './chat.css'
+import { textOf } from '@/modules/component_center/pages/ai/ai_chat_page/message-text'
 
-/**
- * Smooth streaming text: network chunks arrive unevenly, so catch up to the target text frame by frame.
- * The more is left, the faster it catches up (about 10 frames); at least 1 character per frame, so text never pops in in lumps.
- */
-function useSmoothText(text, animate) {
-  const [shown, setShown] = useState(animate ? 0 : text.length)
-  const target = text.length
 
-  useEffect(() => {
-    if (shown >= target) return undefined
-    const frame = requestAnimationFrame(() => {
-      setShown((s) => Math.min(target, s + Math.max(1, Math.ceil((target - s) / 10))))
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [shown, target])
-
-  return { text: text.slice(0, Math.min(shown, target)), catchingUp: shown < target }
-}
-
-function ActionButton({ label, onClick, children, className }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label={label}
-          onClick={onClick}
-          className={cn('text-muted-foreground hover:text-foreground', className)}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+/** Labels of Streamdown's own buttons (code block copy / download, tables, links) in the current language */
+function useStreamdownTranslations() {
+  const { t, i18n } = useTranslation()
+  return useMemo(
+    () => ({
+      close: t('关闭'),
+      copied: t('已复制'),
+      copyCode: t('复制代码'),
+      copyLink: t('复制链接'),
+      copyTable: t('复制表格'),
+      copyTableAsCsv: t('复制为 CSV'),
+      copyTableAsMarkdown: t('复制为 Markdown'),
+      copyTableAsTsv: t('复制为 TSV'),
+      downloadFile: t('下载文件'),
+      downloadImage: t('下载图片'),
+      downloadTable: t('下载表格'),
+      downloadTableAsCsv: t('下载为 CSV'),
+      downloadTableAsMarkdown: t('下载为 Markdown'),
+      exitFullscreen: t('退出全屏'),
+      externalLinkWarning: t('即将打开外部链接，请确认链接可信'),
+      imageNotAvailable: t('图片无法显示'),
+      openExternalLink: t('打开外部链接'),
+      openLink: t('打开链接'),
+      viewFullscreen: t('全屏查看'),
+    }),
+    // i18n.language: recompute when the language changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, i18n.language],
   )
 }
 
@@ -64,9 +56,9 @@ function CopyAction({ text }) {
       .catch(() => toast.error('复制失败'))
   }
   return (
-    <ActionButton label={copied ? t('已复制') : t('复制')} onClick={copy}>
+    <MessageAction tooltip={copied ? t('已复制') : t('复制')} size="icon-xs" onClick={copy} className="text-muted-foreground hover:text-foreground">
       {copied ? <Check className="text-success" /> : <Copy />}
-    </ActionButton>
+    </MessageAction>
   )
 }
 
@@ -86,31 +78,11 @@ function TypingDots() {
   )
 }
 
-function AssistantBody({ message }) {
-  const { t } = useTranslation()
-  // Only messages still generating on first render are smoothed; history is shown in full
-  const [animate] = useState(message.status === 'loading' || message.status === 'incomplete')
-  const { text, catchingUp } = useSmoothText(message.content || '', animate)
-  const streaming = message.status === 'incomplete' || catchingUp
-
-  if (!text && (message.status === 'loading' || message.status === 'incomplete')) return <TypingDots />
-  return (
-    <div className={cn('relative', streaming && 'chat-streaming')}>
-      <MarkdownView>{text}</MarkdownView>
-      {message.stopped ? <p className="text-muted-foreground mt-2 text-xs">{t('已停止生成')}</p> : null}
-    </div>
-  )
-}
-
 /** Context divider (inserted after the context is cleared) */
 export function ContextDivider() {
   const { t } = useTranslation()
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="text-muted-foreground flex items-center gap-3 py-1 text-xs"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground flex items-center gap-3 py-1 text-xs">
       <span className="bg-border h-px flex-1" />
       {t('上下文已清除，之后的对话不再携带之前的消息')}
       <span className="bg-border h-px flex-1" />
@@ -118,66 +90,91 @@ export function ContextDivider() {
   )
 }
 
-function ChatMessage({ message, busy, canRegenerate, onRegenerate, onDelete }) {
+/** A failed reply: the error text from the stream, or the request's error */
+export function ChatError({ text }) {
+  return (
+    <div className="flex gap-3">
+      <Avatar role="assistant" />
+      <div className="bg-danger-soft text-danger flex max-w-[92%] items-start gap-2 rounded-2xl rounded-tl-md px-4 py-3 text-sm sm:max-w-[85%]">
+        <AlertCircle className="mt-0.5 size-4 shrink-0" />
+        <span className="break-all">{text}</span>
+      </div>
+    </div>
+  )
+}
+
+function Avatar({ role }) {
+  const isUser = role === 'user'
+  return (
+    <div
+      className={cn(
+        'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full',
+        isUser ? 'bg-muted text-muted-foreground ring-border ring-1' : 'bg-brand-gradient-strong shadow-brand text-white',
+      )}
+    >
+      {isUser ? <User className="size-4" /> : <Bot className="size-4" />}
+    </div>
+  )
+}
+
+/**
+ * One message. `streaming`: the reply is still arriving (text renders incrementally, no actions yet);
+ * `stopped`: the user stopped it. `onRegenerate` / `onDelete` are omitted when the action isn't available.
+ */
+function ChatMessage({ message, streaming, stopped, onRegenerate, onDelete }) {
   const { t } = useTranslation()
+  const translations = useStreamdownTranslations()
   const isUser = message.role === 'user'
-  const isError = message.status === 'error'
-  const generating = message.status === 'loading' || message.status === 'incomplete'
+  const text = textOf(message)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: EASE_OUT }}
-      className={cn('group flex gap-3', isUser && 'flex-row-reverse')}
+      className={cn('flex gap-3', isUser && 'flex-row-reverse')}
     >
-      <div
-        className={cn(
-          'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full',
-          isUser ? 'bg-muted text-muted-foreground ring-border ring-1' : 'bg-brand-gradient-strong shadow-brand text-white',
-        )}
-      >
-        {isUser ? <User className="size-4" /> : <Bot className="size-4" />}
-      </div>
-
-      <div className={cn('flex min-w-0 flex-col gap-1', isUser ? 'max-w-[85%] items-end sm:max-w-[75%]' : 'max-w-[92%] flex-1 sm:max-w-[85%]')}>
+      <Avatar role={message.role} />
+      <Message from={message.role} className={cn('min-w-0 gap-1', isUser ? 'max-w-[85%] items-end sm:max-w-[75%]' : 'max-w-[92%] flex-1 sm:max-w-[85%]')}>
         <span className="text-muted-foreground px-1 text-xs">{isUser ? t('我') : t('AI 助手')}</span>
         {isUser ? (
-          <div className="bg-muted rounded-2xl rounded-tr-md px-4 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap">
-            {message.content}
-          </div>
-        ) : isError ? (
-          <div className="bg-danger-soft text-danger flex items-start gap-2 rounded-2xl rounded-tl-md px-4 py-3 text-sm">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" />
-            <span className="break-all">{message.content}</span>
-          </div>
+          <MessageContent className="leading-relaxed break-words whitespace-pre-wrap">
+            {text}
+          </MessageContent>
         ) : (
-          <div className="bg-card rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_0_0_1px_var(--border)]">
-            <AssistantBody message={message} />
-          </div>
+          <MessageContent className="bg-card w-full rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_0_0_1px_var(--border)]">
+            {text ? (
+              <MessageResponse isAnimating={streaming} caret={streaming ? 'block' : undefined} translations={translations}>
+                {text}
+              </MessageResponse>
+            ) : streaming ? (
+              <TypingDots />
+            ) : null}
+            {stopped ? <p className="text-muted-foreground text-xs">{t('已停止生成')}</p> : null}
+          </MessageContent>
         )}
 
-        {!generating ? (
-          <div
+        {!streaming ? (
+          <MessageActions
             className={cn(
-              'flex items-center gap-0.5 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 md:opacity-0',
+              'gap-0.5 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 md:opacity-0',
               isUser && 'flex-row-reverse',
             )}
           >
-            {message.content && !isError ? <CopyAction text={message.content} /> : null}
-            {canRegenerate ? (
-              <ActionButton label={t('重新生成')} onClick={() => onRegenerate(message.id)}>
+            {text ? <CopyAction text={text} /> : null}
+            {onRegenerate ? (
+              <MessageAction tooltip={t('重新生成')} size="icon-xs" onClick={onRegenerate} className="text-muted-foreground hover:text-foreground">
                 <RotateCcw />
-              </ActionButton>
+              </MessageAction>
             ) : null}
-            {!busy ? (
-              <ActionButton label={t('删除')} onClick={() => onDelete(message.id)} className="hover:text-danger">
+            {onDelete ? (
+              <MessageAction tooltip={t('删除')} size="icon-xs" onClick={onDelete} className="text-muted-foreground hover:text-danger">
                 <Trash2 />
-              </ActionButton>
+              </MessageAction>
             ) : null}
-          </div>
+          </MessageActions>
         ) : null}
-      </div>
+      </Message>
     </motion.div>
   )
 }

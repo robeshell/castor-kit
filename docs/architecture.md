@@ -178,12 +178,14 @@ castor-kit/
 - cron：`common/scheduler/cron.ts` 是自研 5 段匹配器（分 时 日 月 周），"日"与"周"是 **AND** 关系（标准 cron 在两者都受限时是 OR），周字段 Sunday=0，逐分钟向前扫描最多 366 天，UTC。**不要**换成 `cron-parser` / `croner`，否则已有任务的 `next_run_at` 会变。
 - SSRF 防护：只允许 http/https，禁止 localhost / 私网 / 链路本地 / 元数据地址；执行时用 `undici` 自定义 `connect.lookup` 把解析结果钉死并复检（见 §9）；`timeout_seconds` 1–120。响应体截断后写 `scheduled_task_runs`。
 
-### 4.10 AI 对话（SSE）
-- `POST /api/admin/component-center/ai/chat/stream`：`undici.fetch` 上游 OpenAI 兼容接口（`AI_API_BASE/chat/completions`，`stream:true`），逐行解析 `data:`，转发为 `data: {"content": "..."}\n\n`，结束 `data: [DONE]\n\n`。
-- 上游非 200 不透传响应体，只给 `AI 服务暂时不可用（<status>）`；超时 60s。
-- 响应头 `Content-Type: text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`；用 `reply.hijack()` + `reply.raw` 流式写，监听连接关闭中止上游请求。
+### 4.10 AI 调用与 AI 对话（Vercel AI SDK）
+- 模型统一由 `common/ai.ts` 的 `languageModelFor(settings.ai, agent)` 创建：`ai.provider`（`AI_PROVIDER`）为 `openai-compatible`（默认，需要接口地址）/ `openai` / `anthropic` / `google`，后三者接口地址可留空（官方地址）或填代理。请求经 `createAiAgent`（即 `createOutboundAgent`）发出，连接时复查实际 IP；调用一律 `maxRetries: 0`（重试会重复消耗演示额度、掩盖上游错误）。`aiConfigured` = 有 Key 和模型名，OpenAI 兼容接口还要有地址。
+- `POST /api/admin/component-center/ai/chat/stream`：请求体 `{ messages: UIMessage[] }`（前端 `useChat` 发送），`safeValidateUIMessages` 校验（最多 200 条），`convertToModelMessages` 后 `streamText`；响应为 AI SDK 的 UI message stream（SSE，`x-vercel-ai-ui-message-stream: v1`）。上游错误只以流内 `error` 块给出通用文案（带状态码，按 `Accept-Language` 翻译），详情写服务端日志；`toUIMessageStream` 外再包一层 `createUIMessageStream`，读上游响应体中途出错（如超时）也会变成 `error` 块而不是断流。超时 60s（连接、等响应头、两块之间）。
+- 用 `reply.send(Readable.fromWeb(...))` 而不是 `hijack` / `pipeUIMessageStreamToResponse`：保留 onSend（会话续期的 Set-Cookie）与操作日志；该路由关闭压缩，客户端断开时中止上游请求。
+- AI 数据查询（`generateText`）与系统设置的「测试调用」走同一个工厂；演示模式的输入上限按消息文字计算（`aiInputChars`），输出上限 `DEMO_MAX_OUTPUT_TOKENS`。
 
 ### 4.11 AI 数据查询（只读引擎）
+- 模型返回错误状态、2xx 但不是对话补全格式、没有文字时是可由运维修正的配置问题（`LlmConfigError`，提示检查模型配置并带上状态码），网络 / 超时是通用失败。
 - 独立 `pg.Pool`（`db/readonly.ts`），连接参数 `-c default_transaction_read_only=on -c statement_timeout=<ms>`；每次查询前再 `SET LOCAL` 一遍（抵消池化连接被污染）。
 - SQL 包裹 `SELECT * FROM (<sql>) AS _q LIMIT 200`；关键字拦截前先剥离字符串字面量。
 - 生产环境 `AI_SQL_DATABASE_URL` 缺失 → 启动失败（fail-closed）；开发环境回退主库 URL 但仍带只读参数。

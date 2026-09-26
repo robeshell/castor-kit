@@ -44,11 +44,11 @@ Group directory `creative/`; frontend-only pages.
 
 ## AI Apps
 
-Group directory `ai/`. Requires an OpenAI-compatible API, configured on the AI tab of System settings; see [Configuration](/en/reference/configuration#ai-model).
+Group directory `ai/`. Requires a model service, configured on the AI tab of System settings; see [Configuration](/en/reference/configuration#ai-model).
 
 | Page | Route | Description |
 |---|---|---|
-| AI Chat | `/component-center/ai/chat` | Streaming (SSE) chat interface |
+| AI Chat | `/component-center/ai/chat` | Streaming chat (Vercel AI SDK `useChat` + AI Elements) |
 | AI Prompt Studio | `/component-center/ai/prompt` | Prompt template library that extracts template variables and previews in real time |
 | AI Data Query | `/component-center/ai/sql` | Generates SQL from natural language, runs it on a read-only connection, and shows the results and a chart |
 

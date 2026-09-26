@@ -17,8 +17,6 @@
   "限流按 IP 统计；多实例部署时每个实例分别计数": "Limits are per IP; with several instances each one counts separately",
   "每分钟请求上限": "Requests per minute",
   "每分钟登录类请求上限": "Sign-in requests per minute",
-  "AI 对话、AI 数据查询等功能使用的 OpenAI 兼容接口": "The OpenAI-compatible API used by AI chat, AI data query and other AI features",
-  "OpenAI 兼容接口，请求发往 <地址>/chat/completions": "OpenAI-compatible API; requests go to <URL>/chat/completions",
   "S3 连接": "S3 connection",
   "SMTP 服务器": "SMTP server",
   "一段时间不操作后需要重新登录（有操作时自动续期）": "Users sign in again after this long without activity (activity extends it)",
@@ -100,5 +98,10 @@
   "允许使用 API Token": "Allow API tokens",
   "开启后用户可以在个人设置里创建 API Token；关闭后已有的 Token 全部暂停使用，重新开启后恢复": "Users can create API tokens in Profile. Turning this off pauses every existing token until it’s turned back on",
   "开放接口": "Open API",
-  "脚本和其他系统用 API Token 调用接口；Webhook 不受这个开关影响": "Scripts and other systems call the API with API tokens; webhooks aren’t affected by this switch"
+  "脚本和其他系统用 API Token 调用接口；Webhook 不受这个开关影响": "Scripts and other systems call the API with API tokens; webhooks aren’t affected by this switch",
+  "服务类型": "Service type",
+  "OpenAI 兼容接口适用于 DeepSeek、通义千问、Gemini 兼容接口、Ollama 等；其余三项直接使用各家官方接口": "OpenAI-compatible fits DeepSeek, Qwen, Gemini's compatible endpoint, Ollama and more; the other three use each vendor's own API",
+  "OpenAI 兼容接口": "OpenAI-compatible",
+  "OpenAI 兼容接口必填，请求发往 <地址>/chat/completions；其他服务类型留空使用官方地址，也可以填代理地址": "Required for OpenAI-compatible (requests go to <URL>/chat/completions); leave empty for the other types to use the official API, or enter a proxy",
+  "AI 对话、AI 数据查询等功能使用的模型": "The model used by AI chat, AI data query and other features"
 }

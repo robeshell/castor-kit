@@ -972,14 +972,117 @@
       }
     },
     "/api/admin/component-center/ai/chat/stream": {
-      "POST": {
-        "summary": "POST /api/admin/component-center/ai/chat/stream",
+      "post": {
+        "summary": "AI 对话（流式）",
+        "x-apifox-folder": "组件示例/AI 应用",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "需要 cc_ai_chat。请求体是前端 `useChat`（Vercel AI SDK）发送的 UI 消息；清除上下文之后的消息才会发送，最多 200 条。响应是 AI SDK 的 UI message stream（SSE，响应头 `x-vercel-ai-ui-message-stream: v1`）：`start`、`text-start`、若干 `text-delta`、`text-end`、`finish`，最后 `data: [DONE]`。上游出错时流内给一个 `{\"type\":\"error\",\"errorText\":…}`（通用文案，最多带上游状态码，按 Accept-Language 翻译），HTTP 状态仍是 200。系统提示词由服务端注入；演示模式限制输入文字长度与输出 token。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "role",
+                        "parts"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant",
+                            "system"
+                          ]
+                        },
+                        "parts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "text"
+                                ]
+                              },
+                              "text": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "text"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "id": {
+                    "type": "string",
+                    "description": "useChat 的会话 ID（服务端不使用）"
+                  },
+                  "trigger": {
+                    "type": "string",
+                    "description": "submit-message / regenerate-message（服务端不使用）"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "example": {
+                "messages": [
+                  {
+                    "id": "m1",
+                    "role": "user",
+                    "parts": [
+                      {
+                        "type": "text",
+                        "text": "介绍一下 castor-kit"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "成功"
+            "description": "UI message stream（text/event-stream）",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "data: {\"type\":\"start\",\"messageId\":\"…\"}\n\ndata: {\"type\":\"text-delta\",\"id\":\"txt-0\",\"delta\":\"你好\"}\n\ndata: {\"type\":\"finish\"}\n\ndata: [DONE]\n\n"
+              }
+            }
           },
           "400": {
-            "description": "请求参数错误"
+            "description": "消息为空 / 格式不正确 / 对话太长；演示环境输入过长"
           },
           "401": {
             "description": "未授权"
@@ -987,11 +1090,11 @@
           "403": {
             "description": "无权限"
           },
-          "404": {
-            "description": "资源不存在"
+          "429": {
+            "description": "演示环境 AI 调用额度用完"
           },
           "500": {
-            "description": "服务器内部错误"
+            "description": "未配置 AI 模型"
           }
         }
       }

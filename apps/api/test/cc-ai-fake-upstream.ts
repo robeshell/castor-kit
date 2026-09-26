@@ -28,6 +28,8 @@ export interface FakeUpstream {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export const sseChunk = (content: unknown) => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
+/** Last chunk of a complete reply: the AI SDK treats a stream without a finish reason as cut off */
+export const FINISH = `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`
 
 /** Content chunks sent in the default streaming scenario (includes Chinese, quotes, backslashes, newlines, emoji, control characters, U+2028) */
 export const DEFAULT_PIECES = ['你好', '，"引号" \\ 反斜杠', '\n换行\t制表', '😀 emoji', '\u2028sep\u0001ctl', '</script>']
@@ -72,62 +74,36 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
         gate = new Promise<void>((r) => (releaseGate = r))
         if (!res.destroyed) {
           res.write(sseChunk('second'))
-          res.end('data: [DONE]\n\n')
+          res.end(FINISH)
         }
         return
       }
-      if (last === 'garbage') {
-        res.write(': comment\n\nevent: x\n')
-        res.write('data: not-json\n\n')
-        res.write('data: {"choices": []}\n\n')
-        res.write('data: {"choices": [{"delta": {"content": null}}]}\n\n')
-        res.write('data: {"choices": [{"delta": {"role": "assistant"}}]}\n\n')
-        res.write('data: {"choices": [{"delta": "str"}]}\n\n')
-        res.write('data: {"choices": "abc"}\n\n')
-        res.write('data: [1, 2]\n\n')
-        res.write('data: {"choices": [{"delta": {"content": 42}}]}\n\n')
-        res.write('data: {"choices": [{"delta": {"content": ["a", {"b": null}]}}]}\n\n')
-        res.write('data:{"choices":[{"delta":{"content":"no-space"}}]}\n')
-        res.write('data:    [DONE]   \n\n')
-        res.write(sseChunk('after done'))
-        return res.end()
-      }
-      if (last === 'nodone') {
-        res.write(sseChunk('only'))
-        return res.end()
-      }
-      if (last === 'crlf') {
-        const text = Buffer.from(
-          sseChunk('中文分块😀').replace(/\n\n$/, '\r\n') +
-            sseChunk('second').replace(/\n\n$/, '\r') +
-            sseChunk('third') +
-            'data: [DONE]\r\n',
-        )
-        for (let i = 0; i < text.length; i += 7) {
-          res.write(text.subarray(i, i + 7))
-          await sleep(2)
+      if (last === 'demo:markdown') {
+        // For trying the chat page by hand: a short markdown reply with a list, a table and a code block
+        const text =
+          '## 示例回复\n\n用 **castor-kit** 新增一个模块：\n\n1. 运行脚手架\n2. 补充业务逻辑\n\n| 命令 | 作用 |\n|---|---|\n| `pnpm scaffold` | 生成模块 |\n\n```ts\nexport async function hello(name: string): Promise<string> {\n  return `Hello, ${name}`\n}\n```\n'
+        for (let i = 0; i < text.length; i += 12) {
+          res.write(sseChunk(text.slice(i, i + 12)))
+          await sleep(30)
         }
-        return res.end()
+        return res.end(FINISH)
       }
-      if (last === 'badutf8') {
-        res.write(sseChunk('ok'))
-        res.write(Buffer.from([0x64, 0x61, 0x74, 0x61, 0x3a, 0xff, 0xfe, 0x0a]))
+      if (last === 'cutoff') {
+        // Ends without a finish reason (connection dropped mid-reply)
+        res.write(sseChunk('only'))
         return res.end()
       }
       if (last === 'slow') {
         res.write(sseChunk('first'))
         await sleep(300)
         res.write(sseChunk('second'))
-        res.write('data: [DONE]\n\n')
-        return res.end()
+        return res.end(FINISH)
       }
       for (const piece of DEFAULT_PIECES) {
         res.write(sseChunk(piece))
         await sleep(5)
       }
-      res.write('data: [DONE]\n\n')
-      res.write(sseChunk('ignored after done'))
-      return res.end()
+      return res.end(FINISH)
     }
 
     // Non-streaming (ai_sql call_llm)

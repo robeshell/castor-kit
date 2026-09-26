@@ -478,13 +478,12 @@ describe('AI SQL 路由', () => {
 
   it('generate：上游/配置错误分支', async () => {
     const configError = { error: 'AI 生成失败，请检查模型配置后重试' }
-    const generic = { error: 'AI 生成失败' }
     for (const [question, expected] of [
       ['q:status500', { error: 'AI 生成失败（模型服务返回 500），请检查模型配置后重试' }],
       ['q:status429', { error: 'AI 生成失败：模型服务的调用次数已达上限（429），请稍后再试' }],
       ['q:notjson', configError],
       ['q:nocontent', configError],
-      ['q:nochoices', generic],
+      ['q:nochoices', configError],
     ] as const) {
       const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question } })
       expect(res.statusCode).toBe(500)
@@ -498,7 +497,7 @@ describe('AI SQL 路由', () => {
 
   it('generate：没有接口地址 → 配置错误；上游连不上 → 通用错误', async () => {
     const badBase = await buildTestApp({ settingsEnv: { AI_API_KEY: 'x' } })
-    const refused = await buildTestApp({ settingsEnv: { AI_API_BASE: 'http://127.0.0.1:1', AI_API_KEY: 'x' } })
+    const refused = await buildTestApp({ settingsEnv: { AI_API_BASE: 'http://127.0.0.1:1', AI_API_KEY: 'x', AI_MODEL: 'm' } })
     try {
       const a = await loginSession(badBase, SUPER_USER, SUPER_PASSWORD)
       const r1 = await a.inject({ method: 'POST', url: GENERATE, payload: { question: 'x' } })
