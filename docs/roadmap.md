@@ -193,6 +193,21 @@
 
 **验收**：用 token 调用接口的权限不超过创建人；吊销后立即失效；Webhook 签名可被校验，失败会重试并记录。
 
+**方案细化**（动手前确定，与上文不一致处以此为准）：
+
+- **Token 格式**：`ck_` + 32 字节随机数（base64url），只存 sha256；列表展示前 11 位（`ck_` + 8 位）。有效期必填（界面默认 90 天，可选「永不过期」）；`last_used_at` / `last_used_ip` 每分钟最多写一次
+- **认证**：带 `Authorization: Bearer` 的请求只按 token 认证、不读 cookie、不走 CSRF、不创建会话；创建人被停用、token 吊销或过期，下一次请求即 401
+- **权限**：`scopes` 与创建人当前权限取交集，**先比 scopes 再看超级管理员**（超级管理员的 token 也只有它勾选的权限）；数据权限按创建人
+- **不允许 token 调用的接口**（统一返回 403「该接口不支持 API Token」）：登录 / 退出 / 找回密码、修改密码、验证身份、两步验证（包括管理员重置别人的两步验证）、个人设置、在线用户与会话、token 管理本身、修改系统设置与测试按钮、Webhook 的增删改
+- **开关**：系统设置「允许创建 API Token」，默认关闭；关闭后已有 token 全部停用（保留，重新打开恢复）；演示模式不可开启
+- **页面**：个人设置里创建 / 吊销自己的 token（权限只能从自己拥有的权限里勾选）；「安全审计 → API Token」（ID 38，按钮 381 吊销）查看与吊销全部 token；操作日志新增 `api_token_id` 列，注明请求来自哪个 token
+- **Webhook**：「系统配置 → Webhook」（ID 39，按钮 391 新增 / 392 编辑 / 393 删除）；密钥用 `secret-box` 加密存储，验证身份后可查看，可重新生成
+- **事件**：服务层在事务提交**之后**写入投递记录，失败只记日志、不影响业务请求；`created` / `updated` 带完整记录，`deleted` 只带 `{ id }`；第一版不为导入逐行发事件。内置：用户、角色、部门；脚手架生成的模块自动发 `<模块>.created/updated/deleted` 并登记事件名；可订阅 `*` 或 `user.*` 这类前缀
+- **投递**：写入后立即在后台尝试一次，失败由调度器按 1 分钟 / 5 分钟 / 30 分钟 / 2 小时 / 6 小时重试，第 6 次仍失败记为失败；用 `UPDATE … WHERE status='pending' RETURNING` 认领，避免 web 与 worker 重复发送；不跟随重定向；响应体截断到 2000 字符；超时 10 秒
+- **签名**：`X-Castor-Signature: sha256=<HMAC-SHA256(secret, "<timestamp>.<body>")>`，另带 `X-Castor-Timestamp`、`X-Castor-Event`、`X-Castor-Delivery`（事件 ID，用于去重）
+- **SSRF**：目标地址用 `common/outbound.ts` 检查（保留地址一律拒绝，内网看 `SETTINGS_ALLOW_PRIVATE_NETWORK`），发送时在连接层再查一次实际 IP
+- **菜单 ID**：系统管理的 21–39 用完；之后的系统页面从 2001 起（按钮 = ID × 10 + 序号）
+
 ---
 
 ## 6. 在线可视化建模与 AI 助手
