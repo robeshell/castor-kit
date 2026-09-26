@@ -163,8 +163,9 @@ AI モデル（API の URL、キー、モデル名）はシステム設定で設
 | API の URL：OpenAI 互換 API では必須（例：`https://api.deepseek.com/v1`）。他の種類では空欄で公式 API、またはプロキシを指定 | `AI_API_BASE` | 空 |
 | API キー | `AI_API_KEY` | 空 |
 | モデル | `AI_MODEL` | 空 |
+| AI アシスタントを有効にする：右下のチャットアシスタント。ログイン中のユーザーとしてデータを検索し、確認後に変更します。[AI アシスタント](/ja/guide/assistant) を参照。先にモデルの設定が必要 | なし（画面でのみ設定） | オフ |
 
-AI チャット、AI プロンプト工房、AI データ検索はこの設定を共有します。呼び出しは Vercel AI SDK 経由で、自動の再試行はしません。「OpenAI 互換 API」は DeepSeek、Qwen、Gemini の互換エンドポイント、Ollama など `/chat/completions` を提供するサービスすべてに使えます。未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
+AI チャット、AI プロンプト工房、AI データ検索、AI アシスタントはこの設定を共有します。呼び出しは Vercel AI SDK 経由で、自動の再試行はしません。「OpenAI 互換 API」は DeepSeek、Qwen、Gemini の互換エンドポイント、Ollama など `/chat/completions` を提供するサービスすべてに使えます。未設定の場合、これらのページには未設定である旨が表示されますが、ほかの機能には影響しません。
 
 ### ログインのロック {#login-lockout}
 

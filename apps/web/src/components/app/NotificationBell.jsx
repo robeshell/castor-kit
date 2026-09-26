@@ -99,7 +99,11 @@ export default function NotificationBell() {
             {t('全部已读')}
           </Button>
         </div>
-        <ScrollArea className="max-h-[380px]">
+        {/*
+          The limit goes on the viewport (a max-height on the root doesn't bound it), and Radix's inner
+          `display: table` wrapper is made a block, or it grows to the text width and long titles run under the scrollbar
+        */}
+        <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[380px] [&>[data-slot=scroll-area-viewport]>div]:!block">
           {items.length === 0 ? (
             <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 py-10 text-sm">
               <Bell className="size-5 opacity-50" />
@@ -119,7 +123,7 @@ export default function NotificationBell() {
                   >
                     <span className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', DOT[item.noti_type] || 'bg-info')} />
                     <span className="min-w-0 flex-1">
-                      <span className={cn('block truncate text-[13px]', !item.is_read && 'font-medium')}>
+                      <span title={item.title} className={cn('line-clamp-2 text-[13px] break-words', !item.is_read && 'font-medium')}>
                         {item.title}
                       </span>
                       <span className="text-muted-foreground mt-0.5 block text-xs">{formatRelative(item.created_at)}</span>

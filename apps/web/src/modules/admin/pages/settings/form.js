@@ -76,6 +76,10 @@ export const FIELD_META = {
   },
   'ai.api_key': { label: 'API Key', description: '加密保存，保存后不再显示' },
   'ai.model': { label: '模型', placeholder: 'gpt-4o-mini' },
+  'ai.assistant_enabled': {
+    label: '启用 AI 小助手',
+    description: '右下角的 AI 小助手：以当前用户的身份查询数据，修改数据前逐条请用户确认；账号安全、系统设置和导入导出不开放给它',
+  },
 }
 
 /** API items → form values */

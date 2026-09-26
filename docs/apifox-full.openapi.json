@@ -75,6 +75,10 @@
     {
       "name": "后台-Webhook",
       "description": "Webhook：事件推送、投递记录"
+    },
+    {
+      "name": "后台-AI 小助手",
+      "description": "全局 AI 小助手：问答、查数、带确认的操作"
     }
   ],
   "components": {
@@ -600,6 +604,106 @@
           },
           "500": {
             "description": "服务器内部错误"
+          }
+        }
+      }
+    },
+    "/api/admin/assistant/chat": {
+      "post": {
+        "tags": [
+          "后台-AI 小助手"
+        ],
+        "summary": "AI 小助手对话（流式）",
+        "x-apifox-folder": "后台/AI 小助手",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "只需登录；系统设置「AI 小助手」开启（且已配置 AI 模型）时可用，不接受 API Token。请求体是前端 useChat 发送的 UI 消息，外加 context（用户所在页面）。助手可调用三个工具：search_api（在接口目录中查找）、api_get（以当前用户身份读取）、api_write（POST / PUT / PATCH / DELETE，每次都返回 tool-approval-request，用户确认后前端带上 approval-responded 的消息再次请求才执行；确认请求带服务端签名，伪造无效）。账号、安全、导入导出等接口不在目录中且会被拒绝。工具经 app.inject 以当前用户的会话执行：权限、数据权限、演示模式限制、操作日志照常生效。响应为 AI SDK 的 UI message stream（SSE）。演示模式计入 AI 额度，每条消息最多 4 轮工具调用（平时 8 轮）。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "role",
+                        "parts"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant",
+                            "system"
+                          ]
+                        },
+                        "parts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "context": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "title": {
+                        "type": "string",
+                        "maxLength": 100
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "UI message stream（text/event-stream）",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "消息为空 / 格式不正确 / 对话太长"
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "403": {
+            "description": "AI 小助手未开启"
+          },
+          "429": {
+            "description": "演示环境 AI 调用额度用完"
           }
         }
       }

@@ -210,6 +210,18 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'ai.api_base', label: 'AI 接口地址', group: 'ai', type: 'string', default: () => '', maxLength: 300, normalize: httpUrl, env: 'AI_API_BASE' },
   { key: 'ai.api_key', label: 'AI API Key', group: 'ai', type: 'secret', default: () => '', env: 'AI_API_KEY' },
   { key: 'ai.model', label: 'AI 模型', group: 'ai', type: 'string', default: () => '', maxLength: 200, env: 'AI_MODEL' },
+  {
+    key: 'ai.assistant_enabled',
+    label: 'AI 小助手',
+    group: 'ai',
+    type: 'boolean',
+    default: () => false,
+    public: true,
+    unavailable: (_config, settings) =>
+      settings.ai.apiKey && settings.ai.model && (settings.ai.provider !== 'openai-compatible' || settings.ai.apiBase)
+        ? null
+        : '需要先配置 AI 模型（API Key 和模型名）',
+  },
 ]
 
 const DEFINITIONS = new Map(SETTING_DEFINITIONS.map((d) => [d.key, d]))
@@ -220,6 +232,7 @@ export interface Settings {
   totpRequiredRoles: string[]
   passwordResetEnabled: boolean
   apiTokensEnabled: boolean
+  assistantEnabled: boolean
   passwordMinLength: number
   passwordRequireLettersDigits: boolean
   passwordRequireSymbol: boolean
@@ -259,6 +272,7 @@ function toSettings(values: Map<string, SettingValue>, config: AppConfig): Setti
     totpRequiredRoles: get<string[]>('security.totp_required_roles'),
     passwordResetEnabled: get<boolean>('security.password_reset_enabled'),
     apiTokensEnabled: get<boolean>('security.api_tokens_enabled'),
+    assistantEnabled: get<boolean>('ai.assistant_enabled'),
     passwordMinLength: get<number>('security.password_min_length'),
     passwordRequireLettersDigits: get<boolean>('security.password_require_letters_digits'),
     passwordRequireSymbol: get<boolean>('security.password_require_symbol'),
@@ -514,7 +528,7 @@ export class SettingsStore {
 
   /** Whether a switch-type feature can actually be used right now (on, and its prerequisites still met) */
   isAvailable(
-    key: 'security.totp_enabled' | 'security.password_reset_enabled' | 'security.api_tokens_enabled',
+    key: 'security.totp_enabled' | 'security.password_reset_enabled' | 'security.api_tokens_enabled' | 'ai.assistant_enabled',
     settings: Settings,
   ): boolean {
     const on =
@@ -522,7 +536,9 @@ export class SettingsStore {
         ? settings.totpEnabled
         : key === 'security.password_reset_enabled'
           ? settings.passwordResetEnabled
-          : settings.apiTokensEnabled
+          : key === 'ai.assistant_enabled'
+            ? settings.assistantEnabled
+            : settings.apiTokensEnabled
     return on && !DEFINITIONS.get(key)!.unavailable?.(this.config, settings)
   }
 
@@ -569,6 +585,7 @@ export class SettingsStore {
         },
       },
       upload: { max_size: s.upload.maxSize, allowed_types: s.upload.allowedTypes },
+      assistant: this.isAvailable('ai.assistant_enabled', s),
     }
   }
 }

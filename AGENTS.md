@@ -601,7 +601,8 @@ Step 4  执行实现
         → 在 seed-rbac.ts 添加菜单 + 按钮权限（_add/_edit/_delete/_export/_import），运行 pnpm seed:rbac -- --incremental
         → 审查 apps/api/drizzle/ 下新生成的 SQL，运行 pnpm db:migrate
         → 在本文件「当前菜单树」补上新菜单
-        → pnpm openapi:generate，在 docs/apifox-full.openapi.json 补全新接口 schema（建议项，verify 只提醒）
+        → pnpm openapi:generate，在 docs/apifox-full.openapi.json 补全新接口 schema，summary 写成看得懂的中文（建议项，verify 只提醒；
+          AI 小助手靠这份文档找接口，没写的接口它很难用上）
 
 Step 5  验证门禁（强制，不得跳过）
         → pnpm verify -- --module <name>（含前端构建与前后端单元测试；调试中途可 --skip-build / --skip-api-tests）
@@ -795,4 +796,5 @@ ID=3   组件示例中心 (component_center)
 - cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
 - 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
 - 操作日志用全局 `onResponse` hook 集中写，不散到 service
+- AI 小助手（`modules/admin/assistant`）的工具一律经 `app.inject` 带着当前用户的 cookie / CSRF 调用自己的接口，权限、数据权限、演示模式限制和操作日志都由原接口负责；不要给它加直连数据库或绕过路由的工具。写操作必须 `needsApproval`（审批请求用 `SECRET_KEY` 派生的密钥签名）；账号安全、系统设置、导入导出等不开放的接口登记在 `catalog.ts` 的 `ASSISTANT_DENIED`
 - 运行环境由 `NODE_ENV` 决定；生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 拒绝启动

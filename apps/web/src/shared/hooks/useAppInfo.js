@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { getAppInfo } from '@/modules/admin/api/auth'
 
-// Fetched once per page load and shared by every caller (login page, demo banner)
+// Fetched once per page load and shared by every caller (login page, demo banner, AI assistant)
 let cached = null
 let pending = null
+/** Mounted useAppInfo() hooks, told when the info is fetched again */
+const listeners = new Set()
 
 function load() {
   pending ??= getAppInfo()
@@ -12,27 +14,31 @@ function load() {
   return pending
 }
 
-/** Drop the cached app info, so pages mounted later load it again (after system settings are saved) */
+/** Fetch the app info again (after system settings are saved); mounted hooks get the new value */
 export function invalidateAppInfo() {
   cached = null
   pending = null
+  if (listeners.size > 0) load().then((info) => listeners.forEach((notify) => notify(info)))
 }
 
 /**
  * Public app info: `{ demo_mode, demo_reset_hours?, demo_account?, upload: { max_size, allowed_types },
- * security: { totp_enabled, password_reset_enabled, password_policy } }`.
+ * security: { totp_enabled, password_reset_enabled, password_policy }, assistant }` (assistant: the AI assistant is on).
  * Returns null until loaded; failures count as "not a demo".
  */
 export function useAppInfo() {
   const [info, setInfo] = useState(cached)
   useEffect(() => {
-    if (cached) return undefined
+    listeners.add(setInfo)
     let alive = true
-    load().then((value) => {
-      if (alive) setInfo(value)
-    })
+    if (!cached) {
+      load().then((value) => {
+        if (alive) setInfo(value)
+      })
+    }
     return () => {
       alive = false
+      listeners.delete(setInfo)
     }
   }, [])
   return info

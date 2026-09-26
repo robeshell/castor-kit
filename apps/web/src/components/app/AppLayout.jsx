@@ -1,4 +1,4 @@
-import { Activity, Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useOutlet } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -15,6 +15,10 @@ import TagsView from '@/components/app/TagsView'
 import TopBar from '@/components/app/TopBar'
 import { TagsViewProvider, useTagsView } from '@/context/TagsViewContext'
 import { findActiveMenu, flattenMenus, sectionOf } from '@/components/app/menu-tree'
+import { useAppInfo } from '@/shared/hooks/useAppInfo'
+
+// Loaded only when the assistant is on (it pulls in the markdown renderer)
+const AssistantWidget = lazy(() => import('@/components/app/assistant/AssistantWidget'))
 
 /**
  * Page area. With the tags view on, every open tab's page stays mounted inside <Activity>:
@@ -49,6 +53,18 @@ function PageArea({ keepAlive, container }) {
     }
     if (scrollRef.current) scrollRef.current.scrollTop = cacheable ? (scrollTops.current.get(current) ?? 0) : 0
   }, [current, cacheable, version])
+
+  // Full-height pages (AI chat, prompt studio) size themselves from --page-area-height: the scroll area's real height,
+  // which already leaves out the top bar and the tags view
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const update = () => el.style.setProperty('--page-area-height', `${el.clientHeight}px`)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const animated = (key, children) => (
     <motion.div
@@ -101,6 +117,7 @@ function Shell() {
   const { navMode, sidebarVariant, contentWidth, tagsView } = useTheme()
   const isMobile = useIsMobile()
   const [searchOpen, setSearchOpen] = useState(false)
+  const assistant = useAppInfo()?.assistant
 
   const flat = useMemo(() => flattenMenus(menus), [menus])
   const section = useMemo(() => sectionOf(findActiveMenu(flat, location.pathname)), [flat, location.pathname])
@@ -117,6 +134,11 @@ function Shell() {
         <PageArea keepAlive={tagsView && !isMobile} container={contentContainerClass(contentWidth)} />
       </SidebarInset>
       <CommandMenu open={searchOpen} onOpenChange={setSearchOpen} />
+      {assistant ? (
+        <Suspense fallback={null}>
+          <AssistantWidget />
+        </Suspense>
+      ) : null}
     </SidebarProvider>
   )
 }

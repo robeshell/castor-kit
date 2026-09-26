@@ -16,6 +16,8 @@ declare module 'fastify' {
     mailer: MailerProvider
     /** Domain events for webhooks: `await app.events.emit('user.created', data)` after a write (common/webhooks.ts) */
     events: EventBus
+    /** Registered routes (method + URL pattern), see app.ts */
+    routeTable: Array<{ method: string; url: string }>
   }
   interface FastifyRequest {
     /** Per-request cache for getCurrentAdminUser(); undefined = not yet queried */

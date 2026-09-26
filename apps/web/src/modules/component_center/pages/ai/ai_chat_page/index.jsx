@@ -112,8 +112,9 @@ export default function AiChatPage() {
 
   const showHints = !busy && !messages.some((m) => m.role === 'user')
 
+  // Fills the page area exactly (its height minus the container padding, py-6 / md:py-7): no page scrollbar
   return (
-    <div className="flex h-[calc(100svh-104px)] flex-col md:h-[calc(100svh-112px)]">
+    <div className="flex flex-col h-[calc(var(--page-area-height,100svh)-3rem)] md:h-[calc(var(--page-area-height,100svh)-3.5rem)]">
       <PageHeader
         title="AI 对话"
         actions={

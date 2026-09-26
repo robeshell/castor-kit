@@ -287,9 +287,14 @@ export default function Settings() {
                     {field('ai.model')}
                   </div>
                 </Panel>
-                <Panel title="连通性测试" description="发一条很短的消息，确认地址、API Key 和模型名可用">
-                  <TestAction label="测试调用" disabled={!canEdit} run={() => reauth.run(() => testAiSettings(draft('ai.')))} />
-                </Panel>
+                <div className="space-y-4">
+                  <Panel title="连通性测试" description="发一条很短的消息，确认地址、API Key 和模型名可用">
+                    <TestAction label="测试调用" disabled={!canEdit} run={() => reauth.run(() => testAiSettings(draft('ai.')))} />
+                  </Panel>
+                  <Panel title="AI 小助手" description="每个页面右下角的对话助手（⌘/Ctrl + J），能回答问题、查数据、在确认后帮用户操作">
+                    {field('ai.assistant_enabled')}
+                  </Panel>
+                </div>
               </div>
             ) : null}
           </form>

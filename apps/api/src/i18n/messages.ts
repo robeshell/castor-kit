@@ -363,6 +363,8 @@ export const MESSAGES: Record<string, MessageEntry> = {
   'AI 响应异常，请稍后重试': { 'en-US': 'The AI response failed. Please try again later.', 'ja-JP': 'AI の応答でエラーが発生しました。しばらくしてから再度お試しください。' },
   '对话太长，请清除上下文后再试': { 'en-US': 'The conversation is too long. Clear the context and try again.', 'ja-JP': '会話が長すぎます。コンテキストをクリアしてから再度お試しください。' },
   '消息格式不正确': { 'en-US': 'The messages are malformed', 'ja-JP': 'メッセージの形式が正しくありません' },
+  'AI 小助手未开启': { 'en-US': 'The AI assistant is turned off', 'ja-JP': 'AI アシスタントはオフになっています' },
+  '需要先配置 AI 模型（API Key 和模型名）': { 'en-US': 'Configure the AI model first (API key and model name)', 'ja-JP': '先に AI モデル（API キーとモデル名）を設定してください' },
   '消息不能为空': { 'en-US': 'Message is required', 'ja-JP': 'メッセージを入力してください' },
   '无权限新建模板': { 'en-US': "You don't have permission to create templates", 'ja-JP': 'テンプレートを作成する権限がありません' },
   '无权限编辑模板': { 'en-US': "You don't have permission to edit templates", 'ja-JP': 'テンプレートを編集する権限がありません' },

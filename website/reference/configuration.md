@@ -164,8 +164,9 @@ AI 模型（接口地址、API Key、模型名）在系统设置里配置，见�
 | 接口地址：OpenAI 兼容接口必填（如 `https://api.deepseek.com/v1`），其他类型留空用官方地址或填代理 | `AI_API_BASE` | 空 |
 | API Key | `AI_API_KEY` | 空 |
 | 模型 | `AI_MODEL` | 空 |
+| 启用 AI 小助手：右下角的对话助手，以当前用户身份查数据、确认后修改数据，见 [AI 小助手](/guide/assistant)；需要先配置好模型 | 无（只能在页面上设置） | 关闭 |
 
-AI 对话、AI 提示词工坊、AI 数据查询共用这组设置，调用经 Vercel AI SDK 发出，不自动重试。「OpenAI 兼容接口」适用于 DeepSeek、通义千问、Gemini 的兼容接口、Ollama 等所有提供 `/chat/completions` 的服务。未配置时这些页面提示未配置，其他功能不受影响。
+AI 对话、AI 提示词工坊、AI 数据查询和 AI 小助手共用这组设置，调用经 Vercel AI SDK 发出，不自动重试。「OpenAI 兼容接口」适用于 DeepSeek、通义千问、Gemini 的兼容接口、Ollama 等所有提供 `/chat/completions` 的服务。未配置时这些页面提示未配置，其他功能不受影响。
 
 ### 登录锁定
 
