@@ -63,6 +63,7 @@ function roleFromRow(row: Record<string, unknown>, prefix: string): Role {
     name: row[`${prefix}name`] as string,
     code: row[`${prefix}code`] as string,
     description: row[`${prefix}description`] as string | null,
+    data_scope: (row[`${prefix}data_scope`] as string | undefined) ?? 'all',
     created_at: row[`${prefix}created_at`] as string | null,
   }
 }
@@ -74,7 +75,8 @@ export class RoleRepository {
   async listWithMenusPyOrder(): Promise<RoleWithMenus[]> {
     const result = await this.db.execute<Record<string, unknown>>(sql`
       SELECT roles.id AS roles_id, roles.name AS roles_name, roles.code AS roles_code,
-             roles.description AS roles_description, roles.created_at AS roles_created_at, ${MENU_COLUMNS('menus_1')}
+             roles.description AS roles_description, roles.data_scope AS roles_data_scope,
+             roles.created_at AS roles_created_at, ${MENU_COLUMNS('menus_1')}
       FROM roles LEFT OUTER JOIN (role_menus AS role_menus_1 JOIN menus AS menus_1 ON menus_1.id = role_menus_1.menu_id)
         ON roles.id = role_menus_1.role_id
     `)

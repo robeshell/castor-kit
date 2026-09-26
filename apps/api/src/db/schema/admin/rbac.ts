@@ -1,5 +1,6 @@
 /**
- * RBAC tables: admin_users / roles / menus / user_roles / role_menus
+ * RBAC tables: admin_users / roles / menus / user_roles / role_menus,
+ * plus the data-scope tables: departments / role_depts (roles.data_scope decides which rows a role may see)
  */
 
 import { relations } from 'drizzle-orm'
@@ -14,6 +15,7 @@ import {
   timestamp,
   unique,
   varchar,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { collectMenuCodes } from '@/common/rbac'
 import { toIso } from '@/common/serialize'
@@ -32,14 +34,17 @@ export const admin_users = pgTable(
     avatar: varchar({ length: 500 }),
     /** 'active' | 'disabled'. A real DB default (unlike the timestamp columns) so existing rows and raw INSERTs get it */
     status: varchar({ length: 20 }).notNull().default('active'),
-    /** Department (used from roadmap stage 1; no FK until the departments table exists) */
-    dept_id: integer(),
+    /** No FK name here: a named foreignKey() would make the admin_users ↔ departments types circular */
+    dept_id: integer().references((): AnyPgColumn => departments.id, { onDelete: 'set null' }),
     last_login_at: timestamp({ mode: 'string' }),
     last_login_ip: varchar({ length: 64 }),
     created_at: createdAt(),
     updated_at: updatedAt(),
   },
-  (table) => [unique('admin_users_username_key').on(table.username), unique('admin_users_email_key').on(table.email)],
+  (table) => [
+    unique('admin_users_username_key').on(table.username),
+    unique('admin_users_email_key').on(table.email),
+  ],
 )
 
 export const roles = pgTable(
@@ -49,9 +54,62 @@ export const roles = pgTable(
     name: varchar({ length: 100 }).notNull(),
     code: varchar({ length: 50 }).notNull(),
     description: text(),
+    /** 'all' | 'dept_and_children' | 'dept' | 'self' | 'custom'; defaults to 'all' so existing roles keep seeing everything */
+    data_scope: varchar({ length: 20 }).notNull().default('all'),
     created_at: createdAt(),
   },
   (table) => [unique('roles_code_key').on(table.code)],
+)
+
+export const departments = pgTable(
+  'departments',
+  {
+    id: serial().primaryKey().notNull(),
+    parent_id: integer(),
+    name: varchar({ length: 100 }).notNull(),
+    code: varchar({ length: 50 }).notNull(),
+    leader_id: integer(),
+    sort_order: integer().notNull().default(0),
+    /** 'active' | 'disabled' */
+    status: varchar({ length: 20 }).notNull().default('active'),
+    created_at: createdAt(),
+    updated_at: updatedAt(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.parent_id],
+      foreignColumns: [table.id],
+      name: 'departments_parent_id_fkey',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.leader_id],
+      foreignColumns: [admin_users.id],
+      name: 'departments_leader_id_fkey',
+    }).onDelete('set null'),
+    unique('departments_code_key').on(table.code),
+  ],
+)
+
+/** Departments of a role with data_scope = 'custom' */
+export const role_depts = pgTable(
+  'role_depts',
+  {
+    role_id: integer().notNull(),
+    dept_id: integer().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.role_id],
+      foreignColumns: [roles.id],
+      name: 'role_depts_role_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.dept_id],
+      foreignColumns: [departments.id],
+      name: 'role_depts_dept_id_fkey',
+    }).onDelete('cascade'),
+    primaryKey({ columns: [table.role_id, table.dept_id], name: 'role_depts_pkey' }),
+  ],
 )
 
 export const menus = pgTable(
@@ -156,6 +214,7 @@ export const role_menus_relations = relations(role_menus, ({ one }) => ({
 export type AdminUser = typeof admin_users.$inferSelect
 export type Role = typeof roles.$inferSelect
 export type Menu = typeof menus.$inferSelect
+export type Department = typeof departments.$inferSelect
 
 export type RoleWithMenus = Role & { menus: Menu[] }
 /** User with roles → menus preloaded */
@@ -239,5 +298,19 @@ export function menuToDict(menu: Menu): MenuDict {
     description: menu.description,
     created_at: toIso(menu.created_at),
     updated_at: toIso(menu.updated_at),
+  }
+}
+
+export function departmentToDict(dept: Department) {
+  return {
+    id: dept.id,
+    parent_id: dept.parent_id,
+    name: dept.name,
+    code: dept.code,
+    leader_id: dept.leader_id,
+    sort_order: dept.sort_order,
+    status: dept.status,
+    created_at: toIso(dept.created_at),
+    updated_at: toIso(dept.updated_at),
   }
 }
