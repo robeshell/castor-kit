@@ -1,5 +1,6 @@
 {
   "不属于任何部门": "No department",
+  "不能修改自己的角色": "You can't change your own roles",
   "从未登录": "Never",
   "例如 zhangsan": "e.g. jsmith",
   "停用后该账号无法登录，已登录的会话会在下一次操作时失效。": "They won't be able to sign in, and any signed-in session ends on its next request.",
@@ -7,6 +8,7 @@
   "停用账号": "Disable",
   "全部部门": "All departments",
   "删除用户 {{name}}？": "Delete user {{name}}?",
+  "只有超级管理员可以操作超级管理员账号": "Only super admins can change super admin accounts",
   "启用账号": "Enable",
   "导入用户": "Import users",
   "导出用户": "Export users",
