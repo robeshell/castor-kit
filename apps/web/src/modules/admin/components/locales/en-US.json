@@ -8,5 +8,6 @@
   "昵称不能超过 100 个字符": "The nickname must be at most 100 characters",
   "显示名称，可留空": "Display name (optional)",
   "邮箱不能超过 100 个字符": "The email must be at most 100 characters",
-  "邮箱格式不正确": "Invalid email address"
+  "邮箱格式不正确": "Invalid email address",
+  "完成": "Done"
 }

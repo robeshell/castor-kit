@@ -39,6 +39,7 @@ export const loginRequired: preHandlerAsyncHookHandler = async (request, reply) 
  * call a protected endpoint meanwhile, and that must not throw the user back to the password step.
  */
 function endSession(request: FastifyRequest): void {
+  if (request.apiToken) return
   if (request.session.get('sid') && !request.authSession?.mfa_state) clearSession(request)
 }
 
@@ -95,8 +96,10 @@ export async function loadAdminsWithRolesByIds(db: Executor, ids: number[]): Pro
 export async function getCurrentAdminUser(request: FastifyRequest): Promise<AdminUserWithRoles | null> {
   if (request.currentAdminUser !== undefined) return request.currentAdminUser
 
+  // An API token acts as its creator; a session in a sign-in step (2FA) isn't signed in yet
   const session = request.authSession
-  const [user] = session && !session.mfa_state ? await loadAdminsWithRolesByIds(request.server.db, [session.user_id]) : []
+  const userId = request.apiToken ? request.apiToken.created_by : session && !session.mfa_state ? session.user_id : null
+  const [user] = userId !== null ? await loadAdminsWithRolesByIds(request.server.db, [userId]) : []
   request.currentAdminUser = user && user.status === 'active' ? user : null
   return request.currentAdminUser
 }
@@ -106,7 +109,12 @@ export async function currentUsername(request: FastifyRequest): Promise<string |
   return (await getCurrentAdminUser(request))?.username
 }
 
+/**
+ * Whether the current user holds a menu / button permission. With an API token the code must also be one of the
+ * token's scopes — checked first, so a super admin's token is limited to what it was granted too.
+ */
 export async function hasMenuPermission(request: FastifyRequest, menuCode: string): Promise<boolean> {
+  if (request.apiToken && !request.apiToken.scopes.includes(menuCode)) return false
   const user = await getCurrentAdminUser(request)
   return Boolean(user && userHasMenuCode(user, menuCode))
 }

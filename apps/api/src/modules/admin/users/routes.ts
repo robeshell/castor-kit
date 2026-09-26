@@ -13,10 +13,13 @@ import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from 
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
 import { isUserStatus } from './schema'
+import { declareEvents } from '@/common/webhooks'
 import { UserService, type Caller } from './service'
 
+declareEvents({ 'user.created': '用户已新增', 'user.updated': '用户已修改（含资料、状态、角色）', 'user.deleted': '用户已删除' })
+
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
-  const service = new UserService(app.db, app.settings)
+  const service = new UserService(app.db, app.settings, app.events)
   const opts = { preHandler: loginRequired }
   const callerOf = async (request: FastifyRequest): Promise<Caller> => {
     const current = await getCurrentAdminUser(request)

@@ -48,7 +48,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `SESSION_COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |
 | `RATE_LIMIT_ENABLED` | Per-IP rate limits; the limits themselves are set in System settings, see [Account security & settings](/en/guide/security#rate-limits) | `true` |
-| `SETTINGS_ALLOW_PRIVATE_NETWORK` | Whether the SMTP server, S3 endpoint and AI API URL in System settings may point at internal networks (`127.0.0.1`, `10.x`, `192.168.x` …); reserved addresses such as cloud metadata are never allowed. Addresses pinned by environment variables aren't restricted | `true` in development / test, `false` in production |
+| `SETTINGS_ALLOW_PRIVATE_NETWORK` | Whether the SMTP server, S3 endpoint and AI API URL in System settings, and webhook endpoints, may point at internal networks (`127.0.0.1`, `10.x`, `192.168.x` …); reserved addresses such as cloud metadata are never allowed. Addresses pinned by environment variables aren't restricted | `true` in development / test, `false` in production |
 | `MAX_CONTENT_LENGTH` | Maximum request body size (bytes); larger requests get 413 | `16777216` (16MB) |
 
 ### Paths

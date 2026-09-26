@@ -32,6 +32,7 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
         ip: getClientIp(request),
         userAgent: getUserAgent(request),
         statusCode: reply.statusCode,
+        apiTokenId: request.apiToken?.id ?? null,
       })
     } catch (err) {
       request.log.warn({ err }, '记录操作日志失败')

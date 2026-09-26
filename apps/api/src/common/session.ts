@@ -13,6 +13,7 @@
 import { randomBytes } from 'node:crypto'
 import { and, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { bearerToken } from '@/common/api-token'
 import { requestPath } from '@/common/csrf'
 import { ServiceError } from '@/common/errors'
 import type { Executor } from '@/db/client'
@@ -125,9 +126,9 @@ export async function purgeSessions(db: Executor): Promise<number> {
   return result.rowCount ?? 0
 }
 
-/** Signed in = a live session that isn't in an MFA step */
+/** Signed in = a live session that isn't in an MFA step, or a valid API token */
 export function isSignedIn(request: FastifyRequest): boolean {
-  return Boolean(request.authSession && !request.authSession.mfa_state)
+  return Boolean(request.apiToken) || Boolean(request.authSession && !request.authSession.mfa_state)
 }
 
 /** Drop the session cookie (and forget the row for the rest of this request) */
@@ -153,6 +154,8 @@ export function registerSessionResolver(app: FastifyInstance): void {
   app.addHook('onRequest', async (request) => {
     // Static files and the SPA never look at the session: skip the lookup (one query per asset otherwise)
     if (!SESSION_PATHS.test(requestPath(request))) return
+    // API token requests never use the session cookie (common/api-token.ts)
+    if (bearerToken(request)) return
     const sid = request.session.get('sid')
     if (!sid) return
     const row = await findLiveSession(app.db, sid)

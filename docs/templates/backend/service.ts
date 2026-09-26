@@ -12,6 +12,7 @@ import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyStr, pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
+import type { EventBus } from '@/common/webhooks'
 import type { Db } from '@/db/client'
 import { <resource>ToDict, type <Resource> } from '@/db/schema'
 import { <Resource>Repository } from './repository'
@@ -22,7 +23,11 @@ type Data = Record<string, unknown>
 export class <Resource>Service {
   private readonly repo: <Resource>Repository
 
-  constructor(private readonly db: Db) {
+  constructor(
+    private readonly db: Db,
+    /** Webhook events (<resource>.created / updated / deleted), emitted after the write committed */
+    private readonly events?: Pick<EventBus, 'emit'>,
+  ) {
     this.repo = new <Resource>Repository(db)
   }
 
@@ -56,7 +61,9 @@ export class <Resource>Service {
     // TODO: add uniqueness checks (if needed)
     const values = { ...buildValues(data, false), name: pyStr(data.name) }
     const created = await this.inTx((repo) => repo.insert(values))
-    return <resource>ToDict(created)
+    const dict = <resource>ToDict(created)
+    await this.events?.emit('<resource>.created', dict)
+    return dict
   }
 
   async updateItem(item: <Resource>, data: Data) {
@@ -64,11 +71,14 @@ export class <Resource>Service {
     if (Object.keys(values).length === 0) return <resource>ToDict(item)
     const updated = await this.inTx((repo) => repo.update(item.id, values))
     if (!updated) throw notFound()
-    return <resource>ToDict(updated)
+    const dict = <resource>ToDict(updated)
+    await this.events?.emit('<resource>.updated', dict)
+    return dict
   }
 
   async deleteItem(item: <Resource>) {
     await this.inTx((repo) => repo.delete(item.id))
+    await this.events?.emit('<resource>.deleted', { id: item.id })
     return { message: '删除成功' }
   }
 

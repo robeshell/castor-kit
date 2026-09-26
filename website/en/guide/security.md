@@ -18,6 +18,7 @@ The System settings page holds switches and parameters that can change at runtim
 | `security.login_max_failures` / `security.login_lockout_minutes` | Failed attempts before lockout / lockout duration (minutes) | `10` / `15` |
 | `security.rate_limit_per_minute` | `/api` requests per IP per minute | `600` |
 | `security.auth_rate_limit_per_minute` | Sign-in requests per IP per minute (sign-in, 2FA code and password reset share it) | `20` |
+| `security.api_tokens_enabled` | Allow API tokens, see [Open API](/en/guide/open-api) | Off |
 
 - The defaults match the previous behavior: after upgrading, nothing changes until a switch is turned on
 - A switch whose prerequisites are missing can't be turned on, and the page says why. For example, password reset needs mail to be configured, and neither two-step verification nor password reset can be turned on in demo mode

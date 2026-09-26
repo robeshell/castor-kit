@@ -133,5 +133,11 @@
   "system_group_org": "組織と権限",
   "system_group_security": "セキュリティと監査",
   "system_group_config": "システム構成",
-  "system_group_content": "コンテンツとメッセージ"
+  "system_group_content": "コンテンツとメッセージ",
+  "system_api_tokens": "API トークン",
+  "system_api_tokens_revoke": "API トークンを失効",
+  "system_webhooks": "Webhook",
+  "system_webhooks_add": "Webhook を追加",
+  "system_webhooks_edit": "Webhook を編集",
+  "system_webhooks_delete": "Webhook を削除"
 }

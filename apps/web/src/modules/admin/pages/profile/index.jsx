@@ -18,6 +18,7 @@ import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import UserAvatar from '@/shared/components/UserAvatar'
 import { usePasswordPolicy } from '@/shared/hooks/usePasswordPolicy'
+import ApiTokensPanel from '@/modules/admin/pages/profile/ApiTokensPanel'
 import SessionsPanel from '@/modules/admin/pages/profile/SessionsPanel'
 import TwoFactorPanel from '@/modules/admin/pages/profile/TwoFactorPanel'
 import { useTranslation } from 'react-i18next'
@@ -123,6 +124,8 @@ export default function Profile() {
       <TwoFactorPanel />
 
       <SessionsPanel />
+
+      <ApiTokensPanel />
 
       <Panel title="修改密码" description="修改成功后，其他设备需要用新密码重新登录">
         <Form {...form}>

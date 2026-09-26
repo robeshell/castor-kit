@@ -217,6 +217,10 @@ castor-kit/
 - 其余变量：`DATABASE_URL / DEV_DATABASE_URL / CORS_ORIGINS / SESSION_* / LOGIN_* / TASK_SCHEDULER_* / RUN_SCHEDULER_IN_WEB / ENABLE_TASK_SCHEDULER / AI_API_* / AI_SQL_* / MAX_CONTENT_LENGTH / APIFOX_*`，示例见 `.env.example`。
 - 端口：开发 5001、测试 5002、生产 5000；Vite dev server 5173，把 `/api`、`/ws` 代理到 5001。
 
+### 4.16 开放接口（API Token 与 Webhook）
+- **API Token**（`common/api-token.ts`、`modules/admin/api-tokens`）：`ck_` + 32 字节 base64url，只存 sha256，列表显示前 11 位。`registerApiTokenResolver` 在会话解析之前运行：带 Bearer 的 `/api/` 请求只按 token 认证（开关 `security.api_tokens_enabled` 关闭 → 401「API Token 未开启」；无效 / 吊销 / 过期 / 创建人停用 → 401；命中 `API_TOKEN_DENIED` → 403「该接口不支持 API Token」），通过后设置 `request.apiToken`，会话解析与 CSRF 跳过。`isSignedIn` 把 token 视为已登录，`getCurrentAdminUser` 取创建人；`hasMenuPermission` 第一步检查 `apiToken.scopes`，之后才走超级管理员短路，因此权限 = scopes ∩ 创建人当前权限，数据权限按创建人。`last_used_at / last_used_ip` 每分钟最多写一次；操作日志记录 `api_token_id`。创建需要近期验证身份，scopes 只能是创建人拥有的编码。
+- **Webhook**（`common/webhooks.ts`、`modules/admin/webhooks`）：模块用 `declareEvents` 登记事件；`app.events`（`EventBus`）的 `emit` 在业务事务提交后调用，为每个订阅匹配（精确名、`*`、`prefix.*`）且启用的 Webhook 写一行 `webhook_deliveries`，随后 `setImmediate` 在后台发送，自身从不抛错。`WebhookDispatcher.deliver` 用一条 `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) RETURNING` 认领到期行（`pending` 且到了 `next_retry_at`，或 `delivering` 超过 5 分钟），web 进程与 worker 不会重复发送；调度器内置任务 `webhook-retry` 每 30 秒补发。失败重试间隔 1 分钟 / 5 分钟 / 30 分钟 / 2 小时 / 6 小时，第 6 次仍失败记为 `failed`；3xx 不跟随、算失败；超时 10 秒；响应体截断 2000 字符。签名 `X-Castor-Signature: sha256=HMAC-SHA256(secret, "<X-Castor-Timestamp>.<body>")`，`X-Castor-Delivery` 为事件 ID（手动重发沿用）。密钥 `whsec_…` 用 `secret-box` 加密；目标地址保存时经 `outboundHostReason` 检查，发送时 `createOutboundAgent` 在连接层复查实际 IP。
+
 ---
 
 ## 5. 数据库迁移

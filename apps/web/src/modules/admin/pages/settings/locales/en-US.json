@@ -96,5 +96,9 @@
   "自动：填了接口地址时用路径风格（MinIO 等自建服务需要）": "Auto: path style when an endpoint is set (needed by MinIO and other self-hosted services)",
   "路径风格": "Path style",
   "连通性测试": "Connectivity test",
-  "邮件中的链接": "Links in mails"
+  "邮件中的链接": "Links in mails",
+  "允许使用 API Token": "Allow API tokens",
+  "开启后用户可以在个人设置里创建 API Token；关闭后已有的 Token 全部暂停使用，重新开启后恢复": "Users can create API tokens in Profile. Turning this off pauses every existing token until it’s turned back on",
+  "开放接口": "Open API",
+  "脚本和其他系统用 API Token 调用接口；Webhook 不受这个开关影响": "Scripts and other systems call the API with API tokens; webhooks aren’t affected by this switch"
 }

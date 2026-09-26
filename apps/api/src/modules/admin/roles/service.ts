@@ -2,6 +2,7 @@
  * Roles module service layer
  */
 
+import type { EventBus } from '@/common/webhooks'
 import { isDataScopeCode } from '@/common/data-scope'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
@@ -39,7 +40,11 @@ const SUPER_ADMIN = 'super_admin'
 export class RoleService {
   private readonly repo: RoleRepository
 
-  constructor(private readonly db: Db) {
+  constructor(
+    private readonly db: Db,
+    /** Webhook events (role.created / updated / deleted), emitted after the write committed */
+    private readonly events?: Pick<EventBus, 'emit'>,
+  ) {
     this.repo = new RoleRepository(db)
   }
 
@@ -111,7 +116,7 @@ export class RoleService {
     const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
     const scope = await this.resolveDataScope(data, 'all')
     const code = data.code
-    return this.inTx(async (repo) => {
+    const dict = await this.inTx(async (repo) => {
       const created = await repo.insert({
         name: adaptText(data.name)!,
         code,
@@ -122,6 +127,8 @@ export class RoleService {
       if (scope.deptIds) await repo.setDepts(created.id, scope.deptIds)
       return this.roleDict(repo, created.id)
     })
+    await this.events?.emit('role.created', dict)
+    return dict
   }
 
   /**
@@ -150,18 +157,21 @@ export class RoleService {
     await this.assertSuperAdminEdit(role, data, menuList)
     const scope = await this.resolveDataScope(data, role.data_scope)
 
-    return this.inTx(async (repo) => {
+    const dict = await this.inTx(async (repo) => {
       const values = Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, adaptText(v)]))
       await repo.update(role.id, { ...values, ...(scope.dataScope ? { data_scope: scope.dataScope } : {}) })
       if (menuList) await repo.setMenus(role.id, menuList.map((m) => m.id))
       if (scope.deptIds) await repo.setDepts(role.id, scope.deptIds)
       return this.roleDict(repo, role.id)
     })
+    await this.events?.emit('role.updated', dict)
+    return dict
   }
 
   async deleteRole(role: Role) {
     if (role.code === SUPER_ADMIN) throw new ServiceError('超级管理员角色不能删除', 400)
     await this.inTx((repo) => repo.delete(role.id))
+    await this.events?.emit('role.deleted', { id: role.id, code: role.code })
     return { message: '删除成功' }
   }
 

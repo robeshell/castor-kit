@@ -5,6 +5,7 @@
  * tree (it's the vocabulary those pages pick from).
  */
 
+import type { EventBus } from '@/common/webhooks'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import type { Db } from '@/db/client'
@@ -34,7 +35,11 @@ function text(raw: unknown): string {
 export class DepartmentService {
   private readonly repo: DepartmentRepository
 
-  constructor(private readonly db: Db) {
+  constructor(
+    private readonly db: Db,
+    /** Webhook events (department.created / updated / deleted), emitted after the write committed */
+    private readonly events?: Pick<EventBus, 'emit'>,
+  ) {
     this.repo = new DepartmentRepository(db)
   }
 
@@ -154,19 +159,24 @@ export class DepartmentService {
   async createItem(data: Data) {
     const values = await this.buildValues(data, null)
     const created = await this.inTx((repo) => repo.insert(values as DepartmentValues & Pick<Department, 'name' | 'code'>))
-    return departmentToDict(created)
+    const dict = departmentToDict(created)
+    await this.events?.emit('department.created', dict)
+    return dict
   }
 
   async updateItem(dept: Department, data: Data) {
     const values = await this.buildValues(data, dept)
     await this.inTx((repo) => repo.update(dept.id, values))
-    return departmentToDict((await this.repo.getById(dept.id))!)
+    const dict = departmentToDict((await this.repo.getById(dept.id))!)
+    await this.events?.emit('department.updated', dict)
+    return dict
   }
 
   async deleteItem(dept: Department) {
     if ((await this.repo.countChildren(dept.id)) > 0) throw new ServiceError('存在下级部门，不能删除', 400)
     if ((await this.repo.countUsers(dept.id)) > 0) throw new ServiceError('部门下还有用户，不能删除', 400)
     await this.inTx((repo) => repo.delete(dept.id))
+    await this.events?.emit('department.deleted', { id: dept.id, code: dept.code })
     return { message: '删除成功' }
   }
 

@@ -6,6 +6,7 @@ import { foreignKey, index, integer, pgTable, serial, text, varchar } from 'driz
 import { toIso } from '@/common/serialize'
 import { createdAt } from '../columns'
 import { admin_users } from './rbac'
+import { api_tokens } from './open-api'
 
 export const login_logs = pgTable(
   'login_logs',
@@ -45,6 +46,8 @@ export const operation_logs = pgTable(
     ip: varchar({ length: 64 }),
     user_agent: varchar({ length: 500 }),
     status_code: integer(),
+    /** Set when the request authenticated with an API token (acting as user_id) */
+    api_token_id: integer(),
     created_at: createdAt(),
   },
   (table) => [
@@ -52,6 +55,11 @@ export const operation_logs = pgTable(
       columns: [table.user_id],
       foreignColumns: [admin_users.id],
       name: 'operation_logs_user_id_fkey',
+    }).onDelete('set null'),
+    foreignKey({
+      columns: [table.api_token_id],
+      foreignColumns: [api_tokens.id],
+      name: 'operation_logs_api_token_id_fkey',
     }).onDelete('set null'),
   ],
 )
@@ -88,6 +96,7 @@ export function operationLogToDict(log: OperationLog) {
     ip: log.ip,
     user_agent: log.user_agent,
     status_code: log.status_code,
+    api_token_id: log.api_token_id,
     created_at: toIso(log.created_at),
   }
 }

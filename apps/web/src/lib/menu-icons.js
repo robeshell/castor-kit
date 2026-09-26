@@ -17,6 +17,7 @@ import {
   IdCard,
   Inbox,
   Kanban,
+  KeyRound,
   LayoutGrid,
   Layers,
   List,
@@ -36,6 +37,7 @@ import {
   Type,
   User,
   Users,
+  Webhook,
 } from 'lucide-react'
 
 /**
@@ -69,6 +71,7 @@ const SEMI_TO_LUCIDE = {
   IconIdCard: IdCard,
   IconInbox: Inbox,
   IconKanban: Kanban,
+  IconKey: KeyRound,
   IconLayers: Layers,
   IconList: List,
   IconMapPin: MapPin,
@@ -82,6 +85,7 @@ const SEMI_TO_LUCIDE = {
   IconTeam: Users,
   IconTerminal: Terminal,
   IconUser: User,
+  IconWebhook: Webhook,
 }
 
 const BY_CODE = {

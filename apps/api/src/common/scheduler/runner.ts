@@ -9,7 +9,7 @@
  * Runs in the web process (main.ts) when RUN_SCHEDULER_IN_WEB=true; otherwise as a separate process `node dist/worker.js`.
  *
  * Besides user-defined tasks (which only call HTTP endpoints), the loop also runs built-in maintenance jobs such as the
- * file center's orphan cleanup and the removal of old sessions, each at its own interval.
+ * file center's orphan cleanup, the removal of old sessions and webhook retries, each at its own interval.
  */
 
 import type { AppConfig } from '@/config'
@@ -17,6 +17,7 @@ import type { Db } from '@/db/client'
 import { purgeSessions } from '@/common/session'
 import { SettingsStore } from '@/common/settings'
 import { StorageProvider } from '@/common/storage'
+import { EventBus } from '@/common/webhooks'
 import { FileService } from '@/modules/admin/files/service'
 import { PasswordResetRepository } from '@/modules/admin/password-reset/repository'
 import { ScheduledTaskService } from '@/modules/admin/scheduled-task/service'
@@ -183,7 +184,7 @@ export function startScheduledTaskRunner(db: Db, config: AppConfig, logger?: Sch
     intervalSeconds: config.taskSchedulerIntervalSeconds,
     leaseSeconds: config.taskSchedulerLeaseSeconds,
     logger,
-    maintenance: [fileCleanupJob(db, config, logger), sessionPurgeJob(db, logger)],
+    maintenance: [fileCleanupJob(db, config, logger), sessionPurgeJob(db, logger), webhookDeliveryJob(db, config, logger)],
   })
   runner.start()
   return runner
@@ -213,6 +214,19 @@ export function sessionPurgeJob(db: Db, logger: SchedulerLogger = silentLogger):
     async run() {
       const removed = (await purgeSessions(db)) + (await resets.purge())
       if (removed) logger.info(`Session purge removed ${removed} old session / reset link row(s)`)
+    },
+  }
+}
+
+/** Webhook deliveries that failed and are due for a retry (the first attempt happens right after the event) */
+export function webhookDeliveryJob(db: Db, config: AppConfig, logger: SchedulerLogger = silentLogger): MaintenanceJob {
+  const events = new EventBus(db, config, logger)
+  return {
+    name: 'webhook-retry',
+    intervalSeconds: 30,
+    async run() {
+      const sent = await events.deliverDue()
+      if (sent.length) logger.info(`Webhook retries: ${sent.filter((d) => d.status === 'success').length}/${sent.length} delivered`)
     },
   }
 }
