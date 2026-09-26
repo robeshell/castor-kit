@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast'
 import { profileDefaults, userDisplayName } from '@/lib/user'
 import { formatDateTime, formatRelative } from '@/lib/format'
 import ProfileFields from '@/modules/admin/components/ProfileFields'
+import { getDepartments } from '@/modules/admin/api/departments'
 import { getRoles } from '@/modules/admin/api/roles'
 import {
   createUser,
@@ -26,9 +27,10 @@ import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
 import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
 import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
-import { FormInput, FormMultiSelect } from '@/shared/components/FormFields'
+import { FormInput, FormMultiSelect, FormTreeSelect } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge from '@/shared/components/StatusBadge'
+import TreeSelect from '@/shared/components/TreeSelect'
 import UserAvatar from '@/shared/components/UserAvatar'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
@@ -39,6 +41,7 @@ const EXPORT_FIELDS = [
   { label: '昵称', value: 'nickname' },
   { label: '邮箱', value: 'email' },
   { label: '手机', value: 'phone' },
+  { label: '部门', value: 'dept_name' },
   { label: '状态', value: 'status' },
   { label: '角色名称', value: 'role_names' },
   { label: '角色编码', value: 'role_codes' },
@@ -50,7 +53,7 @@ const STATUS_OPTIONS = [
   { label: '正常', value: 'active' },
   { label: '停用', value: 'disabled' },
 ]
-const emptyForm = () => ({ username: '', password: '', role_ids: [], ...profileDefaults(null) })
+const emptyForm = () => ({ username: '', password: '', role_ids: [], dept_id: null, ...profileDefaults(null) })
 const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
 
 /**
@@ -76,6 +79,8 @@ export default function Users() {
   const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [deptId, setDeptId] = useState(null)
+  const [deptTree, setDeptTree] = useState([])
   const [roles, setRoles] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
   const [editing, setEditing] = useState(null)
@@ -89,6 +94,9 @@ export default function Users() {
     fetchData()
     getRoles()
       .then((res) => setRoles(Array.isArray(res) ? res : []))
+      .catch(() => {})
+    getDepartments()
+      .then((res) => setDeptTree(Array.isArray(res) ? res : []))
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -107,6 +115,7 @@ export default function Users() {
       username: record.username,
       password: '',
       role_ids: record.roles?.map((r) => r.id) || [],
+      dept_id: record.dept_id ?? null,
       ...profileDefaults(record),
     })
     setFormOpen(true)
@@ -157,11 +166,12 @@ export default function Users() {
 
   const runSearch = () => {
     setSelectedKeys([])
-    list.handleSearch({ search: search.trim(), status })
+    list.handleSearch({ search: search.trim(), status, dept_id: deptId ?? '' })
   }
   const reset = () => {
     setSearch('')
     setStatus('')
+    setDeptId(null)
     setSelectedKeys([])
     list.handleReset()
   }
@@ -170,7 +180,7 @@ export default function Users() {
     const type = normalizeFileType(fileType)
     const payload = { fields, file_type: type, export_mode: selectedKeys.length ? 'selected' : 'filtered' }
     if (selectedKeys.length) payload.ids = selectedKeys
-    else payload.filters = { search: filters.search ?? '', status: filters.status ?? '' }
+    else payload.filters = { search: filters.search ?? '', status: filters.status ?? '', dept_id: filters.dept_id || null }
     try {
       const blob = await exportUsers(payload)
       downloadBlobFile(blob, `users_export.${type}`)
@@ -210,6 +220,13 @@ export default function Users() {
             {record.phone ? <span className="text-muted-foreground truncate text-xs tabular-nums">{record.phone}</span> : null}
           </div>
         ) : null,
+    },
+    {
+      key: 'dept_name',
+      title: '部门',
+      dataIndex: 'dept_name',
+      width: 130,
+      render: (value) => (value ? <span className="truncate">{value}</span> : null),
     },
     {
       key: 'roles',
@@ -320,6 +337,16 @@ export default function Users() {
 
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索用户名、昵称、邮箱、手机" className="sm:w-72" />
+        <TreeSelect
+          value={deptId}
+          onChange={setDeptId}
+          tree={deptTree}
+          placeholder="全部部门"
+          searchPlaceholder="搜索部门名称 / 编码"
+          emptyText="没有匹配的部门"
+          aria-label={t('按部门筛选')}
+          className="h-8 w-full text-[13px] sm:w-44"
+        />
         <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
       </FilterBar>
 
@@ -352,13 +379,13 @@ export default function Users() {
         columns={columns}
         data={data}
         loading={loading}
-        minWidth={960}
+        minWidth={1080}
         selectable
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="没有找到用户"
-        emptyDescription={filters.search || filters.status ? '换个关键词试试' : '点击右上角「新建用户」添加第一个账号'}
+        emptyDescription={filters.search || filters.status || filters.dept_id ? '换个关键词试试' : '点击右上角「新建用户」添加第一个账号'}
       />
 
       <FormDialog
@@ -382,6 +409,16 @@ export default function Users() {
           rules={editing ? undefined : { required: '请输入密码' }}
         />
         <ProfileFields control={form.control} name={editing?.username} />
+        <FormTreeSelect
+          control={form.control}
+          name="dept_id"
+          label="部门"
+          tree={deptTree}
+          placeholder="不属于任何部门"
+          noneLabel="（无）不属于任何部门"
+          searchPlaceholder="搜索部门名称 / 编码"
+          emptyText="没有匹配的部门"
+        />
         <FormMultiSelect
           control={form.control}
           name="role_ids"
@@ -402,7 +439,7 @@ export default function Users() {
             : '未勾选数据时，按当前查询条件导出全部结果。'
         }
         fieldOptions={EXPORT_FIELDS}
-        defaultFields={['username', 'nickname', 'email', 'status', 'role_names', 'last_login_at']}
+        defaultFields={['username', 'nickname', 'email', 'dept_name', 'status', 'role_names', 'last_login_at']}
         onConfirm={handleExport}
       />
 

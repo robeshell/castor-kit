@@ -1,13 +1,16 @@
 {
+  "不属于任何部门": "No department",
   "从未登录": "Never",
   "例如 zhangsan": "e.g. jsmith",
   "停用后该账号无法登录，已登录的会话会在下一次操作时失效。": "They won't be able to sign in, and any signed-in session ends on its next request.",
   "停用用户 {{name}}？": "Disable {{name}}?",
   "停用账号": "Disable",
+  "全部部门": "All departments",
   "删除用户 {{name}}？": "Delete user {{name}}?",
   "启用账号": "Enable",
   "导入用户": "Import users",
   "导出用户": "Export users",
+  "按部门筛选": "Filter by department",
   "搜索用户名": "Search username",
   "搜索用户名、昵称、邮箱、手机": "Search username, nickname, email, phone",
   "新建用户": "Add user",
@@ -31,5 +34,6 @@
   "角色": "Roles",
   "角色名称": "Role name",
   "角色编码": "Role code",
-  "选择角色": "Select roles"
+  "选择角色": "Select roles",
+  "（无）不属于任何部门": "(None) no department"
 }

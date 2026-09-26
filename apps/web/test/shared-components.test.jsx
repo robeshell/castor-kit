@@ -8,7 +8,9 @@ import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
 import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import CheckableTree from '@/shared/components/CheckableTree'
 import StatusBadge from '@/shared/components/StatusBadge'
+import TreeSelect from '@/shared/components/TreeSelect'
 import { userDisplayName } from '@/lib/user'
 import UserAvatar from '@/shared/components/UserAvatar'
 
@@ -140,5 +142,69 @@ describe('UserAvatar', () => {
     expect(userDisplayName({ nickname: '张三', username: 'zhangsan' })).toBe('张三')
     expect(userDisplayName({ nickname: null, username: 'zhangsan' })).toBe('zhangsan')
     expect(userDisplayName(null)).toBe('')
+  })
+})
+
+const DEPTS = [
+  { id: 1, name: '总部', code: 'hq', children: [{ id: 2, name: '研发部', code: 'rd', children: [{ id: 3, name: '前端组', code: 'fe' }] }] },
+  { id: 4, name: '分公司', code: 'branch' },
+]
+
+describe('TreeSelect', () => {
+  it('显示完整路径；按层级缩进列出；选择与清空', async () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<TreeSelect tree={DEPTS} value={null} onChange={onChange} placeholder="全部部门" />)
+    expect(screen.getByRole('combobox')).toHaveTextContent('全部部门')
+
+    await userEvent.click(screen.getByRole('combobox'))
+    const options = screen.getAllByRole('option').map((o) => o.textContent)
+    expect(options).toEqual(['总部hq', '研发部rd', '前端组fe', '分公司branch'])
+    await userEvent.click(screen.getByRole('option', { name: /前端组/ }))
+    expect(onChange).toHaveBeenLastCalledWith(3)
+
+    rerender(<TreeSelect tree={DEPTS} value={3} onChange={onChange} />)
+    expect(screen.getByRole('combobox')).toHaveTextContent('总部 / 研发部 / 前端组')
+    await userEvent.click(screen.getByRole('button', { name: '清空' }))
+    expect(onChange).toHaveBeenLastCalledWith(null)
+  })
+
+  it('excludeId 连同子树一起隐藏；noneLabel 选项选 null', async () => {
+    const onChange = vi.fn()
+    render(<TreeSelect tree={DEPTS} value={4} onChange={onChange} excludeId={2} noneLabel="（无）顶级" />)
+    await userEvent.click(screen.getByRole('combobox'))
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['（无）顶级', '总部hq', '分公司branch'])
+    await userEvent.click(screen.getByRole('option', { name: '（无）顶级' }))
+    expect(onChange).toHaveBeenLastCalledWith(null)
+  })
+})
+
+describe('CheckableTree', () => {
+  const tree = [
+    { key: 1, label: '总部', children: [{ key: 2, label: '研发部' }, { key: 3, label: '市场部' }] },
+    { key: 4, label: '分公司' },
+  ]
+  const checkboxOf = (label) => screen.getByText(label).closest('[role="checkbox"]')
+
+  it('勾选父级联动全部子级；取消一个子级后父级变为半选', async () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<CheckableTree tree={tree} value={[]} onChange={onChange} />)
+    await userEvent.click(screen.getByText('总部'))
+    expect([...onChange.mock.calls.at(-1)[0]].sort()).toEqual([1, 2, 3])
+
+    rerender(<CheckableTree tree={tree} value={[1, 2, 3]} onChange={onChange} />)
+    await userEvent.click(screen.getByText('市场部'))
+    expect(onChange.mock.calls.at(-1)[0]).toEqual([2])
+
+    rerender(<CheckableTree tree={tree} value={[2]} onChange={onChange} />)
+    expect(checkboxOf('总部')).toHaveAttribute('aria-checked', 'mixed')
+    expect(checkboxOf('研发部')).toHaveAttribute('aria-checked', 'true')
+    expect(checkboxOf('分公司')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('全部子级勾选时父级自动算作勾选', async () => {
+    const onChange = vi.fn()
+    render(<CheckableTree tree={tree} value={[2]} onChange={onChange} />)
+    await userEvent.click(screen.getByText('市场部'))
+    expect([...onChange.mock.calls.at(-1)[0]].sort()).toEqual([1, 2, 3])
   })
 })
