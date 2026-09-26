@@ -75,7 +75,7 @@ Local-disk storage needs a persistent disk: Docker Compose mounts `INSTANCE_DIR`
 | `DEMO_RESET_HOURS` | How often the demo data is restored (hours). Checked at startup and then hourly; restores when the last restore is older than this. Run `pnpm demo:reset` to restore right away | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | AI calls (AI chat, AI SQL generation) allowed per IP per hour in demo mode; over the limit returns 429. Signed-out requests don't count | `20` |
 | `DEMO_AI_DAILY` | AI calls allowed per day for the whole site in demo mode; once used up, 429 for the rest of the day | `300` |
-| `DEMO_AI_MAX_INPUT_CHARS` | Max size of one AI request in demo mode (characters); larger requests return 400. Demo mode also caps the length of the model's reply | `4000` |
+| `DEMO_AI_MAX_INPUT_CHARS` | Max size of one AI request in demo mode (characters; for AI chat only the message text counts); larger requests return 400. Demo mode also caps the length of the model's reply | `4000` |
 
 The demo data lives in `apps/api/src/demo/fixtures.ts` and the restore logic in `apps/api/src/demo/reset.ts`. A restore only touches the component gallery, announcements, dictionaries, scheduled tasks, notifications and logs — never accounts, roles or menus.
 

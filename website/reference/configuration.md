@@ -75,7 +75,7 @@ castor-kit 的配置分两类：
 | `DEMO_RESET_HOURS` | 演示数据恢复周期（小时）。服务启动时和运行中每小时检查一次，距上次恢复超过该时长就恢复；也可手动执行 `pnpm demo:reset` | `24` |
 | `DEMO_AI_HOURLY_PER_IP` | 演示模式下每个 IP 每小时可调用 AI 的次数（AI 对话、AI 生成 SQL），超出返回 429；未登录的请求不计数 | `20` |
 | `DEMO_AI_DAILY` | 演示模式下全站每天可调用 AI 的总次数，用完后当天返回 429 | `300` |
-| `DEMO_AI_MAX_INPUT_CHARS` | 演示模式下单次 AI 请求的最大长度（字符），超出返回 400。演示模式还会限制模型回复长度 | `4000` |
+| `DEMO_AI_MAX_INPUT_CHARS` | 演示模式下单次 AI 请求的最大长度（字符；AI 对话只计消息文字），超出返回 400。演示模式还会限制模型回复长度 | `4000` |
 
 演示数据的内容在 `apps/api/src/demo/fixtures.ts`，恢复逻辑在 `apps/api/src/demo/reset.ts`。恢复只涉及组件示例、公告、数据字典、定时任务、通知与日志，不会动账号、角色和菜单。
 

@@ -110,7 +110,8 @@ describe('ai chat 流', () => {
     const before = up.requests.length
     const messages = [
       userMessage('first', 'a'),
-      { id: 'b', role: 'assistant', parts: [{ type: 'text', text: 'ok' }] },
+      // What useChat sends back for a finished reply
+      { id: 'b', role: 'assistant', parts: [{ type: 'step-start' }, { type: 'text', text: 'ok', state: 'done' }] },
       userMessage('hello', 'c'),
     ]
     const res = await s.inject({ method: 'POST', url: URL_PATH, payload: { messages }, headers: { 'accept-encoding': 'gzip' } })
@@ -149,6 +150,19 @@ describe('ai chat 流', () => {
     expect(SYSTEM_PROMPT.content).toContain('Fastify')
     expect(SYSTEM_PROMPT.content).toContain('Drizzle')
     expect(SYSTEM_PROMPT.content).toContain('castor-kit')
+  })
+
+  it('失败留下的空回复不发给上游', async () => {
+    const before = up.requests.length
+    const messages = [
+      userMessage('first', 'a'),
+      { id: 'b', role: 'assistant', parts: [] },
+      { id: 'c', role: 'assistant', parts: [{ type: 'step-start' }] },
+      userMessage('again', 'd'),
+    ]
+    const res = await s.inject({ method: 'POST', url: URL_PATH, payload: { messages } })
+    expect(textOf(events(res.body))).toBe(DEFAULT_PIECES.join(''))
+    expect(up.requests[before]!.body.messages!.map((m) => m.role)).toEqual(['system', 'user', 'user'])
   })
 
   it('上游中途断开（没有结束标记）→ 已输出的文字保留，末尾给通用错误', async () => {

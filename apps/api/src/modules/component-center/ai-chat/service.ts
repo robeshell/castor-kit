@@ -105,7 +105,13 @@ export class AiChatService {
     if (raw.length > MAX_MESSAGES) throw new ServiceError('对话太长，请清除上下文后再试', 400)
     const result = await safeValidateUIMessages({ messages: raw })
     if (!result.success) throw new ServiceError('消息格式不正确', 400)
-    return result.data
+    // A reply that failed before any text arrived stays in the page's history as an empty assistant message;
+    // model APIs reject empty assistant turns, so they are dropped here
+    const hasContent = (m: UIMessage) =>
+      m.parts.some((p) => (p.type === 'text' ? Boolean(p.text.trim()) : p.type === 'file' || p.type.startsWith('tool-')))
+    const messages = result.data.filter((m) => m.role !== 'assistant' || hasContent(m))
+    if (!messages.some((m) => m.role === 'user')) throw new ServiceError('消息不能为空', 400)
+    return messages
   }
 
   /**
