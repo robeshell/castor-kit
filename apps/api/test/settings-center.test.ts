@@ -40,7 +40,7 @@ beforeEach(async () => {
 })
 
 afterAll(async () => {
-  await handle.db.delete(notifications).where(eq(notifications.title, '系统设置已修改'))
+  await handle.db.delete(notifications).where(eq(notifications.link, '/system/settings'))
   await handle.db.delete(system_settings)
   await handle.db.delete(operation_logs).where(like(operation_logs.path, '/api/admin/settings%'))
   await cleanupFixture(handle)
@@ -250,11 +250,12 @@ describe('settings center', () => {
   })
 
   it('修改设置后通知所有启用的超级管理员：写明改了哪些项，密钥只说已更新', async () => {
-    await handle.db.delete(notifications).where(eq(notifications.title, '系统设置已修改'))
+    await handle.db.delete(notifications).where(eq(notifications.link, '/system/settings'))
     await put({ 'mail.smtp_host': 'smtp.example.com', 'mail.smtp_password': 'secret-pw', 'security.totp_enabled': true })
-    const rows = await handle.db.select().from(notifications).where(eq(notifications.title, '系统设置已修改'))
+    const rows = await handle.db.select().from(notifications).where(eq(notifications.link, '/system/settings'))
     const mine = rows.find((r) => r.user_id === s.userId)!
     expect(mine).toMatchObject({ noti_type: 'warning', is_global: false, link: '/system/settings' })
+    expect(mine.title).toBe('ck_test_super 修改了系统设置：SMTP 服务器、SMTP 密码、两步验证开关')
     expect(mine.content).toContain('修改了 3 项系统设置')
     expect(mine.content).toContain('SMTP 服务器 → smtp.example.com')
     expect(mine.content).toContain('SMTP 密码：已更新')

@@ -88,6 +88,8 @@ export class SettingsService {
    */
   private async notifyChange(changes: SettingChanges, actor: string) {
     const definitions = new Map(SETTING_DEFINITIONS.map((d) => [d.key, d]))
+    const labels = Object.keys(changes).map((key) => definitions.get(key)?.label ?? key)
+    const summary = labels.length > 3 ? `${labels.slice(0, 3).join('、')} 等 ${labels.length} 项` : labels.join('、')
     const lines = Object.entries(changes).map(([key, value]) => {
       const def = definitions.get(key)
       if (!def) return key
@@ -98,7 +100,8 @@ export class SettingsService {
     })
     try {
       await this.repo.notify(await this.repo.activeSuperAdminIds(), {
-        title: '系统设置已修改',
+        // The bell shows only the title: say who changed what there
+        title: `${actor} 修改了系统设置：${summary}`.slice(0, 200),
         content: `${actor} 修改了 ${lines.length} 项系统设置：\n${lines.join('\n')}`,
         link: '/system/settings',
       })

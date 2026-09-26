@@ -14,11 +14,13 @@ import { errorMessage, toast } from '@/lib/toast'
 import { getRoles } from '@/modules/admin/api/roles'
 import { getSettings, saveSettings, testAiSettings, testMailSettings, testStorageSettings } from '@/modules/admin/api/settings'
 import { fieldName, toChanges, toFormValues } from '@/modules/admin/pages/settings/form'
+import ReauthDialog from '@/modules/admin/components/ReauthDialog'
 import SettingField from '@/modules/admin/pages/settings/SettingField'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import { invalidateAppInfo } from '@/shared/hooks/useAppInfo'
+import { useReauth } from '@/shared/hooks/useReauth'
 
 const TABS = [
   { value: 'security', label: '安全' },
@@ -40,7 +42,8 @@ function TestAction({ label, run, disabled, children }) {
       const res = await run()
       setState({ ok: true, text: res.message })
     } catch (err) {
-      setState({ ok: false, text: errorMessage(err, '测试失败') })
+      // Identity check cancelled: no result to show
+      setState(err?.cancelled ? null : { ok: false, text: errorMessage(err, '测试失败') })
     } finally {
       setRunning(false)
     }
@@ -81,6 +84,8 @@ export default function Settings() {
   const [testTo, setTestTo] = useState('')
   const form = useForm({ defaultValues: {} })
   const saving = form.formState.isSubmitting
+  // Saving and the test buttons ask to confirm identity when the last sign-in / check is over 10 minutes old
+  const reauth = useReauth()
 
   const load = (res) => {
     setData(res)
@@ -110,11 +115,11 @@ export default function Settings() {
   const save = form.handleSubmit(async () => {
     if (!dirty) return
     try {
-      load(await saveSettings(changes))
+      load(await reauth.run(() => saveSettings(changes)))
       invalidateAppInfo()
       toast.success('设置已保存')
     } catch (err) {
-      toast.apiError(err, '保存失败')
+      if (!err?.cancelled) toast.apiError(err, '保存失败')
     }
   })
 
@@ -211,7 +216,7 @@ export default function Settings() {
                     <TestAction
                       label="发送测试邮件"
                       disabled={!canEdit || !testTo.trim()}
-                      run={() => testMailSettings(draft('mail.'), testTo.trim())}
+                      run={() => reauth.run(() => testMailSettings(draft('mail.'), testTo.trim()))}
                     >
                       <Input
                         type="email"
@@ -233,7 +238,7 @@ export default function Settings() {
                   <Panel title="存储方式" description="只影响之后上传的文件；已有文件仍从原来的位置读取">
                     <div className="space-y-4">
                       {field('storage.driver')}
-                      <TestAction label="测试连接" disabled={!canEdit} run={() => testStorageSettings(draft('storage.'))} />
+                      <TestAction label="测试连接" disabled={!canEdit} run={() => reauth.run(() => testStorageSettings(draft('storage.')))} />
                     </div>
                   </Panel>
                   <Panel title="上传限制">
@@ -279,13 +284,14 @@ export default function Settings() {
                   </div>
                 </Panel>
                 <Panel title="连通性测试" description="发一条很短的消息，确认地址、API Key 和模型名可用">
-                  <TestAction label="测试调用" disabled={!canEdit} run={() => testAiSettings(draft('ai.'))} />
+                  <TestAction label="测试调用" disabled={!canEdit} run={() => reauth.run(() => testAiSettings(draft('ai.')))} />
                 </Panel>
               </div>
             ) : null}
           </form>
         </Form>
       )}
+      <ReauthDialog {...reauth.dialogProps} />
     </div>
   )
 }
