@@ -24,6 +24,7 @@ import {
   EXPORT_FIELD_MAP,
   IMPORT_HEADER_MAP,
   parseCodes,
+  parseDataScopeCell,
   TEMPLATE_HEADERS,
   TEMPLATE_ROWS,
   type ErrorRow,
@@ -186,6 +187,11 @@ export class RoleService {
       }
     }
 
+    if (args.validFields.includes('dept_codes')) {
+      const codes = await this.repo.deptCodesByRole(exportItems.map((r) => r.id))
+      exportItems = exportItems.map((r) => ({ ...r, dept_codes: codes.get(r.id) ?? [] }))
+    }
+
     const headers = args.validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
     const rows = exportItems.map((item) => args.validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
     return buildTable(headers, rows, 'roles_export', args.fileType)
@@ -237,6 +243,19 @@ export class RoleService {
           continue
         }
 
+        const dataScope = parseDataScopeCell(mapped.data_scope)
+        if (dataScope === null) {
+          errors.push(buildErrorRow(line, '数据范围取值不合法（可填 全部数据 / 本部门及下级 / 本部门 / 仅本人 / 自定义部门）', row))
+          continue
+        }
+        const deptCodes = parseCodes(mapped.dept_codes)
+        const depts = await repo.listDeptsByCodes(deptCodes)
+        const missingDepts = deptCodes.filter((c) => !depts.some((d) => d.code === c))
+        if (missingDepts.length > 0) {
+          errors.push(buildErrorRow(line, `部门编码不存在: ${missingDepts.join(', ')}`, row))
+          continue
+        }
+
         let menuList: Menu[] = []
         if (menuCodes.length > 0) {
           menuList = await repo.listMenusByCodes(menuCodes)
@@ -253,16 +272,26 @@ export class RoleService {
           errors.push(buildErrorRow(line, '超级管理员角色的菜单权限固定为全部，不能修改', row))
           continue
         }
+        if (existing?.code === SUPER_ADMIN && dataScope && dataScope !== 'all') {
+          errors.push(buildErrorRow(line, '超级管理员角色的数据范围固定为全部数据', row))
+          continue
+        }
+        // Departments only matter for the custom scope; a blank data scope cell keeps the current scope
+        const effectiveScope = dataScope || existing?.data_scope || 'all'
+        const deptIds = effectiveScope === 'custom' ? depts.map((d) => d.id) : []
         if (existing) {
-          const values: Partial<Pick<Role, 'name' | 'description'>> = {}
+          const values: Partial<Pick<Role, 'name' | 'description' | 'data_scope'>> = {}
           if (existing.name !== name) values.name = name
           if (existing.description !== description) values.description = description
+          if (dataScope && dataScope !== existing.data_scope) values.data_scope = dataScope
           await repo.update(existing.id, values)
           if (menuCodes.length > 0) await repo.setMenus(existing.id, menuList.map((m) => m.id))
+          if (dataScope || deptCodes.length > 0) await repo.setDepts(existing.id, deptIds)
           updated += 1
         } else {
-          const createdRole = await repo.insert({ name, code, description })
+          const createdRole = await repo.insert({ name, code, description, data_scope: effectiveScope })
           await repo.setMenus(createdRole.id, menuList.map((m) => m.id))
+          if (deptIds.length > 0) await repo.setDepts(createdRole.id, deptIds)
           created += 1
         }
       }

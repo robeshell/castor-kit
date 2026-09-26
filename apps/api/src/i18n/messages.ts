@@ -151,6 +151,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '不能把用户分配到数据权限范围外的部门': { 'en-US': "You can't assign users to a department outside your data scope", 'ja-JP': 'データ権限の範囲外の部署にユーザーを割り当てることはできません' },
   '超出数据权限范围，不能修改该用户': { 'en-US': "This user is outside your data scope and can't be changed", 'ja-JP': 'このユーザーはデータ権限の範囲外のため変更できません' },
 
+  '数据范围取值不合法（可填 全部数据 / 本部门及下级 / 本部门 / 仅本人 / 自定义部门）': { 'en-US': 'Invalid data scope (use 全部数据 / 本部门及下级 / 本部门 / 仅本人 / 自定义部门)', 'ja-JP': 'データ範囲の値が不正です（全部数据 / 本部门及下级 / 本部门 / 仅本人 / 自定义部门 のいずれかを入力してください）' },
   '数据范围取值不合法': { 'en-US': 'Invalid data scope', 'ja-JP': 'データ範囲の値が不正です' },
 
   // departments

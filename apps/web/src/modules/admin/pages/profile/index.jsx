@@ -87,6 +87,7 @@ export default function Profile() {
             columns={2}
             items={[
               { label: '账号 ID', value: user?.id },
+              { label: '部门', value: user?.dept_name },
               { label: '权限点', value: t('{{count}} 项', { count: user?.menu_codes?.length ?? 0 }) },
               {
                 label: '最后登录',
