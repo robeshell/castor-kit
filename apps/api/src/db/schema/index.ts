@@ -12,6 +12,7 @@ export * from './admin/notification'
 export * from './admin/announcement'
 export * from './admin/app-state'
 export * from './admin/files'
+export * from './admin/security'
 
 // component_center
 export * from './component-center/list-page'

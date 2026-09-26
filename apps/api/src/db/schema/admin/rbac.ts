@@ -38,6 +38,11 @@ export const admin_users = pgTable(
     dept_id: integer().references((): AnyPgColumn => departments.id, { onDelete: 'set null' }),
     last_login_at: timestamp({ mode: 'string' }),
     last_login_ip: varchar({ length: 64 }),
+    /** TOTP secret, AES-256-GCM encrypted (common/secret-box.ts); set during enrollment, active once totp_enabled_at is set */
+    totp_secret: text(),
+    totp_enabled_at: timestamp({ mode: 'string' }),
+    /** Last accepted TOTP time step, so a code can't be replayed */
+    totp_last_step: integer(),
     created_at: createdAt(),
     updated_at: updatedAt(),
   },
@@ -258,6 +263,7 @@ export function adminUserToDict(user: AdminUserWithRoles) {
     dept_id: user.dept_id,
     last_login_at: toIso(user.last_login_at),
     last_login_ip: user.last_login_ip,
+    totp_enabled: Boolean(user.totp_enabled_at),
     created_at: toIso(user.created_at),
     updated_at: toIso(user.updated_at),
     roles: user.roles.map((role) => roleToDict(role)),
