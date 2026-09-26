@@ -21,6 +21,10 @@ export const FIELD_META = {
   'security.totp_enabled': { label: '启用两步验证', description: '关闭后登录不再询问验证码，用户已有的绑定会保留' },
   'security.totp_required_roles': { label: '必须开启的角色', description: '这些角色的成员登录时如果还没绑定，会先要求绑定，且不能自行关闭', placeholder: '不强制', input: 'roles' },
   'security.password_reset_enabled': { label: '启用邮件找回密码', description: '登录页显示「忘记密码」；链接 30 分钟内有效、只能使用一次' },
+  'security.api_tokens_enabled': {
+    label: '允许使用 API Token',
+    description: '开启后用户可以在个人设置里创建 API Token；关闭后已有的 Token 全部暂停使用，重新开启后恢复',
+  },
   'security.password_min_length': { label: '最短长度', unit: '位' },
   'security.password_require_letters_digits': { label: '必须同时包含字母和数字' },
   'security.password_require_symbol': { label: '必须包含符号' },

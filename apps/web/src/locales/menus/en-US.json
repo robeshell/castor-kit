@@ -133,5 +133,11 @@
   "system_group_org": "Organization",
   "system_group_security": "Security & Audit",
   "system_group_config": "Configuration",
-  "system_group_content": "Content & Messages"
+  "system_group_content": "Content & Messages",
+  "system_api_tokens": "API Tokens",
+  "system_api_tokens_revoke": "Revoke API tokens",
+  "system_webhooks": "Webhooks",
+  "system_webhooks_add": "Add webhooks",
+  "system_webhooks_edit": "Edit webhooks",
+  "system_webhooks_delete": "Delete webhooks"
 }

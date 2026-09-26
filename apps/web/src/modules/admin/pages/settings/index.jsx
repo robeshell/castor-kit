@@ -176,6 +176,9 @@ export default function Settings() {
                   <Panel title="找回密码" description="需要先在「邮件」里配置好 SMTP 和网站地址">
                     {field('security.password_reset_enabled')}
                   </Panel>
+                  <Panel title="开放接口" description="脚本和其他系统用 API Token 调用接口；Webhook 不受这个开关影响">
+                    {field('security.api_tokens_enabled')}
+                  </Panel>
                 </div>
                 <div className="space-y-4">
                   <Panel title="密码规则" description="设置或修改密码时校验，已有密码不受影响">
