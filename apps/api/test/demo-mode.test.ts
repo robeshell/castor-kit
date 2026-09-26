@@ -91,9 +91,10 @@ describe('demo mode app', () => {
   it('app-info exposes the demo account only in demo mode', async () => {
     const demo = await app.inject({ method: 'GET', url: '/api/admin/app-info' })
     const upload = { max_size: 10 * 1024 * 1024, allowed_types: expect.arrayContaining(['png', 'pdf']) }
-    expect(demo.json()).toEqual({ demo_mode: true, demo_reset_hours: 24, demo_account: { username: 'admin', password: 'demo-pass' }, upload })
+    const security = expect.objectContaining({ totp_enabled: expect.any(Boolean), password_policy: expect.any(Object) })
+    expect(demo.json()).toEqual({ demo_mode: true, demo_reset_hours: 24, demo_account: { username: 'admin', password: 'demo-pass' }, upload, security })
     const off = await normal.inject({ method: 'GET', url: '/api/admin/app-info' })
-    expect(off.json()).toEqual({ demo_mode: false, upload })
+    expect(off.json()).toEqual({ demo_mode: false, upload, security })
   })
 
   it('rejects writes to system management with a translated 403', async () => {

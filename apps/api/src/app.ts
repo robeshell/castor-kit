@@ -17,6 +17,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
+import { SettingsStore } from './common/settings'
 import { registerDemoGuard } from './common/demo'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
 import { registerResponseTranslation } from './common/i18n'
@@ -53,6 +54,7 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   const handle = dbHandle ?? createDb(config.databaseUrl)
   app.decorate('config', config)
   app.decorate('db', handle.db)
+  app.decorate('settings', new SettingsStore(handle.db, config))
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
   app.decorateRequest('dataScope', undefined)
@@ -131,16 +133,18 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   // Public: lets the login page show the demo account, the layout show the demo banner, and upload controls check
   // size / type before sending a file
   const upload = { max_size: config.storage.uploadMaxSize, allowed_types: config.storage.uploadAllowedTypes }
-  app.get('/api/admin/app-info', async () =>
-    config.demoMode
+  app.get('/api/admin/app-info', async () => {
+    const security = await app.settings.publicInfo()
+    return config.demoMode
       ? {
           demo_mode: true,
           demo_reset_hours: config.demoResetHours,
           demo_account: { username: config.adminUsername, password: config.adminPassword },
           upload,
+          security,
         }
-      : { demo_mode: false, upload },
-  )
+      : { demo_mode: false, upload, security }
+  })
 
   app.get('/health', async (request, reply) => {
     try {

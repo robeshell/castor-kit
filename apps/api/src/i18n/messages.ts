@@ -126,6 +126,13 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '头像地址不能超过 500 个字符': { 'en-US': 'The avatar URL must be at most 500 characters', 'ja-JP': 'アバターの URL は 500 文字以内で入力してください' },
   '资料已更新': { 'en-US': 'Profile updated', 'ja-JP': 'プロフィールを更新しました' },
 
+  // system settings
+  '无权限查看系统设置': { 'en-US': "You don't have permission to view system settings", 'ja-JP': 'システム設定を閲覧する権限がありません' },
+  '无权限修改系统设置': { 'en-US': "You don't have permission to change system settings", 'ja-JP': 'システム設定を変更する権限がありません' },
+  '请提交要保存的设置': { 'en-US': 'Send the settings to save', 'ja-JP': '保存する設定を送信してください' },
+  '需要先配置邮件服务（SMTP_HOST 等环境变量）': { 'en-US': 'Configure a mail service first (SMTP_HOST and related environment variables)', 'ja-JP': '先にメールサービス（SMTP_HOST などの環境変数）を設定してください' },
+  '需要先设置 APP_BASE_URL（重置链接里的网站地址）': { 'en-US': 'Set APP_BASE_URL first (the site address used in reset links)', 'ja-JP': '先に APP_BASE_URL（リセットリンクに使うサイトのアドレス）を設定してください' },
+
   // file center
   '请选择要上传的文件': { 'en-US': 'Choose a file to upload', 'ja-JP': 'アップロードするファイルを選択してください' },
   '文件内容为空': { 'en-US': 'The file is empty', 'ja-JP': 'ファイルが空です' },
@@ -418,6 +425,8 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   { re: /^角色不存在: (.+)$/, 'en-US': 'Roles not found: $1', 'ja-JP': 'ロールが存在しません：$1' },
   { re: /^文件过大，最大支持 ([\d.]+)MB$/, 'en-US': 'File too large (max $1 MB)', 'ja-JP': 'ファイルが大きすぎます（最大 $1MB）' },
   { re: /^不支持的文件类型：(.+)$/, 'en-US': 'File type not allowed: $1', 'ja-JP': '許可されていないファイル形式です：$1' },
+  { re: /^未知的设置项：(.+)$/, 'en-US': 'Unknown setting: $1', 'ja-JP': '不明な設定項目です：$1' },
+  { re: /^设置项取值不合法：(.+)$/, 'en-US': 'Invalid value for setting: $1', 'ja-JP': '設定項目の値が不正です：$1' },
   { re: /^部门编码不存在: (.+)$/, 'en-US': 'Department codes not found: $1', 'ja-JP': '部署コードが存在しません：$1' },
   { re: /^角色编码不存在: (.+)$/, 'en-US': 'Role codes not found: $1', 'ja-JP': 'ロールコードが存在しません：$1' },
   { re: /^菜单编码不存在: (.+)$/, 'en-US': 'Menu codes not found: $1', 'ja-JP': 'メニューコードが存在しません：$1' },

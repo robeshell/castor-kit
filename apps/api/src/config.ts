@@ -39,6 +39,19 @@ export interface StorageConfig {
   uploadAllowedTypes: string[]
 }
 
+export interface MailConfig {
+  /** 'smtp' when SMTP_HOST is set, 'log' (MAIL_DRIVER=log: print mails to the server log, for development), else 'none' */
+  driver: 'smtp' | 'log' | 'none'
+  host: string
+  port: number
+  /** SMTP_SECURE: TLS from the first byte (port 465); otherwise STARTTLS when the server offers it */
+  secure: boolean
+  user: string
+  password: string
+  /** MAIL_FROM, e.g. "castor-kit <noreply@example.com>" */
+  from: string
+}
+
 export const DEFAULT_UPLOAD_TYPES = 'jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip'
 
 export interface AppConfig {
@@ -64,6 +77,11 @@ export interface AppConfig {
 
   // ---- File center ----
   storage: StorageConfig
+
+  // ---- Mail / links in mails ----
+  mail: MailConfig
+  /** APP_BASE_URL: public URL of the app (links in mails are built from it, never from the request's Host) */
+  appBaseUrl: string
 
   // ---- Public demo ----
   /** DEMO_MODE: system management becomes read-only, the demo account is shown on the login page, sample data resets periodically */
@@ -153,6 +171,14 @@ const envSchema = z.object({
   S3_FORCE_PATH_STYLE: z.string().optional().default(''),
   UPLOAD_MAX_SIZE: intFromEnv(10 * 1024 * 1024),
   UPLOAD_ALLOWED_TYPES: z.string().optional().default(DEFAULT_UPLOAD_TYPES),
+  MAIL_DRIVER: z.string().optional().default(''),
+  SMTP_HOST: z.string().optional().default(''),
+  SMTP_PORT: intFromEnv(587),
+  SMTP_SECURE: z.string().optional().default(''),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASSWORD: z.string().optional().default(''),
+  MAIL_FROM: z.string().optional().default(''),
+  APP_BASE_URL: z.string().optional().default(''),
 })
 
 /** Boolean env var parsing: '1' / 'true' / 'yes' / 'on' are true (case-insensitive, whitespace-trimmed) */
@@ -231,6 +257,23 @@ function resolveStorage(parsed: z.infer<typeof envSchema>, instanceDir: string, 
   }
 }
 
+function resolveMail(parsed: z.infer<typeof envSchema>): MailConfig {
+  const host = parsed.SMTP_HOST.trim()
+  const explicit = parsed.MAIL_DRIVER.trim().toLowerCase()
+  if (explicit && !['smtp', 'log', 'none'].includes(explicit)) throw new Error(`MAIL_DRIVER 只能是 smtp、log 或 none（当前：${explicit}）`)
+  const driver = (explicit || (host ? 'smtp' : 'none')) as MailConfig['driver']
+  if (driver === 'smtp' && !host) throw new Error('MAIL_DRIVER=smtp 需要设置 SMTP_HOST')
+  return {
+    driver,
+    host,
+    port: parsed.SMTP_PORT,
+    secure: parsed.SMTP_SECURE.trim() === '' ? parsed.SMTP_PORT === 465 : isTruthy(parsed.SMTP_SECURE),
+    user: parsed.SMTP_USER.trim(),
+    password: parsed.SMTP_PASSWORD,
+    from: parsed.MAIL_FROM.trim() || (parsed.SMTP_USER.trim() ? parsed.SMTP_USER.trim() : 'castor-kit <noreply@localhost>'),
+  }
+}
+
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = resolveEnv(source.NODE_ENV)
   const parsed = envSchema.parse(source)
@@ -264,6 +307,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     webDistDir: parsed.WEB_DIST_DIR ? resolve(parsed.WEB_DIST_DIR) : resolve(REPO_ROOT, 'apps/web/dist'),
     instanceDir,
     storage: resolveStorage(parsed, instanceDir, parsed.MAX_CONTENT_LENGTH),
+    mail: resolveMail(parsed),
+    appBaseUrl: parsed.APP_BASE_URL.trim().replace(/\/+$/, ''),
     demoMode: isTruthy(parsed.DEMO_MODE),
     demoResetHours: Math.max(1, parsed.DEMO_RESET_HOURS),
     demoAiHourlyPerIp: Math.max(0, parsed.DEMO_AI_HOURLY_PER_IP),
