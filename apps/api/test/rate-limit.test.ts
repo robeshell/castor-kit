@@ -42,6 +42,11 @@ describe('rate limit', () => {
     expect(res.json()).toEqual({ error: '请求过于频繁，请稍后再试' })
     expect(Number(res.headers['retry-after'])).toBeGreaterThan(0)
     expect((await login('en-US')).json()).toEqual({ error: 'Too many requests. Please try again later.' })
+    // Login, 2FA code and password reset share the same counter
+    const reset = await app.inject({ method: 'POST', url: '/api/admin/password-reset/request', payload: {}, remoteAddress: '10.0.0.1' })
+    expect(reset.statusCode).toBe(429)
+    const twoFactor = await app.inject({ method: 'POST', url: '/api/admin/login/two-factor', payload: {}, remoteAddress: '10.0.0.1' })
+    expect(twoFactor.statusCode).toBe(429)
     // Other IPs are counted separately
     const other = await app.inject({ method: 'POST', url: '/api/admin/login', payload: {}, remoteAddress: '10.0.0.2' })
     expect(other.statusCode).not.toBe(429)

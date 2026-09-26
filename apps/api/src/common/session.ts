@@ -13,9 +13,13 @@
 import { randomBytes } from 'node:crypto'
 import { and, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { requestPath } from '@/common/csrf'
 import type { Executor } from '@/db/client'
 import { sessions, type SessionRow } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
+
+/** Paths that read the session (API, WebSocket, the /admin/login redirect) */
+const SESSION_PATHS = /^\/(api|ws|admin)(\/|$)/
 
 /** How often last_seen_at / expires_at are refreshed for an active session */
 const TOUCH_INTERVAL_SECONDS = 60
@@ -124,6 +128,8 @@ export function attachSession(request: FastifyRequest, row: Pick<SessionRow, 'id
 export function registerSessionResolver(app: FastifyInstance): void {
   app.decorateRequest('authSession', null)
   app.addHook('onRequest', async (request) => {
+    // Static files and the SPA never look at the session: skip the lookup (one query per asset otherwise)
+    if (!SESSION_PATHS.test(requestPath(request))) return
     const sid = request.session.get('sid')
     if (!sid) return
     const row = await findLiveSession(app.db, sid)
