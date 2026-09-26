@@ -275,7 +275,7 @@
     "/api/admin/app-info": {
       "GET": {
         "summary": "应用信息（公开）",
-        "description": "无需登录。DEMO_MODE 开启时返回演示账号与数据重置间隔，供登录页和演示提示条使用；未开启时只返回 demo_mode: false。",
+        "description": "无需登录。始终返回上传限制（upload.max_size 字节、upload.allowed_types 扩展名），供上传控件在本地先检查；DEMO_MODE 开启时另外返回演示账号与数据重置间隔，供登录页和演示提示条使用。",
         "responses": {
           "200": {
             "description": "成功",
@@ -300,6 +300,23 @@
                         },
                         "password": {
                           "type": "string"
+                        }
+                      }
+                    },
+                    "upload": {
+                      "type": "object",
+                      "description": "上传限制（文件中心）",
+                      "properties": {
+                        "max_size": {
+                          "type": "integer",
+                          "description": "单个文件上限（字节），取 UPLOAD_MAX_SIZE 与 MAX_CONTENT_LENGTH 的较小值"
+                        },
+                        "allowed_types": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "允许的扩展名（小写、不带点）"
                         }
                       }
                     }
@@ -2228,106 +2245,6 @@
           }
         },
         "x-apifox-folder": "后台/组件示例中心/查询示例/导入导出",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/admin/component-center/list-page/upload-file": {
-      "post": {
-        "tags": [
-          "后台-查询示例"
-        ],
-        "summary": "上传list-page附件",
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "请求参数错误"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        },
-        "x-apifox-folder": "后台/组件示例中心/查询示例/文件",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/admin/component-center/list-page/upload-image": {
-      "post": {
-        "tags": [
-          "后台-查询示例"
-        ],
-        "summary": "上传list-page图片",
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "请求参数错误"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "500": {
-            "description": "服务器错误"
-          }
-        },
-        "x-apifox-folder": "后台/组件示例中心/查询示例/图片",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
-        },
         "security": [
           {
             "cookieAuth": []
