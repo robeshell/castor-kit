@@ -223,11 +223,12 @@ describe('scaffold 纯函数', () => {
 
   it('scaffold.ts 与全部生成代码的注释都是英文', () => {
     expect(cjkComments(readFileSync(SCRIPT, 'utf8'))).toEqual([])
-    for (const [name, domain, fields] of [
-      ['ck_min', 'admin', 'name:str'],
-      ['ck_all', 'component_center', 'n:str,t:text,i:int,f:float,b:bool,d:date,dt:datetime'],
+    for (const [name, domain, fields, dataScope] of [
+      ['ck_min', 'admin', 'name:str', false],
+      ['ck_all', 'component_center', 'n:str,t:text,i:int,f:float,b:bool,d:date,dt:datetime', false],
+      ['ck_ds', 'admin', 'name:str,level:int', true],
     ] as const) {
-      const spec = buildSpec(name, domain, parseFields(fields))
+      const spec = buildSpec(name, domain, parseFields(fields), { dataScope })
       for (const gen of [genDbSchema, genModuleSchema, genRepository, genService, genRoutes, genApiTest, genFrontendApi, genFrontendPage]) {
         expect(cjkComments(gen(spec)), `${name} ${gen.name}`).toEqual([])
       }
@@ -523,4 +524,39 @@ describe('scaffold CLI（临时目录副本）', () => {
     )
     expect(readdirSync(join(root, 'apps/api/drizzle')).filter((f) => f.endsWith('.sql'))).toHaveLength(2)
   }, 60_000)
+
+  it('--data-scope：加 dept_id / created_by，repository 按数据范围过滤，新建记录写入创建人，生成数据权限测试', () => {
+    const res = scaffoldCli(['--name', 'ck_scaffold_ds', '--domain', 'admin', '--fields', 'title:str', '--data-scope', '--skip-migration', '--root', root])
+    expect(res.code, res.out).toBe(0)
+    const dir = 'apps/api/src/modules/admin/ck-scaffold-ds'
+    const read = (rel: string) => readFileSync(join(root, rel), 'utf8')
+
+    const table = read('apps/api/src/db/schema/admin/ck-scaffold-ds.ts')
+    for (const line of ['  dept_id: integer(),', '  created_by: integer(),', '    created_by: item.created_by,']) expect(table).toContain(line)
+    expect(read(`${dir}/schema.ts`)).toContain("export const DATA_SCOPE = { deptColumn: 'dept_id', ownerColumn: 'created_by' } as const")
+
+    const repo = read(`${dir}/repository.ts`)
+    expect(repo).toContain('dataScopeWhere(scope, { deptColumn: ck_scaffold_dss.dept_id, ownerColumn: ck_scaffold_dss.created_by })')
+    expect(repo).toContain('const where = and(this.searchWhere(search), this.scopeWhere(scope))')
+    expect(repo).toContain('.where(and(eq(ck_scaffold_dss.id, id), this.scopeWhere(scope)))')
+
+    const service = read(`${dir}/service.ts`)
+    expect(service).toContain('const values = { ...buildValues(data, false), ...stamp(actor) }')
+    expect(service).toContain('await repo.insert({ ...values, ...stamp(actor) })')
+
+    const routes = read(`${dir}/routes.ts`)
+    expect(routes.match(/service\.getOr404\(itemId\(request\.params\), await resolveDataScope\(request\)\)/g)).toHaveLength(3)
+    expect(routes).toContain('service.createItem(jsonBody(request), await currentActor(request))')
+    expect(routes).toContain('service.exportItems(jsonBody(request), await resolveDataScope(request))')
+    expect(routes).toContain('service.importItems(await getUploadedFile(request), await currentActor(request))')
+
+    expect(read('apps/api/test/admin-ck-scaffold-ds.test.ts')).toContain("dataScope: 'self'")
+    for (const rel of [`${dir}/repository.ts`, `${dir}/service.ts`, `${dir}/routes.ts`, 'apps/api/test/admin-ck-scaffold-ds.test.ts']) {
+      expect(cjkComments(read(rel)), rel).toEqual([])
+    }
+
+    const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
+    const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-ds/.test(l))
+    expect(ours).toEqual([])
+  }, 180_000)
 })
