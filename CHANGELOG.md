@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Added
 
+- User profiles: nickname, email, phone, avatar URL, status, last sign-in time and IP on accounts. Admins edit them on the Users page (with search and a status filter, and the new columns in import / export); everyone edits their own on the Profile page. Accounts can be disabled (new `system_users_status` permission): a disabled account can't sign in and its open sessions end on the next request.
 - Demo AI quota: in demo mode the AI endpoints are limited per IP per hour and per day for the whole site, with a max request size and reply length (`DEMO_AI_*`); `render.yaml` points AI at Gemini's OpenAI-compatible endpoint. The AI chat now answers in the user's language.
 - Public demo mode (`DEMO_MODE`): read-only system management, one-click demo sign-in, a "Demo" badge in the top bar and sample data restored every `DEMO_RESET_HOURS`; `render.yaml` deploys it to Render with a free Neon database.
 - Documentation and landing site rebuilt on VitePress with a custom theme, real product screenshots (captured by `npm --prefix website run screenshots`) and docs in Chinese, English and Japanese.
@@ -21,6 +22,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- A session whose account was deleted now gets 401 (back to sign-in) on its next request instead of 403 / 404 responses.
 - The user menu no longer has a light / dark toggle; the top bar button and the ⌘K command menu cover it.
 - The default content width is now fluid (full width); fixed width stays available in the appearance menu.
 - The 3D globe and particle demos follow the accent color.

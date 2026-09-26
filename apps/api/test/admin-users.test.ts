@@ -1,10 +1,19 @@
-import { eq, like } from 'drizzle-orm'
+import { and, eq, inArray, like, ne } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { checkPasswordHash } from '@/common/password'
 import type { DbHandle } from '@/db/client'
-import { admin_users } from '@/db/schema'
-import { buildTestApp, cleanupFixture, multipartFile, openTestDb, superAdminSession, type AuthedSession } from './helpers'
+import { admin_users, login_logs, menus, role_menus, roles, user_roles } from '@/db/schema'
+import {
+  buildTestApp,
+  cleanupFixture,
+  loginSession,
+  multipartFile,
+  openTestDb,
+  sessionCookie,
+  superAdminSession,
+  type AuthedSession,
+} from './helpers'
 
 const P = 'ck_test_u_'
 let app: FastifyInstance
@@ -17,8 +26,12 @@ beforeAll(async () => {
   s = await superAdminSession(app, handle)
 })
 
+/** Menu ids this file inserted because the test DB lacked them (removed in afterAll) */
+const createdMenuIds: number[] = []
+
 afterAll(async () => {
   await handle.db.delete(admin_users).where(like(admin_users.username, `${P}%`))
+  if (createdMenuIds.length > 0) await handle.db.delete(menus).where(inArray(menus.id, createdMenuIds))
   await cleanupFixture(handle)
   await app.close()
   await handle.pool.end()
@@ -129,5 +142,233 @@ describe('users', () => {
     const u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
     expect((await u.inject({ url: '/api/admin/users' })).json()).toEqual({ error: '无权限查看用户列表' })
     expect((await u.inject({ method: 'POST', url: '/api/admin/users/import' })).json()).toEqual({ error: '无权限导入用户' })
+  })
+})
+
+// ---- Profile fields, status and self-service profile ----
+
+async function menuIdsFor(codes: string[]): Promise<number[]> {
+  const ids: number[] = []
+  for (const code of codes) {
+    const [found] = await handle.db.select().from(menus).where(eq(menus.code, code))
+    if (found) {
+      ids.push(found.id)
+      continue
+    }
+    const [created] = await handle.db.insert(menus).values({ name: code, code, menu_type: 'button', is_visible: false }).returning()
+    createdMenuIds.push(created!.id)
+    ids.push(created!.id)
+  }
+  return ids
+}
+
+/** Creates a user with a role holding exactly `codes`, and signs in as them */
+async function operatorSession(name: string, codes: string[]): Promise<AuthedSession> {
+  const { generatePasswordHash } = await import('@/common/password')
+  const [role] = await handle.db
+    .insert(roles)
+    .values({ name, code: `ck_test_role_${name}` })
+    .returning()
+  const menuIds = await menuIdsFor(codes)
+  await handle.db.insert(role_menus).values(menuIds.map((menu_id) => ({ role_id: role!.id, menu_id })))
+  const [user] = await handle.db
+    .insert(admin_users)
+    .values({ username: `${P}${name}`, password_hash: await generatePasswordHash('op-pass-1', 1000) })
+    .returning()
+  await handle.db.insert(user_roles).values({ user_id: user!.id, role_id: role!.id })
+  return loginSession(app, `${P}${name}`, 'op-pass-1', user!.id)
+}
+
+async function createUser(username: string, extra: Record<string, unknown> = {}) {
+  const res = await s.inject({ method: 'POST', url: '/api/admin/users', payload: { username, password: 'pass-123', ...extra } })
+  expect(res.statusCode, res.body).toBe(201)
+  return res.json() as { id: number } & Record<string, unknown>
+}
+
+describe('users: profile fields', () => {
+  // The fixture test above removes every ck_test_* user, including the super admin behind `s`
+  beforeAll(async () => {
+    s = await superAdminSession(app, handle)
+  })
+
+  it('新增带资料：邮箱转小写、空值存 null；邮箱重复（忽略大小写）/ 格式错误 → 400', async () => {
+    const u = await createUser(`${P}p1`, { nickname: ' 张三 ', email: 'Zhang.San@Example.com', phone: '', avatar: '/a.png' })
+    expect(u).toMatchObject({
+      nickname: '张三',
+      email: 'zhang.san@example.com',
+      phone: null,
+      avatar: '/a.png',
+      status: 'active',
+      dept_id: null,
+      last_login_at: null,
+    })
+
+    const post = (payload: Record<string, unknown>) => s.inject({ method: 'POST', url: '/api/admin/users', payload })
+    expect((await post({ username: `${P}p2`, password: 'x', email: 'ZHANG.SAN@example.com' })).json()).toEqual({ error: '邮箱已被使用' })
+    expect((await post({ username: `${P}p2`, password: 'x', email: 'not-an-email' })).json()).toEqual({ error: '邮箱格式不正确' })
+    expect((await post({ username: `${P}p2`, password: 'x', phone: 'abc' })).json()).toEqual({ error: '手机号格式不正确' })
+    expect((await post({ username: `${P}p2`, password: 'x', avatar: 'javascript:alert(1)' })).json()).toEqual({
+      error: '头像地址需以 http(s):// 或 / 开头',
+    })
+    expect((await post({ username: `${P}p2`, password: 'x', nickname: 'n'.repeat(101) })).json()).toEqual({ error: '昵称不能超过 100 个字符' })
+  })
+
+  it('编辑：改资料、清空邮箱；body 里的 status 被忽略；搜索昵称 / 邮箱 + 状态筛选', async () => {
+    const [u] = await handle.db.select().from(admin_users).where(eq(admin_users.username, `${P}p1`))
+    const res = await s.inject({
+      method: 'PUT',
+      url: `/api/admin/users/${u!.id}`,
+      payload: { nickname: '张三丰', email: '', phone: '+86 138-0000-0000', status: 'disabled' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ nickname: '张三丰', email: null, phone: '+86 138-0000-0000', avatar: '/a.png', status: 'active' })
+    expect(res.json().updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+
+    const byNick = (await s.inject({ url: '/api/admin/users?search=张三丰' })).json()
+    expect(byNick.items.map((i: { username: string }) => i.username)).toEqual([`${P}p1`])
+    const disabled = (await s.inject({ url: '/api/admin/users?search=ck_test_u_p1&status=disabled' })).json()
+    expect(disabled.total).toBe(0)
+    const bogus = (await s.inject({ url: '/api/admin/users?search=ck_test_u_p1&status=bogus' })).json()
+    expect(bogus.total).toBe(1)
+  })
+
+  it('个人资料：只改自己的昵称 / 邮箱 / 手机 / 头像；邮箱冲突 400；未登录 401', async () => {
+    await createUser(`${P}p3`, { email: 'taken@example.com' })
+    const res = await s.inject({
+      method: 'PUT',
+      url: '/api/admin/profile',
+      payload: { nickname: '超管', avatar: 'https://example.com/a.png', username: 'hacked', status: 'disabled' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().message).toBe('资料已更新')
+    expect(res.json().user).toMatchObject({ id: s.userId, username: 'ck_test_super', nickname: '超管', status: 'active' })
+    expect((await s.inject({ url: '/api/admin/me' })).json().user.avatar).toBe('https://example.com/a.png')
+
+    const clash = await s.inject({ method: 'PUT', url: '/api/admin/profile', payload: { email: 'TAKEN@example.com' } })
+    expect([clash.statusCode, clash.json()]).toEqual([400, { error: '邮箱已被使用' }])
+    const anon = await app.inject({ method: 'PUT', url: '/api/admin/profile', payload: {} })
+    expect(anon.statusCode).toBe(401)
+  })
+})
+
+describe('users: enable / disable', () => {
+  it('停用：取值校验、不能停用自己、不存在 → 404、无权限 → 403', async () => {
+    const u = await createUser(`${P}s1`)
+    const put = (id: number, payload: unknown, session = s) =>
+      session.inject({ method: 'PUT', url: `/api/admin/users/${id}/status`, payload: payload as Record<string, unknown> })
+    expect((await put(u.id, { status: 'paused' })).json()).toEqual({ error: '状态取值不合法' })
+    expect((await put(s.userId, { status: 'disabled' })).json()).toEqual({ error: '不能停用当前登录账号' })
+    expect((await put(99999999, { status: 'disabled' })).statusCode).toBe(404)
+    const ok = await put(u.id, { status: 'disabled' })
+    expect([ok.statusCode, ok.json().status]).toEqual([200, 'disabled'])
+
+    const viewer = await operatorSession('viewer', ['system_users', 'system_users_edit'])
+    expect((await put(u.id, { status: 'active' }, viewer)).json()).toEqual({ error: '无权限启用或停用用户' })
+  })
+
+  it('停用账号：密码正确也不能登录（403，记失败日志）；已登录会话下一次请求 401 并清 cookie；启用后恢复，记录最后登录', async () => {
+    const u = await createUser(`${P}s2`)
+    const session = await loginSession(app, `${P}s2`, 'pass-123', u.id)
+    const [afterLogin] = await handle.db.select().from(admin_users).where(eq(admin_users.id, u.id))
+    expect(afterLogin!.last_login_at).not.toBeNull()
+    expect(afterLogin!.last_login_ip).toBeTruthy()
+    expect((await session.inject({ url: '/api/admin/me' })).statusCode).toBe(200)
+
+    await s.inject({ method: 'PUT', url: `/api/admin/users/${u.id}/status`, payload: { status: 'disabled' } })
+
+    const me = await session.inject({ url: '/api/admin/me' })
+    expect([me.statusCode, me.json()]).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
+    expect(sessionCookie(me)).toBe('')
+    const menusRes = await session.inject({ url: '/api/admin/my-menus' })
+    expect(menusRes.statusCode).toBe(401)
+
+    const wrong = await app.inject({ method: 'POST', url: '/api/admin/login', payload: { username: `${P}s2`, password: 'nope' } })
+    expect(wrong.json()).toEqual({ error: '用户名或密码错误' })
+    const blocked = await app.inject({ method: 'POST', url: '/api/admin/login', payload: { username: `${P}s2`, password: 'pass-123' } })
+    expect([blocked.statusCode, blocked.json()]).toEqual([403, { error: '账号已停用，请联系管理员' }])
+    const logs = await handle.db
+      .select()
+      .from(login_logs)
+      .where(and(eq(login_logs.username, `${P}s2`), eq(login_logs.message, '账号已停用')))
+    expect(logs).toHaveLength(1)
+
+    await s.inject({ method: 'PUT', url: `/api/admin/users/${u.id}/status`, payload: { status: 'active' } })
+    const again = await app.inject({ method: 'POST', url: '/api/admin/login', payload: { username: `${P}s2`, password: 'pass-123' } })
+    expect(again.statusCode).toBe(200)
+    expect(again.json().user.last_login_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('不能停用 / 删除最后一个可登录的超级管理员', async () => {
+    const [superRole] = await handle.db.select().from(roles).where(eq(roles.code, 'super_admin'))
+    const target = await createUser(`${P}s3`, { role_ids: [superRole!.id] })
+    const operator = await operatorSession('operator', ['system_users', 'system_users_status', 'system_users_delete'])
+    // Temporarily disable every other super admin so the target is the last active one
+    const others = await handle.db
+      .select({ id: admin_users.id })
+      .from(admin_users)
+      .innerJoin(user_roles, eq(user_roles.user_id, admin_users.id))
+      .where(and(eq(user_roles.role_id, superRole!.id), ne(admin_users.id, target.id), eq(admin_users.status, 'active')))
+    const otherIds = others.map((o) => o.id)
+    await handle.db.update(admin_users).set({ status: 'disabled' }).where(inArray(admin_users.id, otherIds))
+    try {
+      const disable = await operator.inject({ method: 'PUT', url: `/api/admin/users/${target.id}/status`, payload: { status: 'disabled' } })
+      expect(disable.json()).toEqual({ error: '不能停用最后一个超级管理员' })
+      const del = await operator.inject({ method: 'DELETE', url: `/api/admin/users/${target.id}` })
+      expect(del.json()).toEqual({ error: '不能删除最后一个超级管理员' })
+    } finally {
+      await handle.db.update(admin_users).set({ status: 'active' }).where(inArray(admin_users.id, otherIds))
+    }
+  })
+})
+
+describe('users: import / export with profile fields', () => {
+  it('导出包含资料与状态列', async () => {
+    const res = await s.inject({
+      method: 'POST',
+      url: '/api/admin/users/export',
+      payload: {
+        export_mode: 'filtered',
+        filters: { search: `${P}s1`, status: 'disabled' },
+        fields: ['username', 'nickname', 'email', 'status', 'last_login_at'],
+      },
+    })
+    expect(res.body).toBe(`\ufeff用户名,昵称,邮箱,状态,最后登录时间\r\n${P}s1,,,停用,\r\n`)
+  })
+
+  it('导入：资料与状态列；非法状态 / 批内重复邮箱 / 停用自己记为错误行；空单元格不覆盖已有值', async () => {
+    const bad = multipartFile(
+      'u.csv',
+      `用户名,密码,昵称,邮箱,手机,状态,角色编码\n` +
+        `${P}i1,123456,甲,dup@example.com,,正常,\n` +
+        `${P}i2,123456,乙,DUP@example.com,,,\n` +
+        `${P}i3,123456,,,,暂停,\n` +
+        `ck_test_super,,,,,停用,\n`,
+    )
+    const badRes = await s.inject({ method: 'POST', url: '/api/admin/users/import', ...bad })
+    expect(badRes.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])).toEqual([
+      [3, '邮箱已被使用'],
+      [4, '状态取值不合法（可填 正常 / 停用）'],
+      [5, '不能停用当前登录账号'],
+    ])
+    expect(await handle.db.select().from(admin_users).where(eq(admin_users.username, `${P}i1`))).toHaveLength(0)
+
+    const good = multipartFile(
+      'u.csv',
+      `用户名,密码,昵称,邮箱,手机,状态,角色编码\n${P}i1,123456,甲,i1@example.com,13800000000,停用,\n${P}i1,,,,,,\n`,
+    )
+    expect((await s.inject({ method: 'POST', url: '/api/admin/users/import', ...good })).json()).toEqual({
+      message: '导入成功',
+      created: 1,
+      updated: 1,
+    })
+    const [row] = await handle.db.select().from(admin_users).where(eq(admin_users.username, `${P}i1`))
+    expect(row).toMatchObject({ nickname: '甲', email: 'i1@example.com', phone: '13800000000', status: 'disabled' })
+  })
+
+  it('导入：没有启用 / 停用权限时，填了状态的行记为错误行', async () => {
+    const editor = await operatorSession('editor', ['system_users', 'system_users_edit'])
+    const file = multipartFile('u.csv', `用户名,密码,状态\n${P}i4,123456,正常\n${P}i5,123456,\n`)
+    const res = await editor.inject({ method: 'POST', url: '/api/admin/users/import', ...file })
+    expect(res.json().error_rows.map((r: { line: number; reason: string }) => [r.line, r.reason])).toEqual([[2, '无权限修改用户状态']])
   })
 })

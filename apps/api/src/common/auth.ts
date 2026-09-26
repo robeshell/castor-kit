@@ -16,13 +16,28 @@ function isApiRequest(request: FastifyRequest): boolean {
   return request.url.startsWith('/api/')
 }
 
-/** Login-required preHandler */
+/**
+ * Login-required preHandler.
+ *
+ * Besides the session flag, the account must still exist and be active: a disabled (or deleted) user's session is
+ * cleared here, so it ends on their next request. The user is cached on the request, so later permission checks
+ * don't query again.
+ */
 export const loginRequired: preHandlerAsyncHookHandler = async (request, reply) => {
-  if (!request.session.get('logged_in')) {
+  if (!request.session.get('logged_in') || !(await getCurrentAdminUser(request))) {
+    endSession(request)
     if (isApiRequest(request)) {
       return reply.status(401).send({ error: '未授权访问', redirect: LOGIN_PAGE })
     }
     return reply.redirect(LOGIN_PAGE)
+  }
+}
+
+/** Drop a stale session (no-op when there is none) */
+function endSession(request: FastifyRequest): void {
+  if (request.session.get('logged_in')) {
+    request.session.regenerate()
+    request.session.delete()
   }
 }
 
@@ -72,14 +87,17 @@ export async function loadAdminsWithRolesByIds(db: Executor, ids: number[]): Pro
   return ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []))
 }
 
-/** Current logged-in user (cached per request to avoid N+1 in permission checks) */
+/**
+ * Current logged-in user (cached per request to avoid N+1 in permission checks).
+ * Disabled accounts count as signed out: null here, so every permission check fails for them too.
+ */
 export async function getCurrentAdminUser(request: FastifyRequest): Promise<AdminUserWithRoles | null> {
   if (request.currentAdminUser !== undefined) return request.currentAdminUser
 
   const username = request.session.get('username')
   const user = username ? await loadAdminWithRoles(request.server.db, username) : null
-  request.currentAdminUser = user
-  return user
+  request.currentAdminUser = user && user.status === 'active' ? user : null
+  return request.currentAdminUser
 }
 
 export async function hasMenuPermission(request: FastifyRequest, menuCode: string): Promise<boolean> {
@@ -106,7 +124,8 @@ export function menuPermissionRequired(menuCode: string): preHandlerAsyncHookHan
     }
     const user = await getCurrentAdminUser(request)
     if (!user) {
-      return api ? reply.status(404).send({ error: '用户不存在' }) : reply.redirect(LOGIN_PAGE)
+      endSession(request)
+      return api ? reply.status(401).send({ error: '登录已失效，请重新登录' }) : reply.redirect(LOGIN_PAGE)
     }
     if (!userHasMenuCode(user, menuCode)) {
       return reply.status(403).send({ error: api ? `缺少权限: ${menuCode}` : '无权限' })

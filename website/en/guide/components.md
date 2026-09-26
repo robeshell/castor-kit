@@ -88,7 +88,7 @@ Besides the component examples, the System menu holds the business features that
 
 | Page | Route | Description |
 |---|---|---|
-| Users | `/system/users` | Create, edit and delete users, assign roles, import/export (the reference implementation of a standard list page) |
+| Users | `/system/users` | Create, edit and delete users, assign roles, enable / disable, import/export (the reference implementation of a standard list page) |
 | Roles | `/system/roles` | Role management and menu / button authorization |
 | Menus | `/system/menus` | Menu tree management |
 | Logs | `/system/logs` | Operation logs and login logs |
@@ -97,4 +97,4 @@ Besides the component examples, the System menu holds the business features that
 | Notifications | `/system/notifications` | In-app notifications |
 | Announcements | `/system/announcements` | Publishing and managing announcements |
 
-There is also the Home page (`/dashboard`) and the Profile page (`/profile`).
+There is also the Home page (`/dashboard`) and the Profile page (`/profile`: account details and last sign-in, plus editing nickname / email / phone / avatar and the password).

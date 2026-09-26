@@ -9,6 +9,8 @@ import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
 import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { userDisplayName } from '@/lib/user'
+import UserAvatar from '@/shared/components/UserAvatar'
 
 const COLUMNS = [
   { key: 'name', title: '名称', dataIndex: 'name' },
@@ -123,5 +125,20 @@ describe('StatusBadge', () => {
   it('按 tone 渲染语义色类', () => {
     render(<StatusBadge tone="success" dot>启用</StatusBadge>)
     expect(screen.getByText('启用').className).toContain('text-success')
+  })
+})
+
+describe('UserAvatar', () => {
+  it('没有图片（或图片未加载）时显示名字首字母', () => {
+    render(<UserAvatar name="alice" />)
+    expect(screen.getByText('A')).toBeInTheDocument()
+    render(<UserAvatar />)
+    expect(screen.getByText('?')).toBeInTheDocument()
+  })
+
+  it('显示名：昵称优先，其次用户名', () => {
+    expect(userDisplayName({ nickname: '张三', username: 'zhangsan' })).toBe('张三')
+    expect(userDisplayName({ nickname: null, username: 'zhangsan' })).toBe('zhangsan')
+    expect(userDisplayName(null)).toBe('')
   })
 })

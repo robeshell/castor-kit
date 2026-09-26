@@ -88,7 +88,7 @@ WebSocket 和性能监控页面依赖 `/ws/devtools`。部署在反向代理后�
 
 | 页面 | 路由 | 说明 |
 |---|---|---|
-| 用户管理 | `/system/users` | 用户增删改、分配角色、导入导出（标准列表页的参考实现） |
+| 用户管理 | `/system/users` | 用户增删改、分配角色、启用 / 停用、导入导出（标准列表页的参考实现） |
 | 角色权限 | `/system/roles` | 角色管理与菜单 / 按钮授权 |
 | 菜单管理 | `/system/menus` | 菜单树管理 |
 | 日志管理 | `/system/logs` | 操作日志与登录日志 |
@@ -97,4 +97,4 @@ WebSocket 和性能监控页面依赖 `/ws/devtools`。部署在反向代理后�
 | 消息通知 | `/system/notifications` | 站内通知 |
 | 公告管理 | `/system/announcements` | 公告发布与管理 |
 
-另外还有首页（`/dashboard`）和个人资料页（`/profile`）。
+另外还有首页（`/dashboard`）和个人设置页（`/profile`：查看账号与最后登录，修改昵称 / 邮箱 / 手机 / 头像和密码）。

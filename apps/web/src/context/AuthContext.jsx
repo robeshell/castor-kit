@@ -43,13 +43,19 @@ export function AuthProvider({ children }) {
     setMenuCodes([])
   }
 
+  // After the user edits their own profile: swap in the fresh user returned by the API
+  const updateUser = (userData) => {
+    setUser(userData)
+    setMenuCodes(userData?.menu_codes || [])
+  }
+
   const hasPermission = (code) => {
     if (menuCodes.includes('super_admin')) return true
     return menuCodes.includes(code)
   }
 
   return (
-    <AuthContext.Provider value={{ user, menus, menuCodes, loading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, menus, menuCodes, loading, login, logout, updateUser, hasPermission }}>
       {children}
     </AuthContext.Provider>
   )
