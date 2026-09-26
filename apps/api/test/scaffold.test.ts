@@ -148,6 +148,7 @@ describe('scaffold 纯函数', () => {
       ['ck_min', 'admin', 'name:str'],
       ['ck_mix', 'component_center', 'active:bool,d:date,qty:int,title:str50,x:unknown'],
       ['ck_all', 'admin', 'n:str,t:text,i:int,f:float,b:bool,d:date,dt:datetime'],
+      ['ck_files', 'admin', 'title:str,cover:image,attachment:file'],
     ] as const
     for (const [name, domain, fields] of cases) {
       const page = genFrontendPage(buildSpec(name, domain, parseFields(fields)))
@@ -227,6 +228,7 @@ describe('scaffold 纯函数', () => {
       ['ck_min', 'admin', 'name:str', false],
       ['ck_all', 'component_center', 'n:str,t:text,i:int,f:float,b:bool,d:date,dt:datetime', false],
       ['ck_ds', 'admin', 'name:str,level:int', true],
+      ['ck_files', 'admin', 'title:str,cover:image,attachment:file', false],
     ] as const) {
       const spec = buildSpec(name, domain, parseFields(fields), { dataScope })
       for (const gen of [genDbSchema, genModuleSchema, genRepository, genService, genRoutes, genApiTest, genFrontendApi, genFrontendPage]) {
@@ -557,6 +559,30 @@ describe('scaffold CLI（临时目录副本）', () => {
 
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-ds/.test(l))
+    expect(ours).toEqual([])
+  }, 180_000)
+
+  it('file / image 字段：存文件 ID，接受文件地址，写入时登记引用，页面用上传控件和缩略图 / 链接', () => {
+    const res = scaffoldCli(['--name', 'ck_scaffold_fl', '--domain', 'admin', '--fields', 'title:str,cover:image,attachment:file', '--skip-migration', '--root', root])
+    expect(res.code, res.out).toBe(0)
+    const dir = 'apps/api/src/modules/admin/ck-scaffold-fl'
+    const read = (rel: string) => readFileSync(join(root, rel), 'utf8')
+
+    expect(read('apps/api/src/db/schema/admin/ck-scaffold-fl.ts')).toContain('  cover: varchar({ length: 36 }),')
+    const schema = read(`${dir}/schema.ts`)
+    expect(schema).toContain("import { fileIdOf } from '@/common/file-refs'")
+    expect(schema).toContain("values.cover = toFileId('cover', data['cover'])")
+    const repo = read(`${dir}/repository.ts`)
+    expect(repo).toContain("await syncFileRefs(this.db, 'ck_scaffold_fls', row!.id, { cover: row!.cover, attachment: row!.attachment })")
+    expect(repo).toContain("await clearFileRefs(this.db, 'ck_scaffold_fls', id)")
+
+    const page = read('apps/web/src/modules/admin/pages/ck_scaffold_fl/index.jsx')
+    expect(page).toContain('<FormImageUpload control={form.control} name="cover"')
+    expect(page).toContain('<FormFileUpload control={form.control} name="attachment"')
+    expect(page).toContain("import { fileUrl } from '@/shared/api/files'")
+
+    const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
+    const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-fl/.test(l))
     expect(ours).toEqual([])
   }, 180_000)
 })

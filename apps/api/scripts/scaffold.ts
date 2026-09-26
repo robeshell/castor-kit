@@ -7,7 +7,8 @@
  *   --name            resource name (snake_case, e.g. customer)
  *   --domain          owning domain (admin or component_center, default admin)
  *   --fields          field list, formatted "field:type,field:type" (default name:str)
- *                     supported types: str / str20 / str50 / str500 / text / int / float / bool / date / datetime
+ *                     supported types: str / str20 / str50 / str500 / text / int / float / bool / date / datetime /
+ *                     file / image (a file-center id; the upload is tracked as a reference of the row)
  *   --dry-run         print only: write no files, change no registration files, generate no migration
  *   --skip-migration  don't run drizzle-kit generate (for tests)
  *   --data-scope      rows follow data scope: adds dept_id / created_by (stamped on create) and filters list / detail /
@@ -53,7 +54,7 @@ export interface FieldTypeSpec {
   /** Builder to import from drizzle-orm/pg-core */
   builder: string
   /** Normalizer function in schema.ts */
-  coerce: 'toStr' | 'toInt' | 'toNumeric' | 'toBool' | 'toDate' | 'toDateTime'
+  coerce: 'toStr' | 'toInt' | 'toNumeric' | 'toBool' | 'toDate' | 'toDateTime' | 'toFileId'
 }
 
 export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
@@ -67,6 +68,13 @@ export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
   bool: { column: 'boolean()', builder: 'boolean', coerce: 'toBool' },
   date: { column: "date({ mode: 'string' })", builder: 'date', coerce: 'toDate' },
   datetime: { column: "timestamp({ mode: 'string' })", builder: 'timestamp', coerce: 'toDateTime' },
+  file: { column: 'varchar({ length: 36 })', builder: 'varchar', coerce: 'toFileId' },
+  image: { column: 'varchar({ length: 36 })', builder: 'varchar', coerce: 'toFileId' },
+}
+
+/** Fields holding file-center ids (file / image types) */
+export function fileFieldsOf(fields: Field[]): string[] {
+  return fields.filter(([, t]) => fieldSpec(t).coerce === 'toFileId').map(([f]) => f)
 }
 
 /** Field type spec; unknown types are treated as str */
@@ -267,6 +275,13 @@ function toDateTime(field: string, value: unknown): string | null {
   if (!/^\\d{4}-\\d{2}-\\d{2}([ T]\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,6})?)?)?$/.test(text)) throw invalid(field)
   return text.replace('T', ' ')
 }`,
+  toFileId: `/** A file-center id, or a file URL (/api/admin/files/<id>) which is reduced to its id */
+function toFileId(field: string, value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null
+  const id = fileIdOf(value)
+  if (!id) throw invalid(field)
+  return id
+}`,
 }
 
 export function genModuleSchema(s: ScaffoldSpec): string {
@@ -296,7 +311,7 @@ export function genModuleSchema(s: ScaffoldSpec): string {
  */
 
 import { z } from 'zod'
-${needsInvalid ? `import { ServiceError } from '@/common/errors'\n` : ''}${pyImports.length > 0 ? `import { ${pyImports.join(', ')} } from '@/common/py'\n` : ''}import type { ${s.pascal}, New${s.pascal} } from '@/db/schema'
+${needsInvalid ? `import { ServiceError } from '@/common/errors'\n` : ''}${used.includes('toFileId') ? `import { fileIdOf } from '@/common/file-refs'\n` : ''}${pyImports.length > 0 ? `import { ${pyImports.join(', ')} } from '@/common/py'\n` : ''}import type { ${s.pascal}, New${s.pascal} } from '@/db/schema'
 
 /** Request body: loose and fully optional; normalization happens in buildValues */
 export const ${s.camel}BodySchema = z.record(z.string(), z.unknown()).nullish()
@@ -370,6 +385,8 @@ export function genRepository(s: ScaffoldSpec): string {
     ? `ilike(${s.table}.${s.nameField}, \`%\${search}%\`)`
     : `ilike(sql\`\${${s.table}.${s.nameField}}::text\`, \`%\${search}%\`)`
   const ds = s.dataScope
+  const fileFields = fileFieldsOf(s.fields)
+  const refsOf = (row: string) => `{ ${fileFields.map((f) => `${key(f)}: ${row}.${f}`).join(', ')} }`
   const ormImports = [...(ds ? ['and'] : []), 'count', 'desc', 'eq', 'ilike', 'inArray', ...(isText ? [] : ['sql']), 'type SQL']
   const t = s.table
   const scopeParam = ds ? ', scope: DataScope' : ''
@@ -391,7 +408,7 @@ export function genRepository(s: ScaffoldSpec): string {
  */
 
 import { ${ormImports.join(', ')} } from 'drizzle-orm'
-${ds ? `import { dataScopeWhere, UNRESTRICTED, type DataScope } from '@/common/data-scope'\n` : ''}import type { Executor } from '@/db/client'
+${ds ? `import { dataScopeWhere, UNRESTRICTED, type DataScope } from '@/common/data-scope'\n` : ''}${fileFields.length ? `import { clearFileRefs, syncFileRefs } from '@/common/file-refs'\n` : ''}import type { Executor } from '@/db/client'
 import { ${s.table}, type ${s.pascal}, type New${s.pascal} } from '@/db/schema'
 import type { ${s.pascal}Values } from './schema'
 
@@ -437,7 +454,7 @@ ${scopeMethod}
     const [row] = await this.db
       .insert(${s.table})
       .values(values as New${s.pascal})
-      .returning()
+      .returning()${fileFields.length ? `\n    // Uploaded files used by this row are registered so the file center doesn't clean them up\n    await syncFileRefs(this.db, ${q(s.table)}, row!.id, ${refsOf('row!')})` : ''}
     return row!
   }
 
@@ -446,11 +463,11 @@ ${scopeMethod}
       .update(${s.table})
       .set(values as Partial<New${s.pascal}>)
       .where(eq(${s.table}.id, id))
-      .returning()
+      .returning()${fileFields.length ? `\n    if (row) await syncFileRefs(this.db, ${q(s.table)}, row.id, ${refsOf('row')})` : ''}
     return row ?? null
   }
 
-  async delete(id: number): Promise<void> {
+  async delete(id: number): Promise<void> {${fileFields.length ? `\n    await clearFileRefs(this.db, ${q(s.table)}, id)` : ''}
     await this.db.delete(${s.table}).where(eq(${s.table}.id, id))
   }
 }
@@ -727,6 +744,8 @@ function sampleExpr(field: string, type: string): string {
       return "'2026-01-15'"
     case 'toDateTime':
       return "'2026-01-15 08:30:00'"
+    case 'toFileId':
+      return 'null'
     default: {
       const text = `('ck-' + tag + '-${field}')`
       const len = maxLen[type] ?? (type === 'text' ? 0 : 100)
@@ -872,6 +891,8 @@ describe(${q(`${s.table} 接口`)}, () => {
 
     const before = await countNew()
     const requiredField = IMPORT_HEADER_MAP[Object.keys(IMPORT_HEADER_MAP)[0]!]!
+    // A row whose only filled cell is the required one would be blank without it, and blank rows are skipped
+    if (!Object.entries(sample('imp3')).some(([f, v]) => f !== requiredField && v !== null && v !== '')) return
     const bad = await s.inject({
       method: 'POST',
       url: BASE + '/import',
@@ -896,11 +917,11 @@ describe(${q(`${s.table} 接口`)}, () => {
 // t() / <Trans>. Every fixed Chinese string the page emits must have an entry in PAGE_TEXTS; the ones missing from
 // apps/web/src/locales are written to the page's own locales/ (see genFrontendLocales).
 
-type FrontendKind = 'str' | 'text' | 'int' | 'float' | 'bool' | 'date' | 'datetime'
+type FrontendKind = 'str' | 'text' | 'int' | 'float' | 'bool' | 'date' | 'datetime' | 'file' | 'image'
 
 export interface FrontendFieldSpec {
   /** Form component from FormFields.jsx */
-  component: 'FormInput' | 'FormTextarea' | 'FormNumber' | 'FormSwitch' | 'FormDate' | 'FormDateTime'
+  component: 'FormInput' | 'FormTextarea' | 'FormNumber' | 'FormSwitch' | 'FormDate' | 'FormDateTime' | 'FormFileUpload' | 'FormImageUpload'
   /** Extra props for the form component (JSX snippet) */
   props: string
   /** useForm default value (JS literal) */
@@ -915,6 +936,8 @@ export const FRONTEND_FIELD_MAP: Record<FrontendKind, FrontendFieldSpec> = {
   bool: { component: 'FormSwitch', props: '', empty: 'false' },
   date: { component: 'FormDate', props: '', empty: "''" },
   datetime: { component: 'FormDateTime', props: '', empty: "''" },
+  file: { component: 'FormFileUpload', props: '', empty: 'null' },
+  image: { component: 'FormImageUpload', props: '', empty: 'null' },
 }
 
 /** scaffold type → frontend field kind (str20 / str50 / str500 / unknown types all map to str) */
@@ -935,6 +958,7 @@ export type Catalogs = Partial<Record<PageLang, Record<string, string>>>
  */
 export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
   创建时间: { 'en-US': 'Created at', 'ja-JP': '作成日時' },
+  查看: { 'en-US': 'View', 'ja-JP': '表示' },
   是: { 'en-US': 'Yes', 'ja-JP': 'はい' },
   否: { 'en-US': 'No', 'ja-JP': 'いいえ' },
   加载失败: { 'en-US': 'Failed to load', 'ja-JP': '読み込みに失敗しました' },
@@ -1014,7 +1038,7 @@ function formValueExpr(field: string, kind: FrontendKind): string {
   if (kind === 'bool') return `Boolean(${v})`
   if (kind === 'date') return `formatDate(${v}, '')`
   if (kind === 'datetime') return `formatDateTime(${v}, '')`
-  if (kind === 'int' || kind === 'float') return `${v} ?? null`
+  if (kind === 'int' || kind === 'float' || kind === 'file' || kind === 'image') return `${v} ?? null`
   return `${v} ?? ''`
 }
 
@@ -1045,6 +1069,28 @@ function columnLines(field: string, kind: FrontendKind): string[] {
     return [...head, `      align: 'right',`, `      className: 'tabular-nums',`, ...tail]
   }
   if (kind === 'text') return [...head, `      ellipsis: true,`, ...tail]
+  if (kind === 'image') {
+    return [
+      ...head,
+      `      width: 80,`,
+      `      render: (value) =>`,
+      `        value ? <img src={fileUrl(value)} alt="" loading="lazy" className="bg-muted ring-border size-9 rounded-md object-cover ring-1" /> : null,`,
+      ...tail,
+    ]
+  }
+  if (kind === 'file') {
+    return [
+      ...head,
+      `      width: 90,`,
+      `      render: (value) =>`,
+      `        value ? (`,
+      `          <a href={fileUrl(value)} target="_blank" rel="noreferrer" className="text-primary hover:underline">`,
+      `            {t('查看')}`,
+      `          </a>`,
+      `        ) : null,`,
+      ...tail,
+    ]
+  }
   return [`    { key: ${q(field)}, title: ${q(toLabel(field))}, dataIndex: ${q(field)} },`]
 }
 
@@ -1059,6 +1105,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
   const formComponents = [...new Set(fields.map(([, kind]) => FRONTEND_FIELD_MAP[kind].component))].sort()
   const formatImports = [...(kinds.has('date') ? ['formatDate'] : []), 'formatDateTime']
   const needsStatusBadge = columnFields.some(([, kind]) => kind === 'bool')
+  const needsFileUrl = columnFields.some(([, kind]) => kind === 'file' || kind === 'image')
 
   const exportFields = [
     "  { label: 'ID', value: 'id' },",
@@ -1139,7 +1186,7 @@ import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { ${formComponents.join(', ')} } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
-${needsStatusBadge ? "import StatusBadge from '@/shared/components/StatusBadge'\n" : ''}import { useCrudList } from '@/shared/hooks/useCrudList'
+${needsFileUrl ? "import { fileUrl } from '@/shared/api/files'\n" : ''}${needsStatusBadge ? "import StatusBadge from '@/shared/components/StatusBadge'\n" : ''}import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
 
 const EXPORT_FIELDS = [
