@@ -10,7 +10,7 @@ export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://
 
 export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
-    ...loadConfig({ NODE_ENV: 'test', TEST_DATABASE_URL, WEB_DIST_DIR: '/nonexistent-castor-kit-dist' }),
+    ...loadConfig({ NODE_ENV: 'test', TEST_DATABASE_URL, WEB_DIST_DIR: '/nonexistent-castor-kit-dist', RATE_LIMIT_ENABLED: 'false' }),
     ...overrides,
   }
 }

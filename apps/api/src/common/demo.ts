@@ -13,6 +13,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { AppConfig } from '@/config'
 import { requestPath } from '@/common/csrf'
+import { isSignedIn } from '@/common/session'
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
@@ -81,7 +82,7 @@ export function registerDemoGuard(app: FastifyInstance, config: DemoConfig): voi
   // preHandler: the body is parsed by now. Signed-out requests are left to the route's own 401 and don't use quota.
   app.addHook('preHandler', async (request, reply) => {
     if (request.method !== 'POST' || !DEMO_AI_PATHS.has(requestPath(request))) return
-    if (!request.session.get('logged_in')) return
+    if (!isSignedIn(request)) return
     if (JSON.stringify(request.body ?? '').length > config.demoAiMaxInputChars) {
       return reply.status(400).send({ error: '演示环境单次输入过长，请精简后再试' })
     }

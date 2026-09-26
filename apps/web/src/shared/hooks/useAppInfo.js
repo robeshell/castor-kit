@@ -12,8 +12,15 @@ function load() {
   return pending
 }
 
+/** Drop the cached app info, so pages mounted later load it again (after system settings are saved) */
+export function invalidateAppInfo() {
+  cached = null
+  pending = null
+}
+
 /**
- * Public app info: `{ demo_mode, demo_reset_hours?, demo_account?, upload: { max_size, allowed_types } }`.
+ * Public app info: `{ demo_mode, demo_reset_hours?, demo_account?, upload: { max_size, allowed_types },
+ * security: { totp_enabled, password_reset_enabled, password_policy } }`.
  * Returns null until loaded; failures count as "not a demo".
  */
 export function useAppInfo() {

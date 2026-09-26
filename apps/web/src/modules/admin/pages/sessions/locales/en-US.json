@@ -1,0 +1,15 @@
+{
+  "当前会话": "This session",
+  "设备": "Device",
+  "登录时间": "Signed in",
+  "最近活动": "Last active",
+  "到期时间": "Expires",
+  "强制 {{name}} 下线？": "Sign out {{name}}?",
+  "该会话会立即失效，对方下一次操作时回到登录页。": "The session ends right away; their next action takes them to the sign-in page.",
+  "强制下线": "Force sign-out",
+  "在线用户": "Online users",
+  "共 {{count}} 个会话": "{{count}} sessions",
+  "共 {{count}} 个会话_one": "{{count}} session",
+  "搜索用户名、昵称、IP": "Search username, nickname, IP",
+  "没有在线的会话": "No active sessions"
+}

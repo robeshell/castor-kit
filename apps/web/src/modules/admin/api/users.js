@@ -20,3 +20,5 @@ export const importUsers = (file) => {
 export const setUserStatus = (id, status) => request.put(`/admin/users/${id}/status`, { status })
 /** The signed-in user's own profile (nickname / email / phone / avatar) */
 export const updateProfile = (data) => request.put('/admin/profile', data)
+/** Remove a user's two-step verification binding (lost phone and recovery codes) */
+export const resetUserTwoFactor = (id) => request.delete(`/admin/users/${id}/two-factor`)

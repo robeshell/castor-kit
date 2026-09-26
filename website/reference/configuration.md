@@ -41,11 +41,12 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 |---|---|---|
 | `SECRET_KEY` | 会话加密密钥，cookie 密钥由它通过 HKDF 派生 | 开发 / 测试有内置不安全默认值；**生产必填** |
 | `ADMIN_PASSWORD` | `admin` 账号的初始密码，仅在账号不存在时使用 | 开发 / 测试为 `admin123`；**生产必填** |
-| `SESSION_TTL_HOURS` | 会话有效期（小时） | `8` |
+| `SESSION_TTL_HOURS` | 会话有效期（小时）的初始值；之后可以在「系统设置」里修改 | `8` |
 | `SESSION_COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
 | `LOGIN_MAX_FAILURES` | 登录失败次数上限（按 IP 和用户名分别计数；演示模式下只按 IP 计数） | `10` |
 | `LOGIN_LOCKOUT_MINUTES` | 登录失败计数窗口与锁定时长（分钟） | `15` |
+| `RATE_LIMIT_ENABLED` | 按 IP 限流；具体额度在「系统设置」里调整，见 [账号安全与系统设置](/guide/security#接口限流) | `true` |
 | `MAX_CONTENT_LENGTH` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
 
 ### 路径
@@ -70,6 +71,20 @@ castor-kit 通过环境变量配置。后端变量由 `apps/api/src/config.ts` �
 | `UPLOAD_ALLOWED_TYPES` | 允许上传的扩展名，逗号分隔；上传时还会检查文件头与扩展名是否一致 | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
 
 `local` 驱动需要持久化磁盘：Docker Compose 已把 `INSTANCE_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请改用 `s3`（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
+
+### 邮件
+
+用于发送找回密码邮件。配置 `SMTP_HOST` 和 `APP_BASE_URL` 后，才能在「系统设置」里打开邮件找回密码。
+
+| 变量 | 作用 | 默认值 |
+|---|---|---|
+| `SMTP_HOST` | SMTP 服务器地址，设置后启用邮件 | 空 |
+| `SMTP_PORT` | 端口 | `587` |
+| `SMTP_SECURE` | `true` 表示连接一开始就用 TLS（通常是 465 端口）；否则在服务器支持时使用 STARTTLS | `false` |
+| `SMTP_USER` / `SMTP_PASSWORD` | 登录账号与密码；服务器不需要认证时留空 | 空 |
+| `MAIL_FROM` | 发件人，如 `castor-kit <noreply@example.com>`；留空时用 `SMTP_USER` | 空 |
+| `MAIL_DRIVER` | 留空时按 `SMTP_HOST` 自动判断；`log` 表示不发送，把邮件打印到后端日志（本地开发用）；`none` 表示关闭 | 空 |
+| `APP_BASE_URL` | 网站的公开地址，邮件中的链接用它拼接（不使用请求里的 Host） | 空 |
 
 ### 公开演示
 
@@ -158,6 +173,8 @@ AI 对话、AI 提示词工坊、AI 数据查询共用 `AI_API_*` 三个变量�
 | `SESSION_TTL_HOURS` | 同上文 | `8` |
 | `SESSION_COOKIE_SECURE` | 同上文 | 空（自动） |
 | `CORS_ORIGINS` | 同上文 | 空 |
+| `RATE_LIMIT_ENABLED` | 同上文 | `true` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_FROM` / `APP_BASE_URL` | 同上文（邮件） | 空 / `587` / `false` |
 | `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 同上文 | 空 |
 | `COMPOSE_DB_VOLUME` | 数据库数据卷名，可指向已有的卷 | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | 上传文件数据卷名，可指向已有的卷 | `castor-kit_app_instance` |

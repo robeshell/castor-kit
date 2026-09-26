@@ -125,5 +125,9 @@
   "cc_ai_chat_new": "New chat",
   "cc_ai_prompt_add": "New template",
   "cc_ai_prompt_edit": "Edit template",
-  "cc_ai_prompt_delete": "Delete template"
+  "cc_ai_prompt_delete": "Delete template",
+  "system_sessions": "Online Users",
+  "system_sessions_revoke": "Force sign-out",
+  "system_settings": "System Settings",
+  "system_settings_edit": "Edit settings"
 }

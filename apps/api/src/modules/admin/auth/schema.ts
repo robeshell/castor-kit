@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod'
+import { passwordPolicyError, type PasswordPolicy } from '@/common/password-policy'
 import { pyStr, pyTruthy } from '@/common/py'
 
 export const loginBodySchema = z
@@ -26,10 +27,9 @@ export const changePasswordBodySchema = z
 
 export type ChangePasswordPayload = z.infer<typeof changePasswordBodySchema>
 
-export function validateChangePasswordPayload(data: ChangePasswordPayload): string | null {
+export function validateChangePasswordPayload(data: ChangePasswordPayload, policy: PasswordPolicy): string | null {
   const oldPassword = data?.old_password
   const newPassword = data?.new_password
   if (!pyTruthy(oldPassword) || !pyTruthy(newPassword)) return '请填写完整信息'
-  if ([...pyStr(newPassword)].length < 6) return '新密码长度至少6位'
-  return null
+  return passwordPolicyError(pyStr(newPassword), policy, '新密码')
 }

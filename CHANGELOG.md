@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Added
 
+- Account security: server-side sessions (Online users page with force sign-out; signed-in devices on the profile), two-step verification with an authenticator app and recovery codes (optionally required per role; admins can reset it), password reset by email (`SMTP_*`, `APP_BASE_URL`; `MAIL_DRIVER=log` for development), configurable password rules and per-IP rate limits with a stricter sign-in bucket.
+- System settings page: feature switches and security parameters stored in the database and applied without a restart; two-step verification and password reset are off by default, everything else keeps the previous behavior.
 - File center follow-ups: the component gallery list page uploads through the file center (older files stay readable); upload limits reach the browser through `/api/admin/app-info`, so size and type are checked before sending; oversized multipart uploads get the same "file too large" message; avatars can still be set from an image URL; uploads are allowed in demo mode; the profile page shows the department; role import / template / export carry the data scope and custom departments; an opt-in live S3 test (`S3_TEST_ENDPOINT`) verified the s3 driver against MinIO.
 - File center: uploads stored locally or in any S3-compatible service (`STORAGE_*`), checked for size, allowed type and a file signature matching the extension, deduplicated by content, served inline only for images; a Files page under System; drag-and-drop uploads with progress; avatars are uploaded instead of typed as URLs; scaffold `file` / `image` field types; files nothing references are cleaned up 24 hours after upload.
 - Super admin safeguards: the super admin role can't be deleted, renamed or narrowed (data scope and menus are fixed); only super admins can grant or remove it or change super admin accounts; nobody can remove it from themselves, and the last active super admin always keeps it. `pnpm seed:rbac -- --incremental` restores the role and the `admin` account if something still goes wrong.
@@ -27,6 +29,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Sessions live on the server: the cookie now only carries a session ID, so everyone signs in once more after upgrading. Changing your password signs out your other devices; disabling a user or resetting their password ends their sessions immediately.
 - A session whose account was deleted now gets 401 (back to sign-in) on its next request instead of 403 / 404 responses.
 - The user menu no longer has a light / dark toggle; the top bar button and the ⌘K command menu cover it.
 - The default content width is now fluid (full width); fixed width stays available in the appearance menu.

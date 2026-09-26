@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Download, Lock, Plus, Upload, X } from 'lucide-react'
+import { Download, Lock, Plus, ShieldCheck, ShieldOff, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/lib/toast'
@@ -18,6 +18,7 @@ import {
   exportUsers,
   getUsers,
   importUsers,
+  resetUserTwoFactor,
   setUserStatus,
   updateUser,
 } from '@/modules/admin/api/users'
@@ -33,6 +34,7 @@ import StatusBadge from '@/shared/components/StatusBadge'
 import TreeSelect from '@/shared/components/TreeSelect'
 import UserAvatar from '@/shared/components/UserAvatar'
 import { useCrudList } from '@/shared/hooks/useCrudList'
+import { usePasswordPolicy } from '@/shared/hooks/usePasswordPolicy'
 import { downloadBlobFile } from '@/shared/utils/file'
 
 const EXPORT_FIELDS = [
@@ -68,6 +70,7 @@ const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx'
 export default function Users() {
   const { t } = useTranslation()
   const { user: currentUser } = useAuth()
+  const passwordPolicy = usePasswordPolicy()
   const list = useCrudList(
     (params) =>
       getUsers(params).catch((err) => {
@@ -171,6 +174,18 @@ export default function Users() {
     }
   }
 
+  const resetTwoFactor = async (record) => {
+    try {
+      await resetUserTwoFactor(record.id)
+      toast.success('已重置两步验证')
+      setEditing((current) => (current?.id === record.id ? { ...current, totp_enabled: false } : current))
+      fetchData(page)
+    } catch (err) {
+      toast.apiError(err, '操作失败')
+      throw err
+    }
+  }
+
   const runSearch = () => {
     setSelectedKeys([])
     list.handleSearch({ search: search.trim(), status, dept_id: deptId ?? '' })
@@ -209,7 +224,14 @@ export default function Users() {
         <div className="flex min-w-0 items-center gap-2.5">
           <UserAvatar src={record.avatar} name={userDisplayName(record)} className="size-7" />
           <div className="grid min-w-0 leading-tight">
-            <span className="truncate font-medium">{userDisplayName(record)}</span>
+            <span className="flex min-w-0 items-center gap-1">
+              <span className="truncate font-medium">{userDisplayName(record)}</span>
+              {record.totp_enabled ? (
+                <span title={t('已开启两步验证')} className="shrink-0">
+                  <ShieldCheck className="text-success size-3.5" aria-label={t('已开启两步验证')} />
+                </span>
+              ) : null}
+            </span>
             {record.nickname ? <span className="text-muted-foreground truncate text-xs">@{value}</span> : null}
           </div>
         </div>
@@ -305,7 +327,7 @@ export default function Users() {
             ) : record.username !== currentUser?.username ? (
               <ConfirmAction
                 title={t('停用用户 {{name}}？', { name: userDisplayName(record) })}
-                description="停用后该账号无法登录，已登录的会话会在下一次操作时失效。"
+                description="停用后该账号无法登录，已登录的设备会立即退出。"
                 confirmText="停用账号"
                 onConfirm={() => changeStatus(record, 'disabled')}
               >
@@ -411,6 +433,21 @@ export default function Users() {
         description={editing ? t('正在编辑 {{name}}', { name: editing.username }) : undefined}
         form={form}
         onSubmit={submit}
+        footerExtra={
+          editing?.totp_enabled ? (
+            <ConfirmAction
+              title={t('重置 {{name}} 的两步验证？', { name: userDisplayName(editing) })}
+              description="用于手机和恢复码都丢失的情况。重置后该用户登录只需要密码；如果所在角色要求两步验证，下次登录时会重新绑定。"
+              confirmText="重置"
+              onConfirm={() => resetTwoFactor(editing)}
+            >
+              <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
+                <ShieldOff />
+                {t('重置两步验证')}
+              </Button>
+            </ConfirmAction>
+          ) : null
+        }
       >
         {!editing ? (
           <FormInput control={form.control} name="username" label="用户名" placeholder="例如 zhangsan" rules={{ required: '请输入用户名' }} />
@@ -421,8 +458,8 @@ export default function Users() {
           type="password"
           autoComplete="new-password"
           label={editing ? '新密码' : '密码'}
-          placeholder={editing ? '留空则不修改' : '请输入密码'}
-          rules={editing ? undefined : { required: '请输入密码' }}
+          placeholder={editing ? t('留空则不修改（{{rule}}）', { rule: passwordPolicy.hint }) : passwordPolicy.hint}
+          rules={editing ? { validate: passwordPolicy.validate } : { required: '请输入密码', validate: passwordPolicy.validate }}
         />
         <ProfileFields control={form.control} name={editing?.username} />
         <FormTreeSelect

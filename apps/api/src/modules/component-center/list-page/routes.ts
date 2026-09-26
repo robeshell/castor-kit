@@ -8,7 +8,7 @@
 import { stat } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { hasMenuPermission, loginRequired } from '@/common/auth'
+import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, jsonBody, notFound, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
@@ -178,7 +178,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
       const params = request.params as IdParams & { version_id: string }
       const item = await service.getOr404(parseIntParam(params.item_id))
       const versionItem = await service.getVersionOr404(parseIntParam(params.version_id))
-      const operator = request.session.get('username') || 'system'
+      const operator = (await currentUsername(request)) || 'system'
       return service.rollbackVersion(item, versionItem, operator)
     },
   )

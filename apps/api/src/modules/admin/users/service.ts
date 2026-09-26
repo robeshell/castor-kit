@@ -6,6 +6,8 @@ import { scopeCoversDept, UNRESTRICTED, type DataScope } from '@/common/data-sco
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { generatePasswordHash } from '@/common/password'
+import { DEFAULT_PASSWORD_POLICY, passwordPolicyError, passwordPolicyOf, type PasswordPolicy } from '@/common/password-policy'
+import type { SettingsStore } from '@/common/settings'
 import { pyStr, pyTruthy, isPlainObject } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import type { Db, Executor } from '@/db/client'
@@ -66,8 +68,21 @@ export function profileOrThrow(data: Data): ProfileValues {
 export class UserService {
   private readonly repo: UserRepository
 
-  constructor(private readonly db: Db) {
+  constructor(
+    private readonly db: Db,
+    private readonly settings?: SettingsStore,
+  ) {
     this.repo = new UserRepository(db)
+  }
+
+  /** Password rule from system settings (defaults when no store is given) */
+  private async passwordPolicy(): Promise<PasswordPolicy> {
+    return this.settings ? passwordPolicyOf(await this.settings.get()) : DEFAULT_PASSWORD_POLICY
+  }
+
+  private async assertPasswordOk(password: string): Promise<void> {
+    const error = passwordPolicyError(password, await this.passwordPolicy())
+    if (error) throw new ServiceError(error, 400)
   }
 
   /** Attach dept_name (one lookup for the whole batch) */
@@ -201,6 +216,7 @@ export class UserService {
 
     const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
     if (roleIds) await this.assertRoleChange(null, roleIds, caller)
+    await this.assertPasswordOk(pyStr(data.password))
     const passwordHash = await generatePasswordHash(pyStr(data.password))
     const user = await this.inTx(async (repo) => {
       const created = await repo.insert(username, passwordHash, profile, undefined, deptId)
@@ -216,7 +232,9 @@ export class UserService {
     const profile = profileOrThrow(data)
     await this.assertEmailFree(this.repo, profile.email, user.id)
     const deptId = await this.resolveDept(data, scope)
-    const passwordHash = 'password' in data && pyTruthy(data.password) ? await generatePasswordHash(pyStr(data.password)) : null
+    const newPassword = 'password' in data && pyTruthy(data.password) ? pyStr(data.password) : null
+    if (newPassword !== null) await this.assertPasswordOk(newPassword)
+    const passwordHash = newPassword !== null ? await generatePasswordHash(newPassword) : null
     const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
     if (roleIds) await this.assertRoleChange(user, roleIds, caller)
     const updated = await this.inTx(async (repo) => {
@@ -364,6 +382,7 @@ export class UserService {
     }
     if (![...headerMap.values()].includes('username')) throw new ServiceError('导入文件缺少“用户名”列', 400)
 
+    const policy = await this.passwordPolicy()
     return this.inTx(async (repo) => {
       let created = 0
       let updated = 0
@@ -401,6 +420,11 @@ export class UserService {
         const superError = await this.importSuperAdminError(repo, existing?.id, username, roleCodes, options)
         if (superError) {
           errors.push(buildErrorRow(line, superError, row))
+          continue
+        }
+        const passwordError = password ? passwordPolicyError(password, policy) : null
+        if (passwordError) {
+          errors.push(buildErrorRow(line, passwordError, row))
           continue
         }
         const parsed = await this.parseImportRow(repo, mapped, username, existing?.id, options)

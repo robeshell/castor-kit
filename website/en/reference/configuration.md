@@ -41,11 +41,12 @@ The file loaded first wins. Environment variables that are already set (for exam
 |---|---|---|
 | `SECRET_KEY` | Session encryption key; the cookie key is derived from it via HKDF | Built-in insecure default in development / test; **required in production** |
 | `ADMIN_PASSWORD` | Initial password of the `admin` account, used only when the account doesn't exist | `admin123` in development / test; **required in production** |
-| `SESSION_TTL_HOURS` | Session lifetime (hours) | `8` |
+| `SESSION_TTL_HOURS` | Initial session lifetime (hours); can be changed later in System settings | `8` |
 | `SESSION_COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |
 | `LOGIN_MAX_FAILURES` | Maximum failed login attempts (counted separately per IP and per username; per IP only in demo mode) | `10` |
 | `LOGIN_LOCKOUT_MINUTES` | Failed-login counting window and lockout duration (minutes) | `15` |
+| `RATE_LIMIT_ENABLED` | Per-IP rate limits; the limits themselves are set in System settings, see [Account security & settings](/en/guide/security#rate-limits) | `true` |
 | `MAX_CONTENT_LENGTH` | Maximum request body size (bytes); larger requests get 413 | `16777216` (16MB) |
 
 ### Paths
@@ -70,6 +71,20 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `UPLOAD_ALLOWED_TYPES` | Allowed extensions, comma-separated; uploads are also checked for a file signature matching the extension | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
 
 The `local` driver needs a persistent disk: Docker Compose already mounts `INSTANCE_DIR` as a volume; on platforms that wipe the disk on every deploy (such as Render) use `s3` instead (Cloudflare R2, for example). Files no record references are removed by the scheduler process 24 hours after upload, so nothing is cleaned up when `ENABLE_TASK_SCHEDULER=false`.
+
+### Mail
+
+Used for password reset emails. Password reset can only be turned on in System settings once `SMTP_HOST` and `APP_BASE_URL` are set.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SMTP_HOST` | SMTP server; setting it turns mail on | Empty |
+| `SMTP_PORT` | Port | `587` |
+| `SMTP_SECURE` | `true` uses TLS from the start (usually port 465); otherwise STARTTLS when the server offers it | `false` |
+| `SMTP_USER` / `SMTP_PASSWORD` | Credentials; leave empty if the server needs no authentication | Empty |
+| `MAIL_FROM` | Sender, e.g. `castor-kit <noreply@example.com>`; falls back to `SMTP_USER` | Empty |
+| `MAIL_DRIVER` | Empty = decided by `SMTP_HOST`; `log` prints mails to the backend log instead of sending (local development); `none` turns mail off | Empty |
+| `APP_BASE_URL` | Public URL of the site; links in mails are built from it (never from the request's Host) | Empty |
 
 ### Public demo
 
@@ -158,6 +173,8 @@ Put these in `.env.production` and pass them in with `docker compose --env-file 
 | `SESSION_TTL_HOURS` | See above | `8` |
 | `SESSION_COOKIE_SECURE` | See above | Empty (auto) |
 | `CORS_ORIGINS` | See above | Empty |
+| `RATE_LIMIT_ENABLED` | See above | `true` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_FROM` / `APP_BASE_URL` | See above (mail) | Empty / `587` / `false` |
 | `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | See above | Empty |
 | `COMPOSE_DB_VOLUME` | Name of the database volume; can point to an existing volume | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | Name of the uploads volume; can point to an existing volume | `castor-kit_app_instance` |

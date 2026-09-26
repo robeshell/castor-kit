@@ -6,7 +6,7 @@
  */
 
 import type { FastifyInstance } from 'fastify'
-import { hasMenuPermission, loginRequired } from '@/common/auth'
+import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
 import { requestPath } from '@/common/csrf'
 import { getUploadedFile, queryString, rawJsonBody } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
@@ -27,7 +27,7 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
       await service.recordOperationFromRequest({
         method: request.method,
         path: requestPath(request),
-        username: request.session.get('username'),
+        username: await currentUsername(request),
         jsonBody: contentType.includes('application/json') ? (request.body ?? null) : null,
         ip: getClientIp(request),
         userAgent: getUserAgent(request),

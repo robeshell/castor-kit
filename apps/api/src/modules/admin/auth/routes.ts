@@ -4,9 +4,12 @@
 
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { loginRequired } from '@/common/auth'
+import { getCurrentAdminUser, loginRequired } from '@/common/auth'
 import { ensureCsrfToken } from '@/common/csrf'
+import { passwordPolicyOf } from '@/common/password-policy'
+import { authRateLimit } from '@/common/rate-limit'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
+import { attachSession, clearSession, createSession, isSignedIn, revokeSessions } from '@/common/session'
 import { changePasswordBodySchema, loginBodySchema } from './schema'
 import { AuthService } from './service'
 
@@ -15,37 +18,57 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
   const service = new AuthService(app.db, app.config, app.log)
 
   app.get('/admin/login', async (request, reply) => {
-    return reply.redirect(request.session.get('logged_in') ? '/admin' : '/')
+    return reply.redirect(isSignedIn(request) ? '/admin' : '/')
   })
 
-  app.post('/api/admin/login', { schema: { body: loginBodySchema } }, async (request) => {
+  app.post('/api/admin/login', { schema: { body: loginBodySchema }, onRequest: authRateLimit(app) }, async (request) => {
     const data = request.body ?? {}
-    const { username, payload } = await service.login(data.username, data.password, {
-      ip: getClientIp(request),
-      userAgent: getUserAgent(request),
+    const client = { ip: getClientIp(request), userAgent: getUserAgent(request) }
+    const settings = await app.settings.get()
+    const twoFactor = {
+      enabled: app.settings.isAvailable('security.totp_enabled', settings),
+      requiredRoles: settings.totpRequiredRoles,
+    }
+    const result = await service.login(data.username, data.password, client, twoFactor)
+    // A new session every time: the previous one (if any) is left to expire, and the CSRF token changes
+    const sid = await createSession(app.db, result.userId, client, {
+      ttlHours: settings.sessionTtlHours,
+      mfaState: result.kind === 'mfa' ? result.state : null,
     })
-    request.session.set('logged_in', true)
-    request.session.set('username', username)
-    return { ...payload, csrf_token: ensureCsrfToken(request.session) }
+    attachSession(request, { id: sid })
+    const csrf_token = ensureCsrfToken(request.session)
+    if (result.kind === 'mfa') {
+      // Not signed in yet: the next call is POST /api/admin/login/two-factor (verify) or /api/admin/two-factor/setup
+      const message = result.state === 'verify' ? '请输入两步验证码' : '你的账号需要先绑定两步验证'
+      return { message, mfa_required: result.state, csrf_token }
+    }
+    return { ...result.payload, csrf_token }
   })
 
   app.post('/api/admin/logout', async (request) => {
-    const username = request.session.get('username') ?? ''
-    const result = await service.logout(username, { ip: getClientIp(request), userAgent: getUserAgent(request) })
-    // Clear the session: wipe the data first (so the later onResponse audit hook can't read the username), then delete the cookie
-    request.session.regenerate()
-    request.session.delete()
+    const user = await getCurrentAdminUser(request)
+    const result = await service.logout(user, { ip: getClientIp(request), userAgent: getUserAgent(request) })
+    if (request.authSession) await revokeSessions(app.db, { id: request.authSession.id })
+    // Clear the session (this also stops the later onResponse audit hook from attributing the request), then the cookie
+    clearSession(request)
+    request.currentAdminUser = null
     return result
   })
 
   app.post(
     '/api/admin/change-password',
     { preHandler: loginRequired, schema: { body: changePasswordBodySchema } },
-    async (request) => service.changePassword(request.session.get('username'), request.body),
+    async (request) => {
+      const user = await getCurrentAdminUser(request)
+      const result = await service.changePassword(user?.id, request.body, passwordPolicyOf(await app.settings.get()))
+      // Other devices must sign in again with the new password; this one stays signed in
+      await revokeSessions(app.db, { userId: user!.id, exceptId: request.authSession!.id })
+      return result
+    },
   )
 
   app.get('/api/admin/me', { preHandler: loginRequired }, async (request) => {
-    const payload = await service.getCurrentUser(request.session.get('username'))
+    const payload = await service.getCurrentUser(await getCurrentAdminUser(request))
     return { ...payload, csrf_token: ensureCsrfToken(request.session) }
   })
 

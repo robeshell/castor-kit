@@ -17,6 +17,10 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { registerCsrfProtection, requestPath } from './common/csrf'
+import { createMailer, type Mailer } from './common/mailer'
+import { registerRateLimit } from './common/rate-limit'
+import { registerSessionResolver } from './common/session'
+import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
 import { registerDemoGuard } from './common/demo'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
 import { registerResponseTranslation } from './common/i18n'
@@ -38,9 +42,11 @@ export interface BuildAppOptions {
   logger?: FastifyServerOptions['logger']
   /** Tests may inject an existing connection; by default one is created from config.databaseUrl and closed in onClose */
   dbHandle?: DbHandle
+  /** Tests may capture outgoing mail; by default built from config.mail */
+  mailer?: Mailer | null
 }
 
-export async function buildApp({ config, logger = false, dbHandle }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({ config, logger = false, dbHandle, mailer }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger,
     // Trust only the nearest reverse-proxy hop (X-Forwarded-For / X-Forwarded-Proto) so request.ip / protocol are the real values
@@ -53,17 +59,21 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   const handle = dbHandle ?? createDb(config.databaseUrl)
   app.decorate('config', config)
   app.decorate('db', handle.db)
+  app.decorate('settings', new SettingsStore(handle.db, config))
+  app.decorate('mailer', mailer !== undefined ? mailer : createMailer(config.mail, app.log))
   if (!dbHandle) app.addHook('onClose', async () => handle.pool.end())
   app.decorateRequest('currentAdminUser', undefined)
   app.decorateRequest('dataScope', undefined)
 
   // ---- Session ----
+  // The cookie only carries { sid, csrf_token }; the sessions row decides expiry (TTL from system settings, sliding), so the
+  // envelope's own expiry is set to the longest TTL the setting allows
   const ttlSeconds = config.sessionTtlHours * 3600
   await app.register(cookie)
   await app.register(secureSession, {
     key: deriveSessionKey(config.secretKey),
     cookieName: SESSION_COOKIE_NAME,
-    expiry: ttlSeconds,
+    expiry: MAX_SESSION_TTL_HOURS * 3600,
     cookie: {
       path: '/',
       httpOnly: true,
@@ -73,12 +83,12 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
       maxAge: ttlSeconds,
     },
   })
-  // Sliding expiration: logged-in sessions are renewed on every request
-  app.addHook('onRequest', async (request) => {
-    if (request.session.get('logged_in')) request.session.touch()
-  })
+  // Resolve the cookie's session row (sliding expiry happens there); must run before the CSRF check
+  registerSessionResolver(app)
 
   registerCsrfProtection(app)
+  // Per-IP limits (before any route is registered: the plugin hooks routes as they are added)
+  await registerRateLimit(app)
 
   await app.register(compress, { threshold: 500 })
   // Upload limit is MAX_CONTENT_LENGTH (413 when exceeded); see common/http.getUploadedFile for per-field file access
@@ -131,16 +141,18 @@ export async function buildApp({ config, logger = false, dbHandle }: BuildAppOpt
   // Public: lets the login page show the demo account, the layout show the demo banner, and upload controls check
   // size / type before sending a file
   const upload = { max_size: config.storage.uploadMaxSize, allowed_types: config.storage.uploadAllowedTypes }
-  app.get('/api/admin/app-info', async () =>
-    config.demoMode
+  app.get('/api/admin/app-info', async () => {
+    const security = await app.settings.publicInfo()
+    return config.demoMode
       ? {
           demo_mode: true,
           demo_reset_hours: config.demoResetHours,
           demo_account: { username: config.adminUsername, password: config.adminPassword },
           upload,
+          security,
         }
-      : { demo_mode: false, upload },
-  )
+      : { demo_mode: false, upload, security }
+  })
 
   app.get('/health', async (request, reply) => {
     try {

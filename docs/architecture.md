@@ -17,7 +17,7 @@
 | ORM | **Drizzle ORM** + drizzle-kit | 表定义即代码、SQL 透明、迁移是可审查的纯 SQL 文件 |
 | DB 驱动 | `pg`（node-postgres） | 成熟；自定义 `timestamp` / `date` 解析（见 §4.2） |
 | 日志 | pino（Fastify 内置） | 结构化 JSON 日志 |
-| 会话 | `@fastify/secure-session` | 无状态加密 cookie，不需要 Redis / session 表 |
+| 会话 | `sessions` 表 + `@fastify/secure-session` | 服务端会话（可列出、可强制下线）；加密 cookie 只装会话 ID 与 CSRF token，不需要 Redis |
 | 其他插件 | `@fastify/cookie`、`@fastify/cors`、`@fastify/compress`、`@fastify/static`、`@fastify/multipart`、`@fastify/websocket`、`@fastify/swagger` | — |
 | 定时 | 自研 runner（租约模型）+ 自研 cron 匹配器 | 多副本安全；cron 语义见 §4.9 |
 | 表格 | `csv-parse` / `csv-stringify` + `exceljs` | 只支持 csv / xlsx |
@@ -137,10 +137,15 @@ castor-kit/
 - 当前用户每请求缓存在 `request` 上，一次查询 join `user_roles → roles → role_menus → menus`，避免 N+1。
 - 登录防爆破：基于 `login_logs` 的窗口计数（IP 维度 + 用户名维度，`LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES`），成功后清零窗口内失败记录。
 - 密码哈希格式 `pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`（默认 100 万次迭代，16 位字母数字 salt），`common/password.ts` 负责生成与校验；一律用**异步** `crypto.pbkdf2` + `timingSafeEqual`，同步执行会阻塞事件循环约 0.3–0.5s。
-- 会话：`@fastify/secure-session`，cookie 名 `castor_session`。它要求 32 字节密钥，而 `SECRET_KEY` 是任意长度字符串——用 `hkdfSync('sha256', SECRET_KEY, '', 'castor-kit-session', 32)` 派生，不截断。属性：`HttpOnly`、`SameSite=Lax`、`Secure` 走 auto 策略（`SESSION_COOKIE_SECURE` 为空时按请求协议决定）、TTL `SESSION_TTL_HOURS`（默认 8h）。
+- 会话：`sessions` 表是唯一事实源（`common/session.ts`）。cookie `castor_session`（`@fastify/secure-session` 加密）只装 `{ sid, csrf_token }`；`onRequest` 钩子按 sid 加载未撤销、未过期的行到 `request.authSession`，无效则清 cookie。有效期来自系统设置 `security.session_ttl_hours`（初值 `SESSION_TTL_HOURS`），`last_seen_at` / `expires_at` 每分钟最多写一次实现滑动续期。cookie 密钥用 `hkdfSync('sha256', SECRET_KEY, '', 'castor-kit-session', 32)` 派生；属性 `HttpOnly`、`SameSite=Lax`、`Secure` 走 auto 策略。
+- 撤销：退出（当前会话）、改密码（本人其他会话）、管理员改密码 / 停用 / 删除、邮件重置密码（该用户全部会话）、强制下线（指定会话）；调度器维护任务每小时删除过期或撤销超过一天的会话与重置令牌。
+- 两步验证（`modules/admin/two-factor`）：登录密码正确后，已绑定或所在角色被要求的用户得到 `mfa_state = 'verify' | 'setup'` 的待定会话（5 分钟），`isSignedIn` 不认它；`POST /api/admin/login/two-factor` 通过后撤销待定会话、换发新会话，才记录登录成功。TOTP 密钥用 `common/secret-box.ts`（HKDF 派生、独立 info 的 AES-256-GCM）加密；`totp_last_step` 防重放；恢复码存 sha256；错误验证码写入 `login_logs` 失败记录，与密码错误共用锁定。
+- 找回密码（`modules/admin/password-reset`）：申请接口不区分邮箱是否存在，邮件在后台发送；令牌 32 字节只存 sha256、30 分钟、单次，新申请作废旧令牌；链接用 `APP_BASE_URL` 拼接；邮件驱动 `common/mailer.ts`（smtp / log / none）。
+- 系统设置（`common/settings.ts` + `system_settings` 表）：带类型、默认值、范围与「不可用原因」的注册表，`SettingsStore` 进程内缓存 5 秒，`peek()` 供热路径同步读取；公开子集经 `app-info` 下发。
+- 限流（`common/rate-limit.ts`）：`@fastify/rate-limit` 全局按 IP 限 `/api`、`/ws`；登录、两步验证、找回密码共用一个 `createRateLimit` 限流器（插件的按路由配置在内存存储下各路由计数独立，做不到共享）；额度来自系统设置，计数在进程内。
 
 ### 4.5 CSRF
-- 双提交校验：仅 `/api/*` 的 `POST/PUT/PATCH/DELETE`；`/api/admin/login` 豁免；未登录跳过；`X-CSRF-Token` 与 session 中 token 用 `timingSafeEqual` 比对，失败 `403 {error:'CSRF 校验失败，请刷新页面后重试'}`。
+- 双提交校验：仅 `/api/*` 的 `POST/PUT/PATCH/DELETE`；`/api/admin/login` 豁免；没有会话时跳过（等待两步验证的会话也要校验，登录响应会带上 `csrf_token`）；`X-CSRF-Token` 与 session 中 token 用 `timingSafeEqual` 比对，失败 `403 {error:'CSRF 校验失败，请刷新页面后重试'}`。
 - 挂在 `preValidation`：被拒请求的请求体仍会进操作日志；未命中路由的已登录写请求也先 403。
 - 前端 `shared/api/request.js` 自动带 CSRF 头。
 

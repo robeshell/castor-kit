@@ -85,6 +85,12 @@ castor-kit/
 │   │   │   │   ├── tabular.ts         # csv/xlsx 读写 + 公式注入防护 + 5MB 上限
 │   │   │   │   ├── request-meta.ts    # clientIp / userAgent / safePayload（脱敏）
 │   │   │   │   ├── password.ts        # pbkdf2:sha256 密码哈希
+│   │   │   │   ├── password-policy.ts # 密码规则（来自系统设置）
+│   │   │   │   ├── session.ts         # 服务端会话：isSignedIn / createSession / revokeSessions
+│   │   │   │   ├── settings.ts        # 系统设置注册表 + SettingsStore（app.settings）
+│   │   │   │   ├── rate-limit.ts      # 按 IP 限流 + 登录类接口的 authRateLimit
+│   │   │   │   ├── totp.ts / secret-box.ts # 两步验证 TOTP、AES-256-GCM 加密小密钥
+│   │   │   │   ├── mailer.ts          # 邮件（smtp / log / none）
 │   │   │   │   └── scheduler/         # 定时任务 runner（租约模型）+ cron 匹配器 + SSRF 防护
 │   │   │   ├── db/
 │   │   │   │   ├── client.ts          # pg Pool + drizzle 实例 + 类型解析器
@@ -101,6 +107,7 @@ castor-kit/
 │   │   │       │   ├── router.ts      # 域内路由装配
 │   │   │       │   └── users/         # {schema,repository,service,routes}.ts
 │   │   │       │   └── auth/ roles/ menu/ logs/ dicts/ scheduled-task/ notification/ announcement/ dashboard/
+│   │   │       │       sessions/ settings/ two-factor/ password-reset/ departments/ files/
 │   │   │       └── component-center/  # 组件示例中心域
 │   │   │           ├── router.ts
 │   │   │           └── list-page/ stats-list-page/ card-list-page/ tree-list-page/ dynamic-form-page/
@@ -708,6 +715,8 @@ ID=2   系统管理 (system)
   ID=22  角色权限 → /system/roles → admin/roles
   ID=26  部门管理 → /system/departments → admin/departments
   ID=27  文件管理 → /system/files → admin/files
+  ID=28  在线用户 → /system/sessions → admin/sessions（按钮 281 强制下线 system_sessions_revoke）
+  ID=29  系统设置 → /system/settings → admin/settings（按钮 291 编辑 system_settings_edit）
   ID=23  菜单管理 → /system/menus → admin/menus
   ID=24  日志管理 → /system/logs → admin/logs
   ID=25  数据字典 → /system/dicts → admin/dicts
@@ -760,7 +769,8 @@ ID=3   组件示例中心 (component_center)
 - 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-redesign-plan.md`
 - `.xls` 不支持，只支持 csv / xlsx
 - 密码哈希格式 `pbkdf2:sha256:<iter>$<salt>$<hex>`（`common/password.ts`，异步 pbkdf2）
-- 会话：`@fastify/secure-session`，cookie 名 `castor_session`，密钥用 HKDF 从 `SECRET_KEY` 派生
+- 会话：服务端会话表 `sessions` 是唯一事实源（可列出、可强制下线、改密码 / 停用 / 重置密码即失效）；`@fastify/secure-session` 的 cookie `castor_session` 只装 `{ sid, csrf_token }`，密钥用 HKDF 从 `SECRET_KEY` 派生。判断登录一律用 `common/session.ts` 的 `isSignedIn(request)`，不要读 cookie 字段
+- 系统设置（`common/settings.ts` 注册表 + `system_settings` 表）只放功能开关和参数；密钥、SMTP、S3、数据库等基础设施只放环境变量。新功能需要「默认关闭、管理员可打开」时，在注册表加一项，而不是加环境变量
 - 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，补齐后格式稳定）
 - cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
 - 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做

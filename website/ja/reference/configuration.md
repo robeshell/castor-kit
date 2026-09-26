@@ -41,11 +41,12 @@ castor-kit は環境変数で設定します。バックエンドの変数は `a
 |---|---|---|
 | `SECRET_KEY` | セッションの暗号化キー。cookie のキーはここから HKDF で派生 | 開発 / テストでは安全でない組み込みのデフォルト値あり。**本番では必須** |
 | `ADMIN_PASSWORD` | `admin` アカウントの初期パスワード。アカウントが存在しない場合にだけ使用 | 開発 / テストでは `admin123`。**本番では必須** |
-| `SESSION_TTL_HOURS` | セッションの有効期間（時間） | `8` |
+| `SESSION_TTL_HOURS` | セッションの有効期間（時間）の初期値。後から「システム設定」で変更できます | `8` |
 | `SESSION_COOKIE_SECURE` | cookie の `Secure` フラグ：`true` / `false` で強制。空にするとリクエストのプロトコルから自動判定（HTTPS の場合のみ付与） | 空（自動） |
 | `CORS_ORIGINS` | クロスオリジンを許可するオリジン。カンマ区切り。WebSocket ハンドシェイクの Origin 許可リストにも使用 | 空 |
 | `LOGIN_MAX_FAILURES` | ログイン失敗回数の上限（IP とユーザー名でそれぞれカウント。デモモードでは IP のみ） | `10` |
 | `LOGIN_LOCKOUT_MINUTES` | ログイン失敗のカウント期間とロック時間（分） | `15` |
+| `RATE_LIMIT_ENABLED` | IP ごとのレート制限。上限値は「システム設定」で調整します（[アカウントセキュリティとシステム設定](/ja/guide/security#rate-limits)） | `true` |
 | `MAX_CONTENT_LENGTH` | リクエストボディのサイズ上限（バイト）。超えると 413 を返す | `16777216`（16MB） |
 
 ### パス
@@ -70,6 +71,20 @@ castor-kit は環境変数で設定します。バックエンドの変数は `a
 | `UPLOAD_ALLOWED_TYPES` | アップロードを許可する拡張子（カンマ区切り）。ファイルヘッダーと拡張子の一致も確認 | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
 
 `local` ドライバーには永続ディスクが必要です。Docker Compose では `INSTANCE_DIR` をボリュームとしてマウント済みです。Render のようにデプロイのたびにディスクが消えるプラットフォームでは `s3`（例：Cloudflare R2）を使ってください。どのレコードにも参照されていないファイルは、アップロードから 24 時間後にスケジューラーのプロセスが削除します。そのため `ENABLE_TASK_SCHEDULER=false` の場合は削除されません。
+
+### メール {#mail}
+
+パスワード再設定メールの送信に使います。`SMTP_HOST` と `APP_BASE_URL` を設定すると、「システム設定」でメールによるパスワード再設定を有効にできます。
+
+| 変数 | 用途 | 既定値 |
+|---|---|---|
+| `SMTP_HOST` | SMTP サーバー。設定するとメールが有効になります | 空 |
+| `SMTP_PORT` | ポート | `587` |
+| `SMTP_SECURE` | `true` は接続開始時から TLS（通常 465 番ポート）。それ以外はサーバーが対応していれば STARTTLS | `false` |
+| `SMTP_USER` / `SMTP_PASSWORD` | 認証情報。認証不要なサーバーでは空 | 空 |
+| `MAIL_FROM` | 差出人（例：`castor-kit <noreply@example.com>`）。空なら `SMTP_USER` | 空 |
+| `MAIL_DRIVER` | 空なら `SMTP_HOST` で自動判定。`log` は送信せずバックエンドのログに出力（ローカル開発用）。`none` は無効 | 空 |
+| `APP_BASE_URL` | サイトの公開 URL。メール内のリンクはこれから組み立てます（リクエストの Host は使いません） | 空 |
 
 ### 公開デモ {#public-demo}
 
@@ -158,6 +173,8 @@ AI チャット、AI プロンプト工房、AI データ検索は、`AI_API_*` 
 | `SESSION_TTL_HOURS` | 前述のとおり | `8` |
 | `SESSION_COOKIE_SECURE` | 前述のとおり | 空（自動） |
 | `CORS_ORIGINS` | 前述のとおり | 空 |
+| `RATE_LIMIT_ENABLED` | 前述のとおり | `true` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_FROM` / `APP_BASE_URL` | 前述のとおり（メール） | 空 / `587` / `false` |
 | `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 前述のとおり | 空 |
 | `COMPOSE_DB_VOLUME` | データベースのデータボリューム名。既存のボリュームを指定可能 | `castor-kit_postgres_data` |
 | `COMPOSE_INSTANCE_VOLUME` | アップロードファイルのデータボリューム名。既存のボリュームを指定可能 | `castor-kit_app_instance` |

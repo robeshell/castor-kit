@@ -92,6 +92,8 @@ Besides the component examples, the System menu holds the business features that
 | Roles | `/system/roles` | Role management, menu / button authorization and data scope |
 | Departments | `/system/departments` | Department tree: add children, edit, move up / down; the basis for user membership and data scope |
 | Files | `/system/files` | Everything in the file center: preview, download, see whether a file is in use, delete unused files |
+| Online users | `/system/sessions` | Signed-in sessions, with force sign-out (see [Account security & settings](/en/guide/security)) |
+| System settings | `/system/settings` | Switches for two-step verification and password reset; password rules, session lifetime and rate limits |
 | Menus | `/system/menus` | Menu tree management |
 | Logs | `/system/logs` | Operation logs and login logs |
 | Dictionaries | `/system/dicts` | Maintains dictionary data and serves as a data source for dropdown options |

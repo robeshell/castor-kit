@@ -5,7 +5,7 @@
  */
 
 import type { FastifyInstance } from 'fastify'
-import { hasMenuPermission, loginRequired } from '@/common/auth'
+import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString, rawJsonBody } from '@/common/http'
 import { sendTable } from '@/common/tabular'
 import { dictBody, membershipBody } from '@/common/py-values'
@@ -49,7 +49,7 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_roles'))) {
       return reply.status(403).send({ error: '无权限导出角色' })
     }
-    return sendTable(reply, await service.exportRoles(dictBody(rawJsonBody(request)), request.session.get('username')))
+    return sendTable(reply, await service.exportRoles(dictBody(rawJsonBody(request)), await currentUsername(request)))
   })
 
   app.get('/api/admin/roles/template', opts, async (request, reply) => {

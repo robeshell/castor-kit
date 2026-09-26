@@ -9,6 +9,7 @@ import type { FastifyReply, FastifyRequest, preHandlerAsyncHookHandler } from 'f
 import type { Executor } from '@/db/client'
 import { admin_users, type AdminUserWithRoles } from '@/db/schema'
 import { userHasMenuCode } from './rbac'
+import { clearSession, isSignedIn } from './session'
 
 const LOGIN_PAGE = '/admin/login'
 
@@ -24,7 +25,7 @@ function isApiRequest(request: FastifyRequest): boolean {
  * don't query again.
  */
 export const loginRequired: preHandlerAsyncHookHandler = async (request, reply) => {
-  if (!request.session.get('logged_in') || !(await getCurrentAdminUser(request))) {
+  if (!isSignedIn(request) || !(await getCurrentAdminUser(request))) {
     endSession(request)
     if (isApiRequest(request)) {
       return reply.status(401).send({ error: '未授权访问', redirect: LOGIN_PAGE })
@@ -33,12 +34,12 @@ export const loginRequired: preHandlerAsyncHookHandler = async (request, reply) 
   }
 }
 
-/** Drop a stale session (no-op when there is none) */
+/**
+ * Drop a stale session (no-op when there is none). A session in a sign-in step (2FA) is kept: the sign-in page may
+ * call a protected endpoint meanwhile, and that must not throw the user back to the password step.
+ */
 function endSession(request: FastifyRequest): void {
-  if (request.session.get('logged_in')) {
-    request.session.regenerate()
-    request.session.delete()
-  }
+  if (request.session.get('sid') && !request.authSession?.mfa_state) clearSession(request)
 }
 
 const WITH_ROLES_MENUS = {
@@ -94,10 +95,15 @@ export async function loadAdminsWithRolesByIds(db: Executor, ids: number[]): Pro
 export async function getCurrentAdminUser(request: FastifyRequest): Promise<AdminUserWithRoles | null> {
   if (request.currentAdminUser !== undefined) return request.currentAdminUser
 
-  const username = request.session.get('username')
-  const user = username ? await loadAdminWithRoles(request.server.db, username) : null
+  const session = request.authSession
+  const [user] = session && !session.mfa_state ? await loadAdminsWithRolesByIds(request.server.db, [session.user_id]) : []
   request.currentAdminUser = user && user.status === 'active' ? user : null
   return request.currentAdminUser
+}
+
+/** Username of the signed-in user (undefined when signed out) */
+export async function currentUsername(request: FastifyRequest): Promise<string | undefined> {
+  return (await getCurrentAdminUser(request))?.username
 }
 
 export async function hasMenuPermission(request: FastifyRequest, menuCode: string): Promise<boolean> {
@@ -116,11 +122,8 @@ export async function hasAnyMenuPermission(request: FastifyRequest, ...menuCodes
 export function menuPermissionRequired(menuCode: string): preHandlerAsyncHookHandler {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const api = isApiRequest(request)
-    if (!request.session.get('logged_in')) {
+    if (!isSignedIn(request)) {
       return api ? reply.status(401).send({ error: '未登录' }) : reply.redirect(LOGIN_PAGE)
-    }
-    if (!request.session.get('username')) {
-      return api ? reply.status(401).send({ error: '会话异常' }) : reply.redirect(LOGIN_PAGE)
     }
     const user = await getCurrentAdminUser(request)
     if (!user) {

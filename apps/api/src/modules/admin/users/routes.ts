@@ -6,7 +6,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
+import { currentUsername, getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
 import { isSuperAdmin } from '@/common/rbac'
 import { resolveDataScope } from '@/common/data-scope'
 import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
@@ -16,7 +16,7 @@ import { isUserStatus } from './schema'
 import { UserService, type Caller } from './service'
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
-  const service = new UserService(app.db)
+  const service = new UserService(app.db, app.settings)
   const opts = { preHandler: loginRequired }
   const callerOf = async (request: FastifyRequest): Promise<Caller> => {
     const current = await getCurrentAdminUser(request)
@@ -100,7 +100,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限导入用户' })
     }
     return service.importUsers(await getUploadedFile(request), {
-      currentUsername: request.session.get('username'),
+      currentUsername: await currentUsername(request),
       superAdmin: (await callerOf(request)).superAdmin,
       canSetStatus: await hasMenuPermission(request, 'system_users_status'),
       scope: await resolveDataScope(request),

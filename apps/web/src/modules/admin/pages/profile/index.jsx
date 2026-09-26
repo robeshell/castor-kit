@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
 import { KeyRound, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -18,12 +17,15 @@ import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import UserAvatar from '@/shared/components/UserAvatar'
+import { usePasswordPolicy } from '@/shared/hooks/usePasswordPolicy'
+import SessionsPanel from '@/modules/admin/pages/profile/SessionsPanel'
+import TwoFactorPanel from '@/modules/admin/pages/profile/TwoFactorPanel'
 import { useTranslation } from 'react-i18next'
 
 export default function Profile() {
   const { t } = useTranslation()
-  const { user, logout, updateUser } = useAuth()
-  const navigate = useNavigate()
+  const { user, updateUser } = useAuth()
+  const passwordPolicy = usePasswordPolicy()
   const form = useForm({ defaultValues: { old_password: '', new_password: '', confirm_password: '' } })
   const submitting = form.formState.isSubmitting
   const profileForm = useForm({ defaultValues: profileDefaults(user) })
@@ -48,9 +50,9 @@ export default function Profile() {
   const submit = form.handleSubmit(async (values) => {
     try {
       await changePassword({ old_password: values.old_password, new_password: values.new_password })
-      toast.success('密码已修改，请重新登录')
-      await logout()
-      navigate('/login', { replace: true })
+      // This device stays signed in; the API signs out every other session of the account
+      toast.success('密码已修改，其他设备已退出登录')
+      form.reset()
     } catch (err) {
       toast.apiError(err, '修改失败')
     }
@@ -118,7 +120,11 @@ export default function Profile() {
         </Form>
       </Panel>
 
-      <Panel title="修改密码" description="修改成功后需要重新登录">
+      <TwoFactorPanel />
+
+      <SessionsPanel />
+
+      <Panel title="修改密码" description="修改成功后，其他设备需要用新密码重新登录">
         <Form {...form}>
           <form onSubmit={submit} className="space-y-4">
             <FormInput
@@ -136,8 +142,8 @@ export default function Profile() {
               type="password"
               autoComplete="new-password"
               label="新密码"
-              placeholder="至少 6 位"
-              rules={{ required: '请输入新密码', minLength: { value: 6, message: '新密码长度至少6位' } }}
+              placeholder={passwordPolicy.hint}
+              rules={{ required: '请输入新密码', validate: passwordPolicy.validate }}
             />
             <FormInput
               control={form.control}
