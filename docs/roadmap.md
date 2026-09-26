@@ -16,6 +16,7 @@
 | 3 | [审批流](#7-审批流) | 低 | 1 | 未开始 |
 | 3 | [多租户](#8-多租户) | 低 | 1、2、4 | 未开始 |
 | — | 公开演示模式与 Render + Neon 部署（计划外，按需加入） | — | — | 已完成 |
+| — | 全局 AI 小助手（计划外，见 [AI 小助手](../website/guide/assistant.md)） | — | — | 已完成 |
 
 建议顺序：0 → 1（部门与数据权限、文件中心可并行）→ 2 → 3。第 3 阶段中「在线可视化建模」价值最高，「多租户」改动面最大、放最后。
 
@@ -283,3 +284,4 @@
 | 2026-09-26 | 完成「1. 部门与数据权限」（迁移 `0003_departments_data_scope`）；方案调整：`dataScopeWhere` 拆成 `resolveDataScope`（routes）+ 纯函数 `dataScopeWhere`（repository），用户管理本身接入数据权限 |
 | 2026-09-26 | 完成「4. 开放接口：API Token 与 Webhook」（迁移 `0007_open_api`）；实现补充见该节 |
 | 2026-09-26 | AI 调用层迁移到 Vercel AI SDK（从「6. 在线可视化建模」中拆出先做）：`common/ai.ts` 统一创建模型，新增服务类型设置 `ai.provider`（OpenAI 兼容 / OpenAI / Anthropic / Google）；AI 对话改为 UI message stream + `useChat`，界面换成 AI Elements；接口路径与演示模式限流不变（输入上限改按消息文字计算） |
+| 2026-09-26 | 新增并完成「全局 AI 小助手」（计划外）：每个页面右下角的对话助手，以当前用户身份经原接口查询数据，写操作逐条经用户确认（签名审批）后执行；开关 `ai.assistant_enabled` 默认关闭 |

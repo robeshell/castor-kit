@@ -163,8 +163,9 @@ Switching the storage only affects new uploads; existing files record where they
 | API URL: required for OpenAI-compatible (e.g. `https://api.deepseek.com/v1`); leave empty for the others to use the official API, or enter a proxy | `AI_API_BASE` | Empty |
 | API key | `AI_API_KEY` | Empty |
 | Model | `AI_MODEL` | Empty |
+| Enable the AI assistant: the chat assistant in the bottom-right corner that looks data up as the signed-in user and changes it once approved, see [AI assistant](/en/guide/assistant); needs a configured model | None (set on the page only) | Off |
 
-AI Chat, AI Prompt Studio and AI Data Query share these settings; calls go through the Vercel AI SDK without automatic retries. "OpenAI-compatible" covers every service with a `/chat/completions` API: DeepSeek, Qwen, Gemini's compatible endpoint, Ollama and more. When they are not set, those pages show a "not configured" notice; everything else is unaffected.
+AI Chat, AI Prompt Studio, AI Data Query and the AI assistant share these settings; calls go through the Vercel AI SDK without automatic retries. "OpenAI-compatible" covers every service with a `/chat/completions` API: DeepSeek, Qwen, Gemini's compatible endpoint, Ollama and more. When they are not set, those pages show a "not configured" notice; everything else is unaffected.
 
 ### Sign-in lockout
 

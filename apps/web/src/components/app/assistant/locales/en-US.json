@@ -1,0 +1,23 @@
+{
+  "系统里一共有多少个用户？": "How many users are there in the system?",
+  "列出所有部门": "List all departments",
+  "最近 10 条操作日志": "The 10 latest operation logs",
+  "这个页面能做什么？": "What can I do on this page?",
+  "打开 AI 小助手": "Open the AI assistant",
+  "AI 小助手": "AI assistant",
+  "当前页面：{{title}}": "Current page: {{title}}",
+  "以你的身份查询和操作": "Looks things up and acts as you",
+  "新对话": "New conversation",
+  "你好！我可以帮你查询数据、解答系统用法，也可以在你确认后帮你修改数据。我只能做你本人有权限做的事。": "Hi! I can look up data, answer questions about the system, and change data once you approve. I can only do what you yourself are allowed to do.",
+  "请先允许或拒绝上面的操作": "Allow or refuse the action above first",
+  "问点什么，Enter 发送...": "Ask something, Enter to send...",
+  "修改数据前会先请你确认": "You'll be asked before any data is changed",
+  "没有权限": "No permission",
+  "失败（{{status}}）": "Failed ({{status}})",
+  "查找接口：{{query}}": "Finding APIs: {{query}}",
+  "执行一项操作": "Perform an action",
+  "拒绝": "Refuse",
+  "允许执行": "Allow",
+  "已允许": "Allowed",
+  "已拒绝，没有执行": "Refused, nothing was done"
+}

@@ -30,9 +30,11 @@ Vercel 的 AI 组件（https://elements.ai-sdk.dev ，基于 shadcn），配合 
 | `message` | `Message` / `MessageContent` / `MessageResponse`（Streamdown 流式 Markdown）/ `MessageActions` / `MessageAction` |
 | `prompt-input` | `PromptInput` / `PromptInputTextarea` / `PromptInputFooter` / `PromptInputTools` / `PromptInputSubmit`（按 useChat 的 `status` 显示发送 / 停止） |
 | `suggestion` | `Suggestions` / `Suggestion` |
+| `confirmation` | `Confirmation`（传工具调用的 `approval` 与 `state`）/ `ConfirmationTitle` / `ConfirmationRequest` / `ConfirmationAccepted` / `ConfirmationRejected` / `ConfirmationActions` / `ConfirmationAction`：需要用户批准的工具调用（`needsApproval`），参考 `components/app/assistant/ToolPart.jsx` |
+| `streamdown-translations.js` | `useStreamdownTranslations()`：Streamdown 按钮文案的三语译文，传给 `MessageResponse` 的 `translations` |
 | `code-highlighter.js` | castor-kit 自己的 Streamdown 代码高亮插件：只带常用语言、按需加载（官方 `@streamdown/code` 会打包 200 多种语法） |
 
-要点：组件自带的英文文案要覆盖（`aria-label` / `tooltip` 传 `t('中文')`，`MessageResponse` 传 `translations`，见 ai_chat_page/ChatMessage.jsx）；`useChat` 的请求不走 axios，`DefaultChatTransport` 要自己带 `X-CSRF-Token` 和 `Accept-Language`；数学公式与 mermaid 插件没装（体积大）。新增 AI Elements 组件见 AGENTS.md「新增 AI Elements 组件」。
+要点：组件自带的英文文案要覆盖（`aria-label` / `tooltip` 传 `t('中文')`，`MessageResponse` 传 `useStreamdownTranslations()`）；`useChat` 的请求不走 axios，`DefaultChatTransport` 要自己带 `X-CSRF-Token` 和 `Accept-Language`；数学公式与 mermaid 插件没装（体积大）。新增 AI Elements 组件见 AGENTS.md「新增 AI Elements 组件」。
 
 ## 2. castor-kit 业务公共组件（`@/shared/components/*`）
 

@@ -1,7 +1,7 @@
 /**
  * AI assistant route: POST /api/admin/assistant/chat — a UI message stream for the page's useChat.
  *
- * Any signed-in user may use it once the switch (System settings → AI → AI 小助手) is on; what it can read or change
+ * Any signed-in user may use it once the switch (System settings → AI → "Enable the AI assistant") is on; what it can read or change
  * is whatever that user could (see service.ts). Not for API tokens. Streaming follows the AI chat route: reply.send
  * with a Readable (keeps session renewal and operation logs), no compression, upstream aborted when the client leaves.
  */

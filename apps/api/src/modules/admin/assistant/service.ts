@@ -193,7 +193,10 @@ export class AssistantService {
       if (!signal.aborted) this.app.log.warn({ err, status: upstreamStatusOf(err) }, 'AI 小助手调用失败')
       return chatErrorMessage(err, lang)
     }
+    // originalMessages: after an approval the reply continues the same assistant message (same id) instead of
+    // starting a new one, so the page updates the approval card in place
     const stream = createUIMessageStream({
+      originalMessages: messages,
       execute: ({ writer }) => writer.merge(result.toUIMessageStream({ onError })),
       onError,
     })

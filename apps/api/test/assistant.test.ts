@@ -166,6 +166,13 @@ describe('AI assistant', () => {
 
     const approved = await admin.inject({ method: 'POST', url: URL_PATH, payload: { messages: [ask, respond({ ...request!.approval, approved: true })] } })
     expect(approved.statusCode).toBe(200)
+    // The reply continues the assistant message that asked for approval (same id), so the page updates it in place
+    const start = approved.body
+      .split('\n\n')
+      .filter((c) => c.startsWith('data: {'))
+      .map((c) => JSON.parse(c.slice(6)) as { type: string; messageId?: string })
+      .find((c) => c.type === 'start')
+    expect(start?.messageId).toBe(pending.id || 'a1')
     const [after] = await handle.db.select().from(departments).where(eq(departments.id, dept!.id))
     expect(after!.name).toBe('after')
     // The change went through the normal route: it is in the operation log, as this user

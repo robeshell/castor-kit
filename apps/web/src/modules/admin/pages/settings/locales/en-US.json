@@ -103,5 +103,9 @@
   "OpenAI 兼容接口适用于 DeepSeek、通义千问、Gemini 兼容接口、Ollama 等；其余三项直接使用各家官方接口": "OpenAI-compatible fits DeepSeek, Qwen, Gemini's compatible endpoint, Ollama and more; the other three use each vendor's own API",
   "OpenAI 兼容接口": "OpenAI-compatible",
   "OpenAI 兼容接口必填，请求发往 <地址>/chat/completions；其他服务类型留空使用官方地址，也可以填代理地址": "Required for OpenAI-compatible (requests go to <URL>/chat/completions); leave empty for the other types to use the official API, or enter a proxy",
-  "AI 对话、AI 数据查询等功能使用的模型": "The model used by AI chat, AI data query and other features"
+  "AI 对话、AI 数据查询等功能使用的模型": "The model used by AI chat, AI data query and other features",
+  "启用 AI 小助手": "Enable the AI assistant",
+  "右下角的 AI 小助手：以当前用户的身份查询数据，修改数据前逐条请用户确认；账号安全、系统设置和导入导出不开放给它": "The AI assistant in the bottom-right corner: it looks data up as the signed-in user and asks before every change; account security, system settings and import / export are off limits to it",
+  "AI 小助手": "AI assistant",
+  "每个页面右下角的对话助手（⌘/Ctrl + J），能回答问题、查数据、在确认后帮用户操作": "A chat assistant in the bottom-right corner of every page (⌘/Ctrl + J) that answers questions, looks data up and acts for the user once approved"
 }
