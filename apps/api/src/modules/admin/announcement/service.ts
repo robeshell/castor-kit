@@ -3,7 +3,7 @@
  */
 
 import { sql, type SQL } from 'drizzle-orm'
-import { dbConstraintError } from '@/common/db-errors'
+import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
@@ -50,11 +50,6 @@ function assertChoices(data: Data): void {
   }
 }
 
-/** A failed write: the database rejecting the request's data is a 400, anything else a 500 */
-function writeError(err: unknown): ServiceError {
-  if (err instanceof ServiceError) return err
-  return dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
-}
 
 /** Value to write for publish_at: parsed result / current UTC time / None */
 type PublishAtValue = PyDateTime | 'now' | null

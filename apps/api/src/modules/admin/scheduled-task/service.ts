@@ -12,8 +12,8 @@
  * "Now" is always the DB UTC time text (never JS Date), and cron is computed from it.
  */
 
-import { dbConstraintError } from '@/common/db-errors'
-import { ServiceError } from '@/common/errors'
+import { writeError } from '@/common/db-errors'
+import { internalError, ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyInt, pyStr, pyTruthy } from '@/common/py'
 import { computeNextRunAt, parseCronExpression, parseTimestamp, toEpochMicros } from '@/common/scheduler/cron'
@@ -52,9 +52,7 @@ function toServiceError(err: unknown, schemaStatus = 400): never {
   if (err instanceof ServiceError) throw err
   if (err instanceof ScheduledTaskSchemaError) throw new ServiceError(err.message, schemaStatus)
   if (err instanceof PyUncaughtError) throw new ServiceError('请求地址格式不合法', 400)
-  const rejected = dbConstraintError(err)
-  if (rejected) throw rejected
-  throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+  throw writeError(err)
 }
 
 /** `(text or '')[:2000]`: truncated by code point */
@@ -246,8 +244,7 @@ export class ScheduledTaskService {
     try {
       return await this.executeTask(task, 'manual')
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      throw dbConstraintError(err) ?? new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw writeError(err)
     }
   }
 
@@ -353,7 +350,7 @@ export class ScheduledTaskService {
         return { run, task: updated }
       })
     } catch (err) {
-      throw new ServiceError(err instanceof Error ? err.message : String(err), 500)
+      throw internalError(err)
     }
 
     const payload: Record<string, unknown> = {

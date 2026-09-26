@@ -2,10 +2,10 @@
  * PostgreSQL constraint / data errors → 400 business errors.
  *
  * Unique violations, over-long values, numeric overflow and the like are caused by user input; they must not become 500s or leak raw pg messages to the frontend.
- * Scaffold-generated services call this inside their transaction wrapper; other errors return null and the caller treats them as 500.
+ * The global error handler applies it to every unhandled error; services catching a failed write use writeError() below.
  */
 
-import { ServiceError } from './errors'
+import { internalError, ServiceError } from './errors'
 
 interface PgErrorLike {
   code: string
@@ -41,4 +41,13 @@ export function dbConstraintError(err: unknown): ServiceError | null {
   const pg = findPgError(err)
   const message = pg ? MESSAGES[pg.code] : undefined
   return message ? new ServiceError(message, 400) : null
+}
+
+/**
+ * The error to throw when a write (usually a transaction) fails: business errors (ServiceError) as they are, the
+ * database rejecting the request's data → 400, anything else → 500
+ */
+export function writeError(err: unknown): ServiceError {
+  if (err instanceof ServiceError) return err
+  return dbConstraintError(err) ?? internalError(err)
 }

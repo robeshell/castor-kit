@@ -2,8 +2,8 @@
  * Notification service layer
  */
 
-import { dbConstraintError } from '@/common/db-errors'
-import { ServiceError } from '@/common/errors'
+import { writeError } from '@/common/db-errors'
+import { internalError, ServiceError } from '@/common/errors'
 import { pyTruthy } from '@/common/py'
 import type { Db } from '@/db/client'
 import { notificationToDict } from '@/db/schema'
@@ -61,8 +61,7 @@ export class NotificationService {
       })
       return notificationToDict(created, false)
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      throw dbConstraintError(err) ?? new ServiceError('创建通知失败，请稍后重试', 500)
+      throw writeError(err)
     }
   }
 
@@ -76,8 +75,8 @@ export class NotificationService {
     if (!(await this.repo.hasRead(userId, notiId))) {
       try {
         await this.repo.insertRead(userId, notiId)
-      } catch {
-        throw new ServiceError('操作失败，请稍后重试', 500)
+      } catch (err) {
+        throw internalError(err)
       }
     }
     return { success: true }
@@ -87,8 +86,8 @@ export class NotificationService {
     let marked: number
     try {
       marked = await this.db.transaction((tx) => new NotificationRepository(tx).markAllRead(userId))
-    } catch {
-      throw new ServiceError('操作失败，请稍后重试', 500)
+    } catch (err) {
+      throw internalError(err)
     }
     return { success: true, marked }
   }
@@ -99,8 +98,8 @@ export class NotificationService {
     if (notif.is_global && !canDeleteGlobal) throw new ServiceError('无权限删除全局通知', 403)
     try {
       await this.repo.delete(notif.id)
-    } catch {
-      throw new ServiceError('删除失败，请稍后重试', 500)
+    } catch (err) {
+      throw internalError(err)
     }
     return { success: true }
   }

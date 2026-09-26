@@ -27,10 +27,8 @@ export function invalidInput(_detail?: string): ServiceError {
   return new ServiceError(INVALID_INPUT_MESSAGE, 400)
 }
 
-/** A failure that isn't the caller's fault → 500 (the global handler shows a generic message) */
-export function internalError(detail: string): ServiceError {
-  return new ServiceError(detail, 500)
-}
+/** Re-exported for the modules that import it from here; defined in common/errors.ts */
+export { internalError } from './errors'
 
 /** Whether a DB execution error (incl. the drizzle-wrapped cause chain) mentions a constraint/keyword; equivalent to `'menus_pkey' in str(e)` */
 export function dbErrorMentions(err: unknown, needle: string): boolean {

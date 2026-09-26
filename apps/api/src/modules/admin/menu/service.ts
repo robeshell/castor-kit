@@ -22,7 +22,7 @@ import {
   pyEq,
   selectedIdsOrNull,
 } from '@/common/py-values'
-import { dbConstraintError } from '@/common/db-errors'
+import { writeError } from '@/common/db-errors'
 import { MenuRepository, type MenuUpdateValues, type NewMenuValues } from './repository'
 import {
   buildErrorRow,
@@ -83,8 +83,7 @@ export class MenuService {
     try {
       return await this.db.transaction((tx) => fn(new MenuRepository(tx), tx))
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      throw dbConstraintError(err) ?? internalError(err instanceof Error ? err.message : String(err))
+      throw writeError(err)
     }
   }
 
@@ -199,11 +198,10 @@ export class MenuService {
         try {
           return menuToDict(await this.insertWithSequenceSync(data, code))
         } catch (retryErr) {
-          if (retryErr instanceof ServiceError) throw retryErr
-          throw dbConstraintError(retryErr) ?? internalError(retryErr instanceof Error ? retryErr.message : String(retryErr))
+          throw writeError(retryErr)
         }
       }
-      throw dbConstraintError(err) ?? internalError(err instanceof Error ? err.message : String(err))
+      throw writeError(err)
     }
   }
 

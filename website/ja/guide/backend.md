@@ -170,7 +170,7 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 
 ### データベース制約エラーのマッピング
 
-グローバルなエラーハンドラーは `apps/api/src/common/db-errors.ts` の `dbConstraintError()` を呼び出し、リクエストの値に起因するデータベースエラーを 400 に変換します。トランザクション内でエラーを捕捉する service も先にこれに渡します（scaffold が生成する service と `docs/templates/backend/service.ts` テンプレートは対応済み）。原則として、呼び出し側の入力の問題は 4xx、サーバー自身の問題だけが 500 です。
+グローバルなエラーハンドラーは `apps/api/src/common/db-errors.ts` の `dbConstraintError()` を呼び出し、リクエストの値に起因するデータベースエラーを 400 に変換します。トランザクション内で書き込みの失敗を捕捉する service は `writeError(err)` を投げ（業務エラーはそのまま、データベースに拒否された入力は 400、それ以外は 500）、本当のサーバーエラーには `internalError(err)` を使います。`new ServiceError(…, 500)` を手書きしないでください。scaffold が生成する service と `docs/templates/backend/service.ts` テンプレートは対応済みで、`test/conventions.test.ts` がチェックします。原則として、呼び出し側の入力の問題は 4xx、サーバー自身の問題だけが 500 です。
 
 | PostgreSQL のエラーコード | 返される文言 |
 |---|---|

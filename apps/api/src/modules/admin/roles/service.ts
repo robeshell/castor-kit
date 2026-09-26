@@ -14,13 +14,12 @@ import {
   adaptIdsForIn,
   adaptText,
   dictGet,
-  internalError,
   invalidInput,
   parseExportArgs,
   pyEq,
   selectedIdsOrNull,
 } from '@/common/py-values'
-import { dbConstraintError } from '@/common/db-errors'
+import { writeError } from '@/common/db-errors'
 import { RoleRepository } from './repository'
 import {
   buildErrorRow,
@@ -55,8 +54,7 @@ export class RoleService {
     try {
       return await this.db.transaction((tx) => fn(new RoleRepository(tx)))
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      throw dbConstraintError(err) ?? internalError(err instanceof Error ? err.message : String(err))
+      throw writeError(err)
     }
   }
 
