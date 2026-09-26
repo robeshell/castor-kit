@@ -232,7 +232,7 @@ export class ModelerService {
   async generate(spec: SpecFile): Promise<JobState> {
     const errors = await this.validate(spec)
     if (errors.length > 0) throw new ServiceError(errors[0]!, 400, { errors })
-    // Menus always go in (under 「业务管理」 unless the page chose another parent)
+    // Menus always go in (under the business group unless the page chose another parent)
     return this.start('generate', { ...spec, menu: spec.menu ?? {} }, spec.name, spec.title?.trim() || spec.name)
   }
 

@@ -2201,6 +2201,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -2212,17 +2223,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/组件示例中心/查询示例",
@@ -3892,11 +3892,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "部门不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       },
@@ -4033,11 +4033,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "部门不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       },
@@ -4089,11 +4089,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "部门不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -4172,11 +4172,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "部门不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -4236,6 +4236,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -4247,17 +4258,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/数据字典",
@@ -4769,6 +4769,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -4780,17 +4791,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/数据字典/字典项",
@@ -5281,11 +5281,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "413": {
             "description": "文件过大"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       },
@@ -5553,11 +5553,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "文件不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -5732,11 +5732,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "429": {
             "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         },
         "x-apifox-folder": "后台/系统管理/认证",
@@ -5826,11 +5826,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "429": {
             "description": "请求过于频繁，或登录失败次数过多"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -5853,6 +5853,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -5864,17 +5875,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/认证",
@@ -6346,6 +6346,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -6357,17 +6368,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/菜单管理",
@@ -8307,11 +8307,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "429": {
             "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -8368,11 +8368,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "429": {
             "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -9162,11 +9162,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "会话不存在或已失效"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -9296,6 +9296,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -9307,17 +9318,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/角色管理",
@@ -9690,6 +9690,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -9701,17 +9712,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/定时任务",
@@ -10263,11 +10263,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "会话不存在或已失效"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -11017,11 +11017,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "429": {
             "description": "请求过于频繁（登录类接口共用更严格的每分钟额度）"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }
@@ -11195,6 +11195,17 @@
               }
             }
           },
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
           "400": {
             "description": "请求参数错误"
           },
@@ -11206,17 +11217,6 @@
           },
           "500": {
             "description": "服务器错误"
-          },
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
           }
         },
         "x-apifox-folder": "后台/系统管理/用户管理",
@@ -11678,11 +11678,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "用户不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         },
         "x-apifox-folder": "后台/系统管理/用户管理",
@@ -11742,11 +11742,11 @@
           "403": {
             "description": "无权限"
           },
-          "500": {
-            "description": "服务器错误"
-          },
           "404": {
             "description": "用户不存在"
+          },
+          "500": {
+            "description": "服务器错误"
           }
         }
       }

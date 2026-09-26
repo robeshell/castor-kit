@@ -117,7 +117,7 @@ async function cleanDatabase(url: string, m: GeneratedModule): Promise<void> {
     // Buttons first: they point at the menu
     await client.query('DELETE FROM menus WHERE code = ANY($1) AND menu_type = $2', [codes, 'button'])
     await client.query('DELETE FROM menus WHERE code = ANY($1)', [codes])
-    // An empty 业务管理 group goes too
+    // An empty business group goes too
     await client.query(
       `DELETE FROM role_menus WHERE menu_id IN (SELECT id FROM menus g WHERE g.code = $1 AND NOT EXISTS (SELECT 1 FROM menus c WHERE c.parent_id = g.id))`,
       [BIZ_GROUP.code],
@@ -170,7 +170,7 @@ function removeFiles(m: GeneratedModule): void {
   edit(join(API_DIR, 'src', 'modules', m.domainDir, 'router.ts'), (c) => unregisterRoute(c, m))
   const seedPath = join(API_DIR, 'scripts', 'seed-rbac.ts')
   edit(seedPath, (c) => unregisterMenus(c, m))
-  // The 业务管理 group goes as well once nothing hangs under it
+  // The business group goes as well once nothing hangs under it
   let groupRemoved = false
   edit(seedPath, (c) => {
     const next = dropEmptyBizGroup(c)
