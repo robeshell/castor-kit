@@ -72,9 +72,9 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 
 | 命令 | 说明 |
 |---|---|
-| `pnpm openapi:generate` | 从 Fastify 路由补齐 `docs/apifox-full.openapi.json` |
-| `pnpm openapi:generate -- --dry-run` | 只统计覆盖率，不写回 |
-| `pnpm openapi:generate -- --strict` | 仍有只含骨架的路径时以非 0 退出 |
+| `pnpm openapi:generate` | 为缺文档的路由 + 方法补骨架（写回 `docs/apifox-full.openapi.json`），并按 OpenAPI 编写规范检查 |
+| `pnpm openapi:generate -- --dry-run` | 只检查，不写回 |
+| `pnpm openapi:generate -- --strict` | 逐个列出不合规的接口和原因，有则以非 0 退出 |
 | `pnpm openapi:apifox` | 推送到 Apifox（需要 `APIFOX_PROJECT_ID`、`APIFOX_ACCESS_TOKEN`） |
 
 ## MCP Server

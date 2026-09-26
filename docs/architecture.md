@@ -266,7 +266,7 @@ castor-kit/
 | `scripts/init-ro-role.ts` | `pnpm --filter @castor-kit/api init-ro-role` | 创建 AI SQL 只读账号并按敏感表规则授权 |
 | `scripts/setup-once.ts` | `pnpm setup-once` | `pg_advisory_lock` → migrate → seed-rbac（增量）→ init-ro-role，多副本并发安全 |
 | `src/worker.ts` | `pnpm --filter @castor-kit/api worker` | 独立调度进程 |
-| `scripts/generate-openapi.ts` | `pnpm openapi:generate` | 从 Fastify 路由补齐 `docs/apifox-full.openapi.json`：保留文档里已有的详细定义，只为缺失的路由补骨架（未做 Zod 全量生成） |
+| `scripts/generate-openapi.ts` | `pnpm openapi:generate` | 为缺文档的路由 + 方法补骨架（方法小写、带路径参数），再用 `scripts/lib/openapi-lint.ts` 按 AGENTS.md「OpenAPI 编写规范」检查整份文档；`--strict` 有不合规接口时非 0 退出。请求体没有逐字段的 Zod 定义，文档靠人照代码写，由 `test/openapi-doc.test.ts` 与 verify 的 `openapi_sync` 强制 |
 | `scripts/import-apifox.ts` | `pnpm openapi:apifox` | 推送到 Apifox |
 | `apps/mcp/src/index.ts` | `pnpm mcp` | 工具：`get_project_context / get_menu_tree / scaffold_feature / run_verify / init_rbac / run_migration / list_templates`，内部调用上面的脚本 |
 | `docs/templates/` | — | 后端 `db-schema / schema / repository / service / routes` 模板 + 前端 `list_page / detail_page`；占位符 `<Resource>/<resource>/<domain>/<domain_resource>` |
@@ -288,7 +288,7 @@ castor-kit/
 - 路由级测试用 `app.inject()`，按模块一个文件（`admin-*.test.ts`、`cc-*.test.ts`）。
 - 契约测试 `contract.test.ts`：响应形状快照（`items/total/page/per_page`、`error`、`csrf_token`、时间格式）。
 - 横切能力：`serialize` / `pagination` / `errors` / `tabular` / `request-meta` / `password-hash` / `scheduler-cron` / `scheduler-runner` / `scheduler-ssrf`；`scheduler-e2e.test.ts` 跑真实 60s 调度，需 `SCHEDULER_E2E=1`。
-- 工具链：`scaffold` / `verify-feature` / `seed-rbac` / `setup-once` / `migration-chain`（journal 线性且每条有 SQL）/ `openapi`（生成结果与 docs 文件一致）/ `skills-sync`（`.claude/skills` 与 `.agents/skills` 一致）。
+- 工具链：`scaffold` / `verify-feature` / `seed-rbac` / `setup-once` / `migration-chain`（journal 线性且每条有 SQL）/ `openapi`（生成结果与 docs 文件一致）/ `openapi-doc`（每个 `/api` 路由 + 方法的文档符合编写规范）/ `skills-sync`（`.claude/skills` 与 `.agents/skills` 一致）。
 - web 与 mcp 各有自己的 Vitest 用例；`pnpm test` 全部运行。
 
 ---

@@ -248,12 +248,12 @@ psql -d castor_kit -c '\d customers'
 ## OpenAPI
 
 ```bash
-pnpm openapi:generate              # Fastify のルートから docs/apifox-full.openapi.json を補完
-pnpm openapi:generate -- --dry-run # カバー率を集計するだけで、書き戻さない
+pnpm openapi:generate              # ドキュメントのないルート + メソッドに骨格を追加し、規約をチェック
+pnpm openapi:generate -- --strict  # 規約に合わない API と理由を一覧表示し、あれば 0 以外で終了（--dry-run で書き戻さない）
 pnpm openapi:apifox                # Apifox にプッシュ
 ```
 
-`openapi:generate` はドキュメントにすでにある詳細な定義を保持し、不足しているルートにだけ骨格を補います。新しい API のリクエストとレスポンスのスキーマは手作業で補完する必要があります。Apifox へのプッシュには `APIFOX_PROJECT_ID` と `APIFOX_ACCESS_TOKEN` が必要です。[設定](/ja/reference/configuration) を参照してください。
+`docs/apifox-full.openapi.json` は API の唯一の説明書で、外部の呼び出し側、Apifox、[AI アシスタント](/ja/guide/assistant) はすべてこれを頼りにします。そのため登録済みの `/api` の API はすべて完全に書く必要があります：中国語の summary、description（必要な権限、データ権限、重要な動作）、タグ 1 つと Apifox フォルダー、パスとクエリのパラメーター、リクエストボディのフィールド（ボディを読まない場合は `"x-no-body": true`）、成功レスポンスの構造と起こりうるエラーコード。規則の全文はリポジトリの `AGENTS.md`「OpenAPI 编写规范」にあり、API テストと `pnpm verify` で強制されます。`openapi:generate` はドキュメントのない API に骨格を追加するだけで、骨格はコードに沿って書き上げるまでチェックを通りません。Apifox へのプッシュには `APIFOX_PROJECT_ID` と `APIFOX_ACCESS_TOKEN` が必要です。[設定](/ja/reference/configuration) を参照してください。
 
 ## テスト
 

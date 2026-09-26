@@ -72,9 +72,9 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 
 | コマンド | 説明 |
 |---|---|
-| `pnpm openapi:generate` | Fastify のルートから `docs/apifox-full.openapi.json` を補完 |
-| `pnpm openapi:generate -- --dry-run` | カバー率を集計するだけで、書き戻さない |
-| `pnpm openapi:generate -- --strict` | 骨格だけのパスが残っている場合は 0 以外で終了 |
+| `pnpm openapi:generate` | ドキュメントのないルート + メソッドに骨格を追加（`docs/apifox-full.openapi.json` に書き戻し）し、OpenAPI の規約をチェック |
+| `pnpm openapi:generate -- --dry-run` | チェックのみで、書き戻さない |
+| `pnpm openapi:generate -- --strict` | 規約に合わない API と理由を一覧表示し、あれば 0 以外で終了 |
 | `pnpm openapi:apifox` | Apifox にプッシュ（`APIFOX_PROJECT_ID`、`APIFOX_ACCESS_TOKEN` が必要） |
 
 ## MCP Server

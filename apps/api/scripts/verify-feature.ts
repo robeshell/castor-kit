@@ -11,7 +11,7 @@
  *   2. routes layer must not define its own hasPermission (must use common/auth)
  *   3. Migration chain is intact (drizzle journal is linear, snapshot prevIds chain up, every entry has SQL, no stray SQL)
  *   4. Migrations are actually applied (journal compared against drizzle.__drizzle_migrations; module tables confirmed via to_regclass)
- *   5. OpenAPI docs in sync (warning; runs scripts/generate-openapi.ts --dry-run)
+ *   5. OpenAPI document follows AGENTS.md's rules (blocking; runs scripts/generate-openapi.ts --dry-run --strict)
  *   6. Paths referenced by AI context docs exist (warning; blocking with --strict-docs)
  *   7. Backend routes/repository/service files exist
  *      + Data scope: a module whose schema.ts exports DATA_SCOPE must filter with dataScopeWhere in repository.ts
@@ -295,51 +295,33 @@ export async function checkMigrationApplied(
 }
 
 /**
- * OpenAPI docs sync (warning only, does not block the gate): runs generate-openapi.ts --dry-run (counts only, no write-back);
- * warns when there are undocumented routes, or detailed path coverage < 80% (skeleton paths not counted).
+ * OpenAPI document (blocks the gate): runs generate-openapi.ts --dry-run --strict, which checks every registered /api
+ * route against AGENTS.md's OpenAPI rules (scripts/lib/openapi-lint.ts). Operations of the module being verified are
+ * listed first.
  */
-export function checkOpenapiSync(ctx: VerifyContext): CheckResult {
+export function checkOpenapiSync(ctx: VerifyContext, module?: string): CheckResult {
   const name = 'openapi_sync'
   const script = join(ctx.apiDir, 'scripts', 'generate-openapi.ts')
   const docPath = join(ctx.root, 'docs', 'apifox-full.openapi.json')
   if (!existsSync(script) || !existsSync(docPath)) return { name, passed: true, skipped: true }
 
-  const { code, output } = run([...bin(ctx.apiDir, 'tsx'), 'scripts/generate-openapi.ts', '--dry-run'], ctx.apiDir, 180_000)
-  if (code !== 0) {
-    return { name, passed: true, warn: true, detail: `OpenAPI 生成脚本执行失败：${output.trim().slice(-500)}` }
+  const { code, output } = run([...bin(ctx.apiDir, 'tsx'), 'scripts/generate-openapi.ts', '--dry-run', '--strict'], ctx.apiDir, 180_000)
+  if (code === 0) return { name, passed: true }
+  const failing = /文档检查：(\d+) 个接口不符合规范/.exec(output)?.[1]
+  if (!failing) return { name, passed: false, error: `OpenAPI 生成脚本执行失败：${output.trim().slice(-500)}` }
+
+  const ops = output.split('\n').filter((l) => /^(GET|POST|PUT|PATCH|DELETE) \/api\//.test(l))
+  const slug = module?.replace(/_/g, '-')
+  const mine = slug ? ops.filter((l) => l.includes(`/${slug}`)) : []
+  const shown = [...mine, ...ops.filter((l) => !mine.includes(l))].slice(0, 10)
+  return {
+    name,
+    passed: false,
+    error:
+      `${failing} 个接口的 OpenAPI 文档不符合 AGENTS.md「OpenAPI 编写规范」${mine.length ? `（其中本模块 ${mine.length} 个）` : ''}：` +
+      `${shown.join('；')}${ops.length > shown.length ? '…' : ''}。` +
+      '运行 pnpm openapi:generate 补齐骨架，按规范补全后用 pnpm openapi:generate -- --strict 查看每个接口的具体问题',
   }
-  const routes = Number(/收集到 \/api 路由 (\d+) 条/.exec(output)?.[1] ?? Number.NaN)
-  const added = Number(/补齐 (\d+) 个路径/.exec(output)?.[1] ?? Number.NaN)
-  const detailed = Number(/详细 (\d+)/.exec(output)?.[1] ?? Number.NaN)
-  if ([routes, added, detailed].some(Number.isNaN)) {
-    return { name, passed: true, warn: true, detail: `无法解析 OpenAPI 生成脚本输出：${output.trim().slice(-300)}` }
-  }
-  if (added > 0) {
-    const lines = output
-      .split('\n')
-      .filter((l) => /^\s+\+ /.test(l))
-      .map((l) => l.trim().slice(2))
-    return {
-      name,
-      passed: true,
-      warn: true,
-      detail:
-        `OpenAPI 文档缺少 ${added} 个路由路径（${lines.slice(0, 10).join('；')}${lines.length > 10 ? '…' : ''}），` +
-        '建议运行 pnpm openapi:generate 补齐并补充 schema',
-    }
-  }
-  const ratio = routes ? (detailed / routes) * 100 : 0
-  if (ratio < 80) {
-    return {
-      name,
-      passed: true,
-      warn: true,
-      detail:
-        `OpenAPI 详细路径 ${detailed} vs 后端路由 ${routes}（覆盖率 ${Math.round(ratio)}%），` +
-        '建议运行 pnpm openapi:generate 补齐并补充 schema',
-    }
-  }
-  return { name, passed: true }
 }
 
 /** Repo paths referenced in AI context docs (AGENTS.md / CLAUDE.md / ...) via `backticks` or relative links must exist */
@@ -695,7 +677,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
     const url = options.databaseUrl !== undefined ? options.databaseUrl : await resolveDatabaseUrl(ctx)
     results.push(await checkMigrationApplied(ctx, options.module, url))
   }
-  step('openapi_sync', () => checkOpenapiSync(ctx))
+  step('openapi_sync', () => checkOpenapiSync(ctx, options.module))
   step('docs_paths', () => checkDocPaths(ctx, options.strictDocs))
 
   // Module-level checks

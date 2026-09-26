@@ -248,12 +248,12 @@ The button permission codes for export and import are `<perm>_export` and `<perm
 ## OpenAPI
 
 ```bash
-pnpm openapi:generate              # Fill in docs/apifox-full.openapi.json from the Fastify routes
-pnpm openapi:generate -- --dry-run # Only report coverage; don't write back
+pnpm openapi:generate              # Add skeletons for undocumented routes + methods, then check the rules
+pnpm openapi:generate -- --strict  # List every operation that breaks the rules and why; non-zero exit if any (add --dry-run to skip writing)
 pnpm openapi:apifox                # Push to Apifox
 ```
 
-`openapi:generate` keeps the detailed definitions already in the document and only adds skeletons for missing routes; request and response schemas for new endpoints have to be filled in by hand. Pushing to Apifox requires `APIFOX_PROJECT_ID` and `APIFOX_ACCESS_TOKEN`; see [Configuration](/en/reference/configuration).
+`docs/apifox-full.openapi.json` is the one description of the API: external callers, Apifox and the [AI assistant](/en/guide/assistant) all rely on it, so every registered `/api` operation must be complete: a Chinese summary, a description (required permission, data scope, notable behavior), one tag and Apifox folder, path and query parameters, request body fields (`"x-no-body": true` when there is no body), and the success response structure plus possible error codes. The full rules are in the repository's `AGENTS.md` ("OpenAPI 编写规范"); the API tests and `pnpm verify` enforce them. `openapi:generate` only adds skeletons for undocumented operations, and a skeleton fails the check until it is written up from the code. Pushing to Apifox requires `APIFOX_PROJECT_ID` and `APIFOX_ACCESS_TOKEN`; see [Configuration](/en/reference/configuration).
 
 ## Testing
 

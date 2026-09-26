@@ -1,13 +1,14 @@
 /**
  * Fill in OpenAPI paths from Fastify routes and merge them into docs/apifox-full.openapi.json
  *
- * - Keeps the detailed path definitions already in the document; only adds basic entries (generic responses) for missing /api routes.
- * - Added entries are "stubs" (generic responses only, no requestBody/parameters/content);
- *   coverage stats distinguish detailed paths vs stub paths so stubs don't inflate coverage.
+ * - Keeps the operations already in the document; adds stub operations (lowercase method, path parameters, generic
+ *   responses) for every registered /api route + method that has none, joining an existing path key of the same shape.
+ * - Then checks the whole document against AGENTS.md's OpenAPI rules (scripts/lib/openapi-lint.ts); stubs fail that
+ *   check until they are written up.
  * - Usage:
- *     pnpm openapi:generate              # fill in and write back
- *     pnpm openapi:generate -- --dry-run # stats only, no write-back
- *     pnpm openapi:generate -- --strict  # exit non-zero if any stub paths exist
+ *     pnpm openapi:generate              # add stubs and write back
+ *     pnpm openapi:generate -- --dry-run # report only, no write-back
+ *     pnpm openapi:generate -- --strict  # exit non-zero when any operation breaks the rules (lists them)
  *
  * Route source: subscribe to Fastify's `fastify.initialization` diagnostics channel, attach an onRoute hook after the
  * instance is created and before any route is registered, then run buildApp() once to collect all routes (no listening, no DB connection).
@@ -28,6 +29,7 @@ import { parseArgs } from 'node:util'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from '../src/app'
 import { loadConfig, loadEnvFiles, type AppConfig, type AppEnv } from '../src/config'
+import { formatLintIssues, lintOpenApi, type LintIssue } from './lib/openapi-lint'
 import { dumpIndented, parseOrderedJson, toOrdered, type OrderedJson } from './lib/ordered-json'
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
@@ -145,28 +147,41 @@ function formatPercent0(value: number): string {
   return value.toFixed(0)
 }
 
+/**
+ * Stub operations for routes missing from the document: lowercase methods, path parameters declared, generic responses.
+ * The summary is left as "METHOD /path" on purpose: the document check (scripts/lib/openapi-lint.ts) keeps failing
+ * until someone writes the real summary, description, tags, body and response.
+ */
 export function buildStubEntry(path: string, methods: string[]): Record<string, unknown> {
+  const params = [...path.matchAll(/\{([^}]+)\}/g)].map((m) => ({ name: m[1], in: 'path', required: true, schema: { type: 'string' } }))
   const entry: Record<string, unknown> = {}
   for (const method of methods) {
-    entry[method] = {
-      summary: `${method} ${path}`,
+    entry[method.toLowerCase()] = {
+      summary: `${method.toUpperCase()} ${path}`,
+      ...(params.length ? { parameters: params } : {}),
       responses: Object.fromEntries(STUB_RESPONSES.map(([code, description]) => [code, { description }])),
     }
   }
   return entry
 }
 
-/** Find routes missing from the document (compared by path shape) */
+/**
+ * Operations missing from the document, per method: [document key, methods]. The key is the existing path with the
+ * same shape when there is one (so a new method joins its path instead of creating a second key), else the route path.
+ */
 export function findMissingRoutes(
   docPaths: Record<string, unknown>,
   routes: Map<string, string[]>,
 ): Array<[string, string[]]> {
-  const shapes = new Set(Object.keys(docPaths).map(pathShape))
+  const keyByShape = new Map(Object.keys(docPaths).map((key) => [pathShape(key), key]))
   const missing: Array<[string, string[]]> = []
   for (const [path, methods] of routes) {
-    if (shapes.has(pathShape(path))) continue
-    missing.push([path, methods])
-    shapes.add(pathShape(path))
+    const key = keyByShape.get(pathShape(path)) ?? path
+    const entry = docPaths[key]
+    const documented = new Set(isObject(entry) ? Object.keys(entry).map((m) => m.toUpperCase()) : [])
+    const absent = methods.filter((m) => !documented.has(m.toUpperCase()))
+    if (absent.length) missing.push([key, absent])
+    keyByShape.set(pathShape(path), key)
   }
   return missing
 }
@@ -188,6 +203,8 @@ export interface GenerateResult {
   routeCount: number
   added: Array<[string, string[]]>
   stats: PathStats
+  /** Document rule violations after the run (see scripts/lib/openapi-lint.ts) */
+  issues: LintIssue[]
 }
 
 export async function generateOpenApi(options: GenerateOptions): Promise<GenerateResult> {
@@ -199,12 +216,12 @@ export async function generateOpenApi(options: GenerateOptions): Promise<Generat
 
   const routes = await collectApiRoutes(options.config)
   const added = findMissingRoutes(paths, routes)
-  for (const [path, methods] of added) paths[path] = buildStubEntry(path, methods)
+  for (const [path, methods] of added) paths[path] = { ...(isObject(paths[path]) ? paths[path] : {}), ...buildStubEntry(path, methods) }
 
   const stats = pathStats(paths)
   log(`收集到 /api 路由 ${routes.size} 条`)
   for (const [path, methods] of added) log(`  + ${methods.join(',')} ${path}`)
-  log(`补齐 ${added.length} 个路径（均为骨架，需人工补 schema）`)
+  log(`补齐 ${added.reduce((n, [, methods]) => n + methods.length, 0)} 个接口（均为骨架，需按 AGENTS.md「OpenAPI 编写规范」补全）`)
   const percent = stats.total ? formatPercent0((stats.detailed / stats.total) * 100) : '0'
   log(`文档路径统计：总数 ${stats.total}，详细 ${stats.detailed}（${percent}%），骨架 ${stats.stubs}`)
 
@@ -212,18 +229,29 @@ export async function generateOpenApi(options: GenerateOptions): Promise<Generat
     const ordered = parseOrderedJson(text)
     if (!(ordered instanceof Map)) throw new Error('OpenAPI 文档根节点必须是对象')
     const orderedPaths = ordered.get('paths') instanceof Map ? (ordered.get('paths') as Map<string, OrderedJson>) : new Map()
-    for (const [path, methods] of added) orderedPaths.set(path, toOrdered(buildStubEntry(path, methods)))
+    for (const [path, methods] of added) {
+      const current = orderedPaths.get(path)
+      const merged = current instanceof Map ? new Map(current) : new Map<string, OrderedJson>()
+      for (const [method, op] of Object.entries(buildStubEntry(path, methods))) merged.set(method, toOrdered(op))
+      orderedPaths.set(path, merged)
+    }
     ordered.set('paths', new Map([...orderedPaths].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))))
     writeFileSync(docPath, dumpIndented(ordered), 'utf8')
     log(`已写回 ${relative(REPO_ROOT, docPath)}`)
   }
 
+  // The document rules (the same check as test/openapi-doc.test.ts)
+  const issues = lintOpenApi({ ...doc, paths }, routes)
+  const failing = new Set(issues.map((i) => i.operation)).size
+  log(issues.length ? `文档检查：${failing} 个接口不符合规范（共 ${issues.length} 处）` : '文档检查：全部符合规范')
+
   let exitCode = 0
-  if (options.strict && stats.stubs) {
-    log(`❌ --strict：仍有 ${stats.stubs} 个骨架路径，请补充 schema 后再提交`)
+  if (options.strict && issues.length) {
+    log(formatLintIssues(issues))
+    log(`❌ --strict：${failing} 个接口不符合 AGENTS.md「OpenAPI 编写规范」，请补全后再提交`)
     exitCode = 1
   }
-  return { exitCode, routeCount: routes.size, added, stats }
+  return { exitCode, routeCount: routes.size, added, stats, issues }
 }
 
 const isMain = /[\\/]generate-openapi\.(?:ts|js|mjs)$/.test(process.argv[1] ?? '')

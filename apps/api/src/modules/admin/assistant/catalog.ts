@@ -27,7 +27,7 @@ interface OpenApiOperation {
   description?: string
   tags?: string[]
   parameters?: Array<{ name?: string; in?: string }>
-  requestBody?: { content?: Record<string, { schema?: { properties?: Record<string, { type?: unknown; description?: string }>; required?: string[] } }> }
+  requestBody?: { content?: Record<string, { schema?: { properties?: Record<string, { type?: unknown; description?: string; enum?: unknown[] }>; required?: string[] } }> }
 }
 
 const paths = (openapi as { paths: Record<string, Record<string, OpenApiOperation>> }).paths
@@ -54,9 +54,12 @@ function describe(op: OpenApiOperation | undefined) {
   const query = (op?.parameters ?? []).filter((p) => p.in === 'query' && p.name).map((p) => p.name!)
   const schema = Object.values(op?.requestBody?.content ?? {})[0]?.schema
   const required = new Set(schema?.required ?? [])
+  // "status*: string [active|disabled] 状态" — name (* = required), type, allowed values, the start of the description
   const body = Object.entries(schema?.properties ?? {}).map(([name, prop]) => {
     const type = Array.isArray(prop.type) ? prop.type.join('|') : String(prop.type ?? 'any')
-    return `${name}${required.has(name) ? '*' : ''}: ${type}`
+    const values = Array.isArray(prop.enum) ? ` [${prop.enum.join('|')}]` : ''
+    const note = prop.description ? ` ${prop.description.slice(0, 40)}` : ''
+    return `${name}${required.has(name) ? '*' : ''}: ${type}${values}${note}`
   })
   return { summary: op?.summary ?? '', description: (op?.description ?? '').slice(0, 240), tags: op?.tags ?? [], query, body }
 }
