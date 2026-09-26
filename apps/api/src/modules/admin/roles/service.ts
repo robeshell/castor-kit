@@ -2,6 +2,7 @@
  * Roles module service layer
  */
 
+import { isDataScopeCode } from '@/common/data-scope'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { pyStrOrEmpty, pyTruthy } from '@/common/py'
@@ -55,12 +56,39 @@ export class RoleService {
   }
 
   private async roleDict(repo: RoleRepository, id: number) {
-    return roleToDict((await repo.getWithMenus(id))!, true)
+    const role = (await repo.getWithMenus(id))!
+    const depts = await repo.deptIdsByRole([id])
+    return roleToDict({ ...role, dept_ids: depts.get(id) ?? [] }, true)
   }
 
   async listRoles() {
     const items = await this.repo.listWithMenusPyOrder()
-    return items.map((r) => roleToDict(r, true))
+    const depts = await this.repo.deptIdsByRole(items.map((r) => r.id))
+    return items.map((r) => roleToDict({ ...r, dept_ids: depts.get(r.id) ?? [] }, true))
+  }
+
+  /**
+   * data_scope / dept_ids from a request body. Returns the scope to store (undefined = unchanged) and the custom
+   * departments to store (undefined = unchanged; [] clears them — any scope other than 'custom' keeps none).
+   */
+  private async resolveDataScope(data: Data, current: string) {
+    let dataScope: string | undefined
+    if ('data_scope' in data) {
+      if (!isDataScopeCode(data.data_scope)) throw new ServiceError('数据范围取值不合法', 400)
+      dataScope = data.data_scope
+    }
+    const effective = dataScope ?? current
+    let deptIds: number[] | undefined
+    if (effective !== 'custom') {
+      if (dataScope !== undefined) deptIds = []
+    } else if ('dept_ids' in data) {
+      const raw = data.dept_ids ?? []
+      if (!Array.isArray(raw) || !raw.every((v) => Number.isSafeInteger(v))) throw new ServiceError('部门不存在', 400)
+      const wanted = [...new Set(raw as number[])]
+      if ((await this.repo.existingDeptIds(wanted)).length !== wanted.length) throw new ServiceError('部门不存在', 400)
+      deptIds = wanted
+    }
+    return { dataScope, deptIds }
   }
 
   async getRoleOr404(id: number): Promise<Role> {
@@ -77,10 +105,17 @@ export class RoleService {
     if (await this.repo.getByCode(data.code)) throw new ServiceError('角色编码已存在', 400)
 
     const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
+    const scope = await this.resolveDataScope(data, 'all')
     const code = data.code
     return this.inTx(async (repo) => {
-      const created = await repo.insert({ name: adaptText(data.name)!, code, description: adaptText(data.description) })
+      const created = await repo.insert({
+        name: adaptText(data.name)!,
+        code,
+        description: adaptText(data.description),
+        ...(scope.dataScope ? { data_scope: scope.dataScope } : {}),
+      })
       if (menuList) await repo.setMenus(created.id, menuList.map((m) => m.id))
+      if (scope.deptIds) await repo.setDepts(created.id, scope.deptIds)
       return this.roleDict(repo, created.id)
     })
   }
@@ -91,11 +126,13 @@ export class RoleService {
       if (field in data && !pyEq(data[field], role[field])) changes[field] = data[field]
     }
     const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
+    const scope = await this.resolveDataScope(data, role.data_scope)
 
     return this.inTx(async (repo) => {
       const values = Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, adaptText(v)]))
-      await repo.update(role.id, values)
+      await repo.update(role.id, { ...values, ...(scope.dataScope ? { data_scope: scope.dataScope } : {}) })
       if (menuList) await repo.setMenus(role.id, menuList.map((m) => m.id))
+      if (scope.deptIds) await repo.setDepts(role.id, scope.deptIds)
       return this.roleDict(repo, role.id)
     })
   }

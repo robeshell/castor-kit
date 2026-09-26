@@ -3,7 +3,7 @@ import { eq, inArray, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { menus, role_menus, roles } from '@/db/schema'
+import { departments, menus, role_menus, roles } from '@/db/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -70,7 +70,9 @@ describe('roles 列表 / 新增', () => {
     const body = res.json()
     expect(Array.isArray(body)).toBe(true)
     const superRole = body.find((r: { code: string }) => r.code === 'super_admin')
-    expect(Object.keys(superRole).sort()).toEqual(['code', 'created_at', 'description', 'id', 'menu_ids', 'menus', 'name'])
+    expect(Object.keys(superRole).sort()).toEqual([
+      'code', 'created_at', 'data_scope', 'dept_ids', 'description', 'id', 'menu_ids', 'menus', 'name',
+    ])
     expect(Object.keys(superRole.menus[0]).sort()).toEqual(['code', 'id', 'menu_type', 'name', 'parent_id'])
     expect(superRole.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?$/)
   })
@@ -210,10 +212,11 @@ describe('roles 导出 / 模板 / 导入', () => {
     await wb.xlsx.load(res.rawPayload as unknown as ArrayBuffer)
     const rows: unknown[][] = []
     wb.worksheets[0]!.eachRow((row) => rows.push((row.values as unknown[]).slice(1)))
-    expect(rows[0]).toEqual(['ID', '角色名称', '角色编码', '描述', '菜单编码', '菜单名称', '创建时间'])
+    expect(rows[0]).toEqual(['ID', '角色名称', '角色编码', '描述', '数据范围', '菜单编码', '菜单名称', '创建时间'])
     expect(rows).toHaveLength(2)
     expect(rows[1]![2]).toBe(`${P}c`)
-    expect(String(rows[1]![6])).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/)
+    expect(rows[1]![4]).toBe('全部数据')
+    expect(String(rows[1]![7])).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/)
   })
 
   it('导出：非法参数 → 500', async () => {
@@ -270,6 +273,36 @@ describe('roles 导出 / 模板 / 导入', () => {
     expect((await s.inject({ method: 'POST', url: '/api/admin/roles/import' })).json()).toEqual({ error: '请上传导入文件' })
     const xls = multipartFile('r.xls', 'x')
     expect((await s.inject({ method: 'POST', url: '/api/admin/roles/import', ...xls })).json()).toEqual({ error: '不支持 .xls 格式，请另存为 .xlsx 后重新上传' })
+  })
+})
+
+describe('roles 数据范围', () => {
+  it('自定义部门：保存 dept_ids；切到其他范围时清空；取值 / 部门校验', async () => {
+    const [dept] = await handle.db.insert(departments).values({ name: 'r1 部门', code: `${P}dept` }).returning()
+    const created = await s.inject({
+      method: 'POST',
+      url: '/api/admin/roles',
+      payload: { name: 'scoped', code: `${P}scoped`, data_scope: 'custom', dept_ids: [dept!.id] },
+    })
+    expect(created.statusCode).toBe(201)
+    expect(created.json()).toMatchObject({ data_scope: 'custom', dept_ids: [dept!.id] })
+    const listed = (await s.inject({ url: '/api/admin/roles' })).json().find((r: { code: string }) => r.code === `${P}scoped`)
+    expect(listed).toMatchObject({ data_scope: 'custom', dept_ids: [dept!.id] })
+
+    const id = created.json().id
+    const toDept = await s.inject({ method: 'PUT', url: `/api/admin/roles/${id}`, payload: { data_scope: 'dept' } })
+    expect(toDept.json()).toMatchObject({ data_scope: 'dept', dept_ids: [] })
+
+    const put = (payload: Record<string, unknown>) => s.inject({ method: 'PUT', url: `/api/admin/roles/${id}`, payload })
+    expect((await put({ data_scope: 'everything' })).json()).toEqual({ error: '数据范围取值不合法' })
+    expect((await put({ data_scope: 'custom', dept_ids: [99999999] })).json()).toEqual({ error: '部门不存在' })
+    expect((await put({ data_scope: 'custom', dept_ids: 'x' })).json()).toEqual({ error: '部门不存在' })
+    // Default for new roles stays 'all'
+    const plain = await s.inject({ method: 'POST', url: '/api/admin/roles', payload: { name: 'plain', code: `${P}plain` } })
+    expect(plain.json()).toMatchObject({ data_scope: 'all', dept_ids: [] })
+
+    await handle.db.delete(roles).where(inArray(roles.code, [`${P}scoped`, `${P}plain`]))
+    await handle.db.delete(departments).where(eq(departments.id, dept!.id))
   })
 })
 

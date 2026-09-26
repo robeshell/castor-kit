@@ -11,7 +11,7 @@
 
 import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
-import { menus, role_menus, roles, type Menu, type Role, type RoleWithMenus } from '@/db/schema'
+import { departments, menus, role_depts, role_menus, roles, type Menu, type Role, type RoleWithMenus } from '@/db/schema'
 
 const MENU_COLUMNS = (alias: string) =>
   sql.raw(
@@ -167,12 +167,37 @@ export class RoleRepository {
     return this.db.select().from(roles).where(inArray(roles.id, ids)).orderBy(asc(roles.id))
   }
 
-  async insert(values: { name: string; code: string; description: string | null }): Promise<Role> {
+  /** role_id → departments of its custom data scope */
+  async deptIdsByRole(roleIds: number[]): Promise<Map<number, number[]>> {
+    const map = new Map<number, number[]>()
+    if (roleIds.length === 0) return map
+    const rows = await this.db
+      .select({ role_id: role_depts.role_id, dept_id: role_depts.dept_id })
+      .from(role_depts)
+      .where(inArray(role_depts.role_id, roleIds))
+      .orderBy(asc(role_depts.dept_id))
+    for (const r of rows) map.set(r.role_id, [...(map.get(r.role_id) ?? []), r.dept_id])
+    return map
+  }
+
+  /** Replace a role's custom-scope departments */
+  async setDepts(roleId: number, deptIds: number[]): Promise<void> {
+    await this.db.delete(role_depts).where(eq(role_depts.role_id, roleId))
+    if (deptIds.length > 0) await this.db.insert(role_depts).values(deptIds.map((dept_id) => ({ role_id: roleId, dept_id })))
+  }
+
+  async existingDeptIds(ids: number[]): Promise<number[]> {
+    if (ids.length === 0) return []
+    const rows = await this.db.select({ id: departments.id }).from(departments).where(inArray(departments.id, ids))
+    return rows.map((r) => r.id)
+  }
+
+  async insert(values: { name: string; code: string; description: string | null; data_scope?: string }): Promise<Role> {
     const [row] = await this.db.insert(roles).values(values).returning()
     return row!
   }
 
-  async update(id: number, values: Partial<Pick<Role, 'name' | 'code' | 'description'>>): Promise<void> {
+  async update(id: number, values: Partial<Pick<Role, 'name' | 'code' | 'description' | 'data_scope'>>): Promise<void> {
     if (Object.keys(values).length === 0) return
     await this.db.update(roles).set(values).where(eq(roles.id, id))
   }
