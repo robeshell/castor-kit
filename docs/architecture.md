@@ -118,7 +118,7 @@ castor-kit/
 ### 4.1 响应格式与错误处理
 - 路由前缀 `/api/admin/...`；另有 `/ws/devtools`、`/health` 与 SPA fallback。
 - 列表响应 `{ items, total, page, per_page }`；登录 / `me` / `csrf-token` 响应携带 `csrf_token`。
-- 错误响应 `{ error: string, ...payload }`：统一 `setErrorHandler` 把 `ServiceError` 转成该形状；Zod 校验失败 → 400 `{error: <首条消息>}`；数据库因请求里的值拒绝写入（唯一冲突、超长、非空、外键、格式，`common/db-errors.ts`）→ 400 对应中文提示，服务里捕获事务错误时同样先交给 `dbConstraintError`；类型或结构不对的请求值 → `invalidInput()`（`common/py-values.ts`）400「请求参数格式不正确」；service 捕获写入失败时统一 `throw writeError(err)`（业务错误原样、数据库拒绝的输入 400、其余 500），真正的服务器错误用 `internalError(err)`，不手写 `new ServiceError(…, 500)`（`test/conventions.test.ts` 检查，连同「先查权限再查记录」）；其余未知异常 → 500「服务器内部错误，请稍后重试」，不透传内部信息，pino 记录堆栈。原则：调用方的输入问题一律 4xx，只有服务器自身的问题才是 500。
+- 错误响应 `{ error: string, ...payload }`：统一 `setErrorHandler` 把 `ServiceError` 转成该形状；Zod 校验失败 → 400 `{error: <首条消息>}`；数据库因请求里的值拒绝写入（唯一冲突、超长、非空、外键、格式，`common/db-errors.ts`）→ 400 对应中文提示，服务里捕获事务错误时同样先交给 `dbConstraintError`；请求体由各模块用 Zod 声明（`common/validation.ts` 的 `field.*` + `parseBody` / `parsePatch`，在权限检查之后执行），类型不对 → 400「<字段>的值无效」；结构不对的请求值 → `invalidInput()`（`common/errors.ts`）400「请求参数格式不正确」；service 捕获写入失败时统一 `throw writeError(err)`（业务错误原样、数据库拒绝的输入 400、其余 500），真正的服务器错误用 `internalError(err)`，不手写 `new ServiceError(…, 500)`（`test/conventions.test.ts` 检查，连同「先查权限再查记录」）；其余未知异常 → 500「服务器内部错误，请稍后重试」，不透传内部信息，pino 记录堆栈。原则：调用方的输入问题一律 4xx，只有服务器自身的问题才是 500。
 - `/api/*` 下 404 / 405 / 500 均返回 JSON，永远不落到 SPA `index.html`。405 规则见 §9。
 - 输出 UTF-8 紧凑 JSON。
 - 反代：`trustProxy` 取一跳，`request.ip` 即真实 IP，不手动读 `X-Forwarded-For`。

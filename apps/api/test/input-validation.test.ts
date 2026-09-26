@@ -1,7 +1,7 @@
 /**
  * Bad input is the caller's error: 400 with a readable message, never a 500. Covers the global mapping of database
- * input errors (common/db-errors.ts via the error handler), invalidInput() for values of the wrong type or shape
- * (common/py-values.ts), and the per-module rules added alongside.
+ * input errors (common/db-errors.ts via the error handler), request bodies declared with common/validation.ts,
+ * invalidInput() for values of the wrong type or shape, and the per-module rules added alongside.
  */
 
 import type { FastifyInstance } from 'fastify'
@@ -42,8 +42,6 @@ const bad = (error: string) => [400, { error }] as const
 describe('bad input → 400', () => {
   it('values of the wrong type or shape: 「请求参数格式不正确」', async () => {
     const cases: Array<[string, string, unknown]> = [
-      ['POST', '/api/admin/dicts', { name: 'x', code: `${P}d1`, is_active: 'abc' }],
-      ['POST', '/api/admin/dicts', { name: 'x', code: `${P}d2`, sort_order: 'abc' }],
       ['POST', '/api/admin/announcements', { title: `${P}a`, content: 'c', sort_order: 'abc' }],
       ['POST', '/api/admin/menus', { name: 'x', code: 5 }],
       ['PUT', `${CC}/advanced-table/rows/reorder`, [5]],
@@ -60,6 +58,12 @@ describe('bad input → 400', () => {
     for (const [method, url, payload] of cases) {
       expect(await send(method, url, payload), `${method} ${url} ${JSON.stringify(payload)}`).toEqual(bad('请求参数格式不正确'))
     }
+  })
+
+  it('modules declaring their body with common/validation.ts: 「<field>的值无效」', async () => {
+    expect(await send('POST', '/api/admin/dicts', { name: 'x', code: `${P}d1`, is_active: 'abc' })).toEqual(bad('是否启用的值无效'))
+    expect(await send('POST', '/api/admin/dicts', { name: 'x', code: `${P}d2`, sort_order: 'abc' })).toEqual(bad('排序的值无效'))
+    expect(await send('POST', '/api/admin/dicts', [1])).toEqual(bad('请求参数格式不正确'))
   })
 
   it('the database rejecting a value: a readable message instead of a 500', async () => {

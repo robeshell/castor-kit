@@ -10,7 +10,7 @@
  * All these throw invalidInput(): 400 「请求参数格式不正确」 (the technical detail isn't shown).
  */
 
-import { ServiceError } from '@/common/errors'
+import { invalidInput as baseInvalidInput, ServiceError } from '@/common/errors'
 import { isPlainObject, pyStr, pyTruthy } from '@/common/py'
 import { normalizeTableFileType, type TableFileType } from '@/common/tabular'
 
@@ -19,12 +19,11 @@ const INT4_MAX = 2_147_483_647
 /** Leading/trailing whitespace accepted by PostgreSQL int4in (isspace) */
 const PG_INT_RE = /^[ \t\n\r\v\f]*([+-]?\d+)[ \t\n\r\v\f]*$/
 
-/** Shown for request values of the wrong type / shape (the technical detail stays out of the response) */
-export const INVALID_INPUT_MESSAGE = '请求参数格式不正确'
+export { INVALID_INPUT_MESSAGE } from './errors'
 
-/** A request value of the wrong type or shape → 400 */
+/** A request value of the wrong type or shape → 400 (common/errors.ts invalidInput; the detail is dropped) */
 export function invalidInput(_detail?: string): ServiceError {
-  return new ServiceError(INVALID_INPUT_MESSAGE, 400)
+  return baseInvalidInput()
 }
 
 /** Re-exported for the modules that import it from here; defined in common/errors.ts */

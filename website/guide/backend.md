@@ -85,6 +85,7 @@ export function customerToDict(item: Customer) {
 | `intParam('item_id')` | `@/common/http` | 生成只匹配数字的路径参数 |
 | `parseIntParam(value)` | `@/common/http` | 解析路径参数 |
 | `jsonBody(request)` | `@/common/http` | 读取请求体（非对象或非 JSON 时按 `{}` 处理） |
+| `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | 按 Zod 声明校验请求体（新建取默认值 / 编辑只含传入字段），只收 JSON 原生类型，类型不对 → 400「<字段>的值无效」；在权限检查之后调用 |
 | `queryString(request, key)` | `@/common/http` | 读取查询参数 |
 | `getUploadedFile(request)` | `@/common/http` | 读取上传文件 |
 | `parsePagination(query)` | `@/common/pagination` | 分页参数，默认 20 条，上限 200 |
@@ -160,7 +161,8 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 | 情况 | 响应 |
 |---|---|
 | Zod 请求校验失败 | 400，`error` 为第一条校验消息 |
-| 类型或结构不对的请求值（service 抛 `invalidInput()`，见 `apps/api/src/common/py-values.ts`） | 400，“请求参数格式不正确” |
+| 请求体字段类型不对（模块用 `apps/api/src/common/validation.ts` 声明请求体） | 400，“<字段>的值无效”，如“排序的值无效” |
+| 结构不对的请求值（service 抛 `invalidInput()`，见 `apps/api/src/common/errors.ts`） | 400，“请求参数格式不正确” |
 | 数据库因请求里的值拒绝写入 | 400，见下文 |
 | 未知异常 | 500，“服务器内部错误，请稍后重试” |
 | 未匹配的 `/api/*` GET 请求 | 404 JSON |

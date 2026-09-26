@@ -276,8 +276,9 @@ describe('scaffold 纯函数', () => {
 
   it('schema.ts 只生成用到的归一化函数', () => {
     const onlyStr = genModuleSchema(buildSpec('a', 'admin', parseFields('name:str')))
-    expect(onlyStr).not.toContain('ServiceError')
     expect(onlyStr).toContain('function toStr(')
+    expect(onlyStr).not.toContain('function toInt(')
+    expect(onlyStr).not.toContain('@/common/py')
     const mixed = genModuleSchema(buildSpec('a', 'admin', parseFields('n:int,f:float,b:bool,d:date,t:datetime')))
     for (const fn of ['toInt', 'toNumeric', 'toBool', 'toDate', 'toDateTime', 'invalid']) expect(mixed).toContain(`function ${fn}(`)
     expect(mixed).not.toContain('function toStr(')

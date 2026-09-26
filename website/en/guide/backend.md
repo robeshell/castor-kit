@@ -85,6 +85,7 @@ All business APIs are mounted under `/api/admin/`. Resource names are hyphenated
 | `intParam('item_id')` | `@/common/http` | Builds a path parameter that only matches digits |
 | `parseIntParam(value)` | `@/common/http` | Parses a path parameter |
 | `jsonBody(request)` | `@/common/http` | Reads the request body (treated as `{}` if it isn't an object or isn't JSON) |
+| `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | Validates the body against a Zod declaration (create fills defaults / update keeps only the fields sent); JSON types only, a wrong type → 400「<field>的值无效」; call it after the permission check |
 | `queryString(request, key)` | `@/common/http` | Reads a query parameter |
 | `getUploadedFile(request)` | `@/common/http` | Reads an uploaded file |
 | `parsePagination(query)` | `@/common/pagination` | Pagination parameters; default 20 per page, max 200 |
@@ -160,7 +161,8 @@ Other errors:
 | Case | Response |
 |---|---|
 | Zod request validation fails | 400; `error` is the first validation message |
-| A request value of the wrong type or shape (the service throws `invalidInput()`, see `apps/api/src/common/py-values.ts`) | 400, "请求参数格式不正确" ("Invalid request parameters") |
+| A body field of the wrong type (modules declare their bodies with `apps/api/src/common/validation.ts`) | 400, "<field>的值无效" (e.g. "排序的值无效", translated for en-US / ja-JP requests) |
+| A request value of the wrong shape (the service throws `invalidInput()`, see `apps/api/src/common/errors.ts`) | 400, "请求参数格式不正确" ("Invalid request parameters") |
 | The database rejects a value from the request | 400, see below |
 | Unknown exception | 500, "服务器内部错误，请稍后重试" ("Internal server error. Please try again later.") |
 | Unmatched `/api/*` GET request | 404 JSON |
