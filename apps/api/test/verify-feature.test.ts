@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   checkBackendFile,
+  checkDataScopeFilter,
   checkDocPaths,
   checkFrontendApi,
   checkFrontendNoLegacyUi,
@@ -228,6 +229,22 @@ describe('verify-feature 模块级检查', () => {
   })
 })
 
+describe('verify-feature 数据权限', () => {
+  it('data_scope_filter：未声明跳过；声明了但 repository 没用 dataScopeWhere 报错；用了通过', () => {
+    expect(checkDataScopeFilter(ctx, 'ck_widget')).toMatchObject({ name: 'data_scope_filter', passed: true, skipped: true })
+    const dir = 'apps/api/src/modules/admin/ck-scoped'
+    put(`${dir}/routes.ts`, '')
+    put(`${dir}/schema.ts`, "export const DATA_SCOPE = { deptColumn: 'dept_id', ownerColumn: 'created_by' } as const\n")
+    put(`${dir}/repository.ts`, 'export class R { list() { return this.db.select().from(t) } }\n')
+    const bad = checkDataScopeFilter(ctx, 'ck_scoped')
+    expect(bad.passed).toBe(false)
+    expect(bad.error).toContain(`${dir}/repository.ts`)
+    put(`${dir}/repository.ts`, 'const w = dataScopeWhere(scope, { deptColumn: t.dept_id })\n')
+    expect(checkDataScopeFilter(ctx, 'ck_scoped')).toMatchObject({ passed: true })
+    rmSync(join(root, dir), { recursive: true })
+  })
+})
+
 describe('verify-feature 全局检查', () => {
   it('no_local_has_permission', () => {
     expect(checkNoLocalHasPermission(ctx)).toEqual({ name: 'no_local_has_permission', passed: true })
@@ -336,6 +353,7 @@ describe('verify-feature 汇总与 CLI', () => {
       'openapi_sync',
       'docs_paths',
       'backend_file',
+      'data_scope_filter',
       'frontend_page',
       'frontend_no_legacy_ui',
       'frontend_api',
@@ -347,12 +365,12 @@ describe('verify-feature 汇总与 CLI', () => {
       'api_tests',
     ])
     expect(report.passed).toBe(true)
-    expect(report.summary).toBe('16/16 项通过')
+    expect(report.summary).toBe('17/17 项通过')
     expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true })
 
     const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(failing.passed).toBe(false)
-    expect(failing.summary).toBe('11/16 项通过')
+    expect(failing.summary).toBe('12/17 项通过')
   })
 
   it('CLI --json：stdout 只有 JSON，失败时退出码 1；无 --module 时只跑全局检查', () => {
