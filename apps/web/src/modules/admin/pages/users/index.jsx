@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Download, Plus, Upload, X } from 'lucide-react'
+import { Download, Lock, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/lib/toast'
@@ -101,7 +101,14 @@ export default function Users() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const roleOptions = useMemo(() => roles.map((r) => ({ label: r.name, value: r.id })), [roles])
+  // Only super admins may grant the super admin role or touch super admin accounts (the API enforces the same)
+  const currentIsSuper = Boolean(currentUser?.roles?.some((r) => r.code === 'super_admin'))
+  const isSuperAccount = (record) => Boolean(record?.roles?.some((r) => r.code === 'super_admin'))
+  const roleOptions = useMemo(
+    () => roles.filter((r) => currentIsSuper || r.code !== 'super_admin').map((r) => ({ label: r.name, value: r.id })),
+    [roles, currentIsSuper],
+  )
+  const editingSelf = Boolean(editing && editing.id === currentUser?.id)
 
   const openCreate = () => {
     setEditing(null)
@@ -277,39 +284,48 @@ export default function Users() {
       title: '',
       align: 'right',
       width: 172,
-      render: (_, record) => (
-        <div className="flex justify-end gap-0.5">
-          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
-            {t('编辑')}
-          </Button>
-          {record.status === 'disabled' ? (
-            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => changeStatus(record, 'active').catch(() => {})}>
-              {t('启用账号')}
+      render: (_, record) =>
+        !currentIsSuper && isSuperAccount(record) ? (
+          <span
+            className="text-muted-foreground inline-flex items-center gap-1 text-xs"
+            title={t('只有超级管理员可以操作超级管理员账号')}
+          >
+            <Lock className="size-3" />
+            {t('超级管理员')}
+          </span>
+        ) : (
+          <div className="flex justify-end gap-0.5">
+            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
+              {t('编辑')}
             </Button>
-          ) : record.username !== currentUser?.username ? (
+            {record.status === 'disabled' ? (
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => changeStatus(record, 'active').catch(() => {})}>
+                {t('启用账号')}
+              </Button>
+            ) : record.username !== currentUser?.username ? (
+              <ConfirmAction
+                title={t('停用用户 {{name}}？', { name: userDisplayName(record) })}
+                description="停用后该账号无法登录，已登录的会话会在下一次操作时失效。"
+                confirmText="停用账号"
+                onConfirm={() => changeStatus(record, 'disabled')}
+              >
+                <Button variant="ghost" size="sm" className="h-7 px-2">
+                  {t('停用账号')}
+                </Button>
+              </ConfirmAction>
+            ) : null}
             <ConfirmAction
-              title={t('停用用户 {{name}}？', { name: userDisplayName(record) })}
-              description="停用后该账号无法登录，已登录的会话会在下一次操作时失效。"
-              confirmText="停用账号"
-              onConfirm={() => changeStatus(record, 'disabled')}
+              title={t('删除用户 {{name}}？', { name: record.username })}
+              description="删除后不可恢复。"
+              confirmText="删除"
+              onConfirm={() => remove(record)}
             >
-              <Button variant="ghost" size="sm" className="h-7 px-2">
-                {t('停用账号')}
+              <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
+                {t('删除')}
               </Button>
             </ConfirmAction>
-          ) : null}
-          <ConfirmAction
-            title={t('删除用户 {{name}}？', { name: record.username })}
-            description="删除后不可恢复。"
-            confirmText="删除"
-            onConfirm={() => remove(record)}
-          >
-            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              {t('删除')}
-            </Button>
-          </ConfirmAction>
-        </div>
-      ),
+          </div>
+        ),
     },
   ]
 
@@ -425,7 +441,8 @@ export default function Users() {
           label="角色"
           options={roleOptions}
           placeholder="选择角色"
-          disabled={editing?.username === 'admin'}
+          disabled={editingSelf}
+          description={editingSelf ? '不能修改自己的角色' : undefined}
         />
       </FormDialog>
 

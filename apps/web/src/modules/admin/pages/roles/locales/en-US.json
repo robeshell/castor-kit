@@ -32,5 +32,7 @@
   "角色管理": "Roles",
   "请输入角色名称": "Enter a role name",
   "请输入角色编码": "Enter a role code",
+  "超级管理员始终拥有全部菜单权限，不能修改": "Super admins always have every menu permission; this can't be changed",
+  "超级管理员始终能看到全部数据": "Super admins always see all data",
   "还没有部门，先到「部门管理」添加": "No departments yet. Add some under Departments first."
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Download, Plus, Upload, X } from 'lucide-react'
+import { Download, Lock, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { roleDescription, roleName } from '@/lib/role-label'
 import { toast } from '@/lib/toast'
@@ -73,6 +73,18 @@ const DATA_SCOPE_OPTIONS = [
 ]
 const DATA_SCOPE_LABEL = Object.fromEntries(DATA_SCOPE_OPTIONS.map((o) => [o.value, o.label]))
 
+/** The built-in super admin role: always all data and all menus, can't be deleted (enforced by the API too) */
+const isSuperRole = (role) => role?.code === 'super_admin'
+
+function LockedNote({ children }) {
+  return (
+    <p className="bg-muted/60 text-muted-foreground flex items-center gap-2 rounded-lg px-3 py-2.5 text-[13px]">
+      <Lock className="size-3.5 shrink-0" />
+      {children}
+    </p>
+  )
+}
+
 export default function Roles() {
   const { t } = useTranslation()
   const [data, setData] = useState([])
@@ -134,9 +146,17 @@ export default function Roles() {
     setFormOpen(true)
   }
 
+  const lockedRole = isSuperRole(editing)
+
   const submit = async (values) => {
     const payload = { ...values, menu_ids: checkedMenus }
     if (values.data_scope === 'custom') payload.dept_ids = checkedDepts
+    if (lockedRole) {
+      // Only name / description are editable on the super admin role
+      delete payload.menu_ids
+      delete payload.data_scope
+      delete payload.code
+    }
     try {
       if (editing) await updateRole(editing.id, payload)
       else await createRole(payload)
@@ -249,11 +269,13 @@ export default function Roles() {
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(record)}>
             {t('编辑')}
           </Button>
-          <ConfirmAction title="确认删除该角色？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
-            <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
-              {t('删除')}
-            </Button>
-          </ConfirmAction>
+          {isSuperRole(record) ? null : (
+            <ConfirmAction title="确认删除该角色？" description="删除后不可恢复" confirmText="删除" onConfirm={() => remove(record)}>
+              <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">
+                {t('删除')}
+              </Button>
+            </ConfirmAction>
+          )}
         </div>
       ),
     },
@@ -345,9 +367,10 @@ export default function Roles() {
           name="data_scope"
           label="数据范围"
           options={DATA_SCOPE_OPTIONS}
-          description="决定该角色能看到哪些数据；用户有多个角色时取并集"
+          disabled={lockedRole}
+          description={lockedRole ? '超级管理员始终能看到全部数据' : '决定该角色能看到哪些数据；用户有多个角色时取并集'}
         />
-        {dataScope === 'custom' ? (
+        {dataScope === 'custom' && !lockedRole ? (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-medium">{t('可见部门')}</span>
@@ -368,13 +391,17 @@ export default function Roles() {
             <span className="text-[13px] font-medium">{t('菜单权限')}</span>
             <span className="text-muted-foreground text-xs tabular-nums">{t('已选 {{count}} 项', { count: checkedMenus.length })}</span>
           </div>
-          <div className="max-h-72 overflow-auto rounded-lg border p-1.5">
-            {menuTree.length > 0 ? (
-              <MenuTreeChecklist tree={menuTree} value={checkedMenus} onChange={setCheckedMenus} />
-            ) : (
-              <p className="text-muted-foreground px-2 py-3 text-[13px]">{t('暂无菜单数据')}</p>
-            )}
-          </div>
+          {lockedRole ? (
+            <LockedNote>{t('超级管理员始终拥有全部菜单权限，不能修改')}</LockedNote>
+          ) : (
+            <div className="max-h-72 overflow-auto rounded-lg border p-1.5">
+              {menuTree.length > 0 ? (
+                <MenuTreeChecklist tree={menuTree} value={checkedMenus} onChange={setCheckedMenus} />
+              ) : (
+                <p className="text-muted-foreground px-2 py-3 text-[13px]">{t('暂无菜单数据')}</p>
+              )}
+            </div>
+          )}
         </div>
       </FormDialog>
 
