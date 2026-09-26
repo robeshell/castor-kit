@@ -167,6 +167,11 @@ export class RoleRepository {
     return this.db.select().from(roles).where(inArray(roles.id, ids)).orderBy(asc(roles.id))
   }
 
+  async allMenuIds(): Promise<number[]> {
+    const rows = await this.db.select({ id: menus.id }).from(menus)
+    return rows.map((r) => r.id)
+  }
+
   /** role_id → departments of its custom data scope */
   async deptIdsByRole(roleIds: number[]): Promise<Map<number, number[]>> {
     const map = new Map<number, number[]>()

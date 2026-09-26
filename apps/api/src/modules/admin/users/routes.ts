@@ -7,16 +7,21 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
+import { isSuperAdmin } from '@/common/rbac'
 import { resolveDataScope } from '@/common/data-scope'
 import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
 import { isUserStatus } from './schema'
-import { UserService } from './service'
+import { UserService, type Caller } from './service'
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   const service = new UserService(app.db)
   const opts = { preHandler: loginRequired }
+  const callerOf = async (request: FastifyRequest): Promise<Caller> => {
+    const current = await getCurrentAdminUser(request)
+    return { username: current?.username, superAdmin: Boolean(current && isSuperAdmin(current)) }
+  }
   const scopedUserOr404 = async (request: FastifyRequest) =>
     service.getUserOr404(parseIntParam((request.params as { user_id: string }).user_id), await resolveDataScope(request))
 
@@ -43,7 +48,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_users_add'))) {
       return reply.status(403).send({ error: '无权限新增用户' })
     }
-    return reply.status(201).send(await service.createUser(jsonBody(request), await resolveDataScope(request)))
+    return reply.status(201).send(await service.createUser(jsonBody(request), await resolveDataScope(request), await callerOf(request)))
   })
 
   app.put(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
@@ -51,7 +56,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_users_edit'))) {
       return reply.status(403).send({ error: '无权限编辑用户' })
     }
-    return service.updateUser(user, jsonBody(request), await resolveDataScope(request))
+    return service.updateUser(user, jsonBody(request), await resolveDataScope(request), await callerOf(request))
   })
 
   app.put(`/api/admin/users/${intParam('user_id')}/status`, opts, async (request, reply) => {
@@ -59,7 +64,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_users_status'))) {
       return reply.status(403).send({ error: '无权限启用或停用用户' })
     }
-    return service.setUserStatus(user, jsonBody(request).status, request.session.get('username'))
+    return service.setUserStatus(user, jsonBody(request).status, await callerOf(request))
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
@@ -67,7 +72,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_users_delete'))) {
       return reply.status(403).send({ error: '无权限删除用户' })
     }
-    return service.deleteUser(user, request.session.get('username'))
+    return service.deleteUser(user, await callerOf(request))
   })
 
   app.post('/api/admin/users/export', opts, async (request, reply) => {
@@ -96,6 +101,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     }
     return service.importUsers(await getUploadedFile(request), {
       currentUsername: request.session.get('username'),
+      superAdmin: (await callerOf(request)).superAdmin,
       canSetStatus: await hasMenuPermission(request, 'system_users_status'),
       scope: await resolveDataScope(request),
     })
