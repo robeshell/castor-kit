@@ -39,7 +39,10 @@ import {
   toKebab,
   toLabel,
   toPascal,
+  validateSpec,
+  type SpecFile,
 } from '../scripts/scaffold'
+import { existingMenus, planMenus } from '../scripts/lib/menus'
 
 const API_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const TSX = join(API_DIR, 'node_modules', '.bin', 'tsx')
@@ -306,6 +309,78 @@ function trimDrizzleToBaseline(dir: string): void {
   writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
 }
 
+/** A spec using every rule: labels, required, unique, defaults, fixed options, a dictionary, the menu */
+const DEVICE_SPEC: SpecFile = {
+  name: 'ck_spec_device',
+  title: '设备台账',
+  fields: [
+    { name: 'code', type: 'str20', label: '设备编号', required: true, unique: true },
+    { name: 'name', type: 'str', label: '设备名称', required: true },
+    { name: 'status', type: 'enum', label: '设备状态', required: true, default: 'idle', options: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中' }] },
+    { name: 'category', type: 'dict', label: '设备分类', dict: 'device_category' },
+    { name: 'price', type: 'float', label: '采购价格', default: 1999.5 },
+    { name: 'serial_no', type: 'int', label: '序列号', unique: true },
+    { name: 'active', type: 'bool', label: '在用', default: true },
+    { name: 'photo', type: 'image', label: '设备照片' },
+  ],
+  menu: {},
+  i18n: {
+    'en-US': { 设备台账: 'Devices', 设备编号: 'Device no.', 闲置: 'Idle' },
+    'ja-JP': { 设备台账: '設備台帳', 设备编号: '設備番号', 闲置: '待機' },
+  },
+}
+
+describe('scaffold --spec 纯函数', () => {
+  it('校验：名称、字段名、类型、选项、字典、必填 / 唯一的适用类型、默认值', () => {
+    expect(validateSpec(DEVICE_SPEC)).toEqual([])
+    const bad = validateSpec({
+      name: 'Bad',
+      fields: [
+        { name: 'id', type: 'str' },
+        { name: 'x', type: 'nope' },
+        { name: 'x', type: 'str' },
+        { name: 'e', type: 'enum', options: [{ value: 'a b', label: '' }] },
+        { name: 'd', type: 'dict' },
+        { name: 'f', type: 'file', required: true },
+        { name: 'b', type: 'bool', unique: true },
+        { name: 'n', type: 'int', default: 'abc' },
+        { name: 's', type: 'enum', options: [{ value: 'a', label: 'A' }], default: 'z' },
+      ],
+    })
+    expect(bad).toEqual([
+      '模块名必须是 snake_case（小写字母开头，只含小写字母、数字、下划线，最多 40 个字符）',
+      '字段 id：id 是保留字段名',
+      '字段 x：未知类型 nope',
+      '字段 x：字段名重复',
+      '字段 e：选项值只能包含字母、数字、下划线和连字符（最多 50 个字符）',
+      '字段 e：选项名称不能为空，最多 50 个字符',
+      '字段 d：请选择字典',
+      '字段 f：文件 / 图片字段不能设为必填',
+      '字段 b：只有文本和数字字段可以设为唯一',
+      '字段 n：默认值 abc 不符合字段类型',
+      '字段 s：默认值 z 不符合字段类型',
+    ])
+    expect(validateSpec({ name: 'ok', fields: [] })).toEqual(['至少需要一个字段'])
+  })
+
+  it('菜单：第一次建「业务管理」目录（1000），模块取 1001 起第一个空闲 ID，按钮 = ID × 10 + 1…5；已有同名权限码不再添加', () => {
+    const seed = readFileSync(join(API_DIR, 'scripts', 'seed-rbac.ts'), 'utf8')
+    const request = { title: '设备', titles: { 'en-US': 'Devices', 'ja-JP': '設備' }, permPrefix: 'system_ck_menu', component: 'admin/ck_menu', path: '/biz/ck-menus' }
+    const entries = planMenus(seed, request)!
+    expect(entries.map((e) => [e.id, e.code, e.parent_id])).toEqual([
+      [1000, 'biz', null],
+      [1001, 'system_ck_menu', 1000],
+      [10011, 'system_ck_menu_add', 1001],
+      [10012, 'system_ck_menu_edit', 1001],
+      [10013, 'system_ck_menu_delete', 1001],
+      [10014, 'system_ck_menu_export', 1001],
+      [10015, 'system_ck_menu_import', 1001],
+    ])
+    const ids = new Set(existingMenus(seed).map((m) => m.id))
+    expect(entries.filter((e) => ids.has(e.id))).toEqual([])
+  })
+})
+
 describe('scaffold CLI（临时目录副本）', () => {
   let root: string
   const name = 'ck_scaffold_demo'
@@ -329,6 +404,9 @@ describe('scaffold CLI（临时目录副本）', () => {
     // Generated API tests import ./helpers, which tsc needs for the check
     mkdirSync(join(api, 'test'), { recursive: true })
     cpSync(join(API_DIR, 'test', 'helpers.ts'), join(api, 'test', 'helpers.ts'))
+    // --spec with a menu appends to seed-rbac.ts
+    mkdirSync(join(api, 'scripts'), { recursive: true })
+    cpSync(join(API_DIR, 'scripts', 'seed-rbac.ts'), join(api, 'scripts', 'seed-rbac.ts'))
   })
 
   afterAll(() => {
@@ -596,4 +674,69 @@ describe('scaffold CLI（临时目录副本）', () => {
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-fl/.test(l))
     expect(ours).toEqual([])
   }, 180_000)
+
+  it('--spec：中文标签、NOT NULL / UNIQUE / 默认值、固定选项、字典、规则测试、菜单与菜单译文；页面 eslint 与 i18n 扫描通过，代码通过 tsc', () => {
+    const specPath = join(root, 'device.spec.json')
+    writeFileSync(specPath, JSON.stringify(DEVICE_SPEC))
+    const res = scaffoldCli(['--spec', specPath, '--skip-migration', '--root', root])
+    expect(res.code, res.out).toBe(0)
+    expect(res.out).toContain('[menu] 设备台账（ID 1001，按钮 10011–10015）')
+    const read = (rel: string) => readFileSync(join(root, rel), 'utf8')
+
+    const table = read('apps/api/src/db/schema/admin/ck-spec-device.ts')
+    expect(table).toContain('  code: varchar({ length: 20 }).notNull().unique(),')
+    expect(table).toContain("  status: varchar({ length: 50 }).notNull().default('idle'),")
+    expect(table).toContain("  price: numeric({ precision: 10, scale: 2 }).default('1999.5'),")
+    expect(table).toContain('  active: boolean().default(true),')
+
+    const schema = read('apps/api/src/modules/admin/ck-spec-device/schema.ts')
+    expect(schema).toContain("  status: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中' }],")
+    expect(schema).toContain("  status: ['设备状态', (item) => optionLabel('status', item.status)],")
+    expect(schema).toContain("const REQUIRED: string[] = ['code', 'name', 'status']")
+    expect(schema).toContain("  '设备编号': 'code',")
+
+    const test = read('apps/api/test/admin-ck-spec-device.test.ts')
+    expect(test).toContain("it('字段规则：必填、选项、唯一、默认值'")
+    expect(test).toContain("toEqual([400, { error: '设备编号不能为空' }])")
+    expect(test).toContain("toEqual([400, { error: '设备状态的值无效' }])")
+    expect(test).toContain('serial_no: nextNumber(),')
+
+    const pagePath = 'apps/web/src/modules/admin/pages/ck_spec_device/index.jsx'
+    const page = read(pagePath)
+    expect(page).toContain('title="设备台账"')
+    expect(page).toContain(`<FormInput control={form.control} name="code" label="设备编号" rules={{ required: '此项必填' }} />`)
+    expect(page).toContain(`<FormSelect control={form.control} name="status" label="设备状态" options={FIELD_OPTIONS.status} rules={{ required: '此项必填' }} />`)
+    expect(page).toContain(`<FormSelect control={form.control} name="category" label="设备分类" options={dicts['device_category'] ?? []} clearable />`)
+    expect(page).toContain("const DICT_CODES = ['device_category']")
+    expect(page).toContain("  status: 'idle',")
+    expect(page).toContain('  price: 1999.5,')
+    const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', 'src/modules/admin/pages/ck_spec_device/index.jsx'], {
+      cwd: WEB_DIR,
+      input: page,
+      encoding: 'utf8',
+      timeout: 60_000,
+    })
+    expect(lint.status, `${lint.stdout}${lint.stderr}`).toBe(0)
+    // Spec translations win; texts without one fall back to the field / option name
+    const en = JSON.parse(read('apps/web/src/modules/admin/pages/ck_spec_device/locales/en-US.json')) as Record<string, string>
+    expect(en).toMatchObject({ 设备台账: 'Devices', 设备编号: 'Device no.', 闲置: 'Idle', 设备名称: 'Name', 使用中: 'In Use' })
+    expect(scanInCopy(root, 'src/modules/admin/pages/ck_spec_device')).toEqual({ problems: [], conflicts: [] })
+
+    const seed = read('apps/api/scripts/seed-rbac.ts')
+    expect(seed).toContain('  { id: 1000, name: "业务管理", code: "biz", icon: "IconBox", path: null, component: null, parent_id: null,')
+    expect(seed).toContain('  { id: 1001, name: "设备台账", code: "system_ck_spec_device", icon: "IconList", path: "/biz/ck-spec-devices", component: "admin/ck_spec_device", parent_id: 1000,')
+    expect(seed).toContain('  { id: 10015, name: "导入设备台账", code: "system_ck_spec_device_import",')
+    const menuNames = JSON.parse(read('apps/web/src/locales/menus/ja-JP.json')) as Record<string, string>
+    expect(menuNames).toMatchObject({ biz: '業務管理', system_ck_spec_device: '設備台帳', system_ck_spec_device_add: '設備台帳を追加' })
+
+    const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
+    const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-spec-device|seed-rbac/.test(l))
+    expect(ours).toEqual([])
+
+    // Again: nothing is overwritten and the menu isn't added twice
+    const again = scaffoldCli(['--spec', specPath, '--skip-migration', '--root', root])
+    expect(again.code, again.out).toBe(0)
+    expect(read('apps/api/scripts/seed-rbac.ts')).toBe(seed)
+  }, 240_000)
+
 })
