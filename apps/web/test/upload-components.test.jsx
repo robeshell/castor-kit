@@ -89,3 +89,20 @@ describe('AvatarUpload', () => {
     expect(onChange).toHaveBeenLastCalledWith('')
   })
 })
+
+describe('AvatarUpload：填写图片地址', () => {
+  it('格式不对时提示且不能使用；合法地址回车后回调', async () => {
+    const onChange = vi.fn()
+    render(<AvatarUpload value="" onChange={onChange} name="alice" />)
+    await userEvent.click(screen.getByRole('button', { name: '填写图片地址' }))
+    const input = screen.getByRole('textbox', { name: '图片地址' })
+    await userEvent.type(input, 'ftp://x/y.png')
+    expect(screen.getByText('头像地址需以 http(s):// 或 / 开头')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '使用' })).toBeDisabled()
+
+    await userEvent.clear(input)
+    await userEvent.type(input, 'https://example.com/me.png{Enter}')
+    expect(onChange).toHaveBeenLastCalledWith('https://example.com/me.png')
+    expect(screen.queryByRole('textbox', { name: '图片地址' })).not.toBeInTheDocument()
+  })
+})

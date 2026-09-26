@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
-import { Camera, Trash2 } from 'lucide-react'
+import { Camera, Link2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { useTx } from '@/i18n'
 import i18n from '@/i18n'
@@ -11,10 +12,12 @@ import UserAvatar from '@/shared/components/UserAvatar'
 import { useUploadLimits } from '@/shared/hooks/useAppInfo'
 
 const DEFAULT_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+// Same rule as the API (users/schema.ts normalizeProfile): an absolute http(s) URL or a site path
+const AVATAR_URL_RE = /^(https?:\/\/|\/)\S+$/
 
 /**
- * Avatar picker: uploads an image to the file center and reports its URL (/api/admin/files/<id>) through onChange.
- * value is the current avatar URL (older records may hold an external URL, which still displays).
+ * Avatar picker: uploads an image to the file center and reports its URL (/api/admin/files/<id>) through onChange,
+ * or takes an image URL typed in by hand. value is the current avatar URL.
  */
 export default function AvatarUpload({ value, onChange, name, maxSizeMB, disabled, className, ...rest }) {
   const tx = useTx()
@@ -25,6 +28,16 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB, disable
   const inputRef = useRef(null)
   const [percent, setPercent] = useState(null)
   const uploading = percent !== null
+  /** null = not editing; otherwise the URL being typed */
+  const [urlDraft, setUrlDraft] = useState(null)
+  const urlInvalid = urlDraft !== null && urlDraft.trim() !== '' && !AVATAR_URL_RE.test(urlDraft.trim())
+
+  const applyUrl = () => {
+    const url = urlDraft.trim()
+    if (!url || urlInvalid) return
+    onChange?.(url)
+    setUrlDraft(null)
+  }
 
   const pick = async (file) => {
     if (!file) return
@@ -68,11 +81,15 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB, disable
           </div>
         ) : null}
       </div>
-      {!disabled ? (
+      {!disabled && urlDraft === null ? (
         <div className="flex flex-wrap gap-1.5">
           <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => inputRef.current?.click()}>
             <Camera />
             {value ? tx('更换头像') : tx('上传头像')}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" disabled={uploading} onClick={() => setUrlDraft('')}>
+            <Link2 />
+            {tx('填写图片地址')}
           </Button>
           {value ? (
             <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" disabled={uploading} onClick={() => onChange?.('')}>
@@ -80,6 +97,35 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB, disable
               {tx('移除')}
             </Button>
           ) : null}
+        </div>
+      ) : null}
+      {!disabled && urlDraft !== null ? (
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex gap-1.5">
+            <Input
+              autoFocus
+              value={urlDraft}
+              onChange={(e) => setUrlDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  applyUrl()
+                }
+                if (e.key === 'Escape') setUrlDraft(null)
+              }}
+              placeholder={tx('https://… 或 /…')}
+              aria-label={tx('图片地址')}
+              aria-invalid={urlInvalid || undefined}
+              className="h-8 min-w-0 flex-1"
+            />
+            <Button type="button" size="sm" variant="outline" disabled={!urlDraft.trim() || urlInvalid} onClick={applyUrl}>
+              {tx('使用')}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setUrlDraft(null)}>
+              {tx('取消')}
+            </Button>
+          </div>
+          {urlInvalid ? <p className="text-danger text-xs">{tx('头像地址需以 http(s):// 或 / 开头')}</p> : null}
         </div>
       ) : null}
     </div>
