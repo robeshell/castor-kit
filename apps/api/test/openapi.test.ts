@@ -2,7 +2,7 @@
  * scripts/generate-openapi.ts + scripts/import-apifox.ts
  *
  * - Stub detection
- * - The document covers every registered /api route (compared by path shape; `{int:x}` is equivalent to `{x}`)
+ * - The generator adds stubs per missing route + method (compared by path shape; `{int:x}` is equivalent to `{x}`)
  * - Write-back format matches json.dumps(indent=2, ensure_ascii=False), byte-for-byte stable
  * - Apifox push: uses a local fake server to check URL / headers / body and exit code, sends no real requests to Apifox
  */
@@ -79,12 +79,20 @@ describe('路径转换', () => {
       ['/api/a/{item_id}', ['DELETE', 'PUT']],
       ['/api/b', ['GET', 'POST']],
     ])
-    expect(findMissingRoutes({ '/api/a/{int:item_id}': {} }, routes)).toEqual([['/api/b', ['GET', 'POST']]])
+    // Compared per method: a documented path can still miss a method; it joins the existing key
+    expect(findMissingRoutes({ '/api/a/{int:item_id}': { put: {} } }, routes)).toEqual([
+      ['/api/a/{int:item_id}', ['DELETE']],
+      ['/api/b', ['GET', 'POST']],
+    ])
+    expect(findMissingRoutes({ '/api/a/{item_id}': { delete: {}, PUT: {} }, '/api/b': { get: {}, post: {} } }, routes)).toEqual([])
   })
 
-  it('骨架条目格式（方法大写、同一路径的方法合并）', () => {
+  it('骨架条目格式（方法小写、路径参数已声明、同一路径的方法合并）', () => {
+    expect(buildStubEntry('/api/b/{item_id}', ['DELETE'])).toMatchObject({
+      delete: { summary: 'DELETE /api/b/{item_id}', parameters: [{ name: 'item_id', in: 'path', required: true, schema: { type: 'string' } }] },
+    })
     expect(buildStubEntry('/api/b', ['GET', 'POST'])).toEqual({
-      GET: {
+      get: {
         summary: 'GET /api/b',
         responses: {
           '200': { description: '成功' },
@@ -95,7 +103,7 @@ describe('路径转换', () => {
           '500': { description: '服务器内部错误' },
         },
       },
-      POST: expect.objectContaining({ summary: 'POST /api/b' }),
+      post: expect.objectContaining({ summary: 'POST /api/b' }),
     })
   })
 })
@@ -141,7 +149,7 @@ describe('generateOpenApi', () => {
     const log: string[] = []
     const dry = await generateOpenApi({ config: config(), docPath: file, dryRun: true, log: (m) => log.push(m) })
     expect(dry.added).toEqual([])
-    expect(log).toContain(`补齐 0 个路径（均为骨架，需人工补 schema）`)
+    expect(log).toContain('补齐 0 个接口（均为骨架，需按 AGENTS.md「OpenAPI 编写规范」补全）')
     expect(log.some((m) => m.startsWith('文档路径统计：总数 '))).toBe(true)
     expect(log.some((m) => m.startsWith('已写回'))).toBe(false)
 
@@ -149,7 +157,7 @@ describe('generateOpenApi', () => {
     expect(readFileSync(file, 'utf8')).toBe(before)
   })
 
-  it('缺失路由补骨架、按路径排序写回；--strict 有骨架时退出 1', async () => {
+  it('缺失路由补骨架、按路径排序写回；--strict 有不合规接口时退出 1', async () => {
     const file = join(workDir, 'missing.json')
     const doc = JSON.parse(readFileSync(DOC_PATH, 'utf8')) as { paths: Record<string, unknown> }
     delete doc.paths['/api/admin/users']
@@ -164,8 +172,11 @@ describe('generateOpenApi', () => {
       ['/api/admin/users/{user_id}', ['DELETE', 'PUT']],
     ])
     expect(result.exitCode).toBe(1)
-    expect(log).toContain('补齐 2 个路径（均为骨架，需人工补 schema）')
-    expect(log.at(-1)).toBe(`❌ --strict：仍有 ${result.stats.stubs} 个骨架路径，请补充 schema 后再提交`)
+    expect(log).toContain('补齐 4 个接口（均为骨架，需按 AGENTS.md「OpenAPI 编写规范」补全）')
+    expect(result.issues.filter((i) => i.rule === 'summary').map((i) => i.operation)).toEqual(
+      expect.arrayContaining(['GET /api/admin/users', 'POST /api/admin/users', 'PUT /api/admin/users/{user_id}', 'DELETE /api/admin/users/{user_id}']),
+    )
+    expect(log.at(-1)).toMatch(/^❌ --strict：\d+ 个接口不符合 AGENTS\.md「OpenAPI 编写规范」/)
 
     const written = JSON.parse(readFileSync(file, 'utf8')) as { paths: Record<string, unknown> }
     expect(written.paths['/api/admin/users/{user_id}']).toEqual(buildStubEntry('/api/admin/users/{user_id}', ['DELETE', 'PUT']))

@@ -41,7 +41,7 @@ function Outcome({ output }) {
   const status = output.status
   if (status >= 200 && status < 300) {
     return (
-      <span className="text-success inline-flex items-center gap-1">
+      <span className="text-success inline-flex shrink-0 items-center gap-1 whitespace-nowrap">
         <Check className="size-3" />
         {t('完成')}
       </span>
@@ -49,13 +49,13 @@ function Outcome({ output }) {
   }
   if (status === 403) {
     return (
-      <span className="text-warning inline-flex items-center gap-1">
+      <span className="text-warning inline-flex shrink-0 items-center gap-1 whitespace-nowrap">
         <ShieldAlert className="size-3" />
         {t('没有权限')}
       </span>
     )
   }
-  return <span className="text-danger">{t('失败（{{status}}）', { status })}</span>
+  return <span className="text-danger shrink-0 whitespace-nowrap">{t('失败（{{status}}）', { status })}</span>
 }
 
 function Line({ icon: Icon, busy, children }) {

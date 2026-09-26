@@ -288,3 +288,4 @@
 | 2026-09-26 | AI 调用层迁移到 Vercel AI SDK（从「6. 在线可视化建模」中拆出先做）：`common/ai.ts` 统一创建模型，新增服务类型设置 `ai.provider`（OpenAI 兼容 / OpenAI / Anthropic / Google）；AI 对话改为 UI message stream + `useChat`，界面换成 AI Elements；接口路径与演示模式限流不变（输入上限改按消息文字计算） |
 | 2026-09-26 | 放弃「6. 在线可视化建模」（原因见该节）；保留 `scaffold --spec`，后续重点改为提升不同 AI agent 生成功能的准确度 |
 | 2026-09-26 | 新增并完成「全局 AI 小助手」（计划外）：每个页面右下角的对话助手，以当前用户身份经原接口查询数据，写操作逐条经用户确认（签名审批）后执行；开关 `ai.assistant_enabled` 默认关闭 |
+| 2026-09-26 | OpenAPI 文档补全并强制检查（计划外，服务于「提升 AI agent 生成功能的准确度」）：214 个接口全部按 AGENTS.md「OpenAPI 编写规范」照代码写完整，API 测试与 `pnpm verify` 拦截不合规的接口 |

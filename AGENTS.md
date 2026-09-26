@@ -144,7 +144,7 @@ castor-kit/
 ├── docs/
 │   ├── architecture.md                # 架构说明
 │   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
-│   ├── apifox-full.openapi.json       # OpenAPI 文档（pnpm openapi:generate 补齐）
+│   ├── apifox-full.openapi.json       # OpenAPI 文档（写法见「OpenAPI 编写规范」）
 │   └── templates/                     # 代码骨架模板（AI 临摹用）
 │       ├── backend/                   # db-schema / schema / repository / service / routes（.ts）+ README.md
 │       └── frontend/                  # list_page / detail_page
@@ -224,6 +224,26 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 
 - 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），先 `service.getOr404(id)`（404）再做权限检查（403）
 - 请求体用 `jsonBody(request)`，查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`
+
+### OpenAPI 编写规范
+
+`docs/apifox-full.openapi.json` 是接口的唯一说明书：外部调用方、Apifox 和 **AI 小助手**（它靠这份文档找接口、决定传哪些字段）都只读它。每个已注册的 `/api` 路由 + 方法都必须有一份完整的文档，`test/openapi-doc.test.ts` 与 `pnpm verify` 的 `openapi_sync` 按下面的规则检查（实现：`apps/api/scripts/lib/openapi-lint.ts`），不合规即失败。
+
+| 项 | 要求 |
+|---|---|
+| 路径键 | 与路由同名的 OpenAPI 写法：`intParam('user_id')` → `/api/admin/users/{user_id}`；一个路径只写一份；不用旧写法 `{int:x}` |
+| 方法 | 小写（`get` / `post` / `put` / `patch` / `delete`） |
+| `summary` | 简短的中文动作：「新增部门」「部门列表」「导出公告」「下载导入模板」；不写方法和路径，不夹英文标识符（`创建users` 这类自动生成的不合格） |
+| `description` | 中文：所需权限（「需要 system_users_add」/「需要以下之一：…」/「登录即可」/「公开，无需登录」）、是否按数据权限过滤、值得知道的行为（副作用、事件、关键校验、404 的含义） |
+| `tags` + `x-apifox-folder` | 恰好一个标签，且已在文档顶层 `tags` 声明；系统管理类用「后台-<模块>」+「后台/系统管理/<模块>」，组件示例用「示例-<菜单名>」+「后台/组件示例中心/<菜单名>」 |
+| `security` | 需要登录：`[{ "cookieAuth": [] }, { "bearerAuth": [] }]`；拒绝 API Token 的接口（`API_TOKEN_DENIED`：账号安全、系统设置等）只写 `[{ "cookieAuth": [] }]`；公开接口：`[]` |
+| `parameters` | 每个路径参数（`in: path`、`required: true`、`schema`，`intParam` 的写 `integer`）；路由读取的每个查询参数（`schema` + 中文说明，取值受限的写 `enum`） |
+| `requestBody` | `post` / `put` / `patch` 读请求体时必须有 schema：每个字段的类型、中文说明、`enum` / `maxLength` / `minimum`，`required` 只列代码里真正会拒绝的字段；可空写 `["string", "null"]`；上传用 `multipart/form-data`，文件字段 `file`（`format: binary`）。不读请求体的写 `"x-no-body": true` |
+| `responses` | 真实的成功状态码（200 / 201 / 204），非 204 必须有 `content.schema`：列表 `{ items, total, page, per_page }`，单条为 `xxxToDict()` 的字段；文件下载写实际的媒体类型 + `format: binary`；列出可能的错误码（需要登录的接口必须有 401，另按实际写 400 / 403 / 404 / 413 / 429） |
+
+- 只写代码里真实存在的字段和规则，不要编；拿不准就去读 `routes.ts` / `service.ts` / `schema.ts`
+- 参照写法：`/api/admin/departments`、`/api/admin/sessions`、`/api/admin/files` 下的条目
+- 新增或修改路由后：`pnpm openapi:generate`（为缺文档的路由 + 方法补骨架）→ 按上表补全 → `pnpm openapi:generate -- --strict`（逐个列出不合规的接口和原因，全部合规才退出 0）
 
 ### 权限检查规范
 
@@ -566,6 +586,7 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 ❌ 迁移 SQL 手写而不经 drizzle-kit generate（破坏 journal 链）
 ❌ 迁移只生成不落库，或不用 psql \d 实证就声明完成
 ❌ 跳过 verify-feature 门禁直接声明完成
+❌ 新接口只留 openapi:generate 生成的骨架，或 summary / 字段是编的（按「OpenAPI 编写规范」照代码写）
 ❌ 前端页面不放在 modules/<module>/pages/<subdir>/<page>/index.jsx（动态路由失效）
 ❌ 在导入导出里重新支持 .xls（已决定只支持 csv / xlsx）
 ❌ 向 PM 询问路由路径、权限编码、字段类型等技术细节（AI 应自行推断）
@@ -601,8 +622,8 @@ Step 4  执行实现
         → 在 seed-rbac.ts 添加菜单 + 按钮权限（_add/_edit/_delete/_export/_import），运行 pnpm seed:rbac -- --incremental
         → 审查 apps/api/drizzle/ 下新生成的 SQL，运行 pnpm db:migrate
         → 在本文件「当前菜单树」补上新菜单
-        → pnpm openapi:generate，在 docs/apifox-full.openapi.json 补全新接口 schema，summary 写成看得懂的中文（建议项，verify 只提醒；
-          AI 小助手靠这份文档找接口，没写的接口它很难用上）
+        → pnpm openapi:generate 补骨架，按「OpenAPI 编写规范」补全每个新接口（summary、description、tags、参数、请求体、返回结构），
+          pnpm openapi:generate -- --strict 通过（必须项：verify 的 openapi_sync 与 API 测试都会拦截）
 
 Step 5  验证门禁（强制，不得跳过）
         → pnpm verify -- --module <name>（含前端构建与前后端单元测试；调试中途可 --skip-build / --skip-api-tests）
@@ -693,8 +714,8 @@ pnpm scaffold -- --name <name> --domain admin --fields "..." --data-scope       
 #   --domain 只能是 admin 或 component_center；--skip-migration 不调用 drizzle-kit
 
 # OpenAPI
-pnpm openapi:generate                    # 从 Fastify 路由补齐 docs/apifox-full.openapi.json
-pnpm openapi:generate -- --dry-run       # 只统计覆盖率不写回（--strict：存在骨架路径则非 0 退出）
+pnpm openapi:generate                    # 为缺文档的路由 + 方法补骨架（写回 docs/apifox-full.openapi.json）并检查规范
+pnpm openapi:generate -- --strict        # 逐个列出不符合「OpenAPI 编写规范」的接口，有则非 0 退出（--dry-run：不写回）
 pnpm openapi:apifox                      # 推送到 Apifox（APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN，或 --project-id / --access-token）
 
 # MCP Server

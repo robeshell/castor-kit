@@ -154,13 +154,14 @@ pnpm db:migrate
 psql -d castor_kit -c '\d <name>s'
 ```
 
-**4e. API 文档（建议，verify 只提醒不拦截）**
+**4e. API 文档（必须，verify 的 openapi_sync 与 API 测试都会拦截）**
 
 ```bash
-pnpm openapi:generate
+pnpm openapi:generate            # 为新路由补骨架
+pnpm openapi:generate -- --strict  # 补全后复查，列出每个不合规接口的具体问题
 ```
 
-生成的新路径只是骨架，按实际请求 / 响应在 `docs/apifox-full.openapi.json` 里补全 schema。
+骨架只有占位内容。按 AGENTS.md「OpenAPI 编写规范」照代码补全每个新接口：中文 summary、description（权限、数据权限）、tags 与 x-apifox-folder、路径 / 查询参数、请求体字段、返回结构和错误码。AI 小助手和外部调用方都只靠这份文档，字段不能编。
 
 ### Step 5 — 验证门禁（强制，不得跳过）
 

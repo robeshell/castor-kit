@@ -72,9 +72,9 @@ Both `scaffold` and `verify` print their usage with `-h` / `--help`. For the opt
 
 | Command | Description |
 |---|---|
-| `pnpm openapi:generate` | Fill in `docs/apifox-full.openapi.json` from the Fastify routes |
-| `pnpm openapi:generate -- --dry-run` | Only report coverage; don't write back |
-| `pnpm openapi:generate -- --strict` | Exit non-zero if any path still has only a skeleton |
+| `pnpm openapi:generate` | Add skeletons for undocumented routes + methods (written to `docs/apifox-full.openapi.json`) and check the OpenAPI rules |
+| `pnpm openapi:generate -- --dry-run` | Check only; don't write back |
+| `pnpm openapi:generate -- --strict` | List every operation that breaks the rules and why; exit non-zero if any |
 | `pnpm openapi:apifox` | Push to Apifox (needs `APIFOX_PROJECT_ID`, `APIFOX_ACCESS_TOKEN`) |
 
 ## MCP Server

@@ -77,7 +77,7 @@ AI 只展示业务层面的信息，等你确认或调整：
 3. 打磨前端页面：中文标签、表单校验、枚举字段、多语言译文。
 4. 在 `seed-rbac.ts` 添加菜单和按钮权限，运行 `pnpm seed:rbac -- --incremental`。
 5. 审查新生成的迁移 SQL，运行 `pnpm db:migrate`，并用 `psql -d <库名> -c '\d <表名>'` 确认表真实存在。
-6. 运行 `pnpm openapi:generate` 补齐接口文档（建议项）。
+6. 运行 `pnpm openapi:generate` 为新接口补骨架，再按 `AGENTS.md`「OpenAPI 编写规范」照代码补全（必须，`pnpm verify` 会检查）。
 
 ### 5. 验证门禁
 

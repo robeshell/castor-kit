@@ -85,5 +85,5 @@ pnpm openapi:generate && pnpm openapi:apifox
 4. [ ] 前端：`pages/<subdir>/<page>/index.jsx` + `api/<page>.js`（纯前端页面无需 api 文件）
 5. [ ] RBAC：在 `seed-rbac.ts` 中添加菜单 + 按钮权限条目，运行 `pnpm seed:rbac -- --incremental`
 6. [ ] 迁移：审查 `apps/api/drizzle/` 新 SQL → `pnpm db:migrate` → `psql \d` 确认
-7. [ ] OpenAPI：`pnpm openapi:generate`，补充 `docs/apifox-full.openapi.json` 中的 schema
+7. [ ] OpenAPI：`pnpm openapi:generate` 补骨架，按 AGENTS.md「OpenAPI 编写规范」补全，`pnpm openapi:generate -- --strict` 通过
 8. [ ] 门禁：`pnpm verify -- --module <name>` 全部通过（含前后端单元测试）

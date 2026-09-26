@@ -30,7 +30,7 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 - A request with a Bearer token is authenticated by the token only: no cookie is read, no CSRF header is needed and no session is created
 - **Effective permissions = the token's permissions ∩ the creator's current permissions.** A super admin's token also has only the permissions checked on it; when the creator loses a permission, the token loses it too
 - Data scope follows the creator (see [Data scope](/en/guide/rbac#data-scope))
-- Endpoints and parameters are in `docs/apifox-full.openapi.json` in the repository (security scheme `bearerAuth`)
+- Endpoints and parameters are in `docs/apifox-full.openapi.json` in the repository: operations whose `security` lists `bearerAuth` accept tokens; those listing only `cookieAuth` (account security, system settings and similar) don't
 
 | Situation | Response |
 |---|---|
