@@ -47,7 +47,7 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 推断内容：
 - 资源名（snake_case，如 customer_order）与所属域（admin | component_center）
 - API 路径（/api/admin/<resource>s，多词用连字符，如 /api/admin/customer-orders）
-- 字段名 + scaffold 类型（str/str20/str50/str500/text/int/float/bool/date/datetime，参考 AGENTS.md 字段类型推断规则）
+- 字段名 + scaffold 类型（str/str20/str50/str500/text/int/float/bool/date/datetime/file/image，参考 AGENTS.md 字段类型推断规则；图片、附件用 image / file，存文件中心的文件 ID）
 - 权限编码（admin 域 system_<name>，component_center 域 cc_<name>，与 scaffold 输出的 Perm prefix 一致；按钮 _add/_edit/_delete/_export/_import。同级的 `cc_admin_*_page`、`system_list_page` 等是历史编码，新模块不要模仿）
 - 前端文件路径（admin 域 modules/admin/pages/<name>/index.jsx；
                component_center 域 modules/component_center/pages/admin/<name>_page/index.jsx）

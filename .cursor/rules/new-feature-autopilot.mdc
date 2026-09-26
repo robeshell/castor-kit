@@ -25,7 +25,7 @@ alwaysApply: false
 
 自动推断：
 - API 路径（`/api/admin/<resource>s`，多词资源用连字符）
-- 字段名 + scaffold 类型（参照 AGENTS.md 字段类型推断规则：`str/str20/str50/str500/text/int/float/bool/date/datetime`）
+- 字段名 + scaffold 类型（参照 AGENTS.md 字段类型推断规则：`str/str20/str50/str500/text/int/float/bool/date/datetime/file/image`）
 - 权限编码（admin 域 `system_<name>`，component_center 域 `cc_<name>`；按钮 `_add/_edit/_delete/_export/_import`）
 - 前端文件路径
 - 菜单 ID（按 AGENTS.md 的 ID 分配区间取下一个可用 ID）、parent_id

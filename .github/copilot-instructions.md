@@ -48,5 +48,7 @@ Node.js/TypeScript + React + RBAC 的 AI-First 脚手架。pnpm monorepo：后�
 | 金额、价格 | `float` | `numeric({ precision: 10, scale: 2 })` |
 | 描述、内容 | `text` | `text()` |
 | 是否、开关 | `bool` | `boolean()` |
-| 图片、链接 | `str500` | `varchar({ length: 500 })` |
+| 链接（外部地址） | `str500` | `varchar({ length: 500 })` |
+| 图片、头像、封面 | `image` | `varchar({ length: 36 })`（文件中心 ID） |
+| 附件、文件 | `file` | `varchar({ length: 36 })`（文件中心 ID） |
 | 日期 | `date` | `date({ mode: 'string' })` |
