@@ -258,7 +258,7 @@ castor-kit/
 
 | 脚本 | 命令 | 说明 |
 |---|---|---|
-| `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；把模块的 8 个接口写进 `docs/apifox-full.openapi.json`（`scripts/lib/scaffold-openapi.ts`，已写过的模块跳过）；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
+| `scripts/scaffold.ts` | `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "..."` | 生成 `db/schema` + `modules/.../{schema,repository,service,routes}.ts` + 前端 api / 页面，自动注册并调用 drizzle-kit 生成迁移；把模块的 8 个接口写进 `docs/apifox-full.openapi.json`（`scripts/lib/scaffold-openapi.ts`，已写过的模块跳过）；`--spec` 先经 `validateSpec`（中文标题与字段名必填、拼错的属性名报错），`--validate-only` 只校验，`--write-schema` 从代码生成 `docs/spec.schema.json`（`scripts/lib/spec-schema.ts`，测试检查与代码一致），示例在 `docs/examples/specs/`；字段类型映射见 `FIELD_TYPE_MAP`；`--data-scope` 接入数据权限 |
 | `scripts/verify-feature.ts` | `pnpm verify -- --module <name> [--skip-build] [--json]` | 门禁：`typescript_compile`、`no_local_has_permission`、`migration_chain`、`migration_applied`、`docs_paths`（AI 文档引用路径存在）、`backend_file`、`data_scope_filter`（声明 `DATA_SCOPE` 的模块必须用 `dataScopeWhere`）、`frontend_page`、`frontend_api`、`router_registration`、`rbac_seed`、`frontend_build`、`frontend_tests`、`api_tests` 等 |
 | `scripts/seed-rbac.ts` | `pnpm seed:rbac -- --incremental` | 菜单树唯一事实源；`--incremental` 按 code upsert 不删除，同步序列并刷新超级管理员权限；不带参数是全量重建（仅空库） |
 | （内置）文件孤儿清理 | 调度器进程每小时一次 | 见 §4.12；`ENABLE_TASK_SCHEDULER=false` 时不运行 |
@@ -268,7 +268,7 @@ castor-kit/
 | `src/worker.ts` | `pnpm --filter @castor-kit/api worker` | 独立调度进程 |
 | `scripts/generate-openapi.ts` | `pnpm openapi:generate` | 为缺文档的路由 + 方法补骨架（方法小写、带路径参数），再用 `scripts/lib/openapi-lint.ts` 按 AGENTS.md「OpenAPI 编写规范」检查整份文档；`--strict` 有不合规接口时非 0 退出。请求体没有逐字段的 Zod 定义，文档靠人照代码写，由 `test/openapi-doc.test.ts` 与 verify 的 `openapi_sync` 强制 |
 | `scripts/import-apifox.ts` | `pnpm openapi:apifox` | 推送到 Apifox |
-| `apps/mcp/src/index.ts` | `pnpm mcp` | 工具：`get_project_context / get_menu_tree / scaffold_feature / run_verify / init_rbac / run_migration / list_templates`，内部调用上面的脚本 |
+| `apps/mcp/src/index.ts` | `pnpm mcp` | 工具：`get_project_context / get_menu_tree / get_spec_guide / validate_spec / scaffold_feature（spec 或 name + fields）/ check_openapi / run_verify / init_rbac / run_migration / list_templates`，内部调用上面的脚本 |
 | `docs/templates/` | — | 后端 `db-schema / schema / repository / service / routes` 模板 + 前端 `list_page / detail_page`；占位符 `<Resource>/<resource>/<domain>/<domain_resource>` |
 
 ---

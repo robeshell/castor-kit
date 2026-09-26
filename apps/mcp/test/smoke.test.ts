@@ -6,6 +6,7 @@
  */
 
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { after, before, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -13,7 +14,18 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const MCP_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
-const TOOLS = ['get_project_context', 'get_menu_tree', 'scaffold_feature', 'run_verify', 'init_rbac', 'run_migration', 'list_templates']
+const TOOLS = [
+  'get_project_context',
+  'get_menu_tree',
+  'get_spec_guide',
+  'validate_spec',
+  'scaffold_feature',
+  'check_openapi',
+  'run_verify',
+  'init_rbac',
+  'run_migration',
+  'list_templates',
+]
 
 type TextResult = { content: { type: string; text: string }[] }
 const textOf = (res: unknown) => (res as TextResult).content.map((c) => c.text).join('\n')
@@ -41,12 +53,13 @@ describe('castor-kit MCP server (stdio)', () => {
     await client?.close()
   })
 
-  it('list_tools 返回 7 个工具及输入 schema', async () => {
+  it('list_tools 返回 10 个工具及输入 schema', async () => {
     const { tools } = await client.listTools()
     assert.deepEqual(tools.map((t) => t.name).sort(), [...TOOLS].sort())
     const scaffold = tools.find((t) => t.name === 'scaffold_feature')!
-    assert.deepEqual(Object.keys(scaffold.inputSchema.properties ?? {}).sort(), ['domain', 'dry_run', 'fields', 'name'])
-    assert.deepEqual(scaffold.inputSchema.required, ['name'])
+    assert.deepEqual(Object.keys(scaffold.inputSchema.properties ?? {}).sort(), ['domain', 'dry_run', 'fields', 'name', 'spec'])
+    assert.equal(scaffold.inputSchema.required, undefined)
+    assert.deepEqual(tools.find((t) => t.name === 'validate_spec')!.inputSchema.required, ['spec'])
     const verify = tools.find((t) => t.name === 'run_verify')!
     assert.deepEqual(verify.inputSchema.required, ['module'])
   })
@@ -80,6 +93,45 @@ describe('castor-kit MCP server (stdio)', () => {
     assert.match(out, /Perm prefix: cc_ck_mcp_smoke/)
   })
 
+  it('get_spec_guide 返回示例（含推断理由）与 JSON Schema', async () => {
+    const out = textOf(await client.callTool({ name: 'get_spec_guide', arguments: {} }))
+    assert.match(out, /## docs\/examples\/specs\/device\.json/)
+    assert.match(out, /设备台账/)
+    assert.match(out, /为什么/)
+    assert.match(out, /## JSON Schema/)
+    assert.match(out, /"additionalProperties": false/)
+    // Everything an agent needs in one call, but not an unbounded dump
+    assert.ok(out.length < 40_000, `guide is ${out.length} characters`)
+  })
+
+  it('validate_spec：通过时说明会生成什么；有问题逐条列出', async () => {
+    const device = JSON.parse(readFileSync(join(MCP_DIR, '..', '..', 'docs', 'examples', 'specs', 'device.json'), 'utf8'))
+    const ok = textOf(await client.callTool({ name: 'validate_spec', arguments: { spec: device } }))
+    assert.match(ok, /^✅ 规格有效：device（设备台账）/)
+    assert.match(ok, /接口：\/api\/admin\/devices/)
+    const bad = textOf(await client.callTool({ name: 'validate_spec', arguments: { spec: { name: 'x', fields: [{ name: 'a', type: 'str', requried: true }] } } }))
+    assert.match(bad, /缺少 title/)
+    assert.match(bad, /字段 a：未知属性 requried/)
+  })
+
+  it('scaffold_feature 传 spec + dry_run：只预览，也会写接口文档', async () => {
+    const spec = { name: 'ck_mcp_spec', title: '烟测', fields: [{ name: 'title', type: 'str', label: '标题' }] }
+    const out = textOf(await client.callTool({ name: 'scaffold_feature', arguments: { spec, dry_run: true } }))
+    assert.match(out, /^✅ 成功/)
+    assert.match(out, /\[dry-run\] would write: apps\/api\/src\/modules\/admin\/ck-mcp-spec\/routes\.ts/)
+    assert.match(out, /\[dry-run\] would update: docs\/apifox-full\.openapi\.json/)
+  })
+
+  it('scaffold_feature 既没有 spec 也没有 name：失败', async () => {
+    assert.match(textOf(await client.callTool({ name: 'scaffold_feature', arguments: {} })), /^❌ 失败/)
+  })
+
+  it('check_openapi：当前文档符合规范', async () => {
+    const out = textOf(await client.callTool({ name: 'check_openapi', arguments: {} }))
+    assert.match(out, /^✅ 文档符合规范/)
+    assert.match(out, /文档检查：全部符合规范/)
+  })
+
   it('scaffold_feature 非法名称返回失败', async () => {
     const out = textOf(await client.callTool({ name: 'scaffold_feature', arguments: { name: 'BadName', dry_run: true } }))
     assert.match(out, /^❌ 失败/)
@@ -90,7 +142,8 @@ describe('castor-kit MCP server (stdio)', () => {
     const out = textOf(await client.callTool({ name: 'get_menu_tree', arguments: {} }))
     assert.match(out, /^共 \d+ 个菜单项/)
     assert.match(out, /ID=2 {2}系统管理 \(system\)/)
-    assert.match(out, /\n {2}ID=21 {2}用户管理 \(system_users\)/)
+    // Nested under a group since the System menu was grouped: any indentation
+    assert.match(out, /\n +ID=21 {2}用户管理 \(system_users\)/)
     assert.match(out, /当前最大 ID：\d+，建议下一个 ID：\d+/)
   })
 })

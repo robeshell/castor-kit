@@ -10,13 +10,16 @@
  *                     supported types: str / str20 / str50 / str500 / text / int / float / bool / date / datetime /
  *                     file / image (a file-center id; the upload is tracked as a reference of the row) /
  *                     enum / dict (need --spec for their options / dictionary code)
- *   --spec <file>     JSON module spec instead of --name / --fields (what the visual modeler writes):
+ *   --spec <file>     JSON module spec instead of --name / --fields (what an AI agent infers from a requirement;
+ *                     format: docs/spec.schema.json, examples: docs/examples/specs/; title and labels are required):
  *                     { name, domain?, title?, dataScope?, fields: [{ name, type, label?, required?, unique?, default?,
  *                     options? (enum: [{ value, label }]), dict? (dict: dictionary code) }], menu?: { parentId?, icon? },
  *                     i18n?: { 'en-US': { <Chinese text>: <translation> }, 'ja-JP': { … } } }. Chinese labels, NOT NULL / UNIQUE / defaults,
  *                     option fields and the generated rules test come from it; with `menu` the menu and button
  *                     permissions are added to scripts/seed-rbac.ts (under the business group, code biz, unless parentId says otherwise)
  *                     and their names to apps/web/src/locales/menus
+ *   --validate-only   with --spec: check the spec and print what would be generated, write nothing (exit 1 on problems)
+ *   --write-schema    write docs/spec.schema.json (JSON Schema of spec files, built from this script's tables)
  *   --dry-run         print only: write no files, change no registration files, generate no migration
  *   --skip-migration  don't run drizzle-kit generate (for tests)
  *   --data-scope      rows follow data scope: adds dept_id / created_by (stamped on create) and filters list / detail /
@@ -52,6 +55,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import { insertMenus, menuNames, planMenus, type MenuEntry, type MenuRequest } from './lib/menus'
 import { applyScaffoldOpenApi } from './lib/scaffold-openapi'
+import { specSchemaText } from './lib/spec-schema'
 import { printUsage } from './lib/usage'
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
@@ -131,8 +135,10 @@ export interface MenuSpec {
 /** Translations of the spec's Chinese texts (title, labels, option labels): { Chinese → translation } per language */
 export type SpecI18n = Partial<Record<'en-US' | 'ja-JP', Record<string, string>>>
 
-/** A --spec file (JSON): everything the visual modeler knows about a module */
+/** A --spec file (JSON): everything an agent infers about a module (docs/spec.schema.json) */
 export interface SpecFile {
+  /** Editor hint: path or URL of docs/spec.schema.json (ignored by the scaffold) */
+  $schema?: string
   name: string
   domain?: 'admin' | 'component_center'
   /** Chinese title of the page / menu (default: the name, title-cased) */
@@ -240,8 +246,16 @@ export function buildSpec(
   options: { dataScope?: boolean; title?: string; meta?: Record<string, FieldMeta>; i18n?: SpecI18n } = {},
 ): ScaffoldSpec {
   const domainPrefix = domain === 'admin' ? 'system' : 'cc'
-  // Name field (search, required import column): the first str / str50 field; str20 (codes, phones, statuses) and str500 (links) don't count
-  const nameField = fields.find(([, t]) => t === 'str' || t === 'str50')?.[0] ?? fields[0]?.[0] ?? 'name'
+  // Name field (search, required import column): a text field called name / title, else the first str field, else the
+  // first str50 field (codes such as `code: str50` often come first and would make search code-only); str20 (codes,
+  // phones, statuses) and str500 (links) don't count
+  const isName = ([, t]: Field) => t === 'str' || t === 'str50'
+  const nameField =
+    fields.find((f) => isName(f) && (f[0] === 'name' || f[0] === 'title'))?.[0] ??
+    fields.find(([, t]) => t === 'str')?.[0] ??
+    fields.find(([, t]) => t === 'str50')?.[0] ??
+    fields[0]?.[0] ??
+    'name'
   // Import / export / table columns cover all fields;
   // the required column (name field) comes first; non-string fields are converted by buildValues, and conversion failures become error rows
   const importFields = [...fields.filter(([f]) => f === nameField), ...fields.filter(([f]) => f !== nameField)]
@@ -1835,7 +1849,7 @@ export interface ScaffoldOptions {
   dataScope?: boolean
   /**
    * Called before a file is written: `before` is null for a new file, the previous content for an updated one
-   * (the visual modeler records these to undo a module)
+   * (lets a caller record the changes, e.g. to undo a module)
    */
   onChange?: (change: { path: string; before: string | null }) => void
 }
@@ -1892,27 +1906,43 @@ function resolveDrizzleKit(apiDir: string): string[] {
 
 // ─── Spec files (--spec) ───────────────────────────────────────────────────────
 
-const NAME_RE = /^[a-z][a-z0-9_]*$/
-const RESERVED_FIELDS = new Set(['id', 'created_at', 'updated_at', 'dept_id', 'created_by'])
+export const NAME_RE = /^[a-z][a-z0-9_]*$/
+export const RESERVED_FIELDS = new Set(['id', 'created_at', 'updated_at', 'dept_id', 'created_by'])
 /** Types a unique constraint makes sense for (and the generated tests can give distinct samples) */
-const UNIQUE_TYPES = new Set(['str', 'str20', 'str50', 'str500', 'text', 'int', 'float'])
+export const UNIQUE_TYPES = new Set(['str', 'str20', 'str50', 'str500', 'text', 'int', 'float'])
 
 /** Characters a title / label can't hold: they end up in JSX attributes and string literals of the generated page */
-const UNSAFE_TEXT = /["'`\\{}<>\n\r]/
+export const UNSAFE_TEXT = /["'`\\{}<>\n\r]/
+
+/** Keys a spec may use (anything else is most likely a typo such as "requried", which would be ignored silently) */
+export const SPEC_KEYS = {
+  spec: ['$schema', 'name', 'domain', 'title', 'dataScope', 'fields', 'menu', 'i18n'],
+  field: ['name', 'type', 'label', 'required', 'unique', 'default', 'options', 'dict'],
+  option: ['value', 'label'],
+  menu: ['parentId', 'icon'],
+  i18n: ['en-US', 'ja-JP'],
+} as const
+
+function unknownKeys(value: unknown, allowed: readonly string[]): string[] {
+  return value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).filter((k) => !allowed.includes(k)) : []
+}
 
 /** Problems in a --spec file (Chinese, shown to the user); an empty list means it can be generated */
 export function validateSpec(spec: SpecFile): string[] {
   const errors: string[] = []
   if (!spec || typeof spec !== 'object') return ['spec 必须是 JSON 对象']
+  for (const key of unknownKeys(spec, SPEC_KEYS.spec)) errors.push(`未知属性 ${key}（可用：${SPEC_KEYS.spec.slice(1).join(' / ')}）`)
   if (typeof spec.name !== 'string' || !NAME_RE.test(spec.name) || spec.name.length > 40) {
     errors.push('模块名必须是 snake_case（小写字母开头，只含小写字母、数字、下划线，最多 40 个字符）')
   }
   if (spec.domain !== undefined && spec.domain !== 'admin' && spec.domain !== 'component_center') {
     errors.push('domain 只能是 admin 或 component_center')
   }
-  if (spec.title !== undefined && (typeof spec.title !== 'string' || spec.title.trim().length === 0 || spec.title.length > 50)) {
+  if (spec.title === undefined) {
+    errors.push('缺少 title：模块的中文名称（页面标题、菜单名和接口文档都用它），如「设备台账」')
+  } else if (typeof spec.title !== 'string' || spec.title.trim().length === 0 || spec.title.length > 50) {
     errors.push('标题不能为空，最多 50 个字符')
-  } else if (spec.title !== undefined && UNSAFE_TEXT.test(spec.title)) {
+  } else if (UNSAFE_TEXT.test(spec.title)) {
     errors.push('标题不能包含引号、反斜杠、花括号、尖括号或换行')
   }
   if (!Array.isArray(spec.fields) || spec.fields.length === 0) return [...errors, '至少需要一个字段']
@@ -1929,7 +1959,9 @@ export function validateSpec(spec: SpecFile): string[] {
       errors.push(`字段 ${at}：未知类型 ${String(field.type)}`)
       continue
     }
-    if (field.label !== undefined && (typeof field.label !== 'string' || field.label.length > 50)) errors.push(`字段 ${at}：标签最多 50 个字符`)
+    for (const key of unknownKeys(field, SPEC_KEYS.field)) errors.push(`字段 ${at}：未知属性 ${key}（可用：${SPEC_KEYS.field.join(' / ')}）`)
+    if (field.label === undefined) errors.push(`字段 ${at}：缺少 label（中文名，表头、表单和接口文档都用它）`)
+    else if (typeof field.label !== 'string' || field.label.trim().length === 0 || field.label.length > 50) errors.push(`字段 ${at}：标签不能为空，最多 50 个字符`)
     else if (typeof field.label === 'string' && UNSAFE_TEXT.test(field.label)) errors.push(`字段 ${at}：标签不能包含引号、反斜杠、花括号、尖括号或换行`)
     const coerce = fieldSpec(field.type).coerce
     if (field.required && coerce === 'toFileId') errors.push(`字段 ${at}：文件 / 图片字段不能设为必填`)
@@ -1939,6 +1971,7 @@ export function validateSpec(spec: SpecFile): string[] {
       if (options.length === 0) errors.push(`字段 ${at}：固定选项至少要有一项`)
       const values = new Set<string>()
       for (const option of options) {
+        for (const key of unknownKeys(option, SPEC_KEYS.option)) errors.push(`字段 ${at}：选项的未知属性 ${key}（可用：value / label）`)
         if (typeof option?.value !== 'string' || !/^[A-Za-z0-9_-]{1,50}$/.test(option.value)) {
           errors.push(`字段 ${at}：选项值只能包含字母、数字、下划线和连字符（最多 50 个字符）`)
         } else if (values.has(option.value)) errors.push(`字段 ${at}：选项值 ${option.value} 重复`)
@@ -1976,8 +2009,10 @@ export function validateSpec(spec: SpecFile): string[] {
     }
   }
   if (spec.menu !== undefined && spec.menu !== null) {
+    for (const key of unknownKeys(spec.menu, SPEC_KEYS.menu)) errors.push(`menu 的未知属性 ${key}（可用：parentId / icon）`)
     if (spec.menu.parentId !== undefined && !Number.isInteger(spec.menu.parentId)) errors.push('父菜单 ID 不正确')
   }
+  for (const key of unknownKeys(spec.i18n, SPEC_KEYS.i18n)) errors.push(`i18n 只支持 en-US / ja-JP，不支持 ${key}`)
   return errors
 }
 
@@ -2168,6 +2203,26 @@ function registerModuleMenu(ctx: WriteContext, s: ScaffoldSpec, menu: MenuSpec):
   ctx.log(`  [menu] ${s.title}（ID ${module?.id}，按钮 ${module ? `${module.id * 10 + 1}–${module.id * 10 + 5}` : '-'}）`)
 }
 
+/**
+ * --validate-only: check a spec without generating anything; on success print what would be generated
+ * (so an agent can confirm the plan before writing files)
+ */
+export function validateOnly(spec: SpecFile, log: (line: string) => void = (l) => console.log(l)): number {
+  const errors = validateSpec(spec)
+  if (errors.length > 0) {
+    for (const error of errors) log(`❌ ${error}`)
+    log(`\n共 ${errors.length} 个问题；字段类型与写法见 docs/spec.schema.json 和 docs/examples/specs/`)
+    return 1
+  }
+  const s = buildSpec(spec.name, spec.domain ?? 'admin', spec.fields.map((f) => [f.name, f.type]), { title: spec.title, dataScope: spec.dataScope })
+  log(`✅ 规格有效：${spec.name}（${s.title}），${spec.fields.length} 个字段${spec.dataScope ? '，按数据权限隔离' : ''}`)
+  log(`   接口：${s.apiBase}（列表 / 新增 / 详情 / 编辑 / 删除 / 导出 / 导入模板 / 导入）`)
+  log(`   权限：${s.permPrefix} / _add / _edit / _delete / _export / _import`)
+  log(`   表：${s.table}；搜索字段：${s.nameField}`)
+  log(spec.menu ? `   菜单：写入 scripts/seed-rbac.ts（${spec.menu.parentId ? `父菜单 ${spec.menu.parentId}` : '「业务管理」目录下'}）` : '   菜单：不写（需要菜单时加 "menu": {}）')
+  return 0
+}
+
 export function main(argv: string[] = process.argv.slice(2)): number {
   const { values } = parseArgs({
     args: argv.filter((a) => a !== '--'),
@@ -2179,6 +2234,8 @@ export function main(argv: string[] = process.argv.slice(2)): number {
       'dry-run': { type: 'boolean', default: false },
       'skip-migration': { type: 'boolean', default: false },
       'data-scope': { type: 'boolean', default: false },
+      'validate-only': { type: 'boolean', default: false },
+      'write-schema': { type: 'boolean', default: false },
       root: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
@@ -2186,6 +2243,12 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   })
   if (values.help) {
     printUsage(import.meta.url)
+    return 0
+  }
+  if (values['write-schema']) {
+    const path = join(resolve(values.root ?? DEFAULT_ROOT), 'docs', 'spec.schema.json')
+    writeFileSync(path, specSchemaText(), 'utf8')
+    console.log(`✅ 已写入 ${relative(process.cwd(), path)}`)
     return 0
   }
   const common = { root: values.root, dryRun: values['dry-run'], skipMigration: values['skip-migration'] }
@@ -2197,7 +2260,12 @@ export function main(argv: string[] = process.argv.slice(2)): number {
       console.error(`❌ 无法读取 spec 文件：${err instanceof Error ? err.message : String(err)}`)
       return 2
     }
+    if (values['validate-only']) return validateOnly(spec)
     return scaffoldFromSpec(spec, common)
+  }
+  if (values['validate-only']) {
+    console.error('❌ --validate-only 需要配合 --spec <文件>')
+    return 2
   }
   if (!values.name) {
     console.error('❌ 缺少 --name（资源名，snake_case，如 customer）或 --spec <文件>')

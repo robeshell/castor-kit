@@ -41,11 +41,14 @@ import {
   toKebab,
   toLabel,
   toPascal,
+  validateOnly,
   validateSpec,
   type SpecFile,
 } from '../scripts/scaffold'
 import { existingMenus, insertMenus, planMenus } from '../scripts/lib/menus'
+import Ajv2020 from 'ajv/dist/2020'
 import { lintOpenApi } from '../scripts/lib/openapi-lint'
+import { specSchemaText } from '../scripts/lib/spec-schema'
 import { applyScaffoldOpenApi, FIELD_OPENAPI, scaffoldOperations, scaffoldRoutes } from '../scripts/lib/scaffold-openapi'
 
 const API_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -138,6 +141,15 @@ describe('scaffold 纯函数', () => {
     expect(fieldSpec('date').column).toBe("date({ mode: 'string' })")
     expect(fieldSpec('datetime').column).toBe("timestamp({ mode: 'string' })")
     expect(fieldSpec('whatever').column).toBe('varchar({ length: 100 })')
+  })
+
+  it('推断：主名称字段（列表搜索、导入必填列）优先 name / title，其次第一个 str，最后才是 str50（编号常排在前面）', () => {
+    const nameOf = (fields: Array<[string, string]>) => buildSpec('x', 'admin', fields).nameField
+    expect(nameOf([['code', 'str50'], ['name', 'str']])).toBe('name')
+    expect(nameOf([['code', 'str50'], ['title', 'str50'], ['owner', 'str']])).toBe('title')
+    expect(nameOf([['code', 'str50'], ['label', 'str']])).toBe('label')
+    expect(nameOf([['code', 'str50'], ['phone', 'str20']])).toBe('code')
+    expect(nameOf([['qty', 'int']])).toBe('qty')
   })
 
   it('推断：权限前缀 / 表名 / 路由 / 菜单 component / 导入导出字段', () => {
@@ -346,16 +358,17 @@ describe('scaffold --spec 纯函数', () => {
     expect(validateSpec(DEVICE_SPEC)).toEqual([])
     const bad = validateSpec({
       name: 'Bad',
+      title: '坏规格',
       fields: [
-        { name: 'id', type: 'str' },
-        { name: 'x', type: 'nope' },
-        { name: 'x', type: 'str' },
-        { name: 'e', type: 'enum', options: [{ value: 'a b', label: '' }] },
-        { name: 'd', type: 'dict' },
-        { name: 'f', type: 'file', required: true },
-        { name: 'b', type: 'bool', unique: true },
-        { name: 'n', type: 'int', default: 'abc' },
-        { name: 's', type: 'enum', options: [{ value: 'a', label: 'A' }], default: 'z' },
+        { name: 'id', type: 'str', label: 'ID' },
+        { name: 'x', type: 'nope', label: 'X' },
+        { name: 'x', type: 'str', label: 'X' },
+        { name: 'e', type: 'enum', label: 'E', options: [{ value: 'a b', label: '' }] },
+        { name: 'd', type: 'dict', label: 'D' },
+        { name: 'f', type: 'file', label: 'F', required: true },
+        { name: 'b', type: 'bool', label: 'B', unique: true },
+        { name: 'n', type: 'int', label: 'N', default: 'abc' },
+        { name: 's', type: 'enum', label: 'S', options: [{ value: 'a', label: 'A' }], default: 'z' },
       ],
     })
     expect(bad).toEqual([
@@ -371,7 +384,7 @@ describe('scaffold --spec 纯函数', () => {
       '字段 n：默认值 abc 不符合字段类型',
       '字段 s：默认值 z 不符合字段类型',
     ])
-    expect(validateSpec({ name: 'ok', fields: [] })).toEqual(['至少需要一个字段'])
+    expect(validateSpec({ name: 'ok', title: '好', fields: [] })).toEqual(['至少需要一个字段'])
     // Titles and labels land in JSX attributes / string literals of the page
     expect(
       validateSpec({
@@ -379,7 +392,7 @@ describe('scaffold --spec 纯函数', () => {
         title: '设备"台账',
         fields: [
           { name: 'a', type: 'str', label: '名{称}' },
-          { name: 'b', type: 'enum', options: [{ value: 'x', label: '<b>' }] },
+          { name: 'b', type: 'enum', label: 'B', options: [{ value: 'x', label: '<b>' }] },
         ],
       }),
     ).toEqual([
@@ -387,6 +400,28 @@ describe('scaffold --spec 纯函数', () => {
       '字段 a：标签不能包含引号、反斜杠、花括号、尖括号或换行',
       '字段 b：选项名称不能包含引号、反斜杠、花括号、尖括号或换行',
     ])
+  })
+
+  it('校验：必须有中文标题和字段中文名；拼错的属性名直接报错而不是被忽略', () => {
+    expect(
+      validateSpec({
+        name: 'ok',
+        requried: true,
+        fields: [{ name: 'a', type: 'str', requried: true }, { name: 'b', type: 'enum', label: 'B', options: [{ value: 'x', label: 'X', color: 'red' }] }],
+        menu: { parent: 1 },
+        i18n: { fr: {} },
+      } as unknown as SpecFile),
+    ).toEqual([
+      '未知属性 requried（可用：name / domain / title / dataScope / fields / menu / i18n）',
+      '缺少 title：模块的中文名称（页面标题、菜单名和接口文档都用它），如「设备台账」',
+      '字段 a：未知属性 requried（可用：name / type / label / required / unique / default / options / dict）',
+      '字段 a：缺少 label（中文名，表头、表单和接口文档都用它）',
+      '字段 b：选项的未知属性 color（可用：value / label）',
+      'menu 的未知属性 parent（可用：parentId / icon）',
+      'i18n 只支持 en-US / ja-JP，不支持 fr',
+    ])
+    // A $schema pointer (for editors) is allowed
+    expect(validateSpec({ ...DEVICE_SPEC, $schema: '../../spec.schema.json' } as SpecFile)).toEqual([])
   })
 
   it('菜单：第一次建「业务管理」目录（1000），模块取 1001 起第一个空闲 ID，按钮 = ID × 10 + 1…5；已有同名权限码不再添加', () => {
@@ -467,6 +502,62 @@ describe('scaffold OpenAPI 条目', () => {
     expect(item.properties).toHaveProperty('created_by')
     expect(doc.paths[s.apiBase].get.description).toContain('按数据权限过滤')
     expect(doc.paths[`${s.apiBase}/import`].post.description).toContain('第一列「设备名称」必填')
+  })
+})
+
+describe('spec 工具：JSON Schema 与示例', () => {
+  const EXAMPLES = join(REPO_ROOT, 'docs', 'examples', 'specs')
+  const examples = readdirSync(EXAMPLES)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => [f, JSON.parse(readFileSync(join(EXAMPLES, f), 'utf8')) as SpecFile] as const)
+  const ajv = new Ajv2020({ allErrors: true, strict: false })
+  const schemaValid = ajv.compile(JSON.parse(specSchemaText()))
+
+  it('docs/spec.schema.json 与脚手架代码一致（改了字段类型等之后运行 pnpm scaffold -- --write-schema）', () => {
+    expect(readFileSync(join(REPO_ROOT, 'docs', 'spec.schema.json'), 'utf8')).toBe(specSchemaText())
+  })
+
+  it('每个示例：符合 JSON Schema、通过 validateSpec、生成的接口文档符合 OpenAPI 编写规范', () => {
+    expect(examples.length).toBeGreaterThanOrEqual(4)
+    for (const [file, spec] of examples) {
+      expect(schemaValid(spec), `${file}: ${JSON.stringify(schemaValid.errors)}`).toBe(true)
+      expect(validateSpec(spec), file).toEqual([])
+      const meta = Object.fromEntries(spec.fields.map(({ name, type: _t, ...rest }) => [name, rest]))
+      const s = buildSpec(spec.name, spec.domain ?? 'admin', spec.fields.map((f) => [f.name, f.type]), { title: spec.title, meta, dataScope: spec.dataScope })
+      expect(moduleDocIssues(applyScaffoldOpenApi(readFileSync(DOC, 'utf8'), s, (f) => labelOf(s, f)), spec.name), file).toEqual([])
+    }
+    // The README explains every example
+    const readme = readFileSync(join(EXAMPLES, 'README.md'), 'utf8')
+    for (const [file] of examples) expect(readme, file).toContain(`## ${file}`)
+  })
+
+  it('JSON Schema 拦住拼错的属性、缺标题 / 字段中文名、enum 缺选项、非文本字段设唯一', () => {
+    const check = (spec: unknown) => (schemaValid(spec) ? [] : (schemaValid.errors ?? []).map((e) => `${e.instancePath} ${e.keyword}`))
+    expect(check(DEVICE_SPEC)).toEqual([])
+    expect(check({ ...DEVICE_SPEC, requried: true })).toContain(' additionalProperties')
+    const { title: _t, ...untitled } = DEVICE_SPEC
+    expect(check(untitled)).toContain(' required')
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'str' }] })).toContain('/fields/0 required')
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'enum', label: 'A' }] })).toContain('/fields/0 required')
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'bool', label: 'A', unique: true }] })).toContain('/fields/0/unique const')
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'id', type: 'str', label: 'A' }] })).toContain('/fields/0/name not')
+    // File / image fields: not required, no default (validateSpec rejects both too)
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toContain('/fields/0/default enum')
+    expect(validateSpec({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toEqual(['字段 a：默认值 x 不符合字段类型'])
+    expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'money', label: 'A' }] })).toContain('/fields/0/type enum')
+  })
+
+  it('--validate-only：有问题逐条列出并返回 1；有效时说明会生成什么，不写任何文件', () => {
+    const lines: string[] = []
+    expect(validateOnly({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'str' }] } as SpecFile, (l) => lines.push(l))).toBe(1)
+    expect(lines[0]).toBe('❌ 字段 a：缺少 label（中文名，表头、表单和接口文档都用它）')
+    const ok: string[] = []
+    expect(validateOnly(DEVICE_SPEC, (l) => ok.push(l))).toBe(0)
+    expect(ok[0]).toBe('✅ 规格有效：ck_spec_device（设备台账），8 个字段')
+    expect(ok.join('\n')).toContain('/api/admin/ck-spec-devices')
+    const cli = scaffoldCli(['--spec', join(EXAMPLES, 'device.json'), '--validate-only'])
+    expect(cli.code, cli.out).toBe(0)
+    expect(cli.out).toContain('权限：system_device / _add / _edit / _delete / _export / _import')
   })
 })
 

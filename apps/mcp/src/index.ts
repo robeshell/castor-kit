@@ -18,7 +18,10 @@
  * Tools:
  *   get_project_context   returns AGENTS.md + the current module tree (for Step 1)
  *   get_menu_tree         returns the current menu structure (for inferring parent_id)
- *   scaffold_feature      generates code skeleton files (pnpm scaffold)
+ *   get_spec_guide        returns the spec JSON Schema + requirement → spec examples (for writing a spec)
+ *   validate_spec         checks a spec and says what it would generate (pnpm scaffold --spec --validate-only)
+ *   scaffold_feature      generates a module from a spec (or legacy name / fields), incl. its OpenAPI entries
+ *   check_openapi         checks docs/apifox-full.openapi.json against the OpenAPI rules (openapi:generate --dry-run --strict)
  *   run_verify            runs pnpm verify --json and returns the JSON
  *   init_rbac             runs pnpm seed:rbac -- --incremental
  *   run_migration         pnpm db:generate + pnpm db:migrate
@@ -29,7 +32,8 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -80,6 +84,7 @@ function hasPnpm(): boolean {
 /** Root package.json scripts → equivalent direct invocations when pnpm is unavailable (cwd = apps/api) */
 const SCRIPT_FALLBACK: Record<string, { bin: string; args: string[] }> = {
   scaffold: { bin: 'tsx', args: ['scripts/scaffold.ts'] },
+  'openapi:generate': { bin: 'tsx', args: ['scripts/generate-openapi.ts'] },
   verify: { bin: 'tsx', args: ['scripts/verify-feature.ts'] },
   'seed:rbac': { bin: 'tsx', args: ['scripts/seed-rbac.ts'] },
   'db:migrate': { bin: 'tsx', args: ['src/db/migrate-cli.ts'] },
@@ -116,6 +121,53 @@ export function extractJson(text: string): unknown {
 
 type ToolResult = { content: { type: 'text'; text: string }[] }
 const text = (value: string): ToolResult => ({ content: [{ type: 'text', text: value }] })
+
+/** Script output without pnpm's own `$ <command>` echo lines */
+export function cleanOutput(output: string): string {
+  return output
+    .split('\n')
+    .filter((line) => !line.startsWith('$ '))
+    .join('\n')
+    .trim()
+}
+
+/** Run the scaffold with a spec object: it is written to a temp file for `--spec` and removed afterwards */
+async function withSpecFile(spec: unknown, args: string[]): Promise<RunResult> {
+  const dir = mkdtempSync(join(tmpdir(), 'castor-kit-spec-'))
+  const file = join(dir, 'spec.json')
+  try {
+    writeFileSync(file, JSON.stringify(spec, null, 2), 'utf8')
+    return await runScript('scaffold', ['--spec', file, ...args])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+/** docs/spec.schema.json + docs/examples/specs (README and every example) */
+export function specGuide(): string {
+  const read = (rel: string) => {
+    const path = join(ROOT, rel)
+    return existsSync(path) ? readFileSync(path, 'utf8').trim() : `（${rel} 不存在）`
+  }
+  const examplesDir = join(ROOT, 'docs', 'examples', 'specs')
+  const examples = existsSync(examplesDir) ? readdirSync(examplesDir).filter((f) => f.endsWith('.json')).sort() : []
+  return [
+    '# 模块规格（spec）指南',
+    '',
+    '先用 validate_spec 校验并确认会生成什么，再用 scaffold_feature 的 spec 参数生成。',
+    '',
+    '## 需求 → spec 示例（docs/examples/specs/README.md）',
+    '',
+    read('docs/examples/specs/README.md'),
+    '',
+    ...examples.flatMap((f) => [`## docs/examples/specs/${f}`, '', '```json', read(`docs/examples/specs/${f}`), '```', '']),
+    '## JSON Schema（docs/spec.schema.json）',
+    '',
+    '```json',
+    read('docs/spec.schema.json'),
+    '```',
+  ].join('\n')
+}
 
 export function projectContext(): string {
   const agentsMd = join(ROOT, 'AGENTS.md')
@@ -254,23 +306,72 @@ export function createServer(): McpServer {
   )
 
   server.registerTool(
+    'get_spec_guide',
+    {
+      description:
+        '返回写模块规格（spec）需要的全部参考：JSON Schema（字段类型、必填项、选项写法）和「一句需求 → spec」示例及每个字段的推断理由。' +
+        '把需求写成 spec 之前先调用。',
+      inputSchema: {},
+    },
+    async () => text(specGuide()),
+  )
+
+  server.registerTool(
+    'validate_spec',
+    {
+      description:
+        '校验模块规格（spec），不生成任何文件：有问题逐条列出（拼错的属性、缺中文标题 / 字段名、类型与默认值不符等）；' +
+        '通过时说明会生成的接口、权限、表和菜单。生成前必须先通过。',
+      inputSchema: {
+        spec: z.record(z.string(), z.unknown()).describe('模块规格对象，格式见 get_spec_guide'),
+      },
+    },
+    async ({ spec }) => {
+      const res = await withSpecFile(spec, ['--validate-only'])
+      return text(cleanOutput(res.output))
+    },
+  )
+
+  server.registerTool(
     'scaffold_feature',
     {
       description:
-        '根据规格生成代码骨架文件（db/schema 表定义 + schema/repository/service/routes + 前端页面），' +
-        '自动注册到 db/schema/index.ts 与 router.ts 并生成 drizzle 迁移。生成后还需补充业务逻辑。',
+        '生成一个完整模块：db/schema 表定义 + schema/repository/service/routes + 接口测试 + 前端页面，' +
+        '自动注册到 db/schema/index.ts 与 router.ts、生成 drizzle 迁移、写好 OpenAPI 文档；spec 里写了 menu 时同时写入菜单和按钮权限。' +
+        '优先传 spec（先用 validate_spec 校验）；name / fields 是没有中文标签和选项的旧用法。生成后还需补充业务逻辑。',
       inputSchema: {
-        name: z.string().describe('资源名，snake_case，如 customer'),
-        domain: z.enum(['admin', 'component_center']).optional().describe('所属域'),
-        fields: z.string().optional().describe('字段列表，格式 "name:str,phone:str20,amount:float"'),
+        spec: z.record(z.string(), z.unknown()).optional().describe('模块规格对象（推荐），格式见 get_spec_guide；传了 spec 就不看 name / domain / fields'),
+        name: z.string().optional().describe('旧用法：资源名，snake_case，如 customer'),
+        domain: z.enum(['admin', 'component_center']).optional().describe('旧用法：所属域'),
+        fields: z.string().optional().describe('旧用法：字段列表，格式 "name:str,phone:str20,amount:float"'),
         dry_run: z.boolean().optional().default(false).describe('只预览不写文件，默认 false'),
       },
     },
-    async ({ name, domain, fields, dry_run }) => {
-      const args = ['--name', name, '--domain', domain ?? 'admin', '--fields', fields ?? 'name:str']
-      if (dry_run) args.push('--dry-run')
-      const res = await runScript('scaffold', args)
-      return text(`${res.code === 0 ? '✅ 成功' : '❌ 失败'}\n\n${res.output}`)
+    async ({ spec, name, domain, fields, dry_run }) => {
+      const flags = dry_run ? ['--dry-run'] : []
+      let res: RunResult
+      if (spec) {
+        res = await withSpecFile(spec, flags)
+      } else if (name) {
+        res = await runScript('scaffold', ['--name', name, '--domain', domain ?? 'admin', '--fields', fields ?? 'name:str', ...flags])
+      } else {
+        return text('❌ 失败\n\n需要 spec（推荐）或 name')
+      }
+      return text(`${res.code === 0 ? '✅ 成功' : '❌ 失败'}\n\n${cleanOutput(res.output)}`)
+    },
+  )
+
+  server.registerTool(
+    'check_openapi',
+    {
+      description:
+        '按 AGENTS.md「OpenAPI 编写规范」检查 docs/apifox-full.openapi.json 是否覆盖并正确描述所有接口，逐个列出不合规的接口和原因；' +
+        '改了路由、字段或校验后调用。不修改文件。',
+      inputSchema: {},
+    },
+    async () => {
+      const res = await runScript('openapi:generate', ['--dry-run', '--strict'])
+      return text(`${res.code === 0 ? '✅ 文档符合规范' : '❌ 文档不符合规范'}\n\n${cleanOutput(res.output).slice(-6000)}`)
     },
   )
 

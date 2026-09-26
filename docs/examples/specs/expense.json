@@ -1,0 +1,26 @@
+{
+  "$schema": "../../spec.schema.json",
+  "name": "expense",
+  "title": "报销单",
+  "dataScope": true,
+  "fields": [
+    { "name": "reason", "type": "str", "label": "报销事由", "required": true },
+    { "name": "amount", "type": "float", "label": "报销金额", "required": true },
+    { "name": "spent_on", "type": "date", "label": "发生日期", "required": true },
+    {
+      "name": "category",
+      "type": "enum",
+      "label": "报销类别",
+      "required": true,
+      "options": [
+        { "value": "travel", "label": "差旅" },
+        { "value": "meal", "label": "餐饮" },
+        { "value": "office", "label": "办公" },
+        { "value": "other", "label": "其他" }
+      ]
+    },
+    { "name": "receipt", "type": "image", "label": "票据" },
+    { "name": "description", "type": "text", "label": "说明" }
+  ],
+  "menu": {}
+}

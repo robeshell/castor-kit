@@ -20,6 +20,27 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 
 ---
 
+## 从一句需求到 spec（新增业务模块先看这里）
+
+「做一个 XX 管理 / XX 台账」这类需求，做法是把一句话推断成一份模块规格（spec），交给脚手架一次生成全套代码。
+
+1. 把需求写成 spec JSON：格式见 `docs/spec.schema.json`；4 个带逐字段推断理由的完整示例在 `docs/examples/specs/`
+2. `pnpm scaffold -- --spec <文件> --validate-only`：校验，并列出会生成的接口、权限、表和菜单；有问题按提示逐条改
+3. 向 PM 展示业务预览（字段、选项、必填），确认后 `pnpm scaffold -- --spec <文件>`：一次生成表、接口、接口测试、页面、菜单与按钮权限、OpenAPI 文档和迁移
+4. 补业务逻辑 → `pnpm seed:rbac -- --incremental` → `pnpm db:migrate` → `psql \d` 实证 → `pnpm verify -- --module <name>`
+
+用 MCP 时对应：`get_spec_guide` → `validate_spec` → `scaffold_feature`（传 `spec`）→ `run_verify` / `check_openapi`。
+
+推断要点（字段类型见下文「字段类型推断规则」）：
+
+- `name`：英文单数 snake_case（`device`、`customer_order`）；`title`：中文模块名，必填；每个字段都要有中文 `label`（表头、表单、导入模板、接口文档都用它）
+- 选项固定、写死在需求里（状态、类型、等级）→ `enum` + `options`（`value` 英文、`label` 中文）；选项会增减、要管理员维护（分类、来源、行业）→ `dict` + 数据字典编码
+- `required`：需求点名「必填 / 不能为空」的字段；有默认值的状态字段也设必填（编辑时不能清空）；文件 / 图片字段不能必填
+- `unique`：需求说「不能重复 / 唯一」，只用于文本和数字字段；`default`：需求说「默认 …」才写，值要符合类型（`enum` 写选项值）
+- `dataScope: true`：需求说「只能看到自己 / 本部门的 …」；`menu: {}`：新业务模块都要菜单（放进「业务管理」）
+- 记录的主名称字段叫 `name` 或 `title`（列表搜索、导入必填列用它）；不要写 `id` / `created_at` / `updated_at`（自动生成）
+- 超出脚手架的部分（表间关联、审批流、计算字段、跨字段校验）：先生成单表模块，再按下文分层规则手写
+
 ## 技术栈
 
 | 层 | 技术 | 版本 |
@@ -145,6 +166,8 @@ castor-kit/
 │   ├── architecture.md                # 架构说明
 │   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
 │   ├── apifox-full.openapi.json       # OpenAPI 文档（写法见「OpenAPI 编写规范」）
+│   ├── spec.schema.json               # scaffold --spec 规格的 JSON Schema（pnpm scaffold -- --write-schema 生成）
+│   ├── examples/specs/                # 「一句需求 → spec」示例（README.md 写逐字段推断理由）
 │   └── templates/                     # 代码骨架模板（AI 临摹用）
 │       ├── backend/                   # db-schema / schema / repository / service / routes（.ts）+ README.md
 │       └── frontend/                  # list_page / detail_page
@@ -551,7 +574,8 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 | 描述、备注、简介、说明 | `text` | `text()` | - |
 | 手机、电话、phone | `str20` | `varchar({ length: 20 })` | - |
 | 邮箱、email | `str` | `varchar({ length: 100 })` | - |
-| 状态、status、类型、type | `str20` | `varchar({ length: 20 })` | - |
+| 状态、类型、等级（选项固定） | `enum`（spec 写 `options`） | `varchar({ length: 50 })` | 存英文值、显示中文；只用 `--fields` 时退回 `str20` |
+| 分类、来源、行业（选项会增减） | `dict`（spec 写 `dict` 字典编码） | `varchar({ length: 100 })` | 选项在「数据字典」里维护 |
 | 金额、价格、费用、成本 | `float` | `numeric({ precision: 10, scale: 2 })` | 输出为字符串 |
 | 数量、次数、个数 | `int` | `integer()` | - |
 | 进度、百分比、完成度 | `int` | `integer()` | 0-100 |
@@ -567,7 +591,7 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 | 内容、正文、详情 | `text` | `text()` | 富文本 |
 | 标签、tags | `text` | `text()` | JSON 字符串 |
 
-**scaffold 优先用 `--spec`**（详见 `new-feature-autopilot` 技能 4a）：把推断出的规格写成 JSON 文件，`pnpm scaffold -- --spec <文件>` 一次生成中文标题 / 标签、必填、唯一、默认值、固定选项（`enum`，存英文值显示中文）、数据字典（`dict`）和菜单（`menu`：自动写进 `seed-rbac.ts` 的「业务管理」目录与菜单译文），生成的接口测试多一条字段规则用例；spec 先经 `validateSpec` 校验（字段名、类型、选项、字典、默认值与类型是否匹配，标题 / 标签不能含引号、花括号、尖括号等）。只用 `--fields` 时没有这些，标签是英文占位。表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。
+**scaffold 优先用 `--spec`**（详见 `new-feature-autopilot` 技能 4a）：把推断出的规格写成 JSON 文件，`pnpm scaffold -- --spec <文件>` 一次生成中文标题 / 标签、必填、唯一、默认值、固定选项（`enum`，存英文值显示中文）、数据字典（`dict`）和菜单（`menu`：自动写进 `seed-rbac.ts` 的「业务管理」目录与菜单译文），生成的接口测试多一条字段规则用例；spec 先经 `validateSpec` 校验（中文 `title` 与字段 `label` 必填，拼错的属性名直接报错，字段名、类型、选项、字典、默认值与类型是否匹配，标题 / 标签不能含引号、花括号、尖括号等）；`--validate-only` 只校验不生成；格式见 `docs/spec.schema.json`（由 `pnpm scaffold -- --write-schema` 从脚手架代码生成），示例见 `docs/examples/specs/`。只用 `--fields` 时没有这些，标签是英文占位。表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。
 
 ---
 
@@ -728,7 +752,7 @@ pnpm mcp
 
 ## MCP Server
 
-`apps/mcp/src/index.ts` 把工具链暴露为 MCP 协议，工具：`get_project_context` / `get_menu_tree` / `scaffold_feature` / `run_verify` / `init_rbac` / `run_migration` / `list_templates`。
+`apps/mcp/src/index.ts` 把工具链暴露为 MCP 协议，工具：`get_project_context` / `get_menu_tree` / `get_spec_guide`（spec 的 JSON Schema 与需求 → spec 示例）/ `validate_spec` / `scaffold_feature`（传 `spec` 或旧的 `name` + `fields`）/ `check_openapi` / `run_verify` / `init_rbac` / `run_migration` / `list_templates`。
 
 Claude Desktop 配置（`claude_desktop_config.json`）：
 ```json

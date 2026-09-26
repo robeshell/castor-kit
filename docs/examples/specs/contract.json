@@ -1,0 +1,29 @@
+{
+  "$schema": "../../spec.schema.json",
+  "name": "contract",
+  "title": "合同管理",
+  "fields": [
+    { "name": "code", "type": "str50", "label": "合同编号", "required": true, "unique": true },
+    { "name": "name", "type": "str", "label": "合同名称", "required": true },
+    { "name": "customer_name", "type": "str", "label": "客户名称", "required": true },
+    { "name": "amount", "type": "float", "label": "合同金额", "required": true },
+    { "name": "signed_on", "type": "date", "label": "签订日期" },
+    { "name": "expires_on", "type": "date", "label": "到期日期" },
+    {
+      "name": "status",
+      "type": "enum",
+      "label": "合同状态",
+      "required": true,
+      "default": "draft",
+      "options": [
+        { "value": "draft", "label": "草稿" },
+        { "value": "active", "label": "执行中" },
+        { "value": "completed", "label": "已完成" },
+        { "value": "terminated", "label": "已终止" }
+      ]
+    },
+    { "name": "auto_renew", "type": "bool", "label": "自动续约", "default": false },
+    { "name": "attachment", "type": "file", "label": "合同附件" }
+  ],
+  "menu": {}
+}

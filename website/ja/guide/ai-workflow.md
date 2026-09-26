@@ -108,6 +108,8 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--fields` | フィールドの一覧。形式は `フィールド:型,フィールド:型` | `name:str` |
 | `--spec` | `--name` / `--fields` の代わりに JSON ファイルでモジュールを記述。中国語のラベル、必須、一意、デフォルト値、選択肢、メニューを指定できる。下の [spec ファイル](#spec-ファイル) を参照 | — |
 | `--dry-run` | 生成される内容を表示するだけで、ファイルの書き込み、登録、マイグレーションの生成は行わない | オフ |
+| `--validate-only` | `--spec` と併用：spec を検証し、生成される API・権限・テーブル・メニューを表示するだけでファイルは書かない。問題があれば一覧表示して 1 で終了 | オフ |
+| `--write-schema` | スキャフォールドの現在のフィールド型などのルールから `docs/spec.schema.json` を再生成 | オフ |
 | `--skip-migration` | drizzle-kit によるマイグレーションの生成を行わない | オフ |
 | `--data-scope` | [データ権限](/ja/guide/rbac#データ権限)を組み込む：テーブルに `dept_id` / `created_by` を追加し、一覧・詳細・編集・削除・エクスポートを現在のユーザーのデータ範囲で絞り込み、作成時に作成者と部署を記録し、対応する API テストも生成する | オフ |
 | `-h` / `--help` | 使い方を表示する | — |
@@ -196,9 +198,12 @@ AI は業務上の説明から型を推測するので、あなたが指定す�
 ```
 
 ```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # 先に検証し、何が生成されるか確認
 pnpm scaffold -- --spec device.spec.json
 ```
 
+- `title` と各フィールドの `label` は必須です。綴りを間違えたキー（`requried` など）は黙って無視されず、エラーになります
+- 完全な形式は [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json) にあります（JSON に `"$schema": "<相対パス>/docs/spec.schema.json"` を書くとエディターで補完・ヒントが効きます）。「要件 → spec」の例 4 つとフィールドごとの推論理由は [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs) にあります
 - `required`：列に `NOT NULL`。追加・編集時に空なら 400「`<ラベル>不能为空`」を返し、フォームでも必須として検証します。`image` / `file` は必須にできません
 - `unique`：列に `UNIQUE`。重複すると 400 を返します。テキストと数値の型のみ
 - `default`：列のデフォルト値。追加時に空ならこの値を使い、フォームにもあらかじめ入力されます
@@ -278,7 +283,10 @@ pnpm verify -- --module customer --json          # 構造化 JSON を出力（st
 |---|---|
 | `get_project_context` | `AGENTS.md` の全文と現在のモジュール構成を返す。新機能を実装する前に呼び出す |
 | `get_menu_tree` | データベース上のメニューツリーを返す。`parent_id` と空いている ID の決定に使う |
-| `scaffold_feature` | `pnpm scaffold` を呼び出す（引数 `name`、`domain`、`fields`、`dry_run`） |
+| `get_spec_guide` | spec の JSON Schema と「要件 → spec」の例を返す。spec を書く前に呼び出す |
+| `validate_spec` | spec（引数 `spec`）を検証し、何が生成されるかを返す。ファイルは書かない |
+| `scaffold_feature` | `pnpm scaffold` を呼び出す：`spec`（推奨）または従来の `name`、`domain`、`fields` を渡す。`dry_run` はプレビューのみ |
+| `check_openapi` | API ドキュメントを OpenAPI の規約でチェックし、規約に合わない API を一覧表示 |
 | `run_verify` | `pnpm verify --json` を呼び出して結果を返す（引数 `module`、`skip_build`） |
 | `init_rbac` | `pnpm seed:rbac -- --incremental` を呼び出す |
 | `run_migration` | `db:generate` + `db:migrate` を実行する（引数 `message` をマイグレーションの説明として使う） |

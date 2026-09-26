@@ -1,0 +1,33 @@
+{
+  "$schema": "../../spec.schema.json",
+  "name": "device",
+  "title": "设备台账",
+  "fields": [
+    { "name": "code", "type": "str50", "label": "设备编号", "required": true, "unique": true },
+    { "name": "name", "type": "str", "label": "设备名称", "required": true },
+    {
+      "name": "status",
+      "type": "enum",
+      "label": "设备状态",
+      "required": true,
+      "default": "idle",
+      "options": [
+        { "value": "idle", "label": "闲置" },
+        { "value": "in_use", "label": "使用中" },
+        { "value": "repairing", "label": "维修中" },
+        { "value": "scrapped", "label": "已报废" }
+      ]
+    },
+    { "name": "category", "type": "dict", "label": "设备分类", "dict": "device_category" },
+    { "name": "price", "type": "float", "label": "采购价格" },
+    { "name": "purchased_on", "type": "date", "label": "采购日期" },
+    { "name": "photo", "type": "image", "label": "设备照片" },
+    { "name": "manual", "type": "file", "label": "说明书" },
+    { "name": "remark", "type": "text", "label": "备注" }
+  ],
+  "menu": {},
+  "i18n": {
+    "en-US": { "设备台账": "Devices", "设备编号": "Device no.", "设备名称": "Name", "设备状态": "Status", "闲置": "Idle", "使用中": "In use", "维修中": "Under repair", "已报废": "Scrapped", "设备分类": "Category", "采购价格": "Purchase price", "采购日期": "Purchase date", "设备照片": "Photo", "说明书": "Manual", "备注": "Remark" },
+    "ja-JP": { "设备台账": "設備台帳", "设备编号": "設備番号", "设备名称": "名称", "设备状态": "状態", "闲置": "待機", "使用中": "使用中", "维修中": "修理中", "已报废": "廃棄済み", "设备分类": "分類", "采购价格": "購入価格", "采购日期": "購入日", "设备照片": "写真", "说明书": "説明書", "备注": "備考" }
+  }
+}
