@@ -2,7 +2,7 @@
  * Outgoing mail (password reset links). Configured by environment variables only (see MailConfig in config.ts):
  * - smtp: nodemailer over SMTP_HOST / SMTP_PORT / SMTP_SECURE / SMTP_USER / SMTP_PASSWORD, sender MAIL_FROM
  * - log: MAIL_DRIVER=log writes the mail to the server log instead (development: click the link from the console)
- * - none: no mail; features that need it can't be turned on in 系统设置
+ * - none: no mail; features that need it can't be turned on in system settings
  */
 
 import nodemailer from 'nodemailer'

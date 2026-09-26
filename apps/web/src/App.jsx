@@ -8,6 +8,7 @@ import { ErrorPage, NoPermissionPage, RouteNotConfigured } from '@/components/ap
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Login from '@/modules/auth/pages/login'
+import ResetPassword from '@/modules/auth/pages/reset_password'
 import Profile from '@/modules/admin/pages/profile'
 import { useTranslation } from 'react-i18next'
 
@@ -106,6 +107,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/"
         element={

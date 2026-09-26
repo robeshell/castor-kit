@@ -3,7 +3,6 @@
   "不能修改自己的角色": "You can't change your own roles",
   "从未登录": "Never",
   "例如 zhangsan": "e.g. jsmith",
-  "停用后该账号无法登录，已登录的会话会在下一次操作时失效。": "They won't be able to sign in, and any signed-in session ends on its next request.",
   "停用用户 {{name}}？": "Disable {{name}}?",
   "停用账号": "Disable",
   "全部部门": "All departments",
@@ -37,5 +36,13 @@
   "角色名称": "Role name",
   "角色编码": "Role code",
   "选择角色": "Select roles",
-  "（无）不属于任何部门": "(None) no department"
+  "（无）不属于任何部门": "(None) no department",
+  "已重置两步验证": "Two-step verification reset",
+  "已开启两步验证": "Two-step verification on",
+  "停用后该账号无法登录，已登录的设备会立即退出。": "They won't be able to sign in, and their signed-in devices are signed out right away.",
+  "重置 {{name}} 的两步验证？": "Reset two-step verification for {{name}}?",
+  "用于手机和恢复码都丢失的情况。重置后该用户登录只需要密码；如果所在角色要求两步验证，下次登录时会重新绑定。": "For when both the phone and the recovery codes are lost. They'll sign in with just the password; if their role requires two-step verification, they set it up again at the next sign-in.",
+  "重置两步验证": "Reset 2FA",
+  "留空则不修改（{{rule}}）": "Leave blank to keep ({{rule}})",
+  "重置": "Reset"
 }

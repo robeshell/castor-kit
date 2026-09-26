@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { getMe, getMyMenus, logout as apiLogout } from '@/modules/admin/api/auth'
+import { PUBLIC_PATHS } from '@/shared/api/request'
 
 const AuthContext = createContext(null)
 
@@ -10,8 +11,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (window.location.pathname === '/login') {
-      // The login page doesn't need to fetch the current user: end the loading state directly (one-time init, won't cause cascading renders)
+    if (PUBLIC_PATHS.includes(window.location.pathname)) {
+      // Public pages (sign-in, password reset) don't need to fetch the current user: end the loading state directly (one-time init, won't cause cascading renders)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false)
       return

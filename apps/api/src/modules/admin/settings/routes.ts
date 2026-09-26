@@ -1,5 +1,5 @@
 /**
- * Settings module routes (系统设置): system_settings to view, system_settings_edit to save
+ * System settings module routes: system_settings to view, system_settings_edit to save
  */
 
 import type { FastifyInstance } from 'fastify'

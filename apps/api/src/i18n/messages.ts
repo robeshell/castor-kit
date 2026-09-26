@@ -133,7 +133,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   // system settings
   '无权限查看系统设置': { 'en-US': "You don't have permission to view system settings", 'ja-JP': 'システム設定を閲覧する権限がありません' },
   '无权限修改系统设置': { 'en-US': "You don't have permission to change system settings", 'ja-JP': 'システム設定を変更する権限がありません' },
-  // sessions (在线用户 / signed-in devices)
+  // sessions (online users / signed-in devices)
   '演示环境不能开启此功能': { 'en-US': "This can't be turned on in the demo", 'ja-JP': 'デモ環境ではこの機能を有効にできません' },
   '请输入两步验证码': { 'en-US': 'Enter your two-step verification code', 'ja-JP': '2段階認証コードを入力してください' },
   '你的账号需要先绑定两步验证': { 'en-US': 'Your account must set up two-step verification first', 'ja-JP': 'このアカウントは先に2段階認証を設定する必要があります' },

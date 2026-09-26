@@ -1,5 +1,5 @@
 /**
- * Password reset routes (找回密码): public, share the stricter sign-in rate limit
+ * Password reset routes: public, share the stricter sign-in rate limit
  */
 
 import type { FastifyInstance } from 'fastify'

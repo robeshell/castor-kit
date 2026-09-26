@@ -1,5 +1,5 @@
 /**
- * Sessions module service layer: online users (在线用户) and the profile's signed-in devices
+ * Sessions module service layer: online users and the profile's signed-in devices
  */
 
 import { loadAdminsWithRolesByIds } from '@/common/auth'

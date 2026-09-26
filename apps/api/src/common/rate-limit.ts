@@ -4,7 +4,7 @@
  * - Every /api and /ws request counts toward security.rate_limit_per_minute (static files and /health don't count)
  * - Sign-in style endpoints (login, 2FA code, password reset request) also share a stricter bucket:
  *   security.auth_rate_limit_per_minute; routes opt in with `onRequest: authRateLimit(app)`
- * - Limits are read from 系统设置 on every request (cached), so changes apply within a few seconds
+ * - Limits are read from system settings on every request (cached), so changes apply within a few seconds
  * - Counts are per process: with N instances behind a load balancer the effective limit is up to N times higher
  * - RATE_LIMIT_ENABLED=false turns the whole thing off (the test suite does this; see test/rate-limit.test.ts)
  */

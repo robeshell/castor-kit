@@ -70,7 +70,7 @@ export interface AppConfig {
   corsOrigins: string[]
   loginMaxFailures: number
   loginLockoutMinutes: number
-  /** RATE_LIMIT_ENABLED (default true): per-IP request limits; the limits themselves are in 系统设置 */
+  /** RATE_LIMIT_ENABLED (default true): per-IP request limits; the limits themselves are in system settings */
   rateLimitEnabled: boolean
   /** Frontend build output dir (apps/web/dist); if missing, the SPA fallback returns a JSON hint */
   webDistDir: string

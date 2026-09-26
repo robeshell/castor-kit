@@ -1,5 +1,5 @@
 /**
- * Password reset (找回密码) by email link
+ * Password reset by email link
  *
  * - request: always answers the same message, whether or not the email belongs to an account (no user enumeration);
  *   the mail is sent in the background so the response time doesn't tell either

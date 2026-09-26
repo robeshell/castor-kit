@@ -7,6 +7,9 @@ const request = axios.create({
   timeout: 10000,
 })
 
+/** Pages reachable without signing in (no redirect to /login on 401) */
+export const PUBLIC_PATHS = ['/login', '/reset-password']
+
 // CSRF token: returned by the login/getMe responses; state-changing requests automatically attach the X-CSRF-Token header
 let _csrfToken = ''
 export const setCsrfToken = (token) => {
@@ -33,9 +36,10 @@ request.interceptors.response.use(
     return res.data
   },
   (err) => {
-    // 401 = not logged in / session expired: always do a full-page redirect to the login page (except 401s from the login page itself, e.g. wrong password)
+    // 401 = not logged in / session expired: always do a full-page redirect to the login page (except on the public
+    // pages themselves: a wrong password on /login, an expired link on /reset-password)
     const status = err.response?.status
-    if (status === 401 && window.location.pathname !== '/login') {
+    if (status === 401 && !PUBLIC_PATHS.includes(window.location.pathname)) {
       window.location.replace('/login')
     }
     return Promise.reject(err.response?.data || err)

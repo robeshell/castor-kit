@@ -66,7 +66,7 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   app.decorateRequest('dataScope', undefined)
 
   // ---- Session ----
-  // The cookie only carries { sid, csrf_token }; the sessions row decides expiry (TTL from 系统设置, sliding), so the
+  // The cookie only carries { sid, csrf_token }; the sessions row decides expiry (TTL from system settings, sliding), so the
   // envelope's own expiry is set to the longest TTL the setting allows
   const ttlSeconds = config.sessionTtlHours * 3600
   await app.register(cookie)

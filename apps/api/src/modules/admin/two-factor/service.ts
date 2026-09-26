@@ -1,16 +1,17 @@
 /**
- * Two-factor module service layer (两步验证, TOTP)
+ * Two-factor module service layer (two-step verification, TOTP)
  *
  * - Enrollment: setup stores a new sealed secret (not active yet), enable checks the first code, turns it on and
  *   returns 10 recovery codes (shown once)
  * - Verification: a TOTP code (each time step once) or an unused recovery code
- * - The 系统设置 switch only decides whether sign-in asks for the code; turning it off keeps every binding, so turning
+ * - The system settings switch only decides whether sign-in asks for the code; turning it off keeps every binding, so turning
  *   it back on needs no re-enrollment. Roles in security.totp_required_roles can't turn their own 2FA off.
  */
 
 import { ServiceError } from '@/common/errors'
 import { checkPasswordHash } from '@/common/password'
 import { openSecret, sealSecret } from '@/common/secret-box'
+import { toIso } from '@/common/serialize'
 import type { Settings, SettingsStore } from '@/common/settings'
 import { hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, totpUri } from '@/common/totp'
 import type { Db } from '@/db/client'
@@ -53,7 +54,7 @@ export class TwoFactorService {
     return {
       available: this.settings.isAvailable('security.totp_enabled', settings),
       enabled: Boolean(row.totp_enabled_at),
-      enabled_at: row.totp_enabled_at,
+      enabled_at: toIso(row.totp_enabled_at),
       required: settings.totpEnabled && this.isRequired(user, settings),
       recovery_codes_left: row.totp_enabled_at ? await this.repo.countUnusedRecoveryCodes(user.id) : 0,
     }

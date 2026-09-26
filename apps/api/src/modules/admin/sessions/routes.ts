@@ -1,7 +1,7 @@
 /**
  * Sessions module routes
  *
- * - 在线用户: system_sessions to list (within the caller's data scope), system_sessions_revoke to force a sign-out
+ * - Online users: system_sessions to list (within the caller's data scope), system_sessions_revoke to force a sign-out
  * - Profile: every signed-in user sees and signs out their own other devices
  */
 

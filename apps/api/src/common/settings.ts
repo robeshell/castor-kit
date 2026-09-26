@@ -1,5 +1,5 @@
 /**
- * System settings (系统设置): feature switches and parameters an admin can change at runtime.
+ * System settings: feature switches and parameters an admin can change at runtime.
  *
  * - The registry below is the only place keys are defined: type, default, bounds, and whether the browser may read it
  * - Values live in `system_settings` (jsonb); keys that were never saved use their default

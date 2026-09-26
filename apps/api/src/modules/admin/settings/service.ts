@@ -1,5 +1,5 @@
 /**
- * Settings module service layer (系统设置): read and save the registry in common/settings.ts
+ * System settings module service layer: read and save the registry in common/settings.ts
  */
 
 import { inArray } from 'drizzle-orm'

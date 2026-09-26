@@ -1,5 +1,5 @@
 /**
- * Two-factor module routes (两步验证)
+ * Two-factor (two-step verification) module routes
  *
  * - POST /api/admin/login/two-factor: second sign-in step (session waiting in 'verify')
  * - /api/admin/two-factor/*: the signed-in user's own 2FA; setup / enable also accept a session waiting in 'setup'

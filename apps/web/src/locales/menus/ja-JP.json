@@ -125,5 +125,9 @@
   "cc_ai_chat_new": "新しいチャット",
   "cc_ai_prompt_add": "テンプレートの新規作成",
   "cc_ai_prompt_edit": "テンプレートの編集",
-  "cc_ai_prompt_delete": "テンプレートの削除"
+  "cc_ai_prompt_delete": "テンプレートの削除",
+  "system_sessions": "オンラインユーザー",
+  "system_sessions_revoke": "強制ログアウト",
+  "system_settings": "システム設定",
+  "system_settings_edit": "設定の編集"
 }

@@ -1,5 +1,5 @@
 /**
- * Password policy (系统设置 → 密码规则): minimum length plus optional letter+digit / symbol requirements.
+ * Password policy (system settings → password rules): minimum length plus optional letter+digit / symbol requirements.
  *
  * Applied wherever a password is set: change-password, user create / edit / import, password reset. Existing
  * passwords are not re-checked; the rule takes effect the next time a password is set. The browser reads the same

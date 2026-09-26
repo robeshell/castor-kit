@@ -20,7 +20,7 @@ export interface ClientMeta {
   userAgent: string
 }
 
-/** Whether sign-in asks for a second factor (from 系统设置) */
+/** Whether sign-in asks for a second factor (from system settings) */
 export interface TwoFactorPolicy {
   enabled: boolean
   requiredRoles: string[]

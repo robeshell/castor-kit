@@ -67,7 +67,7 @@ export const user_recovery_codes = pgTable(
   ],
 )
 
-/** Feature switches and parameters editable in 系统设置 (keys and types are defined in common/settings.ts) */
+/** Feature switches and parameters editable in system settings (keys and types are defined in common/settings.ts) */
 export const system_settings = pgTable(
   'system_settings',
   {
@@ -83,7 +83,7 @@ export const system_settings = pgTable(
 
 export type SessionRow = typeof sessions.$inferSelect
 
-/** A session as shown in 在线用户 / 登录设备 (never the id itself: it is the credential) */
+/** A session as shown in online users / signed-in devices (never the id itself: it is the credential) */
 export function sessionToDict(row: SessionRow & { username?: string | null; nickname?: string | null }, currentId?: string) {
   return {
     /** Opaque handle for revoking: a prefix is enough to address the row and useless as a cookie */

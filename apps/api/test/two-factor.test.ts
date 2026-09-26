@@ -111,6 +111,7 @@ describe('two-step verification: enrollment from the profile', () => {
     expect(ok.recovery_codes).toHaveLength(10)
     expect(ok.recovery_codes[0]).toMatch(/^[a-z2-9]{5}-[a-z2-9]{5}$/)
     expect((await c.inject({ url: '/api/admin/two-factor' })).json()).toMatchObject({ enabled: true, recovery_codes_left: 10 })
+    expect((await c.inject({ url: '/api/admin/two-factor' })).json().enabled_at).toMatch(/^\d{4}-\d\d-\d\dT[\d:.]+$/)
     expect((await post(c, '/api/admin/two-factor/setup')).json()).toEqual({ error: '已开启两步验证，如需更换请先关闭' })
     // The user dict says whether 2FA is on
     expect((await c.inject({ url: '/api/admin/me' })).json().user.totp_enabled).toBe(true)

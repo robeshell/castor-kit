@@ -9,7 +9,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: AppConfig
     db: Db
-    /** System settings (系统设置), cached per process */
+    /** System settings, cached per process */
     settings: SettingsStore
     /** Outgoing mail; null when MAIL_DRIVER / SMTP_HOST isn't configured */
     mailer: Mailer | null
