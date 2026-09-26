@@ -15,6 +15,7 @@ import {
   Hexagon,
   Home,
   IdCard,
+  Inbox,
   Kanban,
   LayoutGrid,
   Layers,
@@ -28,10 +29,13 @@ import {
   PieChart,
   Send,
   Settings,
+  ShieldCheck,
+  SlidersHorizontal,
   Star,
   Terminal,
   Type,
   User,
+  Users,
 } from 'lucide-react'
 
 /**
@@ -63,6 +67,7 @@ const SEMI_TO_LUCIDE = {
   IconHistogram: BarChart3,
   IconHome: Home,
   IconIdCard: IdCard,
+  IconInbox: Inbox,
   IconKanban: Kanban,
   IconLayers: Layers,
   IconList: List,
@@ -71,7 +76,10 @@ const SEMI_TO_LUCIDE = {
   IconPieChartStroked: PieChart,
   IconSend: Send,
   IconSetting: Settings,
+  IconShield: ShieldCheck,
+  IconSliders: SlidersHorizontal,
   IconStar: Star,
+  IconTeam: Users,
   IconTerminal: Terminal,
   IconUser: User,
 }

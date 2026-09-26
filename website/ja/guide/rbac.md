@@ -76,17 +76,17 @@ castor-kit はロールベースのアクセス制御を採用しています。
 
 ### メニューを追加する
 
-「システム管理」の下に「顧客管理」を追加する例です（ID は説明用です。実際の値は後述の「メニュー ID の割り当て」を参照してください）。
+「システム管理 → 組織と権限」の下に「顧客管理」を追加する例です（ID は説明用です。実際の値は後述の「メニュー ID の割り当て」を参照してください）。
 
 ```ts
 // Page menu
-{ id: 26, name: "客户管理", code: "system_customer", icon: "IconUser", path: "/system/customers", component: "admin/customer", parent_id: 2, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
+{ id: 38, name: "客户管理", code: "system_customer", icon: "IconUser", path: "/system/customers", component: "admin/customer", parent_id: 201, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
 // Button permissions: id = menu id × 10 + index
-{ id: 261, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 26, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
-{ id: 262, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 26, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
-{ id: 263, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 26, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
-{ id: 264, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 26, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
-{ id: 265, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 26, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
+{ id: 381, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 38, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+{ id: 382, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 38, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
+{ id: 383, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 38, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
+{ id: 384, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 38, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
+{ id: 385, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 38, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
 ```
 
 - `component` には `pnpm scaffold` が出力する Menu component の値を使います。
@@ -123,7 +123,8 @@ Docker でデプロイした場合、コンテナは起動のたびに `setup-on
 
 | 範囲 | ID の区間 |
 |---|---|
-| システム管理（`parent_id=2`） | 21–39 |
+| システム管理のグループ（`parent_id=2`） | 201–209 |
+| システム管理のページ（`parent_id` は所属グループ、例：201） | 21–39 |
 | コンポーネント例（`parent_id=3`） | 40–499 |
 | 　管理画面（`parent_id=40`） | 401–409 |
 | 　データ可視化（`parent_id=41`） | 411–419 |
