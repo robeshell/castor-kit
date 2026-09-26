@@ -10,7 +10,6 @@ import { spawn } from 'node:child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { and, asc, eq, isNull } from 'drizzle-orm'
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import type { Agent } from 'undici'
@@ -19,7 +18,6 @@ import { ServiceError } from '@/common/errors'
 import type { Settings } from '@/common/settings'
 import { utcNowIso } from '@/common/serialize'
 import type { Db } from '@/db/client'
-import { dict_types, menus } from '@/db/schema'
 import type { SpecFile } from '../../../../scripts/scaffold'
 import {
   activeJobId,
@@ -38,6 +36,7 @@ import {
   writeState,
   type JobState,
 } from './files'
+import { ModelerRepository } from './repository'
 
 type ScaffoldModule = typeof import('../../../../scripts/scaffold')
 
@@ -139,12 +138,15 @@ function toSpec(ai: AiSpec): SpecFile & { i18n: NonNullable<SpecFile['i18n']> } 
 
 export class ModelerService {
   private agent: Agent | null = null
+  private readonly repo: ModelerRepository
 
   constructor(
-    private readonly db: Db,
+    db: Db,
     private readonly ai: () => Promise<Settings['ai']>,
     private readonly allowPrivate: () => boolean,
-  ) {}
+  ) {
+    this.repo = new ModelerRepository(db)
+  }
 
   async close(): Promise<void> {
     await this.agent?.destroy()
@@ -156,16 +158,8 @@ export class ModelerService {
 
   /** What the page needs to build a spec: field types, parent menus, dictionaries, whether AI is configured */
   async meta() {
-    const parents = await this.db
-      .select({ id: menus.id, name: menus.name, code: menus.code, parent_id: menus.parent_id })
-      .from(menus)
-      .where(and(eq(menus.menu_type, 'menu'), isNull(menus.component)))
-      .orderBy(asc(menus.sort_order), asc(menus.id))
-    const dicts = await this.db
-      .select({ code: dict_types.code, name: dict_types.name })
-      .from(dict_types)
-      .where(eq(dict_types.is_active, true))
-      .orderBy(asc(dict_types.sort_order), asc(dict_types.id))
+    const parents = await this.repo.listDirectories()
+    const dicts = await this.repo.listDictionaries()
     return {
       types: FIELD_TYPES,
       parents,
