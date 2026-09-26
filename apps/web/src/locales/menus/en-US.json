@@ -36,6 +36,8 @@
   "system_departments_add": "Create departments",
   "system_departments_edit": "Edit departments",
   "system_departments_delete": "Delete departments",
+  "system_files": "Files",
+  "system_files_delete": "Delete files",
   "system_roles_add": "Add role",
   "system_roles_edit": "Edit role",
   "system_roles_delete": "Delete role",

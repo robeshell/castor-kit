@@ -11,6 +11,8 @@ import { DatePicker, DateTimePicker } from '@/shared/components/DatePicker'
 import MultiSelect from '@/shared/components/MultiSelect'
 import TagInput from '@/shared/components/TagInput'
 import TreeSelect from '@/shared/components/TreeSelect'
+import AvatarUpload from '@/shared/components/upload/AvatarUpload'
+import FileIdUpload from '@/shared/components/upload/FileIdUpload'
 
 /**
  * react-hook-form form fields (input / select …).
@@ -186,6 +188,43 @@ export function FormTreeSelect({ tree = [], placeholder, disabled, excludeId, no
             searchPlaceholder={searchPlaceholder}
             emptyText={emptyText}
           />
+        </FormControl>
+      )}
+    </Field>
+  )
+}
+
+/** File upload stored as file-center id(s): a single id (or null), or an array with `multiple` */
+export function FormFileUpload({ multiple, accept, maxSizeMB, disabled, variant = 'file', ...rest }) {
+  return (
+    <Field {...rest}>
+      {(field) => (
+        <FileIdUpload
+          value={field.value}
+          onChange={field.onChange}
+          variant={variant}
+          multiple={multiple}
+          accept={accept}
+          maxSizeMB={maxSizeMB}
+          disabled={disabled}
+        />
+      )}
+    </Field>
+  )
+}
+
+/** Image upload with thumbnails, stored as file-center id(s) */
+export function FormImageUpload(props) {
+  return <FormFileUpload variant="image" {...props} />
+}
+
+/** Avatar: value is the image URL (uploads become /api/admin/files/<id>); displayName feeds the fallback letter */
+export function FormAvatarUpload({ displayName, maxSizeMB, disabled, ...rest }) {
+  return (
+    <Field {...rest}>
+      {(field) => (
+        <FormControl>
+          <AvatarUpload value={field.value} onChange={field.onChange} name={displayName} maxSizeMB={maxSizeMB} disabled={disabled} />
         </FormControl>
       )}
     </Field>

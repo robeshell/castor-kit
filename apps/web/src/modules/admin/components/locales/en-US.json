@@ -1,10 +1,6 @@
 {
-  "https://… 或 /…": "https://… or /…",
   "例如 13800000000": "e.g. 13800000000",
-  "填写图片地址；上传功能随文件中心提供": "Enter an image URL. Uploading arrives with the file center.",
-  "头像地址": "Avatar URL",
-  "头像地址不能超过 500 个字符": "The avatar URL must be at most 500 characters",
-  "头像地址需以 http(s):// 或 / 开头": "The avatar URL must start with http(s):// or /",
+  "头像": "Avatar",
   "手机": "Phone",
   "手机号不能超过 20 个字符": "The phone number must be at most 20 characters",
   "手机号格式不正确": "Invalid phone number",

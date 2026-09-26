@@ -1,0 +1,20 @@
+{
+  "上传人": "Uploaded by",
+  "上传时间": "Uploaded",
+  "上传的头像和附件会出现在这里": "Uploaded avatars and attachments show up here",
+  "使用中": "In use",
+  "使用中 · {{count}}": "In use · {{count}}",
+  "使用情况": "Usage",
+  "其他": "Other",
+  "删除文件 {{name}}？": "Delete {{name}}?",
+  "引用": "Usage",
+  "搜索文件名": "Search file name",
+  "文件已删除": "File deleted",
+  "文件正在被使用，不能删除": "This file is in use and can't be deleted",
+  "文件管理": "Files",
+  "文档": "Documents",
+  "未使用": "Unused",
+  "未被任何记录使用的文件会在上传 24 小时后自动清理。": "Files no record uses are removed automatically 24 hours after upload.",
+  "没有找到文件": "No files found",
+  "还没有文件": "No files yet"
+}

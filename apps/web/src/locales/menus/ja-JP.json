@@ -36,6 +36,8 @@
   "system_departments_add": "部署の追加",
   "system_departments_edit": "部署の編集",
   "system_departments_delete": "部署の削除",
+  "system_files": "ファイル管理",
+  "system_files_delete": "ファイルの削除",
   "system_roles_add": "ロールの追加",
   "system_roles_edit": "ロールの編集",
   "system_roles_delete": "ロールの削除",

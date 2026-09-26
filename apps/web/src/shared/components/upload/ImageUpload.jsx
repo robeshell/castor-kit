@@ -45,8 +45,9 @@ export default function ImageUpload({
                 </a>
               ) : null}
               {f.status === 'uploading' ? (
-                <div className="bg-background/60 absolute inset-0 flex items-center justify-center backdrop-blur-[1px]">
+                <div className="bg-background/60 absolute inset-0 flex flex-col items-center justify-center gap-1 backdrop-blur-[1px]">
                   <Spinner />
+                  {f.percent ? <span className="text-[11px] tabular-nums">{f.percent}%</span> : null}
                 </div>
               ) : null}
               {f.status === 'error' ? (

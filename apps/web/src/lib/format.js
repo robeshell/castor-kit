@@ -31,3 +31,18 @@ export function formatRelative(value, fallback = '-') {
   if (diff < 86400 * 30) return i18n.t('{{count}} 天前', { count: Math.floor(diff / 86400) })
   return value.slice(0, 10)
 }
+
+/** File size: 512 B / 1.5 KB / 3.2 MB / 1.1 GB */
+export function formatBytes(value, fallback = '-') {
+  const n = typeof value === 'string' ? Number(value) : value
+  if (!Number.isFinite(n) || n < 0) return fallback
+  if (n < 1024) return `${n} B`
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let size = n / 1024
+  let unit = 0
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024
+    unit += 1
+  }
+  return `${size >= 100 ? Math.round(size) : Math.round(size * 10) / 10} ${units[unit]}`
+}

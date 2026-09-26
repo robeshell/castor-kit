@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { findActiveMenu, flattenMenus, navigablePages } from '@/components/app/menu-tree'
-import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
+import { formatBytes, formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { resolveMenuIcon } from '@/lib/menu-icons'
 import { Home, List } from 'lucide-react'
 
@@ -47,6 +47,18 @@ describe('format', () => {
     expect(formatNumber(1234567)).toBe('1,234,567')
     expect(formatNumber('12.50')).toBe('12.5')
     expect(formatNumber('abc')).toBe('-')
+  })
+})
+
+describe('formatBytes', () => {
+  it('按 1024 进位，保留一位小数，非法值用占位符', () => {
+    expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(1536)).toBe('1.5 KB')
+    expect(formatBytes(3 * 1024 * 1024)).toBe('3 MB')
+    expect(formatBytes(150 * 1024 * 1024)).toBe('150 MB')
+    expect(formatBytes('2048')).toBe('2 KB')
+    expect(formatBytes(-1)).toBe('-')
+    expect(formatBytes(undefined, '')).toBe('')
   })
 })
 
