@@ -99,7 +99,8 @@ export default function NotificationBell() {
             {t('全部已读')}
           </Button>
         </div>
-        <ScrollArea className="max-h-[380px]">
+        {/* The limit goes on the viewport: a max-height on the root doesn't bound the scrolling viewport (height: 100%) */}
+        <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[380px]">
           {items.length === 0 ? (
             <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 py-10 text-sm">
               <Bell className="size-5 opacity-50" />

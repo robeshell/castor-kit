@@ -8,9 +8,9 @@ import { eq } from 'drizzle-orm'
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from 'ai'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { departments, operation_logs, system_settings } from '@/db/schema'
+import { admin_users, departments, operation_logs, roles, system_settings, user_roles } from '@/db/schema'
 import { startFakeUpstream, type FakeUpstream } from './cc-ai-fake-upstream'
-import { buildTestApp, cleanupFixture, createFixture, FIXTURE_PREFIX, openTestDb, scopedSession, superAdminSession, type AuthedSession } from './helpers'
+import { buildTestApp, cleanupFixture, createFixture, FIXTURE_PREFIX, FIXTURE_USER, openTestDb, scopedSession, superAdminSession, type AuthedSession } from './helpers'
 
 const URL_PATH = '/api/admin/assistant/chat'
 let app: FastifyInstance
@@ -160,6 +160,41 @@ describe('AI assistant', () => {
     expect((calls.at(-1)!.body as { tool_choice?: unknown }).tool_choice).toBe('none')
     expect(toolParts(message)).toHaveLength(7)
     expect(textOf(message)).toBe('final answer')
+  })
+
+  it('受保护的写操作直接拒绝、不请用户确认：超级管理员账号、超级管理员角色、授予超管、自己的账号、不开放的接口', async () => {
+    const [superRole] = await handle.db.select().from(roles).where(eq(roles.code, 'super_admin'))
+    const [other] = await handle.db
+      .insert(admin_users)
+      .values({ username: `${FIXTURE_PREFIX}super2`, password_hash: 'x' })
+      .returning()
+    await handle.db.insert(user_roles).values({ user_id: other!.id, role_id: superRole!.id })
+    const [plain] = await handle.db.select().from(admin_users).where(eq(admin_users.username, FIXTURE_USER))
+
+    const attempt = async (method: string, path: string, body: object = {}) => {
+      const text = `tool:api_write ${JSON.stringify({ method, path, body, summary: 'x' })}`
+      const message = await assistantMessage((await admin.inject({ method: 'POST', url: URL_PATH, payload: { messages: [say(text)] } })).body)
+      return toolParts(message)[0]!
+    }
+    const cases: Array<[string, string, object, number, string]> = [
+      ['DELETE', `/api/admin/users/${other!.id}`, {}, 403, 'super admin accounts'],
+      ['PUT', `/api/admin/users/${other!.id}/status`, { status: 'disabled' }, 403, 'super admin accounts'],
+      ['PUT', `/api/admin/users/${admin.userId}`, { nickname: 'me' }, 403, 'own account'],
+      ['PUT', `/api/admin/roles/${superRole!.id}`, { name: 'x' }, 403, 'super admin role'],
+      ['POST', '/api/admin/users', { username: `${FIXTURE_PREFIX}new`, password: 'abcdef1', role_ids: [superRole!.id] }, 403, 'grant the super admin role'],
+      ['POST', '/api/admin/users/export', {}, 400, 'may not call this route'],
+    ]
+    for (const [method, path, body, status, reason] of cases) {
+      const part = await attempt(method, path, body)
+      expect(part.state, `${method} ${path}`).toBe('output-available')
+      expect(part.output).toMatchObject({ status })
+      expect(String(part.output!.data)).toContain(reason)
+    }
+    // Nothing happened
+    expect((await handle.db.select().from(admin_users).where(eq(admin_users.id, other!.id)))[0]!.status).toBe('active')
+    expect(await handle.db.select().from(admin_users).where(eq(admin_users.username, `${FIXTURE_PREFIX}new`))).toEqual([])
+    // An ordinary user is still a normal write: the user is asked
+    expect((await attempt('PUT', `/api/admin/users/${plain!.id}`, { nickname: 'n' })).state).toBe('approval-requested')
   })
 
   it('api_write：先请用户确认，不确认不执行；确认后以当前用户身份执行并记录操作日志；伪造的确认被拒绝', async () => {

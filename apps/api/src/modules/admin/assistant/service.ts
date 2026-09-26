@@ -6,6 +6,8 @@
  * - search_api finds routes in the catalog (catalog.ts); api_get reads freely; api_write (POST / PUT / PATCH / DELETE)
  *   needs the user's approval every time — the page shows the method, path and body before anything happens.
  *   Approval requests are HMAC-signed (derived from SECRET_KEY), so a client can't forge an approval
+ * - Some writes are refused outright, before any approval is asked for (and again at execution): routes outside the
+ *   catalog, the signed-in user's own account, super admin accounts, the super admin role, granting super admin
  * - Tool results are truncated and treated as data: instructions inside records must not steer the assistant
  */
 
@@ -23,10 +25,12 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { Agent } from 'undici'
 import { z } from 'zod'
 import { AI_CALL_DEFAULTS, createAiAgent, languageModelFor, upstreamStatusOf } from '@/common/ai'
+import { eq, inArray } from 'drizzle-orm'
 import { getCurrentAdminUser } from '@/common/auth'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
 import type { Language } from '@/common/i18n'
 import { utcNowIso } from '@/common/serialize'
+import { roles, user_roles } from '@/db/schema'
 import { chatErrorMessage } from '@/modules/component-center/ai-chat/service'
 import { buildCatalog, findEntry, isAllowed, searchCatalog, type ApiEntry } from './catalog'
 import { fitResult } from './result'
@@ -37,6 +41,7 @@ const UPSTREAM_TIMEOUT_MS = 60_000
 /** Model calls per message (each tool round is one); fewer in the demo, where every call uses the shared quota */
 const MAX_STEPS = 8
 const DEMO_MAX_STEPS = 4
+const SUPER_ADMIN = 'super_admin'
 
 export interface PageContext {
   path?: string
@@ -108,7 +113,52 @@ export class AssistantService {
     return { entry }
   }
 
+  /** Whether a user holds the super admin role */
+  private async isSuperAdminUser(userId: number): Promise<boolean> {
+    const rows = await this.app.db
+      .select({ code: roles.code })
+      .from(user_roles)
+      .innerJoin(roles, eq(roles.id, user_roles.role_id))
+      .where(eq(user_roles.user_id, userId))
+    return rows.some((r) => r.code === SUPER_ADMIN)
+  }
+
+  /**
+   * Why the assistant must not make this write at all (null when it may ask the user). On top of the route checks:
+   * super admin accounts and the super admin role are off limits, and so is the signed-in user's own account
+   * (profile page) — even for a super admin, whom the routes themselves would let through.
+   */
+  private async refusal(
+    request: FastifyRequest,
+    method: string,
+    path: string,
+    body: Record<string, unknown> | undefined,
+  ): Promise<{ status: number; data: string } | null> {
+    const checked = this.resolve(method, path)
+    if ('error' in checked) return { status: 400, data: checked.error }
+    const protectedTarget = (data: string) => ({ status: 403, data })
+    const userId = /^\/api\/admin\/users\/(\d+)(\/|$)/.exec(path)?.[1]
+    if (userId) {
+      const caller = await getCurrentAdminUser(request)
+      if (caller && caller.id === Number(userId)) return protectedTarget('The assistant may not change the signed-in user\'s own account: the user does it on the profile page')
+      if (await this.isSuperAdminUser(Number(userId))) return protectedTarget('The assistant may not change or delete super admin accounts: a super admin has to do it on the page')
+    }
+    const roleId = /^\/api\/admin\/roles\/(\d+)(\/|$)/.exec(path)?.[1]
+    if (roleId) {
+      const [role] = await this.app.db.select({ code: roles.code }).from(roles).where(eq(roles.id, Number(roleId)))
+      if (role?.code === SUPER_ADMIN) return protectedTarget('The assistant may not change the super admin role')
+    }
+    if (Array.isArray(body?.role_ids) && body.role_ids.length > 0) {
+      const ids = body.role_ids.map(Number).filter(Number.isInteger)
+      const granted = ids.length ? await this.app.db.select({ code: roles.code }).from(roles).where(inArray(roles.id, ids)) : []
+      if (granted.some((r) => r.code === SUPER_ADMIN)) return protectedTarget('The assistant may not grant the super admin role')
+    }
+    return null
+  }
+
   private tools(request: FastifyRequest) {
+    // Writes refused before asking (toolCallId → result): never executed, even though no approval was requested
+    const refused = new Map<string, { status: number; data: string }>()
     return {
       search_api: tool({
         description:
@@ -139,10 +189,16 @@ export class AssistantService {
           body: z.record(z.string(), z.unknown()).optional(),
           summary: z.string().describe('用一句中文说明这次操作要做什么，展示给用户确认'),
         }),
-        needsApproval: true,
-        execute: async ({ method, path, body }) => {
-          const checked = this.resolve(method, path)
-          if ('error' in checked) return { status: 400, data: checked.error }
+        // Only writes the assistant may make are shown to the user; refused ones come back to the model at once
+        needsApproval: async ({ method, path, body }, { toolCallId }) => {
+          const reason = await this.refusal(request, method, path, body)
+          if (reason) refused.set(toolCallId, reason)
+          return !reason
+        },
+        execute: async ({ method, path, body }, { toolCallId }) => {
+          // Checked again at execution: an approval given earlier doesn't cover a target that has since become protected
+          const reason = refused.get(toolCallId) ?? (await this.refusal(request, method, path, body))
+          if (reason) return reason
           return this.call(request, method, path, body)
         },
       }),
@@ -164,7 +220,7 @@ export class AssistantService {
       '- 用户要求新增、修改、删除数据时，找到接口后直接调用 api_write，由确认卡片请用户确认；不要先用文字征求同意，也不要自行拒绝用户有权限做的操作',
       '- 只有 api_write 返回 2xx 才算执行成功；没有成功时不要说「已创建」「已修改」，也不要说成已经选定或安排好了',
       '- 管理员新建用户、给用户设置初始密码或重置密码，是正常的用户管理，照常用 api_write：密码只用用户明确给出的，不要自己编；密码强度由系统的密码规则校验（接口会返回原因），不要自行拒绝',
-      '- 不开放给你的只有：当前用户自己的账号安全（改自己的密码、两步验证、登录会话、API Token）、系统设置和导入导出，这些请让用户在页面上完成',
+      '- 不开放给你的：当前用户自己的账号（资料、密码、两步验证、登录会话、API Token）、超级管理员账号和超级管理员角色（不能修改、停用、删除，也不能授予超级管理员角色）、系统设置和导入导出；用户要求时直接说明做不了、应在页面上由谁来做，不要发起调用',
       '- 回答简洁，用用户提问的语言；适当使用 Markdown 列表和表格',
       '',
       `当前用户：${user?.nickname || user?.username || '未知'}（角色：${roles}）`,
