@@ -160,6 +160,8 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 | 状況 | レスポンス |
 |---|---|
 | Zod によるリクエスト検証の失敗 | 400。`error` は最初の検証メッセージ |
+| 型や構造が正しくないリクエストの値（service が `invalidInput()` を投げる。`apps/api/src/common/py-values.ts` を参照） | 400。「请求参数格式不正确」（リクエストパラメーターの形式が正しくありません） |
+| リクエストの値がデータベースに拒否された | 400。下記を参照 |
 | 未知の例外 | 500。「服务器内部错误，请稍后重试」（サーバー内部エラーが発生しました。しばらくしてから再度お試しください。） |
 | マッチしない `/api/*` への GET リクエスト | 404 の JSON |
 | マッチしないその他のメソッド | 405 `{ error: '请求方法不允许' }`（許可されていないリクエストメソッドです） |
@@ -168,7 +170,7 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 
 ### データベース制約エラーのマッピング
 
-scaffold が生成する service（および `docs/templates/backend/service.ts` テンプレート）は、書き込み処理をトランザクションで囲み、データベースエラーを捕捉すると `apps/api/src/common/db-errors.ts` の `dbConstraintError()` を呼び出して、ユーザー入力に起因する制約エラーを 400 に変換します。
+グローバルなエラーハンドラーは `apps/api/src/common/db-errors.ts` の `dbConstraintError()` を呼び出し、リクエストの値に起因するデータベースエラーを 400 に変換します。トランザクション内でエラーを捕捉する service も先にこれに渡します（scaffold が生成する service と `docs/templates/backend/service.ts` テンプレートは対応済み）。原則として、呼び出し側の入力の問題は 4xx、サーバー自身の問題だけが 500 です。
 
 | PostgreSQL のエラーコード | 返される文言 |
 |---|---|

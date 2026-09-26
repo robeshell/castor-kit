@@ -18,6 +18,7 @@
   "已延期": "Delayed",
   "开始日期": "Start date",
   "开始日期不能为空": "Start date is required",
+  "开始日期不能晚于结束日期": "The start date cannot be after the end date",
   "日": "Day",
   "暂无任务": "No tasks yet",
   "月": "Month",

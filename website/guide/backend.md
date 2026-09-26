@@ -160,6 +160,8 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 | 情况 | 响应 |
 |---|---|
 | Zod 请求校验失败 | 400，`error` 为第一条校验消息 |
+| 类型或结构不对的请求值（service 抛 `invalidInput()`，见 `apps/api/src/common/py-values.ts`） | 400，“请求参数格式不正确” |
+| 数据库因请求里的值拒绝写入 | 400，见下文 |
 | 未知异常 | 500，“服务器内部错误，请稍后重试” |
 | 未匹配的 `/api/*` GET 请求 | 404 JSON |
 | 未匹配的其他方法 | 405 `{ error: '请求方法不允许' }` |
@@ -168,7 +170,7 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 
 ### 数据库约束错误映射
 
-scaffold 生成的 service（以及 `docs/templates/backend/service.ts` 模板）把写操作包在事务里，捕获到数据库错误时调用 `apps/api/src/common/db-errors.ts` 的 `dbConstraintError()`，把由用户输入引起的约束错误转成 400：
+全局错误处理器会调用 `apps/api/src/common/db-errors.ts` 的 `dbConstraintError()`，把由请求里的值引起的数据库错误转成 400；service 在事务里捕获错误时也先交给它（scaffold 生成的 service 和 `docs/templates/backend/service.ts` 模板已经这样做）。原则是调用方的输入问题一律 4xx，只有服务器自身的问题才是 500：
 
 | PostgreSQL 错误码 | 返回文案 |
 |---|---|
