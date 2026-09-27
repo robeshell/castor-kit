@@ -1,6 +1,6 @@
 # 前端开发
 
-前端位于 `apps/web`，技术栈是 React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react，语言为 JavaScript（JSX）。本页介绍动态路由、标准页面结构、API 调用、公共组件和样式规范。
+前端位于 `apps/web`，技术栈是 React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react，语言为 TypeScript（TSX）：代码正逐层从 JSX 迁移过来，尚未迁移的 `.jsx` 文件照常可用。本页介绍动态路由、标准页面结构、API 调用、公共组件和样式规范。
 
 参考实现：
 

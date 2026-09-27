@@ -11,7 +11,7 @@ castor-kit 是一个 pnpm monorepo，包含三个应用：
 | 应用 | 包名 | 技术 |
 |---|---|---|
 | 后端 `apps/api` | `@castor-kit/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
-| 前端 `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（JavaScript / JSX） |
+| 前端 `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX，正从 JSX 迁移） |
 | MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`，把脚手架、验证、RBAC 同步、迁移等工具暴露给 MCP 客户端 |
 
 其他常用依赖：表格 `@tanstack/react-table`、表单 `react-hook-form`、图表 ECharts、3D Three.js、代码编辑器 Monaco、富文本 react-quill-new、拖拽 dnd-kit。

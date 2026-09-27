@@ -56,8 +56,8 @@ Inference guidelines (field types: see "Field type inference" below):
 | Other plugins | `@fastify/cors` / `compress` / `static` / `multipart` / `websocket` / `swagger` | - |
 | Import / export | `csv-parse` + `exceljs` (**csv / xlsx only; `.xls` is not supported**) | - |
 | Testing | Vitest + a real PostgreSQL | - |
-| Frontend framework | React + Vite + React Router + Axios (JavaScript / JSX) | 19 / 5 / 7 |
-| UI components | shadcn/ui (new-york style, Radix primitives, source in `apps/web/src/components/ui/`, JSX) | - |
+| Frontend framework | React + Vite + React Router + Axios (TypeScript / TSX; JSX → TSX migration in progress, see `docs/roadmap.md` "TypeScript frontend") | 19 / 5 / 7 |
+| UI components | shadcn/ui (new-york style, Radix primitives, source in `apps/web/src/components/ui/`, still JSX) | - |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS-variable themes (light / dark, `apps/web/src/index.css`) | 4.x |
 | Motion | `motion` (`motion/react`) + `tw-animate-css` (overlay enter / exit) | - |
 | Icons | `lucide-react` | - |
@@ -139,7 +139,7 @@ castor-kit/
 │   │   │                              #          init-ro-role / generate-openapi / import-apifox
 │   │   ├── test/                      # Vitest (real PostgreSQL)
 │   │   └── drizzle.config.ts
-│   ├── web/                           # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (JSX)
+│   ├── web/                           # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (moving from JSX to TSX)
 │   │   ├── components.json            # shadcn CLI config (new-york / zinc / lucide / aliases)
 │   │   ├── scripts/shadcn-add.sh      # runs npx shadcn@latest add through a local relay (see "Adding shadcn/ui primitives")
 │   │   └── src/
@@ -363,6 +363,14 @@ apps/web/src/modules/<module>/api/<page_name>.js                      ← API ca
 ```
 
 Where scaffold puts pages: admin domain → `pages/<name>/index.jsx`; component_center domain → `pages/admin/<name>_page/index.jsx`.
+
+### TypeScript (migration in progress)
+
+The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+
+- New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
+- New component files use their layer's current extension until that layer is converted. A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
+- Converting a file: rename with `git mv`, give props an exported `interface XxxProps`, keep imports extensionless (importers need no change); don't enable `checkJs`.
 
 ### Calling the API
 
@@ -853,7 +861,7 @@ ID=3   组件示例中心 [Component Gallery] (component_center)
 
 - The project name is `castor-kit`; names are always lowercase and hyphenated, no camelCase, no Stack suffix
 - Backend: Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino; no NestJS
-- Frontend: React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (JSX, UI copy in Chinese as the i18n key); UI system in `docs/frontend-design-system.md`
+- Frontend: React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (moving from JSX to TSX, see `docs/roadmap.md` "TypeScript frontend"; UI copy in Chinese as the i18n key); UI system in `docs/frontend-design-system.md`
 - `.xls` is not supported; csv / xlsx only
 - Passwords are hashed with scrypt and stored as a PHC string `$scrypt$ln=15,r=8,p=3$<salt>$<hash>` (`common/password.ts`, async; the parameters are in the string, so old hashes still verify after the parameters are raised)
 - Sessions: the server-side `sessions` table is the single source of truth (can be listed and force-revoked; a password change / account disable / password reset invalidates them); the `@fastify/secure-session` cookie `castor_session` only holds `{ sid, csrf_token }`, with its key derived from `SECRET_KEY` via HKDF. Always check sign-in with `isSignedIn(request)` from `common/session.ts`; never read cookie fields

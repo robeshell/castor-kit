@@ -65,4 +65,10 @@ describe('i18n scan', () => {
     const { problems } = scan(relative(WEB_DIR, join(dirname(new URL(import.meta.url).pathname), 'fixtures', 'i18n-sample.jsx')))
     expect(problems.map((p) => p.kind).sort()).toEqual(['jsx-text', 'missing', 'template'])
   })
+
+  it('scans .tsx and .ts files with type syntax', () => {
+    const fixture = (name) => relative(WEB_DIR, join(dirname(new URL(import.meta.url).pathname), 'fixtures', name))
+    expect(scan(fixture('i18n-sample.tsx')).problems.map((p) => p.kind).sort()).toEqual(['jsx-text', 'missing', 'template'])
+    expect(scan(fixture('i18n-sample.ts')).problems.map((p) => p.kind).sort()).toEqual(['missing', 'template'])
+  })
 })

@@ -355,6 +355,12 @@ importers:
       jsdom:
         specifier: ^25.0.1
         version: 25.0.1(supports-color@7.2.0)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.70.1
+        version: 8.70.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
       vite:
         specifier: ^5.4.21
         version: 5.4.21(@types/node@26.6.2)(lightningcss@1.33.0)

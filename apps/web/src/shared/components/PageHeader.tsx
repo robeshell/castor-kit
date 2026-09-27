@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
@@ -8,7 +9,17 @@ import { cn } from '@/lib/utils'
  * Fixed 24px gap (mb-6) to the content below; pages must not pass mb-* to override it:
  * Tailwind v4's space-y-* sets spacing via zero-specificity :where(), so className="mb-0" wipes it out entirely and the card below ends up flush against it.
  */
-export default function PageHeader({ title, description, actions, className, children }) {
+export interface PageHeaderProps {
+  /** Chinese source text (translated here) or a node */
+  title: ReactNode
+  description?: ReactNode
+  /** Buttons on the right */
+  actions?: ReactNode
+  className?: string
+  children?: ReactNode
+}
+
+export default function PageHeader({ title, description, actions, className, children }: PageHeaderProps) {
   const tx = useTx()
   return (
     <div className={cn('mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between', className)}>

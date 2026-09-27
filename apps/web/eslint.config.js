@@ -3,6 +3,7 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
+import tseslint from 'typescript-eslint'
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -31,12 +32,21 @@ export default defineConfig([
     },
   },
   {
+    // TypeScript: the same React rules plus typescript-eslint's recommended set (the frontend is moving to TSX file by file)
+    files: ['**/*.{ts,tsx}'],
+    extends: [js.configs.recommended, tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    languageOptions: { globals: globals.browser },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+  {
     // By convention Context files export both the Provider and a useXxx hook; shadcn / AI Elements files export helpers next to components
-    files: ['src/context/**/*.{js,jsx}', 'src/components/ui/**/*.{js,jsx}', 'src/components/ai-elements/**/*.{js,jsx}'],
+    files: ['src/context/**/*.{js,jsx,ts,tsx}', 'src/components/ui/**/*.{js,jsx,ts,tsx}', 'src/components/ai-elements/**/*.{js,jsx,ts,tsx}'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {
-    files: ['**/*.{test,spec}.{js,jsx}', 'test/**/*.{js,jsx}'],
+    files: ['**/*.{test,spec}.{js,jsx,ts,tsx}', 'test/**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,

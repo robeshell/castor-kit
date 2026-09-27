@@ -14,6 +14,7 @@
 | 2 | Open API: API tokens and webhooks | — | — | Done |
 | — | Public demo mode and Render + Neon deployment | — | — | Done |
 | — | Global AI assistant (see [AI assistant](../website/guide/assistant.md)) | — | — | Done |
+| — | [TypeScript frontend](#typescript-frontend) (JSX → TSX, layer by layer) | High | — | In progress |
 | 3 | [Approval workflow](#approval-workflow) | Low | 1 | Not started |
 | 3 | [Multi-tenancy](#multi-tenancy) | Low | 1, 2 | Not started |
 
@@ -31,6 +32,24 @@ Each item ships as its own PR and meets these requirements:
 - New endpoints have API tests and shared frontend components have unit tests; `pnpm verify` is all green
 - The same PR updates the docs in all three languages (`website/`) and the `[Unreleased]` section of `CHANGELOG.md`; if new environment variables are involved, update `apps/api/.env.example` and the configuration docs too
 - Existing deployments upgrade smoothly: new columns get a default value or are nullable, and existing data is not broken
+
+---
+
+## TypeScript frontend
+
+**Goal**: `apps/web` in TypeScript / TSX like the API and MCP server, so the `verify` gate catches wrong props and field names in AI-written frontend code, and the frontend matches what React / shadcn users expect.
+
+**Why bottom-up**: with `allowJs`, a `.tsx` file that imports a `.jsx` component gets that component's props inferred as required `any`, so a layer can only move once the layers it imports have moved.
+
+| Step | Scope | Status |
+|---|---|---|
+| 1 | Toolchain: `tsconfig.json` (strict, `allowJs`), web typecheck in `pnpm typecheck` / `verify`, web lint in `pnpm lint`, typescript-eslint; page routing, i18n scanner, import check and `shadcn-add.sh` accept `.ts` / `.tsx`; component layer boundaries test; first files (`lib/utils`, `PageHeader`, `StatusBadge`, `shared/api/types`, the sessions API) | Done |
+| 2 | `components/ui`: regenerate with the shadcn CLI as TSX (`components.json` `tsx: true`) and reapply the project's changes; `lib`, `i18n`, hooks, context | Not started |
+| 3 | `shared/components` and the request layer; API response types generated from `docs/apifox-full.openapi.json` | Not started |
+| 4 | Scaffold: generated pages and API files, `docs/templates/frontend`, skills and AGENTS.md describe TSX | Not started |
+| 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | Not started |
+
+**Acceptance per step**: `pnpm verify` green including the web typecheck; pages behave the same; no new `.jsx` in a converted layer.
 
 ---
 

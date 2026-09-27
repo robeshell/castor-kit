@@ -11,7 +11,7 @@ castor-kit は pnpm monorepo で、3 つのアプリケーションで構成さ�
 | アプリケーション | パッケージ名 | 技術 |
 |---|---|---|
 | バックエンド `apps/api` | `@castor-kit/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
-| フロントエンド `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（JavaScript / JSX） |
+| フロントエンド `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX、JSX から移行中） |
 | MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`。スキャフォールド、検証、RBAC 同期、マイグレーションなどのツールを MCP クライアントに公開 |
 
 その他の主な依存ライブラリ：テーブル `@tanstack/react-table`、フォーム `react-hook-form`、グラフ ECharts、3D Three.js、コードエディター Monaco、リッチテキスト react-quill-new、ドラッグ＆ドロップ dnd-kit。
