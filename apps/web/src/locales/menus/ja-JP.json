@@ -105,7 +105,6 @@
   "system_announcements_import": "お知らせのインポート",
   "cc_dataviz_realtime_chart": "リアルタイム折れ線グラフ",
   "cc_dataviz_heatmap": "カレンダーヒートマップ",
-  "cc_dataviz_map_heatmap": "地図ヒートマップ",
   "cc_3d_particle": "パーティクルネットワーク",
   "cc_3d_css": "CSS 3D カード",
   "cc_3d_globe": "Three.js 地球儀",
@@ -138,5 +137,6 @@
   "system_webhooks": "Webhook",
   "system_webhooks_add": "Webhook を追加",
   "system_webhooks_edit": "Webhook を編集",
-  "system_webhooks_delete": "Webhook を削除"
+  "system_webhooks_delete": "Webhook を削除",
+  "cc_dataviz_traffic_flow": "トラフィック分析"
 }

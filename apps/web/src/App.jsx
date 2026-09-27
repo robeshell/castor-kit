@@ -1,4 +1,4 @@
-import { lazy, useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
@@ -7,42 +7,13 @@ import PrivateRoute from '@/components/app/PrivateRoute'
 import { ErrorPage, NoPermissionPage, RouteNotConfigured } from '@/components/app/StatusPages'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Login from '@/modules/auth/pages/login'
-import ResetPassword from '@/modules/auth/pages/reset_password'
-import Profile from '@/modules/admin/pages/profile'
+import { resolvePageComponent } from '@/lib/page-modules'
 import { useTranslation } from 'react-i18next'
 
-// Not eager: page components are lazy-loaded on demand (React.lazy) to avoid downloading heavy deps like three/echarts/monaco on first load
-const PAGE_MODULES = import.meta.glob('./modules/**/pages/**/index.jsx')
-// Cache lazy components by componentName, so re-renders don't recreate the component type and remount the page
-const _lazyPageCache = new Map()
-
-function resolvePageComponent(componentName) {
-  if (!componentName || typeof componentName !== 'string') {
-    return null
-  }
-  const normalizedComponentName = componentName
-    .trim()
-    .replace(/\\/g, '/')
-    .replace(/^\/+|\/+$/g, '')
-  if (!normalizedComponentName) {
-    return null
-  }
-  // component is "<module>/<page_path>", e.g. "admin/roles"
-  const [moduleName, ...pageParts] = normalizedComponentName.split('/').filter(Boolean)
-  if (pageParts.length === 0) return null
-  const pathSuffix = `/modules/${moduleName}/pages/${pageParts.join('/')}/index.jsx`
-  const matchedEntry = Object.entries(PAGE_MODULES).find(([modulePath]) => modulePath.endsWith(pathSuffix))
-
-  const loader = matchedEntry?.[1]
-  if (!loader) {
-    return null
-  }
-  if (!_lazyPageCache.has(normalizedComponentName)) {
-    _lazyPageCache.set(normalizedComponentName, lazy(loader))
-  }
-  return _lazyPageCache.get(normalizedComponentName)
-}
+// Loaded when first opened, like the menu pages (signed-in users never need the sign-in page's code, and vice versa)
+const Login = lazy(() => import('@/modules/auth/pages/login'))
+const ResetPassword = lazy(() => import('@/modules/auth/pages/reset_password'))
+const Profile = lazy(() => import('@/modules/admin/pages/profile'))
 
 function collectRouteMenus(menus = []) {
   const result = []
@@ -92,8 +63,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/login" element={<Suspense fallback={null}><Login /></Suspense>} />
+      <Route path="/reset-password" element={<Suspense fallback={null}><ResetPassword /></Suspense>} />
       <Route
         path="/"
         element={

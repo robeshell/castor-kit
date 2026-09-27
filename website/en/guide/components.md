@@ -29,7 +29,7 @@ Group directory `dataviz/`. Built on ECharts; chart colors follow the theme and 
 | Data Dashboard | `/component-center/dashboard-page` | A full dashboard made of multiple charts and an event stream |
 | Real-time Line Chart | `/component-center/dataviz/realtime-chart` | Continuously scrolling sensor curves (frontend only) |
 | Calendar Heatmap | `/component-center/dataviz/heatmap` | Yearly calendar heatmap and an hour × weekday heatmap (frontend only) |
-| Map Heatmap | `/component-center/dataviz/map-heatmap` | Province heatmap on a map of China plus a Top 10 ranking; the map data ships with the repo |
+| Traffic Flow | `/component-center/dataviz/traffic-flow` | A Sankey diagram of visits from source to landing page to outcome, next to a funnel from visit to payment |
 
 ## 3D / Creative
 

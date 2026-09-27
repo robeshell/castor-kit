@@ -1,4 +1,4 @@
-import { Activity, lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useOutlet } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import { contentContainerClass } from '@/lib/appearance'
 import { pageTransition } from '@/lib/motion'
+import { isLightPage, prefetchPage } from '@/lib/page-modules'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/shared/hooks/use-mobile'
 import AppSidebar from '@/components/app/AppSidebar'
@@ -107,6 +108,30 @@ function PageArea({ keepAlive, container }) {
 }
 
 /**
+ * While the browser is idle, fetch the code of the light pages in the menu (system pages, the gallery's admin pages),
+ * one at a time, so opening them for the first time doesn't wait for a download. Skipped when the user asked to save data.
+ */
+function usePrefetchLightPages(flat) {
+  useEffect(() => {
+    if (navigator.connection?.saveData) return undefined
+    const queue = flat.map((m) => m.component).filter(isLightPage)
+    const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 1500))
+    const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout
+    let handle
+    let stopped = false
+    const next = () => {
+      if (stopped || queue.length === 0) return
+      handle = idle(() => prefetchPage(queue.shift()).finally(next))
+    }
+    next()
+    return () => {
+      stopped = true
+      cancelIdle(handle)
+    }
+  }, [flat])
+}
+
+/**
  * App shell: sidebar + top bar (+ tags view) + content area.
  * Layout follows the appearance settings: nav mode (sidebar / top / mixed), sidebar variant, content width, tags view.
  * On mobile every nav mode falls back to the full menu in the sidebar sheet, and the tags view is hidden.
@@ -120,6 +145,7 @@ function Shell() {
   const assistant = useAppInfo()?.assistant
 
   const flat = useMemo(() => flattenMenus(menus), [menus])
+  usePrefetchLightPages(flat)
   const section = useMemo(() => sectionOf(findActiveMenu(flat, location.pathname)), [flat, location.pathname])
   const showSidebar = isMobile || navMode !== 'top'
 

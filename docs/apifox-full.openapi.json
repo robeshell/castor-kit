@@ -125,8 +125,8 @@
       "description": "组件示例中心：高级表格数据"
     },
     {
-      "name": "示例-地图热力图",
-      "description": "组件示例中心：地图热力数据"
+      "name": "示例-流量转化分析",
+      "description": "组件示例中心：流量流向与转化漏斗"
     },
     {
       "name": "示例-开发工具",
@@ -5236,13 +5236,13 @@
         }
       }
     },
-    "/api/admin/component-center/dataviz/map-heatmap/data": {
+    "/api/admin/component-center/dataviz/traffic-flow/data": {
       "get": {
         "tags": [
-          "示例-地图热力图"
+          "示例-流量转化分析"
         ],
-        "summary": "地图热力图数据",
-        "x-apifox-folder": "后台/组件示例中心/地图热力图",
+        "summary": "流量转化分析数据",
+        "x-apifox-folder": "后台/组件示例中心/流量转化分析",
         "security": [
           {
             "cookieAuth": []
@@ -5251,7 +5251,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 cc_dataviz_map_heatmap。返回各省份的演示数据：每次请求在基准值上随机浮动 ±200，并附带一个 1–100 的随机 seed；没有持久化数据。",
+        "description": "需要 cc_dataviz_traffic_flow。返回演示数据，没有持久化：来源 → 落地页的访问次数每次请求在基准值上随机浮动 ±5%，各落地页再按固定比例分到注册 / 下单 / 离开（每个落地页的流入等于流出）；漏斗各环节按总访问量的固定比例计算，逐级递减。",
         "responses": {
           "200": {
             "description": "成功",
@@ -5260,36 +5260,50 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
+                    "links": {
                       "type": "array",
-                      "description": "各省份数据点",
+                      "description": "桑基图的边：先是 来源 → 落地页，再是 落地页 → 结果",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "name": {
+                          "source": {
                             "type": "string",
-                            "description": "省份名称"
+                            "description": "起点：访问来源（search / social / direct / ads / email）或落地页（home / product / campaign）"
+                          },
+                          "target": {
+                            "type": "string",
+                            "description": "终点：落地页（home / product / campaign）或结果（signup / order / exit）"
                           },
                           "value": {
                             "type": "integer",
-                            "description": "数值（基准值 ±200 随机浮动）"
-                          },
-                          "lat": {
-                            "type": "number",
-                            "description": "纬度"
-                          },
-                          "lng": {
-                            "type": "number",
-                            "description": "经度"
+                            "description": "访问次数"
                           }
                         }
                       }
                     },
-                    "seed": {
-                      "type": "integer",
-                      "description": "本次随机种子（1–100）",
-                      "minimum": 1,
-                      "maximum": 100
+                    "funnel": {
+                      "type": "array",
+                      "description": "转化漏斗，从访问到支付逐级递减",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "stage": {
+                            "type": "string",
+                            "enum": [
+                              "visit",
+                              "view",
+                              "cart",
+                              "order",
+                              "pay"
+                            ],
+                            "description": "环节：访问 / 浏览商品 / 加入购物车 / 下单 / 支付"
+                          },
+                          "value": {
+                            "type": "integer",
+                            "description": "该环节的人次"
+                          }
+                        }
+                      }
                     }
                   }
                 }

@@ -21,6 +21,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useAuth } from '@/context/AuthContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
+import { prefetchPage } from '@/lib/page-modules'
 import { menuLabel } from '@/lib/menu-label'
 import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -49,6 +50,9 @@ function ActivePill() {
   )
 }
 
+/** Fetch a page's code when the pointer or keyboard focus reaches its menu item, so the click doesn't wait for it */
+const prefetchOn = (menu) => ({ onPointerEnter: () => prefetchPage(menu.component), onFocus: () => prefetchPage(menu.component) })
+
 function MenuLeaf({ menu, activeId, onNavigate }) {
   const active = menu.id === activeId
   return (
@@ -59,7 +63,7 @@ function MenuLeaf({ menu, activeId, onNavigate }) {
         tooltip={menuLabel(menu)}
         className={cn(ITEM, 'relative z-0 data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-foreground')}
       >
-        <Link to={menu.path || '#'} onClick={onNavigate}>
+        <Link to={menu.path || '#'} onClick={onNavigate} {...prefetchOn(menu)}>
           {active ? <ActivePill /> : null}
           {createElement(resolveMenuIcon(menu), { className: cn(active && 'text-primary') })}
           <span>{menuLabel(menu)}</span>
@@ -97,7 +101,7 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
                     isActive={active}
                     className={cn(ITEM, 'relative z-0 pr-2.5 pl-[9px] data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-foreground')}
                   >
-                    <Link to={child.path || '#'} onClick={onNavigate}>
+                    <Link to={child.path || '#'} onClick={onNavigate} {...prefetchOn(child)}>
                       {active ? <ActivePill /> : null}
                       <span>{menuLabel(child)}</span>
                     </Link>

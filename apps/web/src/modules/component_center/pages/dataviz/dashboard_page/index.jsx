@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import ReactECharts from '@/shared/components/Chart'
 import { motion } from 'motion/react'
 import { Gauge, RefreshCw, ShoppingCart, UserPlus, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
