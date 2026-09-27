@@ -48,7 +48,7 @@ const STATUS_OPTIONS = [
   { label: '草稿', value: 'draft' },
   { label: '已发布', value: 'published' },
   { label: '已归档', value: 'archived' },
-]
+] as const
 
 const ACTIVE_OPTIONS = [
   { label: '启用', value: 'true' },
@@ -120,6 +120,10 @@ const DESCRIPTION_MAX = 300
 const normalizeFileType = (raw: string): CardListPageFileType => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
 /** The applied filters are the strings handleSearch set (or missing); a missing one stays missing in the request */
 const textFilter = (value: unknown) => (typeof value === 'string' ? value : undefined)
+type StatusFilter = NonNullable<NonNullable<CardListPageExportBody['filters']>['status']>
+/** The applied status filter is what FilterSelect emitted: an option value or '' (all) */
+const toStatusFilter = (value: unknown): StatusFilter | undefined =>
+  value === '' ? '' : STATUS_OPTIONS.find((o) => o.value === value)?.value
 
 const mapStatusMeta = (value: Row['status']): { label: string; tone: StatusTone } => {
   if (value === 'published') return { label: '已发布', tone: 'success' }
@@ -362,7 +366,7 @@ export default function CardListPage() {
         search: textFilter(filters.search),
         category: textFilter(filters.category),
         is_active: textFilter(filters.is_active),
-        status: textFilter(filters.status),
+        status: toStatusFilter(filters.status),
       },
     }
     try {

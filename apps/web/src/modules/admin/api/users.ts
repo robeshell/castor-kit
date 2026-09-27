@@ -7,15 +7,8 @@ export type User = ApiItem<'/api/admin/users'>
 export type UpdateProfileResult = ApiResponse<'/api/admin/profile', 'put'>
 /** Edit body: any subset of the create fields; `password` only when changing it */
 export type UserUpdateBody = ApiBody<'/api/admin/users/{user_id}', 'put'>
-/**
- * Export request: ids (selected rows) or filters (the current query), fields, file_type.
- * TODO(openapi): the backend reads the filters with field.text / field.id (userExportBody in
- * apps/api/src/modules/admin/users/schema.ts), so `status` takes any text ('' = every status) and `dept_id` takes null;
- * the doc types `status` as the enum and `dept_id` as a non-null number.
- */
-export type UserExportBody = Omit<ApiBody<'/api/admin/users/export', 'post'>, 'filters'> & {
-  filters?: { search?: string | null; status?: string | null; dept_id?: number | null }
-}
+/** Export request: ids (selected rows) or filters (the current query; status '' = every status), fields, file_type */
+export type UserExportBody = ApiBody<'/api/admin/users/export', 'post'>
 
 export const getUsers = (params?: ApiQuery<'/api/admin/users'>) =>
   request.get<unknown, ApiResponse<'/api/admin/users'>>('/admin/users', { params })

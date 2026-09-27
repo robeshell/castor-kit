@@ -6,17 +6,9 @@ export type ScheduledTask = ApiItem<'/api/admin/scheduled-tasks'>
 /** One run of a scheduled task */
 export type ScheduledTaskRun = ApiItem<'/api/admin/scheduled-tasks/runs'>
 
-/**
- * Create body; edit takes any subset of the same fields.
- * TODO(openapi): the backend reads timeout_seconds with field.int (null / missing → 10; taskBody in
- * apps/api/src/modules/admin/scheduled-task/schema.ts), so it takes null; the doc types it as a non-null number.
- */
-export type ScheduledTaskBody = Omit<ApiBody<'/api/admin/scheduled-tasks', 'post'>, 'timeout_seconds'> & {
-  timeout_seconds?: number | null
-}
-export type ScheduledTaskUpdateBody = Omit<ApiBody<'/api/admin/scheduled-tasks/{task_id}', 'put'>, 'timeout_seconds'> & {
-  timeout_seconds?: number | null
-}
+/** Create body; edit takes any subset of the same fields (timeout_seconds: null → 10) */
+export type ScheduledTaskBody = ApiBody<'/api/admin/scheduled-tasks', 'post'>
+export type ScheduledTaskUpdateBody = ApiBody<'/api/admin/scheduled-tasks/{task_id}', 'put'>
 
 /** Result of "run now": the updated task and the run; `error` is only present when the run failed */
 export type ScheduledTaskRunResult = ApiResponse<'/api/admin/scheduled-tasks/{task_id}/run', 'post'>

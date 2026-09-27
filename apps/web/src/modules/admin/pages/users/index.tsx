@@ -60,7 +60,10 @@ const isExportField = (value: string): value is ExportField => EXPORT_FIELDS.som
 const STATUS_OPTIONS = [
   { label: '正常', value: 'active' },
   { label: '停用', value: 'disabled' },
-]
+] as const
+type StatusFilter = NonNullable<NonNullable<UserExportBody['filters']>['status']>
+/** The applied status filter is what FilterSelect emitted: an option value or '' (all) */
+const isStatusFilter = (value: string): value is StatusFilter => value === '' || STATUS_OPTIONS.some((o) => o.value === value)
 /** What the user dialog holds: account fields plus the profile fields (nickname / email / phone / avatar) */
 interface FormValues extends ProfileValues {
   username: string
@@ -218,12 +221,14 @@ export default function Users() {
     if (selectedKeys.length) payload.ids = selectedKeys
     // The applied filters are untyped: search / status are the strings runSearch set (or missing), dept_id a department
     // id (ids start at 1) or ''
-    else
+    else {
+      const status = String(filters.status ?? '')
       payload.filters = {
         search: String(filters.search ?? ''),
-        status: String(filters.status ?? ''),
+        status: isStatusFilter(status) ? status : '',
         dept_id: typeof filters.dept_id === 'number' ? filters.dept_id : null,
       }
+    }
     try {
       const blob = await exportUsers(payload)
       downloadBlobFile(blob, `users_export.${type}`)

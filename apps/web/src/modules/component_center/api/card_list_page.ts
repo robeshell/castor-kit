@@ -3,23 +3,11 @@ import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types
 
 /** A card of the card list demo (times are ISO 8601 UTC) */
 export type CardListPageItem = ApiItem<'/api/admin/component-center/card-list-page'>
-/**
- * Create / edit bodies.
- * TODO(openapi): the backend reads category with field.text and priority with field.int (cardItemBody in
- * apps/api/src/modules/component-center/card-list-page/schema.ts), so both take null (category → general, priority → 0 on
- * create); the doc types them as non-null.
- */
-type Nullable<B> = Omit<B, 'category' | 'priority'> & { category?: string | null; priority?: number | null }
-export type CardListPageCreateBody = Nullable<ApiBody<'/api/admin/component-center/card-list-page', 'post'>>
-export type CardListPageUpdateBody = Nullable<ApiBody<'/api/admin/component-center/card-list-page/{item_id}', 'put'>>
-/**
- * Export request.
- * TODO(openapi): the backend reads every filter with field.text (cardExportBody, built by exportBody), so `status` takes
- * any text ('' = every status); the doc types it as the enum.
- */
-export type CardListPageExportBody = Omit<ApiBody<'/api/admin/component-center/card-list-page/export', 'post'>, 'filters'> & {
-  filters?: { search?: string; category?: string; owner?: string; is_active?: string | null; status?: string }
-}
+/** Create / edit bodies (category: null → general, priority: null → 0) */
+export type CardListPageCreateBody = ApiBody<'/api/admin/component-center/card-list-page', 'post'>
+export type CardListPageUpdateBody = ApiBody<'/api/admin/component-center/card-list-page/{item_id}', 'put'>
+/** Export request (filters.status '' = every status) */
+export type CardListPageExportBody = ApiBody<'/api/admin/component-center/card-list-page/export', 'post'>
 /** Export / template file type */
 export type CardListPageFileType = NonNullable<ApiQuery<'/api/admin/component-center/card-list-page/template'>['file_type']>
 

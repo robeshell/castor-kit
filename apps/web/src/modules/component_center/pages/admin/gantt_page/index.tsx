@@ -391,10 +391,11 @@ export default function GanttPage() {
       status: values.status || 'not_started',
       color: values.color || DEFAULT_COLOR,
     }
+    // rules.required keeps both dates filled on submit, so `|| null` never applies (the API answers 400 to a null date)
+    const body = payload as TaskCreateBody
     try {
-      if (editing) await updateGanttTask(editing.id, payload)
-      // rules.required keeps both dates filled on submit, so `|| null` never applies when creating
-      else await createGanttTask(payload as TaskCreateBody)
+      if (editing) await updateGanttTask(editing.id, body)
+      else await createGanttTask(body)
       toast.success(editing ? '任务已更新' : '任务已创建')
       setFormOpen(false)
       fetchTasks()

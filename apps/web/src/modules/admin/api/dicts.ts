@@ -10,15 +10,11 @@ export type DictItem = ApiItem<'/api/admin/dicts/{dict_id}/items'>
 /** Options of several dictionaries, keyed by dictionary code */
 export type DictOptions = ApiResponse<'/api/admin/dicts/options'>
 
-/**
- * Create / edit bodies of dictionary types and items.
- * TODO(openapi): the backend reads sort_order with field.int('排序', 0) (apps/api/src/modules/admin/dicts/schema.ts), so
- * null (a cleared number input) is accepted and saved as 0; the doc has `sort_order?: number`.
- */
-export type DictTypeBody = Omit<ApiBody<'/api/admin/dicts', 'post'>, 'sort_order'> & { sort_order?: number | null }
-export type DictTypeUpdateBody = Omit<ApiBody<'/api/admin/dicts/{dict_id}', 'put'>, 'sort_order'> & { sort_order?: number | null }
-export type DictItemBody = Omit<ApiBody<'/api/admin/dicts/{dict_id}/items', 'post'>, 'sort_order'> & { sort_order?: number | null }
-export type DictItemUpdateBody = Omit<ApiBody<'/api/admin/dicts/items/{item_id}', 'put'>, 'sort_order'> & { sort_order?: number | null }
+/** Create / edit bodies of dictionary types and items (sort_order: null, e.g. a cleared number input, is saved as 0) */
+export type DictTypeBody = ApiBody<'/api/admin/dicts', 'post'>
+export type DictTypeUpdateBody = ApiBody<'/api/admin/dicts/{dict_id}', 'put'>
+export type DictItemBody = ApiBody<'/api/admin/dicts/{dict_id}/items', 'post'>
+export type DictItemUpdateBody = ApiBody<'/api/admin/dicts/items/{item_id}', 'put'>
 
 export const getDictTypes = (params?: ApiQuery<'/api/admin/dicts'>) =>
   request.get<unknown, ApiResponse<'/api/admin/dicts'>>('/admin/dicts', { params })

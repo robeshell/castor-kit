@@ -13,25 +13,11 @@ export interface TreeListPageNode extends TreeListPageItem {
   children?: TreeListPageNode[]
 }
 
-/**
- * Create / update bodies. TODO(openapi): the doc has `sort_order?: number`, but the backend's field.int is nullish
- * (missing / null → 0) and the form sends null for a cleared number input.
- */
-export type TreeListPageCreateInput = Omit<ApiBody<'/api/admin/component-center/tree-list-page', 'post'>, 'sort_order'> & {
-  sort_order?: number | null
-}
-export type TreeListPageUpdateInput = Omit<ApiBody<'/api/admin/component-center/tree-list-page/{item_id}', 'put'>, 'sort_order'> & {
-  sort_order?: number | null
-}
-type TreeListPageExportDoc = ApiBody<'/api/admin/component-center/tree-list-page/export', 'post'>
-/**
- * Export body: selected ids, or the list filters (export_mode).
- * TODO(openapi): the backend reads every filter with field.text (treeExportBody), so `status` takes any text ('' = every
- * status); the doc types it as the status enum.
- */
-export type TreeListPageExportBody = Omit<TreeListPageExportDoc, 'filters'> & {
-  filters?: Omit<NonNullable<TreeListPageExportDoc['filters']>, 'status'> & { status?: string }
-}
+/** Create / update bodies (sort_order: null, e.g. a cleared number input, is saved as 0) */
+export type TreeListPageCreateInput = ApiBody<'/api/admin/component-center/tree-list-page', 'post'>
+export type TreeListPageUpdateInput = ApiBody<'/api/admin/component-center/tree-list-page/{item_id}', 'put'>
+/** Export body: selected ids, or the list filters (export_mode; status '' = every status) */
+export type TreeListPageExportBody = ApiBody<'/api/admin/component-center/tree-list-page/export', 'post'>
 
 export const getTreeListPageTree = (params?: ApiQuery<'/api/admin/component-center/tree-list-page/tree'>) =>
   request.get<unknown, TreeListPageNode[]>('/admin/component-center/tree-list-page/tree', { params })

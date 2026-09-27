@@ -31,6 +31,9 @@ const STATUS_OPTIONS: { label: string; value: DeptStatus }[] = [
   { label: '正常', value: 'active' },
   { label: '停用', value: 'disabled' },
 ]
+/** FilterSelect only emits option values or '' (all) */
+const toStatusFilter = (value: string): NonNullable<DepartmentQuery['status']> =>
+  STATUS_OPTIONS.find((o) => o.value === value)?.value ?? ''
 
 /** What the department dialog holds and submits */
 interface FormValues {
@@ -91,7 +94,7 @@ export default function Departments() {
   const [data, setData] = useState<DepartmentNode[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('')
+  const [status, setStatus] = useState<NonNullable<DepartmentQuery['status']>>('')
   const [query, setQuery] = useState<DepartmentQuery>({ search: '', status: '' })
   const [expanded, setExpanded] = useState(new Set<number>())
   const [formOpen, setFormOpen] = useState(false)
@@ -345,7 +348,7 @@ export default function Departments() {
         }
       >
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索部门名称 / 编码" />
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={(v) => setStatus(toStatusFilter(v))} options={STATUS_OPTIONS} placeholder="状态" />
       </FilterBar>
 
       <DataTable

@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { formatDateTime, formatRelative } from '@/lib/format'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { getWebhookDeliveries, redeliverWebhook, type Webhook, type WebhookDelivery } from '@/modules/admin/api/webhooks'
+import { getWebhookDeliveries, redeliverWebhook, type Webhook, type WebhookDeliveriesQuery, type WebhookDelivery } from '@/modules/admin/api/webhooks'
 import type { ListResponse } from '@/shared/api/types'
 import { DataPagination } from '@/shared/components/DataTable'
 import { FilterSelect } from '@/shared/components/Filters'
@@ -20,7 +20,10 @@ const STATUS_OPTIONS = [
   { label: '成功', value: 'success' },
   { label: '等待重试', value: 'pending' },
   { label: '失败', value: 'failed' },
-]
+] as const
+type StatusFilter = NonNullable<WebhookDeliveriesQuery['status']>
+/** FilterSelect only emits option values or '' (all) */
+const toStatusFilter = (value: string): StatusFilter => STATUS_OPTIONS.find((o) => o.value === value)?.value ?? ''
 
 export interface DeliveryStatusProps {
   /** A delivery status; also a webhook's last_status */
@@ -179,10 +182,10 @@ export default function DeliveriesSheet({ hook, onOpenChange, canRedeliver, onCh
   const { t } = useTranslation()
   const [data, setData] = useState<DeliveryPage | null>(null)
   const [page, setPage] = useState(1)
-  const [status, setStatus] = useState('')
+  const [status, setStatus] = useState<StatusFilter>('')
 
   const fetchPage = useCallback(
-    (nextPage: number, nextStatus: string) =>
+    (nextPage: number, nextStatus: StatusFilter) =>
       getWebhookDeliveries(hook.id, {
         page: nextPage,
         per_page: PER_PAGE,
@@ -209,7 +212,7 @@ export default function DeliveriesSheet({ hook, onOpenChange, canRedeliver, onCh
   return (
     <DetailSheet open onOpenChange={onOpenChange} title="投递记录" description={hook.name} width={600}>
       <div className="mb-3 flex items-center gap-2">
-        <FilterSelect value={status} onChange={(next) => load(1, next)} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={(next) => load(1, toStatusFilter(next))} options={STATUS_OPTIONS} placeholder="状态" />
         <Button variant="outline" size="sm" className="ml-auto h-8" onClick={() => load()}>
           <RefreshCw />
           {t('刷新')}

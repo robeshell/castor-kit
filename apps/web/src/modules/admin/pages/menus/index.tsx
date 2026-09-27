@@ -16,6 +16,7 @@ import {
   importMenus,
   sortMenu,
   updateMenu,
+  type MenuBody,
   type MenuTreeNode,
 } from '@/modules/admin/api/menus'
 import type { ApiBody } from '@/shared/api/types'
@@ -61,10 +62,11 @@ const VIEW_ITEMS: SegmentedTabItem<MenuView>[] = [
   { value: 'flat', label: '平铺' },
 ]
 /** What the menu dialog holds and submits */
+type MenuType = NonNullable<MenuBody['menu_type']>
 interface FormValues {
   name: string
   code: string
-  menu_type: string
+  menu_type: MenuType
   parent_id: number | null
   path: string
   component: string
@@ -204,7 +206,8 @@ export default function Menus() {
     form.reset({
       name: record.name ?? '',
       code: record.code ?? '',
-      menu_type: record.menu_type ?? 'menu',
+      // The response doc types menu_type as text; the backend only stores the values its create / edit body accepts
+      menu_type: (record.menu_type ?? 'menu') as MenuType,
       parent_id: record.parent_id ?? null,
       path: record.path ?? '',
       component: record.component ?? '',

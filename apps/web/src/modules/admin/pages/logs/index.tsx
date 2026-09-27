@@ -16,7 +16,7 @@ import {
   type OperationLogExportBody,
 } from '@/modules/admin/api/logs'
 import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
-import ExportDialog, { type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
+import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
 import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
 import PageHeader from '@/shared/components/PageHeader'
 import SegmentedTabs, { type SegmentedTabItem } from '@/shared/components/SegmentedTabs'
@@ -37,7 +37,11 @@ const LOGIN_STATUS_OPTIONS = [
   { label: '成功', value: 'success' },
   // The backend writes failed logins as 'failed'
   { label: '失败', value: 'failed' },
-]
+] as const
+type LoginStatusFilter = NonNullable<NonNullable<LoginLogExportBody['filters']>['status']>
+/** The applied status filter is what FilterSelect emitted: an option value or '' (all) */
+const isLoginStatusFilter = (value: string): value is LoginStatusFilter =>
+  value === '' || LOGIN_STATUS_OPTIONS.some((o) => o.value === value)
 const LOGIN_EXPORT_FIELDS = [
   { label: 'ID', value: 'id' },
   { label: '用户名', value: 'username' },
@@ -46,7 +50,9 @@ const LOGIN_EXPORT_FIELDS = [
   { label: 'User-Agent', value: 'user_agent' },
   { label: '说明', value: 'message' },
   { label: '时间', value: 'created_at' },
-]
+] as const satisfies readonly ExportFieldOption[]
+type LoginExportField = NonNullable<LoginLogExportBody['fields']>[number]
+const isLoginExportField = (value: string): value is LoginExportField => LOGIN_EXPORT_FIELDS.some((o) => o.value === value)
 const OPERATION_EXPORT_FIELDS = [
   { label: 'ID', value: 'id' },
   { label: '用户名', value: 'username' },
@@ -60,8 +66,11 @@ const OPERATION_EXPORT_FIELDS = [
   { label: 'User-Agent', value: 'user_agent' },
   { label: '请求体', value: 'payload' },
   { label: '时间', value: 'created_at' },
-]
-const normalizeFileType = (raw: string) => (['csv', 'xls', 'xlsx'].includes(raw) ? raw : 'xlsx')
+] as const satisfies readonly ExportFieldOption[]
+type OperationExportField = NonNullable<OperationLogExportBody['fields']>[number]
+const isOperationExportField = (value: string): value is OperationExportField => OPERATION_EXPORT_FIELDS.some((o) => o.value === value)
+/** ExportDialog only offers xlsx and csv */
+const normalizeFileType = (raw: string): 'csv' | 'xlsx' => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
 const withErrorToast =
   <Row,>(fetcher: (params: CrudListParams) => Promise<CrudListResponse<Row>>) =>
   (params: CrudListParams) =>
@@ -217,9 +226,12 @@ export default function Logs() {
 
   const handleLoginExport = async ({ fields, fileType }: ExportParams) => {
     const type = normalizeFileType(fileType)
-    const payload: LoginLogExportBody = { fields, file_type: type, export_mode: loginSelectedKeys.length ? 'selected' : 'filtered' }
+    const payload: LoginLogExportBody = { fields: fields.filter(isLoginExportField), file_type: type, export_mode: loginSelectedKeys.length ? 'selected' : 'filtered' }
     if (loginSelectedKeys.length) payload.ids = loginSelectedKeys
-    else payload.filters = { username: String(loginList.filters.username ?? ''), status: String(loginList.filters.status ?? '') }
+    else {
+      const status = String(loginList.filters.status ?? '')
+      payload.filters = { username: String(loginList.filters.username ?? ''), status: isLoginStatusFilter(status) ? status : '' }
+    }
     try {
       const blob = await exportLoginLogs(payload)
       downloadBlobFile(blob, `login_logs_export.${type}`)
@@ -232,7 +244,7 @@ export default function Logs() {
 
   const handleOperationExport = async ({ fields, fileType }: ExportParams) => {
     const type = normalizeFileType(fileType)
-    const payload: OperationLogExportBody = { fields, file_type: type, export_mode: opSelectedKeys.length ? 'selected' : 'filtered' }
+    const payload: OperationLogExportBody = { fields: fields.filter(isOperationExportField), file_type: type, export_mode: opSelectedKeys.length ? 'selected' : 'filtered' }
     if (opSelectedKeys.length) payload.ids = opSelectedKeys
     else payload.filters = { username: String(opList.filters.username ?? ''), module: String(opList.filters.module ?? '') }
     try {

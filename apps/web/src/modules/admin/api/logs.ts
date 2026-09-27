@@ -5,22 +5,9 @@ import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types
 export type LoginLog = ApiItem<'/api/admin/logs/login'>
 /** A logged write operation */
 export type OperationLog = ApiItem<'/api/admin/logs/operation'>
-/**
- * Export requests: ids (selected rows) or filters (the current query), fields, file_type.
- * TODO(openapi): the backend reads the filters with field.text, fields with field.textList and file_type with
- * field.text (loginLogExportBody / operationLogExportBody in apps/api/src/modules/admin/logs/schema.ts, built by
- * exportBody): status takes any text ('' = every status), unknown fields are dropped and a file type other than
- * csv / xlsx falls back to csv; the doc types status, fields and file_type as enums.
- */
-export type LoginLogExportBody = Omit<ApiBody<'/api/admin/logs/login/export', 'post'>, 'filters' | 'fields' | 'file_type'> & {
-  filters?: { username?: string; status?: string }
-  fields?: string[]
-  file_type?: string
-}
-export type OperationLogExportBody = Omit<ApiBody<'/api/admin/logs/operation/export', 'post'>, 'fields' | 'file_type'> & {
-  fields?: string[]
-  file_type?: string
-}
+/** Export requests: ids (selected rows) or filters (the current query; status '' = every status), fields, file_type */
+export type LoginLogExportBody = ApiBody<'/api/admin/logs/login/export', 'post'>
+export type OperationLogExportBody = ApiBody<'/api/admin/logs/operation/export', 'post'>
 
 export const getLoginLogs = (params?: ApiQuery<'/api/admin/logs/login'>) =>
   request.get<unknown, ApiResponse<'/api/admin/logs/login'>>('/admin/logs/login', { params })

@@ -12,13 +12,9 @@ export interface MenuTreeNode extends Menu {
   children?: MenuTreeNode[]
 }
 
-/**
- * Create / edit bodies.
- * TODO(openapi): the backend reads sort_order with field.int('排序', 0) (apps/api/src/modules/admin/menu/schema.ts), so
- * null (a cleared number input) is accepted and saved as 0; the doc has `sort_order?: number`.
- */
-export type MenuBody = Omit<ApiBody<'/api/admin/menus', 'post'>, 'sort_order'> & { sort_order?: number | null }
-export type MenuUpdateBody = Omit<ApiBody<'/api/admin/menus/{menu_id}', 'put'>, 'sort_order'> & { sort_order?: number | null }
+/** Create / edit bodies (sort_order: null, e.g. a cleared number input, is saved as 0) */
+export type MenuBody = ApiBody<'/api/admin/menus', 'post'>
+export type MenuUpdateBody = ApiBody<'/api/admin/menus/{menu_id}', 'put'>
 
 export const getMenus = (params?: ApiQuery<'/api/admin/menus'>) => request.get<unknown, MenuTreeNode[]>('/admin/menus', { params })
 export const createMenu = (data: MenuBody) => request.post<unknown, Menu>('/admin/menus', data)
