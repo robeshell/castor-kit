@@ -36,6 +36,14 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Removing the old Python backend's shadow, step 4 — dates and the remaining component-gallery pages (kanban, detail tabs, Gantt, advanced table) declare their bodies with `common/validation.ts`:
+  - **Dates**: strict `YYYY-MM-DD` naming a real day; anything else is a 400「<field>的值无效」. `common/py-date.ts` is deleted: its port of Python's `date.fromisoformat(str(v)[:10])` accepted `20240101ab`, ISO week dates and truncated datetimes, and silently stored `null` for anything else.
+  - **Choices**: out-of-list priorities, statuses and categories are a 400 instead of silently falling back to the default. Statuses must be lowercase.
+  - **Averages**: `avg_progress` / `avg_score` are rounded in SQL instead of by the banker's-`round` port.
+  - **Scores**: they compare by value, so a same-value edit no longer bumps `updated_at`.
+  - **Reorder**: kanban and advanced-table reorders take an array of objects with integer ids (the new `parseArrayBody`).
+  - **Kanban**: moving a card needs a real `board_id`; `null` leaves it in its column.
+  - **Tests**: `test/validation.test.ts` covers the field builders and parsers.
 - Removing the old Python backend's shadow, step 3 — the five component-gallery list pages (list page / query management, card list, stats list, tree list, dynamic form) declare their bodies with `common/validation.ts`:
   - **Strict bodies**: JSON types only. Statuses must be the exact lowercase value, and list-page settings (`conditions`, `display_config`, `permission_config`) must be objects, not JSON strings. URL lists must be string arrays. A tree node's `parent_id` must be a number (`null` moves it to the root; `0` / `''` / `'abc'` are 400). Dynamic-form field values are text.
   - **Import status rows**: an invalid status in an import file is an error row, where it used to abort the whole import with a bare 400.

@@ -3,33 +3,24 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
-import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
-import { isPlainObject } from '@/common/py'
+import { changedFields } from '@/common/validation'
 import type { Db } from '@/db/client'
 import { kanbanBoardToDict, kanbanCardToDict, type KanbanBoard, type KanbanCard } from '@/db/schema'
-import { parseLooseDate } from '@/common/py-date'
-import { KanbanRepository, type KanbanBoardPatch, type KanbanCardPatch } from './repository'
-import {
-  changedFields,
-  colorOrDefault,
-  hasKey,
-  normalizePriority,
-  parseBool,
-  parseIntOr,
-  strOrEmpty,
-  strOrNull,
-} from './schema'
+import type { z } from 'zod'
+import { KanbanRepository, type KanbanCardPatch } from './repository'
+import type { BoardInput, CardInput, reorderItem } from './schema'
 
-type Data = Record<string, unknown>
+const DEFAULT_COLOR = '#4080FF'
 
-/** `uuid.uuid4().hex[:n]` */
+/** n random hex characters (generated card codes) */
 function uuidHex(n: number): string {
   return randomUUID().replace(/-/g, '').slice(0, n)
 }
 
-/** Get the driver-level pg error (drizzle wraps it in cause) */
+/** The driver-level pg error (drizzle wraps it in cause) */
 function pgErrorOf(err: unknown): { code?: string; constraint?: string } | null {
   let cur: unknown = err
   for (let i = 0; i < 5 && cur && typeof cur === 'object'; i += 1) {
@@ -41,7 +32,7 @@ function pgErrorOf(err: unknown): { code?: string; constraint?: string } | null 
   return null
 }
 
-/** `_is_sequence_conflict`: primary key conflict (duplicate key ... <constraint>) */
+/** A primary-key conflict: the id sequence lags behind rows inserted with explicit ids (the demo seed) */
 function isSequenceConflict(err: unknown, constraint: string): boolean {
   const pgErr = pgErrorOf(err)
   return pgErr?.code === '23505' && pgErr.constraint === constraint
@@ -79,21 +70,9 @@ export class KanbanService {
     return out
   }
 
-  async createBoard(data: Data) {
-    const title = strOrEmpty(data.title)
-    const boardCode = strOrEmpty(data.board_code)
-    if (!title) throw new ServiceError('列标题不能为空')
-    if (!boardCode) throw new ServiceError('列编码不能为空')
-    if (await this.repo.getBoardByCode(boardCode)) throw new ServiceError('列编码已存在')
-
-    const payload = {
-      title,
-      board_code: boardCode,
-      color: colorOrDefault(data.color),
-      sort_order: parseIntOr(data.sort_order, 0),
-      wip_limit: parseIntOr(data.wip_limit, 0),
-      is_active: parseBool(data.is_active, true),
-    }
+  async createBoard(values: BoardInput) {
+    if (await this.repo.getBoardByCode(values.board_code)) throw new ServiceError('列编码已存在')
+    const payload = { ...values, color: values.color ?? DEFAULT_COLOR }
 
     for (let attempt = 0; ; attempt += 1) {
       try {
@@ -104,21 +83,13 @@ export class KanbanService {
           await this.repo.syncIdSequence('kanban_boards')
           continue
         }
-        throw err
+        throw writeError(err)
       }
     }
   }
 
-  async updateBoard(board: KanbanBoard, data: Data) {
-    if (hasKey(data, 'title') && !strOrEmpty(data.title)) throw new ServiceError('列标题不能为空')
-
-    const patch: KanbanBoardPatch = {}
-    if (hasKey(data, 'title')) patch.title = strOrEmpty(data.title)
-    if (hasKey(data, 'color')) patch.color = colorOrDefault(data.color)
-    if (hasKey(data, 'sort_order')) patch.sort_order = parseIntOr(data.sort_order, board.sort_order || 0)
-    if (hasKey(data, 'wip_limit')) patch.wip_limit = parseIntOr(data.wip_limit, board.wip_limit || 0)
-    if (hasKey(data, 'is_active')) patch.is_active = parseBool(data.is_active, board.is_active)
-
+  async updateBoard(board: KanbanBoard, values: Partial<BoardInput>) {
+    const patch = values.color === null ? { ...values, color: DEFAULT_COLOR } : values
     const changed = changedFields(board, patch)
     if (Object.keys(changed).length > 0) await this.repo.updateBoard(board.id, changed)
     return this.boardDict((await this.repo.getBoard(board.id))!)
@@ -131,29 +102,13 @@ export class KanbanService {
 
   // ── Cards ────────────────────────────────────────────────────────────
 
-  async createCard(data: Data) {
-    const title = strOrEmpty(data.title)
-    let cardCode = strOrEmpty(data.card_code)
-    const boardId = parseIntOr(data.board_id, 0)
-
-    if (!title) throw new ServiceError('卡片标题不能为空')
-    if (!cardCode) cardCode = `card_${uuidHex(8)}`
-    if (!boardId) throw new ServiceError('所属列不存在')
-    await this.getBoardOr404(boardId)
+  async createCard(values: CardInput) {
+    if (values.board_id === null) throw new ServiceError('所属列不存在')
+    await this.getBoardOr404(values.board_id)
+    // A missing or taken code gets a generated one
+    let cardCode = values.card_code ?? `card_${uuidHex(8)}`
     if (await this.repo.getCardByCode(cardCode)) cardCode = `card_${uuidHex(10)}`
-
-    const payload = {
-      board_id: boardId,
-      title,
-      card_code: cardCode,
-      description: strOrNull(data.description),
-      priority: normalizePriority(data.priority),
-      assignee: strOrNull(data.assignee),
-      due_date: parseLooseDate(data.due_date),
-      tags: strOrNull(data.tags),
-      sort_order: parseIntOr(data.sort_order, 0),
-      is_active: parseBool(data.is_active, true),
-    }
+    const payload = { ...values, board_id: values.board_id, card_code: cardCode }
 
     for (let attempt = 0; ; attempt += 1) {
       try {
@@ -163,31 +118,19 @@ export class KanbanService {
           await this.repo.syncIdSequence('kanban_cards')
           continue
         }
-        throw err
+        throw writeError(err)
       }
     }
   }
 
-  async updateCard(card: KanbanCard, data: Data) {
-    if (hasKey(data, 'title') && !strOrEmpty(data.title)) throw new ServiceError('卡片标题不能为空')
-
-    const patch: KanbanCardPatch = {}
-    if (hasKey(data, 'board_id')) {
-      const boardId = parseIntOr(data.board_id, 0)
-      if (boardId) {
-        await this.getBoardOr404(boardId)
-        patch.board_id = boardId
-      }
+  async updateCard(card: KanbanCard, values: Partial<CardInput>) {
+    const { board_id: boardId, ...rest } = values
+    const patch: KanbanCardPatch = { ...rest }
+    // Moving to another column: it must exist (null leaves the card where it is)
+    if (boardId !== undefined && boardId !== null) {
+      await this.getBoardOr404(boardId)
+      patch.board_id = boardId
     }
-    if (hasKey(data, 'title')) patch.title = strOrEmpty(data.title)
-    if (hasKey(data, 'description')) patch.description = strOrNull(data.description)
-    if (hasKey(data, 'assignee')) patch.assignee = strOrNull(data.assignee)
-    if (hasKey(data, 'tags')) patch.tags = strOrNull(data.tags)
-    if (hasKey(data, 'sort_order')) patch.sort_order = parseIntOr(data.sort_order, card.sort_order || 0)
-    if (hasKey(data, 'is_active')) patch.is_active = parseBool(data.is_active, card.is_active)
-    if (hasKey(data, 'priority')) patch.priority = normalizePriority(data.priority)
-    if (hasKey(data, 'due_date')) patch.due_date = parseLooseDate(data.due_date)
-
     const changed = changedFields(card, patch)
     if (Object.keys(changed).length > 0) await this.repo.updateCard(card.id, changed)
     return kanbanCardToDict((await this.repo.getCard(card.id))!)
@@ -198,19 +141,13 @@ export class KanbanService {
     return { message: '删除成功' }
   }
 
-  /** Batch-update cards' board_id and sort_order (in a transaction, one batch query) */
-  async reorderCards(items: unknown) {
-    if (!Array.isArray(items)) throw new ServiceError('参数格式错误，需要数组')
+  /** Batch-update cards' column and position (one transaction); entries without a card id are skipped */
+  async reorderCards(items: z.output<typeof reorderItem>[]) {
     try {
       return await this.db.transaction(async (tx) => {
         const repo = new KanbanRepository(tx)
-        // Return 500 when an element is not an object
-        const get = (item: unknown, key: string): unknown => {
-          if (!isPlainObject(item)) throw invalidInput(`'${typeof item}' object has no attribute 'get'`)
-          return item[key]
-        }
-        const cardIds = items.map((item) => parseIntOr(get(item, 'id'), 0)).filter((id) => id)
-        const boardIds = [...new Set(items.map((item) => parseIntOr(get(item, 'board_id'), 0)))].filter((id) => id !== 0)
+        const cardIds = items.flatMap((item) => (item.id === null ? [] : [item.id]))
+        const boardIds = [...new Set(items.flatMap((item) => (item.board_id === null ? [] : [item.board_id])))]
 
         const cardsById = new Map<number, KanbanCard>()
         if (cardIds.length > 0) for (const c of await repo.listCardsByIds(cardIds)) cardsById.set(c.id, c)
@@ -219,19 +156,15 @@ export class KanbanService {
           if (boardIds.some((id) => !existing.has(id))) throw new ServiceError('目标列不存在')
         }
 
-        // If the same card appears multiple times the last one wins (like repeated assignments on an ORM object flushed once at commit)
+        // A card listed more than once: the last entry wins
         const finalPatch = new Map<number, KanbanCardPatch>()
         for (const item of items) {
-          const cardId = parseIntOr(get(item, 'id'), 0)
-          const boardId = parseIntOr(get(item, 'board_id'), 0)
-          const sortOrder = parseIntOr(get(item, 'sort_order'), 0)
-          const card = cardsById.get(cardId)
-          if (card) {
-            const patch = finalPatch.get(card.id) ?? {}
-            if (boardId) patch.board_id = boardId
-            patch.sort_order = sortOrder
-            finalPatch.set(card.id, patch)
-          }
+          const card = item.id === null ? undefined : cardsById.get(item.id)
+          if (!card) continue
+          const patch = finalPatch.get(card.id) ?? {}
+          if (item.board_id !== null) patch.board_id = item.board_id
+          patch.sort_order = item.sort_order
+          finalPatch.set(card.id, patch)
         }
         for (const [id, patch] of finalPatch) {
           const changed = changedFields(cardsById.get(id)!, patch)
@@ -240,8 +173,7 @@ export class KanbanService {
         return { message: '排序已保存' }
       })
     } catch (err) {
-      if (err instanceof ServiceError) throw err
-      throw invalidInput(err instanceof Error ? err.message : String(err))
+      throw writeError(err)
     }
   }
 }

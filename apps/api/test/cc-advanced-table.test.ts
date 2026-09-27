@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { cc_advanced_table_rows } from '@/db/schema'
-import { numericEqualsFloat, pyRound2 } from '@/modules/component-center/advanced-table/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -45,47 +44,24 @@ afterAll(async () => {
   await handle.pool.end()
 })
 
-describe('advanced-table 工具函数', () => {
-  it('pyRound2 按 round(x, 2) 语义（含恰好一半取偶）', () => {
-    // round(x, 2) semantics: round(0.125,2)=0.12, round(0.375,2)=0.38, round(2.675,2)=2.67, round(1.005,2)=1.0
-    expect(pyRound2(0.125)).toBe(0.12)
-    expect(pyRound2(0.375)).toBe(0.38)
-    expect(pyRound2(-0.125)).toBe(-0.12)
-    expect(pyRound2(2.675)).toBe(2.67)
-    expect(pyRound2(1.005)).toBe(1)
-    expect(pyRound2(33.333333333333336)).toBe(33.33)
-    expect(pyRound2(0)).toBe(0)
-  })
-
-  it('numericEqualsFloat：Decimal == float 精确比较', () => {
-    expect(numericEqualsFloat('82.00', 82)).toBe(true)
-    expect(numericEqualsFloat('12.50', 12.5)).toBe(true)
-    expect(numericEqualsFloat('0.10', 0.1)).toBe(false)
-    expect(numericEqualsFloat('0.00', 0)).toBe(true)
-    expect(numericEqualsFloat('-1.25', -1.25)).toBe(true)
-    expect(numericEqualsFloat(null, 0)).toBe(false)
-    expect(numericEqualsFloat('NaN', Number.NaN)).toBe(false)
-  })
-})
-
 describe('advanced-table', () => {
-  it('新建：201 + 归一化（score 输出为数字）；校验失败分支', async () => {
+  it('新建：201 + 进度钳制、score 按两位小数存储；校验失败分支', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/rows`,
       payload: {
         name: ` ${P}甲 `,
         row_code: `${P}a`,
-        category: 'FINANCE',
-        status: ' Published ',
-        priority: '3',
+        category: 'finance',
+        status: 'published',
+        priority: 3,
         progress: 120,
-        score: '12.345',
+        score: 12.345,
         tags: 'x,y',
-        is_active: 'off',
-        is_pinned: '是',
+        is_active: false,
+        is_pinned: true,
         due_date: '2025-01-02',
-        sort_order: '-5',
+        sort_order: -5,
         owner: `${P}owner`,
       },
     })
@@ -107,10 +83,10 @@ describe('advanced-table', () => {
       sort_order: -5,
       remark: null,
     })
-    const r2 = await s.inject({ method: 'POST', url: `${B}/rows`, payload: { name: `${P}乙`, row_code: `${P}b`, category: 'weird', sort_order: 1, score: 50 } })
+    const r2 = await s.inject({ method: 'POST', url: `${B}/rows`, payload: { name: `${P}乙`, row_code: `${P}b`, category: '', sort_order: 1, score: 50 } })
     expect(r2.json()).toMatchObject({ category: 'general', status: 'draft', score: 50, is_active: true, is_pinned: false, tags: '' })
     ids.b = r2.json().id
-    const r3 = await s.inject({ method: 'POST', url: `${B}/rows`, payload: { name: `${P}丙`, row_code: `${P}c`, sort_order: 2, score: 'abc', progress: 30 } })
+    const r3 = await s.inject({ method: 'POST', url: `${B}/rows`, payload: { name: `${P}丙`, row_code: `${P}c`, sort_order: 2, score: null, progress: 30 } })
     ids.c = r3.json().id
     expect(r3.json().score).toBe(0)
 
@@ -118,8 +94,14 @@ describe('advanced-table', () => {
       [{ row_code: 'x' }, '名称不能为空'],
       [{ name: 'x' }, '编码不能为空'],
       [{ name: 'x', row_code: `${P}a` }, '编码已存在'],
-      [{ name: 'x', row_code: `${P}z`, status: 'bogus', sort_order: 99999999999 }, '状态仅支持 draft/published/archived'],
-      [{ name: 'x', row_code: `${P}z`, sort_order: 2147483648 }, '排序值超出范围'],
+      [{ name: 'x', row_code: `${P}z`, status: 'bogus' }, '状态仅支持 draft/published/archived'],
+      [{ name: 'x', row_code: `${P}z`, status: 'Published' }, '状态仅支持 draft/published/archived'],
+      [{ name: 'x', row_code: `${P}z`, sort_order: 2147483648 }, '排序的值无效'],
+      [{ name: 'x', row_code: `${P}z`, category: 'weird' }, '分类的值无效'],
+      [{ name: 'x', row_code: `${P}z`, score: 'abc' }, '评分的值无效'],
+      [{ name: 'x', row_code: `${P}z`, priority: '3' }, '优先级的值无效'],
+      [{ name: 'x', row_code: `${P}z`, is_pinned: '是' }, '置顶的值无效'],
+      [{ name: 'x', row_code: `${P}z`, due_date: '2025/01/02' }, '截止日期的值无效'],
     ]
     for (const [payload, error] of cases) {
       const r = await s.inject({ method: 'POST', url: `${B}/rows`, payload })
@@ -127,7 +109,7 @@ describe('advanced-table', () => {
       expect(r.json()).toEqual({ error })
     }
     const overflow = await s.inject({ method: 'POST', url: `${B}/rows`, payload: { name: 'x', row_code: `${P}z`, score: 1e6 } })
-    expect(overflow.statusCode).toBe(400)
+    expect(overflow.json()).toEqual({ error: '数值超出范围' })
   })
 
   it('列表：形状、置顶优先、排序字段、筛选、分页', async () => {
@@ -158,12 +140,12 @@ describe('advanced-table', () => {
     expect(tagSearch).toContain(ids.a)
   })
 
-  it('统计：计数与平均值按 Python round 两位', async () => {
+  it('统计：计数与平均值（两位小数）', async () => {
     const res = await s.inject({ url: `${B}/stats` })
     const st = res.json()
     const { rows } = await handle.pool.query(
       `SELECT count(*)::int AS total, count(*) FILTER (WHERE is_active)::int AS active, count(*) FILTER (WHERE is_pinned)::int AS pinned,
-              count(*) FILTER (WHERE status='published')::int AS published, avg(progress) AS ap, avg(score) AS asc_
+              count(*) FILTER (WHERE status='published')::int AS published, round(avg(progress), 2) AS ap, round(avg(score), 2) AS asc_
        FROM cc_advanced_table_rows`,
     )
     const r = rows[0]
@@ -173,33 +155,30 @@ describe('advanced-table', () => {
       inactive_count: r.total - r.active,
       pinned_count: r.pinned,
       published_count: r.published,
-      avg_progress: pyRound2(Number(r.ap)),
-      avg_score: pyRound2(Number(r.asc_)),
+      avg_progress: Number(r.ap),
+      avg_score: Number(r.asc_),
     })
     expect(st.category_stats.reduce((a: number, c: { count: number }) => a + c.count, 0)).toBe(r.total)
     expect(st.category_stats.find((c: { category: string }) => c.category === 'finance').count).toBeGreaterThanOrEqual(1)
   })
 
-  it('编辑：部分字段、默认值回落、错误优先级；无变化不刷新 updated_at', async () => {
+  it('编辑：部分字段、空值取默认；类型不符 400；无变化不刷新 updated_at（score 按数值比较）', async () => {
     const res = await s.inject({
       method: 'PUT',
       url: `${B}/rows/${ids.b}`,
-      payload: { score: '7.005', progress: -1, category: 'RISK', is_pinned: 'no', due_date: 'x', remark: ' r ', status: '' },
+      payload: { score: 7.005, progress: -1, category: 'risk', is_pinned: false, due_date: '', remark: ' r ', status: '' },
     })
     expect(res.json()).toMatchObject({ score: 7.01, progress: 0, category: 'risk', is_pinned: false, due_date: null, remark: 'r', status: 'draft' })
-    const noop = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { category: 'x', priority: 'x', row_code: `${P}b` } })
+    const noop = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { category: 'risk', score: 7.01, row_code: `${P}b` } })
     expect(noop.json().updated_at).toBe(res.json().updated_at)
-    expect(noop.json().category).toBe('risk')
-    // Decimal('7.01') vs float 7.01 compares unequal exactly → still issues an UPDATE that refreshes updated_at
-    const inexact = await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { score: 7.01 } })
-    expect(inexact.json().score).toBe(7.01)
-    expect(inexact.json().updated_at).not.toBe(res.json().updated_at)
+    expect((await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { category: 'RISK' } })).json()).toEqual({ error: '分类的值无效' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/rows/${ids.b}`, payload: { due_date: 'x' } })).json()).toEqual({ error: '截止日期的值无效' })
 
     const errs: [object, string][] = [
       [{ name: ' ' }, '名称不能为空'],
       [{ row_code: '' }, '编码不能为空'],
       [{ row_code: `${P}a` }, '编码已存在'],
-      [{ status: 'x', sort_order: -2147483649 }, '排序值超出范围'],
+      [{ sort_order: -2147483649 }, '排序的值无效'],
       [{ status: 'x' }, '状态仅支持 draft/published/archived'],
     ]
     for (const [payload, error] of errs) {
@@ -211,22 +190,22 @@ describe('advanced-table', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/abc`, payload: {} })).statusCode).toBe(405)
   })
 
-  it('排序：批量改 sort_order；非数组 400；越界 / 非对象 → 400 且回滚', async () => {
+  it('排序：批量改 sort_order；非数组 400；类型不符 / 越界 / 非对象 → 400', async () => {
     const ok = await s.inject({
       method: 'PUT',
       url: `${B}/rows/reorder`,
-      payload: [{ id: ids.b, sort_order: 20 }, { id: String(ids.c), sort_order: '10' }, { id: 99999999999, sort_order: 1 }, { id: 0 }],
+      payload: [{ id: ids.b, sort_order: 20 }, { id: ids.c, sort_order: 10 }, { id: 99999999, sort_order: 1 }, { sort_order: 5 }],
     })
     expect(ok.json()).toEqual({ message: '排序已保存' })
     const rows = await handle.db.select().from(cc_advanced_table_rows).where(inArray(cc_advanced_table_rows.id, [ids.b!, ids.c!]))
     expect(Object.fromEntries(rows.map((r) => [r.id, r.sort_order]))).toEqual({ [ids.b!]: 20, [ids.c!]: 10 })
 
-    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: {} })).json()).toEqual({ message: '排序已保存' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [] })).json()).toEqual({ message: '排序已保存' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: String(ids.c), sort_order: 1 }] })).json()).toEqual({ error: '记录的值无效' })
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: { a: 1 } })).json()).toEqual({ error: '参数格式错误，需要数组' })
     const bad = await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, { id: ids.c, sort_order: 2147483648 }] })
-    expect(bad.statusCode).toBe(400)
-    expect(bad.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
-    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, 'x'] })).statusCode).toBe(400)
+    expect(bad.json()).toEqual({ error: '排序的值无效' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, 'x'] })).json()).toEqual({ error: '请求参数格式不正确' })
     const [b] = await handle.db.select().from(cc_advanced_table_rows).where(eq(cc_advanced_table_rows.id, ids.b!))
     expect(b!.sort_order).toBe(20)
   })
@@ -235,18 +214,18 @@ describe('advanced-table', () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/rows/batch-update`,
-      payload: { ids: [ids.b, String(ids.c), ids.b, 99999999, null], status: 'ARCHIVED', owner: ` ${P}o `, is_active: 'false', priority: '9' },
+      payload: { ids: [ids.b, ids.c, ids.b, 99999999], status: 'archived', owner: ` ${P}o `, is_active: false, priority: 9 },
     })
     expect(res.json()).toEqual({ message: '已更新 2 条记录' })
     const rows = await handle.db.select().from(cc_advanced_table_rows).where(inArray(cc_advanced_table_rows.id, [ids.b!, ids.c!]))
     for (const r of rows) expect([r.status, r.owner, r.is_active, r.priority]).toEqual(['archived', `${P}o`, false, 9])
 
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: {} })).json()).toEqual({ error: '请先选择要操作的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: 'x' } })).json()).toEqual({ error: '请先选择要操作的数据' })
+    expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: 'x' } })).json()).toEqual({ error: '记录的值无效' })
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: [99999999] } })).json()).toEqual({ error: '未找到可更新的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: ['abc'] } })).statusCode).toBe(400)
+    expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: ['abc'] } })).json()).toEqual({ error: '记录的值无效' })
     const bad = await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: [ids.b, ids.c], status: 'nope', priority: 1 } })
-    expect(bad.statusCode).toBe(400)
+    expect(bad.json()).toEqual({ error: '状态仅支持 draft/published/archived' })
     const [b] = await handle.db.select().from(cc_advanced_table_rows).where(eq(cc_advanced_table_rows.id, ids.b!))
     expect(b!.priority).toBe(9)
   })

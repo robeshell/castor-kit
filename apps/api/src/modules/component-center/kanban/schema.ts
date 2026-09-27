@@ -1,66 +1,47 @@
 /**
- * Kanban page schema layer
+ * Kanban page schema layer: request bodies
  */
 
-import { pyInt, pyStr, pyTruthy } from '@/common/py'
+import { z } from 'zod'
+import { field } from '@/common/validation'
 
-export const PRIORITY_VALUES = new Set(['low', 'medium', 'high', 'urgent'])
+export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 
-/** `parse_bool(value, default=True)`: None → default; bool as-is; otherwise str(value).lower() in (...) */
-export function parseBool<T>(value: unknown, fallback: T): boolean | T {
-  if (value === null || value === undefined) return fallback
-  if (typeof value === 'boolean') return value
-  return ['true', '1', 'yes', '启用'].includes(pyStr(value).toLowerCase())
-}
+export const boardBody = z.object({
+  title: field.requiredText('列标题', '列标题不能为空'),
+  board_code: field.requiredText('列编码', '列编码不能为空'),
+  color: field.text('颜色'),
+  sort_order: field.int('排序', 0),
+  wip_limit: field.int('WIP 上限', 0),
+  is_active: field.bool('启用', true),
+})
 
-/** `parse_int(value, default=0)`: int(value), falling back to the default on TypeError/ValueError */
-export function parseIntOr<T>(value: unknown, fallback: T): number | T {
-  try {
-    return pyInt(value)
-  } catch {
-    return fallback
-  }
-}
+export type BoardInput = z.output<typeof boardBody>
 
-/** `str(v or '').strip()` */
-export function strOrEmpty(value: unknown): string {
-  return pyTruthy(value) ? pyStr(value).trim() : ''
-}
+/** Edit: the column code can't change, so it isn't read */
+export const boardUpdateBody = boardBody.omit({ board_code: true })
 
-/** `str(v or '').strip() or None` */
-export function strOrNull(value: unknown): string | null {
-  return strOrEmpty(value) || null
-}
+export const cardBody = z.object({
+  board_id: field.id('所属列'),
+  title: field.requiredText('卡片标题', '卡片标题不能为空'),
+  card_code: field.text('卡片编码'),
+  description: field.text('描述'),
+  priority: field.choice('优先级', PRIORITIES, 'medium'),
+  assignee: field.text('负责人'),
+  due_date: field.date('截止日期'),
+  tags: field.text('标签'),
+  sort_order: field.int('排序', 0),
+  is_active: field.bool('启用', true),
+})
 
-/** `str(v or fallback).strip()` */
-export function strOrFallback(value: unknown, fallback: string): string {
-  return (pyTruthy(value) ? pyStr(value) : fallback).trim()
-}
+export type CardInput = z.output<typeof cardBody>
 
-/** `str(v or '#4080FF').strip() or '#4080FF'` */
-export function colorOrDefault(value: unknown): string {
-  return strOrFallback(value, '#4080FF') || '#4080FF'
-}
+/** Edit: the card code can't change, so it isn't read */
+export const cardUpdateBody = cardBody.omit({ card_code: true })
 
-/** `str(v or 'medium').strip()`, falling back to 'medium' when not in the enum */
-export function normalizePriority(value: unknown): string {
-  const p = strOrFallback(value, 'medium')
-  return PRIORITY_VALUES.has(p) ? p : 'medium'
-}
-
-/** `key in data` */
-export function hasKey(data: Record<string, unknown>, key: string): boolean {
-  return Object.hasOwn(data, key)
-}
-
-/**
- * Only send an UPDATE for fields whose value actually changed (updated_at is refreshed only when an UPDATE is sent):
- * filters out fields equal to the current row; when the result is empty the caller should not send an UPDATE.
- */
-export function changedFields<R extends Record<string, unknown>, P extends Partial<R>>(row: R, patch: P): P {
-  const out: Partial<R> = {}
-  for (const [k, v] of Object.entries(patch)) {
-    if (row[k] !== v) (out as Record<string, unknown>)[k] = v
-  }
-  return out as P
-}
+/** One entry of the reorder list: a card and its new column / position */
+export const reorderItem = z.object({
+  id: field.id('卡片'),
+  board_id: field.id('目标列'),
+  sort_order: field.int('排序', 0),
+})

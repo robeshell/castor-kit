@@ -45,7 +45,7 @@ export function advancedTableRowToDict(r: AdvancedTableRow) {
     status: r.status || 'draft',
     priority: r.priority ?? 0,
     progress: r.progress ?? 0,
-    // float(Decimal): numeric text to JSON number (NaN serializes to null in JSON)
+    // numeric text to a JSON number (NaN becomes null)
     score: r.score !== null ? Number(r.score) : 0.0,
     tags: r.tags || '',
     is_active: r.is_active,

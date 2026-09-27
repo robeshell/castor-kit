@@ -45,17 +45,16 @@ afterAll(async () => {
 })
 
 describe('gantt', () => {
-  it('新建：201 + 枚举/进度归一化；各校验失败分支', async () => {
+  it('新建：201 + 进度钳制；各校验失败分支', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/tasks`,
       payload: {
         title: `${P}任务`,
-        start_date: '2024-W10-1',
-        end_date: '20240320',
-        progress: '130',
+        start_date: '2024-03-04',
+        end_date: '2024-03-20',
+        progress: 130,
         task_type: 'milestone',
-        priority: 'urgent',
         status: 'delayed',
         assignee: ' ',
         sort_order: 9000,
@@ -80,8 +79,11 @@ describe('gantt', () => {
     const cases: [object, string][] = [
       [{}, '任务标题不能为空'],
       [{ title: 'x', end_date: '2024-01-01' }, '开始日期不能为空'],
-      [{ title: 'x', start_date: '2024-02-30', end_date: '2024-01-01' }, '开始日期不能为空'],
+      [{ title: 'x', start_date: '2024-02-30', end_date: '2024-01-01' }, '开始日期的值无效'],
+      [{ title: 'x', start_date: '2024-W10-1', end_date: '2024-03-20' }, '开始日期的值无效'],
       [{ title: 'x', start_date: '2024-01-01', end_date: '' }, '结束日期不能为空'],
+      [{ title: 'x', start_date: '2024-01-01', end_date: '2024-01-02', priority: 'urgent' }, '优先级的值无效'],
+      [{ title: 'x', start_date: '2024-01-01', end_date: '2024-01-02', progress: '30' }, '进度的值无效'],
     ]
     for (const [payload, error] of cases) {
       const r = await s.inject({ method: 'POST', url: `${B}/tasks`, payload })
@@ -102,14 +104,13 @@ describe('gantt', () => {
     expect(both.every((t) => t.status === 'not_started' && t.priority === 'critical')).toBe(true)
   })
 
-  it('编辑：进度钳制、日期置空 → 400；标题清空 400；404', async () => {
-    const res = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { progress: -3, status: 'nope', color: '', end_date: '2024-04-01' } })
+  it('编辑：进度钳制、null 取默认；日期置空 / 类型不符 → 400；标题清空 400；404', async () => {
+    const res = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { progress: -3, status: null, color: '', end_date: '2024-04-01' } })
     expect(res.json()).toMatchObject({ progress: 0, status: 'not_started', color: '#4080FF', end_date: '2024-04-01' })
-    const keep = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { progress: 'x' } })
-    expect(keep.json().progress).toBe(0)
+    expect((await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { status: 'nope' } })).json()).toEqual({ error: '状态的值无效' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { progress: 'x' } })).json()).toEqual({ error: '进度的值无效' })
     const nul = await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { start_date: null } })
-    expect(nul.statusCode).toBe(400)
-    expect(nul.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    expect(nul.json()).toEqual({ error: '开始日期不能为空' })
     expect((await s.inject({ method: 'PUT', url: `${B}/tasks/${taskId}`, payload: { title: null } })).json()).toEqual({ error: '任务标题不能为空' })
     expect((await s.inject({ method: 'PUT', url: `${B}/tasks/99999999`, payload: {} })).statusCode).toBe(404)
   })

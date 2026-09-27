@@ -64,27 +64,16 @@ const PY_COMPAT_IMPORT = /from '(@\/common\/(py|py-values|py-date|sqla-bind|sche
 /** Files (src/ and scripts/) still importing them, until their module is migrated (remove a file here once it no longer does) */
 const PY_COMPAT_PENDING = [
   'scripts/import-apifox.ts',
-  'src/common/py-date.ts',
   'src/common/py-values.ts',
   'src/common/scheduler/cron.ts',
   'src/common/scheduler/ssrf.ts',
   'src/modules/admin/scheduled-task/routes.ts',
   'src/modules/admin/scheduled-task/schema.ts',
   'src/modules/admin/scheduled-task/service.ts',
-  'src/modules/component-center/advanced-table/routes.ts',
-  'src/modules/component-center/advanced-table/schema.ts',
-  'src/modules/component-center/advanced-table/service.ts',
   'src/modules/component-center/ai-prompt/schema.ts',
   'src/modules/component-center/ai-prompt/service.ts',
   'src/modules/component-center/ai-sql/routes.ts',
   'src/modules/component-center/ai-sql/service.ts',
-  'src/modules/component-center/detail-tabs/schema.ts',
-  'src/modules/component-center/detail-tabs/service.ts',
-  'src/modules/component-center/gantt/schema.ts',
-  'src/modules/component-center/gantt/service.ts',
-  'src/modules/component-center/kanban/routes.ts',
-  'src/modules/component-center/kanban/schema.ts',
-  'src/modules/component-center/kanban/service.ts',
 ]
 
 /** Files still mentioning Python / Flask / SQLAlchemy */
@@ -92,7 +81,6 @@ const PY_MENTION_PENDING = [
   'scripts/generate-openapi.ts',
   'scripts/import-apifox.ts',
   'scripts/lib/ordered-json.ts',
-  'src/common/py-date.ts',
   'src/common/py-values.ts',
   'src/common/py.ts',
   'src/common/scheduler/http.ts',
@@ -100,7 +88,6 @@ const PY_MENTION_PENDING = [
   'src/common/scheduler/py-json.ts',
   'src/common/scheduler/ssrf.ts',
   'src/common/sqla-bind.ts',
-  'src/modules/component-center/advanced-table/schema.ts',
   'src/modules/component-center/ai-sql/pg-values.ts',
 ]
 
