@@ -34,11 +34,17 @@ const isNumericColumn = (rows: SqlRow[], col: string) => {
   })
 }
 
-// Whether the result can be charted (at least 2 columns, the second one numeric)
-const canRenderChart = (columns: string[], rows: SqlRow[]) => {
-  if (!columns || columns.length < 2 || !rows || !rows.length) return false
-  // columns.length >= 2 was checked above
-  return isNumericColumn(rows, columns[1]!)
+/** The chart's x / y columns: the first two, when the second is numeric */
+interface ChartAxes {
+  x: string
+  y: string
+}
+
+// The result can be charted when it has at least 2 columns and the second one is numeric (null → table only)
+const chartAxesOf = (columns: string[], rows: SqlRow[]): ChartAxes | null => {
+  const [x, y] = columns
+  if (x === undefined || y === undefined || !isNumericColumn(rows, y)) return null
+  return { x, y }
 }
 
 // Sample questions (demo content, not translated)
@@ -58,18 +64,16 @@ const EXAMPLE_QUESTIONS = [
 ]
 
 interface ResultChartProps {
-  /** At least 2 columns (the page only renders the chart when canRenderChart passed) */
-  columns: string[]
+  axes: ChartAxes
   rows: SqlRow[]
 }
 
-function ResultChart({ columns, rows }: ResultChartProps) {
+function ResultChart({ axes, rows }: ResultChartProps) {
   const c = useChartColors()
   const option = useMemo((): EChartsOption => {
     const base = chartBase(c)
-    // columns[0] / columns[1] exist: see ResultChartProps
-    const xData = rows.map((r) => String(r[columns[0]!] ?? ''))
-    const yData = rows.map((r) => Number(r[columns[1]!]))
+    const xData = rows.map((r) => String(r[axes.x] ?? ''))
+    const yData = rows.map((r) => Number(r[axes.y]))
     return {
       ...base,
       grid: { ...base.grid, top: 24, bottom: 8 },
@@ -82,7 +86,7 @@ function ResultChart({ columns, rows }: ResultChartProps) {
       yAxis: { ...base.yAxis, type: 'value' },
       series: [
         {
-          name: columns[1],
+          name: axes.y,
           type: 'bar',
           data: yData,
           barMaxWidth: 40,
@@ -103,7 +107,7 @@ function ResultChart({ columns, rows }: ResultChartProps) {
         },
       ],
     }
-  }, [c, columns, rows])
+  }, [c, axes, rows])
   return <ReactECharts option={option} style={{ height: 320 }} notMerge opts={{ renderer: 'svg' }} />
 }
 
@@ -193,7 +197,7 @@ export default function AiSqlPage() {
       ),
   }))
 
-  const showChart = result && canRenderChart(result.columns, result.rows)
+  const chartAxes = useMemo(() => (result ? chartAxesOf(result.columns, result.rows) : null), [result])
   const showSqlPanel = !loading && (result || sqlEditing)
 
   return (
@@ -328,7 +332,7 @@ export default function AiSqlPage() {
               </span>
             }
             actions={
-              showChart ? (
+              chartAxes ? (
                 <SegmentedTabs
                   variant="pill"
                   value={activeTab}
@@ -343,7 +347,7 @@ export default function AiSqlPage() {
           >
             {rows.length === 0 ? (
               <EmptyState title="查询结果为空" description="换个问题或修改 SQL 后重新执行" />
-            ) : activeTab === 'table' || !showChart ? (
+            ) : activeTab === 'table' || !chartAxes ? (
               <DataTable
                 bordered={false}
                 dense
@@ -356,7 +360,7 @@ export default function AiSqlPage() {
               />
             ) : (
               <div className="border-t px-3 pt-2 pb-3">
-                <ResultChart columns={columns} rows={rows} />
+                <ResultChart axes={chartAxes} rows={rows} />
               </div>
             )}
           </Panel>

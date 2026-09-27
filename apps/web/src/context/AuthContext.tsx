@@ -70,7 +70,7 @@ export interface AuthContextValue {
 }
 
 const fetchMe: () => Promise<{ user: CurrentUser }> = getMe
-const fetchMyMenus: () => Promise<MenuNode[] | { menus?: MenuNode[] }> = getMyMenus
+const fetchMyMenus: () => Promise<MenuNode[]> = getMyMenus
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
@@ -90,10 +90,10 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
     fetchMe()
       .then((data) => {
         setUser(data.user)
-        setMenuCodes(data.user.menu_codes || [])
+        setMenuCodes(data.user.menu_codes)
         return fetchMyMenus()
       })
-      .then((data) => setMenus(Array.isArray(data) ? data : data.menus || []))
+      .then(setMenus)
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -101,9 +101,8 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   // Menus are fetched before the user is set: once `user` is set the login page redirects to "/", and with an
   // empty menu list the index route would briefly render the "no accessible pages" screen
   const login = async (userData: CurrentUser) => {
-    const data = await fetchMyMenus()
-    setMenus(Array.isArray(data) ? data : data.menus || [])
-    setMenuCodes(userData.menu_codes || [])
+    setMenus(await fetchMyMenus())
+    setMenuCodes(userData.menu_codes)
     setUser(userData)
   }
 
@@ -117,7 +116,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   // After the user edits their own profile: swap in the fresh user returned by the API
   const updateUser = (userData: CurrentUser) => {
     setUser(userData)
-    setMenuCodes(userData?.menu_codes || [])
+    setMenuCodes(userData.menu_codes)
   }
 
   const hasPermission = (code: string) => {
@@ -132,7 +131,6 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   )
 }
 
-/** The auth state; null outside <AuthProvider> */
 /** The auth state; every caller sits inside <AuthProvider> (outside it, destructuring the result would fail anyway) */
 export function useAuth(): AuthContextValue {
   const value = useContext(AuthContext)

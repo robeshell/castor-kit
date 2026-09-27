@@ -46,9 +46,9 @@ export default function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
     const map = new Map<string, RoutedMenu<FlatMenu>[]>()
     pages.forEach((page) => {
       const label = page.parents.length ? page.parents.map((p) => menuLabel(p)).join(' / ') : t('常用')
-      if (!map.has(label)) map.set(label, [])
-      // Set just above when missing
-      map.get(label)!.push(page)
+      const group = map.get(label)
+      if (group) group.push(page)
+      else map.set(label, [page])
     })
     return Array.from(map.entries())
   }, [pages, t])

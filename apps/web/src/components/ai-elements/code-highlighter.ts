@@ -62,7 +62,7 @@ const ALIASES: Record<string, string> = {
 
 // Own keys only: plain-object lookups would also match inherited keys such as `constructor`
 const resolve = (language: string): string => {
-  const name = String(language || '').trim().toLowerCase()
+  const name = language.trim().toLowerCase()
   return (Object.hasOwn(ALIASES, name) && ALIASES[name]) || name
 }
 
@@ -98,10 +98,12 @@ export const code: CodeHighlighterPlugin = {
     const lang = resolve(language)
     if (!isGrammar(lang)) return null
     const key = `${lang}:${source}`
-    if (results.has(key)) return results.get(key) ?? null
+    const cached = results.get(key)
+    if (cached) return cached
     if (callback) {
-      if (!waiting.has(key)) waiting.set(key, new Set())
-      waiting.get(key)?.add(callback)
+      const callbacks = waiting.get(key)
+      if (callbacks) callbacks.add(callback)
+      else waiting.set(key, new Set([callback]))
     }
     tokensFor(source, lang)
       .then((tokens) => {

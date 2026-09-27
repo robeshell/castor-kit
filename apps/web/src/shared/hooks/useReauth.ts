@@ -29,6 +29,14 @@ export interface ReauthCancelled {
 const needsReauth = (err: unknown): boolean =>
   typeof err === 'object' && err !== null && 'reauth_required' in err && Boolean(err.reauth_required)
 
+/** `run` rejected because the user dismissed the identity dialog: nothing to report */
+export const isReauthCancelled = (err: unknown): err is ReauthCancelled =>
+  typeof err === 'object' && err !== null && 'cancelled' in err && err.cancelled === true
+
+/** The identity check (POST /api/admin/reauth) answers a password-only attempt with { mfa_required: true } when the account uses 2FA */
+export const needsMfa = (err: unknown): boolean =>
+  typeof err === 'object' && err !== null && 'mfa_required' in err && Boolean(err.mfa_required)
+
 export function useReauth(): Reauth {
   const [open, setOpen] = useState(false)
   const waiter = useRef<{ resolve: () => void; reject: (reason: ReauthCancelled) => void } | null>(null)

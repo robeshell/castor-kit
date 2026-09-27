@@ -21,7 +21,7 @@ function readVars() {
   }
 }
 
-const isHex = (value: string) => /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value || '')
+const isHex = (value: string) => /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value)
 
 function defineAppTheme(monaco: Monaco, dark: boolean): string {
   const c = readVars()

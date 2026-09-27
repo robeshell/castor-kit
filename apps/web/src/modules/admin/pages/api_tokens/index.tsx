@@ -113,7 +113,7 @@ export default function ApiTokens() {
       title: '权限',
       dataIndex: 'scopes',
       width: 110,
-      render: (value = []) => (
+      render: (value) => (
         <span className="text-muted-foreground tabular-nums" title={value.map((code) => menuLabel({ code, name: code })).join('\n')}>
           {t('{{count}} 项', { count: value.length })}
         </span>

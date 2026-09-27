@@ -25,10 +25,10 @@ export interface UserAgentInfo {
 
 export function describeUserAgent(ua: string | null | undefined): UserAgentInfo {
   if (!ua) return { label: '', mobile: false }
-  const browser = BROWSERS.find(([re]) => re.test(ua))
+  const browser = BROWSERS.map(([re, label]) => ({ match: re.exec(ua), label })).find((b) => b.match)
   const system = SYSTEMS.find(([re]) => re.test(ua))
   const mobile = /Mobile|iPhone|Android/.test(ua)
   if (!browser && !system) return { label: ua.length > 60 ? `${ua.slice(0, 57)}…` : ua, mobile }
-  const name = browser ? `${browser[1]} ${ua.match(browser[0])![1]}` : ''
+  const name = browser?.match ? `${browser.label} ${browser.match[1]}` : ''
   return { label: [name, system?.[1]].filter(Boolean).join(' · '), mobile }
 }

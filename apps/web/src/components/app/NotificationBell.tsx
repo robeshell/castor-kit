@@ -27,13 +27,13 @@ export default function NotificationBell() {
 
   const fetchUnread = useCallback(() => {
     getUnreadCount()
-      .then((res) => setUnread(res?.count ?? 0))
+      .then((res) => setUnread(res.count))
       .catch(() => {})
   }, [])
 
   const fetchRecent = useCallback(() => {
     getNotifications({ page: 1, per_page: 10 })
-      .then((res) => setItems(res?.items || []))
+      .then((res) => setItems(res.items))
       .catch(() => {})
   }, [])
 

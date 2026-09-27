@@ -77,7 +77,7 @@ interface DeptCheckNode extends TreeNode {
 }
 
 // Backend menu tree -> TreeView nodes (key is the numeric menu id; code is kept for the translated label)
-const convertToTreeData = (menus: readonly MenuTreeNode[] = []): MenuCheckNode[] =>
+const convertToTreeData = (menus: readonly MenuTreeNode[]): MenuCheckNode[] =>
   menus.map((m) => ({
     key: m.id,
     code: m.code,
@@ -100,7 +100,7 @@ function MenuTreeChecklist({ tree, value, onChange }: MenuTreeChecklistProps) {
 }
 
 // Department tree -> CheckableTree nodes
-const toDeptNodes = (depts: readonly DepartmentNode[] = []): DeptCheckNode[] =>
+const toDeptNodes = (depts: readonly DepartmentNode[]): DeptCheckNode[] =>
   depts.map((d) => ({ key: d.id, label: d.name, children: d.children?.length ? toDeptNodes(d.children) : undefined }))
 
 const DATA_SCOPE_OPTIONS: { label: string; value: DataScope }[] = [
@@ -145,7 +145,7 @@ export default function Roles() {
 
   const load = () =>
     getRoles()
-      .then((res) => setData(Array.isArray(res) ? res : []))
+      .then(setData)
       .catch(() => toast.error('加载失败'))
       .finally(() => setLoading(false))
 
@@ -157,10 +157,10 @@ export default function Roles() {
   useEffect(() => {
     load()
     getMenus({ format: 'tree' })
-      .then((res) => setMenuTree(convertToTreeData(Array.isArray(res) ? res : [])))
+      .then((res) => setMenuTree(convertToTreeData(res)))
       .catch(() => {})
     getDepartments()
-      .then((res) => setDeptTree(toDeptNodes(Array.isArray(res) ? res : [])))
+      .then((res) => setDeptTree(toDeptNodes(res)))
       .catch(() => {})
   }, [])
 
@@ -174,13 +174,13 @@ export default function Roles() {
 
   const openEdit = (record: Role) => {
     setEditing(record)
-    setCheckedMenus(Array.isArray(record.menu_ids) ? record.menu_ids : record.menus?.map((m) => m.id) || [])
-    setCheckedDepts(record.dept_ids || [])
+    setCheckedMenus(record.menu_ids)
+    setCheckedDepts(record.dept_ids)
     form.reset({
-      name: record.name ?? '',
-      code: record.code ?? '',
+      name: record.name,
+      code: record.code,
       description: record.description ?? '',
-      data_scope: record.data_scope || 'all',
+      data_scope: record.data_scope,
     })
     setFormOpen(true)
   }
@@ -250,9 +250,7 @@ export default function Roles() {
   const filteredData = useMemo(() => {
     if (!querySearch) return data
     const keyword = querySearch.toLowerCase()
-    return data.filter(
-      (item) => String(item.name || '').toLowerCase().includes(keyword) || String(item.code || '').toLowerCase().includes(keyword),
-    )
+    return data.filter((item) => item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword))
   }, [data, querySearch])
 
   const columns: DataTableColumn<Role>[] = [
@@ -271,10 +269,10 @@ export default function Roles() {
       dataIndex: 'menus',
       width: 110,
       render: (menus) => (
-        <StatusBadge tone={menus?.length ? 'success' : 'neutral'}>
+        <StatusBadge tone={menus.length ? 'success' : 'neutral'}>
           <Trans
             i18nKey="<0>{{count}}</0> 个"
-            values={{ count: menus?.length || 0 }}
+            values={{ count: menus.length }}
             components={[<span className="tabular-nums" />]}
           />
         </StatusBadge>
@@ -287,9 +285,9 @@ export default function Roles() {
       width: 130,
       render: (v, record) =>
         v === 'custom' ? (
-          <StatusBadge tone="info">{t('自定义 {{count}} 个部门', { count: record.dept_ids?.length || 0 })}</StatusBadge>
+          <StatusBadge tone="info">{t('自定义 {{count}} 个部门', { count: record.dept_ids.length })}</StatusBadge>
         ) : (
-          <StatusBadge tone={v === 'all' || !v ? 'neutral' : 'info'}>{DATA_SCOPE_LABEL[v || 'all']}</StatusBadge>
+          <StatusBadge tone={v === 'all' ? 'neutral' : 'info'}>{DATA_SCOPE_LABEL[v]}</StatusBadge>
         ),
     },
     {
@@ -475,7 +473,7 @@ export default function Roles() {
         }
         onImport={(file) => importRoles(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created || 0, updated: res.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="roles_import_error_rows.csv"

@@ -89,7 +89,7 @@ export default function TopNav({ mode = 'full', className }: TopNavProps) {
   const active = useMemo(() => findActiveMenu(flat, location.pathname), [flat, location.pathname])
   const activePath = useMemo(() => new Set(active ? [...active.parents.map((p) => p.id), active.id] : []), [active])
   const section = sectionOf(active)
-  const roots = (menus || []).filter(isNavVisible)
+  const roots = menus.filter(isNavVisible)
 
   return (
     <nav className={cn('flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]', className)}>

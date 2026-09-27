@@ -5,11 +5,11 @@ import { toast } from '@/lib/toast'
 import { downloadBlobFile } from '@/shared/utils/file'
 
 export interface RecoveryCodesProps {
-  codes?: readonly string[]
+  codes: readonly string[]
 }
 
 /** Recovery codes right after they are generated: the only time they can be seen */
-export default function RecoveryCodes({ codes = [] }: RecoveryCodesProps) {
+export default function RecoveryCodes({ codes }: RecoveryCodesProps) {
   const { t } = useTranslation()
   const text = codes.join('\n')
 

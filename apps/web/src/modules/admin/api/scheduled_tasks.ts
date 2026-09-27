@@ -15,8 +15,6 @@ export type ScheduledTaskRunResult = ApiResponse<'/api/admin/scheduled-tasks/{ta
 
 export const getScheduledTaskList = (params?: ApiQuery<'/api/admin/scheduled-tasks'>) =>
   request.get<unknown, ApiResponse<'/api/admin/scheduled-tasks'>>('/admin/scheduled-tasks', { params })
-export const getScheduledTaskDetail = (id: number) =>
-  request.get<unknown, ApiResponse<'/api/admin/scheduled-tasks/{task_id}'>>(`/admin/scheduled-tasks/${id}`)
 export const createScheduledTask = (data: ScheduledTaskBody) =>
   request.post<unknown, ApiResponse<'/api/admin/scheduled-tasks', 'post'>>('/admin/scheduled-tasks', data)
 export const updateScheduledTask = (id: number, data: ScheduledTaskUpdateBody) =>

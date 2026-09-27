@@ -135,7 +135,7 @@ function AssistantMessage({ message, streaming, onRespond }: AssistantMessagePro
               {part.text}
             </MessageResponse>
           ) : (
-            <ToolPart key={part.toolCallId ?? i} part={part} onRespond={onRespond} />
+            <ToolPart key={part.toolCallId} part={part} onRespond={onRespond} />
           ),
         )}
         {streaming && parts.length === 0 ? <TypingDots /> : null}

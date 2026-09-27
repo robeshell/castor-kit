@@ -77,7 +77,7 @@ function TableHeader() {
 
 // ── Row renderer (react-window v2: rowProps are spread into rowComponent props) ────────
 function RowComponent({ index, style, ariaAttributes, itemData }: RowComponentProps<{ itemData: Employee[] }>) {
-  const row = itemData?.[index]
+  const row = itemData[index]
   if (!row) return null
   return (
     <div

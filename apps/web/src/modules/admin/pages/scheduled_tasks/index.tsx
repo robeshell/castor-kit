@@ -84,7 +84,11 @@ const RUN_COLUMNS: DataTableColumn<ScheduledTaskRun>[] = [
     title: '状态',
     dataIndex: 'status',
     width: 90,
-    render: (v) => (v ? <StatusBadge tone={statusTone(v)} dot>{v}</StatusBadge> : null),
+    render: (v) => (
+      <StatusBadge tone={statusTone(v)} dot>
+        {v}
+      </StatusBadge>
+    ),
   },
   { key: 'response_status', title: '响应码', dataIndex: 'response_status', width: 72, className: 'tabular-nums', render: (v) => v || '-' },
   { key: 'duration_ms', title: '耗时(ms)', dataIndex: 'duration_ms', width: 84, align: 'right', className: 'tabular-nums', render: (v) => v || 0 },
@@ -120,19 +124,19 @@ export default function ScheduledTasks() {
   const [runLogsPage, setRunLogsPage] = useState(1)
 
   const form = useForm<FormValues>({ defaultValues: DEFAULT_VALUES })
-  const remarkLength = (useWatch({ control: form.control, name: 'remark' }) || '').length
+  const remarkLength = useWatch({ control: form.control, name: 'remark' }).length
 
   const loadRunLogs = (nextPage: number) =>
     getScheduledTaskRunLogs({ page: nextPage, per_page: RUN_PER_PAGE })
       .then((res) => {
-        setRunLogs(res.items || [])
-        setRunLogsTotal(res.total || 0)
+        setRunLogs(res.items)
+        setRunLogsTotal(res.total)
         setRunLogsPage(nextPage)
       })
       .catch(() => toast.error('加载执行记录失败'))
       .finally(() => setRunLogsLoading(false))
 
-  const fetchRunLogs = (nextPage = 1) => {
+  const fetchRunLogs = (nextPage: number) => {
     setRunLogsLoading(true)
     return loadRunLogs(nextPage)
   }
@@ -144,7 +148,7 @@ export default function ScheduledTasks() {
   }, [])
 
   const handleSearch = () => {
-    list.handleSearch({ search: search.trim(), status: status || '', is_active: isActive || '' })
+    list.handleSearch({ search: search.trim(), status, is_active: isActive })
   }
   const handleReset = () => {
     setSearch('')
@@ -162,16 +166,13 @@ export default function ScheduledTasks() {
   const openEdit = (record: ScheduledTask) => {
     setEditing(record)
     form.reset({
-      name: record.name ?? '',
-      task_code: record.task_code ?? '',
-      cron_expression: record.cron_expression ?? '',
+      name: record.name,
+      task_code: record.task_code,
+      cron_expression: record.cron_expression,
       request_method: record.request_method || 'GET',
-      request_url: record.request_url ?? '',
+      request_url: record.request_url,
       timeout_seconds: record.timeout_seconds ?? 10,
-      request_headers:
-        record.request_headers && typeof record.request_headers === 'object'
-          ? JSON.stringify(record.request_headers)
-          : record.request_headers ?? '',
+      request_headers: record.request_headers ?? '',
       request_body: record.request_body ?? '',
       is_active: Boolean(record.is_active),
       remark: record.remark ?? '',
@@ -182,13 +183,13 @@ export default function ScheduledTasks() {
   const submit = async (values: FormValues) => {
     const payload = {
       ...values,
-      name: (values.name || '').trim(),
-      task_code: (values.task_code || '').trim(),
-      cron_expression: (values.cron_expression || '').trim(),
-      request_url: (values.request_url || '').trim(),
-      request_headers: (values.request_headers || '').trim(),
-      request_body: (values.request_body || '').trim(),
-      remark: (values.remark || '').trim(),
+      name: values.name.trim(),
+      task_code: values.task_code.trim(),
+      cron_expression: values.cron_expression.trim(),
+      request_url: values.request_url.trim(),
+      request_headers: values.request_headers.trim(),
+      request_body: values.request_body.trim(),
+      remark: values.remark.trim(),
     }
     try {
       if (editing) await updateScheduledTask(editing.id, payload)
@@ -217,8 +218,8 @@ export default function ScheduledTasks() {
     setRunningTaskId(record.id)
     runScheduledTaskNow(record.id)
       .then((res) => {
-        if (res?.run?.status === 'success') toast.success('执行成功')
-        else toast.warning(res?.error || '执行失败')
+        if (res.run.status === 'success') toast.success('执行成功')
+        else toast.warning(res.error || '执行失败')
         fetchData()
         fetchRunLogs(runLogsPage)
       })

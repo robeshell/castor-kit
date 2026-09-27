@@ -8,8 +8,11 @@ import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import type { TreeKey } from '@/shared/components/TreeView'
 
-/** A TreeSelect node: `id` is what gets picked, `name` is shown; the code shown next to it is read from `codeKey` */
-export interface TreeSelectNode<Id extends TreeKey = TreeKey> {
+/**
+ * A TreeSelect node: `id` is what gets picked, `name` is shown; the code shown next to it is read from `codeKey`.
+ * A type alias (not an interface) so a node reads as a record of its fields, which is how `codeKey` looks one up.
+ */
+export type TreeSelectNode<Id extends TreeKey = TreeKey> = {
   id: Id
   name: string
   code?: string | null
@@ -21,33 +24,35 @@ export interface TreeSelectNode<Id extends TreeKey = TreeKey> {
 interface FlatOption<Id extends TreeKey> {
   id: Id
   name: string
-  code: string | number | null | undefined
+  code: string | number | null
   depth: number
   path: string
   disabled: boolean | undefined
 }
 
 interface FlattenOptions<Id extends TreeKey> {
-  excludeIds?: Set<Id>
-  codeKey?: string
+  excludeIds: Set<Id>
+  codeKey: string
 }
 
 /** Flatten the tree depth-first for the indented list; nodes in excludeIds are skipped along with their whole subtree */
 function flattenTree<Id extends TreeKey>(
-  nodes: readonly TreeSelectNode<Id>[] | null | undefined,
-  { excludeIds = new Set(), codeKey = 'code' }: FlattenOptions<Id> = {},
+  nodes: readonly TreeSelectNode<Id>[],
+  { excludeIds, codeKey }: FlattenOptions<Id>,
   depth = 0,
   path: string[] = [],
   out: FlatOption<Id>[] = [],
 ) {
-  for (const node of nodes || []) {
+  for (const node of nodes) {
     if (excludeIds.has(node.id)) continue
     const nextPath = [...path, node.name]
+    // codeKey names any field of the caller's node type (e.g. node_code)
+    const fields: Partial<Record<string, unknown>> = node
+    const code = fields[codeKey]
     out.push({
       id: node.id,
       name: node.name,
-      // codeKey names any field of the caller's node type (e.g. node_code)
-      code: (node as unknown as Partial<Record<string, FlatOption<Id>['code']>>)[codeKey],
+      code: typeof code === 'string' || typeof code === 'number' ? code : null,
       depth,
       path: nextPath.join(' / '),
       disabled: node.disabled,

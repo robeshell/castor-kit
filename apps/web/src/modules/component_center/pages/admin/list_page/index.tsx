@@ -28,7 +28,7 @@ import { toast } from '@/lib/toast'
 import { formatDateTime } from '@/lib/format'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import i18n, { useTx } from '@/i18n'
+import { useTx } from '@/i18n'
 import {
   createListPage,
   deleteListPage,
@@ -225,47 +225,19 @@ const MAX_QUERY_FILE_COUNT = 20
 
 const normalizeFileType = (raw: string): 'csv' | 'xlsx' => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
 
-const normalizeUrlList = (raw: unknown): string[] => {
-  if (Array.isArray(raw)) {
-    return raw.map((item) => String(item || '').trim()).filter(Boolean)
-  }
-  if (typeof raw === 'string') {
-    const value = raw.trim()
-    if (!value) {
-      return []
-    }
-    try {
-      const parsed = JSON.parse(value)
-      if (Array.isArray(parsed)) {
-        return parsed.map((item) => String(item || '').trim()).filter(Boolean)
-      }
-    } catch {
-      // Not a JSON array: split on separators
-    }
-    return value
-      .replaceAll('，', ',')
-      .replaceAll('；', ';')
-      .replaceAll('\n', ';')
-      .split(/[;,]/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-  }
-  return []
-}
-
-const buildUploadFileList = (urls: unknown = [], seed = 'default', nameOf = (n: number) => i18n.t('资源 {{n}}', { n })): UploadFileItem[] =>
-  normalizeUrlList(urls).map((url, index) => ({
+/** Saved URLs → upload list items (the API returns the URLs trimmed, without blanks) */
+const buildUploadFileList = (urls: string[], seed: string, nameOf: (n: number) => string): UploadFileItem[] =>
+  urls.map((url, index) => ({
     uid: `query-upload-${seed}-${index + 1}`,
     name: nameOf(index + 1),
     status: 'success',
     url,
   }))
 
-const extractUploadedUrls = (fileList: readonly UploadFileItem[] = []) =>
-  (fileList || [])
-    .filter((item) => item?.status === 'success')
-    .map((item) => item?.url || item?.response?.url || '')
-    .map((item) => String(item || '').trim())
+const extractUploadedUrls = (fileList: readonly UploadFileItem[]) =>
+  fileList
+    .filter((item) => item.status === 'success')
+    .map((item) => (item.url || item.response?.url || '').trim())
     .filter(Boolean)
 
 const mapCategoryLabel = (value: string | null) => {
@@ -280,8 +252,8 @@ const mapStatusMeta = (value: string | undefined): { label: string; tone: Status
 
 const mapDataSourceLabel = (value: string) => DATA_SOURCE_OPTIONS.find((item) => item.value === value)?.label || value
 
-const normalizeConditionItems = (conditions: Row['conditions'] | undefined): ConditionItem[] => {
-  const items = Array.isArray(conditions?.items) ? conditions.items : []
+const normalizeConditionItems = (conditions: Row['conditions']): ConditionItem[] => {
+  const items = Array.isArray(conditions.items) ? conditions.items : []
   return items.map((item, index) => ({
     uid: `condition-${Date.now()}-${index}`,
     field: String(item?.field || ''),
@@ -291,14 +263,14 @@ const normalizeConditionItems = (conditions: Row['conditions'] | undefined): Con
   }))
 }
 
-const buildConditionPayload = (items: ConditionItem[] = []): ConditionPayload => ({
+const buildConditionPayload = (items: ConditionItem[]): ConditionPayload => ({
   groups: [],
   items: items
     .map((item): ConditionPayloadItem => ({
-      field: String(item?.field || '').trim(),
-      operator: String(item?.operator || '').trim(),
-      value: item?.value ?? '',
-      logic: String(item?.logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND',
+      field: item.field.trim(),
+      operator: item.operator.trim(),
+      value: item.value ?? '',
+      logic: item.logic.toUpperCase() === 'OR' ? 'OR' : 'AND',
     }))
     .filter((item) => item.field && item.operator),
 })
@@ -515,10 +487,10 @@ export default function ListPage() {
     setSelectedRowKeys([])
     list.handleSearch({
       search: search.trim(),
-      category: category || '',
+      category,
       owner: owner.trim(),
-      is_active: isActive || '',
-      status: statusFilter || '',
+      is_active: isActive,
+      status: statusFilter,
     })
   }
 
@@ -552,13 +524,13 @@ export default function ListPage() {
     form.reset({
       ...DEFAULT_FORM_VALUES,
       ...record,
-      data_source: String(record?.data_source || '').trim(),
-      schema_config: String(record?.schema_config || '{}'),
+      data_source: String(record.data_source || '').trim(),
+      schema_config: record.schema_config || '{}',
     })
-    setImageFileList(buildUploadFileList(record?.image_urls, `img-${record?.id || 'edit'}`, (n) => t('图片 {{n}}', { n })))
-    setAttachmentFileList(buildUploadFileList(record?.file_urls, `file-${record?.id || 'edit'}`, (n) => t('附件 {{n}}', { n })))
-    setConditionLogic(String(record?.condition_logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND')
-    setConditionItems(normalizeConditionItems(record?.conditions))
+    setImageFileList(buildUploadFileList(record.image_urls, `img-${record.id}`, (n) => t('图片 {{n}}', { n })))
+    setAttachmentFileList(buildUploadFileList(record.file_urls, `file-${record.id}`, (n) => t('附件 {{n}}', { n })))
+    setConditionLogic(record.condition_logic)
+    setConditionItems(normalizeConditionItems(record.conditions))
     setFormOpen(true)
   }
 
@@ -598,23 +570,23 @@ export default function ListPage() {
     }
   }
 
-  const collectPayload = (formValues: Partial<FormValues> = {}): ListPageCreateInput => {
+  const collectPayload = (formValues: FormValues): ListPageCreateInput => {
     const imageUrls = extractUploadedUrls(imageFileList)
     const fileUrls = extractUploadedUrls(attachmentFileList)
     return {
       ...formValues,
-      query_code: (formValues.query_code || '').trim(),
-      name: (formValues.name || '').trim(),
+      query_code: formValues.query_code.trim(),
+      name: formValues.name.trim(),
       keyword: (formValues.keyword || '').trim(),
       owner: (formValues.owner || '').trim(),
-      data_source: (formValues.data_source || '').trim(),
+      data_source: formValues.data_source.trim(),
       description: (formValues.description || '').trim(),
-      status: formValues.status || 'draft',
+      status: formValues.status,
       image_urls: imageUrls,
       file_urls: fileUrls,
       condition_logic: conditionLogic === 'OR' ? 'OR' : 'AND',
       conditions: buildConditionPayload(conditionItems),
-      display_config: { ...DEFAULT_DISPLAY_CONFIG, data_source: (formValues.data_source || '').trim() },
+      display_config: { ...DEFAULT_DISPLAY_CONFIG, data_source: formValues.data_source.trim() },
       permission_config: DEFAULT_PERMISSION_CONFIG,
       schema_config: formValues.schema_config,
     }
@@ -977,7 +949,6 @@ export default function ListPage() {
                 </div>
                 <Textarea
                   {...field}
-                  value={field.value ?? ''}
                   spellCheck={false}
                   placeholder={t('输入 JSON Schema 配置')}
                   className="field-sizing-fixed h-52 resize-y rounded-none border-0 bg-transparent font-mono text-xs leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent"
@@ -1050,7 +1021,7 @@ export default function ListPage() {
         }
         onImport={(file) => importListPage(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created ?? 0, updated: res.updated ?? 0 }))
           fetchData()
         }}
         errorExportFileName="list_page_import_error_rows.csv"
@@ -1139,7 +1110,7 @@ export default function ListPage() {
               </section>
             ) : null}
 
-            {detailRecord.image_urls?.length > 0 ? (
+            {detailRecord.image_urls.length > 0 ? (
               <section className="space-y-2 border-t pt-5">
                 <h3 className="text-[13px] font-medium">
                   {t('图片')} <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.image_urls.length}</span>
@@ -1160,7 +1131,7 @@ export default function ListPage() {
               </section>
             ) : null}
 
-            {detailRecord.file_urls?.length > 0 ? (
+            {detailRecord.file_urls.length > 0 ? (
               <section className="space-y-2 border-t pt-5">
                 <h3 className="text-[13px] font-medium">
                   {t('附件')} <span className="text-muted-foreground font-normal tabular-nums">{detailRecord.file_urls.length}</span>

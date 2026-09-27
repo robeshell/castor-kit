@@ -133,6 +133,10 @@ export default function ToolPart({ part, onRespond }: ToolPartProps) {
 
   if (part.type === 'tool-api_write') {
     const input: Partial<AssistantTools['api_write']['input']> = part.input ?? {}
+    // ConfirmationRequest only renders while approval-requested, when approval is set
+    const respond = (approved: boolean) => {
+      if (part.approval) onRespond(part.approval.id, approved)
+    }
     return (
       <Confirmation approval={part.approval} state={part.state} className="text-[13px]">
         <ConfirmationTitle className="font-medium">{input.summary || t('执行一项操作')}</ConfirmationTitle>
@@ -148,12 +152,11 @@ export default function ToolPart({ part, onRespond }: ToolPartProps) {
         </div>
         <ConfirmationRequest>
           <ConfirmationActions className={cn('justify-end')}>
-            {/* ConfirmationRequest only renders while approval-requested, when approval is set */}
-            <ConfirmationAction variant="outline" onClick={() => onRespond(part.approval!.id, false)}>
+            <ConfirmationAction variant="outline" onClick={() => respond(false)}>
               <X />
               {t('拒绝')}
             </ConfirmationAction>
-            <ConfirmationAction onClick={() => onRespond(part.approval!.id, true)}>
+            <ConfirmationAction onClick={() => respond(true)}>
               <Check />
               {t('允许执行')}
             </ConfirmationAction>

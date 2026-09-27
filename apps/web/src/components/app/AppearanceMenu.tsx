@@ -60,8 +60,11 @@ function OptionGroup<Id extends string>({ value, options, onChange, disabled }: 
       size="sm"
       value={value}
       disabled={disabled}
-      // The group only emits the value of one of its items, i.e. an option id
-      onValueChange={(next) => next && onChange(next as Id)}
+      onValueChange={(next) => {
+        // The group only emits the value of one of its items (or '' when the pressed item is clicked again)
+        const option = options.find((o) => o.id === next)
+        if (option) onChange(option.id)
+      }}
       className="w-full"
     >
       {options.map((o) => (

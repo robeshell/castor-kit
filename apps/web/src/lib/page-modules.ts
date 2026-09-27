@@ -30,8 +30,12 @@ function findLoader(componentName: unknown): { key: string; load: () => Promise<
 export function resolvePageComponent(componentName: unknown): PageComponent | null {
   const loader = findLoader(componentName)
   if (!loader) return null
-  if (!lazyPages.has(loader.key)) lazyPages.set(loader.key, lazy(loader.load))
-  return lazyPages.get(loader.key)!
+  let page = lazyPages.get(loader.key)
+  if (!page) {
+    page = lazy(loader.load)
+    lazyPages.set(loader.key, page)
+  }
+  return page
 }
 
 /** Start downloading a page's code (once); failures are ignored — the page loads normally when opened */

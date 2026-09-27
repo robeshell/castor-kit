@@ -96,13 +96,13 @@ export default function ExportDialog({
 
 function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOptions, defaultFileType, onConfirm, onBusyChange, onClose }: ExportBodyProps) {
   const tx = useTx()
-  const [fields, setFields] = useState(() => (defaultFields?.length ? defaultFields : fieldOptions.map((o) => o.value)))
+  const [fields, setFields] = useState(() => (defaultFields.length ? defaultFields : fieldOptions.map((o) => o.value)))
   const [fileType, setFileType] = useState(
     () => fileTypeOptions.find((o) => o.value === defaultFileType)?.value || fileTypeOptions[0]?.value || 'xlsx',
   )
   const [exporting, setExporting] = useState(false)
   useEffect(() => {
-    onBusyChange?.(exporting)
+    onBusyChange(exporting)
   }, [exporting, onBusyChange])
 
   const toggle = (value: string, checked: boolean) =>

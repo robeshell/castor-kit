@@ -46,7 +46,7 @@ export interface UseUploaderOptions<R extends UploadResponse = UploadResponse> {
 }
 
 const parseExtensions = (accept = '') =>
-  String(accept)
+  accept
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter((s) => s.startsWith('.'))
@@ -85,17 +85,17 @@ export function useUploader<R extends UploadResponse = UploadResponse>({
     const picked = Array.from(files || []).slice(0, room)
     if (files && files.length > room) toast.warning(i18n.t('最多上传 {{limit}} 个{{kind}}', { limit, kind: i18n.t(kind) }))
     picked.forEach((file) => {
-      const name = String(file.name || '').toLowerCase()
+      const name = file.name.toLowerCase()
       if (extensions.length && !extensions.some((ext) => name.endsWith(ext))) {
         toast.warning(i18n.t('{{kind}}类型不支持', { kind: i18n.t(kind) }))
         return
       }
-      if ((file.size || 0) > maxSizeMB * 1024 * 1024) {
+      if (file.size > maxSizeMB * 1024 * 1024) {
         toast.warning(i18n.t('{{kind}}不能超过 {{size}}MB', { kind: i18n.t(kind), size: maxSizeMB }))
         return
       }
       const uid = nextUid()
-      const preview = file.type?.startsWith('image/') ? URL.createObjectURL(file) : undefined
+      const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
       const next: UploadFileItem<R>[] = [...listRef.current, { uid, name: file.name, size: file.size, status: 'uploading', percent: 0, preview }]
       listRef.current = next
       onFileListChange?.(next)

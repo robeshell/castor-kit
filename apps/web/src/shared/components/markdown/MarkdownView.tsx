@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef, useState } from 'react'
-import type { ReactElement, ReactNode } from 'react'
+import { isValidElement, memo, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
@@ -12,10 +12,11 @@ import './markdown.css'
 /** Extract the language and plain text from <pre><code class="language-xx">…</code></pre> */
 function readCode(children: ReactNode) {
   // The <code> element react-markdown renders inside <pre> (other nodes have no props and read as plain text)
-  const child = (Array.isArray(children) ? children[0] : children) as ReactElement<{ className?: string; children?: ReactNode }> | undefined
-  const className = child?.props?.className || ''
+  const child: unknown = Array.isArray(children) ? children[0] : children
+  const props = isValidElement<{ className?: string; children?: ReactNode }>(child) ? child.props : {}
+  const className = props.className || ''
   const language = /language-([\w+#-]+)/.exec(className)?.[1] || ''
-  const raw = child?.props?.children
+  const raw = props.children
   const text = (Array.isArray(raw) ? raw.join('') : String(raw ?? '')).replace(/\n$/, '')
   return { language, text }
 }

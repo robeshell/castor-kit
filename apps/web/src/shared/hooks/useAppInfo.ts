@@ -88,7 +88,7 @@ export interface UploadLimits {
 export function useUploadLimits(): UploadLimits {
   const upload = useAppInfo()?.upload
   if (!upload) return { maxSizeMB: undefined, accept: undefined, imageAccept: undefined }
-  const types = upload.allowed_types || []
+  const types = upload.allowed_types
   const images = IMAGE_TYPES.filter((t) => types.includes(t))
   return {
     maxSizeMB: Math.round((upload.max_size / 1024 / 1024) * 10) / 10,

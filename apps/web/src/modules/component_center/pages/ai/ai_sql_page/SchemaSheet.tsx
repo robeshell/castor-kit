@@ -30,17 +30,18 @@ interface SchemaTable {
  *     username  character varying NOT NULL
  *   )
  */
-function parseSchema(schemaText: string, tableNames: string[] = []): SchemaTable[] {
+function parseSchema(schemaText: string, tableNames: string[]): SchemaTable[] {
   const map = new Map<string, SchemaColumn[]>()
-  for (const m of (schemaText || '').matchAll(/TABLE (\S+) \(\n([\s\S]*?)\n\)/g)) {
-    // Both groups are required by the pattern, so a match always has them
-    const columns = m[2]!
+  for (const [, tableName, body] of schemaText.matchAll(/TABLE (\S+) \(\n([\s\S]*?)\n\)/g)) {
+    // Unreachable: both groups are required by the pattern, so a match always has them
+    if (tableName === undefined || body === undefined) continue
+    const columns = body
       .split('\n')
       .map((line) => line.trim().replace(/,$/, ''))
       .filter(Boolean)
       .map((line) => {
-        // split always returns at least one element
-        const [name, ...rest] = line.split(/\s{2,}/) as [string, ...string[]]
+        // split always returns at least one element, so the default never applies
+        const [name = '', ...rest] = line.split(/\s{2,}/)
         const spec = rest.join(' ')
         const defaultIdx = spec.indexOf(' DEFAULT ')
         const defaultValue = defaultIdx >= 0 ? spec.slice(defaultIdx + 9) : ''
@@ -49,7 +50,7 @@ function parseSchema(schemaText: string, tableNames: string[] = []): SchemaTable
         const type = head.replace(/ NOT NULL$/, '')
         return { name, type, notNull, defaultValue }
       })
-    map.set(m[1]!, columns)
+    map.set(tableName, columns)
   }
   const names = tableNames.length ? tableNames : [...map.keys()]
   return names.map((name) => ({ name, columns: map.get(name) || [] }))
@@ -106,7 +107,7 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }: Schema
   const [keyword, setKeyword] = useState('')
   const requestedRef = useRef(false)
 
-  const applySchema = (res: DbSchema) => setTables(parseSchema(res?.schema, Array.isArray(res?.tables) ? res.tables : []))
+  const applySchema = (res: DbSchema) => setTables(parseSchema(res.schema, res.tables))
 
   // Load the first time the sheet opens; after a failed load, opening it again retries
   useEffect(() => {
@@ -179,7 +180,7 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }: Schema
             }
           />
         ) : filtered.length === 0 ? (
-          <EmptyState icon={Database} title={tables?.length ? '没有匹配的表' : '暂无可查询的表'} />
+          <EmptyState icon={Database} title={tables.length ? '没有匹配的表' : '暂无可查询的表'} />
         ) : (
           <div className="space-y-1.5">
             <p className="text-muted-foreground text-xs tabular-nums">{t('共 {{count}} 张表', { count: filtered.length })}</p>

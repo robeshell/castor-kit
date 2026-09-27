@@ -17,7 +17,7 @@ type TwoFactorSetup = Awaited<ReturnType<typeof setupTwoFactor>>
 
 export interface TotpEnrollmentProps {
   /** Receives the enable response: recovery_codes, plus user / csrf_token when it finishes a sign-in */
-  onEnabled?: (result: EnableTwoFactorResult) => void
+  onEnabled: (result: EnableTwoFactorResult) => void
   /** Submit button text (Chinese source text, translated here) */
   submitText?: string
 }
@@ -57,7 +57,7 @@ export default function TotpEnrollment({ onEnabled, submitText = '开启两步�
     setSubmitting(true)
     setError('')
     try {
-      onEnabled?.(await enableTwoFactor(value))
+      onEnabled(await enableTwoFactor(value))
     } catch (err) {
       setError(errorMessage(err, '验证失败'))
       setCode('')

@@ -41,7 +41,7 @@ export default function StatusBadge({ tone = 'neutral', dot = false, variant = '
   if (variant === 'plain') {
     return (
       <span className={cn('text-muted-foreground inline-flex items-center gap-1.5 text-xs', className)}>
-        <span className={cn('size-1.5 rounded-full', DOTS[tone] || DOTS.neutral)} />
+        <span className={cn('size-1.5 rounded-full', DOTS[tone])} />
         {tx(children)}
       </span>
     )
@@ -50,11 +50,11 @@ export default function StatusBadge({ tone = 'neutral', dot = false, variant = '
     <span
       className={cn(
         'inline-flex h-5 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium whitespace-nowrap',
-        TONES[tone] || TONES.neutral,
+        TONES[tone],
         className,
       )}
     >
-      {dot ? <span className={cn('size-1.5 rounded-full', DOTS[tone] || DOTS.neutral)} /> : null}
+      {dot ? <span className={cn('size-1.5 rounded-full', DOTS[tone])} /> : null}
       {tx(children)}
     </span>
   )

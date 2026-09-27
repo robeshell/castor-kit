@@ -16,17 +16,17 @@ const Login = lazy(() => import('@/modules/auth/pages/login'))
 const ResetPassword = lazy(() => import('@/modules/auth/pages/reset_password'))
 const Profile = lazy(() => import('@/modules/admin/pages/profile'))
 
-function collectRouteMenus(menus: MenuNode[] = []): RoutedMenu[] {
+function collectRouteMenus(menus: MenuNode[]): RoutedMenu[] {
   const result: RoutedMenu[] = []
-  const walk = (nodes: MenuNode[] = []) => {
+  const walk = (nodes: MenuNode[]) => {
     nodes.forEach((menu) => {
-      if (!menu?.is_active || !menu?.is_visible) {
+      if (!menu.is_active || !menu.is_visible) {
         return
       }
       if (menu.menu_type === 'menu' && hasRoutePath(menu)) {
         result.push(menu)
       }
-      if (Array.isArray(menu.children) && menu.children.length > 0) {
+      if (menu.children?.length) {
         walk(menu.children)
       }
     })
@@ -35,7 +35,7 @@ function collectRouteMenus(menus: MenuNode[] = []): RoutedMenu[] {
   return result
 }
 
-function normalizeRoutePath(pathname = ''): string {
+function normalizeRoutePath(pathname: string): string {
   return pathname.replace(/^\/+/, '')
 }
 
@@ -54,14 +54,11 @@ function AppRoutes() {
     return Array.from(dedup.values())
   }, [menus])
 
-  const defaultPath = useMemo(() => {
-    if (routeMenus.length === 0) {
-      return null
-    }
-    const dashboardMenu = routeMenus.find((menu) => menu.path === '/dashboard')
-    // routeMenus is non-empty here (checked above)
-    return (dashboardMenu || routeMenus[0]!).path
-  }, [routeMenus])
+  // The dashboard, else the first page; null when there is no page at all
+  const defaultPath = useMemo(
+    () => (routeMenus.find((menu) => menu.path === '/dashboard') ?? routeMenus[0])?.path ?? null,
+    [routeMenus],
+  )
 
   return (
     <Routes>

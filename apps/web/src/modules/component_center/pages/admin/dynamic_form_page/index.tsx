@@ -115,11 +115,11 @@ const toStatusFilter = (value: unknown): StatusFilter | undefined =>
 type EditableRecord = Row & { fields?: DynamicFormPageDetail['fields'] }
 
 /** Field sub-table row → form row (keep only editable columns; drop id / record_id etc.) */
-const toFieldRow = (f: Partial<FieldRow> | null | undefined): FieldRow => ({
-  field_key: f?.field_key ?? '',
-  field_value: f?.field_value ?? '',
-  field_type: f?.field_type || 'text',
-  remark: f?.remark ?? '',
+const toFieldRow = (f: FieldRow): FieldRow => ({
+  field_key: f.field_key,
+  field_value: f.field_value,
+  field_type: f.field_type || 'text',
+  remark: f.remark,
 })
 
 function toFormValues(record: EditableRecord | null): FormValues {
@@ -137,12 +137,12 @@ function toFormValues(record: EditableRecord | null): FormValues {
     }
   }
   return {
-    title: record.title ?? '',
-    record_code: record.record_code ?? '',
-    category: record.category || 'general',
-    status: record.status || 'draft',
+    title: record.title,
+    record_code: record.record_code,
+    category: record.category,
+    status: record.status,
     owner: record.owner || '',
-    priority: record.priority ?? 0,
+    priority: record.priority,
     is_active: record.is_active !== false,
     description: record.description || '',
     fields: record.fields?.length ? record.fields.map(toFieldRow) : [{ ...EMPTY_FIELD_ROW }],
@@ -155,7 +155,7 @@ function categoryBadge(value: string) {
 }
 
 function statusBadge(value: Row['status']) {
-  const meta: BadgeMeta = STATUS_META[value] || { label: value, tone: 'neutral' }
+  const meta: BadgeMeta = STATUS_META[value]
   return (
     <StatusBadge tone={meta.tone} dot>
       {meta.label}
@@ -233,7 +233,6 @@ export default function DynamicFormPage() {
 
   /** List rows have no field sub-table: edit directly when fields are present, otherwise fetch the detail first so saving does not wipe existing fields */
   const openEdit = async (record: EditableRecord) => {
-    if (!record) return
     let full: EditableRecord = record
     if (!Array.isArray(record.fields)) {
       try {
@@ -260,8 +259,8 @@ export default function DynamicFormPage() {
   }
 
   const submit = async (values: FormValues) => {
-    const cleanFields = (values.fields || [])
-      .filter((f) => String(f?.field_key || '').trim())
+    const cleanFields = values.fields
+      .filter((f) => f.field_key.trim())
       .map((f, idx) => ({ ...toFieldRow(f), sort_order: idx }))
     const payload = { ...values, fields: cleanFields }
     try {
@@ -332,7 +331,7 @@ export default function DynamicFormPage() {
       title: '字段数',
       dataIndex: 'fields_count',
       width: 80,
-      render: (v) => <StatusBadge tone={v ? 'brand' : 'neutral'} className="tabular-nums">{t('{{count}} 条', { count: v || 0 })}</StatusBadge>,
+      render: (v) => <StatusBadge tone={v ? 'brand' : 'neutral'} className="tabular-nums">{t('{{count}} 条', { count: v })}</StatusBadge>,
     },
     { key: 'is_active', title: '启用', dataIndex: 'is_active', width: 76, render: (v) => activeBadge(v) },
     {
@@ -533,15 +532,15 @@ export default function DynamicFormPage() {
                 { label: '分类', value: categoryBadge(detail.category) },
                 { label: '状态', value: statusBadge(detail.status) },
                 { label: '负责人', value: detail.owner || '-' },
-                { label: '优先级', value: <span className="tabular-nums">{detail.priority ?? 0}</span> },
+                { label: '优先级', value: <span className="tabular-nums">{detail.priority}</span> },
                 { label: '启用', value: activeBadge(detail.is_active, 'soft') },
-                { label: '字段数量', value: <span className="tabular-nums">{detail.fields?.length ?? 0}</span> },
+                { label: '字段数量', value: <span className="tabular-nums">{detail.fields.length}</span> },
                 { label: '创建时间', value: <span className="tabular-nums">{formatDateTime(detail.created_at)}</span> },
                 { label: '更新时间', value: <span className="tabular-nums">{formatDateTime(detail.updated_at)}</span> },
               ]}
             />
 
-            {detail.fields?.length > 0 ? (
+            {detail.fields.length > 0 ? (
               <>
                 <Separator />
                 <div className="space-y-2.5">
@@ -550,7 +549,7 @@ export default function DynamicFormPage() {
                   </div>
                   <DataTable
                     dense
-                    rowKey={(row, i) => row.id ?? i}
+                    rowKey={(row) => row.id}
                     data={detail.fields}
                     columns={[
                       {
@@ -613,7 +612,7 @@ export default function DynamicFormPage() {
         }}
         onImport={(file) => importDynamicFormPage(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created ?? 0, updated: res.updated ?? 0 }))
           fetchData()
         }}
         errorExportFileName="dynamic_form_page_import_error_rows.csv"

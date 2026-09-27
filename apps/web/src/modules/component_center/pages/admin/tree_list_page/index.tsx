@@ -170,8 +170,8 @@ interface MoveValues {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 /** API tree → TreeView nodes (key is the id as a string; raw keeps the full node data) */
-function toTreeNodes(nodes: readonly TreeListPageNode[] | undefined): TreeViewNode[] {
-  return (nodes || []).map((n) => ({
+function toTreeNodes(nodes: readonly TreeListPageNode[]): TreeViewNode[] {
+  return nodes.map((n) => ({
     key: String(n.id),
     label: n.name,
     raw: n,
@@ -191,8 +191,8 @@ function collectKeys(nodes: readonly TreeViewNode[]) {
 }
 
 /** Find the path to the node with the given id (for the breadcrumb) */
-function findPath(nodes: readonly TreeListPageNode[] | undefined, targetId: number, path: PathSegment[] = []): PathSegment[] | null {
-  for (const node of nodes || []) {
+function findPath(nodes: readonly TreeListPageNode[], targetId: number, path: PathSegment[] = []): PathSegment[] | null {
+  for (const node of nodes) {
     const current = [...path, { id: node.id, name: node.name }]
     if (node.id === targetId) return current
     if (node.children?.length) {
@@ -239,9 +239,9 @@ function toFormValues(record: Row | null, parentId: number | null = null): FormV
     node_type: record.node_type || 'category',
     icon: record.icon || '',
     owner: record.owner || '',
-    sort_order: record.sort_order ?? 0,
+    sort_order: record.sort_order,
     is_active: record.is_active !== false,
-    status: record.status || 'active',
+    status: record.status,
     description: record.description || '',
   }
 }
@@ -334,15 +334,14 @@ export default function TreeListPage() {
   useEffect(() => {
     let alive = true
     getTreeListPageTree({ search: debouncedTreeSearch || undefined })
-      .then((res) => {
+      .then((list) => {
         if (!alive) return
-        const list = Array.isArray(res) ? res : []
         setTreeState({ key: treeKey, nodes: list })
         if (!debouncedTreeSearch) setFullTree(list)
         else {
           // While searching the tree is filtered, so refresh the full tree separately
           getTreeListPageTree({})
-            .then((full) => alive && setFullTree(Array.isArray(full) ? full : []))
+            .then((full) => alive && setFullTree(full))
             .catch(() => {})
         }
         const keys = collectKeys(toTreeNodes(list))
@@ -355,7 +354,7 @@ export default function TreeListPage() {
         } else if (expandedBeforeSearch.current !== null) {
           const restore = expandedBeforeSearch.current
           expandedBeforeSearch.current = null
-          setExpandedKeys(restore ?? keys.slice(0, 20))
+          setExpandedKeys(restore)
         } else {
           setExpandedKeys((prev) => prev ?? keys.slice(0, 20))
         }
@@ -392,13 +391,13 @@ export default function TreeListPage() {
     getTreeListPageList(tableParams)
       .then((res) => {
         if (!alive) return
-        const items = res?.items || []
+        const { items, total } = res
         // Deleting the last row of the last page leaves the page out of range: go back one page
-        if (!items.length && (res?.total || 0) > 0 && page > 1) {
+        if (!items.length && total > 0 && page > 1) {
           setPage((p) => p - 1)
           return
         }
-        setTableState({ key: tableKey, items, total: res?.total || 0 })
+        setTableState({ key: tableKey, items, total })
       })
       .catch((err) => {
         if (!alive) return
@@ -563,7 +562,7 @@ export default function TreeListPage() {
     { key: 'node_type', title: '类型', dataIndex: 'node_type', width: 80, render: nodeTypeBadge },
     { key: 'status', title: '状态', dataIndex: 'status', width: 90, render: statusBadge },
     { key: 'owner', title: '负责人', dataIndex: 'owner', width: 100, render: (v) => v || '-' },
-    { key: 'sort_order', title: '排序', dataIndex: 'sort_order', width: 64, align: 'right', className: 'tabular-nums', render: (v) => v ?? 0 },
+    { key: 'sort_order', title: '排序', dataIndex: 'sort_order', width: 64, align: 'right', className: 'tabular-nums' },
     {
       key: 'is_active',
       title: '启用',
@@ -703,7 +702,7 @@ export default function TreeListPage() {
                   className={cn('transition-opacity', treeLoading && 'opacity-60')}
                   renderLabel={(node) => {
                     const Icon = NODE_TYPE_META[node.raw.node_type]?.icon || Folder
-                    const count = node.raw.children_count || 0
+                    const count = node.raw.children_count
                     return (
                       <span className={cn('flex min-w-0 items-center gap-1.5', node.raw.is_active === false && 'text-muted-foreground')}>
                         <Icon className="text-muted-foreground size-3.5 shrink-0" />
@@ -1003,7 +1002,7 @@ export default function TreeListPage() {
                 {
                   label: '父节点ID',
                   value:
-                    detail.parent_id === null || detail.parent_id === undefined ? (
+                    detail.parent_id === null ? (
                       '-'
                     ) : (
                       <span className="tabular-nums">
@@ -1024,7 +1023,7 @@ export default function TreeListPage() {
                   ),
                 },
                 { label: '负责人', value: detail.owner || '-' },
-                { label: '排序', value: <span className="tabular-nums">{detail.sort_order ?? 0}</span> },
+                { label: '排序', value: <span className="tabular-nums">{detail.sort_order}</span> },
                 { label: '创建时间', value: <span className="tabular-nums">{formatDateTime(detail.created_at)}</span> },
                 { label: '更新时间', value: <span className="tabular-nums">{formatDateTime(detail.updated_at)}</span> },
               ]}
@@ -1068,7 +1067,7 @@ export default function TreeListPage() {
         }}
         onImport={(file) => importTreeListPage(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created ?? 0, updated: res.updated ?? 0 }))
           reloadAll()
         }}
         errorExportFileName="tree_list_page_import_error_rows.csv"

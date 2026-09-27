@@ -74,12 +74,15 @@ export default function FileIdUpload({ value, onChange, variant = 'file', multip
   )
 
   const handleChange = (list: UploadFileItem<FileRecord>[]) => {
-    const uploaded = list.filter((f) => !f.fileId && f.status === 'success' && f.response?.id)
+    // Finished uploads, not in `value` yet: their new file ids
+    const uploaded = list.flatMap((f) =>
+      !f.fileId && f.status === 'success' && f.response?.id ? [{ id: f.response.id, name: f.name, size: f.size }] : [],
+    )
     if (uploaded.length) {
-      setInfo((prev) => ({ ...prev, ...Object.fromEntries(uploaded.map((f) => [f.response!.id, { name: f.name, size: f.size }])) }))
+      setInfo((prev) => ({ ...prev, ...Object.fromEntries(uploaded.map((f) => [f.id, { name: f.name, size: f.size }])) }))
     }
     setPending(list.filter((f) => !f.fileId && f.status !== 'success'))
-    const next = [...list.filter((f) => f.fileId).map((f) => f.fileId!), ...uploaded.map((f) => f.response!.id)]
+    const next = [...list.flatMap((f) => (f.fileId ? [f.fileId] : [])), ...uploaded.map((f) => f.id)]
     if (next.join(',') !== idsKey) onChange?.(multiple ? next : (next.at(-1) ?? null))
   }
 

@@ -45,7 +45,7 @@ export default function TrafficFlowPage() {
   const load = useCallback(
     () =>
       getTrafficFlowData()
-        .then((res) => setData({ links: res?.links ?? [], funnel: res?.funnel ?? [] }))
+        .then(setData)
         .catch((err) => toast.apiError(err, '获取流量数据失败'))
         .finally(() => setLoading(false)),
     [],

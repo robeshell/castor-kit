@@ -20,7 +20,7 @@ import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import SegmentedTabs, { type SegmentedTabItem } from '@/shared/components/SegmentedTabs'
 import { invalidateAppInfo } from '@/shared/hooks/useAppInfo'
-import { useReauth } from '@/shared/hooks/useReauth'
+import { isReauthCancelled, useReauth } from '@/shared/hooks/useReauth'
 
 type Tab = 'security' | 'mail' | 'storage' | 'ai'
 const TABS: SegmentedTabItem<Tab>[] = [
@@ -31,9 +31,6 @@ const TABS: SegmentedTabItem<Tab>[] = [
 ]
 const isTab = (value: string | null): value is Tab => TABS.some((x) => x.value === value)
 const S3_CONNECTION = ['storage.s3_endpoint', 'storage.s3_access_key', 'storage.s3_secret_key', 'storage.s3_region', 'storage.s3_path_style']
-
-/** Identity check cancelled (useReauth rejects with { cancelled: true }) */
-const isCancelled = (err: unknown): boolean => typeof err === 'object' && err !== null && 'cancelled' in err && Boolean(err.cancelled)
 
 interface TestActionProps {
   /** Button text (Chinese source text) */
@@ -58,7 +55,7 @@ function TestAction({ label, run, disabled, children }: TestActionProps) {
       setState({ ok: true, text: res.message })
     } catch (err) {
       // Identity check cancelled: no result to show
-      setState(isCancelled(err) ? null : { ok: false, text: errorMessage(err, '测试失败') })
+      setState(isReauthCancelled(err) ? null : { ok: false, text: errorMessage(err, '测试失败') })
     } finally {
       setRunning(false)
     }
@@ -113,7 +110,7 @@ export default function Settings() {
       .then(load)
       .catch((err: unknown) => toast.apiError(err, '加载失败'))
     getRoles()
-      .then((res) => setRoles(Array.isArray(res) ? res : []))
+      .then(setRoles)
       .catch(() => {})
     // load only touches state and the form instance
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,7 +123,7 @@ export default function Settings() {
   const changes = useMemo(() => toChanges(items, values, initial), [items, values, initial])
   const dirty = Object.keys(changes).length > 0
   const roleOptions = roles.map((r) => ({ label: `${roleName(r)} (${r.code})`, value: r.code }))
-  const v = (key: string) => values?.[fieldName(key)]
+  const v = (key: string) => values[fieldName(key)]
 
   const save = form.handleSubmit(async () => {
     if (!dirty) return
@@ -135,7 +132,7 @@ export default function Settings() {
       invalidateAppInfo()
       toast.success('设置已保存')
     } catch (err) {
-      if (!isCancelled(err)) toast.apiError(err, '保存失败')
+      if (!isReauthCancelled(err)) toast.apiError(err, '保存失败')
     }
   })
 
@@ -144,7 +141,7 @@ export default function Settings() {
     <SettingField item={byKey[key]} control={form.control} canEdit={canEdit} switchOn={v(key)} roleOptions={roleOptions} {...extra} />
   )
 
-  const s3Files = data?.file_counts?.s3 ?? 0
+  const s3Files = data?.file_counts.s3 ?? 0
   const s3ConnectionChanged = S3_CONNECTION.some((key) => key in changes)
 
   return (

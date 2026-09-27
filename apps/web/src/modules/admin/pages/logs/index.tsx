@@ -130,7 +130,7 @@ const OPERATION_COLUMNS: DataTableColumn<OperationLog>[] = [
     dataIndex: 'status_code',
     width: 84,
     render: (v) =>
-      v === null || v === undefined ? null : (
+      v === null ? null : (
         <StatusBadge tone={v < 300 ? 'success' : 'danger'} className="tabular-nums">
           {v}
         </StatusBadge>

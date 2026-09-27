@@ -11,8 +11,8 @@ import { useTx } from '@/i18n'
 import { dateLocale } from '@/i18n/date-locale'
 import { useTranslation } from 'react-i18next'
 
-function toDate(value: unknown) {
-  if (!value || typeof value !== 'string') return undefined
+function toDate(value: string | null | undefined) {
+  if (!value) return undefined
   const d = parse(value.slice(0, 10), 'yyyy-MM-dd', new Date())
   return isValid(d) ? d : undefined
 }

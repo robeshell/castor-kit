@@ -31,16 +31,17 @@ interface CategoryOption {
   tone: StatusTone
 }
 
+/** The fallback for unknown categories */
+const CUSTOM_CATEGORY: CategoryOption = { value: 'custom', label: '自定义', tone: 'neutral' }
 const CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'product', label: '产品', tone: 'brand' },
   { value: 'dev', label: '开发', tone: 'success' },
   { value: 'marketing', label: '营销', tone: 'warning' },
   { value: 'data', label: '数据', tone: 'info' },
   { value: 'office', label: '办公', tone: 'neutral' },
-  { value: 'custom', label: '自定义', tone: 'neutral' },
+  CUSTOM_CATEGORY,
 ]
-// CATEGORY_OPTIONS has a 'custom' entry (the fallback for unknown categories)
-const categoryMeta = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c])) as Partial<Record<string, CategoryOption>> & Record<'custom', CategoryOption>
+const CATEGORY_BY_VALUE = new Map(CATEGORY_OPTIONS.map((c) => [c.value, c]))
 
 interface FormValues {
   name: string
@@ -53,11 +54,11 @@ const notBlank = (message: string) => (v: unknown) => Boolean(String(v ?? '').tr
 
 // ── Extract variable names from the template content ─────────────────
 function extractVars(content: string): string[] {
-  const matches = [...(content || '').matchAll(/\{\{(\w+)\}\}/g)]
+  const matches = [...content.matchAll(/\{\{(\w+)\}\}/g)]
   const seen = new Set<string>()
   return matches
     // The pattern's group is required, so every match has it
-    .map((m) => m[1]!)
+    .flatMap((m) => (m[1] === undefined ? [] : [m[1]]))
     .filter((v) => {
       if (seen.has(v)) return false
       seen.add(v)
@@ -67,9 +68,7 @@ function extractVars(content: string): string[] {
 
 // ── Live preview: substitute variable values into the template ───────
 function buildPreview(content: string, varValues: Record<string, string>): string {
-  return (content || '').replace(/\{\{(\w+)\}\}/g, (_, key: string) =>
-    varValues[key] !== undefined && varValues[key] !== '' ? varValues[key] : `{{${key}}}`,
-  )
+  return content.replace(/\{\{(\w+)\}\}/g, (_, key: string) => varValues[key] || `{{${key}}}`)
 }
 
 // ── Template card (left column) ──────────────────────────────────────
@@ -82,7 +81,7 @@ interface TemplateCardProps {
 
 function TemplateCard({ template, selected, onSelect, onDelete }: TemplateCardProps) {
   const { t } = useTranslation()
-  const meta = categoryMeta[template.category] || categoryMeta.custom
+  const meta = CATEGORY_BY_VALUE.get(template.category) ?? CUSTOM_CATEGORY
   return (
     <motion.div variants={stagger.item} className="group relative">
       <button
@@ -103,7 +102,7 @@ function TemplateCard({ template, selected, onSelect, onDelete }: TemplateCardPr
         <span className="block truncate pr-6 text-[13px] font-medium">{template.name}</span>
         <span className="mt-1.5 flex items-center gap-2">
           <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
-          {template.variables?.length > 0 ? (
+          {template.variables.length > 0 ? (
             <span className="text-muted-foreground text-[11px] tabular-nums">{t('{{count}} 个变量', { count: template.variables.length })}</span>
           ) : null}
         </span>
@@ -220,7 +219,7 @@ export default function AiPromptPage() {
     setListLoading(true)
     try {
       const res = await getPromptTemplates()
-      setTemplates(Array.isArray(res?.data) ? res.data : [])
+      setTemplates(res.data)
     } catch (err) {
       toast.apiError(err, '加载模板失败')
     } finally {
@@ -233,7 +232,7 @@ export default function AiPromptPage() {
     let cancelled = false
     getPromptTemplates()
       .then((res) => {
-        if (!cancelled) setTemplates(Array.isArray(res?.data) ? res.data : [])
+        if (!cancelled) setTemplates(res.data)
       })
       .catch((err) => {
         if (!cancelled) toast.apiError(err, '加载模板失败')
@@ -255,7 +254,7 @@ export default function AiPromptPage() {
 
   const handleSelectTemplate = (tpl: PromptTemplate) => {
     setSelectedId(tpl.id)
-    form.reset({ name: tpl.name, category: tpl.category || 'custom', content: tpl.content || '' })
+    form.reset({ name: tpl.name, category: tpl.category, content: tpl.content })
     setRawVarValues({})
   }
 
@@ -273,7 +272,7 @@ export default function AiPromptPage() {
         toast.success('模板已更新')
       } else {
         const res = await createPromptTemplate(payload)
-        setSelectedId(res?.id ?? null)
+        setSelectedId(res.id)
         toast.success('模板已创建')
       }
       // Reset to what was saved (trimmed), so the form shows the stored values and isn't dirty

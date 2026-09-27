@@ -33,11 +33,12 @@ import StatusBadge, { type StatusTone } from '@/shared/components/StatusBadge'
 import { downloadBlobFile } from '@/shared/utils/file'
 import { Trans, useTranslation } from 'react-i18next'
 
-const MENU_TYPE_OPTIONS = [
+const MENU_TYPE_OPTIONS: { label: string; value: MenuType }[] = [
   { label: '目录', value: 'directory' },
   { label: '菜单', value: 'menu' },
   { label: '按钮', value: 'button' },
 ]
+const isMenuType = (value: string | null): value is MenuType => MENU_TYPE_OPTIONS.some((o) => o.value === value)
 const MENU_TYPE_TONE: Record<string, StatusTone> = { directory: 'brand', menu: 'info', button: 'warning' }
 const MENU_EXPORT_FIELDS = [
   { label: 'ID', value: 'id' },
@@ -107,12 +108,11 @@ const collectParentIds = (menus: readonly MenuTreeNode[]): number[] => menus.fla
 // Tree -> table rows (with depth); expanded = null means show everything flat
 const toRows = (menus: readonly MenuTreeNode[], expanded: Set<number> | null, depth = 0): MenuRow[] =>
   menus.flatMap((m) => {
-    const hasChildren = Boolean(m.children?.length)
-    const row = { ...m, _depth: depth, _hasChildren: hasChildren }
-    if (!hasChildren) return [row]
+    const { children } = m
+    const row = { ...m, _depth: depth, _hasChildren: Boolean(children?.length) }
+    if (!children?.length) return [row]
     if (expanded && !expanded.has(m.id)) return [row]
-    // hasChildren means m.children is a non-empty array
-    return [row, ...toRows(m.children!, expanded, depth + 1)]
+    return [row, ...toRows(children, expanded, depth + 1)]
   })
 
 function YesNo({ value }: { value: boolean | null }) {
@@ -163,8 +163,7 @@ export default function Menus() {
 
   const load = (searchValue: string) =>
     getMenus({ format: 'tree', search: searchValue })
-      .then((res) => {
-        const list = Array.isArray(res) ? res : []
+      .then((list) => {
         setData(list)
         // Expand every row after each load
         setExpanded(new Set(collectParentIds(list)))
@@ -204,10 +203,10 @@ export default function Menus() {
   const openEdit = (record: MenuRow) => {
     setEditing(record)
     form.reset({
-      name: record.name ?? '',
-      code: record.code ?? '',
-      // The response doc types menu_type as text; the backend only stores the values its create / edit body accepts
-      menu_type: (record.menu_type ?? 'menu') as MenuType,
+      name: record.name,
+      code: record.code,
+      // The response doc types menu_type as text (the column is nullable); stored values are the ones the create / edit body accepts
+      menu_type: isMenuType(record.menu_type) ? record.menu_type : 'menu',
       parent_id: record.parent_id ?? null,
       path: record.path ?? '',
       component: record.component ?? '',
@@ -247,8 +246,8 @@ export default function Menus() {
   const handleSort = (id: number, direction: 'up' | 'down') => {
     sortMenu(id, direction)
       .then((res) => {
-        if (res?.changed) toast.success('排序成功')
-        else toast.info(res?.message || '无需调整')
+        if (res.changed) toast.success('排序成功')
+        else toast.info(res.message || '无需调整')
         fetchData(querySearch)
       })
       .catch((err: unknown) => toast.apiError(err, '排序失败'))
@@ -513,7 +512,7 @@ export default function Menus() {
         }
         onImport={(file) => importMenus(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created || 0, updated: res.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="menus_import_error_rows.csv"

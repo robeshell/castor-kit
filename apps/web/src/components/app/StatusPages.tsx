@@ -14,13 +14,12 @@ type ShellProps = { title: string; description: string; children?: ReactNode } &
 function Shell({ icon: Icon, code, title, description, children }: ShellProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      {code ? (
-        <div className="text-brand-gradient text-7xl font-semibold tracking-tighter tabular-nums">{code}</div>
-      ) : (
+      {Icon ? (
         <div className="bg-muted text-muted-foreground mb-2 flex size-12 items-center justify-center rounded-xl">
-          {/* Always set when there is no code (ShellProps); TypeScript cannot narrow it from `code` */}
-          {Icon ? <Icon className="size-5" /> : null}
+          <Icon className="size-5" />
         </div>
+      ) : (
+        <div className="text-brand-gradient text-7xl font-semibold tracking-tighter tabular-nums">{code}</div>
       )}
       <h2 className="mt-3 text-lg font-semibold tracking-tight">{title}</h2>
       <p className="text-muted-foreground mt-1 max-w-md text-sm">{description}</p>

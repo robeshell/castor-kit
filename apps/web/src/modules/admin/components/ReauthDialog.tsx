@@ -9,13 +9,9 @@ import { Spinner } from '@/components/ui/spinner'
 import { errorMessage } from '@/lib/toast'
 import { reauth } from '@/modules/admin/api/auth'
 import TotpCodeInput from '@/modules/admin/components/two-factor/TotpCodeInput'
-import type { ReauthDialogProps } from '@/shared/hooks/useReauth'
+import { needsMfa, type ReauthDialogProps } from '@/shared/hooks/useReauth'
 
 export type { ReauthDialogProps }
-
-/** The API answers a password-only check with { mfa_required: true } when the account uses 2FA */
-const isMfaRequired = (err: unknown): boolean =>
-  typeof err === 'object' && err !== null && 'mfa_required' in err && Boolean(err.mfa_required)
 
 /**
  * "Confirm it's you" before a sensitive change: the current password, plus the two-step code (or a recovery code)
@@ -55,7 +51,7 @@ export default function ReauthDialog({ open, onVerified, onCancel }: ReauthDialo
       reset()
       onVerified()
     } catch (err) {
-      if (isMfaRequired(err) && !needCode) {
+      if (needsMfa(err) && !needCode) {
         setNeedCode(true)
       } else {
         setError(errorMessage(err, '验证失败'))

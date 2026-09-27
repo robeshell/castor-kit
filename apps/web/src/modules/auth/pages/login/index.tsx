@@ -80,7 +80,8 @@ export default function Login() {
         return
       }
       // Invariant of POST /api/admin/login: `user` is present whenever no second factor is pending
-      await finish(data.user!)
+      if (!data.user) throw new Error('The sign-in response has neither a user nor a pending second factor')
+      await finish(data.user)
     } catch (err) {
       toast.apiError(err, '登录失败')
     } finally {
@@ -212,8 +213,9 @@ export default function Login() {
             <TotpEnrollment
               submitText="完成绑定"
               onEnabled={(res) => {
-                // Enabling during a sign-in that required setup always returns the signed-in user
-                setEnrolled({ user: res.user!, codes: res.recovery_codes })
+                // Enabling during a sign-in that required setup always returns the signed-in user (TotpEnrollment shows a throw as its error)
+                if (!res.user) throw new Error('Enabling two-step verification during sign-in returned no user')
+                setEnrolled({ user: res.user, codes: res.recovery_codes })
                 setStep('codes')
               }}
             />

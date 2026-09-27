@@ -237,9 +237,8 @@ export default function DetailTabsPage() {
   const fetchMembers = useCallback(
     () =>
       getDetailMembers()
-        .then((res) => {
-          // The endpoint returns a plain array (no { items } wrapper)
-          const list = res || []
+        // The endpoint returns a plain array (no { items } wrapper)
+        .then((list) => {
           setMembers(list)
           // Select the first member on first load so the right side is never empty
           setSelectedId((cur) => (cur === null && list[0] ? list[0].id : cur))
@@ -258,7 +257,7 @@ export default function DetailTabsPage() {
     if (!q) return members
     return members.filter(
       (m) =>
-        (m.name || '').toLowerCase().includes(q) ||
+        m.name.toLowerCase().includes(q) ||
         (m.department || '').toLowerCase().includes(q) ||
         (m.role_title || '').toLowerCase().includes(q),
     )
@@ -280,7 +279,7 @@ export default function DetailTabsPage() {
       role_title: member.role_title || '',
       email: member.email || '',
       phone: member.phone || '',
-      status: member.status || 'active',
+      status: member.status,
       join_date: member.join_date ? member.join_date.slice(0, 10) : '',
       avatar_color: member.avatar_color || DEFAULT_COLOR,
       bio: member.bio || '',
@@ -291,21 +290,21 @@ export default function DetailTabsPage() {
   const submit = async (values: FormValues) => {
     const payload = {
       name: values.name,
-      department: values.department || '',
-      role_title: values.role_title || '',
-      email: values.email || '',
-      phone: values.phone || '',
-      status: values.status || 'active',
+      department: values.department,
+      role_title: values.role_title,
+      email: values.email,
+      phone: values.phone,
+      status: values.status,
       join_date: values.join_date || null,
       avatar_color: values.avatar_color || DEFAULT_COLOR,
-      bio: values.bio || '',
+      bio: values.bio,
     }
     try {
       if (editing) {
         await updateDetailMember(editing.id, payload)
       } else {
         const created = await createDetailMember(payload)
-        if (created?.id) setSelectedId(created.id)
+        setSelectedId(created.id)
       }
       toast.success(editing ? '成员已更新' : '成员已创建')
       setFormOpen(false)
@@ -327,8 +326,6 @@ export default function DetailTabsPage() {
       throw err
     }
   }
-
-  const status = selectedMember ? STATUS_META[selectedMember.status] || STATUS_META.active : null
 
   return (
     <div>
@@ -356,7 +353,7 @@ export default function DetailTabsPage() {
             ) : (
               <ul className="space-y-0.5 p-2">
                 {filteredMembers.map((m, i) => {
-                  const sm = STATUS_META[m.status] || STATUS_META.active
+                  const sm = STATUS_META[m.status]
                   const selected = selectedId === m.id
                   return (
                     <motion.li
@@ -431,8 +428,8 @@ export default function DetailTabsPage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="truncate text-lg font-semibold tracking-tight">{selectedMember.name}</h2>
-                        <StatusBadge tone={status?.tone} dot>
-                          {status?.label}
+                        <StatusBadge tone={STATUS_META[selectedMember.status].tone} dot>
+                          {STATUS_META[selectedMember.status].label}
                         </StatusBadge>
                       </div>
                       <p className="text-muted-foreground truncate text-[13px]">

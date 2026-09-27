@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import BrandMark from '@/components/app/BrandMark'
 
-export function FullscreenLoader() {
+function FullscreenLoader() {
   return (
     <div className="flex h-svh flex-col items-center justify-center gap-4">
       <BrandMark showText={false} className="animate-pulse" />

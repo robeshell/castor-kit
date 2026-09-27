@@ -30,7 +30,7 @@ import { FormInput, FormMultiSelect, FormSwitch } from '@/shared/components/Form
 import PageHeader from '@/shared/components/PageHeader'
 import RowActions from '@/shared/components/RowActions'
 import StatusBadge from '@/shared/components/StatusBadge'
-import { useReauth } from '@/shared/hooks/useReauth'
+import { isReauthCancelled, useReauth } from '@/shared/hooks/useReauth'
 
 /** What the form holds; save trims name / url into the create / edit body */
 interface FormValues {
@@ -74,9 +74,6 @@ function eventOptions(events: WebhookEvent[], t: TFunction, current: string[] = 
  * Webhooks: push events (user.created, role.updated …) to other systems. Creating, editing and the signing secret
  * need a recent identity check; every new receiver or changed address is announced to the super admins.
  */
-/** reauth.run rejects with { cancelled: true } when the identity check is dismissed; nothing to report then */
-const isCancelled = (err: unknown): boolean => typeof err === 'object' && err !== null && 'cancelled' in err && Boolean(err.cancelled)
-
 export default function Webhooks() {
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
@@ -99,7 +96,7 @@ export default function Webhooks() {
   const load = useCallback(
     () =>
       getWebhooks()
-        .then((res) => setItems(res.items || []))
+        .then((res) => setItems(res.items))
         .catch((err: unknown) => toast.apiError(err, '加载失败'))
         .finally(() => setLoading(false)),
     [],
@@ -108,7 +105,7 @@ export default function Webhooks() {
   useEffect(() => {
     load()
     getWebhookEvents()
-      .then((res) => setEvents(res.items || []))
+      .then((res) => setEvents(res.items))
       .catch(() => {})
   }, [load])
 
@@ -146,7 +143,7 @@ export default function Webhooks() {
       setDialogOpen(false)
       load()
     } catch (err) {
-      if (!isCancelled(err)) toast.apiError(err, '保存失败')
+      if (!isReauthCancelled(err)) toast.apiError(err, '保存失败')
       throw err
     }
   }
@@ -167,19 +164,20 @@ export default function Webhooks() {
       const res = await reauth.run(() => getWebhookSecret(record.id))
       setSecret({ hook: record, secret: res.secret, created: false, open: true })
     } catch (err) {
-      if (!isCancelled(err)) toast.apiError(err, '操作失败')
+      if (!isReauthCancelled(err)) toast.apiError(err, '操作失败')
     }
   }
 
   // Only reachable from the open secret dialog, which is only shown once `secret` is set
   const rotate = async () => {
+    if (!secret) return
     setRotating(true)
     try {
-      const res = await reauth.run(() => rotateWebhookSecret(secret!.hook.id))
-      setSecret({ ...secret!, secret: res.secret })
+      const res = await reauth.run(() => rotateWebhookSecret(secret.hook.id))
+      setSecret({ ...secret, secret: res.secret })
       toast.success('已生成新密钥，旧密钥立即失效')
     } catch (err) {
-      if (!isCancelled(err)) toast.apiError(err, '操作失败')
+      if (!isReauthCancelled(err)) toast.apiError(err, '操作失败')
     } finally {
       setRotating(false)
     }
@@ -224,7 +222,7 @@ export default function Webhooks() {
       title: '订阅事件',
       dataIndex: 'events',
       minWidth: 160,
-      render: (value = []) => (
+      render: (value) => (
         <div className="flex flex-wrap gap-1" title={value.join('\n')}>
           {value.slice(0, 3).map((e) => (
             <code key={e} className="bg-muted rounded px-1.5 py-0.5 font-mono text-[11px]">
@@ -387,7 +385,7 @@ export default function Webhooks() {
           placeholder="选择事件"
           options={options}
           rules={{
-            validate: (v) => (v && v.length > 0) || '请至少订阅一个事件',
+            validate: (v) => v.length > 0 || '请至少订阅一个事件',
           }}
         />
         <FormSwitch control={form.control} name="is_active" label="启用" description="停用后不再推送新事件，排队中的重试也会停止" />
@@ -395,10 +393,9 @@ export default function Webhooks() {
 
       <SecretDialog
         open={Boolean(secret?.open)}
-        // Closing only happens while the dialog is open, i.e. once `secret` is set
-        onOpenChange={(open) => !open && setSecret((x) => ({ ...x!, open: false }))}
+        onOpenChange={(open) => !open && setSecret((x) => (x ? { ...x, open: false } : x))}
         title={secret?.created ? 'Webhook 已创建' : '签名密钥'}
-        description={secret?.hook?.name}
+        description={secret?.hook.name}
         secret={secret?.secret}
         warning={
           secret?.created ? '把签名密钥配置到接收方，用来确认请求来自本系统。之后可以在「签名密钥」里再次查看（需要验证身份）。' : undefined

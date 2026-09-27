@@ -18,9 +18,9 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
-import { DatePicker, DateTimePicker, type DatePickerProps, type DateTimePickerProps } from '@/shared/components/DatePicker'
-import MultiSelect, { type MultiSelectOption, type MultiSelectProps } from '@/shared/components/MultiSelect'
-import TagInput, { type TagInputProps } from '@/shared/components/TagInput'
+import { DatePicker, DateTimePicker } from '@/shared/components/DatePicker'
+import MultiSelect, { type MultiSelectOption } from '@/shared/components/MultiSelect'
+import TagInput from '@/shared/components/TagInput'
 import TreeSelect, { type TreeSelectProps } from '@/shared/components/TreeSelect'
 import AvatarUpload, { type AvatarUploadProps } from '@/shared/components/upload/AvatarUpload'
 import FileIdUpload, { type FileIdUploadProps } from '@/shared/components/upload/FileIdUpload'
@@ -70,8 +70,21 @@ interface FieldControl {
   disabled?: boolean
 }
 
-/** value prop of a native input */
-type InputValue = ComponentProps<'input'>['value']
+/**
+ * A form value as a native input shows it: '' for null / undefined, numbers kept (a number input compares them loosely,
+ * so "1.0" survives while typing), anything else as React would stringify it
+ */
+function inputValue(value: unknown): string | number {
+  if (value === null || value === undefined) return ''
+  return typeof value === 'number' ? value : String(value)
+}
+
+const isString = (value: unknown): value is string => typeof value === 'string'
+
+const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every(isString)
+
+const isKeyList = (value: unknown): value is (string | number)[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string' || typeof item === 'number')
 
 interface FieldProps<TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>> extends FormFieldProps<TFieldValues, TName> {
   layout?: FieldLayout
@@ -145,7 +158,7 @@ export function FormInput<TFieldValues extends FieldValues, TName extends FieldP
         <FormControl>
           <Input
             {...field}
-            value={(field.value as InputValue) ?? ''}
+            value={inputValue(field.value)}
             type={type}
             placeholder={tx(placeholder)}
             disabled={disabled}
@@ -181,7 +194,7 @@ export function FormTextarea<TFieldValues extends FieldValues, TName extends Fie
         <FormControl>
           <Textarea
             {...field}
-            value={(field.value as InputValue) ?? ''}
+            value={inputValue(field.value)}
             rows={rows}
             placeholder={tx(placeholder)}
             disabled={disabled}
@@ -223,7 +236,7 @@ export function FormNumber<TFieldValues extends FieldValues, TName extends Field
             onBlur={field.onBlur}
             type="number"
             inputMode="decimal"
-            value={field.value === null || field.value === undefined ? '' : (field.value as InputValue)}
+            value={inputValue(field.value)}
             onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
             min={min}
             max={max}
@@ -307,7 +320,7 @@ export function FormMultiSelect<TFieldValues extends FieldValues, TName extends 
       {(field: FieldControl) => (
         <FormControl>
           <MultiSelect
-            value={(field.value as MultiSelectProps['value']) || []}
+            value={isKeyList(field.value) ? field.value : []}
             onChange={field.onChange}
             options={options}
             placeholder={placeholder}
@@ -339,7 +352,7 @@ export function FormTreeSelect<TFieldValues extends FieldValues, TName extends F
       {(field: FieldControl) => (
         <FormControl>
           <TreeSelect
-            value={(field.value as TreeSelectProps['value']) ?? null}
+            value={isString(field.value) || typeof field.value === 'number' ? field.value : null}
             onChange={field.onChange}
             tree={tree}
             placeholder={placeholder}
@@ -372,7 +385,7 @@ export function FormFileUpload<TFieldValues extends FieldValues, TName extends F
     <Field {...rest}>
       {(field: FieldControl) => (
         <FileIdUpload
-          value={field.value as FileIdUploadProps['value']}
+          value={isString(field.value) || isStringList(field.value) ? field.value : null}
           onChange={field.onChange}
           variant={variant}
           multiple={multiple}
@@ -414,7 +427,7 @@ export function FormAvatarUpload<TFieldValues extends FieldValues, TName extends
       {(field: FieldControl) => (
         <FormControl>
           <AvatarUpload
-            value={field.value as AvatarUploadProps['value']}
+            value={isString(field.value) ? field.value : null}
             onChange={field.onChange}
             name={displayName}
             maxSizeMB={maxSizeMB}
@@ -548,7 +561,7 @@ export function FormDate<TFieldValues extends FieldValues, TName extends FieldPa
     <Field {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <DatePicker value={(field.value as DatePickerProps['value']) || ''} onChange={field.onChange} placeholder={placeholder} disabled={disabled} />
+          <DatePicker value={isString(field.value) ? field.value : ''} onChange={field.onChange} placeholder={placeholder} disabled={disabled} />
         </FormControl>
       )}
     </Field>
@@ -568,7 +581,7 @@ export function FormDateTime<TFieldValues extends FieldValues, TName extends Fie
     <Field {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <DateTimePicker value={(field.value as DateTimePickerProps['value']) || ''} onChange={field.onChange} disabled={disabled} />
+          <DateTimePicker value={isString(field.value) ? field.value : ''} onChange={field.onChange} disabled={disabled} />
         </FormControl>
       )}
     </Field>
@@ -590,7 +603,7 @@ export function FormTags<TFieldValues extends FieldValues, TName extends FieldPa
     <Field {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <TagInput value={(field.value as TagInputProps['value']) || []} onChange={field.onChange} placeholder={placeholder} disabled={disabled} />
+          <TagInput value={isStringList(field.value) ? field.value : []} onChange={field.onChange} placeholder={placeholder} disabled={disabled} />
         </FormControl>
       )}
     </Field>

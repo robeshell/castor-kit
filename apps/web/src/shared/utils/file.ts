@@ -27,18 +27,14 @@ export interface ImportErrorRow {
   row?: Record<string, unknown> | null
 }
 
-export const downloadErrorRowsCsv = (
-  errorRows: readonly ImportErrorRow[] | null | undefined,
-  fileName = 'import_error_rows.csv',
-): void => {
-  const rows = Array.isArray(errorRows) ? errorRows : []
+export const downloadErrorRowsCsv = (rows: readonly ImportErrorRow[], fileName = 'import_error_rows.csv'): void => {
   if (!rows.length) {
     return
   }
 
   const sourceHeaders: string[] = []
   rows.forEach((item) => {
-    const row = item?.row || {}
+    const row = item.row || {}
     Object.keys(row).forEach((key) => {
       if (!sourceHeaders.includes(key)) {
         sourceHeaders.push(key)
@@ -51,10 +47,10 @@ export const downloadErrorRowsCsv = (
   const lines = [headers.map(escapeCsvValue).join(',')]
 
   rows.forEach((item) => {
-    const row = item?.row || {}
+    const row = item.row || {}
     const line = [
-      item?.line ?? '',
-      item?.reason ?? '',
+      item.line ?? '',
+      item.reason ?? '',
       ...sourceHeaders.map((key) => row[key] ?? ''),
     ]
     lines.push(line.map(escapeCsvValue).join(','))

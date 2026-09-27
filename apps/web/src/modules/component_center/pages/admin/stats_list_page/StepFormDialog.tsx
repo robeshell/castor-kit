@@ -70,8 +70,8 @@ function StepIndicator({ steps, current }: StepIndicatorProps) {
 }
 
 export interface StepFormDialogProps<TFieldValues extends FieldValues = FieldValues> {
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   /** Chinese source text (translated here) or a node */
   title?: ReactNode
   description?: ReactNode
@@ -80,7 +80,7 @@ export interface StepFormDialogProps<TFieldValues extends FieldValues = FieldVal
   /** Index of the current step (controlled) */
   step: number
   onStepChange: (step: number) => void
-  onSubmit?: FormSubmitHandler<TFieldValues>
+  onSubmit: FormSubmitHandler<TFieldValues>
   submitText?: ReactNode
   /** Renders step `index`; values are the live form values */
   renderStep: (index: number, values: DeepPartialSkipArrayKey<TFieldValues>) => ReactNode
@@ -121,7 +121,7 @@ export default function StepFormDialog<TFieldValues extends FieldValues>({
     async (vals) => {
       try {
         setSubmitting(true)
-        await onSubmit?.(vals)
+        await onSubmit(vals)
       } catch {
         /* the caller shows the error; keep the dialog open */
       } finally {
@@ -151,7 +151,7 @@ export default function StepFormDialog<TFieldValues extends FieldValues>({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !submitting && onOpenChange?.(nextOpen)}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !submitting && onOpenChange(nextOpen)}>
       <DialogContent className="gap-0 p-0 sm:max-w-[600px]">
         <Form {...form}>
           <form noValidate onSubmit={handleFormSubmit} onKeyDown={handleKeyDown} className="flex max-h-[85vh] flex-col">
@@ -180,7 +180,7 @@ export default function StepFormDialog<TFieldValues extends FieldValues>({
                 {t('第 {{current}} 步，共 {{total}} 步', { current: step + 1, total: steps.length })}
               </span>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" disabled={submitting} onClick={() => onOpenChange?.(false)}>
+                <Button type="button" variant="outline" disabled={submitting} onClick={() => onOpenChange(false)}>
                   {t('取消')}
                 </Button>
                 {step > 0 ? (

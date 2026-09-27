@@ -269,9 +269,9 @@ export default function CardListPage() {
   const handleSearch = () => {
     list.handleSearch({
       search: search.trim(),
-      category: category || '',
-      is_active: isActive || '',
-      status: statusFilter || '',
+      category,
+      is_active: isActive,
+      status: statusFilter,
     })
   }
 
@@ -520,7 +520,7 @@ export default function CardListPage() {
         }
         onImport={(file) => importCardListPage(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created ?? 0, updated: res.updated ?? 0 }))
           fetchData()
         }}
         errorExportFileName="card_list_page_import_error_rows.csv"
@@ -594,7 +594,7 @@ export default function CardListPage() {
                   ),
                 },
                 { label: '负责人', value: detailRecord.owner || '-' },
-                { label: '优先级', value: <span className="tabular-nums">{detailRecord.priority ?? 0}</span> },
+                { label: '优先级', value: <span className="tabular-nums">{detailRecord.priority}</span> },
                 {
                   label: '启用',
                   value: (
