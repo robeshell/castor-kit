@@ -43,7 +43,7 @@ export const scheduled_task_runs = pgTable('scheduled_task_runs', {
   response_status: integer(),
   response_body: text(),
   error_message: text(),
-  /** `default=datetime.utcnow` */
+  /** Current UTC time on insert */
   started_at: createdAt(),
   finished_at: timestamp({ mode: 'string' }),
   duration_ms: integer(),

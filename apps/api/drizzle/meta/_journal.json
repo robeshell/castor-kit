@@ -57,6 +57,13 @@
       "when": 1790408901593,
       "tag": "0007_open_api",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790480837543,
+      "tag": "0008_drop_list_page_single_url_columns",
+      "breakpoints": true
     }
   ]
 }

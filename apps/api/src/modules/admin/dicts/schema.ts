@@ -34,14 +34,4 @@ export const CSV_HEADER_TO_FIELD: Record<string, string> = {
   备注: 'description',
 }
 
-export const LEGACY_CSV_HEADER_TO_FIELD: Record<string, string> = {
-  label: 'label',
-  value: 'value',
-  color: 'color',
-  sort_order: 'sort_order',
-  is_default: 'is_default',
-  is_active: 'is_active',
-  description: 'description',
-}
-
 export const ITEM_TABLE_HEADERS = ['字典标签', '字典值', '标签颜色', '排序', '是否默认', '是否启用', '备注']

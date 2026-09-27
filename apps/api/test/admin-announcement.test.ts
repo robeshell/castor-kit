@@ -213,7 +213,7 @@ describe('announcement', () => {
       '标题,公告类型,状态,是否置顶,排序权重,内容\n' +
         `${P}导入1,activity,published,是,5,c1\n` +
         ',system,draft,,,\n' +
-        `${P}导入2,bogus,bogus,True,x,\n` +
+        `${P}导入2,bogus,bogus,true,x,\n` +
         `${long},,,,,\n`,
     )
     const res = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...file })

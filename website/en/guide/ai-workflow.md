@@ -285,7 +285,7 @@ Use the skip flags to speed things up while debugging, but run the full gate onc
 | `get_menu_tree` | Returns the menu tree from the database, for picking `parent_id` and a free ID |
 | `get_spec_guide` | Returns the spec JSON Schema and the requirement → spec examples; call it before writing a spec |
 | `validate_spec` | Checks a spec (parameter `spec`) and says what it would generate; writes nothing |
-| `scaffold_feature` | Calls `pnpm scaffold` with `spec` (recommended) or the legacy `name`, `domain`, `fields`; `dry_run` only previews |
+| `scaffold_feature` | Calls `pnpm scaffold` with `spec` (recommended) or `name`, `domain`, `fields`; `dry_run` only previews |
 | `check_openapi` | Checks the API document against the OpenAPI rules and lists the operations that break them |
 | `run_verify` | Calls `pnpm verify --json` and returns the result (parameters `module`, `skip_build`) |
 | `init_rbac` | Calls `pnpm seed:rbac -- --incremental` |

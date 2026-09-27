@@ -99,7 +99,7 @@ export async function resetDemoData(client: pg.ClientBase, now = new Date()): Pr
 async function lastResetAt(client: pg.ClientBase): Promise<Date | null> {
   const { rows } = await client.query<{ value: string | null }>('SELECT value FROM app_state WHERE key = $1', [LAST_RESET_KEY])
   const value = rows[0]?.value
-  // Stored as DB timestamp text (utcNowText); older rows may have a `T` separator
+  // Stored as DB timestamp text (utcNowText)
   const at = value ? utcTextToMillis(value) : Number.NaN
   return Number.isNaN(at) ? null : new Date(at)
 }

@@ -44,7 +44,7 @@ describe('tabular', () => {
     ws.addRow(['n', 'f', 'd', 'b'])
     ws.addRow([3, 1.5, new Date(Date.UTC(2026, 0, 2, 3, 4, 5)), true])
     const r = await readTableFile({ filename: 'z.xlsx', data: Buffer.from(await wb.xlsx.writeBuffer()) })
-    expect(r.rows[0]![1]).toEqual({ n: '3', f: '1.5', d: '2026-01-02 03:04:05', b: 'True' })
+    expect(r.rows[0]![1]).toEqual({ n: '3', f: '1.5', d: '2026-01-02 03:04:05', b: 'true' })
   })
 
   it('校验：xls 明确拒绝、非法扩展名、空文件、编码错误、超 5MB', async () => {

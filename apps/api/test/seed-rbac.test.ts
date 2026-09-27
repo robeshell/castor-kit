@@ -7,7 +7,7 @@
 
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { MENUS_DATA, RETIRED_MENU_CODES, seedRbac } from '../scripts/seed-rbac'
+import { MENUS_DATA, seedRbac } from '../scripts/seed-rbac'
 import { checkPasswordHash } from '../src/common/password'
 import { runMigrations } from '../src/db/migrate'
 import { TEST_DATABASE_URL } from './helpers'
@@ -68,16 +68,16 @@ afterAll(async () => {
 // Menu count / max ID are derived from MENUS_DATA: they change with every new feature module menu, so the test only checks the sync logic itself
 const MENU_COUNT = MENUS_DATA.length
 const NEXT_MENU_ID = Math.max(...MENUS_DATA.map((m) => m.id)) + 1
-/** The 120 menus of the initial menu set: new features must not change them */
-const LEGACY_MENU_COUNT = 120
+/** The 120 menus of the built-in menu set: new features must not change them */
+const BUILT_IN_MENU_COUNT = 120
 
 describe('MENUS_DATA', () => {
-  it('至少包含初始的 120 个菜单；ID/编码唯一、父节点先于子节点、历史 ID 不变', () => {
-    expect(MENU_COUNT).toBeGreaterThanOrEqual(LEGACY_MENU_COUNT)
+  it('至少包含内置的 120 个菜单；ID/编码唯一、父节点先于子节点、内置 ID 不变', () => {
+    expect(MENU_COUNT).toBeGreaterThanOrEqual(BUILT_IN_MENU_COUNT)
     const ids = MENUS_DATA.map((m) => m.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(new Set(MENUS_DATA.map((m) => m.code)).size).toBe(ids.length)
-    // Legacy IDs must not change
+    // Built-in IDs must not change
     for (const [id, code] of [
       [31, 'system_list_page'],
       [33, 'system_stats_list_page'],
@@ -153,23 +153,15 @@ describe('增量同步', () => {
     expect(await snapshot(TEMP_URL)).toEqual(before)
   })
 
-  it('按 code 更新字段但不改 ID；固定 ID 被占用走序列；旧编码迁移；下线历史菜单；不删除自定义数据', async () => {
+  it('按 code 更新字段但不改 ID；固定 ID 被占用走序列；不删除自定义数据', async () => {
     await query(TEMP_URL, `
       BEGIN;
       UPDATE menus SET name = '旧名', sort_order = 42 WHERE code = 'system_users';
       DELETE FROM menus WHERE code = 'cc_ai_prompt_delete';
       INSERT INTO menus (id, name, code, sort_order, menu_type, is_visible, is_active, created_at, updated_at)
         VALUES (4423, '占位', 'ck_test_r8_occupier', 1, 'menu', true, true, now(), now());
-      UPDATE menus SET code = 'data_management', name = '数据管理' WHERE code = 'component_center';
       INSERT INTO roles (id, name, code, created_at) VALUES (50, '测试', 'ck_test_r8_role', now());
-      INSERT INTO menus (id, name, code, parent_id, sort_order, menu_type, is_visible, is_active, created_at, updated_at)
-        VALUES (9001, '旧新增', 'system_query_management_add', 31, 1, 'button', false, true, now(), now());
-      INSERT INTO menus (id, name, code, parent_id, sort_order, menu_type, is_visible, is_active, created_at, updated_at)
-        VALUES (9002, '旧子', 'ck_test_r8_child', 9001, 1, 'button', false, true, now(), now());
-      INSERT INTO role_menus VALUES (50, 9001), (50, 21);
-      INSERT INTO menus (id, name, code, sort_order, menu_type, is_visible, is_active, created_at, updated_at)
-        VALUES (9003, '模板', '${RETIRED_MENU_CODES[0]}', 1, 'menu', true, true, now(), now());
-      UPDATE menus SET code = 'system_query_management_delete' WHERE code = 'system_list_page_delete';
+      INSERT INTO role_menus VALUES (50, 21);
       COMMIT;
     `)
     const result = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })
@@ -184,19 +176,8 @@ describe('增量同步', () => {
     // 4423 is taken → fall back to the sequence (the next value after the last setval)
     expect(byCode.get('cc_ai_prompt_delete')!.id).toBe(NEXT_MENU_ID)
     expect(byCode.get('ck_test_r8_occupier')!.id).toBe(4423)
-    // data_management → component_center (keeps the original ID 3)
-    expect(byCode.get('component_center')).toMatchObject({ id: 3, name: '组件示例中心' })
-    expect(byCode.has('data_management')).toBe(false)
-    // Old and new codes coexist → merge into the new code: re-parent child menus, migrate role links, delete the old record
-    expect(byCode.has('system_query_management_add')).toBe(false)
-    const listPageAdd = byCode.get('system_list_page_add')!
-    expect(listPageAdd.id).toBe(311)
-    expect(byCode.get('ck_test_r8_child')!.parent_id).toBe(311)
     const roleMenus = await query<{ menu_id: number }>(TEMP_URL, 'SELECT menu_id FROM role_menus WHERE role_id = 50 ORDER BY 1')
-    expect(roleMenus.map((r) => r.menu_id)).toEqual([21, 311])
-    // Only the old code exists → rename in place
-    expect(byCode.get('system_list_page_delete')!.id).toBe(313)
-    expect(byCode.get(RETIRED_MENU_CODES[0])).toMatchObject({ is_active: false, is_visible: false })
+    expect(roleMenus.map((r) => r.menu_id)).toEqual([21])
     // Custom roles are kept; the super admin has all menus
     const [{ n }] = (await query<{ n: number }>(TEMP_URL, "SELECT count(*)::int AS n FROM roles WHERE code = 'ck_test_r8_role'")) as [{ n: number }]
     expect(n).toBe(1)

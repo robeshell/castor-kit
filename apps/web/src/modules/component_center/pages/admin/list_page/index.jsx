@@ -168,9 +168,7 @@ const DEFAULT_FORM_VALUES = {
   description: '',
   priority: 0,
   is_active: true,
-  image_url: '',
   image_urls: [],
-  file_url: '',
   file_urls: [],
   schema_config: '{}',
 }
@@ -485,8 +483,8 @@ export default function ListPage() {
       data_source: String(record?.data_source || '').trim(),
       schema_config: String(record?.schema_config || '{}'),
     })
-    setImageFileList(buildUploadFileList(record?.image_urls || record?.image_url, `img-${record?.id || 'edit'}`, (n) => t('图片 {{n}}', { n })))
-    setAttachmentFileList(buildUploadFileList(record?.file_urls || record?.file_url, `file-${record?.id || 'edit'}`, (n) => t('附件 {{n}}', { n })))
+    setImageFileList(buildUploadFileList(record?.image_urls, `img-${record?.id || 'edit'}`, (n) => t('图片 {{n}}', { n })))
+    setAttachmentFileList(buildUploadFileList(record?.file_urls, `file-${record?.id || 'edit'}`, (n) => t('附件 {{n}}', { n })))
     setConditionLogic(String(record?.condition_logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND')
     setConditionItems(normalizeConditionItems(record?.conditions))
     setFormOpen(true)
@@ -540,9 +538,7 @@ export default function ListPage() {
       data_source: (formValues.data_source || '').trim(),
       description: (formValues.description || '').trim(),
       status: formValues.status || 'draft',
-      image_url: imageUrls[0] || '',
       image_urls: imageUrls,
-      file_url: fileUrls[0] || '',
       file_urls: fileUrls,
       condition_logic: conditionLogic,
       conditions: buildConditionPayload(conditionItems),

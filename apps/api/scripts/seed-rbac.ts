@@ -6,7 +6,7 @@
  *   pnpm seed:rbac -- --incremental   # incremental sync: upsert menus by code + refresh super admin permissions, deletes nothing
  *
  * The menu tree (MENUS_DATA) is the single source of truth: add new menu/button permission entries here, then run `--incremental`.
- * IDs are fixed (including the legacy 31/33/34/35/36/37/100002/100003) and must not be changed.
+ * IDs are fixed and must not be changed.
  *
  * Key behaviors:
  * - Menus are matched by code: existing ones only get their 9 fields updated (id unchanged); missing ones are inserted with the fixed id, falling back to the sequence if that id is taken
@@ -209,8 +209,6 @@ export const MENUS_DATA: readonly MenuSeed[] = [
 ]
 
 /** Retired experimental page menus: data is kept but they are hidden from navigation */
-export const RETIRED_MENU_CODES = ['component_center_templates', 'component_center_scenarios'] as const
-
 const MENU_UPDATE_FIELDS = [
   'name',
   'icon',
@@ -296,91 +294,6 @@ async function clearRbacData(client: Queryable, log: (msg: string) => void): Pro
   }
 }
 
-/** Migrate the old menu code data_management to component_center, avoiding duplicate menus after the rename */
-async function migrateComponentCenterMenuCode(client: Queryable, log: (msg: string) => void): Promise<void> {
-  const legacy = await findMenuByCode(client, 'data_management')
-  const current = await findMenuByCode(client, 'component_center')
-  if (!legacy) return
-
-  if (current && current.id !== legacy.id) {
-    // Move any submenus attached under the new-code menu back to the old menu to keep the hierarchy stable
-    await client.query(`UPDATE menus SET parent_id = $1, updated_at = ${UTC_NOW} WHERE parent_id = $2`, [
-      legacy.id,
-      current.id,
-    ])
-    // Migrate role-menu links so permissions are not lost when the duplicate menu is deleted
-    await client.query(
-      `INSERT INTO role_menus (role_id, menu_id)
-       SELECT DISTINCT rm.role_id, $1::int
-       FROM role_menus rm
-       WHERE rm.menu_id = $2
-       AND NOT EXISTS (
-         SELECT 1 FROM role_menus x WHERE x.role_id = rm.role_id AND x.menu_id = $1::int
-       )`,
-      [legacy.id, current.id],
-    )
-    await client.query('DELETE FROM role_menus WHERE menu_id = $1', [current.id])
-    // First rename the duplicate record to a temporary code to avoid a unique-key conflict, then delete it
-    await client.query(`UPDATE menus SET code = $1, updated_at = ${UTC_NOW} WHERE id = $2`, [
-      `component_center_legacy_${current.id}`,
-      current.id,
-    ])
-    await client.query('DELETE FROM menus WHERE id = $1', [current.id])
-    log('  已合并重复菜单: [data_management] + [component_center]')
-  }
-
-  await client.query(`UPDATE menus SET code = $1, name = $2, updated_at = ${UTC_NOW} WHERE id = $3`, [
-    'component_center',
-    '组件示例中心',
-    legacy.id,
-  ])
-  log('  菜单编码迁移: [data_management] -> [component_center]')
-}
-
-/** Migrate the old query_management menu/button codes to list_page, avoiding duplicate menus */
-async function migrateListPageMenuCodes(client: Queryable, log: (msg: string) => void): Promise<void> {
-  const codeMappings: Array<[string, string]> = [
-    ['system_query_management', 'system_list_page'],
-    ['system_query_management_add', 'system_list_page_add'],
-    ['system_query_management_edit', 'system_list_page_edit'],
-    ['system_query_management_delete', 'system_list_page_delete'],
-  ]
-
-  for (const [oldCode, newCode] of codeMappings) {
-    const legacy = await findMenuByCode(client, oldCode)
-    const current = await findMenuByCode(client, newCode)
-    if (!legacy) continue
-
-    if (current && current.id !== legacy.id) {
-      await client.query(`UPDATE menus SET parent_id = $1, updated_at = ${UTC_NOW} WHERE parent_id = $2`, [
-        current.id,
-        legacy.id,
-      ])
-      await client.query(
-        `INSERT INTO role_menus (role_id, menu_id)
-         SELECT DISTINCT rm.role_id, $1::int
-         FROM role_menus rm
-         WHERE rm.menu_id = $2
-         AND NOT EXISTS (
-           SELECT 1 FROM role_menus x WHERE x.role_id = rm.role_id AND x.menu_id = $1::int
-         )`,
-        [current.id, legacy.id],
-      )
-      await client.query('DELETE FROM role_menus WHERE menu_id = $1', [legacy.id])
-      await client.query(`UPDATE menus SET code = $1, updated_at = ${UTC_NOW} WHERE id = $2`, [
-        `legacy_${oldCode}_${legacy.id}`,
-        legacy.id,
-      ])
-      await client.query('DELETE FROM menus WHERE id = $1', [legacy.id])
-      log(`  已合并重复菜单编码: [${oldCode}] + [${newCode}]`)
-      continue
-    }
-
-    await client.query(`UPDATE menus SET code = $1, updated_at = ${UTC_NOW} WHERE id = $2`, [newCode, legacy.id])
-    log(`  菜单编码迁移: [${oldCode}] -> [${newCode}]`)
-  }
-}
-
 /** Sync a PostgreSQL table's primary-key sequence to the current max id (table name is an internal constant, not user input) */
 async function syncIdSequence(client: Queryable, tableName: 'menus', log: (msg: string) => void): Promise<void> {
   await client.query(
@@ -398,13 +311,10 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
   let updated = 0
 
   await inTransaction(client, async () => {
-    await migrateComponentCenterMenuCode(client, log)
-    await migrateListPageMenuCodes(client, log)
-
     log('初始化菜单数据...')
     const { rows: idRows } = await client.query<{ id: number }>('SELECT id FROM menus')
     const existingIds = new Set(idRows.map((r) => r.id))
-    // Fixed id in MENUS_DATA → the id the row really has. A menu whose fixed id was taken (legacy data) gets another
+    // Fixed id in MENUS_DATA → the id the row really has. A menu whose fixed id was taken (e.g. by a menu added by hand) gets another
     // one, and its children must point there, not at whatever holds the fixed id
     const actualId = new Map<number, number>()
 
@@ -438,7 +348,7 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
         continue
       }
 
-      // If the fixed id is already taken by another menu (legacy data), don't force it; use the sequence instead
+      // If the fixed id is already taken by another menu (e.g. one added by hand), don't force it; use the sequence instead
       const useFixedId = !existingIds.has(menu.id)
       const values = [
         menu.name,
@@ -464,18 +374,6 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
       added += 1
       existingIds.add(newId)
       log(`  创建菜单: [${menu.code}] ${menu.name} (ID: ${newId})`)
-    }
-
-    for (const code of RETIRED_MENU_CODES) {
-      const retired = await findMenuByCode(client, code)
-      if (retired && (retired.is_active || retired.is_visible)) {
-        await client.query(
-          `UPDATE menus SET is_active = false, is_visible = false, updated_at = ${UTC_NOW} WHERE id = $1`,
-          [retired.id],
-        )
-        updated += 1
-        log(`  下线菜单: [${code}]`)
-      }
     }
   })
 

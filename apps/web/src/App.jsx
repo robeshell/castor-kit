@@ -28,25 +28,11 @@ function resolvePageComponent(componentName) {
   if (!normalizedComponentName) {
     return null
   }
-  const componentParts = normalizedComponentName.split('/').filter(Boolean)
-  let matchedEntry = null
-
-  // New convention: component uses "<module>/<page_path>", e.g. "admin/roles"
-  if (componentParts.length >= 2) {
-    const [moduleName, ...pageParts] = componentParts
-    const newPathSuffix = `/modules/${moduleName}/pages/${pageParts.join('/')}/index.jsx`
-    matchedEntry = Object.entries(PAGE_MODULES).find(([modulePath]) =>
-      modulePath.endsWith(newPathSuffix)
-    )
-  }
-
-  // Backward compatible with legacy values, so historical menu data doesn't make pages inaccessible
-  if (!matchedEntry) {
-    const legacyPathSuffix = `/pages/${normalizedComponentName}/index.jsx`
-    matchedEntry = Object.entries(PAGE_MODULES).find(([modulePath]) =>
-      modulePath.endsWith(legacyPathSuffix)
-    )
-  }
+  // component is "<module>/<page_path>", e.g. "admin/roles"
+  const [moduleName, ...pageParts] = normalizedComponentName.split('/').filter(Boolean)
+  if (pageParts.length === 0) return null
+  const pathSuffix = `/modules/${moduleName}/pages/${pageParts.join('/')}/index.jsx`
+  const matchedEntry = Object.entries(PAGE_MODULES).find(([modulePath]) => modulePath.endsWith(pathSuffix))
 
   const loader = matchedEntry?.[1]
   if (!loader) {

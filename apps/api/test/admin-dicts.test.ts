@@ -294,7 +294,7 @@ describe('dicts：字典项', () => {
     expect(byValue.n2).toMatchObject({ is_default: false, is_active: true, sort_order: 0, description: null })
     expect(rows.filter((r) => r.is_default).map((r) => r.value)).toEqual(['n1'])
 
-    const xlsx = multipartFile('d.xlsx', await xlsxBuffer([[' label ', 'value', 'is_default'], ['X', 'n3', 'yes'], [null, null, null]]))
+    const xlsx = multipartFile('d.xlsx', await xlsxBuffer([[' 字典标签 ', '字典值', '是否默认'], ['X', 'n3', 'yes'], [null, null, null]]))
     const res2 = await s.inject({ method: 'POST', url: `/api/admin/dicts/${typeId}/items/import`, ...xlsx })
     expect(res2.json()).toEqual({ message: '导入成功', created: 1, updated: 0 })
     expect((await itemsOf(typeId)).filter((r) => r.is_default).map((r) => r.value)).toEqual(['n3'])

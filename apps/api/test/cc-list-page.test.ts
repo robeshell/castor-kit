@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import ExcelJS from 'exceljs'
@@ -7,7 +7,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { file_references, files, query_management_versions, query_managements } from '@/db/schema'
-import { isSafeFilename, parseUrlCell, titleCase } from '@/modules/component-center/list-page/schema'
+import { parseUrlCell, titleCase } from '@/modules/component-center/list-page/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -59,9 +59,7 @@ afterAll(async () => {
 })
 
 describe('list-page 纯函数', () => {
-  it('文件名检查 / 标题 / 导入单元格里的 URL 列表', () => {
-    expect(isSafeFilename('legacy_r3.pdf')).toBe(true)
-    for (const name of ['../x.png', 'a/b.png', '.env', '报告.pdf', '']) expect(isSafeFilename(name), name).toBe(false)
+  it('标题 / 导入单元格里的 URL 列表', () => {
     expect(titleCase('updated at')).toBe('Updated At')
     expect(titleCase('userID')).toBe('Userid')
     expect(parseUrlCell('a，b；c\nd')).toEqual(['a', 'b', 'c', 'd'])
@@ -86,7 +84,7 @@ describe('list-page CRUD', () => {
       permission_config: null,
       schema_config: { v: 1 },
       image_urls: ['a.png', ' b.png '],
-      file_url: 'x.pdf',
+      file_urls: ['x.pdf'],
       operator: 'tester',
     })
     expect(body).toMatchObject({
@@ -101,9 +99,7 @@ describe('list-page CRUD', () => {
       display_config: { a: { 中: 1 } },
       permission_config: {},
       schema_config: '{\n  "v": 1\n}',
-      image_url: 'a.png',
       image_urls: ['a.png', 'b.png'],
-      file_url: 'x.pdf',
       file_urls: ['x.pdf'],
       version: 1,
       keyword: null,
@@ -177,7 +173,7 @@ describe('list-page CRUD', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/abc`, payload: {} })).statusCode).toBe(405)
   })
 
-  it('权限 403：列表/新增/导出/模板/导入/回读/预览/版本/回滚', async () => {
+  it('权限 403：列表/新增/导出/模板/导入/预览/版本/回滚', async () => {
     const checks: [string, string, string][] = [
       ['GET', B, '无权限查看列表页数据'],
       ['POST', B, '无权限新增记录'],
@@ -185,8 +181,6 @@ describe('list-page CRUD', () => {
       ['POST', `${B}/export`, '无权限导出数据'],
       ['GET', `${B}/template`, '无权限下载导入模板'],
       ['POST', `${B}/import`, '无权限导入数据'],
-      ['GET', `${B}/image/x.png`, '无权限查看图片'],
-      ['GET', `${B}/file/x.pdf`, '无权限查看附件'],
       ['POST', `${B}/run-preview`, '无权限执行数据预览'],
       // versions / rollback: permission check before 404
       ['GET', `${B}/99999999/versions`, '无权限查看版本历史'],
@@ -205,7 +199,7 @@ describe('list-page CRUD', () => {
     const res = await s.inject({
       method: 'PUT',
       url: `${B}/${row!.id}`,
-      payload: { status: 'published', keyword: ' 5 ', image_url: 'one.png', file_urls: [' f ', ''] },
+      payload: { status: 'published', keyword: ' 5 ', image_urls: ['one.png'], file_urls: [' f ', ''] },
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
@@ -302,7 +296,7 @@ describe('list-page 导入导出', () => {
 
   beforeAll(async () => {
     const e1 = await create({ name: '导出1', query_code: `${P}e1`, priority: 3, keyword: '=cmd', image_urls: ['u1', 'u2'], conditions: { items: [{ field: 'x', operator: 'eq', value: 'v,1' }] } })
-    const e2 = await create({ name: '导出2', query_code: `${P}e2`, is_active: false, file_url: 'f.pdf' })
+    const e2 = await create({ name: '导出2', query_code: `${P}e2`, is_active: false, file_urls: ['f.pdf'] })
     ids = [e1.id, e2.id]
   })
 
@@ -445,33 +439,5 @@ describe('list-page 图片 / 附件（文件中心）与旧文件回读', () => 
     await s.inject({ method: 'DELETE', url: `${B}/${id}` })
     expect(await refs(id)).toEqual([])
     await handle.db.delete(files).where(inArray(files.id, [image.id, doc.id]))
-  })
-
-  it('旧文件回读：图片 inline、附件 attachment', async () => {
-    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
-    mkdirSync(join(instanceDir, 'uploads', 'list_page'), { recursive: true })
-    mkdirSync(join(instanceDir, 'uploads', 'list_page_files'), { recursive: true })
-    writeFileSync(join(instanceDir, 'uploads', 'list_page', 'legacy.png'), png)
-    writeFileSync(join(instanceDir, 'uploads', 'list_page_files', 'legacy_r3.pdf'), 'hello pdf')
-
-    const img = await s.inject({ url: `${B}/image/legacy.png` })
-    expect(img.statusCode).toBe(200)
-    expect(img.headers['content-type']).toBe('image/png')
-    expect(img.headers['content-disposition']).toBe('inline; filename=legacy.png')
-    expect(img.rawPayload.equals(png)).toBe(true)
-    const file = await s.inject({ url: `${B}/file/legacy_r3.pdf` })
-    expect(file.headers['content-disposition']).toBe('attachment; filename=legacy_r3.pdf')
-    expect(file.headers['cache-control']).toBe('no-cache')
-    expect(file.body).toBe('hello pdf')
-  })
-
-  it('回读：不存在 404、空名 404、无效名 / 目录穿越 400', async () => {
-    expect((await s.inject({ url: `${B}/image/nope.png` })).json()).toEqual({ error: '资源不存在' })
-    expect((await s.inject({ url: `${B}/image/` })).statusCode).toBe(404)
-    expect((await s.inject({ url: `${B}/image/%E4%B8%AD` })).json()).toEqual({ error: '无效的图片文件名' })
-    // Only a plain file name inside the upload directory can be read
-    const traversal = await s.inject({ url: `${B}/file/..%2F..%2Fpackage.json` })
-    expect(traversal.json()).toEqual({ error: '无效的图片文件名' })
-    expect((await s.inject({ method: 'POST', url: `${B}/image/a.png` })).statusCode).toBe(405)
   })
 })

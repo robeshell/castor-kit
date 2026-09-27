@@ -20,7 +20,7 @@
  *   get_menu_tree         returns the current menu structure (for inferring parent_id)
  *   get_spec_guide        returns the spec JSON Schema + requirement → spec examples (for writing a spec)
  *   validate_spec         checks a spec and says what it would generate (pnpm scaffold --spec --validate-only)
- *   scaffold_feature      generates a module from a spec (or legacy name / fields), incl. its OpenAPI entries
+ *   scaffold_feature      generates a module from a spec (or name / fields), incl. its OpenAPI entries
  *   check_openapi         checks docs/apifox-full.openapi.json against the OpenAPI rules (openapi:generate --dry-run --strict)
  *   run_verify            runs pnpm verify --json and returns the JSON
  *   init_rbac             runs pnpm seed:rbac -- --incremental

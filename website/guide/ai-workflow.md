@@ -285,7 +285,7 @@ pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout
 | `get_menu_tree` | 返回数据库中的菜单树，用于确定 `parent_id` 和可用 ID |
 | `get_spec_guide` | 返回 spec 的 JSON Schema 和「需求 → spec」示例，写 spec 前调用 |
 | `validate_spec` | 校验 spec（参数 `spec`），说明会生成什么；不写文件 |
-| `scaffold_feature` | 调用 `pnpm scaffold`：传 `spec`（推荐），或旧的 `name`、`domain`、`fields`；`dry_run` 只预览 |
+| `scaffold_feature` | 调用 `pnpm scaffold`：传 `spec`（推荐），或 `name`、`domain`、`fields`；`dry_run` 只预览 |
 | `check_openapi` | 按 OpenAPI 编写规范检查接口文档，列出不合规的接口 |
 | `run_verify` | 调用 `pnpm verify --json` 并返回结果（参数 `module`、`skip_build`） |
 | `init_rbac` | 调用 `pnpm seed:rbac -- --incremental` |

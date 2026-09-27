@@ -70,7 +70,7 @@ export function formatCellValue(value: unknown): string {
       `${pad(value.getUTCHours())}:${pad(value.getUTCMinutes())}:${pad(value.getUTCSeconds())}`
     )
   }
-  if (typeof value === 'boolean') return value ? 'True' : 'False'
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'number') return Number.isInteger(value) ? String(value) : String(value)
   return String(value).trim()
 }
@@ -93,7 +93,7 @@ function readCsv(content: Buffer): TableReadResult {
   }
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
 
-  // csv.DictReader: blank lines are skipped (not counted), rows with mismatched column counts are handled leniently
+  // Blank lines are skipped (not counted); rows with a different column count are read as far as they go
   const records = parseCsv(text, {
     relax_column_count: true,
     relax_quotes: true,
@@ -116,7 +116,7 @@ function readCsv(content: Buffer): TableReadResult {
   return { fieldnames, rows, fileType: 'csv' }
 }
 
-/** exceljs cell value → raw value equivalent to what openpyxl data_only=True reads */
+/** exceljs cell value → its plain value (a formula's cached result, rich text joined, a hyperlink's text) */
 function xlsxCellRaw(value: ExcelJS.CellValue): unknown {
   if (value === null || value === undefined) return null
   if (value instanceof Date) return value

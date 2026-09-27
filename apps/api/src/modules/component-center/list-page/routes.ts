@@ -4,11 +4,9 @@
  * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't tell whether an id exists.
  */
 
-import { stat } from 'node:fs/promises'
-import { resolve, sep } from 'node:path'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, notFound, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
 import { parseBody, parsePatch } from '@/common/validation'
@@ -26,7 +24,7 @@ function queryFilters(request: FastifyRequest) {
 }
 
 export async function registerListPageRoutes(app: FastifyInstance): Promise<void> {
-  const service = new ListPageService(app.db, app.config.instanceDir)
+  const service = new ListPageService(app.db)
   const opts = { preHandler: loginRequired }
 
   app.get(BASE, opts, async (request, reply) => {
@@ -101,51 +99,6 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限导入数据' })
     }
     return service.importItems(await getUploadedFile(request))
-  })
-
-  // Read-back of files uploaded before the file center existed (new uploads go through /api/admin/files).
-  // `<path:filename>` → wildcard `*`. reply.sendFile comes from @fastify/static, registered globally in app.ts.
-  await app.register(async (scope) => {
-
-    /**
-     * The filename param must be at least one character and must not start with `/`; otherwise the route is treated as unmatched (→ 404).
-     * After secure_filename the name contains only [A-Za-z0-9_.-]; the resolved path is also checked to stay inside the upload dir (prevents directory traversal).
-     */
-    async function sendUpload(reply: FastifyReply, safeName: string, dir: string, asAttachment: boolean) {
-      const root = resolve(dir)
-      const target = resolve(root, safeName)
-      if (!target.startsWith(root + sep)) throw notFound()
-      const info = await stat(target).catch(() => null)
-      if (!info || !info.isFile()) throw notFound()
-      // no-cache + inline/attachment (secure_filename output is all token characters, so no quoting needed)
-      reply.header('Cache-Control', 'no-cache')
-      reply.header('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename=${safeName}`)
-      return reply.sendFile(safeName, root, { cacheControl: false })
-    }
-
-    function wildcard(request: FastifyRequest): string {
-      const name = (request.params as { '*': string })['*'] ?? ''
-      if (!name || name.startsWith('/')) throw notFound()
-      return name
-    }
-
-    scope.get(`${BASE}/image/*`, opts, async (request, reply) => {
-      const name = wildcard(request)
-      if (!(await hasMenuPermission(request, 'system_list_page'))) {
-        return reply.status(403).send({ error: '无权限查看图片' })
-      }
-      const safeName = ListPageService.sanitizeImageFilename(name)
-      return sendUpload(reply, safeName, await service.getImageUploadDir(), false)
-    })
-
-    scope.get(`${BASE}/file/*`, opts, async (request, reply) => {
-      const name = wildcard(request)
-      if (!(await hasMenuPermission(request, 'system_list_page'))) {
-        return reply.status(403).send({ error: '无权限查看附件' })
-      }
-      const safeName = ListPageService.sanitizeImageFilename(name)
-      return sendUpload(reply, safeName, await service.getFileUploadDir(), true)
-    })
   })
 
   app.post(`${BASE}/run-preview`, opts, async (request, reply) => {

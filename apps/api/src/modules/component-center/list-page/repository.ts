@@ -99,8 +99,8 @@ export class ListPageRepository {
   /** Images / attachments uploaded to the file center are registered as this row's references (other URLs are ignored) */
   private async syncFiles(row: QueryManagement) {
     await syncFileRefs(this.db, 'query_managements', row.id, {
-      images: urlList(row.image_urls, row.image_url),
-      attachments: urlList(row.file_urls, row.file_url),
+      images: urlList(row.image_urls),
+      attachments: urlList(row.file_urls),
     })
   }
 
@@ -127,8 +127,8 @@ export class ListPageRepository {
   }
 }
 
-/** URLs stored as a JSON array (plus the legacy single-URL column) */
-function urlList(json: string | null, single: string | null): string[] {
+/** URLs stored as a JSON array */
+function urlList(json: string | null): string[] {
   let urls: string[] = []
   try {
     const parsed: unknown = json ? JSON.parse(json) : []
@@ -136,5 +136,5 @@ function urlList(json: string | null, single: string | null): string[] {
   } catch {
     urls = []
   }
-  return single ? [...urls, single] : urls
+  return urls
 }

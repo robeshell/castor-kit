@@ -14,7 +14,6 @@ import { DictsRepository, type DictItemUpdate } from './repository'
 import {
   CSV_HEADER_TO_FIELD,
   ITEM_TABLE_HEADERS,
-  LEGACY_CSV_HEADER_TO_FIELD,
   type dictItemBody,
   type dictTypeBody,
 } from './schema'
@@ -226,9 +225,6 @@ export class DictsService {
     for (const header of table.fieldnames) {
       const normalized = header.trim()
       if (Object.hasOwn(CSV_HEADER_TO_FIELD, normalized)) headerMap.set(header, CSV_HEADER_TO_FIELD[normalized]!)
-      else if (Object.hasOwn(LEGACY_CSV_HEADER_TO_FIELD, normalized)) {
-        headerMap.set(header, LEGACY_CSV_HEADER_TO_FIELD[normalized]!)
-      }
     }
     const mappedFields = new Set(headerMap.values())
     if (!mappedFields.has('label') || !mappedFields.has('value')) {

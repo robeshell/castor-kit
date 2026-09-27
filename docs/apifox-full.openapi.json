@@ -9623,26 +9623,12 @@
                             ],
                             "description": "负责人"
                           },
-                          "image_url": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
-                            "description": "第一张图片 URL"
-                          },
                           "image_urls": {
                             "type": "array",
                             "items": {
                               "type": "string"
                             },
                             "description": "图片 URL 列表"
-                          },
-                          "file_url": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
-                            "description": "第一个附件 URL"
                           },
                           "file_urls": {
                             "type": "array",
@@ -9880,14 +9866,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "图片 URL 列表（字符串数组，去首尾空白、丢弃空项）；为空时取 image_url"
-                  },
-                  "image_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "description": "单个图片 URL（image_urls 为空时使用）"
+                    "description": "图片 URL 列表（字符串数组，去首尾空白、丢弃空项）"
                   },
                   "file_urls": {
                     "type": [
@@ -9897,14 +9876,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "附件 URL 列表，格式同 image_urls；为空时取 file_url"
-                  },
-                  "file_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "description": "单个附件 URL（file_urls 为空时使用）"
+                    "description": "附件 URL 列表，格式同 image_urls"
                   },
                   "priority": {
                     "type": [
@@ -10090,26 +10062,12 @@
                       ],
                       "description": "负责人"
                     },
-                    "image_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一张图片 URL"
-                    },
                     "image_urls": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
                       "description": "图片 URL 列表"
-                    },
-                    "file_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一个附件 URL"
                     },
                     "file_urls": {
                       "type": "array",
@@ -10289,7 +10247,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "导出字段，逗号分隔；可选 id、name、query_code、category、keyword、data_source、owner、image_url、image_urls、file_url、file_urls、priority、is_active、status、condition_logic、conditions_json、display_config、permission_config、schema_config、version、published_at、description、created_at、updated_at；为空或都无效时导出全部字段"
+            "description": "导出字段，逗号分隔；可选 id、name、query_code、category、keyword、data_source、owner、image_urls、file_urls、priority、is_active、status、condition_logic、conditions_json、display_config、permission_config、schema_config、version、published_at、description、created_at、updated_at；为空或都无效时导出全部字段"
           },
           {
             "name": "search",
@@ -10408,7 +10366,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "导出字段，可选 id、name、query_code、category、keyword、data_source、owner、image_url、image_urls、file_url、file_urls、priority、is_active、status、condition_logic、conditions_json、display_config、permission_config、schema_config、version、published_at、description、created_at、updated_at；为空或都无效时导出全部字段"
+                    "description": "导出字段，可选 id、name、query_code、category、keyword、data_source、owner、image_urls、file_urls、priority、is_active、status、condition_logic、conditions_json、display_config、permission_config、schema_config、version、published_at、description、created_at、updated_at；为空或都无效时导出全部字段"
                   },
                   "export_mode": {
                     "type": "string",
@@ -10491,114 +10449,6 @@
           },
           "500": {
             "description": "服务器错误"
-          }
-        }
-      }
-    },
-    "/api/admin/component-center/list-page/file/{path}": {
-      "get": {
-        "tags": [
-          "示例-列表页"
-        ],
-        "summary": "下载旧版上传附件",
-        "x-apifox-folder": "后台/组件示例中心/列表页",
-        "security": [
-          {
-            "cookieAuth": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "需要 system_list_page。旧版上传目录（instance/uploads/list_page_files）中的文件回读，新上传走文件中心 /api/admin/files。文件名先经安全化处理（只保留字母、数字、_ . -），处理后为空返回 400；文件不存在或路径越界返回 404；响应 Cache-Control: no-cache，以附件方式下载",
-        "parameters": [
-          {
-            "name": "path",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "附件文件名"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "附件内容（Content-Type 按扩展名）",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "无效的文件名"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "404": {
-            "description": "文件不存在"
-          }
-        }
-      }
-    },
-    "/api/admin/component-center/list-page/image/{path}": {
-      "get": {
-        "tags": [
-          "示例-列表页"
-        ],
-        "summary": "查看旧版上传图片",
-        "x-apifox-folder": "后台/组件示例中心/列表页",
-        "security": [
-          {
-            "cookieAuth": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "需要 system_list_page。旧版上传目录（instance/uploads/list_page）中的文件回读，新上传走文件中心 /api/admin/files。文件名先经安全化处理（只保留字母、数字、_ . -），处理后为空返回 400；文件不存在或路径越界返回 404；响应 Cache-Control: no-cache，以 inline 方式返回",
-        "parameters": [
-          {
-            "name": "path",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "图片文件名"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "图片内容（Content-Type 按扩展名）",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "无效的图片文件名"
-          },
-          "401": {
-            "description": "未授权"
-          },
-          "403": {
-            "description": "无权限"
-          },
-          "404": {
-            "description": "文件不存在"
           }
         }
       }
@@ -10943,26 +10793,12 @@
                       ],
                       "description": "负责人"
                     },
-                    "image_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一张图片 URL"
-                    },
                     "image_urls": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
                       "description": "图片 URL 列表"
-                    },
-                    "file_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一个附件 URL"
                     },
                     "file_urls": {
                       "type": "array",
@@ -11201,14 +11037,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "图片 URL 列表（字符串数组，去首尾空白、丢弃空项）；为空时取 image_url"
-                  },
-                  "image_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "description": "单个图片 URL（image_urls 为空时使用）"
+                    "description": "图片 URL 列表（字符串数组，去首尾空白、丢弃空项）"
                   },
                   "file_urls": {
                     "type": [
@@ -11218,14 +11047,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "附件 URL 列表，格式同 image_urls；为空时取 file_url"
-                  },
-                  "file_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "description": "单个附件 URL（file_urls 为空时使用）"
+                    "description": "附件 URL 列表，格式同 image_urls"
                   },
                   "priority": {
                     "type": [
@@ -11407,26 +11229,12 @@
                       ],
                       "description": "负责人"
                     },
-                    "image_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一张图片 URL"
-                    },
                     "image_urls": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
                       "description": "图片 URL 列表"
-                    },
-                    "file_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一个附件 URL"
                     },
                     "file_urls": {
                       "type": "array",
@@ -11859,26 +11667,12 @@
                       ],
                       "description": "负责人"
                     },
-                    "image_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一张图片 URL"
-                    },
                     "image_urls": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
                       "description": "图片 URL 列表"
-                    },
-                    "file_url": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "第一个附件 URL"
                     },
                     "file_urls": {
                       "type": "array",

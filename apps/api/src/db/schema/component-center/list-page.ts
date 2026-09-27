@@ -22,9 +22,7 @@ export const query_managements = pgTable('query_managements', {
   description: text(),
   created_at: createdAt(),
   updated_at: updatedAt(),
-  image_url: varchar({ length: 500 }),
   image_urls: text(),
-  file_url: varchar({ length: 500 }),
   file_urls: text(),
   status: varchar({ length: 20 }).default('draft').notNull(),
   condition_logic: varchar({ length: 10 }).default('AND'),
@@ -103,11 +101,6 @@ function parseJsonObject<T>(raw: string | null, defaultValue: T): Record<string,
 }
 
 export function queryManagementToDict(item: QueryManagement) {
-  let imageUrls = parseJsonUrlList(item.image_urls)
-  let fileUrls = parseJsonUrlList(item.file_urls)
-  if (imageUrls.length === 0 && item.image_url) imageUrls = [item.image_url]
-  if (fileUrls.length === 0 && item.file_url) fileUrls = [item.file_url]
-
   return {
     id: item.id,
     name: item.name,
@@ -116,10 +109,8 @@ export function queryManagementToDict(item: QueryManagement) {
     keyword: item.keyword,
     data_source: item.data_source,
     owner: item.owner,
-    image_url: item.image_url || (imageUrls.length > 0 ? imageUrls[0]! : null),
-    image_urls: imageUrls,
-    file_url: item.file_url || (fileUrls.length > 0 ? fileUrls[0]! : null),
-    file_urls: fileUrls,
+    image_urls: parseJsonUrlList(item.image_urls),
+    file_urls: parseJsonUrlList(item.file_urls),
     priority: item.priority,
     is_active: item.is_active,
     status: item.status || 'draft',

@@ -169,7 +169,7 @@ describe('日志导出', () => {
       ['ID', '状态码', '操作'],
       [String(opIds[0]), '201', 'create'],
       [String(opIds[1]), '200', 'update'],
-      // Empty-string cells match openpyxl: not written (read back as empty)
+      // Empty-string cells are not written (read back as empty)
       [String(opIds[2]), undefined, 'delete'],
     ])
     expect((await s.inject({ method: 'POST', url: '/api/admin/logs/operation/export', payload: {} })).json()).toEqual({

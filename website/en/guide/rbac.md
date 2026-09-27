@@ -36,7 +36,7 @@ The main fields of a menu record are `id`, `name`, `code`, `icon`, `path`, `comp
 
 Domain prefixes: `system_` for the `admin` domain, `cc_` for the `component_center` domain. A standard list page should have all five button permissions above.
 
-::: info Legacy codes
+::: info Code exceptions
 Menus 31 and 33–37 in the Component Gallery use `system_*` codes (e.g. `system_list_page`), and some other pages use the `cc_admin_*` form. These codes are already in the database; don't change them. New modules always use `cc_<name>`, matching the permission prefix printed by `pnpm scaffold`.
 :::
 
@@ -135,7 +135,7 @@ Menu IDs are hard-coded in `MENUS_DATA`, and `role_menus` references menus by ID
 | New business domains | Starting from 1000 |
 | Button permissions | Menu ID × 10 + index (e.g. 21 → 211…215) |
 
-Some legacy IDs sit inside these ranges: 31 and 33–37 belong to the Component Gallery, 32 is Scheduled Tasks, and Notifications and Announcements are 100002 and 100003. Check which IDs are actually taken before picking one:
+A few IDs don't follow these ranges: 31 and 33–37 belong to the Component Gallery, 32 is Scheduled Tasks, and Notifications and Announcements are 100002 and 100003. Check which IDs are actually taken before picking one:
 
 ```bash
 grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq

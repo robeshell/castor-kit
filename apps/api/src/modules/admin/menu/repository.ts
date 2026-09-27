@@ -113,7 +113,7 @@ export class MenuRepository {
     return row!
   }
 
-  /** Update and refresh updated_at (matches onupdate=datetime.utcnow; callers only call this when something actually changed) */
+  /** Update and refresh updated_at (callers only call this when something actually changed) */
   async update(id: number, values: MenuUpdateValues): Promise<Menu> {
     const [row] = await this.db.update(menus).set(values).where(eq(menus.id, id)).returning()
     return row!
