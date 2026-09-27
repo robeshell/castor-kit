@@ -329,16 +329,13 @@ export function checkDocPaths(ctx: VerifyContext, strict = false): CheckResult {
   const docs = [
     'AGENTS.md',
     'CLAUDE.md',
-    'CODEX.md',
     'README.md',
-    'README.en.md',
-    'llms.txt',
-    '.windsurfrules',
-    '.github/copilot-instructions.md',
+    'README.zh-CN.md',
+    'README.ja.md',
   ]
     .map((f) => join(ctx.root, f))
     .filter((p) => existsSync(p))
-  for (const dir of ['.cursor', '.claude/skills', '.agents']) {
+  for (const dir of ['.claude/skills', '.agents']) {
     docs.push(...walk(join(ctx.root, dir), (p) => /\.(md|mdc)$/.test(p)))
   }
   docs.push(...walk(join(ctx.root, 'docs', 'templates'), (p) => p.endsWith('README.md')))

@@ -31,7 +31,7 @@ The `Dockerfile` sets the npm registry to `https://registry.npmmirror.com`. If t
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 The wizard asks for the admin password, the port (default 5000) and optional AI settings; generates a random `SECRET_KEY`, `POSTGRES_PASSWORD` and `POSTGRES_RO_PASSWORD`; writes them to `.env.production`; then builds and starts the services and waits for `/health` to be ready.

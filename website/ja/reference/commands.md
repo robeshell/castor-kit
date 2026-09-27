@@ -97,7 +97,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 
 | コマンド | 説明 |
 |---|---|
-| `bash setup.sh` | 対話式のウィザード：`.env.production` を生成し、ビルドして起動 |
+| `bash scripts/setup.sh` | 対話式のウィザード：`.env.production` を生成し、ビルドして起動 |
 | `docker compose --env-file .env.production up -d --build` | イメージをビルドして起動（コードの更新後も同じコマンドを使う） |
 | `docker compose --env-file .env.production logs -f app` | アプリケーションのログを表示 |
 | `docker compose --env-file .env.production ps` | サービスの状態を表示 |

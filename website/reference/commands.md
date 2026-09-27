@@ -97,7 +97,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 
 | 命令 | 说明 |
 |---|---|
-| `bash setup.sh` | 交互式向导：生成 `.env.production` 并构建启动 |
+| `bash scripts/setup.sh` | 交互式向导：生成 `.env.production` 并构建启动 |
 | `docker compose --env-file .env.production up -d --build` | 构建镜像并启动（代码更新后同样使用） |
 | `docker compose --env-file .env.production logs -f app` | 查看应用日志 |
 | `docker compose --env-file .env.production ps` | 查看服务状态 |

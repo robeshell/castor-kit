@@ -17,7 +17,7 @@ Describe a new page, and AI generates the table, API and UI — then checks that
 ![i18n](https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22d3ee)](CONTRIBUTING.md)
 
-**English** · [简体中文](README_CN.md) · [日本語](README.ja.md)
+**English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
 **[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castor-kit/en/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
 
@@ -64,7 +64,7 @@ castor-kit is an open-source admin panel you can run today and extend with AI to
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 The setup wizard asks for an admin password and a port (default `5000`). Then open `http://localhost:5000` and sign in as `admin`.

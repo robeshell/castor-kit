@@ -32,7 +32,7 @@ castor-kit 是一个 pnpm monorepo，包含三个应用：
 - **主题与布局**：浅色 / 深色、6 种强调色、3 种导航模式、标签栏与页面保活。详见 [主题与布局](/guide/appearance)。
 - **导入导出**：列表页标配 CSV / XLSX 导入导出，带公式注入防护和整批事务回滚。
 - **定时任务**：基于数据库租约的调度器，支持多副本部署，并带管理页面。
-- **Docker 部署**：`bash setup.sh` 生成配置并启动 PostgreSQL 和应用，容器启动时自动完成迁移与 RBAC 同步。详见 [部署指南](/deploy/)。
+- **Docker 部署**：`bash scripts/setup.sh` 生成配置并启动 PostgreSQL 和应用，容器启动时自动完成迁移与 RBAC 同步。详见 [部署指南](/deploy/)。
 
 ## 和其他脚手架的区别
 

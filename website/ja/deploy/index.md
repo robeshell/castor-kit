@@ -31,7 +31,7 @@ Docker Compose でのデプロイをおすすめします。compose 構成には
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 ウィザードは管理者パスワード、アクセスポート（デフォルトは 5000）、任意の AI 設定を尋ね、`SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD` をランダムに生成して `.env.production` に書き込みます。そのあとサービスをビルド・起動し、`/health` の準備が整うまで待ちます。

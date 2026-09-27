@@ -17,7 +17,7 @@ castor-kit の設定は 2 種類です。
 | ファイル | 用途 | コミットするか |
 |---|---|---|
 | `apps/api/.env.example` | ローカル開発用のサンプル | はい |
-| `.env.example`（ルート） | すべての変数を説明したサンプル | はい |
+| `.env.production.example`（ルート） | すべての変数を説明したサンプル（Docker / 本番デプロイの参考） | はい |
 | `apps/api/.env.development` | ローカル開発用の設定 | いいえ（gitignore） |
 | `.env.production`（ルート） | Docker デプロイ用の設定。`setup.sh` が生成 | いいえ（gitignore） |
 

@@ -224,4 +224,4 @@ export const STACK = ['Node.js 22', 'TypeScript', 'Fastify 5', 'Drizzle ORM', 'P
 
 export const DEMO_URL = 'https://castor-kit-demo.onrender.com'
 
-export const INSTALL = 'git clone https://github.com/robeshell/castor-kit.git && cd castor-kit && bash setup.sh'
+export const INSTALL = 'git clone https://github.com/robeshell/castor-kit.git && cd castor-kit && bash scripts/setup.sh'

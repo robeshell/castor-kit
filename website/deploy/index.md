@@ -31,7 +31,7 @@
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 向导会询问管理员密码、访问端口（默认 5000）以及可选的 AI 配置，随机生成 `SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD`，写入 `.env.production`，然后构建并启动服务，等待 `/health` 就绪。

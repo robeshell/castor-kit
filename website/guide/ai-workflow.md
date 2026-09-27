@@ -24,11 +24,9 @@ castor-kit 的目标是：你用自然语言描述业务需求，AI 编程工具
 | 工具 | 读取的文件 |
 |---|---|
 | Claude Code | `CLAUDE.md`；技能在 `.claude/skills/`（`new-feature-autopilot`、`shadcn-ui-skills`） |
-| Codex CLI | `AGENTS.md`（自动读取）+ `CODEX.md`；技能在 `.agents/skills/` |
-| Cursor | `.cursor/rules/castor-kit-always.mdc`（始终生效）、`.cursor/rules/new-feature-autopilot.mdc` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Windsurf | `.windsurfrules` |
-| 其他工具 | `llms.txt`（入口索引） |
+| Codex CLI | `AGENTS.md`（自动读取）；技能在 `.agents/skills/` |
+| Cursor、Windsurf、GitHub Copilot 等 | `AGENTS.md`（这些工具都会自动读取） |
+| 文档站上的 AI | 官网 `/llms.txt`（入口索引，源文件 `website/public/llms.txt`） |
 | MCP 客户端 | `apps/mcp`，见下文 [MCP Server](#mcp-server) |
 
 `.claude/skills/` 与 `.agents/skills/` 的内容保持一致，后端测试 `skills-sync.test.ts` 会检查两者是否同步。

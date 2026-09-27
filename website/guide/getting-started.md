@@ -14,7 +14,7 @@ castor-kit 有两种运行方式：
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 `setup.sh` 会依次完成：

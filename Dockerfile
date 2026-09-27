@@ -43,7 +43,7 @@ COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /repo/apps/api/dist ./dist
 COPY --from=build /repo/apps/api/drizzle ./drizzle
 COPY --from=build /repo/apps/web/dist ./web
-COPY docker-entrypoint.sh ./
+COPY scripts/docker-entrypoint.sh ./
 
 # Required runtime dirs + non-root user (defense in depth: limits privilege escalation inside the container)
 RUN chmod +x docker-entrypoint.sh && \
