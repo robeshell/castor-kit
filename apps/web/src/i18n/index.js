@@ -21,7 +21,7 @@ export const LANGUAGES = [
   { code: 'en-US', label: 'English', short: 'EN' },
   { code: 'ja-JP', label: '日本語', short: '日' },
 ]
-export const DEFAULT_LANGUAGE = 'zh-CN'
+export const DEFAULT_LANGUAGE = 'en-US'
 const STORAGE_KEY = 'lang'
 const CODES = LANGUAGES.map((l) => l.code)
 
@@ -55,7 +55,7 @@ export function normalizeLanguage(value) {
   return null
 }
 
-/** Initial language: last choice → browser language → Simplified Chinese */
+/** Initial language: last choice → browser language → English */
 export function detectLanguage() {
   try {
     const saved = normalizeLanguage(localStorage.getItem(STORAGE_KEY))

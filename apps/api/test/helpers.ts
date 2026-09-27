@@ -15,8 +15,22 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   }
 }
 
+/**
+ * Tests assert the Chinese source messages: app.inject() sends Accept-Language: zh-CN unless the test sets one
+ * (a request without it gets English in production; see test/i18n.test.ts).
+ */
+export function chineseByDefault(app: FastifyInstance): FastifyInstance {
+  const inject = app.inject.bind(app)
+  app.inject = ((opts?: InjectOptions | string) => {
+    if (opts === undefined) return inject()
+    const options = typeof opts === 'string' ? { url: opts } : opts
+    return inject({ ...options, headers: { 'accept-language': 'zh-CN', ...options.headers } })
+  }) as FastifyInstance['inject']
+  return app
+}
+
 export async function buildTestApp(overrides: Partial<AppConfig> = {}): Promise<FastifyInstance> {
-  const app = await buildApp({ config: testConfig(overrides) })
+  const app = chineseByDefault(await buildApp({ config: testConfig(overrides) }))
   await app.ready()
   return app
 }

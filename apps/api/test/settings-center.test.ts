@@ -8,7 +8,7 @@ import { buildApp } from '@/app'
 import type { DbHandle } from '@/db/client'
 import { login_logs, notifications, operation_logs, sessions, system_settings } from '@/db/schema'
 import { startFakeUpstream, type FakeUpstream } from './cc-ai-fake-upstream'
-import { cleanupFixture, openTestDb, SUPER_PASSWORD, superAdminSession, testConfig, type AuthedSession } from './helpers'
+import { chineseByDefault, cleanupFixture, openTestDb, SUPER_PASSWORD, superAdminSession, testConfig, type AuthedSession } from './helpers'
 
 // System settings beyond security: mail, file storage, uploads, AI — stored in the database (secrets sealed),
 // pinned by environment variables, tried with the test buttons, applied without a restart
@@ -27,7 +27,7 @@ beforeAll(async () => {
   // MAIL_DRIVER=log: "sending" writes to the log, so the mail test button works without an SMTP server;
   // AI_MODEL pinned by the environment to check the read-only path
   const config = testConfig({ mailDriver: 'log', storageLocalDir: storageDir, settingsEnv: { AI_MODEL: 'env-model' } })
-  app = await buildApp({ config })
+  app = chineseByDefault(await buildApp({ config }))
   await app.ready()
   s = await superAdminSession(app, handle)
 })
@@ -177,7 +177,7 @@ describe('settings center', () => {
   })
 
   it('环境变量选了 S3 但没填全：上传返回明确的提示', async () => {
-    const pinned = await buildApp({ config: testConfig({ storageLocalDir: storageDir, settingsEnv: { STORAGE_DRIVER: 's3', S3_BUCKET: 'b' } }) })
+    const pinned = chineseByDefault(await buildApp({ config: testConfig({ storageLocalDir: storageDir, settingsEnv: { STORAGE_DRIVER: 's3', S3_BUCKET: 'b' } }) }))
     await pinned.ready()
     try {
       const admin = await superAdminSession(pinned, handle)
@@ -224,9 +224,11 @@ describe('settings center', () => {
     expect(storage.json().error).toMatch(/^不允许访问保留地址/)
 
     // Production default: no internal networks either, unless the operator pinned the address
-    const strict = await buildApp({
-      config: testConfig({ settingsAllowPrivateNetwork: false, settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'k', AI_MODEL: 'm' } }),
-    })
+    const strict = chineseByDefault(
+      await buildApp({
+        config: testConfig({ settingsAllowPrivateNetwork: false, settingsEnv: { AI_API_BASE: up.url, AI_API_KEY: 'k', AI_MODEL: 'm' } }),
+      }),
+    )
     await strict.ready()
     try {
       const admin = await superAdminSession(strict, handle)
