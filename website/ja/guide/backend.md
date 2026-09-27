@@ -85,6 +85,7 @@ export function customerToDict(item: Customer) {
 | `intParam('item_id')` | `@/common/http` | 数字だけにマッチするパスパラメーターを生成 |
 | `parseIntParam(value)` | `@/common/http` | パスパラメーターを解析 |
 | `jsonBody(request)` | `@/common/http` | リクエストボディを読み取る（オブジェクトでない場合や JSON でない場合は `{}` として扱う） |
+| `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | Zod の宣言でリクエストボディを検証（新規はデフォルト値を補完、編集は送られた項目のみ）。JSON の型のみ受け付け、型が違えば 400`<項目>的值无效`。権限チェックの後に呼ぶ |
 | `queryString(request, key)` | `@/common/http` | クエリパラメーターを読み取る |
 | `getUploadedFile(request)` | `@/common/http` | アップロードされたファイルを読み取る |
 | `parsePagination(query)` | `@/common/pagination` | ページングパラメーター。デフォルトは 20 件、上限は 200 件 |
@@ -160,7 +161,8 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 | 状況 | レスポンス |
 |---|---|
 | Zod によるリクエスト検証の失敗 | 400。`error` は最初の検証メッセージ |
-| 型や構造が正しくないリクエストの値（service が `invalidInput()` を投げる。`apps/api/src/common/py-values.ts` を参照） | 400。「请求参数格式不正确」（リクエストパラメーターの形式が正しくありません） |
+| リクエストボディの項目の型が正しくない（各モジュールは `apps/api/src/common/validation.ts` でボディを宣言） | 400、`<項目>的值无效`（例：「排序的值无效」。en-US / ja-JP のリクエストでは翻訳される） |
+| 構造が正しくないリクエストの値（service が `invalidInput()` を投げる。`apps/api/src/common/errors.ts` を参照） | 400。「请求参数格式不正确」（リクエストパラメーターの形式が正しくありません） |
 | リクエストの値がデータベースに拒否された | 400。下記を参照 |
 | 未知の例外 | 500。「服务器内部错误，请稍后重试」（サーバー内部エラーが発生しました。しばらくしてから再度お試しください。） |
 | マッチしない `/api/*` への GET リクエスト | 404 の JSON |

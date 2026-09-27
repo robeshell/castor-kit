@@ -243,13 +243,15 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
   GET    /api/admin/<resource>s/template     下载导入模板（file_type=csv|xlsx）
   POST   /api/admin/<resource>s/import       导入（multipart/form-data，字段名 file）
 错误响应：{ error: string, ...payload }；5xx 一律「服务器内部错误，请稍后重试」
-输入问题一律 400：必填 / 取值 / 唯一先在 service 里校验并给出中文提示；类型不对抛 invalidInput()（@/common/py-values）；
+输入问题一律 400：请求体用 Zod 声明（@/common/validation 的 field.*，路由里权限检查之后 parseBody / parsePatch），类型不对 →「<字段>的值无效」；
+  唯一 / 业务规则在 service 里校验并给出中文提示；形状不对（如该是对象却是数组）抛 invalidInput()（@/common/errors）；
   事务 catch 里 throw writeError(err)（@/common/db-errors：业务错误原样、数据库拒绝的输入 400、其余 500）；
   真正的服务器错误用 internalError(err)（@/common/errors），不要手写 new ServiceError(…, 500)（test/conventions.test.ts 检查）
 ```
 
 - 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），**先做权限检查（403）再 `service.getOr404(id)`（404）**：没有权限的人不能靠 404 / 403 的差别试探某个 id 是否存在；有权限但不在数据权限范围内的记录同样返回 404。`test/conventions.test.ts` 会检查所有路由、后端模板和 scaffold 生成的路由
-- 请求体用 `jsonBody(request)`，查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`
+- 请求体：在 `schema.ts` 用 `z.object({ name: field.requiredText('名称', '名称不能为空'), sort_order: field.int('排序', 0), … })` 声明，路由在权限检查之后调用 `parseBody(schema, request.body)`（新建，缺省字段取默认值）/ `parsePatch(schema, request.body)`（编辑，只含请求里出现的字段），service 拿到的是已校验、有类型的值（样板：`modules/admin/dicts`）。`pnpm scaffold` 生成的模块改用 `schema.ts` 里的 `buildValues`：请求体和导入行共用一套按字段类型的转换，规则相同。只收 JSON 原生类型：文本是字符串（去首尾空白），整数是 number，布尔是 true / false，不做 `'1'` → 1 之类的隐式转换。需要登录或权限的路由不要用 `schema: { body }`——它在登录与权限检查之前执行，会把 401 / 403 变成 400（登录这类无需登录的接口可以用）
+- 查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`；查询参数和导入单元格永远是文本，由模块自己的 `parseBoolText` 之类解析
 
 ### OpenAPI 编写规范
 

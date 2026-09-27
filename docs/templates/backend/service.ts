@@ -10,7 +10,6 @@
 import { dbConstraintError, writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { pyStr, pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import type { EventBus } from '@/common/webhooks'
 import type { Db } from '@/db/client'
@@ -56,9 +55,9 @@ export class <Resource>Service {
   }
 
   async createItem(data: Data) {
-    if (!pyTruthy(data.name)) throw new ServiceError('名称不能为空', 400)
+    const values = buildValues(data, false)
+    if (!values.name) throw new ServiceError('名称不能为空', 400)
     // TODO: add uniqueness checks (if needed)
-    const values = { ...buildValues(data, false), name: pyStr(data.name) }
     const created = await this.inTx((repo) => repo.insert(values))
     const dict = <resource>ToDict(created)
     await this.events?.emit('<resource>.created', dict)
@@ -84,10 +83,10 @@ export class <Resource>Service {
   /** Export: fields defaults to all exportable fields; empty ids exports everything; xlsx by default */
   async exportItems(data: Data) {
     const fileType = normalizeTableFileType(data.file_type, 'xlsx')
-    const rawFields = pyTruthy(data.fields) && Array.isArray(data.fields) ? data.fields : Object.keys(EXPORT_FIELD_MAP)
+    const rawFields = Array.isArray(data.fields) && data.fields.length > 0 ? data.fields : Object.keys(EXPORT_FIELD_MAP)
     const fields = rawFields.map((f) => String(f))
     const ids =
-      pyTruthy(data.ids) && Array.isArray(data.ids) ? data.ids.filter((v): v is number => Number.isInteger(v)) : null
+      Array.isArray(data.ids) && data.ids.length > 0 ? data.ids.filter((v): v is number => Number.isInteger(v)) : null
 
     const items = await this.repo.listForExport(ids)
     const headers = fields.map((f) => fieldLabel(f))

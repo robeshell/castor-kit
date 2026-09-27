@@ -5,59 +5,24 @@
 import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
+import { changedFields } from '@/common/validation'
 import type { Db } from '@/db/client'
 import { dictItemToDict, dictTypeToDict, type DictItem, type DictType } from '@/db/schema'
-import { DictsRepository, type DictItemUpdate, type DictTypeUpdate } from './repository'
+import type { z } from 'zod'
+import { DictsRepository, type DictItemUpdate } from './repository'
 import {
   CSV_HEADER_TO_FIELD,
   ITEM_TABLE_HEADERS,
   LEGACY_CSV_HEADER_TO_FIELD,
-  normalizeString,
-  parseBool,
-  parseInt,
+  parseBoolText,
+  parseIntText,
+  type dictItemBody,
+  type dictTypeBody,
 } from './schema'
-import { bindBool, bindInt, bindText, lookupInt, omitNull, pyEq } from '@/common/sqla-bind'
 
-type Data = Record<string, unknown>
-
-const TYPE_UPDATE_BINDERS: Record<string, (v: unknown) => unknown> = {
-  name: bindText,
-  code: bindText,
-  description: bindText,
-  sort_order: bindInt,
-  is_active: bindBool,
-}
-
-const ITEM_UPDATE_BINDERS: Record<string, (v: unknown) => unknown> = {
-  dict_type_id: bindInt,
-  label: bindText,
-  value: bindText,
-  color: bindText,
-  sort_order: bindInt,
-  is_default: bindBool,
-  is_active: bindBool,
-  description: bindText,
-}
-
-/**
- * `for field in fields: if field in data: setattr(item, field, data[field])` + commit：
- * Only columns whose value changed (`==` semantics) go into the UPDATE; if nothing changed no UPDATE is sent (updated_at stays).
- */
-function collectChanges<T extends object>(
-  current: T,
-  data: Data,
-  binders: Record<string, (v: unknown) => unknown>,
-): Record<string, unknown> {
-  const changes: Record<string, unknown> = {}
-  for (const [field, bind] of Object.entries(binders)) {
-    if (!(field in data)) continue
-    if (pyEq(data[field], (current as Record<string, unknown>)[field])) continue
-    changes[field] = bind(data[field])
-  }
-  return changes
-}
+type DictTypeInput = z.output<typeof dictTypeBody>
+type DictItemInput = z.output<typeof dictItemBody>
 
 export class DictsService {
   private readonly repo: DictsRepository
@@ -80,7 +45,7 @@ export class DictsService {
     return dictTypeToDict(type, itemCount, items)
   }
 
-  /** DictItem.to_dict()（include_type=True） */
+  /** An item with its dict type's code and name */
   private async itemToDict(item: DictItem) {
     return dictItemToDict(item, await this.repo.getType(item.dict_type_id))
   }
@@ -146,23 +111,9 @@ export class DictsService {
     }
   }
 
-  async createDictType(data: Data) {
-    const name = normalizeString(data.name)
-    const code = normalizeString(data.code)
-
-    if (!name) throw new ServiceError('字典名称不能为空', 400)
-    if (!code) throw new ServiceError('字典编码不能为空', 400)
-    if (await this.repo.getTypeByCode(code)) throw new ServiceError('字典编码已存在', 400)
-
-    const created = await this.inTx((repo) =>
-      repo.insertType({
-        name,
-        code,
-        description: omitNull(bindText(data.description)),
-        sort_order: omitNull(bindInt('sort_order' in data ? data.sort_order : 0)),
-        is_active: omitNull(bindBool('is_active' in data ? data.is_active : true)),
-      }),
-    )
+  async createDictType(values: DictTypeInput) {
+    if (await this.repo.getTypeByCode(values.code)) throw new ServiceError('字典编码已存在', 400)
+    const created = await this.inTx((repo) => repo.insertType(values))
     return this.typeToDict(created)
   }
 
@@ -170,16 +121,12 @@ export class DictsService {
     return this.typeToDict(type, includeItems)
   }
 
-  async updateDictType(type: DictType, data: Data) {
-    if ('name' in data && !normalizeString(data.name)) throw new ServiceError('字典名称不能为空', 400)
-
-    if ('code' in data) {
-      const newCode = normalizeString(data.code)
-      if (!newCode) throw new ServiceError('字典编码不能为空', 400)
-      if (await this.repo.getTypeByCodeExcluding(newCode, type.id)) throw new ServiceError('字典编码已存在', 400)
+  async updateDictType(type: DictType, values: Partial<DictTypeInput>) {
+    if (values.code !== undefined && (await this.repo.getTypeByCodeExcluding(values.code, type.id))) {
+      throw new ServiceError('字典编码已存在', 400)
     }
 
-    const changes = collectChanges(type, data, TYPE_UPDATE_BINDERS) as DictTypeUpdate
+    const changes = changedFields(type, values)
     await this.inTx(async (repo) => {
       if (Object.keys(changes).length > 0) await repo.updateType(type.id, changes)
     })
@@ -205,28 +152,14 @@ export class DictsService {
     }
   }
 
-  async createDictItem(type: DictType, data: Data) {
-    const label = normalizeString(data.label)
-    const value = normalizeString(data.value)
-
-    if (!label) throw new ServiceError('字典标签不能为空', 400)
-    if (!value) throw new ServiceError('字典值不能为空', 400)
-    if (await this.repo.getItemByTypeValue(type.id, value)) {
+  async createDictItem(type: DictType, values: DictItemInput) {
+    if (await this.repo.getItemByTypeValue(type.id, values.value)) {
       throw new ServiceError('同一字典下字典值不能重复', 400)
     }
 
     const created = await this.inTx(async (repo) => {
-      if (pyTruthy(data.is_default)) await repo.clearDefaultExcludingId(type.id, -1)
-      return repo.insertItem({
-        dict_type_id: type.id,
-        label,
-        value,
-        color: omitNull(bindText(data.color)),
-        sort_order: omitNull(bindInt('sort_order' in data ? data.sort_order : 0)),
-        is_default: omitNull(bindBool('is_default' in data ? data.is_default : false)),
-        is_active: omitNull(bindBool('is_active' in data ? data.is_active : true)),
-        description: omitNull(bindText(data.description)),
-      })
+      if (values.is_default) await repo.clearDefaultExcludingId(type.id, -1)
+      return repo.insertItem({ ...values, dict_type_id: type.id })
     })
     return dictItemToDict(created, type)
   }
@@ -235,23 +168,18 @@ export class DictsService {
     return this.itemToDict(item)
   }
 
-  async updateDictItem(item: DictItem, data: Data) {
-    const targetTypeId = lookupInt('dict_type_id' in data ? data.dict_type_id : item.dict_type_id)
-    const targetType = targetTypeId === null ? null : await this.repo.getType(targetTypeId)
+  async updateDictItem(item: DictItem, values: Partial<DictItemInput>) {
+    const { dict_type_id: typeId, ...rest } = values
+    const targetType = await this.repo.getType(typeId ?? item.dict_type_id)
     if (!targetType) throw new ServiceError('字典类型不存在', 404)
 
-    const targetValue = normalizeString('value' in data ? data.value : item.value)
-    if (!targetValue) throw new ServiceError('字典值不能为空', 400)
-
-    if (await this.repo.getItemDuplicate(targetType.id, targetValue, item.id)) {
+    if (await this.repo.getItemDuplicate(targetType.id, rest.value ?? item.value, item.id)) {
       throw new ServiceError('同一字典下字典值不能重复', 400)
     }
 
-    if ('label' in data && !normalizeString(data.label)) throw new ServiceError('字典标签不能为空', 400)
-
     await this.inTx(async (repo) => {
-      if (pyTruthy(data.is_default)) await repo.clearDefaultExcludingId(targetType.id, item.id)
-      const changes = collectChanges(item, data, ITEM_UPDATE_BINDERS) as DictItemUpdate
+      if (rest.is_default) await repo.clearDefaultExcludingId(targetType.id, item.id)
+      const changes = changedFields(item, { ...rest, dict_type_id: targetType.id })
       if (Object.keys(changes).length > 0) await repo.updateItem(item.id, changes)
     })
     return this.itemToDict((await this.repo.getItem(item.id))!)
@@ -298,7 +226,7 @@ export class DictsService {
 
     const headerMap = new Map<string, string>()
     for (const header of table.fieldnames) {
-      const normalized = normalizeString(header)
+      const normalized = header.trim()
       if (Object.hasOwn(CSV_HEADER_TO_FIELD, normalized)) headerMap.set(header, CSV_HEADER_TO_FIELD[normalized]!)
       else if (Object.hasOwn(LEGACY_CSV_HEADER_TO_FIELD, normalized)) {
         headerMap.set(header, LEGACY_CSV_HEADER_TO_FIELD[normalized]!)
@@ -320,14 +248,14 @@ export class DictsService {
           if (field) mapped[field] = val
         }
 
-        const label = normalizeString(mapped.label)
-        const value = normalizeString(mapped.value)
+        const label = (mapped.label ?? '').trim()
+        const value = (mapped.value ?? '').trim()
         if (!label || !value) throw new ServiceError(`第 ${line} 行“字典标签/字典值”不能为空`, 400)
 
-        const isDefault = parseBool(mapped.is_default)
-        const isActive = parseBool(mapped.is_active)
-        const color = normalizeString(mapped.color) || null
-        const description = normalizeString(mapped.description) || null
+        const isDefault = parseBoolText(mapped.is_default)
+        const isActive = parseBoolText(mapped.is_active)
+        const color = (mapped.color ?? '').trim() || null
+        const description = (mapped.description ?? '').trim() || null
         const existing = await repo.getItemByTypeValue(type.id, value)
 
         let finalDefault: boolean | null
@@ -336,14 +264,12 @@ export class DictsService {
           const next: DictItemUpdate = {
             label,
             color,
-            sort_order: parseInt(mapped.sort_order, existing.sort_order || 0),
+            sort_order: parseIntText(mapped.sort_order, existing.sort_order ?? 0),
             description,
           }
           if (isDefault !== null) next.is_default = isDefault
           if (isActive !== null) next.is_active = isActive
-          const changes = Object.fromEntries(
-            Object.entries(next).filter(([k, v]) => !pyEq(v, (existing as Record<string, unknown>)[k])),
-          ) as DictItemUpdate
+          const changes = changedFields(existing, next)
           if (Object.keys(changes).length > 0) await repo.updateItem(existing.id, changes)
           finalDefault = isDefault ?? existing.is_default
           finalValue = existing.value
@@ -353,11 +279,11 @@ export class DictsService {
             dict_type_id: type.id,
             label,
             value,
-            color: omitNull(color),
-            sort_order: parseInt(mapped.sort_order, 0),
+            color,
+            sort_order: parseIntText(mapped.sort_order, 0),
             is_default: isDefault === true,
             is_active: isActive === null ? true : isActive,
-            description: omitNull(description),
+            description,
           })
           finalDefault = inserted.is_default
           finalValue = inserted.value

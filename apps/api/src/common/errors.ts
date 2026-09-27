@@ -32,6 +32,14 @@ export function internalError(detail: unknown): ServiceError {
   return new ServiceError(detail instanceof Error ? detail.message : String(detail), 500)
 }
 
+/** Shown for a request value of the wrong type or shape (the technical detail stays out of the response) */
+export const INVALID_INPUT_MESSAGE = '请求参数格式不正确'
+
+/** A request value of the wrong type or shape → 400 */
+export function invalidInput(): ServiceError {
+  return new ServiceError(INVALID_INPUT_MESSAGE, 400)
+}
+
 export function serviceErrorBody(error: ServiceError): Record<string, unknown> {
   const body: Record<string, unknown> = {
     error: error.statusCode >= 500 ? INTERNAL_ERROR_MESSAGE : error.message,

@@ -66,11 +66,11 @@ afterAll(async () => {
 describe('dicts：字典类型', () => {
   let typeId: number
 
-  it('新增 → 201，None 值走默认值（sort_order=0, is_active=true），名称/编码去空白', async () => {
+  it('新增 → 201，null 走默认值（sort_order=0, is_active=true），文本去空白', async () => {
     const res = await s.inject({
       method: 'POST',
       url: '/api/admin/dicts',
-      payload: { name: ' 测试字典 ', code: ` ${P}a `, sort_order: null, is_active: null, description: 5 },
+      payload: { name: ' 测试字典 ', code: ` ${P}a `, sort_order: null, is_active: null, description: ' 说明 ' },
     })
     expect(res.statusCode).toBe(201)
     const body = res.json()
@@ -78,7 +78,7 @@ describe('dicts：字典类型', () => {
     expect(body).toMatchObject({
       name: '测试字典',
       code: `${P}a`,
-      description: '5',
+      description: '说明',
       sort_order: 0,
       is_active: true,
       item_count: 0,
@@ -89,16 +89,27 @@ describe('dicts：字典类型', () => {
     expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/)
   })
 
-  it('新增校验：名称/编码为空、编码重复、非法布尔/整数 → 400 且不落库', async () => {
+  it('新增校验：名称/编码为空、编码重复、类型不符 → 400 且不落库', async () => {
     const post = (payload: unknown) => s.inject({ method: 'POST', url: '/api/admin/dicts', payload: payload as object })
     expect((await post({ code: 'x' })).json()).toEqual({ error: '字典名称不能为空' })
     expect((await post({ name: 'x' })).json()).toEqual({ error: '字典编码不能为空' })
     expect((await post({ name: 'x', code: `${P}a` })).json()).toEqual({ error: '字典编码已存在' })
-    for (const bad of [{ is_active: 'yes' }, { sort_order: 'abc' }, { sort_order: true }, { description: { a: 1 } }]) {
+    expect((await post({ name: ' ', code: 'x' })).json()).toEqual({ error: '字典名称不能为空' })
+    const cases: Array<[object, string]> = [
+      [{ is_active: 'yes' }, '是否启用的值无效'],
+      [{ is_active: 1 }, '是否启用的值无效'],
+      [{ sort_order: 'abc' }, '排序的值无效'],
+      [{ sort_order: '5' }, '排序的值无效'],
+      [{ sort_order: 1.5 }, '排序的值无效'],
+      [{ sort_order: true }, '排序的值无效'],
+      [{ description: { a: 1 } }, '描述的值无效'],
+      [{ name: 5 }, '字典名称的值无效'],
+    ]
+    for (const [bad, error] of cases) {
       const res = await post({ name: 'x', code: `${P}bad`, ...bad })
-      expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+      expect([res.statusCode, res.json()], JSON.stringify(bad)).toEqual([400, { error }])
     }
+    expect((await post([1])).json()).toEqual({ error: '请求参数格式不正确' })
     expect(await handle.db.select().from(dict_types).where(eq(dict_types.code, `${P}bad`))).toHaveLength(0)
   })
 
@@ -115,15 +126,18 @@ describe('dicts：字典类型', () => {
     expect(byName.items.map((i: { code: string }) => i.code)).toContain(`${P}b`)
   })
 
-  it('编辑：同值/空 body 不改 updated_at；原始值落库（不去空白）；编码重复 400；403 先于 404', async () => {
+  it('编辑：同值/空 body 不改 updated_at；只改传入的字段并去空白；类型不符 / 编码重复 400；403 先于 404', async () => {
     const [before] = await handle.db.select().from(dict_types).where(eq(dict_types.id, typeId))
-    const same = await s.inject({ method: 'PUT', url: `/api/admin/dicts/${typeId}`, payload: { name: '测试字典', sort_order: false, is_active: 1 } })
+    const same = await s.inject({ method: 'PUT', url: `/api/admin/dicts/${typeId}`, payload: { name: ' 测试字典 ', sort_order: 0, is_active: true } })
     expect(same.statusCode).toBe(200)
     const [after] = await handle.db.select().from(dict_types).where(eq(dict_types.id, typeId))
     expect(after!.updated_at).toBe(before!.updated_at)
 
-    const changed = await s.inject({ method: 'PUT', url: `/api/admin/dicts/${typeId}`, payload: { name: ' 改名 ', sort_order: 3.5 } })
-    expect(changed.json()).toMatchObject({ name: ' 改名 ', sort_order: 4 })
+    expect((await s.inject({ method: 'PUT', url: `/api/admin/dicts/${typeId}`, payload: { sort_order: 3.5 } })).json()).toEqual({
+      error: '排序的值无效',
+    })
+    const changed = await s.inject({ method: 'PUT', url: `/api/admin/dicts/${typeId}`, payload: { name: ' 改名 ', sort_order: 4 } })
+    expect(changed.json()).toMatchObject({ name: '改名', code: `${P}a`, description: '说明', sort_order: 4 })
     const [after2] = await handle.db.select().from(dict_types).where(eq(dict_types.id, typeId))
     expect(after2!.updated_at).not.toBe(before!.updated_at)
 
@@ -163,7 +177,7 @@ describe('dicts：字典项', () => {
     const rb = await s.inject({
       method: 'POST',
       url: `/api/admin/dicts/${typeId}/items`,
-      payload: { label: '乙', value: 'b', is_default: 1, sort_order: null, is_active: null },
+      payload: { label: '乙', value: 'b', is_default: true, sort_order: null, is_active: null },
     })
     expect(rb.json()).toMatchObject({ sort_order: 0, is_active: true, is_default: true })
     b = rb.json().id
@@ -174,9 +188,8 @@ describe('dicts：字典项', () => {
     expect((await post({ value: 'x' })).json()).toEqual({ error: '字典标签不能为空' })
     expect((await post({ label: 'x' })).json()).toEqual({ error: '字典值不能为空' })
     expect((await post({ label: 'x', value: 'a' })).json()).toEqual({ error: '同一字典下字典值不能重复' })
-    // is_default is an invalid boolean: clearing the default then failing the insert → the whole thing rolls back, b is still the default
-    const bad = await post({ label: 'x', value: 'zz', is_default: 'yes' })
-    expect(bad.statusCode).toBe(400)
+    // An invalid body is rejected before anything is written: b is still the default
+    expect((await post({ label: 'x', value: 'zz', is_default: 'yes' })).json()).toEqual({ error: '是否默认的值无效' })
     expect((await itemsOf(typeId)).find((r) => r.id === b)!.is_default).toBe(true)
   })
 
@@ -185,7 +198,7 @@ describe('dicts：字典项', () => {
     expect(Object.keys(res).sort()).toEqual(['dict_type', 'items', 'total'])
     expect(res.items.map((i: { value: string }) => i.value)).toEqual(['b', 'a'])
     expect(res.dict_type.item_count).toBe(2)
-    expect(res.items[0].dict_type_name).toBe(' 改名 ')
+    expect(res.items[0].dict_type_name).toBe('改名')
     expect((await s.inject({ url: `/api/admin/dicts/${typeId}/items?search=${encodeURIComponent('甲')}` })).json().total).toBe(1)
     expect((await s.inject({ url: `/api/admin/dicts/${typeId}/items?is_active=false` })).json().total).toBe(0)
     const detail = (await s.inject({ url: `/api/admin/dicts/${typeId}?include_items=1` })).json()
@@ -221,17 +234,19 @@ describe('dicts：字典项', () => {
       error: '字典标签不能为空',
     })
 
-    // The raw value (with whitespace) is stored; the duplicate check uses the trimmed value, so the ' c ' vs ' c ' conflict is only caught by the unique constraint at commit
+    // Values are trimmed, so ' c ' and 'c' are the same value
     const spaced = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { value: ' c ' } })
-    expect(spaced.json().value).toBe(' c ')
-    const conflict = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${a}`, payload: { value: ' c ', is_default: true, label: '冲突' } })
-    expect(conflict.statusCode).toBe(400)
-    expect(conflict.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    expect(spaced.json().value).toBe('c')
+    const conflict = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${a}`, payload: { value: 'c', is_default: true, label: '冲突' } })
+    expect(conflict.json()).toEqual({ error: '同一字典下字典值不能重复' })
     const [stillA] = await handle.db.select().from(dict_items).where(eq(dict_items.id, a))
     expect(stillA).toMatchObject({ value: 'a', label: '甲' })
 
     // Move to another dict type
-    const moved = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { dict_type_id: String(otherTypeId), value: 'b' } })
+    expect((await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { dict_type_id: String(otherTypeId) } })).json()).toEqual({
+      error: '字典类型的值无效',
+    })
+    const moved = await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { dict_type_id: otherTypeId, value: 'b' } })
     expect(moved.json()).toMatchObject({ dict_type_id: otherTypeId, dict_type_code: `${P}b`, value: 'b' })
     await s.inject({ method: 'PUT', url: `/api/admin/dicts/items/${b}`, payload: { dict_type_id: typeId } })
   })

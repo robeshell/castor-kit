@@ -394,7 +394,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "status": "active",
       "join_date": "2021-11-08",
       "avatar_color": "#722ED1",
-      "bio": "负责服务端 API 开发与数据库设计，精通 Flask 和 PostgreSQL。",
+      "bio": "负责服务端 API 开发与数据库设计，精通 Node.js 和 PostgreSQL。",
       "sort_order": 3,
       "is_active": true
     },
