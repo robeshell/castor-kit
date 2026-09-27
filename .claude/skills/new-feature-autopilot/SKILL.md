@@ -177,7 +177,7 @@ pnpm verify -- --module <name>
 ```
 
 - If anything fails → fix it automatically → run verification again
-- The detail of the `migration_applied` item looks like `已迁移至 0001_<name>（castor_kit）` ("migrated to 0001_<name> (castor_kit)"); put it in the delivery report
+- The detail of the `migration_applied` item looks like `migrated to 0001_<name> (castor_kit)`; put it in the delivery report
 - Once everything passes, output the delivery report
 
 ---

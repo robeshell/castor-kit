@@ -74,5 +74,5 @@ Any new module/feature should include:
 6. OpenAPI JSON update (`pnpm openapi:generate`) and optional Apifox push (`pnpm openapi:apifox`).
 7. Feature gate: `pnpm verify -- --module <name>` all green.
 8. If import/export is implemented: follow the existing pattern (`apps/api/src/common/tabular.ts` + `ImportDialog` / `ExportDialog` from `apps/web/src/shared/components/data-transfer/`).
-9. Report "已迁移至 <tag>" (migration tag) when schema changed, and tell the user to run `pnpm db:migrate` in other environments.
+9. Report "migrated to <tag>" (migration tag) when schema changed, and tell the user to run `pnpm db:migrate` in other environments.
 10. Every delivery must include a concise "next steps" command checklist for the user.

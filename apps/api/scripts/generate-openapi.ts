@@ -211,26 +211,28 @@ export async function generateOpenApi(options: GenerateOptions): Promise<Generat
   for (const [path, methods] of added) paths[path] = { ...(isObject(paths[path]) ? paths[path] : {}), ...buildStubEntry(path, methods) }
 
   const stats = pathStats(paths)
-  log(`收集到 /api 路由 ${routes.size} 条`)
+  const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+  log(`Collected ${count(routes.size, '/api route')}`)
   for (const [path, methods] of added) log(`  + ${methods.join(',')} ${path}`)
-  log(`补齐 ${added.reduce((n, [, methods]) => n + methods.length, 0)} 个接口（均为骨架，需按 AGENTS.md "OpenAPI writing rules" 补全）`)
+  log(`Added ${count(added.reduce((n, [, methods]) => n + methods.length, 0), 'endpoint')} (stubs only; complete them per AGENTS.md "OpenAPI writing rules")`)
   const percent = stats.total ? Math.round((stats.detailed / stats.total) * 100) : 0
-  log(`文档路径统计：总数 ${stats.total}，详细 ${stats.detailed}（${percent}%），骨架 ${stats.stubs}`)
+  log(`Doc paths: ${stats.total} total, ${stats.detailed} detailed (${percent}%), ${count(stats.stubs, 'stub')}`)
 
   if (!options.dryRun) {
     writeFileSync(docPath, formatJsonDoc({ ...doc, paths: sortKeys(paths) }), 'utf8')
-    log(`已写回 ${relative(REPO_ROOT, docPath)}`)
+    log(`Wrote ${relative(REPO_ROOT, docPath)}`)
   }
 
   // The document rules (the same check as test/openapi-doc.test.ts)
   const issues = lintOpenApi({ ...doc, paths }, routes)
   const failing = new Set(issues.map((i) => i.operation)).size
-  log(issues.length ? `文档检查：${failing} 个接口不符合规范（共 ${issues.length} 处）` : '文档检查：全部符合规范')
+  const endpoints = failing === 1 ? '1 endpoint does' : `${failing} endpoints do`
+  log(issues.length ? `Docs check: ${endpoints} not follow the rules (${count(issues.length, 'issue')})` : 'Docs check: every endpoint follows the rules')
 
   let exitCode = 0
   if (options.strict && issues.length) {
     log(formatLintIssues(issues))
-    log(`❌ --strict：${failing} 个接口不符合 AGENTS.md "OpenAPI writing rules"，请补全后再提交`)
+    log(`❌ --strict: ${endpoints} not follow AGENTS.md "OpenAPI writing rules"; complete the docs before committing`)
     exitCode = 1
   }
   return { exitCode, routeCount: routes.size, added, stats, issues }

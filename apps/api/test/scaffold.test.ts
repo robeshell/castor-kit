@@ -328,7 +328,7 @@ describe('scaffold 纯函数', () => {
       '',
     ])
     expect(registerRoute(next, 'CustomerOrder', 'customer-order')).toBeNull()
-    expect(() => registerRoute('export {}\n', 'X', 'x')).toThrow(/无法自动注册/)
+    expect(() => registerRoute('export {}\n', 'X', 'x')).toThrow(/can't be registered automatically/)
   })
 })
 
@@ -382,19 +382,19 @@ describe('scaffold --spec 纯函数', () => {
       ],
     })
     expect(bad).toEqual([
-      '模块名必须是 snake_case（小写字母开头，只含小写字母、数字、下划线，最多 40 个字符）',
-      '字段 id：id 是保留字段名',
-      '字段 x：未知类型 nope',
-      '字段 x：字段名重复',
-      '字段 e：选项值只能包含字母、数字、下划线和连字符（最多 50 个字符）',
-      '字段 e：选项名称不能为空，最多 50 个字符',
-      '字段 d：请选择字典',
-      '字段 f：文件 / 图片字段不能设为必填',
-      '字段 b：只有文本和数字字段可以设为唯一',
-      '字段 n：默认值 abc 不符合字段类型',
-      '字段 s：默认值 z 不符合字段类型',
+      'The module name must be snake_case (a lowercase letter first, then lowercase letters, digits and underscores; up to 40 characters)',
+      'Field id: id is a reserved field name',
+      'Field x: unknown type nope',
+      'Field x: duplicate field name',
+      'Field e: option values may contain only letters, digits, underscores and hyphens (up to 50 characters)',
+      'Field e: option labels must be 1–50 characters',
+      'Field d: dict must be a data dictionary code',
+      "Field f: file / image fields can't be required",
+      'Field b: only text and number fields can be unique',
+      "Field n: default value abc doesn't match the field type",
+      "Field s: default value z doesn't match the field type",
     ])
-    expect(validateSpec({ name: 'ok', title: '好', fields: [] })).toEqual(['至少需要一个字段'])
+    expect(validateSpec({ name: 'ok', title: '好', fields: [] })).toEqual(['At least one field is required'])
     // Titles and labels land in JSX attributes / string literals of the page
     expect(
       validateSpec({
@@ -406,9 +406,9 @@ describe('scaffold --spec 纯函数', () => {
         ],
       }),
     ).toEqual([
-      '标题不能包含引号、反斜杠、花括号、尖括号或换行',
-      '字段 a：标签不能包含引号、反斜杠、花括号、尖括号或换行',
-      '字段 b：选项名称不能包含引号、反斜杠、花括号、尖括号或换行',
+      "The title can't contain quotes, backslashes, braces, angle brackets or line breaks",
+      "Field a: the label can't contain quotes, backslashes, braces, angle brackets or line breaks",
+      "Field b: option labels can't contain quotes, backslashes, braces, angle brackets or line breaks",
     ])
   })
 
@@ -422,13 +422,13 @@ describe('scaffold --spec 纯函数', () => {
         i18n: { fr: {} },
       } as unknown as SpecFile),
     ).toEqual([
-      '未知属性 requried（可用：name / domain / title / dataScope / fields / menu / i18n）',
-      '缺少 title：模块的中文名称（页面标题、菜单名和接口文档都用它），如「设备台账」',
-      '字段 a：未知属性 requried（可用：name / type / label / required / unique / default / options / dict）',
-      '字段 a：缺少 label（中文名，表头、表单和接口文档都用它）',
-      '字段 b：选项的未知属性 color（可用：value / label）',
-      'menu 的未知属性 parent（可用：parentId / icon）',
-      'i18n 只支持 en-US / ja-JP，不支持 fr',
+      'Unknown property requried (allowed: name / domain / title / dataScope / fields / menu / i18n)',
+      'Missing title: the Chinese name of the module (used for the page title, menu name and API docs), e.g. 设备台账',
+      'Field a: unknown property requried (allowed: name / type / label / required / unique / default / options / dict)',
+      'Field a: missing label (the Chinese name, used for table headers, forms and API docs)',
+      'Field b: unknown option property color (allowed: value / label)',
+      'Unknown menu property parent (allowed: parentId / icon)',
+      'i18n supports only en-US / ja-JP, not fr',
     ])
     // A $schema pointer (for editors) is allowed
     expect(validateSpec({ ...DEVICE_SPEC, $schema: '../../spec.schema.json' } as SpecFile)).toEqual([])
@@ -553,21 +553,21 @@ describe('spec 工具：JSON Schema 与示例', () => {
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'id', type: 'str', label: 'A' }] })).toContain('/fields/0/name not')
     // File / image fields: not required, no default (validateSpec rejects both too)
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toContain('/fields/0/default enum')
-    expect(validateSpec({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toEqual(['字段 a：默认值 x 不符合字段类型'])
+    expect(validateSpec({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'file', label: 'A', default: 'x' }] })).toEqual(["Field a: default value x doesn't match the field type"])
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'money', label: 'A' }] })).toContain('/fields/0/type enum')
   })
 
   it('--validate-only：有问题逐条列出并返回 1；有效时说明会生成什么，不写任何文件', () => {
     const lines: string[] = []
     expect(validateOnly({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'str' }] } as SpecFile, (l) => lines.push(l))).toBe(1)
-    expect(lines[0]).toBe('❌ 字段 a：缺少 label（中文名，表头、表单和接口文档都用它）')
+    expect(lines[0]).toBe('❌ Field a: missing label (the Chinese name, used for table headers, forms and API docs)')
     const ok: string[] = []
     expect(validateOnly(DEVICE_SPEC, (l) => ok.push(l))).toBe(0)
-    expect(ok[0]).toBe('✅ 规格有效：ck_spec_device（设备台账），8 个字段')
+    expect(ok[0]).toBe('✅ Spec is valid: ck_spec_device (设备台账), 8 fields')
     expect(ok.join('\n')).toContain('/api/admin/ck-spec-devices')
     const cli = scaffoldCli(['--spec', join(EXAMPLES, 'device.json'), '--validate-only'])
     expect(cli.code, cli.out).toBe(0)
-    expect(cli.out).toContain('权限：system_device / _add / _edit / _delete / _export / _import')
+    expect(cli.out).toContain('Permissions: system_device / _add / _edit / _delete / _export / _import')
   })
 })
 
@@ -614,7 +614,7 @@ describe('scaffold CLI（临时目录副本）', () => {
   it('非法名称：exit 1 + 提示', () => {
     const res = scaffoldCli(['--', '--name', 'BadName', '--root', root])
     expect(res.code).toBe(1)
-    expect(res.out).toContain('❌ --name 必须是 snake_case 格式（小写字母+下划线），如 customer_order')
+    expect(res.out).toContain('❌ --name must be snake_case (lowercase letters, digits and underscores), e.g. customer_order')
   })
 
   it('dry-run：只打印，不写文件、不改注册文件、不生成迁移', () => {
@@ -652,7 +652,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     }
     expect(res.out).toContain('[update] apps/api/src/db/schema/index.ts')
     expect(res.out).toContain('[update] apps/api/src/modules/admin/router.ts')
-    expect(res.out).toContain('✅ 骨架文件生成完成！')
+    expect(res.out).toContain('✅ Scaffold generated')
 
     const index = readFileSync(join(root, 'apps/api/src/db/schema/index.ts'), 'utf8')
     expect(index).toContain("export * from './admin/ck-scaffold-demo'")
@@ -818,7 +818,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(scanInCopy(root, pageDir.replace('apps/web/', ''))).toEqual({ problems: [], conflicts: [] })
     expect(res.out).toContain('[create] apps/api/src/modules/component-center/ck-scaffold-cc/routes.ts')
     expect(res.out).toContain('[create] apps/web/src/modules/component_center/pages/admin/ck_scaffold_cc_page/index.jsx')
-    expect(res.out).toContain('[skip] migration（--skip-migration）')
+    expect(res.out).toContain('[skip] migration (--skip-migration)')
     const router = readFileSync(join(root, 'apps/api/src/modules/component-center/router.ts'), 'utf8')
     expect(router).toContain('  await registerCkScaffoldCcRoutes(app)')
     expect(readFileSync(join(root, 'apps/api/src/db/schema/index.ts'), 'utf8')).toContain(
@@ -890,7 +890,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     writeFileSync(specPath, JSON.stringify(DEVICE_SPEC))
     const res = scaffoldCli(['--spec', specPath, '--skip-migration', '--root', root])
     expect(res.code, res.out).toBe(0)
-    expect(res.out).toContain('[menu] 设备台账（ID 1001，按钮 10011–10015）')
+    expect(res.out).toContain('[menu] 设备台账 (ID 1001, buttons 10011–10015)')
     const read = (rel: string) => readFileSync(join(root, rel), 'utf8')
     // The module is documented per the OpenAPI rules straight away
     expect(res.out).toContain('[update] docs/apifox-full.openapi.json')

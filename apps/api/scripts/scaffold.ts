@@ -1801,7 +1801,7 @@ export function registerRoute(content: string, pascal: string, kebab: string): s
     if (/^\s*await\s+register\w+Routes\(\s*app\s*\)/.test(l)) lastCall = i
   })
   if (lastCall < 0) {
-    throw new Error('router.ts 中找不到 `await registerXxxRoutes(app)` 调用，无法自动注册，请手动添加')
+    throw new Error("No `await registerXxxRoutes(app)` call in router.ts, so the routes can't be registered automatically; add them by hand")
   }
   const indent = /^(\s*)/.exec(lines[lastCall]!)?.[1] ?? '  '
   lines.splice(lastCall + 1, 0, `${indent}await ${fn}(app)`)
@@ -1850,7 +1850,7 @@ function writeFile(ctx: WriteContext, path: string, content: string): void {
 
 function updateFile(ctx: WriteContext, path: string, transform: (content: string) => string | null): void {
   const rel = relative(ctx.root, path)
-  if (!existsSync(path)) throw new Error(`注册文件不存在：${rel}`)
+  if (!existsSync(path)) throw new Error(`Registration file not found: ${rel}`)
   if (ctx.dryRun) {
     ctx.log(`  [dry-run] would update: ${rel}`)
     return
@@ -1898,64 +1898,64 @@ function unknownKeys(value: unknown, allowed: readonly string[]): string[] {
   return value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).filter((k) => !allowed.includes(k)) : []
 }
 
-/** Problems in a --spec file (Chinese, shown to the user); an empty list means it can be generated */
+/** Problems in a --spec file (shown to the user); an empty list means it can be generated */
 export function validateSpec(spec: SpecFile): string[] {
   const errors: string[] = []
-  if (!spec || typeof spec !== 'object') return ['spec 必须是 JSON 对象']
-  for (const key of unknownKeys(spec, SPEC_KEYS.spec)) errors.push(`未知属性 ${key}（可用：${SPEC_KEYS.spec.slice(1).join(' / ')}）`)
+  if (!spec || typeof spec !== 'object') return ['The spec must be a JSON object']
+  for (const key of unknownKeys(spec, SPEC_KEYS.spec)) errors.push(`Unknown property ${key} (allowed: ${SPEC_KEYS.spec.slice(1).join(' / ')})`)
   if (typeof spec.name !== 'string' || !NAME_RE.test(spec.name) || spec.name.length > 40) {
-    errors.push('模块名必须是 snake_case（小写字母开头，只含小写字母、数字、下划线，最多 40 个字符）')
+    errors.push('The module name must be snake_case (a lowercase letter first, then lowercase letters, digits and underscores; up to 40 characters)')
   }
   if (spec.domain !== undefined && spec.domain !== 'admin' && spec.domain !== 'component_center') {
-    errors.push('domain 只能是 admin 或 component_center')
+    errors.push('domain must be admin or component_center')
   }
   if (spec.title === undefined) {
-    errors.push('缺少 title：模块的中文名称（页面标题、菜单名和接口文档都用它），如「设备台账」')
+    errors.push('Missing title: the Chinese name of the module (used for the page title, menu name and API docs), e.g. 设备台账')
   } else if (typeof spec.title !== 'string' || spec.title.trim().length === 0 || spec.title.length > 50) {
-    errors.push('标题不能为空，最多 50 个字符')
+    errors.push('The title must be 1–50 characters')
   } else if (UNSAFE_TEXT.test(spec.title)) {
-    errors.push('标题不能包含引号、反斜杠、花括号、尖括号或换行')
+    errors.push("The title can't contain quotes, backslashes, braces, angle brackets or line breaks")
   }
-  if (!Array.isArray(spec.fields) || spec.fields.length === 0) return [...errors, '至少需要一个字段']
-  if (spec.fields.length > 50) errors.push('字段最多 50 个')
+  if (!Array.isArray(spec.fields) || spec.fields.length === 0) return [...errors, 'At least one field is required']
+  if (spec.fields.length > 50) errors.push('At most 50 fields are allowed')
   const seen = new Set<string>()
   for (const field of spec.fields) {
     const name = typeof field?.name === 'string' ? field.name : ''
-    const at = name || '（未命名）'
-    if (!NAME_RE.test(name) || name.length > 40) errors.push(`字段 ${at}：字段名必须是 snake_case，最多 40 个字符`)
-    else if (RESERVED_FIELDS.has(name)) errors.push(`字段 ${at}：${name} 是保留字段名`)
-    else if (seen.has(name)) errors.push(`字段 ${at}：字段名重复`)
+    const at = name || '(unnamed)'
+    if (!NAME_RE.test(name) || name.length > 40) errors.push(`Field ${at}: the field name must be snake_case, up to 40 characters`)
+    else if (RESERVED_FIELDS.has(name)) errors.push(`Field ${at}: ${name} is a reserved field name`)
+    else if (seen.has(name)) errors.push(`Field ${at}: duplicate field name`)
     seen.add(name)
     if (!(field.type in FIELD_TYPE_MAP)) {
-      errors.push(`字段 ${at}：未知类型 ${String(field.type)}`)
+      errors.push(`Field ${at}: unknown type ${String(field.type)}`)
       continue
     }
-    for (const key of unknownKeys(field, SPEC_KEYS.field)) errors.push(`字段 ${at}：未知属性 ${key}（可用：${SPEC_KEYS.field.join(' / ')}）`)
-    if (field.label === undefined) errors.push(`字段 ${at}：缺少 label（中文名，表头、表单和接口文档都用它）`)
-    else if (typeof field.label !== 'string' || field.label.trim().length === 0 || field.label.length > 50) errors.push(`字段 ${at}：标签不能为空，最多 50 个字符`)
-    else if (typeof field.label === 'string' && UNSAFE_TEXT.test(field.label)) errors.push(`字段 ${at}：标签不能包含引号、反斜杠、花括号、尖括号或换行`)
+    for (const key of unknownKeys(field, SPEC_KEYS.field)) errors.push(`Field ${at}: unknown property ${key} (allowed: ${SPEC_KEYS.field.join(' / ')})`)
+    if (field.label === undefined) errors.push(`Field ${at}: missing label (the Chinese name, used for table headers, forms and API docs)`)
+    else if (typeof field.label !== 'string' || field.label.trim().length === 0 || field.label.length > 50) errors.push(`Field ${at}: the label must be 1–50 characters`)
+    else if (typeof field.label === 'string' && UNSAFE_TEXT.test(field.label)) errors.push(`Field ${at}: the label can't contain quotes, backslashes, braces, angle brackets or line breaks`)
     const kind = fieldSpec(field.type).kind
-    if (field.required && kind === 'fileId') errors.push(`字段 ${at}：文件 / 图片字段不能设为必填`)
-    if (field.unique && !UNIQUE_TYPES.has(field.type)) errors.push(`字段 ${at}：只有文本和数字字段可以设为唯一`)
+    if (field.required && kind === 'fileId') errors.push(`Field ${at}: file / image fields can't be required`)
+    if (field.unique && !UNIQUE_TYPES.has(field.type)) errors.push(`Field ${at}: only text and number fields can be unique`)
     if (field.type === 'enum') {
       const options = Array.isArray(field.options) ? field.options : []
-      if (options.length === 0) errors.push(`字段 ${at}：固定选项至少要有一项`)
+      if (options.length === 0) errors.push(`Field ${at}: an enum field needs at least one option`)
       const values = new Set<string>()
       for (const option of options) {
-        for (const key of unknownKeys(option, SPEC_KEYS.option)) errors.push(`字段 ${at}：选项的未知属性 ${key}（可用：value / label）`)
+        for (const key of unknownKeys(option, SPEC_KEYS.option)) errors.push(`Field ${at}: unknown option property ${key} (allowed: value / label)`)
         if (typeof option?.value !== 'string' || !/^[A-Za-z0-9_-]{1,50}$/.test(option.value)) {
-          errors.push(`字段 ${at}：选项值只能包含字母、数字、下划线和连字符（最多 50 个字符）`)
-        } else if (values.has(option.value)) errors.push(`字段 ${at}：选项值 ${option.value} 重复`)
+          errors.push(`Field ${at}: option values may contain only letters, digits, underscores and hyphens (up to 50 characters)`)
+        } else if (values.has(option.value)) errors.push(`Field ${at}: duplicate option value ${option.value}`)
         else values.add(option.value)
         if (typeof option?.label !== 'string' || option.label.trim().length === 0 || option.label.length > 50) {
-          errors.push(`字段 ${at}：选项名称不能为空，最多 50 个字符`)
+          errors.push(`Field ${at}: option labels must be 1–50 characters`)
         } else if (UNSAFE_TEXT.test(option.label)) {
-          errors.push(`字段 ${at}：选项名称不能包含引号、反斜杠、花括号、尖括号或换行`)
+          errors.push(`Field ${at}: option labels can't contain quotes, backslashes, braces, angle brackets or line breaks`)
         }
       }
     }
     if (field.type === 'dict' && (typeof field.dict !== 'string' || !/^[A-Za-z0-9_.-]{1,100}$/.test(field.dict))) {
-      errors.push(`字段 ${at}：请选择字典`)
+      errors.push(`Field ${at}: dict must be a data dictionary code`)
     }
     const fallback = field.default
     if (fallback !== undefined && fallback !== null && fallback !== '') {
@@ -1976,14 +1976,14 @@ export function validateSpec(spec: SpecFile): string[] {
                     : kind === 'text'
                       ? text.length <= 100
                       : false
-      if (!ok) errors.push(`字段 ${at}：默认值 ${text} 不符合字段类型`)
+      if (!ok) errors.push(`Field ${at}: default value ${text} doesn't match the field type`)
     }
   }
   if (spec.menu !== undefined && spec.menu !== null) {
-    for (const key of unknownKeys(spec.menu, SPEC_KEYS.menu)) errors.push(`menu 的未知属性 ${key}（可用：parentId / icon）`)
-    if (spec.menu.parentId !== undefined && !Number.isInteger(spec.menu.parentId)) errors.push('父菜单 ID 不正确')
+    for (const key of unknownKeys(spec.menu, SPEC_KEYS.menu)) errors.push(`Unknown menu property ${key} (allowed: parentId / icon)`)
+    if (spec.menu.parentId !== undefined && !Number.isInteger(spec.menu.parentId)) errors.push('menu.parentId must be an integer')
   }
-  for (const key of unknownKeys(spec.i18n, SPEC_KEYS.i18n)) errors.push(`i18n 只支持 en-US / ja-JP，不支持 ${key}`)
+  for (const key of unknownKeys(spec.i18n, SPEC_KEYS.i18n)) errors.push(`i18n supports only en-US / ja-JP, not ${key}`)
   return errors
 }
 
@@ -2092,7 +2092,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   if (dryRun) {
     log(`  [dry-run] would run: drizzle-kit generate --name ${name}`)
   } else if (options.skipMigration) {
-    log('  [skip] migration（--skip-migration）')
+    log('  [skip] migration (--skip-migration)')
   } else {
     log(`  [run] drizzle-kit generate --name ${name}`)
     const [cmd, ...pre] = resolveDrizzleKit(apiDir)
@@ -2103,28 +2103,28 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
       res.status === 0 ? output.split('\n').filter((l) => /\[✓\]|No schema changes|warn/i.test(l)) : output.split('\n')
     if (shown.length > 0) log(shown.map((l) => `      ${l.trim()}`).join('\n'))
     if (res.status !== 0) {
-      log(`❌ drizzle-kit generate 失败（exit ${res.status ?? res.error?.message}）`)
+      log(`❌ drizzle-kit generate failed (exit ${res.status ?? res.error?.message})`)
       return 1
     }
   }
 
   log('')
-  log('✅ 骨架文件生成完成！')
+  log('✅ Scaffold generated')
   log('')
-  log('后续手动步骤：')
+  log('Next steps:')
   if (menu) {
-    log('  1. 运行: pnpm seed:rbac -- --incremental（菜单已写入 scripts/seed-rbac.ts）')
+    log('  1. Run: pnpm seed:rbac -- --incremental (the menu is already in scripts/seed-rbac.ts)')
   } else {
-    log(`  1. 按业务补充字段校验、中文表头（modules/${s.domainDir}/${s.kebab}/schema.ts）与前端页面文案（页面专属译文写在页面目录 locales/）`)
-    log(`  2. 在 apps/api/scripts/seed-rbac.ts 中添加菜单（component: '${s.menuComponent}'）+ 按钮权限：`)
+    log(`  1. Fill in field validation and Chinese headers (modules/${s.domainDir}/${s.kebab}/schema.ts) and the page copy (page-specific translations go in the page's locales/)`)
+    log(`  2. Add the menu (component: '${s.menuComponent}') and button permissions to apps/api/scripts/seed-rbac.ts:`)
     log(`     ${s.permPrefix} / ${s.permPrefix}_add / _edit / _delete / _export / _import`)
-    log('  3. 运行: pnpm seed:rbac -- --incremental')
+    log('  3. Run: pnpm seed:rbac -- --incremental')
   }
-  log('  · 审查 apps/api/drizzle/ 下新生成的迁移 SQL，运行: pnpm db:migrate')
-  log(`  · 运行: psql -d <db> -c '\\d ${s.table}' 确认表已落库`)
-  log(`  · 按业务规则更新 apps/api/test/${testFilePath(s)}（生成的基础用例）`)
-  log('  · 接口文档已写入 docs/apifox-full.openapi.json；改了生成的路由、字段或校验后同步修改，再运行: pnpm openapi:generate -- --strict')
-  log(`  · 运行: pnpm verify -- --module ${name}`)
+  log('  · Review the new migration SQL in apps/api/drizzle/, then run: pnpm db:migrate')
+  log(`  · Run: psql -d <db> -c '\\d ${s.table}' to confirm the table exists`)
+  log(`  · Update apps/api/test/${testFilePath(s)} (the generated basic tests) for the business rules`)
+  log('  · The API docs are in docs/apifox-full.openapi.json; if you change the generated routes, fields or validation, update them and run: pnpm openapi:generate -- --strict')
+  log(`  · Run: pnpm verify -- --module ${name}`)
   return 0
 }
 
@@ -2135,7 +2135,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
 function registerOpenApi(ctx: WriteContext, s: ScaffoldSpec): void {
   const docPath = join(ctx.root, 'docs', 'apifox-full.openapi.json')
   if (!existsSync(docPath)) {
-    ctx.log('  [skip] docs/apifox-full.openapi.json 不存在，未写接口文档')
+    ctx.log('  [skip] docs/apifox-full.openapi.json not found; no API docs written')
     return
   }
   updateFile(ctx, docPath, (content) => {
@@ -2171,8 +2171,11 @@ function registerModuleMenu(ctx: WriteContext, s: ScaffoldSpec, menu: MenuSpec):
     })
   }
   const module = planned.find((e) => e.code === s.permPrefix)
-  ctx.log(`  [menu] ${s.title}（ID ${module?.id}，按钮 ${module ? `${module.id * 10 + 1}–${module.id * 10 + 5}` : '-'}）`)
+  ctx.log(`  [menu] ${s.title} (ID ${module?.id}, buttons ${module ? `${module.id * 10 + 1}–${module.id * 10 + 5}` : '-'})`)
 }
+
+/** "1 field" / "8 fields" */
+const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
 
 /**
  * --validate-only: check a spec without generating anything; on success print what would be generated
@@ -2182,15 +2185,15 @@ export function validateOnly(spec: SpecFile, log: (line: string) => void = (l) =
   const errors = validateSpec(spec)
   if (errors.length > 0) {
     for (const error of errors) log(`❌ ${error}`)
-    log(`\n共 ${errors.length} 个问题；字段类型与写法见 docs/spec.schema.json 和 docs/examples/specs/`)
+    log(`\n${plural(errors.length, 'problem')}; field types and format: docs/spec.schema.json and docs/examples/specs/`)
     return 1
   }
   const s = buildSpec(spec.name, spec.domain ?? 'admin', spec.fields.map((f) => [f.name, f.type]), { title: spec.title, dataScope: spec.dataScope })
-  log(`✅ 规格有效：${spec.name}（${s.title}），${spec.fields.length} 个字段${spec.dataScope ? '，按数据权限隔离' : ''}`)
-  log(`   接口：${s.apiBase}（列表 / 新增 / 详情 / 编辑 / 删除 / 导出 / 导入模板 / 导入）`)
-  log(`   权限：${s.permPrefix} / _add / _edit / _delete / _export / _import`)
-  log(`   表：${s.table}；搜索字段：${s.nameField}`)
-  log(spec.menu ? `   菜单：写入 scripts/seed-rbac.ts（${spec.menu.parentId ? `父菜单 ${spec.menu.parentId}` : '「业务管理」目录下'}）` : '   菜单：不写（需要菜单时加 "menu": {}）')
+  log(`✅ Spec is valid: ${spec.name} (${s.title}), ${plural(spec.fields.length, 'field')}${spec.dataScope ? ', isolated by data scope' : ''}`)
+  log(`   API: ${s.apiBase} (list / create / detail / update / delete / export / import template / import)`)
+  log(`   Permissions: ${s.permPrefix} / _add / _edit / _delete / _export / _import`)
+  log(`   Table: ${s.table}; search field: ${s.nameField}`)
+  log(spec.menu ? `   Menu: written to scripts/seed-rbac.ts (${spec.menu.parentId ? `under parent menu ${spec.menu.parentId}` : 'in the 业务管理 (Business) directory'})` : '   Menu: none (add "menu": {} to get one)')
   return 0
 }
 
@@ -2222,7 +2225,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   if (values['write-schema']) {
     const path = join(root ?? DEFAULT_ROOT, 'docs', 'spec.schema.json')
     writeFileSync(path, specSchemaText(), 'utf8')
-    console.log(`✅ 已写入 ${relative(process.cwd(), path)}`)
+    console.log(`✅ Wrote ${relative(process.cwd(), path)}`)
     return 0
   }
   const common = { root, dryRun: values['dry-run'], skipMigration: values['skip-migration'] }
@@ -2231,27 +2234,27 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     try {
       spec = JSON.parse(readFileSync(resolve(callerDir, values.spec), 'utf8')) as SpecFile
     } catch (err) {
-      console.error(`❌ 无法读取 spec 文件：${err instanceof Error ? err.message : String(err)}`)
+      console.error(`❌ Can't read the spec file: ${err instanceof Error ? err.message : String(err)}`)
       return 2
     }
     if (values['validate-only']) return validateOnly(spec)
     return scaffoldFromSpec(spec, common)
   }
   if (values['validate-only']) {
-    console.error('❌ --validate-only 需要配合 --spec <文件>')
+    console.error('❌ --validate-only needs --spec <file>')
     return 2
   }
   if (!values.name) {
-    console.error('❌ 缺少 --name（资源名，snake_case，如 customer）或 --spec <文件>')
+    console.error('❌ Missing --name (resource name in snake_case, e.g. customer) or --spec <file>')
     return 2
   }
   if (values.domain !== 'admin' && values.domain !== 'component_center') {
-    console.error(`❌ --domain 只能是 admin 或 component_center（当前：${values.domain}）`)
+    console.error(`❌ --domain must be admin or component_center (got: ${values.domain})`)
     return 2
   }
   // Validate the name format
   if (!/^[a-z][a-z0-9_]*$/.test(values.name)) {
-    console.log('❌ --name 必须是 snake_case 格式（小写字母+下划线），如 customer_order')
+    console.log('❌ --name must be snake_case (lowercase letters, digits and underscores), e.g. customer_order')
     return 1
   }
   return scaffold(values.name, values.domain, values.fields ?? 'name:str', { ...common, dataScope: values['data-scope'] })

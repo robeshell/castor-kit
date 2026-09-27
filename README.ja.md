@@ -103,7 +103,7 @@ $ pnpm db:migrate
 $ pnpm verify -- --module equipment
   ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
   ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
-✅ 全部检查通过，功能可交付！
+✅ All checks passed. The feature is ready to deliver.
 ```
 
 AI が従うルールは [`AGENTS.md`](AGENTS.md) にあります。詳しくは [AI 駆動開発](website/ja/guide/ai-workflow.md) を参照してください。

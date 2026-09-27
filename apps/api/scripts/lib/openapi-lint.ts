@@ -9,7 +9,7 @@ import { apiTokenDenied } from '../../src/common/api-token'
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
 const BODY_METHODS = new Set(['post', 'put', 'patch'])
-const CJK = /[㐀-鿿]/
+const CJK = /[\u3400-\u9fff]/
 
 export interface LintIssue {
   /** Rule code, e.g. "summary" */
@@ -57,52 +57,52 @@ export function lintOperation(path: string, method: string, op: Json, tagNames: 
   const add = (rule: string, message: string) => issues.push({ rule, operation, message })
 
   const summary = typeof op.summary === 'string' ? op.summary.trim() : ''
-  if (!summary) add('summary', '缺少 summary')
-  else if (!CJK.test(summary) || /^(GET|POST|PUT|PATCH|DELETE)\b/.test(summary) || /[㐀-鿿][a-z_]{3,}|[a-z_]{3,}[㐀-鿿]/.test(summary)) {
-    add('summary', `summary 要写成看得懂的中文（如「新增部门」），现在是「${summary}」`)
+  if (!summary) add('summary', 'missing summary')
+  else if (!CJK.test(summary) || /^(GET|POST|PUT|PATCH|DELETE)\b/.test(summary) || /[\u3400-\u9fff][a-z_]{3,}|[a-z_]{3,}[\u3400-\u9fff]/.test(summary)) {
+    add('summary', `summary must be readable Chinese (e.g. "新增部门"); got "${summary}"`)
   }
-  if (typeof op.description !== 'string' || !op.description.trim()) add('description', '缺少 description（写明所需权限、数据权限与特殊行为）')
+  if (typeof op.description !== 'string' || !op.description.trim()) add('description', 'missing description (state the required permission, the data scope and any special behavior)')
 
   const tags = Array.isArray(op.tags) ? op.tags : []
-  if (tags.length !== 1) add('tags', 'tags 必须恰好一个')
-  else if (!tagNames.has(String(tags[0]))) add('tags', `标签「${String(tags[0])}」没有在文档顶层 tags 里声明`)
-  if (typeof op['x-apifox-folder'] !== 'string' || !op['x-apifox-folder']) add('folder', '缺少 x-apifox-folder')
+  if (tags.length !== 1) add('tags', 'tags must have exactly one entry')
+  else if (!tagNames.has(String(tags[0]))) add('tags', `tag "${String(tags[0])}" is not declared in the top-level tags`)
+  if (typeof op['x-apifox-folder'] !== 'string' || !op['x-apifox-folder']) add('folder', 'missing x-apifox-folder')
   if (!Array.isArray(op.security)) {
-    add('security', '缺少 security（见 expectedSecurity：登录接口写 cookieAuth，能用 API Token 的再加 bearerAuth，公开接口写 []）')
+    add('security', 'missing security (see expectedSecurity: signed-in endpoints list cookieAuth, plus bearerAuth if they accept API tokens; public endpoints use [])')
   } else if (op.security.length > 0) {
     const schemes = op.security.filter(isObject).flatMap((s) => Object.keys(s))
     const tokenOk = !apiTokenDenied(method.toUpperCase(), samplePath(path))
-    if (!schemes.includes('cookieAuth')) add('security', '需要登录的接口要列出 cookieAuth')
-    if (tokenOk && !schemes.includes('bearerAuth')) add('security', '这个接口可以用 API Token 调用，security 要加上 { "bearerAuth": [] }')
-    if (!tokenOk && schemes.includes('bearerAuth')) add('security', '这个接口拒绝 API Token（API_TOKEN_DENIED），security 不能列 bearerAuth')
+    if (!schemes.includes('cookieAuth')) add('security', 'endpoints that need sign-in must list cookieAuth')
+    if (tokenOk && !schemes.includes('bearerAuth')) add('security', 'this endpoint accepts API tokens, so security must include { "bearerAuth": [] }')
+    if (!tokenOk && schemes.includes('bearerAuth')) add('security', 'this endpoint refuses API tokens (API_TOKEN_DENIED), so security must not list bearerAuth')
   }
 
   const params = Array.isArray(op.parameters) ? op.parameters.filter(isObject) : []
   for (const name of [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]!)) {
     const declared = params.find((p) => p.in === 'path' && p.name === name)
-    if (!declared) add('path-params', `路径参数 ${name} 没有声明`)
-    else if (declared.required !== true || !isObject(declared.schema)) add('path-params', `路径参数 ${name} 要 required: true 并写 schema`)
+    if (!declared) add('path-params', `path parameter ${name} is not declared`)
+    else if (declared.required !== true || !isObject(declared.schema)) add('path-params', `path parameter ${name} needs required: true and a schema`)
   }
   for (const p of params) {
-    if (p.in === 'query' && !isObject(p.schema)) add('query-params', `查询参数 ${String(p.name)} 缺少 schema`)
+    if (p.in === 'query' && !isObject(p.schema)) add('query-params', `query parameter ${String(p.name)} has no schema`)
   }
 
   if (BODY_METHODS.has(method)) {
     const body = op.requestBody
     if (op['x-no-body'] === true) {
-      if (body !== undefined) add('request-body', '声明了 x-no-body 就不要再写 requestBody')
+      if (body !== undefined) add('request-body', 'x-no-body is declared, so remove the requestBody')
     } else if (!isObject(body) || !contentDescribes(body.content)) {
-      add('request-body', '缺少请求体 schema（没有请求体的接口写 "x-no-body": true）')
+      add('request-body', 'missing request body schema (endpoints without a body declare "x-no-body": true)')
     }
   }
 
   const responses = isObject(op.responses) ? op.responses : {}
   const ok = Object.entries(responses).filter(([code]) => /^2\d\d$/.test(code))
-  if (ok.length === 0) add('response', '缺少成功响应（2xx）')
+  if (ok.length === 0) add('response', 'missing success response (2xx)')
   else if (!ok.some(([code, r]) => code === '204' || (isObject(r) && contentDescribes(r.content)))) {
-    add('response', '成功响应缺少返回结构（content.schema）')
+    add('response', 'the success response does not describe its body (content.schema)')
   }
-  if (Array.isArray(op.security) && op.security.length > 0 && !('401' in responses)) add('error-responses', '需要登录的接口要列出 401')
+  if (Array.isArray(op.security) && op.security.length > 0 && !('401' in responses)) add('error-responses', 'endpoints that need sign-in must list 401')
   return issues
 }
 
@@ -120,16 +120,16 @@ export function lintOpenApi(doc: unknown, routes: Map<string, string[]>): LintIs
   for (const [path, entry] of Object.entries(paths)) {
     if (!path.startsWith('/api/')) continue
     shapes.set(shapeOf(path), [...(shapes.get(shapeOf(path)) ?? []), path])
-    if (/\{[^}]*:[^}]*\}/.test(path)) issues.push({ rule: 'path-key', operation: path, message: '路径参数不要带类型前缀，写成 {x}（与路由参数同名）' })
+    if (/\{[^}]*:[^}]*\}/.test(path)) issues.push({ rule: 'path-key', operation: path, message: 'path parameters take no type prefix; write {x} (named like the route parameter)' })
     if (!isObject(entry)) continue
     for (const key of Object.keys(entry)) {
       if (key !== key.toLowerCase() && (METHODS as readonly string[]).includes(key.toLowerCase())) {
-        issues.push({ rule: 'method-case', operation: `${key} ${path}`, message: '方法名必须小写' })
+        issues.push({ rule: 'method-case', operation: `${key} ${path}`, message: 'method names must be lowercase' })
       }
     }
   }
   for (const [shape, keys] of shapes) {
-    if (keys.length > 1) issues.push({ rule: 'path-key', operation: shape, message: `同一路径写了多份：${keys.join('、')}` })
+    if (keys.length > 1) issues.push({ rule: 'path-key', operation: shape, message: `the same path is written more than once: ${keys.join(', ')}` })
   }
 
   const documented = new Set<string>()
@@ -141,7 +141,7 @@ export function lintOpenApi(doc: unknown, routes: Map<string, string[]>): LintIs
       const entry = paths[path]
       const op = isObject(entry) ? entry[method] : undefined
       if (!isObject(op)) {
-        issues.push({ rule: 'missing', operation: `${upper} ${path}`, message: '接口没有文档（路径要与路由参数同名，方法小写）' })
+        issues.push({ rule: 'missing', operation: `${upper} ${path}`, message: 'endpoint is not documented (path parameters must match the route parameter names; methods lowercase)' })
         continue
       }
       issues.push(...lintOperation(path, method, op, tagNames))
@@ -153,7 +153,7 @@ export function lintOpenApi(doc: unknown, routes: Map<string, string[]>): LintIs
     for (const key of Object.keys(entry)) {
       const method = key.toLowerCase()
       if ((METHODS as readonly string[]).includes(method) && !documented.has(`${method} ${shapeOf(path)}`)) {
-        issues.push({ rule: 'stale', operation: `${key.toUpperCase()} ${path}`, message: '文档里有、路由里没有：删掉或改成实际路径' })
+        issues.push({ rule: 'stale', operation: `${key.toUpperCase()} ${path}`, message: 'documented but no such route: remove it or change it to the actual path' })
       }
     }
   }

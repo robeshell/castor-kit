@@ -117,14 +117,14 @@ describe('setup-once', () => {
     // The two runs don't interleave: one instance runs to completion (through the read-only account step) before the other gets the lock
     const first = events[0]!.slice(0, 1)
     const second = first === 'A' ? 'B' : 'A'
-    const secondAcquired = events.indexOf(`${second} [setup] 已获取初始化锁（并发安全）`)
-    const firstReleased = `${first} [setup] 初始化完成，已释放锁`
+    const secondAcquired = events.indexOf(`${second} [setup] Acquired the setup lock (safe to run concurrently)`)
+    const firstReleased = `${first} [setup] Setup complete; lock released`
     expect(events.slice(0, secondAcquired).filter((e) => e !== firstReleased)).toEqual([
-      `${first} [setup] 已获取初始化锁（并发安全）`,
-      `${first} [setup] 运行数据库迁移...`,
-      `${first} [setup] 数据库迁移完成`,
-      `${first} [setup] 同步 RBAC 菜单与权限...`,
-      `${first} [setup] 初始化 AI SQL 只读账号...`,
+      `${first} [setup] Acquired the setup lock (safe to run concurrently)`,
+      `${first} [setup] Running database migrations...`,
+      `${first} [setup] Database migrations done`,
+      `${first} [setup] Syncing RBAC menus and permissions...`,
+      `${first} [setup] Setting up the read-only AI SQL role...`,
     ])
     expect(events.filter((e) => e.startsWith(second))).toHaveLength(6)
 
@@ -153,7 +153,7 @@ describe('setup-once', () => {
 
     const tables = await query<{ table_name: string }>(url, "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
     const expected = tables.map((t) => t.table_name).filter(isVisibleTable).sort()
-    expect(log).toContain(`完成：为 ${expected.length} 张业务表授予只读权限`)
+    expect(log).toContain(`Done: granted read-only access to ${expected.length} business tables`)
     const grants = await query<{ table_name: string; privilege_type: string }>(
       url,
       'SELECT table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee = $1 ORDER BY 1',
@@ -186,7 +186,7 @@ describe('setup-once', () => {
   it('initRoRole：未配置密码跳过；非法角色名拒绝', async () => {
     const log: string[] = []
     expect(await initRoRole({ databaseUrl: url, roPassword: '   ', log: (m) => log.push(m) })).toEqual({ skipped: true, granted: 0 })
-    expect(log).toEqual(['未配置 POSTGRES_RO_PASSWORD，跳过 AI SQL 只读角色初始化'])
-    await expect(initRoRole({ databaseUrl: url, roPassword: 'x', roleName: 'bad; drop', log: quiet })).rejects.toThrow('非法角色名')
+    expect(log).toEqual(['POSTGRES_RO_PASSWORD is not set; skipping the read-only AI SQL role'])
+    await expect(initRoRole({ databaseUrl: url, roPassword: 'x', roleName: 'bad; drop', log: quiet })).rejects.toThrow('Invalid role name')
   })
 })

@@ -107,11 +107,11 @@ describe('castor-kit MCP server (stdio)', () => {
   it('validate_spec：通过时说明会生成什么；有问题逐条列出', async () => {
     const device = JSON.parse(readFileSync(join(MCP_DIR, '..', '..', 'docs', 'examples', 'specs', 'device.json'), 'utf8'))
     const ok = textOf(await client.callTool({ name: 'validate_spec', arguments: { spec: device } }))
-    assert.match(ok, /^✅ 规格有效：device（设备台账）/)
-    assert.match(ok, /接口：\/api\/admin\/devices/)
+    assert.match(ok, /^✅ Spec is valid: device \(设备台账\)/)
+    assert.match(ok, /API: \/api\/admin\/devices/)
     const bad = textOf(await client.callTool({ name: 'validate_spec', arguments: { spec: { name: 'x', fields: [{ name: 'a', type: 'str', requried: true }] } } }))
-    assert.match(bad, /缺少 title/)
-    assert.match(bad, /字段 a：未知属性 requried/)
+    assert.match(bad, /Missing title/)
+    assert.match(bad, /Field a: unknown property requried/)
   })
 
   it('scaffold_feature 传 spec + dry_run：只预览，也会写接口文档', async () => {
@@ -129,7 +129,7 @@ describe('castor-kit MCP server (stdio)', () => {
   it('check_openapi：当前文档符合规范', async () => {
     const out = textOf(await client.callTool({ name: 'check_openapi', arguments: {} }))
     assert.match(out, /^✅ Docs follow the rules/)
-    assert.match(out, /文档检查：全部符合规范/)
+    assert.match(out, /Docs check: every endpoint follows the rules/)
   })
 
   it('scaffold_feature 非法名称返回失败', async () => {

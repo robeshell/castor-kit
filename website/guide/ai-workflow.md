@@ -79,7 +79,7 @@ The AI asks additional questions only when the data model has an ambiguity that 
 
 ### 5. Verification gate
 
-Run `pnpm verify -- --module <name>`. The AI fixes any failing checks and re-runs verification. Once everything passes, it outputs a delivery report that states the migration version (e.g. "已迁移至 0001_customer", i.e. "migrated to 0001_customer").
+Run `pnpm verify -- --module <name>`. The AI fixes any failing checks and re-runs verification. Once everything passes, it outputs a delivery report that states the migration version (e.g. "migrated to 0001_customer").
 
 ::: warning Migrations must actually be applied
 Generating the migration file or passing static checks is not enough. You must run `pnpm db:migrate`, confirm with `psql \d`, and the `migration_applied` check of `pnpm verify` must pass.
