@@ -82,7 +82,7 @@ pnpm openapi:generate && pnpm openapi:apifox
 1. [ ] Read the related existing modules (see `apps/api/src/modules/admin/users/`, `apps/web/src/modules/admin/pages/users/index.jsx`)
 2. [ ] `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."`
 3. [ ] Backend: fill in the business logic in `db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts`
-4. [ ] Frontend: `pages/<subdir>/<page>/index.jsx` + `api/<page>.js` (frontend-only pages need no api file)
+4. [ ] Frontend: `pages/<subdir>/<page>/index.jsx` + `api/<page>.ts` (frontend-only pages need no api file; scaffold still writes `.js` until the TSX migration's step 4)
 5. [ ] RBAC: add the menu + button permission entries in `seed-rbac.ts`, run `pnpm seed:rbac -- --incremental`
 6. [ ] Migration: review the new SQL in `apps/api/drizzle/` → `pnpm db:migrate` → confirm with `psql \d`
 7. [ ] OpenAPI: scaffold has already written the module's endpoints; if you changed the generated routes / fields or added routes, update the doc following AGENTS.md "OpenAPI writing rules" until `pnpm openapi:generate -- --strict` passes

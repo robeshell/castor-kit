@@ -65,7 +65,7 @@ export function loadCatalogs() {
 function sourceFiles(target) {
   const root = resolve(WEB_DIR, target || 'src')
   const files = statSync(root).isDirectory() ? walk(root) : [root]
-  return files.filter((f) => /\.([jt]sx?|mjs)$/.test(f) && !/\.test\.[jt]sx?$/.test(f))
+  return files.filter((f) => /\.([jt]sx?|mjs)$/.test(f) && !/\.(test\.[jt]sx?|d\.ts)$/.test(f))
 }
 
 /** Walk the AST without @babel/traverse; calls visit(node, parent, parentKey) */

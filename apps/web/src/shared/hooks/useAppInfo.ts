@@ -27,8 +27,7 @@ export interface AppInfo {
   assistant?: boolean
 }
 
-// auth.js is untyped JS: its axios call resolves to the response body (request.ts unwraps it)
-const fetchAppInfo = getAppInfo as unknown as () => Promise<AppInfo>
+const fetchAppInfo: () => Promise<AppInfo> = getAppInfo
 
 // Fetched once per page load and shared by every caller (login page, demo banner, AI assistant)
 let cached: AppInfo | null = null
