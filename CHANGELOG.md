@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
-- The frontend is moving to TypeScript, layer by layer (plan in `docs/roadmap.md` "TypeScript frontend"):
+- The frontend is TypeScript (migrated layer by layer; plan and follow-ups in `docs/roadmap.md` "TypeScript frontend"):
   - `apps/web/tsconfig.json` (strict, `allowJs`) replaces `jsconfig.json`; `pnpm typecheck` and the `verify` gate type-check the web app's `.ts` / `.tsx` files, and `pnpm lint` now lints the web app too (typescript-eslint for TS files).
   - Page routing, the i18n scanner, the import check and `shadcn-add.sh` accept `.ts` / `.tsx`.
   - First files converted: `lib/utils`, `PageHeader`, `StatusBadge`, the sessions API; shared response shapes in `@/shared/api/types`.
@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format is based on 
   - Converted to TSX: the shared components (`DataTable<Row>` with typed columns, FormFields / FormDialog typed against react-hook-form, generic trees and selects, import / export, uploads) and every module API file.
   - API types are generated from the OpenAPI doc (`src/shared/api/openapi.d.ts`; `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody` in `@/shared/api/types`); `pnpm openapi:generate` regenerates them and a test fails when they are stale. The doc was corrected where the types showed it disagreed with the backend (user status / profile responses, two-factor enable, task run result).
   - `pnpm scaffold` generates TypeScript: the API file `api/<name>.ts` is typed from the module's OpenAPI entries (`export type <Name> = ApiItem<'/api/admin/<name>s'>`, `ApiQuery` / `ApiBody` / `ApiResponse`), and the list page `index.tsx` declares its `FormValues` field by field and types its columns with `DataTableColumn<Row>`, so a form that doesn't match the documented body fails `tsc`. Scaffold regenerates `openapi.d.ts` after writing the module's API docs (`apps/web/scripts/api-types.mjs` takes `--root`). The templates in `docs/templates/frontend/` are TSX too.
+  - The app shell (`components/app`, `App.tsx`, `main.tsx`) is TSX, so `apps/web/src` has no JavaScript left: `allowJs` is gone and `test/typescript-only.test.js` keeps it that way. Page routing only looks for `index.tsx`.
   - The component center pages are TSX too; `@/shared/components/Chart` takes echarts' own `EChartsOption` (echarts-for-react types `option` as `any`), so chart options are type-checked.
   - The auth and admin pages are TSX, typed with the API row types, `DataTableColumn<Row>[]` and `useForm<FormValues>`; `useAuth()` / `useTagsView()` return non-null values and throw outside their provider.
   - `docs/shadcn-changes.md` lists every project change to an upstream shadcn / AI Elements component, to re-apply after re-adding one.

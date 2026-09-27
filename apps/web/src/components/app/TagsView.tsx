@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ComponentType, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeftToLine, ArrowRightToLine, ChevronDown, RotateCw, X, XCircle } from 'lucide-react'
@@ -14,11 +14,19 @@ import { useAuth } from '@/context/AuthContext'
 import { menuLabel } from '@/lib/menu-label'
 import { cn } from '@/lib/utils'
 import { STATIC_TITLES, findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
-import { useTagsView } from '@/context/TagsViewContext'
+import { useTagsView, type Tab } from '@/context/TagsViewContext'
 import { useTranslation } from 'react-i18next'
 
 /** The actions shared by the right-click menu of a tab and the menu at the end of the bar */
-function TabActions({ Item, Separator, tab }) {
+interface TabActionsProps {
+  /** ContextMenuItem or DropdownMenuItem */
+  Item: ComponentType<{ disabled?: boolean; onSelect?: (event: Event) => void; children?: ReactNode }>
+  /** ContextMenuSeparator or DropdownMenuSeparator */
+  Separator: ComponentType
+  tab: Tab
+}
+
+function TabActions({ Item, Separator, tab }: TabActionsProps) {
   const { t } = useTranslation()
   const { tabs, close, closeOthers, closeRight, closeAll, refresh } = useTagsView()
   const index = tabs.findIndex((x) => x.path === tab.path)
@@ -60,7 +68,7 @@ export default function TagsView() {
   const { menus } = useAuth()
   const { tabs, activePath, close } = useTagsView()
   const flat = flattenMenus(menus)
-  const activeRef = useRef(null)
+  const activeRef = useRef<HTMLAnchorElement>(null)
 
   // Keep the active tab visible when the bar overflows
   useEffect(() => {

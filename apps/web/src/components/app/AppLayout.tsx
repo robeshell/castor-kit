@@ -1,4 +1,4 @@
-import { Activity, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useOutlet } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -15,7 +15,7 @@ import CommandMenu from '@/components/app/CommandMenu'
 import TagsView from '@/components/app/TagsView'
 import TopBar from '@/components/app/TopBar'
 import { TagsViewProvider, useTagsView } from '@/context/TagsViewContext'
-import { findActiveMenu, flattenMenus, sectionOf } from '@/components/app/menu-tree'
+import { findActiveMenu, flattenMenus, sectionOf, type FlatMenu } from '@/components/app/menu-tree'
 import { useAppInfo } from '@/shared/hooks/useAppInfo'
 
 // Loaded only when the assistant is on (it pulls in the markdown renderer)
@@ -27,7 +27,14 @@ const AssistantWidget = lazy(() => import('@/components/app/assistant/AssistantW
  * Closing a tab drops its page; refreshing a tab remounts it (key includes the tab's version).
  * Scroll position is remembered per page.
  */
-function PageArea({ keepAlive, container }) {
+interface PageAreaProps {
+  /** Keep every open tab's page mounted (tags view on, desktop) */
+  keepAlive: boolean
+  /** Class of the content container (content width) */
+  container: string
+}
+
+function PageArea({ keepAlive, container }: PageAreaProps) {
   const outlet = useOutlet()
   const location = useLocation()
   const { tabs, versions } = useTagsView()
@@ -35,17 +42,17 @@ function PageArea({ keepAlive, container }) {
   const cacheable = keepAlive && tabs.some((t) => t.path === current)
 
   // Cached route elements by pathname (updated during render: add the current page, drop closed tabs)
-  const [pages, setPages] = useState(() => new Map())
+  const [pages, setPages] = useState(() => new Map<string, ReactNode>())
   if (cacheable && !pages.has(current)) setPages((prev) => new Map(prev).set(current, outlet))
   const openPaths = new Set(keepAlive ? tabs.map((t) => t.path) : [])
   if ([...pages.keys()].some((path) => !openPaths.has(path))) {
     setPages((prev) => new Map([...prev].filter(([path]) => openPaths.has(path))))
   }
 
-  const scrollRef = useRef(null)
-  const scrollTops = useRef(new Map())
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollTops = useRef(new Map<string, number>())
   const version = versions[current] ?? 0
-  const scrollVersions = useRef(new Map())
+  const scrollVersions = useRef(new Map<string, number>())
   useLayoutEffect(() => {
     // A refreshed page (new version) starts from the top again
     if (scrollVersions.current.get(current) !== version) {
@@ -67,7 +74,7 @@ function PageArea({ keepAlive, container }) {
     return () => observer.disconnect()
   }, [])
 
-  const animated = (key, children) => (
+  const animated = (key: string, children: ReactNode) => (
     <motion.div
       key={key}
       initial={pageTransition.initial}
@@ -111,13 +118,14 @@ function PageArea({ keepAlive, container }) {
  * While the browser is idle, fetch the code of the light pages in the menu (system pages, the gallery's admin pages),
  * one at a time, so opening them for the first time doesn't wait for a download. Skipped when the user asked to save data.
  */
-function usePrefetchLightPages(flat) {
+function usePrefetchLightPages(flat: FlatMenu[]) {
   useEffect(() => {
-    if (navigator.connection?.saveData) return undefined
+    // navigator.connection (Network Information API) is not in lib.dom: Chromium only
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return undefined
     const queue = flat.map((m) => m.component).filter(isLightPage)
-    const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 1500))
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500))
     const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout
-    let handle
+    let handle: number | undefined
     let stopped = false
     const next = () => {
       if (stopped || queue.length === 0) return
@@ -126,7 +134,8 @@ function usePrefetchLightPages(flat) {
     next()
     return () => {
       stopped = true
-      cancelIdle(handle)
+      // Nothing was scheduled when the queue was empty from the start
+      if (handle !== undefined) cancelIdle(handle)
     }
   }, [flat])
 }

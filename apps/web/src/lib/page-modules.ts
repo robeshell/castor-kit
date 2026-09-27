@@ -1,7 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 
 /**
- * Menu pages: every `modules/<module>/pages/<page>/index.{jsx,tsx}` is its own chunk, loaded when the page is first opened
+ * Menu pages: every `modules/<module>/pages/<page>/index.tsx` is its own chunk, loaded when the page is first opened
  * (so heavy dependencies like ECharts, three.js or Monaco are not in the first download).
  * prefetchPage() starts that download early — on hover / focus of a menu item, or while the browser is idle —
  * so the first click doesn't wait for the page's code.
@@ -9,7 +9,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 type PageModule = { default: ComponentType }
 type PageComponent = LazyExoticComponent<ComponentType>
 
-const PAGE_MODULES = import.meta.glob<PageModule>('../modules/**/pages/**/index.{jsx,tsx}')
+const PAGE_MODULES = import.meta.glob<PageModule>('../modules/**/pages/**/index.tsx')
 
 // One lazy component per page, so re-renders don't recreate the component type and remount the page
 const lazyPages = new Map<string, PageComponent>()
@@ -22,7 +22,7 @@ function findLoader(componentName: unknown): { key: string; load: () => Promise<
   const [moduleName, ...pageParts] = name.split('/').filter(Boolean)
   if (!moduleName || pageParts.length === 0) return null
   const base = `/modules/${moduleName}/pages/${pageParts.join('/')}/index.`
-  const entry = Object.entries(PAGE_MODULES).find(([path]) => path.endsWith(`${base}tsx`) || path.endsWith(`${base}jsx`))
+  const entry = Object.entries(PAGE_MODULES).find(([path]) => path.endsWith(`${base}tsx`))
   return entry ? { key: name, load: entry[1] } : null
 }
 

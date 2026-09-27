@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth, type MenuNode } from '@/context/AuthContext'
-import { STATIC_TITLES, findActiveMenu, flattenMenus, navigablePages } from '@/components/app/menu-tree'
+import { useAuth } from '@/context/AuthContext'
+import { STATIC_TITLES, findActiveMenu, flattenMenus, navigablePages, type FlatMenu } from '@/components/app/menu-tree'
 
 /**
  * Tags view state: the pages the user has opened, shown as tabs under the top bar.
@@ -33,12 +33,8 @@ export interface TagsViewContextValue {
   refresh: (path: string) => void
 }
 
-/** A flattened menu (menu-tree.js flattenMenus) */
-type FlatMenu = MenuNode & { parents: MenuNode[] }
-
 const TagsViewContext = createContext<TagsViewContextValue | null>(null)
 const STORAGE_KEY = 'tags-view'
-const TITLES: Partial<Record<string, string>> = STATIC_TITLES
 
 const isStoredTab = (t: unknown): t is StoredTab =>
   typeof t === 'object' && t !== null && 'path' in t && typeof t.path === 'string' && 'fullPath' in t && typeof t.fullPath === 'string'
@@ -58,10 +54,10 @@ export function TagsViewProvider({ children }: { children?: ReactNode }) {
   const navigate = useNavigate()
   const flat = useMemo<FlatMenu[]>(() => flattenMenus(menus), [menus])
   const affixPaths = useMemo<string[]>(
-    () => navigablePages(flat).filter((m: FlatMenu) => m.parents.length === 0).map((m: FlatMenu) => m.path),
+    () => navigablePages(flat).filter((m) => m.parents.length === 0).map((m) => m.path),
     [flat],
   )
-  const isKnown = useCallback((path: string) => Boolean(TITLES[path] || findActiveMenu(flat, path)), [flat])
+  const isKnown = useCallback((path: string) => Boolean(STATIC_TITLES[path] || findActiveMenu(flat, path)), [flat])
 
   const [opened, setOpened] = useState(readStored) // non-affixed tabs, in opening order
   const [versions, setVersions] = useState<Partial<Record<string, number>>>({})
@@ -152,7 +148,6 @@ export function TagsViewProvider({ children }: { children?: ReactNode }) {
   return <TagsViewContext.Provider value={value}>{children}</TagsViewContext.Provider>
 }
 
-/** The tags view state; null outside <TagsViewProvider> */
 /** The tab bar state; every caller sits inside <TagsViewProvider> */
 export function useTagsView(): TagsViewContextValue {
   const value = useContext(TagsViewContext)

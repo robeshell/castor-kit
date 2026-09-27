@@ -1,6 +1,6 @@
 # 前端开发
 
-前端位于 `apps/web`，技术栈是 React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react，语言为 TypeScript（TSX）：代码正逐层从 JSX 迁移过来，尚未迁移的 `.jsx` 文件照常可用。本页介绍动态路由、标准页面结构、API 调用、公共组件和样式规范。
+前端位于 `apps/web`，技术栈是 React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react，语言为 TypeScript（TSX）。本页介绍动态路由、标准页面结构、API 调用、公共组件和样式规范。
 
 参考实现：
 
@@ -13,7 +13,7 @@
 
 ## 动态路由
 
-前端没有手写的路由表。`apps/web/src/App.jsx` 用 `import.meta.glob('./modules/**/pages/**/index.jsx')` 扫描所有页面，再根据当前用户的菜单生成路由：
+前端没有手写的路由表。`apps/web/src/App.tsx` 根据当前用户的菜单生成路由，`lib/page-modules.ts` 用 `import.meta.glob` 扫描 `modules/**/pages/**/index.tsx`，为每个菜单找到对应页面：
 
 - 菜单的 `path` 字段是浏览器地址，例如 `/system/users`
 - 菜单的 `component` 字段决定加载哪个页面，格式为 `<module>/<subdir>/<page>`
@@ -27,7 +27,7 @@
 只有启用且可见、类型为 `menu` 的菜单会生成路由。页面组件按需懒加载。菜单存在但找不到对应文件时，页面区域会显示“页面未配置”提示。
 
 ::: warning 页面位置
-页面必须放在 `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`（尚未迁移的页面是 `index.jsx`），否则动态路由找不到。对应的 API 文件放在 `apps/web/src/modules/<module>/api/<page>.ts`。
+页面必须放在 `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`，否则动态路由找不到。对应的 API 文件放在 `apps/web/src/modules/<module>/api/<page>.ts`。
 :::
 
 新增页面后还需要在 `seed-rbac.ts` 中添加菜单，见 [权限 RBAC](/zh/guide/rbac)。

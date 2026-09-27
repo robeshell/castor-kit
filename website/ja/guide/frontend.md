@@ -1,6 +1,6 @@
 # フロントエンド
 
-フロントエンドは `apps/web` にあり、技術スタックは React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react、言語は TypeScript（TSX）です。コードは JSX から層ごとに移行中で、未移行の `.jsx` ファイルもそのまま動作します。このページでは、動的ルーティング、標準的なページ構成、API の呼び出し、共通コンポーネント、スタイル規約について説明します。
+フロントエンドは `apps/web` にあり、技術スタックは React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react、言語は TypeScript（TSX）です。このページでは、動的ルーティング、標準的なページ構成、API の呼び出し、共通コンポーネント、スタイル規約について説明します。
 
 参考実装：
 
@@ -13,7 +13,7 @@
 
 ## 動的ルーティング {#dynamic-routing}
 
-フロントエンドには手書きのルート定義がありません。`apps/web/src/App.jsx` が `import.meta.glob('./modules/**/pages/**/index.jsx')` ですべてのページをスキャンし、現在のユーザーのメニューからルートを生成します。
+フロントエンドには手書きのルート定義がありません。`apps/web/src/App.tsx` が現在のユーザーのメニューからルートを生成し、`lib/page-modules.ts` が `import.meta.glob` で `modules/**/pages/**/index.tsx` をスキャンして各メニューのページを見つけます。
 
 - メニューの `path` フィールドはブラウザのアドレスです（例：`/system/users`）
 - メニューの `component` フィールドは読み込むページを決めます。形式は `<module>/<subdir>/<page>` です
@@ -27,7 +27,7 @@
 ルートが生成されるのは、有効かつ表示状態で、種類が `menu` のメニューだけです。ページコンポーネントは必要に応じて遅延読み込みされます。メニューは存在するのに対応するファイルが見つからない場合、ページ領域に「ページが設定されていません」と表示されます。
 
 ::: warning ページの配置場所
-ページは必ず `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`（まだ移行していないページは `index.jsx`）に置いてください。そうしないと動的ルーティングがページを見つけられません。対応する API ファイルは `apps/web/src/modules/<module>/api/<page>.ts` に置きます。
+ページは必ず `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx` に置いてください。そうしないと動的ルーティングがページを見つけられません。対応する API ファイルは `apps/web/src/modules/<module>/api/<page>.ts` に置きます。
 :::
 
 ページを追加したら、`seed-rbac.ts` にメニューも追加する必要があります。[権限（RBAC）](/ja/guide/rbac) を参照してください。

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import logoUrl from '@/assets/castor-logo.png'
 
@@ -5,9 +6,17 @@ import logoUrl from '@/assets/castor-logo.png'
  * Brand mark: beaver avatar + wordmark.
  * Wordmark = "castor" in bold Geist (tight tracking) + "kit" in the brand gradient, so it follows the accent color.
  * The text sits in the last child div: the collapsed sidebar hides it with [&>div:last-child]:hidden.
- * @param {{ className?: string, imageClassName?: string, showText?: boolean, subtitle?: import('react').ReactNode }} props
  */
-export default function BrandMark({ className, imageClassName, showText = true, subtitle }) {
+export interface BrandMarkProps {
+  className?: string
+  imageClassName?: string
+  /** Show the wordmark next to the avatar (default true); without it the image gets the brand name as its alt text */
+  showText?: boolean
+  /** Small line under the wordmark */
+  subtitle?: ReactNode
+}
+
+export default function BrandMark({ className, imageClassName, showText = true, subtitle }: BrandMarkProps) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <img

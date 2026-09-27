@@ -30,7 +30,7 @@ Vercel's AI components (https://elements.ai-sdk.dev , built on shadcn), used wit
 | `message` | `Message` / `MessageContent` / `MessageResponse` (Streamdown streaming Markdown) / `MessageActions` / `MessageAction` |
 | `prompt-input` | `PromptInput` / `PromptInputTextarea` / `PromptInputFooter` / `PromptInputTools` / `PromptInputSubmit` (shows send / stop based on useChat's `status`) |
 | `suggestion` | `Suggestions` / `Suggestion` |
-| `confirmation` | `Confirmation` (pass the tool call's `approval` and `state`) / `ConfirmationTitle` / `ConfirmationRequest` / `ConfirmationAccepted` / `ConfirmationRejected` / `ConfirmationActions` / `ConfirmationAction`: tool calls that need user approval (`needsApproval`); see `components/app/assistant/ToolPart.jsx` |
+| `confirmation` | `Confirmation` (pass the tool call's `approval` and `state`) / `ConfirmationTitle` / `ConfirmationRequest` / `ConfirmationAccepted` / `ConfirmationRejected` / `ConfirmationActions` / `ConfirmationAction`: tool calls that need user approval (`needsApproval`); see `components/app/assistant/ToolPart.tsx` |
 | `streamdown-translations.ts` | `useStreamdownTranslations()`: translations of Streamdown's button labels in all three languages, passed to `MessageResponse` as `translations` |
 | `code-highlighter.ts` | castor-kit's own Streamdown code highlighting plugin: common languages only, loaded on demand (the official `@streamdown/code` bundles 200+ grammars) |
 

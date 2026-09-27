@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend lives in `apps/web` and is built with React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react, written in TypeScript (TSX): the code is moving from JSX layer by layer, and the `.jsx` files that remain still work. This page covers dynamic routing, the standard page structure, API calls, shared components and styling rules.
+The frontend lives in `apps/web` and is built with React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react, written in TypeScript (TSX). This page covers dynamic routing, the standard page structure, API calls, shared components and styling rules.
 
 Reference implementations:
 
@@ -13,7 +13,7 @@ Reference implementations:
 
 ## Dynamic routing
 
-There is no hand-written route table. `apps/web/src/App.jsx` scans every page with `import.meta.glob('./modules/**/pages/**/index.jsx')` and builds the routes from the current user's menus:
+There is no hand-written route table. `apps/web/src/App.tsx` builds the routes from the current user's menus, and `lib/page-modules.ts` finds each menu's page with `import.meta.glob` over `modules/**/pages/**/index.tsx`:
 
 - A menu's `path` field is the browser URL, e.g. `/system/users`
 - A menu's `component` field decides which page to load, in the form `<module>/<subdir>/<page>`
@@ -27,7 +27,7 @@ There is no hand-written route table. `apps/web/src/App.jsx` scans every page wi
 Only menus that are active, visible and of type `menu` produce routes. Page components are lazy-loaded. If a menu exists but its file can't be found, the page area shows a "Page not configured" notice.
 
 ::: warning Page location
-Pages must live at `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx` (pages not yet converted are `index.jsx`), otherwise dynamic routing won't find them. The matching API file goes in `apps/web/src/modules/<module>/api/<page>.ts`.
+Pages must live at `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`, otherwise dynamic routing won't find them. The matching API file goes in `apps/web/src/modules/<module>/api/<page>.ts`.
 :::
 
 After adding a page, you also need to add its menu in `seed-rbac.ts`; see [Permissions (RBAC)](/guide/rbac).

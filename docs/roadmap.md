@@ -14,7 +14,7 @@
 | 2 | Open API: API tokens and webhooks | — | — | Done |
 | — | Public demo mode and Render + Neon deployment | — | — | Done |
 | — | Global AI assistant (see [AI assistant](../website/guide/assistant.md)) | — | — | Done |
-| — | [TypeScript frontend](#typescript-frontend) (JSX → TSX, layer by layer) | High | — | In progress |
+| — | [TypeScript frontend](#typescript-frontend) (JSX → TSX, layer by layer) | High | — | Done (step 6 cleanup open) |
 | 3 | [Approval workflow](#approval-workflow) | Low | 1 | Not started |
 | 3 | [Multi-tenancy](#multi-tenancy) | Low | 1, 2 | Not started |
 
@@ -47,7 +47,7 @@ Each item ships as its own PR and meets these requirements:
 | 2 | `components/ui` and AI Elements as TSX (`components.json` `tsx: true`), keeping the project's changes; `lib`, `i18n`, hooks, context | Done: typed in place against the upstream TSX (type-stripped output identical to the old JSX); changes from upstream listed in `docs/shadcn-changes.md` |
 | 3 | `shared/components` and the module API files; API types generated from `docs/apifox-full.openapi.json` (`src/shared/api/openapi.d.ts`, helpers `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody`); fixed the doc where the types showed it disagreed with the backend | Done |
 | 4 | Scaffold: generated pages and API files, `docs/templates/frontend`, skills and AGENTS.md describe TSX | Done: `pnpm scaffold` writes `api/<name>.ts` (row / body types from the module's OpenAPI entries) and `index.tsx` (`FormValues` per field, `DataTableColumn<Row>[]`, no `any` or casts) and regenerates `openapi.d.ts` after writing the doc; the scaffold tests type-check the generated files with apps/web's tsc |
-| 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | In progress: all pages done (auth, admin, component center); `components/app`, `App` / `main` and removing `allowJs` next |
+| 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | Done: every page, `components/app`, `App` / `main`; `allowJs` removed, `test/typescript-only.test.js` keeps `src` TypeScript-only |
 | 6 | Idiomatic TypeScript cleanup (changes behavior, so its own PRs): drop defensive checks the types now guarantee (`x \|\| {}`, `typeof x === 'function'`) and dead branches; remove avoidable type assertions; one export / file-naming style (default vs named exports, `useXxx.ts` vs `use-xxx.ts`) | Not started |
 
 **Acceptance per step**: `pnpm verify` green including the web typecheck; pages behave the same; no new `.jsx` in a converted layer.

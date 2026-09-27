@@ -116,7 +116,7 @@
   "移除文件": "ファイルを削除",
   "第 {{from}}–{{to}} 条，共 {{total}} 条": "{{total}} 件中 {{from}}–{{to}} 件",
   "编辑": "編集",
-  "菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.jsx 对齐，例如 admin/users。": "メニューパス {{path}} のコンポーネント {{component}} がフロントエンドに登録されていません。component は apps/web/src/modules/<module>/pages/<page>/index.jsx と一致させてください（例：admin/users）。",
+  "菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.tsx 对齐，例如 admin/users。": "メニューパス {{path}} のコンポーネント {{component}} がフロントエンドに登録されていません。component は apps/web/src/modules/<module>/pages/<page>/index.tsx と一致させてください（例：admin/users）。",
   "请先选择导入文件": "インポートするファイルを選択してください",
   "请至少勾选一个导出字段": "エクスポートする項目を 1 つ以上選択してください",
   "请输入密码": "パスワードを入力してください",

@@ -11,7 +11,7 @@ castor-kit is a pnpm monorepo with three apps:
 | App | Package | Tech |
 |---|---|---|
 | Backend `apps/api` | `@castor-kit/api` | Node 22, TypeScript (strict), Fastify 5, Zod, Drizzle ORM, PostgreSQL 14+, pino |
-| Frontend `apps/web` | `@castor-kit/web` | React 19, Vite, React Router, shadcn/ui (Radix), Tailwind CSS v4, motion, lucide-react, i18next (TypeScript / TSX, moving from JSX) |
+| Frontend `apps/web` | `@castor-kit/web` | React 19, Vite, React Router, shadcn/ui (Radix), Tailwind CSS v4, motion, lucide-react, i18next (TypeScript / TSX) |
 | MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`; exposes scaffolding, verification, RBAC sync, migrations and other tools to MCP clients |
 
 Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form` for forms, ECharts for charts, Three.js for 3D, Monaco for code editing, react-quill-new for rich text, and dnd-kit for drag and drop.
