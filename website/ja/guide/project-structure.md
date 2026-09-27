@@ -105,7 +105,7 @@ apps/web/
     │   ├── auth/pages/login/         # ログインページ
     │   ├── admin/{pages,api}/        # システム管理のページと API
     │   └── component_center/
-    │       ├── pages/{admin,dataviz,creative,ai,editor,devtools}/
+    │       ├── pages/{admin,dataviz,ai,editor,devtools}/
     │       └── api/
     └── shared/
         ├── api/request.js    # Axios インスタンス（baseURL '/api'。CSRF ヘッダーと Accept-Language を自動付与）

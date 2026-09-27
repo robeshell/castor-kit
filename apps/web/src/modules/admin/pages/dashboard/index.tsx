@@ -10,7 +10,6 @@ import {
   ArrowUpRight,
   ArrowRight,
   Bot,
-  Box,
   ChartPie,
   FileText,
   LayoutGrid,
@@ -42,8 +41,7 @@ type PerfStats = ApiResponse<'/api/admin/component-center/devtools/perf-stats'>
 
 const QUICK_LINKS = [
   { label: '管理系统', desc: '列表 · 表单 · 看板 · 甘特', icon: LayoutGrid, path: '/component-center/list-page' },
-  { label: '数据可视化', desc: '大屏 · 折线 · 热力 · 地图', icon: ChartPie, path: '/component-center/dashboard-page' },
-  { label: '3D 创意', desc: '粒子 · CSS 3D · 地球', icon: Box, path: '/component-center/creative/particle' },
+  { label: '数据可视化', desc: '大屏 · 折线 · 热力 · 流量', icon: ChartPie, path: '/component-center/dashboard-page' },
   { label: 'AI 应用', desc: '对话 · 提示词 · 数据查询', icon: Bot, path: '/component-center/ai/chat' },
   { label: '编辑器', desc: '富文本 · 代码 · JSON · MD', icon: PenLine, path: '/component-center/editor/rich-text' },
   { label: '工程工具', desc: '拖拽 · 虚拟滚动 · WS', icon: Wrench, path: '/component-center/devtools/drag-layout' },
@@ -358,7 +356,7 @@ export default function Dashboard() {
                 <Link
                   key={item.label}
                   to={item.path}
-                  className="group hover:bg-muted/60 flex items-start gap-2.5 rounded-lg p-2.5 transition-colors"
+                  className="group hover:bg-muted/60 flex items-start gap-2.5 rounded-lg p-2.5 transition-colors last:odd:col-span-2"
                 >
                   <span className="bg-brand-soft text-primary flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
                     <item.icon className="size-4" />

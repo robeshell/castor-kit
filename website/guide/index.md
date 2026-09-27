@@ -14,13 +14,13 @@ castor-kit is a pnpm monorepo with three apps:
 | Frontend `apps/web` | `@castor-kit/web` | React 19, Vite, React Router, shadcn/ui (Radix), Tailwind CSS v4, motion, lucide-react, i18next (TypeScript / TSX) |
 | MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`; exposes scaffolding, verification, RBAC sync, migrations and other tools to MCP clients |
 
-Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form` for forms, ECharts for charts, Three.js for 3D, Monaco for code editing, react-quill-new for rich text, and dnd-kit for drag and drop.
+Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form` for forms, ECharts for charts, Monaco for code editing, react-quill-new for rich text, and dnd-kit for drag and drop.
 
 ## Who it's for
 
 - **Teams that want AI to actually ship features**: a product manager or developer describes the requirement in one sentence, and the AI works out the technical details: routes, field types, permission codes, menu IDs.
 - **Developers who need a well-structured admin starting point**: login, users, roles, menus, logs, data dictionaries, scheduled tasks, notifications and announcements work out of the box, together with a full RBAC permission system.
-- **Frontend developers looking for reference implementations of common admin pages**: the Component Gallery ships 28 example pages covering lists, Kanban boards, Gantt charts, data dashboards, 3D, AI chat, editors and more.
+- **Frontend developers looking for reference implementations of common admin pages**: the Component Gallery ships 24 example pages covering lists, Kanban boards, Gantt charts, data dashboards, AI chat, editors and more.
 
 ## Core features
 

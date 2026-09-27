@@ -64,7 +64,6 @@ Inference guidelines (field types: see "Field type inference" below):
 | Tables / forms / toasts | `@tanstack/react-table` (wrapped as DataTable) / `react-hook-form` / `sonner` | - |
 | Dates / command palette | `react-day-picker` + `date-fns` / `cmdk` (⌘K) | - |
 | Charts | ECharts 6, imported on demand: pages use `@/shared/components/Chart`; chart types / components are registered in `@/lib/echarts` (add new ones there); don't import `echarts` / `echarts-for-react` directly; theme colors come from `@/lib/chart-theme` | - |
-| 3D | Three.js | 0.176 |
 | Code editor | @monaco-editor/react | - |
 | Rich text | react-quill-new (React 19 compatible) | - |
 | Drag and drop | @dnd-kit/core + @dnd-kit/sortable | - |
@@ -153,7 +152,7 @@ castor-kit/
 │   │       ├── modules/
 │   │       │   ├── admin/{pages,api}/
 │   │       │   └── component_center/
-│   │       │       ├── pages/{admin,dataviz,creative,ai,editor,devtools}/
+│   │       │       ├── pages/{admin,dataviz,ai,editor,devtools}/
 │   │       │       └── api/
 │   │       └── shared/
 │   │           ├── api/request.ts     # Axios instance (baseURL='/api', withCredentials, CSRF header)
@@ -528,7 +527,6 @@ The CLI writes TSX according to `components.json` (`tsx: true`). After installin
 ### Frontend-only pages (no backend API)
 
 ```
-component_center/creative/*
 component_center/devtools/websocket_page      (WebSocket /ws/devtools is served by the backend)
 component_center/devtools/perf_monitor_page   (metrics come from /ws/devtools)
 component_center/dataviz/heatmap_page
@@ -595,7 +593,7 @@ System pages (parent_id=its group):           ID 21-39; new pages start at 2001 
 Component gallery (parent_id=3):              ID 40-499
   管理系统 [Admin Pages] (parent_id=40):          ID 401-409
   数据可视化 [Data Visualization] (parent_id=41): ID 411-419
-  3D/创意 [3D / Creative] (parent_id=42):         ID 421-429
+  (free: ID 42 and 421-429, the removed 3D / Creative group)
   AI 应用 [AI Apps] (parent_id=44):               ID 441-449
   编辑器 [Editors] (parent_id=45):                ID 451-459
   工具类 [Engineering Tools] (parent_id=46):      ID 461-469
@@ -864,11 +862,6 @@ ID=3   组件示例中心 [Component Gallery] (component_center)
     ID=412 热力日历图 [Calendar Heatmap] → /component-center/dataviz/heatmap → component_center/dataviz/heatmap_page
     ID=413 流量转化分析 [Traffic Flow] (cc_dataviz_traffic_flow) → /component-center/dataviz/traffic-flow → component_center/dataviz/traffic_flow_page
     ID=414 数据大屏 [Data Dashboard] (cc_dataviz_dashboard) → /component-center/dashboard-page → component_center/dataviz/dashboard_page
-  ID=42  3D / 创意 [3D / Creative] (cc_3d)
-    ID=421 粒子连线动画 [Particle Network] → /component-center/creative/particle → component_center/creative/particle_canvas_page
-    ID=422 CSS 3D 卡片 [CSS 3D Cards] → /component-center/creative/css-3d → component_center/creative/css_3d_page
-    ID=423 Three.js 地球 [Three.js Globe] → /component-center/creative/globe → component_center/creative/threejs_globe_page
-    ID=424 粒子形态变换 [Particle Morphing] → /component-center/creative/morphing → component_center/creative/morphing_particles_page
   ID=44  AI 应用 [AI Apps] (cc_ai)
     ID=441 AI 对话 [AI Chat] → /component-center/ai/chat → component_center/ai/ai_chat_page
     ID=442 AI 提示词工坊 [AI Prompt Studio] → /component-center/ai/prompt → component_center/ai/ai_prompt_page

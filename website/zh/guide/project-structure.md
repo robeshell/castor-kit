@@ -105,7 +105,7 @@ apps/web/
     │   ├── auth/pages/login/         # 登录页
     │   ├── admin/{pages,api}/        # 系统管理页面与接口
     │   └── component_center/
-    │       ├── pages/{admin,dataviz,creative,ai,editor,devtools}/
+    │       ├── pages/{admin,dataviz,ai,editor,devtools}/
     │       └── api/
     └── shared/
         ├── api/request.js    # Axios 实例（baseURL '/api'，自动带 CSRF 头与 Accept-Language）

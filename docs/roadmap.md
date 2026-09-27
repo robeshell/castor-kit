@@ -14,7 +14,8 @@
 | 2 | Open API: API tokens and webhooks | — | — | Done |
 | — | Public demo mode and Render + Neon deployment | — | — | Done |
 | — | Global AI assistant (see [AI assistant](../website/guide/assistant.md)) | — | — | Done |
-| — | [TypeScript frontend](#typescript-frontend) (JSX → TSX, layer by layer) | High | — | Done (step 6 cleanup open) |
+| — | [TypeScript frontend](#typescript-frontend) (JSX → TSX, layer by layer) | High | — | Done |
+| — | [Component gallery redesign](#component-gallery-redesign) (reference implementations for developers and AI, one shared demo backend, component showcase) | High | — | In progress |
 | 3 | [Approval workflow](#approval-workflow) | Low | 1 | Not started |
 | 3 | [Multi-tenancy](#multi-tenancy) | Low | 1, 2 | Not started |
 
@@ -32,6 +33,36 @@ Each item ships as its own PR and meets these requirements:
 - New endpoints have API tests and shared frontend components have unit tests; `pnpm verify` is all green
 - The same PR updates the docs in all three languages (`website/`) and the `[Unreleased]` section of `CHANGELOG.md`; if new environment variables are involved, update `apps/api/.env.example` and the configuration docs too
 - Existing deployments upgrade smoothly: new columns get a default value or are nullable, and existing data is not broken
+
+---
+
+## Component gallery redesign
+
+**Goal**: the component gallery (`modules/component_center`) becomes the reference that developers and AI agents copy from: one page per page pattern and one page per shared component, all following AGENTS.md exactly. Decided with the user on 2026-09-27: the audience is developers and AI (not marketing), the per-page backends are merged into one demo module, the 3D / creative pages go, and component showcase pages are added.
+
+**Today**: 28 pages (~14.5k lines of frontend, ~5.9k of backend). Ten page templates each carry their own table, module, migration and menu although their columns mostly overlap (name / code / category / status / owner / priority / is_active / description + a few specific ones); the shared components (`DataTable`, FormFields, uploads, import / export, charts…) have no page of their own; the creative pages have little to do with an admin framework.
+
+**Target structure**
+
+| Section | Pages | Backend |
+|---|---|---|
+| Page patterns | standard list, card list, tree list, stats list, detail with tabs, step form, dynamic form, kanban, gantt, advanced table (inline edit, batch actions) — each marked as the reference implementation of its pattern | one shared `demo_records` module |
+| Components | one page per shared component (DataTable, FormFields, Filters, TreeSelect / TreeView / CheckableTree, uploads, import / export, Chart, StatCard, …): variants, props, copyable code; also the condition builder from the old list page | none (mock data) |
+| AI | chat, SQL query, prompt studio | unchanged (prompt studio keeps its table) |
+| Data visualization | dashboard, realtime chart, heatmap, traffic flow | unchanged |
+| Editors / tools | rich text, code, JSON, Markdown, drag layout, virtual scroll, WebSocket, perf monitor | unchanged |
+
+**Shared demo model** — one table `demo_records`: `name`, `code` (unique), `category`, `status`, `owner`, `priority`, `is_active`, `description` for every pattern; `parent_id` + `sort_order` (tree list, kanban order); `amount` + `quantity` (stats list, plus a stats endpoint); `start_date` / `end_date` / `progress` (gantt); `cover_url` + `tags` (card list); `extra` jsonb (dynamic form fields). One module serves list with filters, tree, stats, CRUD, batch update / delete, reorder, import / export / template. Kanban columns are the fixed `status` values (dragging a card across columns changes its status); board management and WIP limits are dropped (business features, not page patterns). The old list page's saved-query builder (conditions, versions) moves to the components section with mock data.
+
+**Steps** (one PR each)
+
+1. Remove the 3D / creative pages, their menus (migration `0002_remove_creative_menus`) and the three.js dependency.
+2. The `demo_records` module: table + migration, schema / repository / service / routes (`routeBody`), OpenAPI docs, API tests, seed / demo fixtures.
+3. Rebuild the page patterns on it; delete the ten old modules, their tables (migration) and menus (migration + seed-rbac), rewrite `src/demo/fixtures.ts` and the demo writable paths.
+4. Component showcase pages.
+5. AGENTS.md / skills / docs site: a "page pattern → reference implementation" table, so an agent building a card list or kanban knows which page to copy; update the docs site's component gallery guide (en / zh / ja).
+
+**Upgrade note**: existing deployments lose the old demo tables' rows in step 3 (demo data only); the CHANGELOG says so.
 
 ---
 
@@ -66,7 +97,7 @@ Each item ships as its own PR and meets these requirements:
 - ~~Dead code the types show: `scheduled_tasks` `openEdit` handles an object `request_headers` (the API returns a string); `value = []` defaults on the non-null `scopes` / `events` columns; the `isCancelled` / `isMfaRequired` guards are duplicated across pages (could live in `useReauth.ts`)~~ Fixed in step 6b (guards exported from `useReauth.ts` as `isReauthCancelled` / `needsMfa`)
 - Component center: ~~the list page's `EditorSection` shows its Chinese title / description untranslated (the locales have them)~~ Fixed: it translates them with `tx()`; ~~tree list `<Trans components=[...]>` without a `key`~~ Fixed; card list: ~~a record with `is_active: null` shows the switch off but saves `true` if left untouched, the PUT body carries `id` / timestamps~~ Fixed: the edit form is built from the form fields only, a null `is_active` / `category` shows the API's default (`true` / `general`); ~~clearing priority saves 0 while the doc says "keeps the original value"~~ The doc already says "null → 0" since #71; the priority input's placeholder now says a blank saves 0; ~~kanban sends `board_code` on update, which the API doesn't accept~~ Fixed: sent on create only, and the field is read-only when editing
 - AI / editors: ~~the AI SQL schema sheet shows "no tables" instead of an error after a failed first load (and doesn't retry)~~ Fixed: an error state with a retry button, and reopening after a failure loads again; ~~the prompt page resets the form with untrimmed values after saving~~ Fixed: it resets with the saved payload; ~~the code editor's "format" says done for languages Monaco can't format (Python, SQL, Java) and its promise has no `.catch`~~ Fixed: those languages get a "not supported" notice, and a failed format shows an error
-- Charts / creative: ~~the heatmap labels dates in UTC but finds weekends in local time (a day off before 08:00 in UTC+8)~~ Fixed: labels use the local date (`heatmap_page/calendar.ts`); ~~`toLocaleTimeString('zh-CN' / 'zh')` in the dashboard, perf monitor and WebSocket pages ignores the UI language~~ Fixed: they use `i18n.language`; ~~the particle canvas divides by a zero distance when the pointer sits exactly on a particle~~ Fixed: a zero distance isn't pushed; ~~the two Three.js pages only resize on window `resize` (not when the sidebar collapses)~~ Fixed: a `ResizeObserver` on the container (the unused `stateRef.morphT` is gone)
+- Charts / creative (the creative pages were removed later, see "Component gallery redesign"): ~~the heatmap labels dates in UTC but finds weekends in local time (a day off before 08:00 in UTC+8)~~ Fixed: labels use the local date (`heatmap_page/calendar.ts`); ~~`toLocaleTimeString('zh-CN' / 'zh')` in the dashboard, perf monitor and WebSocket pages ignores the UI language~~ Fixed: they use `i18n.language`; ~~the particle canvas divides by a zero distance when the pointer sits exactly on a particle~~ Fixed: a zero distance isn't pushed; ~~the two Three.js pages only resize on window `resize` (not when the sidebar collapses)~~ Fixed: a `ResizeObserver` on the container (the unused `stateRef.morphT` is gone)
 - ~~The OpenAPI doc is stricter than the backend in about ten request params / bodies~~ Reconciled: request bodies declare every nullish `field.*` value as nullable, list / export filters where `''` means "all" list `''`, and the pages send typed export `fields` / `file_type`; the API files use the generated types (no `// TODO(openapi)` left)
 - ~~The OpenAPI doc types `user` in the `POST /api/admin/two-factor/enable` response as a free-form object~~ Fixed: documented as the signed-in user (same shape as login), and `EnableTwoFactorResult` is the generated type. Tree `children` can't be recursive inline (the API files keep local node types)
 

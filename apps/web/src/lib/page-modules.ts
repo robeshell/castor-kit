@@ -2,7 +2,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 
 /**
  * Menu pages: every `modules/<module>/pages/<page>/index.tsx` is its own chunk, loaded when the page is first opened
- * (so heavy dependencies like ECharts, three.js or Monaco are not in the first download).
+ * (so heavy dependencies like ECharts or Monaco are not in the first download).
  * prefetchPage() starts that download early — on hover / focus of a menu item, or while the browser is idle —
  * so the first click doesn't wait for the page's code.
  */
