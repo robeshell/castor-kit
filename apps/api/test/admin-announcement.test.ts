@@ -66,11 +66,11 @@ describe('announcement', () => {
   let a: number
   let b: number
 
-  it('新增：201，默认值与 publish_at 解析（带 Z 按会话时区换算、naive 原样）', async () => {
+  it('新增：201，默认值与 publish_at（带时区按会话时区换算、不带时区原样）', async () => {
     const res = await s.inject({
       method: 'POST',
       url: '/api/admin/announcements',
-      payload: { title: ` ${P}甲 `, publish_at: '2026-09-23T10:00:00Z', is_top: 'x', sort_order: '3', content: null },
+      payload: { title: ` ${P}甲 `, publish_at: '2026-09-23T10:00:00Z', is_top: true, sort_order: 3, content: null },
     })
     expect(res.statusCode).toBe(201)
     const body = res.json()
@@ -86,18 +86,28 @@ describe('announcement', () => {
     const rb = await s.inject({
       method: 'POST',
       url: '/api/admin/announcements',
-      payload: { title: `${P}乙`, announce_type: 'activity', status: 'published', publish_at: 'garbage', sort_order: 2.9, is_top: 0 },
+      payload: { title: `${P}乙`, announce_type: 'activity', status: 'published', publish_at: '', sort_order: 2, is_top: false },
     })
     expect(rb.json()).toMatchObject({ announce_type: 'activity', status: 'published', publish_at: null, sort_order: 2, is_top: false })
     b = rb.json().id
   })
 
-  it('新增校验：标题为空 400；非字符串标题 / 非法 sort_order / 超长 → 400', async () => {
+  it('新增校验：标题为空 400；类型不符 / 超长 → 400', async () => {
     const post = (payload: object) => s.inject({ method: 'POST', url: '/api/admin/announcements', payload })
     expect([(await post({})).statusCode, (await post({ title: ' ' })).json()]).toEqual([400, { error: '标题不能为空' }])
-    for (const bad of [{ title: 123 }, { title: `${P}x`, sort_order: 'abc' }, { title: `${P}${'x'.repeat(100)}` }, { title: `${P}x`, content: { a: 1 } }]) {
+    const cases: Array<[object, string]> = [
+      [{ title: 123 }, '标题的值无效'],
+      [{ title: `${P}x`, sort_order: 'abc' }, '排序权重的值无效'],
+      [{ title: `${P}x`, sort_order: 2.9 }, '排序权重的值无效'],
+      [{ title: `${P}x`, is_top: 'x' }, '是否置顶的值无效'],
+      [{ title: `${P}x`, content: { a: 1 } }, '内容的值无效'],
+      [{ title: `${P}x`, publish_at: 'garbage' }, '发布时间的值无效'],
+      [{ title: `${P}x`, publish_at: '2026-02-30 10:00' }, '发布时间的值无效'],
+      [{ title: `${P}${'x'.repeat(100)}` }, '字段长度超出限制'],
+    ]
+    for (const [bad, error] of cases) {
       const res = await post(bad)
-      expect([res.statusCode, res.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
+      expect([res.statusCode, res.json()], JSON.stringify(bad)).toEqual([400, { error }])
     }
     expect(await handle.db.select().from(announcements).where(eq(announcements.title, `${P}x`))).toHaveLength(0)
   })
@@ -111,13 +121,13 @@ describe('announcement', () => {
     expect((await s.inject({ url: `/api/admin/announcements?search=${P}&per_page=1&page=2` })).json().items[0].id).toBe(b)
   })
 
-  it('编辑：空 body / 同值不改 updated_at；status=published 补 publish_at；publish_at 非法保持', async () => {
+  it('编辑：空 body / 同值不改 updated_at；status=published 补 publish_at；类型不符 400', async () => {
     const before = await row(b)
     expect((await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: {} })).statusCode).toBe(200)
-    await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { title: `${P}乙 `, sort_order: '2', is_top: null } })
+    await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { title: `${P}乙 `, sort_order: 2, is_top: null } })
     expect((await row(b)).updated_at).toBe(before.updated_at)
 
-    const pub = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { status: 'published', publish_at: 'bad' } })).json()
+    const pub = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { status: 'published' } })).json()
     expect(pub.publish_at).not.toBeNull()
     const afterPub = await row(b)
     expect(afterPub.updated_at).not.toBe(before.updated_at)
@@ -128,15 +138,21 @@ describe('announcement', () => {
 
     const naive = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { publish_at: '2026-01-02 03:04:05.5' } })).json()
     expect(naive.publish_at).toBe('2026-01-02T03:04:05.500000')
-    const cleared = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { publish_at: null, content: 0 } })).json()
+    const cleared = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { publish_at: null, content: null } })).json()
     expect(cleared).toMatchObject({ publish_at: null, content: '' })
 
     expect((await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { title: '' } })).json()).toEqual({
       error: '标题不能为空',
     })
-    for (const bad of [{ announce_type: null }, { sort_order: [1] }, { title: ['x'] }]) {
+    const cases: Array<[object, string]> = [
+      [{ announce_type: 'x' }, '公告类型只能是 system、activity 或 update'],
+      [{ sort_order: [1] }, '排序权重的值无效'],
+      [{ title: ['x'] }, '标题的值无效'],
+      [{ publish_at: 'bad' }, '发布时间的值无效'],
+    ]
+    for (const [bad, error] of cases) {
       const res = await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: bad })
-      expect([res.statusCode, res.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
+      expect([res.statusCode, res.json()], JSON.stringify(bad)).toEqual([400, { error }])
     }
     expect((await s.inject({ method: 'PUT', url: '/api/admin/announcements/99999999', payload: {} })).statusCode).toBe(404)
   })
@@ -184,7 +200,7 @@ describe('announcement', () => {
       { label: '创建时间', value: 'created_at' },
     ])
     const bad = await s.inject({ method: 'POST', url: '/api/admin/announcements/export', payload: { export_mode: 'selected', ids: 'abc' } })
-    expect([bad.statusCode, bad.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
+    expect([bad.statusCode, bad.json()]).toEqual([400, { error: '导出记录的值无效' }])
   })
 
   it('模板：默认 xlsx，csv 精确字节', async () => {
@@ -216,7 +232,7 @@ describe('announcement', () => {
       reason: '标题不能为空',
       row: { 标题: '', 公告类型: 'system', 状态: 'draft', 是否置顶: '', 排序权重: '', 内容: '' },
     })
-    expect(body.error_rows[1].reason).toMatch(/^\(psycopg2\.errors\.StringDataRightTruncation\) /)
+    expect(body.error_rows[1].reason).toBe('字段长度超出限制')
     const [one] = await handle.db.select().from(announcements).where(eq(announcements.title, `${P}导入1`))
     expect(one).toMatchObject({ announce_type: 'activity', status: 'published', is_top: true, sort_order: 5, content: 'c1', publish_at: null })
     const [two] = await handle.db.select().from(announcements).where(eq(announcements.title, `${P}导入2`))
@@ -226,9 +242,9 @@ describe('announcement', () => {
     expect(ok.json()).toEqual({ created: 1, updated: 0 })
   })
 
-  it('导入：表头带空白的列不会被映射；空文件/无文件/格式', async () => {
+  it('导入：表头去空白后映射；空文件/无文件/格式', async () => {
     const res = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', ` 标题 \n${P}空白表头\n`) })
-    expect(res.json()).toEqual({ created: 0, updated: 0, error_rows: [{ line: 2, reason: '标题不能为空', row: { ' 标题 ': `${P}空白表头` } }] })
+    expect(res.json()).toEqual({ created: 1, updated: 0 })
 
     const imp = (f: ReturnType<typeof multipartFile>) => s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...f })
     const wb = new ExcelJS.Workbook()

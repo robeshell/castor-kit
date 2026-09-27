@@ -62,11 +62,11 @@ describe('notification', () => {
   let toFixtureId: number
   let toSuperId: number
 
-  it('新增：201 形状；noti_type 非法 → info；is_global 按 Python 真值；非全局才取 user_id', async () => {
+  it('新增：201 形状；缺省 noti_type → info、is_global → true；非全局才取 user_id', async () => {
     const g = await s.inject({
       method: 'POST',
       url: '/api/admin/notifications',
-      payload: { title: `  ${P}全局  `, noti_type: 'bogus', content: null, link: '', user_id: fixtureUserId },
+      payload: { title: `  ${P}全局  `, content: null, link: '', user_id: fixtureUserId },
     })
     expect(g.statusCode).toBe(201)
     expect(Object.keys(g.json()).sort()).toEqual(
@@ -86,7 +86,7 @@ describe('notification', () => {
     const t = await s.inject({
       method: 'POST',
       url: '/api/admin/notifications',
-      payload: { title: `${P}给夹具`, noti_type: 'warning', is_global: '', user_id: String(fixtureUserId), link: '/x' },
+      payload: { title: `${P}给夹具`, noti_type: 'warning', is_global: false, user_id: fixtureUserId, link: '/x' },
     })
     expect(t.json()).toMatchObject({ is_global: false, user_id: fixtureUserId, noti_type: 'warning', link: '/x' })
     toFixtureId = t.json().id
@@ -94,19 +94,27 @@ describe('notification', () => {
     const t2 = await s.inject({
       method: 'POST',
       url: '/api/admin/notifications',
-      payload: { title: `${P}给超管`, is_global: 0, user_id: s.userId, noti_type: 'error' },
+      payload: { title: `${P}给超管`, is_global: false, user_id: s.userId, noti_type: 'error' },
     })
     toSuperId = t2.json().id
   })
 
-  it('新增校验：标题为空 400；非字符串标题 / 非法内容 / 用户不存在 → 400；无权限 403', async () => {
+  it('新增校验：标题为空 400；类型不符 / 用户不存在 → 400；无权限 403', async () => {
     const post = (session: AuthedSession, payload: object) =>
       session.inject({ method: 'POST', url: '/api/admin/notifications', payload })
     expect((await post(s, {})).json()).toEqual({ error: '标题不能为空' })
     expect((await post(s, { title: ' ' })).json()).toEqual({ error: '标题不能为空' })
-    for (const bad of [{ title: 123 }, { title: `${P}x`, is_global: false, user_id: 99999999 }, { title: `${P}x`, content: { a: 1 } }]) {
+    const cases: Array<[object, string]> = [
+      [{ title: 123 }, '标题的值无效'],
+      [{ title: `${P}x`, content: { a: 1 } }, '内容的值无效'],
+      [{ title: `${P}x`, noti_type: 'bogus' }, '通知类型的值无效'],
+      [{ title: `${P}x`, is_global: '' }, '全局通知的值无效'],
+      [{ title: `${P}x`, is_global: false, user_id: String(fixtureUserId) }, '接收用户的值无效'],
+      [{ title: `${P}x`, is_global: false, user_id: 99999999 }, '接收通知的用户不存在'],
+    ]
+    for (const [bad, error] of cases) {
       const res = await post(s, bad)
-      expect([res.statusCode, res.json()]).toEqual([400, { error: expect.not.stringContaining('服务器内部错误') }])
+      expect([res.statusCode, res.json()], JSON.stringify(bad)).toEqual([400, { error }])
     }
     expect((await post(u, { title: 'x' })).json()).toEqual({ error: '无权限创建通知' })
   })

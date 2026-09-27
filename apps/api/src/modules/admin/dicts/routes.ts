@@ -9,8 +9,8 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch } from '@/common/validation'
-import { dictItemBody, dictTypeBody, parseBoolText } from './schema'
+import { parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { dictItemBody, dictTypeBody } from './schema'
 import { DictsService } from './service'
 
 function queryArg(request: FastifyRequest, key: string): string | null {
@@ -39,7 +39,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
       page,
       per_page,
       queryString(request, 'search').trim(),
-      parseBoolText(queryArg(request, 'is_active')),
+      parseYesNo(queryArg(request, 'is_active')),
     )
   })
 
@@ -57,7 +57,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限查看数据字典' })
     }
     const type = await service.getTypeOr404(dictIdOf(request))
-    return service.getDictType(type, parseBoolText(queryArg(request, 'include_items')) === true)
+    return service.getDictType(type, parseYesNo(queryArg(request, 'include_items')) === true)
   })
 
   app.put(dictPath, opts, async (request, reply) => {
@@ -81,7 +81,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限查看字典项' })
     }
     const type = await service.getTypeOr404(dictIdOf(request))
-    return service.listDictItems(type, queryString(request, 'search').trim(), parseBoolText(queryArg(request, 'is_active')))
+    return service.listDictItems(type, queryString(request, 'search').trim(), parseYesNo(queryArg(request, 'is_active')))
   })
 
   app.post(`${dictPath}/items`, opts, async (request, reply) => {

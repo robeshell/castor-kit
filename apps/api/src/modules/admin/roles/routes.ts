@@ -6,10 +6,11 @@
 
 import { declareEvents } from '@/common/webhooks'
 import type { FastifyInstance } from 'fastify'
-import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, parseIntParam, queryString, rawJsonBody } from '@/common/http'
+import { hasMenuPermission, loginRequired } from '@/common/auth'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { sendTable } from '@/common/tabular'
-import { dictBody, membershipBody } from '@/common/py-values'
+import { parseBody, parsePatch } from '@/common/validation'
+import { roleBody, roleExportBody } from './schema'
 import { RoleService } from './service'
 
 declareEvents({ 'role.created': '角色已新增', 'role.updated': '角色已修改（含权限、数据范围）', 'role.deleted': '角色已删除' })
@@ -29,7 +30,7 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_roles_add'))) {
       return reply.status(403).send({ error: '无权限新增角色' })
     }
-    return reply.status(201).send(await service.createRole(dictBody(rawJsonBody(request))))
+    return reply.status(201).send(await service.createRole(parseBody(roleBody, request.body)))
   })
 
   app.put(`/api/admin/roles/${intParam('role_id')}`, opts, async (request, reply) => {
@@ -37,7 +38,7 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限编辑角色' })
     }
     const role = await service.getRoleOr404(parseIntParam((request.params as { role_id: string }).role_id))
-    return service.updateRole(role, membershipBody(rawJsonBody(request), ['name', 'code', 'description', 'menu_ids']))
+    return service.updateRole(role, parsePatch(roleBody, request.body))
   })
 
   app.delete(`/api/admin/roles/${intParam('role_id')}`, opts, async (request, reply) => {
@@ -52,7 +53,7 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_roles_export'))) {
       return reply.status(403).send({ error: '无权限导出角色' })
     }
-    return sendTable(reply, await service.exportRoles(dictBody(rawJsonBody(request)), await currentUsername(request)))
+    return sendTable(reply, await service.exportRoles(parseBody(roleExportBody, request.body)))
   })
 
   app.get('/api/admin/roles/template', opts, async (request, reply) => {

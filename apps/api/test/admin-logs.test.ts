@@ -120,15 +120,18 @@ describe('日志列表', () => {
 
 describe('日志导出', () => {
   it('登录日志导出 csv 精确字节（选中模式按 id 升序）', async () => {
-    const res = await s.inject({ method: 'POST', url: '/api/admin/logs/login/export', payload: { ids: [loginIds[2], String(loginIds[0])] } })
+    const res = await s.inject({ method: 'POST', url: '/api/admin/logs/login/export', payload: { ids: [loginIds[2], loginIds[0]] } })
     expect(res.headers['content-disposition']).toBe('attachment; filename=login_logs_export.csv')
     expect(res.body).toBe(
       '﻿ID,用户名,状态,IP 地址,User-Agent,说明,时间\r\n' +
         `${loginIds[0]},${P}alice,success,1.1.1.1,UA,,2026-01-01 08:00:00\r\n` +
         `${loginIds[2]},${P}bob,success,2.2.2.2,UA,,2026-01-03 10:00:00\r\n`,
     )
-    expect((await s.inject({ method: 'POST', url: '/api/admin/logs/login/export', payload: { ids: 5 } })).json()).toEqual({
+    expect((await s.inject({ method: 'POST', url: '/api/admin/logs/login/export', payload: {} })).json()).toEqual({
       error: '请先勾选要导出的日志数据',
+    })
+    expect((await s.inject({ method: 'POST', url: '/api/admin/logs/login/export', payload: { ids: 5 } })).json()).toEqual({
+      error: '导出记录的值无效',
     })
   })
 

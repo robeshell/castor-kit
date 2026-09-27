@@ -1,23 +1,19 @@
 /**
- * Notification schema layer: request normalization
+ * Notification schema layer: request body
  */
 
-import { invalidInput } from '@/common/py-values'
-import { pyTruthy } from '@/common/py'
+import { z } from 'zod'
+import { field } from '@/common/validation'
 
 export const NOTI_TYPES = ['info', 'warning', 'success', 'error'] as const
 
-/**
- * `(data.get(key) or '').strip()`: falsy → ''; truthy values must be strings,
- * otherwise it throws (uncaught → global 500).
- */
-export function stripOrEmpty(value: unknown): string {
-  if (!pyTruthy(value)) return ''
-  if (typeof value !== 'string') throw invalidInput(`'${typeof value}' object has no attribute 'strip'`)
-  return value.trim()
-}
+export const notificationBody = z.object({
+  title: field.requiredText('标题', '标题不能为空'),
+  content: field.text('内容'),
+  noti_type: field.choice('通知类型', NOTI_TYPES, 'info'),
+  link: field.text('跳转链接'),
+  is_global: field.bool('全局通知', true),
+  user_id: field.id('接收用户'),
+})
 
-/** `noti_type = data.get('noti_type', 'info')`; not in the allowlist → 'info' */
-export function normalizeNotiType(value: unknown): string {
-  return typeof value === 'string' && (NOTI_TYPES as readonly string[]).includes(value) ? value : 'info'
-}
+export type NotificationInput = z.output<typeof notificationBody>

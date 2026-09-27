@@ -10,11 +10,12 @@
 import type { FastifyInstance } from 'fastify'
 import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
 import { requestPath } from '@/common/csrf'
-import { queryString, rawJsonBody } from '@/common/http'
+import { queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { sendTable } from '@/common/tabular'
-import { dictBody } from '@/common/py-values'
+import { parseBody } from '@/common/validation'
+import { loginLogExportBody, operationLogExportBody } from './schema'
 import { LogsService } from './service'
 
 export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
@@ -68,13 +69,13 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_logs_export'))) {
       return reply.status(403).send({ error: '无权限导出日志' })
     }
-    return sendTable(reply, await service.exportLoginLogs(dictBody(rawJsonBody(request))))
+    return sendTable(reply, await service.exportLoginLogs(parseBody(loginLogExportBody, request.body)))
   })
 
   app.post('/api/admin/logs/operation/export', opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_logs_export'))) {
       return reply.status(403).send({ error: '无权限导出日志' })
     }
-    return sendTable(reply, await service.exportOperationLogs(dictBody(rawJsonBody(request))))
+    return sendTable(reply, await service.exportOperationLogs(parseBody(operationLogExportBody, request.body)))
   })
 }

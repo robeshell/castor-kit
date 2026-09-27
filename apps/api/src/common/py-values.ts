@@ -29,17 +29,7 @@ export function invalidInput(_detail?: string): ServiceError {
 /** Re-exported for the modules that import it from here; defined in common/errors.ts */
 export { internalError } from './errors'
 
-/** Whether a DB execution error (incl. the drizzle-wrapped cause chain) mentions a constraint/keyword; equivalent to `'menus_pkey' in str(e)` */
-export function dbErrorMentions(err: unknown, needle: string): boolean {
-  let cur: unknown = err
-  for (let depth = 0; cur && depth < 5; depth += 1) {
-    const e = cur as { message?: unknown; constraint?: unknown; cause?: unknown }
-    if (e.constraint === needle) return true
-    if (typeof e.message === 'string' && e.message.includes(needle)) return true
-    cur = e.cause
-  }
-  return false
-}
+export { dbErrorMentions } from './db-errors'
 
 /** Python `for x in value` (list elements / dict keys / str chars); other types are not iterable → 500 */
 export function pyIterate(value: unknown): unknown[] {

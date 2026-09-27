@@ -1,13 +1,14 @@
 /**
  * Auth module schema layer
  *
- * Request schemas are all loose (= zod 3 passthrough) with every field optional: bodies are read as lenient objects,
- * and missing/extra/mistyped fields are all handled in the service.
+ * The login body is checked on the route (it runs before authentication, which login doesn't need) and stays loose:
+ * a wrong username or password type simply fails to sign in. Change-password is parsed in the handler after the
+ * session check, so a signed-out caller gets 401, not 400.
  */
 
 import { z } from 'zod'
 import { passwordPolicyError, type PasswordPolicy } from '@/common/password-policy'
-import { pyStr, pyTruthy } from '@/common/py'
+import { field } from '@/common/validation'
 
 export const loginBodySchema = z
   .object({
@@ -17,19 +18,14 @@ export const loginBodySchema = z
   .loose()
   .nullish()
 
-export const changePasswordBodySchema = z
-  .object({
-    old_password: z.unknown().optional(),
-    new_password: z.unknown().optional(),
-  })
-  .loose()
-  .nullish()
+export const changePasswordBody = z.object({
+  old_password: field.secret('旧密码'),
+  new_password: field.secret('新密码'),
+})
 
-export type ChangePasswordPayload = z.infer<typeof changePasswordBodySchema>
+export type ChangePasswordPayload = z.output<typeof changePasswordBody>
 
 export function validateChangePasswordPayload(data: ChangePasswordPayload, policy: PasswordPolicy): string | null {
-  const oldPassword = data?.old_password
-  const newPassword = data?.new_password
-  if (!pyTruthy(oldPassword) || !pyTruthy(newPassword)) return '请填写完整信息'
-  return passwordPolicyError(pyStr(newPassword), policy, '新密码')
+  if (!data.old_password || !data.new_password) return '请填写完整信息'
+  return passwordPolicyError(data.new_password, policy, '新密码')
 }

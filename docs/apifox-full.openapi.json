@@ -25483,10 +25483,9 @@
                   "dept_id": {
                     "type": [
                       "integer",
-                      "string",
                       "null"
                     ],
-                    "description": "部门 ID（整数或数字字符串），null / 空串表示不分配；部门必须存在且在当前数据权限范围内"
+                    "description": "部门 ID，null 表示不分配；部门必须存在且在当前数据权限范围内"
                   },
                   "role_ids": {
                     "type": "array",
@@ -25986,10 +25985,9 @@
                   "dept_id": {
                     "type": [
                       "integer",
-                      "string",
                       "null"
                     ],
-                    "description": "部门 ID（整数或数字字符串），null / 空串表示不分配；部门必须存在且在当前数据权限范围内"
+                    "description": "部门 ID，null 表示不分配；部门必须存在且在当前数据权限范围内"
                   },
                   "role_ids": {
                     "type": "array",

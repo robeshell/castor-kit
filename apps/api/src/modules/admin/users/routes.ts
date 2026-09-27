@@ -9,10 +9,11 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { currentUsername, getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
 import { isSuperAdmin } from '@/common/rbac'
 import { resolveDataScope } from '@/common/data-scope'
-import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
+import { parseBody, parsePatch } from '@/common/validation'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { isUserStatus } from './schema'
+import { isUserStatus, profileBody, userBody, userExportBody, userStatusBody, userUpdateBody } from './schema'
 import { declareEvents } from '@/common/webhooks'
 import { UserService, type Caller } from './service'
 
@@ -51,7 +52,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_users_add'))) {
       return reply.status(403).send({ error: '无权限新增用户' })
     }
-    return reply.status(201).send(await service.createUser(jsonBody(request), await resolveDataScope(request), await callerOf(request)))
+    return reply.status(201).send(await service.createUser(parseBody(userBody, request.body), await resolveDataScope(request), await callerOf(request)))
   })
 
   app.put(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
@@ -59,7 +60,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限编辑用户' })
     }
     const user = await scopedUserOr404(request)
-    return service.updateUser(user, jsonBody(request), await resolveDataScope(request), await callerOf(request))
+    return service.updateUser(user, parsePatch(userUpdateBody, request.body), await resolveDataScope(request), await callerOf(request))
   })
 
   app.put(`/api/admin/users/${intParam('user_id')}/status`, opts, async (request, reply) => {
@@ -67,7 +68,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限启用或停用用户' })
     }
     const user = await scopedUserOr404(request)
-    return service.setUserStatus(user, jsonBody(request).status, await callerOf(request))
+    return service.setUserStatus(user, parseBody(userStatusBody, request.body).status, await callerOf(request))
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
@@ -82,7 +83,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_users_export'))) {
       return reply.status(403).send({ error: '无权限导出用户' })
     }
-    return sendTable(reply, await service.exportUsers(jsonBody(request), await resolveDataScope(request)))
+    return sendTable(reply, await service.exportUsers(parseBody(userExportBody, request.body), await resolveDataScope(request)))
   })
 
   app.get('/api/admin/users/template', opts, async (request, reply) => {
@@ -95,7 +96,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   // Self-service profile: any signed-in user, own nickname / email / phone / avatar only
   app.put('/api/admin/profile', opts, async (request) => {
     const user = await getCurrentAdminUser(request)
-    return service.updateOwnProfile(user!, jsonBody(request))
+    return service.updateOwnProfile(user!, parsePatch(profileBody, request.body))
   })
 
   app.post('/api/admin/users/import', opts, async (request, reply) => {

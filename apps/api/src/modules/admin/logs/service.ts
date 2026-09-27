@@ -3,20 +3,26 @@
  */
 
 import { ServiceError } from '@/common/errors'
-import { pyStrOrEmpty } from '@/common/py'
 import { safePayload } from '@/common/request-meta'
 import { buildTable } from '@/common/tabular'
 import type { Db } from '@/db/client'
 import { loginLogToDict, operationLogToDict } from '@/db/schema'
-import { adaptIdsForIn, dictGet, parseExportArgs, selectedIdsOrNull } from '@/common/py-values'
+import { exportColumns } from '@/common/validation'
+import type { z } from 'zod'
 import { LogsRepository, type LoginLogFilters, type OperationLogFilters } from './repository'
-import { LOGIN_EXPORT_FIELD_MAP, OPERATION_EXPORT_FIELD_MAP, resolveModuleAndAction } from './schema'
+import {
+  LOGIN_EXPORT_FIELD_MAP,
+  OPERATION_EXPORT_FIELD_MAP,
+  resolveModuleAndAction,
+  type loginLogExportBody,
+  type operationLogExportBody,
+} from './schema'
 
 export interface OperationContext {
   method: string
   path: string
   username: string | undefined
-  /** Equivalent of request.get_json(silent=True): null for non-JSON requests */
+  /** The JSON request body; null for non-JSON requests */
   jsonBody: unknown
   ip: string
   userAgent: string
@@ -25,7 +31,6 @@ export interface OperationContext {
   apiTokenId?: number | null
 }
 
-type Data = Record<string, unknown>
 
 const RECORDED_METHODS = new Set(['POST', 'PUT', 'DELETE'])
 
@@ -77,40 +82,33 @@ export class LogsService {
     return { items: items.map(operationLogToDict), total, page, per_page: perPage }
   }
 
-  async exportLoginLogs(data: Data) {
-    const args = parseExportArgs(data, LOGIN_EXPORT_FIELD_MAP)
+  async exportLoginLogs(options: z.output<typeof loginLogExportBody>) {
+    const validFields = exportColumns(options.fields, LOGIN_EXPORT_FIELD_MAP)
     let items
-    if (args.exportMode === 'filtered') {
-      items = await this.repo.listLoginLogsFiltered({
-        username: pyStrOrEmpty(dictGet(args.filters, 'username')),
-        status: pyStrOrEmpty(dictGet(args.filters, 'status')),
-      })
+    if (options.export_mode !== 'selected') {
+      const { username, status } = options.filters
+      items = await this.repo.listLoginLogsFiltered({ username: username ?? '', status: status ?? '' })
     } else {
-      const ids = selectedIdsOrNull(args.ids)
-      if (!ids) throw new ServiceError('请先勾选要导出的日志数据', 400)
-      items = await this.repo.listLoginLogsByIds(adaptIdsForIn(ids))
+      if (options.ids.length === 0) throw new ServiceError('请先勾选要导出的日志数据', 400)
+      items = await this.repo.listLoginLogsByIds(options.ids)
     }
-    const headers = args.validFields.map((f) => LOGIN_EXPORT_FIELD_MAP[f]![0])
-    const rows = items.map((item) => args.validFields.map((f) => LOGIN_EXPORT_FIELD_MAP[f]![1](item)))
-    return buildTable(headers, rows, 'login_logs_export', args.fileType)
+    const headers = validFields.map((f) => LOGIN_EXPORT_FIELD_MAP[f]![0])
+    const rows = items.map((item) => validFields.map((f) => LOGIN_EXPORT_FIELD_MAP[f]![1](item)))
+    return buildTable(headers, rows, 'login_logs_export', options.file_type)
   }
 
-  async exportOperationLogs(data: Data) {
-    const args = parseExportArgs(data, OPERATION_EXPORT_FIELD_MAP)
+  async exportOperationLogs(options: z.output<typeof operationLogExportBody>) {
+    const validFields = exportColumns(options.fields, OPERATION_EXPORT_FIELD_MAP)
     let items
-    if (args.exportMode === 'filtered') {
-      items = await this.repo.listOperationLogsFiltered({
-        username: pyStrOrEmpty(dictGet(args.filters, 'username')),
-        module: pyStrOrEmpty(dictGet(args.filters, 'module')),
-        action: pyStrOrEmpty(dictGet(args.filters, 'action')),
-      })
+    if (options.export_mode !== 'selected') {
+      const { username, module, action } = options.filters
+      items = await this.repo.listOperationLogsFiltered({ username: username ?? '', module: module ?? '', action: action ?? '' })
     } else {
-      const ids = selectedIdsOrNull(args.ids)
-      if (!ids) throw new ServiceError('请先勾选要导出的日志数据', 400)
-      items = await this.repo.listOperationLogsByIds(adaptIdsForIn(ids))
+      if (options.ids.length === 0) throw new ServiceError('请先勾选要导出的日志数据', 400)
+      items = await this.repo.listOperationLogsByIds(options.ids)
     }
-    const headers = args.validFields.map((f) => OPERATION_EXPORT_FIELD_MAP[f]![0])
-    const rows = items.map((item) => args.validFields.map((f) => OPERATION_EXPORT_FIELD_MAP[f]![1](item)))
-    return buildTable(headers, rows, 'operation_logs_export', args.fileType)
+    const headers = validFields.map((f) => OPERATION_EXPORT_FIELD_MAP[f]![0])
+    const rows = items.map((item) => validFields.map((f) => OPERATION_EXPORT_FIELD_MAP[f]![1](item)))
+    return buildTable(headers, rows, 'operation_logs_export', options.file_type)
   }
 }

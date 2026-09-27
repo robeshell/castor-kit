@@ -5,52 +5,27 @@
 import { wouldCreateCycle } from '@/common/tree'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { pyStrOrEmpty, pyTruthy } from '@/common/py'
 import { buildTable, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import type { Db, Executor } from '@/db/client'
 import { menuToDict, type AdminUserWithRoles, type Menu, type MenuDict } from '@/db/schema'
-import {
-  adaptBool,
-  adaptIdsForIn,
-  adaptInt,
-  adaptText,
-  dbErrorMentions,
-  dictGet,
-  internalError,
-  invalidInput,
-  parseExportArgs,
-  pyEq,
-  selectedIdsOrNull,
-} from '@/common/py-values'
-import { writeError } from '@/common/db-errors'
+import { dbErrorMentions, writeError } from '@/common/db-errors'
+import { internalError } from '@/common/errors'
+import { changedFields, exportColumns } from '@/common/validation'
+import type { z } from 'zod'
 import { MenuRepository, type MenuUpdateValues, type NewMenuValues } from './repository'
 import {
   buildErrorRow,
   EXPORT_FIELD_MAP,
-  MENU_MUTABLE_FIELDS,
   MENU_TYPES,
   mapImportHeaders,
   parseImportRow,
   TEMPLATE_HEADERS,
   TEMPLATE_ROWS,
-  validateCreatePayload,
-  validateUpdatePayload,
   type ErrorRow,
   type MenuExportItem,
-  type MenuMutableField,
+  type MenuInput,
+  type menuExportBody,
 } from './schema'
-
-type Data = Record<string, unknown>
-
-const TEXT_FIELDS = new Set<MenuMutableField>(['name', 'code', 'icon', 'path', 'component', 'menu_type', 'description'])
-const INT_FIELDS = new Set<MenuMutableField>(['parent_id', 'sort_order'])
-
-/** Convert raw request-body values to DB values by column type (invalid values → 500) */
-function adaptField(field: MenuMutableField, value: unknown): unknown {
-  if (TEXT_FIELDS.has(field)) return adaptText(value)
-  if (INT_FIELDS.has(field)) return adaptInt(value)
-  return adaptBool(value)
-}
 
 /** Fields updated per row on import (parent_id is handled separately in the second pass) */
 const IMPORT_FIELDS = [
@@ -87,14 +62,14 @@ export class MenuService {
     }
   }
 
-  /** `Menu.to_dict(include_children=True)`: children are queried level by level, ordered by sort_order */
+  /** A menu with its subtree: children are queried level by level, ordered by (sort_order, id) */
   private async toDictWithChildren(menu: Menu, visiting: Set<number> = new Set()): Promise<MenuDict> {
     // A parent_id pointing to itself / forming a cycle is treated as too-deep recursion → 500
     if (visiting.has(menu.id)) throw internalError('maximum recursion depth exceeded')
     visiting.add(menu.id)
     const dict = menuToDict(menu)
     const children: MenuDict[] = []
-    for (const child of await this.repo.listChildrenPyOrder(menu.id)) {
+    for (const child of await this.repo.listChildren(menu.id)) {
       children.push(await this.toDictWithChildren(child, visiting))
     }
     dict.children = children
@@ -135,7 +110,7 @@ export class MenuService {
       if (matched.has(menu.id)) return this.toDictWithChildren(menu)
       const dict = menuToDict(menu)
       const children: MenuDict[] = []
-      for (const child of await this.repo.listChildrenPyOrder(menu.id)) {
+      for (const child of await this.repo.listChildren(menu.id)) {
         if (keep.has(child.id)) children.push(await build(child))
       }
       dict.children = children
@@ -159,44 +134,25 @@ export class MenuService {
     return this.toDictWithChildren(menu)
   }
 
-  /** `build_menu_entity`: columns whose value is None fall back to the model default */
-  private buildMenuValues(data: Data, code: string): NewMenuValues {
-    return {
-      name: adaptText(data.name)!,
-      code,
-      icon: adaptText(data.icon),
-      path: adaptText(data.path),
-      component: adaptText(data.component),
-      parent_id: adaptInt(data.parent_id),
-      sort_order: adaptInt('sort_order' in data ? data.sort_order : 0) ?? 0,
-      is_visible: adaptBool('is_visible' in data ? data.is_visible : true) ?? true,
-      is_active: adaptBool('is_active' in data ? data.is_active : true) ?? true,
-      menu_type: adaptText('menu_type' in data ? data.menu_type : 'menu') ?? 'menu',
-      description: adaptText(data.description),
-    }
-  }
-
-  private async insertWithSequenceSync(data: Data, code: string): Promise<Menu> {
+  /** The seed script inserts menus with explicit ids, so the id sequence is synced before inserting */
+  private async insertWithSequenceSync(values: NewMenuValues): Promise<Menu> {
     return this.db.transaction(async (tx) => {
       const repo = new MenuRepository(tx)
       await repo.syncIdSequence()
-      return repo.insert(this.buildMenuValues(data, code))
+      return repo.insert(values)
     })
   }
 
-  async createMenu(data: Data): Promise<MenuDict> {
-    validateCreatePayload(data)
-    if (typeof data.code !== 'string') throw invalidInput()
-    const code = data.code
-    if (await this.repo.getByCode(code)) throw new ServiceError(`菜单编码 ${code} 已存在`, 400)
+  async createMenu(values: MenuInput): Promise<MenuDict> {
+    if (await this.repo.getByCode(values.code)) throw new ServiceError(`菜单编码 ${values.code} 已存在`, 400)
 
     try {
-      return menuToDict(await this.insertWithSequenceSync(data, code))
+      return menuToDict(await this.insertWithSequenceSync(values))
     } catch (err) {
       if (err instanceof ServiceError) throw err
       if (dbErrorMentions(err, 'menus_pkey')) {
         try {
-          return menuToDict(await this.insertWithSequenceSync(data, code))
+          return menuToDict(await this.insertWithSequenceSync(values))
         } catch (retryErr) {
           throw writeError(retryErr)
         }
@@ -205,19 +161,16 @@ export class MenuService {
     }
   }
 
-  async updateMenu(menu: Menu, data: Data): Promise<MenuDict> {
-    validateUpdatePayload(data)
-    if (pyTruthy(data.code) && !pyEq(data.code, menu.code)) {
-      if (typeof data.code !== 'string') throw invalidInput()
-      if (await this.repo.getByCode(data.code)) throw new ServiceError(`菜单编码 ${data.code} 已存在`, 400)
+  async updateMenu(menu: Menu, input: Partial<MenuInput>): Promise<MenuDict> {
+    if (input.code !== undefined && input.code !== menu.code && (await this.repo.getByCode(input.code))) {
+      throw new ServiceError(`菜单编码 ${input.code} 已存在`, 400)
     }
 
     // Only UPDATE columns whose value actually changed; if nothing changed no UPDATE is sent and updated_at stays
-    const changed = MENU_MUTABLE_FIELDS.filter((f) => f in data && !pyEq(data[f], menu[f]))
-    if (changed.length === 0) return menuToDict(menu)
+    const values: MenuUpdateValues = changedFields(menu, input)
+    if (Object.keys(values).length === 0) return menuToDict(menu)
 
     return this.inTx(async (repo, tx) => {
-      const values = Object.fromEntries(changed.map((f) => [f, adaptField(f, data[f])])) as MenuUpdateValues
       // Design note: making a menu its own parent or a descendant's child creates a cycle; the menu tree API then recurses forever (500) and both menu management and the sidebar break, so block it here
       const newParent = values.parent_id
       if (typeof newParent === 'number' && (await wouldCreateCycle(tx, 'menus', menu.id, newParent))) {
@@ -233,8 +186,8 @@ export class MenuService {
     return { message: '删除成功' }
   }
 
-  async sortMenu(menu: Menu, directionRaw: unknown) {
-    const direction = pyStrOrEmpty(directionRaw).toLowerCase()
+  async sortMenu(menu: Menu, directionRaw: string | null) {
+    const direction = (directionRaw ?? '').toLowerCase()
     if (direction !== 'up' && direction !== 'down') throw new ServiceError('direction 参数必须是 up 或 down', 400)
 
     const siblings = await this.repo.listSiblings(menu.parent_id)
@@ -292,16 +245,15 @@ export class MenuService {
     return menus.filter((m) => !m.parent_id).map((m) => byId.get(m.id)!)
   }
 
-  async exportMenus(data: Data) {
-    const args = parseExportArgs(data, EXPORT_FIELD_MAP)
+  async exportMenus(options: z.output<typeof menuExportBody>) {
+    const validFields = exportColumns(options.fields, EXPORT_FIELD_MAP)
 
     let items: Menu[]
-    if (args.exportMode === 'filtered') {
-      items = await this.repo.listForExportFiltered(pyStrOrEmpty(dictGet(args.filters, 'search')))
+    if (options.export_mode !== 'selected') {
+      items = await this.repo.listForExportFiltered(options.filters.search ?? '')
     } else {
-      const ids = selectedIdsOrNull(args.ids)
-      if (!ids) throw new ServiceError('请先勾选要导出的菜单数据', 400)
-      items = await this.repo.listByIdsOrdered(adaptIdsForIn(ids))
+      if (options.ids.length === 0) throw new ServiceError('请先勾选要导出的菜单数据', 400)
+      items = await this.repo.listByIdsOrdered(options.ids)
     }
 
     const parentIds = [...new Set(items.map((m) => m.parent_id).filter((id): id is number => id !== null))]
@@ -311,9 +263,9 @@ export class MenuService {
       parent_code: m.parent_id !== null ? (parentCodes.get(m.parent_id) ?? null) : null,
     }))
 
-    const headers = args.validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
-    const rows = exportItems.map((item) => args.validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
-    return buildTable(headers, rows, 'menus_export', args.fileType)
+    const headers = validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
+    const rows = exportItems.map((item) => validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
+    return buildTable(headers, rows, 'menus_export', options.file_type)
   }
 
   async downloadTemplate(fileTypeRaw: unknown) {
@@ -359,7 +311,7 @@ export class MenuService {
           errors.push(buildErrorRow(line, '菜单名称和编码不能为空', row))
           continue
         }
-        if (!MENU_TYPES.has(parsed.menu_type)) {
+        if (!(MENU_TYPES as readonly string[]).includes(parsed.menu_type)) {
           errors.push(buildErrorRow(line, `类型无效: ${parsed.menu_type}`, row))
           continue
         }

@@ -42,8 +42,6 @@ const bad = (error: string) => [400, { error }] as const
 describe('bad input → 400', () => {
   it('values of the wrong type or shape: 「请求参数格式不正确」', async () => {
     const cases: Array<[string, string, unknown]> = [
-      ['POST', '/api/admin/announcements', { title: `${P}a`, content: 'c', sort_order: 'abc' }],
-      ['POST', '/api/admin/menus', { name: 'x', code: 5 }],
       ['PUT', `${CC}/advanced-table/rows/reorder`, [5]],
       ['PUT', `${CC}/kanban/cards/reorder`, [5]],
       ['POST', `${CC}/advanced-table/rows/batch-delete`, { ids: [true] }],
@@ -64,6 +62,14 @@ describe('bad input → 400', () => {
     expect(await send('POST', '/api/admin/dicts', { name: 'x', code: `${P}d1`, is_active: 'abc' })).toEqual(bad('是否启用的值无效'))
     expect(await send('POST', '/api/admin/dicts', { name: 'x', code: `${P}d2`, sort_order: 'abc' })).toEqual(bad('排序的值无效'))
     expect(await send('POST', '/api/admin/dicts', [1])).toEqual(bad('请求参数格式不正确'))
+    expect(await send('POST', '/api/admin/announcements', { title: `${P}a`, content: 'c', sort_order: 'abc' })).toEqual(bad('排序权重的值无效'))
+    expect(await send('POST', '/api/admin/menus', { name: 'x', code: 5 })).toEqual(bad('菜单编码的值无效'))
+  })
+
+  it('body checks run after authentication: a signed-out caller gets 401, not 400', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/admin/change-password', payload: { old_password: 5 } })
+    expect(res.statusCode).toBe(401)
+    expect(await send('POST', '/api/admin/change-password', { old_password: 5, new_password: 'x' })).toEqual(bad('旧密码的值无效'))
   })
 
   it('the database rejecting a value: a readable message instead of a 500', async () => {
@@ -80,9 +86,9 @@ describe('bad input → 400', () => {
     expect(await send('PUT', `/api/admin/roles/${role.id}`, { code: (existing as Array<{ code: string }>)[0]!.code })).toEqual(bad('角色编码已存在'))
     expect(await send('PUT', `/api/admin/roles/${role.id}`, { name: '' })).toEqual(bad('角色名称不能为空'))
     expect(await send('PUT', `/api/admin/roles/${role.id}`, { name: null })).toEqual(bad('角色名称不能为空'))
-    expect(await send('PUT', `/api/admin/roles/${role.id}`, { code: 5 })).toEqual(bad('请求参数格式不正确'))
+    expect(await send('PUT', `/api/admin/roles/${role.id}`, { code: 5 })).toEqual(bad('角色编码的值无效'))
 
-    expect(await send('POST', '/api/admin/users', { username: `${P}u`, password: 'abcdef1', role_ids: 'x' })).toEqual(bad('role_ids 必须是数组'))
+    expect(await send('POST', '/api/admin/users', { username: `${P}u`, password: 'abcdef1', role_ids: 'x' })).toEqual(bad('角色的值无效'))
 
     expect(await send('POST', '/api/admin/announcements', { title: `${P}a`, content: 'c', announce_type: 'zzz' })).toEqual(
       bad('公告类型只能是 system、activity 或 update'),

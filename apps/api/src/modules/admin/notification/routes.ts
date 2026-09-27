@@ -7,8 +7,10 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody, queryString } from '@/common/http'
+import { intParam, queryString } from '@/common/http'
+import { parseBody } from '@/common/validation'
 import { parsePagination } from '@/common/pagination'
+import { notificationBody } from './schema'
 import { NotificationService } from './service'
 
 const USER_NOT_FOUND = { error: '用户不存在' }
@@ -33,7 +35,7 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
     if (!(await hasMenuPermission(request, 'system_notifications_add'))) {
       return reply.status(403).send({ error: '无权限创建通知' })
     }
-    return reply.status(201).send(await service.createItem(jsonBody(request)))
+    return reply.status(201).send(await service.createItem(parseBody(notificationBody, request.body)))
   })
 
   app.get('/api/admin/notifications/unread-count', opts, async (request) => {
