@@ -1,5 +1,5 @@
 /**
- * Scheduled-task HTTP execution (behaves like Python requests' `requests.request(...)`)
+ * Scheduled-task HTTP execution
  *
  * With connection-level SSRF protection:
  * - A fresh undici Agent per execution with a custom connect: IP literals are checked up front; hostnames go through a custom lookup,
@@ -7,8 +7,8 @@
  * - Redirects are followed manually and every hop goes through the same Agent, so redirects to internal addresses are blocked too
  * - Timeout via AbortSignal.timeout (1–120 s, covering the whole execution including redirects)
  *
- * Matches requests on: at most 30 redirects, method rewriting and body dropping for 301/302/303, stripping Authorization across hosts,
- * and decoding response text per requests' `response.text` rules (charset / text/* → latin-1 / json → utf-8).
+ * Redirects: at most 30; 301/302/303 switch to GET and drop the body; Authorization is dropped when the host changes.
+ * Response text: decoded with the Content-Type charset; text/* without one is ISO-8859-1 (RFC 2616), JSON is UTF-8.
  */
 
 import dns from 'node:dns'
@@ -21,14 +21,14 @@ export interface HttpRequestSpec {
   url: string
   /** Keys and values already converted to strings */
   headers: Record<string, string>
-  /** json: requests' `json=` (adds Content-Type automatically); data: `data=str` (UTF-8, no Content-Type) */
+  /** json: sent with `Content-Type: application/json`; data: the text as-is (UTF-8, no Content-Type) */
   body: { kind: 'json' | 'data'; text: string } | null
   timeoutSeconds: number
 }
 
 export interface HttpResponse {
   status: number
-  /** Response text decoded per requests' rules (reads at most MAX_BODY_BYTES, enough to take the first 2000 characters) */
+  /** Response text, decoded as described above (reads at most MAX_BODY_BYTES, enough to take the first 2000 characters) */
   text: string
 }
 
@@ -74,7 +74,7 @@ function headerValue(headers: Record<string, string | string[] | undefined>, nam
   return Array.isArray(v) ? v[0] : v
 }
 
-/** requests.utils.get_encoding_from_headers */
+/** The response charset: the Content-Type `charset` parameter; text/* without one → ISO-8859-1; JSON → UTF-8 */
 function encodingFromHeaders(contentType: string | undefined): string | null {
   if (!contentType) return null
   const [type = '', ...rawParams] = contentType.split(';')
@@ -94,7 +94,7 @@ function encodingFromHeaders(contentType: string | undefined): string | null {
   return null
 }
 
-/** `str(content, encoding, errors='replace')`; unknown encodings fall back to UTF-8 (requests' apparent_encoding is approximated as UTF-8) */
+/** Decode the body with the charset (invalid bytes replaced); unknown charsets fall back to UTF-8 */
 function decodeBody(buf: Buffer, encoding: string | null): string {
   if (buf.length === 0) return ''
   const label = (encoding ?? 'utf-8').trim().toLowerCase()
@@ -122,7 +122,7 @@ function defaultPort(protocol: string): string {
   return protocol === 'https:' ? '443' : protocol === 'http:' ? '80' : ''
 }
 
-/** requests.Session.should_strip_auth */
+/** Whether a redirect must drop the Authorization header: the host changes (an http → https upgrade on default ports keeps it) */
 function shouldStripAuth(oldUrl: URL, newUrl: URL): boolean {
   if (oldUrl.hostname !== newUrl.hostname) return true
   const oldPort = oldUrl.port || defaultPort(oldUrl.protocol)
@@ -151,7 +151,7 @@ export const executeHttpRequest: HttpExecutor = async (spec) => {
 
     for (let hop = 0; ; hop += 1) {
       if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        throw new Error(`No connection adapters were found for '${url.href}'`)
+        throw new Error('请求地址仅支持 http/https 协议')
       }
       const res = await request(url, { method: method as 'GET', headers, body, dispatcher: agent, signal })
       const location = headerValue(res.headers, 'location')
@@ -161,7 +161,7 @@ export const executeHttpRequest: HttpExecutor = async (spec) => {
       }
 
       await res.body.dump().catch(() => undefined)
-      if (hop + 1 > MAX_REDIRECTS) throw new Error(`Exceeded ${MAX_REDIRECTS} redirects.`)
+      if (hop + 1 > MAX_REDIRECTS) throw new Error(`重定向次数超过 ${MAX_REDIRECTS} 次`)
 
       const target = new URL(Buffer.from(location, 'latin1').toString('utf8'), url)
       if ((res.statusCode === 303 || res.statusCode === 302) && method !== 'HEAD') method = 'GET'
@@ -174,7 +174,7 @@ export const executeHttpRequest: HttpExecutor = async (spec) => {
       url = target
     }
   } catch (err) {
-    if (signal.aborted) throw new Error(`Request timed out. (timeout=${spec.timeoutSeconds})`)
+    if (signal.aborted) throw new Error(`请求超时（${spec.timeoutSeconds} 秒）`)
     throw err
   } finally {
     await agent.destroy().catch(() => undefined)

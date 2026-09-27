@@ -65,11 +65,6 @@ const PY_COMPAT_IMPORT = /from '(@\/common\/(py|py-values|py-date|sqla-bind|sche
 const PY_COMPAT_PENDING = [
   'scripts/import-apifox.ts',
   'src/common/py-values.ts',
-  'src/common/scheduler/cron.ts',
-  'src/common/scheduler/ssrf.ts',
-  'src/modules/admin/scheduled-task/routes.ts',
-  'src/modules/admin/scheduled-task/schema.ts',
-  'src/modules/admin/scheduled-task/service.ts',
   'src/modules/component-center/ai-prompt/schema.ts',
   'src/modules/component-center/ai-prompt/service.ts',
   'src/modules/component-center/ai-sql/routes.ts',
@@ -83,11 +78,6 @@ const PY_MENTION_PENDING = [
   'scripts/lib/ordered-json.ts',
   'src/common/py-values.ts',
   'src/common/py.ts',
-  'src/common/scheduler/http.ts',
-  'src/common/scheduler/py-compat.ts',
-  'src/common/scheduler/py-json.ts',
-  'src/common/scheduler/ssrf.ts',
-  'src/common/sqla-bind.ts',
   'src/modules/component-center/ai-sql/pg-values.ts',
 ]
 
