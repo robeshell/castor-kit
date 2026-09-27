@@ -352,8 +352,8 @@ The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api
 
 ```
 admin/users                              → modules/admin/pages/users/index.tsx
-component_center/admin/list_page         → modules/component_center/pages/admin/list_page/index.jsx
-component_center/dataviz/dashboard_page  → modules/component_center/pages/dataviz/dashboard_page/index.jsx
+component_center/admin/list_page         → modules/component_center/pages/admin/list_page/index.tsx
+component_center/dataviz/dashboard_page  → modules/component_center/pages/dataviz/dashboard_page/index.tsx
 ```
 
 ### File locations
@@ -367,7 +367,7 @@ Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_
 
 ### TypeScript (migration in progress)
 
-The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. The auth and admin pages are TSX too. Still JSX: `components/app` and the component center pages (`modules/component_center/pages`). `pnpm scaffold` generates TSX: `pages/.../index.tsx` and `api/<name>.ts`, typed like `docs/templates/frontend/` (see "Typed pages" below). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. Every page is TSX too (auth, admin, component center). Still JSX: the app shell `components/app`, `App.jsx` and `main.jsx`. `pnpm scaffold` generates TSX: `pages/.../index.tsx` and `api/<name>.ts`, typed like `docs/templates/frontend/` (see "Typed pages" below). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
 
 - New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
 - New component files are TSX: shared components and primitives (the shadcn CLI writes TSX) and new pages (scaffold writes `index.tsx`). Existing pages stay JSX until step 5; edit them in place.

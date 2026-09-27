@@ -21,8 +21,8 @@
 | `component` 值 | 对应文件 |
 |---|---|
 | `admin/users` | `modules/admin/pages/users/index.tsx` |
-| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.jsx` |
-| `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.jsx` |
+| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.tsx` |
+| `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.tsx` |
 
 只有启用且可见、类型为 `menu` 的菜单会生成路由。页面组件按需懒加载。菜单存在但找不到对应文件时，页面区域会显示“页面未配置”提示。
 

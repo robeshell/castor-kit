@@ -13,6 +13,26 @@ export interface TreeListPageNode extends TreeListPageItem {
   children?: TreeListPageNode[]
 }
 
+/**
+ * Create / update bodies. TODO(openapi): the doc has `sort_order?: number`, but the backend's field.int is nullish
+ * (missing / null → 0) and the form sends null for a cleared number input.
+ */
+export type TreeListPageCreateInput = Omit<ApiBody<'/api/admin/component-center/tree-list-page', 'post'>, 'sort_order'> & {
+  sort_order?: number | null
+}
+export type TreeListPageUpdateInput = Omit<ApiBody<'/api/admin/component-center/tree-list-page/{item_id}', 'put'>, 'sort_order'> & {
+  sort_order?: number | null
+}
+type TreeListPageExportDoc = ApiBody<'/api/admin/component-center/tree-list-page/export', 'post'>
+/**
+ * Export body: selected ids, or the list filters (export_mode).
+ * TODO(openapi): the backend reads every filter with field.text (treeExportBody), so `status` takes any text ('' = every
+ * status); the doc types it as the status enum.
+ */
+export type TreeListPageExportBody = Omit<TreeListPageExportDoc, 'filters'> & {
+  filters?: Omit<NonNullable<TreeListPageExportDoc['filters']>, 'status'> & { status?: string }
+}
+
 export const getTreeListPageTree = (params?: ApiQuery<'/api/admin/component-center/tree-list-page/tree'>) =>
   request.get<unknown, TreeListPageNode[]>('/admin/component-center/tree-list-page/tree', { params })
 
@@ -22,10 +42,10 @@ export const getTreeListPageList = (params?: ApiQuery<'/api/admin/component-cent
 export const getTreeListPageDetail = (id: number) =>
   request.get<unknown, ApiResponse<'/api/admin/component-center/tree-list-page/{item_id}'>>(`/admin/component-center/tree-list-page/${id}`)
 
-export const createTreeListPage = (data: ApiBody<'/api/admin/component-center/tree-list-page', 'post'>) =>
+export const createTreeListPage = (data: TreeListPageCreateInput) =>
   request.post<unknown, ApiResponse<'/api/admin/component-center/tree-list-page', 'post'>>('/admin/component-center/tree-list-page', data)
 
-export const updateTreeListPage = (id: number, data: ApiBody<'/api/admin/component-center/tree-list-page/{item_id}', 'put'>) =>
+export const updateTreeListPage = (id: number, data: TreeListPageUpdateInput) =>
   request.put<unknown, ApiResponse<'/api/admin/component-center/tree-list-page/{item_id}', 'put'>>(
     `/admin/component-center/tree-list-page/${id}`,
     data
@@ -36,7 +56,7 @@ export const deleteTreeListPage = (id: number) =>
     `/admin/component-center/tree-list-page/${id}`
   )
 
-export const exportTreeListPage = (data: ApiBody<'/api/admin/component-center/tree-list-page/export', 'post'>) =>
+export const exportTreeListPage = (data: TreeListPageExportBody) =>
   request.post<unknown, Blob>('/admin/component-center/tree-list-page/export', data, { responseType: 'blob' })
 
 export const downloadTreeListPageTemplate = (

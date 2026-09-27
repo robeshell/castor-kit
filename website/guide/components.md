@@ -2,7 +2,7 @@
 
 After signing in, the Component Gallery menu holds 28 example pages in six groups. They all follow the project's frontend conventions, so you can use any of them as a reference or starting point for a new page.
 
-Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.jsx`. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
+Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.tsx`. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
 
 ## Admin Pages
 

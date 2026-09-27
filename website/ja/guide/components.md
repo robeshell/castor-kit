@@ -2,7 +2,7 @@
 
 ログイン後、「コンポーネント例」メニューの下には 28 個のサンプルページがあり、6 つのグループに分かれています。いずれもプロジェクトのフロントエンド規約に従っているので、新しいページの参考や出発点としてそのまま使えます。
 
-ページのソースは `apps/web/src/modules/component_center/pages/<グループのディレクトリ>/<ページ>/index.jsx` にあり、バックエンド API を持つサンプルは `apps/api/src/modules/component-center/` 配下のモジュールに対応しています。
+ページのソースは `apps/web/src/modules/component_center/pages/<グループのディレクトリ>/<ページ>/index.tsx` にあり、バックエンド API を持つサンプルは `apps/api/src/modules/component-center/` 配下のモジュールに対応しています。
 
 ## 管理画面
 

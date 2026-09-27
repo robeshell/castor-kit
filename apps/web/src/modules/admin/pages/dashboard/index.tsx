@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { EChartsOption } from 'echarts'
 import { Link, useNavigate } from 'react-router-dom'
 import ReactECharts from '@/shared/components/Chart'
 import { motion } from 'motion/react'
@@ -178,7 +179,7 @@ function ActivityChart({ stats }: ActivityChartProps) {
   const { t } = useTranslation()
   const c = useChartColors()
   const [range, setRange] = useState('7d')
-  const option = useMemo(() => {
+  const option = useMemo((): EChartsOption => {
     const base = chartBase(c)
     const labels = stats?.week_labels?.length ? stats.week_labels : ['', '', '', '', '', '', '']
     const values = stats?.week_log_counts?.length ? stats.week_log_counts : [0, 0, 0, 0, 0, 0, 0]

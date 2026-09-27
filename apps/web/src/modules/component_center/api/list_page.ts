@@ -7,6 +7,8 @@ export type ListPageItem = ApiItem<'/api/admin/component-center/list-page'>
 /** Create / update bodies (display_config / permission_config are JSON objects; schema_config a JSON string or object) */
 export type ListPageCreateInput = ApiBody<'/api/admin/component-center/list-page', 'post'>
 export type ListPageUpdateInput = ApiBody<'/api/admin/component-center/list-page/{item_id}', 'put'>
+/** Export body: selected ids, or the list filters (export_mode) */
+export type ListPageExportBody = ApiBody<'/api/admin/component-center/list-page/export', 'post'>
 
 export const getListPageList = (params?: ApiQuery<'/api/admin/component-center/list-page'>) =>
   request.get<unknown, ApiResponse<'/api/admin/component-center/list-page'>>('/admin/component-center/list-page', { params })
@@ -19,7 +21,7 @@ export const updateListPage = (id: number, data: ListPageUpdateInput) =>
 export const deleteListPage = (id: number) =>
   request.delete<unknown, ApiResponse<'/api/admin/component-center/list-page/{item_id}', 'delete'>>(`/admin/component-center/list-page/${id}`)
 
-export const exportListPage = (data: ApiBody<'/api/admin/component-center/list-page/export', 'post'>) =>
+export const exportListPage = (data: ListPageExportBody) =>
   request.post<unknown, Blob>('/admin/component-center/list-page/export', data, { responseType: 'blob' })
 
 export const downloadListPageTemplate = (fileType: ApiQuery<'/api/admin/component-center/list-page/template'>['file_type'] = 'csv') =>
