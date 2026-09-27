@@ -7,7 +7,7 @@ const css = readFileSync(join(__dirname, '..', 'src', 'index.css'), 'utf8')
 const HEX = /^#[0-9a-f]{6}$/i
 
 /** Declarations of the first rule whose selector list starts with `selector` */
-function presetVars(selector) {
+function presetVars(selector: string): Record<string, string | undefined> | null {
   const start = css.indexOf(`${selector} {`) >= 0 ? css.indexOf(`${selector} {`) : css.indexOf(`${selector},`)
   if (start < 0) return null
   const body = css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start))
@@ -21,7 +21,7 @@ describe('accent presets', () => {
         const vars = presetVars(selector)
         expect(vars, selector).not.toBeNull()
         // chart-theme.ts converts --brand-from to rgba, so the stops must stay plain hex
-        for (const name of ['--brand-from', '--brand-via', '--brand-to']) expect(vars[name], `${selector} ${name}`).toMatch(HEX)
+        for (const name of ['--brand-from', '--brand-via', '--brand-to']) expect(vars?.[name], `${selector} ${name}`).toMatch(HEX)
       }
     }
   })

@@ -6,7 +6,7 @@ Compared on 2026-09-27 against `https://ui.shadcn.com/r/styles/new-york-v4/<name
 
 ## shadcn/ui
 
-**Focus ring.** Upstream's `ring-[3px] ring-ring/50` looks heavy next to the brand color, so every focusable primitive uses `ring-2 ring-ring/20` instead (`apps/web/test/focus-ring.test.js` rejects the upstream values):
+**Focus ring.** Upstream's `ring-[3px] ring-ring/50` looks heavy next to the brand color, so every focusable primitive uses `ring-2 ring-ring/20` instead (`apps/web/test/focus-ring.test.ts` rejects the upstream values):
 accordion (trigger), badge, button, calendar (`dropdown_root` and the focused day), checkbox, input, input-group, input-otp (active slot), radio-group, scroll-area (viewport), select (trigger), switch, tabs (trigger), textarea, toggle (and so toggle-group items). slider keeps its `ring-4` on the thumb but with `ring-ring/20`.
 
 | Component | Change |

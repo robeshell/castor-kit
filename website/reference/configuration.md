@@ -178,7 +178,7 @@ Other security settings (two-step verification, password reset, password rules, 
 
 ## Frontend (Web)
 
-The frontend has no runtime environment variables. Dev server behavior is defined in `apps/web/vite.config.js`:
+The frontend has no runtime environment variables. Dev server behavior is defined in `apps/web/vite.config.ts`:
 
 | Setting | Value |
 |---|---|

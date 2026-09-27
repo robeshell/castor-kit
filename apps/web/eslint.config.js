@@ -32,7 +32,7 @@ export default defineConfig([
     },
   },
   {
-    // TypeScript: the same React rules plus typescript-eslint's recommended set (the frontend is moving to TSX file by file)
+    // TypeScript (src, test and the Vite / Vitest configs): the same React rules plus typescript-eslint's recommended set
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     languageOptions: { globals: globals.browser },

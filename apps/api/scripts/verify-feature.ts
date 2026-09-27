@@ -116,13 +116,19 @@ const WEB_MODULES = ['admin', 'component_center']
 
 // ─── Individual checks ─────────────────────────────────────────────────────────
 
-/** TypeScript type check (all of apps/api + apps/mcp + apps/web; web's .js / .jsx files compile but aren't checked) */
+/** Type-checks each package's tsconfig.json (apps/api, apps/mcp, apps/web), plus apps/web's tsconfig.test.json (its tests and Vite / Vitest configs) */
 export function checkTypescript(ctx: VerifyContext): CheckResult {
   const errors: string[] = []
-  for (const pkg of [ctx.apiDir, join(ctx.root, 'apps', 'mcp'), ctx.webDir]) {
-    if (!existsSync(join(pkg, 'tsconfig.json'))) continue
-    const { code, output } = run([...bin(pkg, 'tsc'), '--noEmit', '-p', 'tsconfig.json'], pkg)
-    if (code !== 0) errors.push(`[${rel(ctx, pkg)}]\n${output.trim()}`)
+  const projects: [pkg: string, config: string][] = [
+    [ctx.apiDir, 'tsconfig.json'],
+    [join(ctx.root, 'apps', 'mcp'), 'tsconfig.json'],
+    [ctx.webDir, 'tsconfig.json'],
+    [ctx.webDir, 'tsconfig.test.json'],
+  ]
+  for (const [pkg, config] of projects) {
+    if (!existsSync(join(pkg, config))) continue
+    const { code, output } = run([...bin(pkg, 'tsc'), '--noEmit', '-p', config], pkg)
+    if (code !== 0) errors.push(`[${rel(ctx, join(pkg, config))}]\n${output.trim()}`)
   }
   if (errors.length > 0) return { name: 'typescript_compile', passed: false, error: errors.join('\n').slice(0, 2000) }
   return { name: 'typescript_compile', passed: true }

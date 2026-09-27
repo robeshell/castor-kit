@@ -1,9 +1,11 @@
 /** Behavior tests for the new design system's shared components (DataTable / Filters / FormDialog / ExportDialog / StatusBadge) */
 import { describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useForm } from 'react-hook-form'
 import DataTable from '@/shared/components/DataTable'
+import type { DataTableColumn } from '@/shared/components/DataTable'
 import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
@@ -11,18 +13,35 @@ import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
 import CheckableTree from '@/shared/components/CheckableTree'
 import StatusBadge from '@/shared/components/StatusBadge'
 import TreeSelect from '@/shared/components/TreeSelect'
+import type { TreeSelectNode } from '@/shared/components/TreeSelect'
+import type { TreeKey } from '@/shared/components/TreeView'
 import { userDisplayName } from '@/lib/user'
 import UserAvatar from '@/shared/components/UserAvatar'
 
-const COLUMNS = [
+interface Row {
+  id: number
+  name: string
+  n: number
+  /** Never set: the column shows the placeholder */
+  missing?: string
+}
+
+const COLUMNS: DataTableColumn<Row>[] = [
   { key: 'name', title: '名称', dataIndex: 'name' },
   { key: 'n', title: '数量', dataIndex: 'n', render: (v) => `${v} 个` },
   { key: 'empty', title: '空列', dataIndex: 'missing' },
 ]
-const ROWS = [
+const ROWS: Row[] = [
   { id: 1, name: 'alpha', n: 3 },
   { id: 2, name: 'beta', n: 5 },
 ]
+
+/** list[index], throwing when it is missing */
+function nth<T>(list: readonly T[], index: number): T {
+  const item = list[index]
+  if (item === undefined) throw new Error(`no item ${index} in a list of ${list.length}`)
+  return item
+}
 
 describe('DataTable', () => {
   it('渲染列与自定义 render，空值显示占位符', () => {
@@ -43,7 +62,7 @@ describe('DataTable', () => {
     render(<DataTable columns={COLUMNS} data={ROWS} selectable selectedKeys={[]} onSelectionChange={onSelectionChange} />)
     await userEvent.click(screen.getByLabelText('全选'))
     expect(onSelectionChange).toHaveBeenLastCalledWith([1, 2], ROWS)
-    await userEvent.click(screen.getAllByLabelText('选择')[1])
+    await userEvent.click(nth(screen.getAllByLabelText('选择'), 1))
     expect(onSelectionChange).toHaveBeenLastCalledWith([2], [ROWS[1]])
   })
 
@@ -80,7 +99,7 @@ describe('Filters', () => {
   })
 })
 
-function DialogHarness({ onSubmit }) {
+function DialogHarness({ onSubmit }: { onSubmit: (values: { username: string }) => void }) {
   const form = useForm({ defaultValues: { username: '' } })
   return (
     <FormDialog open onOpenChange={() => {}} title="新建用户" form={form} onSubmit={onSubmit}>
@@ -145,7 +164,7 @@ describe('UserAvatar', () => {
   })
 })
 
-const DEPTS = [
+const DEPTS: TreeSelectNode<number>[] = [
   { id: 1, name: '总部', code: 'hq', children: [{ id: 2, name: '研发部', code: 'rd', children: [{ id: 3, name: '前端组', code: 'fe' }] }] },
   { id: 4, name: '分公司', code: 'branch' },
 ]
@@ -183,17 +202,19 @@ describe('CheckableTree', () => {
     { key: 1, label: '总部', children: [{ key: 2, label: '研发部' }, { key: 3, label: '市场部' }] },
     { key: 4, label: '分公司' },
   ]
-  const checkboxOf = (label) => screen.getByText(label).closest('[role="checkbox"]')
+  const checkboxOf = (label: string) => screen.getByText(label).closest('[role="checkbox"]')
+  /** The keys of onChange's last call */
+  const lastKeys = (onChange: Mock<(keys: TreeKey[]) => void>) => onChange.mock.lastCall?.[0] ?? []
 
   it('勾选父级联动全部子级；取消一个子级后父级变为半选', async () => {
-    const onChange = vi.fn()
+    const onChange = vi.fn<(keys: TreeKey[]) => void>()
     const { rerender } = render(<CheckableTree tree={tree} value={[]} onChange={onChange} />)
     await userEvent.click(screen.getByText('总部'))
-    expect([...onChange.mock.calls.at(-1)[0]].sort()).toEqual([1, 2, 3])
+    expect([...lastKeys(onChange)].sort()).toEqual([1, 2, 3])
 
     rerender(<CheckableTree tree={tree} value={[1, 2, 3]} onChange={onChange} />)
     await userEvent.click(screen.getByText('市场部'))
-    expect(onChange.mock.calls.at(-1)[0]).toEqual([2])
+    expect(lastKeys(onChange)).toEqual([2])
 
     rerender(<CheckableTree tree={tree} value={[2]} onChange={onChange} />)
     expect(checkboxOf('总部')).toHaveAttribute('aria-checked', 'mixed')
@@ -202,9 +223,9 @@ describe('CheckableTree', () => {
   })
 
   it('全部子级勾选时父级自动算作勾选', async () => {
-    const onChange = vi.fn()
+    const onChange = vi.fn<(keys: TreeKey[]) => void>()
     render(<CheckableTree tree={tree} value={[2]} onChange={onChange} />)
     await userEvent.click(screen.getByText('市场部'))
-    expect([...onChange.mock.calls.at(-1)[0]].sort()).toEqual([1, 2, 3])
+    expect([...lastKeys(onChange)].sort()).toEqual([1, 2, 3])
   })
 })

@@ -24,8 +24,14 @@ const SKIP = new Set(['node_modules', 'dist', 'fixtures'])
 const CJK = /[㐀-鿿豈-﫿]/
 const QUOTED = /`[^`]*`|'[^'\n]*'|"[^"\n]*"|「[^」]*」|“[^”]*”/g
 
-function walk(dir, out = []) {
-  let names
+/** A comment's text and first line, from babel or from the line-based fallback */
+interface CommentLike {
+  value: string
+  line: number
+}
+
+function walk(dir: string, out: string[] = []): string[] {
+  let names: string[]
   try {
     names = readdirSync(dir)
   } catch {
@@ -43,22 +49,25 @@ function walk(dir, out = []) {
 
 describe('code comments', () => {
   it('are written in English (Chinese only inside quoted strings)', () => {
-    const offenders = []
+    const offenders: string[] = []
     for (const file of ROOTS.flatMap((root) => walk(join(REPO, root)))) {
       const code = readFileSync(file, 'utf8')
-      let comments
+      let comments: CommentLike[]
       try {
-        comments = parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'], errorRecovery: true }).comments ?? []
+        comments = (parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'], errorRecovery: true }).comments ?? []).map((c) => ({
+          value: c.value,
+          line: c.loc?.start.line ?? 0,
+        }))
       } catch {
         // docs/templates contain placeholders such as <Resource> and are not valid code: check comment-looking lines
         comments = code
           .split('\n')
-          .map((value, i) => ({ value, loc: { start: { line: i + 1 } } }))
+          .map((value, i) => ({ value, line: i + 1 }))
           .filter((c) => /^\s*(\/\/|\/\*|\*|\{\/\*)/.test(c.value))
       }
       for (const comment of comments) {
         const line = comment.value.split('\n').find((l) => CJK.test(l.replace(QUOTED, '')))
-        if (line) offenders.push(`${relative(REPO, file)}:${comment.loc.start.line}  ${line.trim().slice(0, 100)}`)
+        if (line) offenders.push(`${relative(REPO, file)}:${comment.line}  ${line.trim().slice(0, 100)}`)
       }
     }
     expect(offenders).toEqual([])

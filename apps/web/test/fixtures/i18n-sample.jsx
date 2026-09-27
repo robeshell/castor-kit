@@ -1,4 +1,4 @@
-// Fixture for test/i18n.test.js: one example of each problem kind the scanner reports
+// Fixture for test/i18n.test.ts: one example of each problem kind the scanner reports
 export function Sample({ name, t }) {
   return (
     <div title={t('这是一句没有译文的中文')}>

@@ -2,15 +2,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useCrudList } from '@/shared/hooks/useCrudList'
+import type { CrudListParams, CrudListResponse } from '@/shared/hooks/useCrudList'
 
-function makeFetcher(responses) {
-  const calls = []
-  const fn = vi.fn(async ({ page }) => {
+interface Row {
+  id: number
+}
+
+/** A fetcher answering from `responses` by page; `calls` lists the pages requested */
+function makeFetcher(responses: Record<number, CrudListResponse<Row>>) {
+  const calls: number[] = []
+  const fn = vi.fn(async ({ page }: CrudListParams): Promise<CrudListResponse<Row>> => {
     calls.push(page)
     return responses[page] ?? { items: [], total: 0 }
   })
-  fn.calls = calls
-  return fn
+  return Object.assign(fn, { calls })
 }
 
 describe('useCrudList', () => {

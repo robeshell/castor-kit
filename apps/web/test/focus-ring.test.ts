@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 const SRC = resolve(__dirname, '../src')
 const HEAVY = /ring-\[3px\]|ring-ring\/(?:[3-9]\d|100)\b/g
 
-function walk(dir, out = []) {
+function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
     if (statSync(path).isDirectory()) walk(path, out)

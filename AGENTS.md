@@ -367,7 +367,7 @@ Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_
 
 ### TypeScript
 
-`apps/web/src` is TypeScript only (`.ts` / `.tsx`; `apps/web/test/typescript-only.test.js` fails on a `.js` / `.jsx` file there). `apps/web/tsconfig.json` uses the same strict options as the API (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`), and `pnpm typecheck` / the `verify` gate type-check the whole app. Tests under `apps/web/test` and the config files are still JavaScript.
+`apps/web/src` is TypeScript only (`.ts` / `.tsx`; `apps/web/test/typescript-only.test.ts` fails on a `.js` / `.jsx` file there). `apps/web/tsconfig.json` uses the same strict options as the API (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`), and `pnpm typecheck` / the `verify` gate type-check the whole app. The tests (`apps/web/test/*.test.ts(x)`, `test/setup.ts`) and `vite.config.ts` / `vitest.config.ts` are TypeScript too, checked by `apps/web/tsconfig.test.json` (same options plus the vitest / node types; `pnpm typecheck` and `verify` run both configs); jest-dom's matchers are typed in `test/setup.ts`. Only `eslint.config.js` and the two node scripts `scripts/api-types.mjs` / `scripts/i18n-scan.mjs` stay JavaScript; the tests import the scripts through the declarations next to them (`*.d.mts`), so keep those in step when a script's exports change. `test/fixtures/i18n-sample.jsx` stays JSX on purpose (it exercises the i18n scanner's JSX parsing).
 
 - API files `modules/<module>/api/<page>.ts` take their types from the OpenAPI doc (see "Calling the API"); shared shapes live in `@/shared/api/types`.
 - Components export `interface XxxProps`; type-only imports use `import type` / `import { type X }`. No `any`; a cast (`as`, `!`) needs a one-line comment saying why it holds.
@@ -409,7 +409,7 @@ export const importItems = (file: File) => {
 ```
 
 - The response interceptor already unwraps: use `res.items` / `res.total` directly, **not** `res.data.items` (that's why the second type argument of `request.get<unknown, T>` is the body type)
-- API types: `src/shared/api/openapi.d.ts` is generated from `docs/apifox-full.openapi.json` by `apps/web/scripts/api-types.mjs`; `pnpm openapi:generate` regenerates it (so a doc fix reaches the frontend types), and `apps/web/test/api-types.test.js` fails when it is stale. Never edit it by hand; if a type is wrong, fix the OpenAPI doc
+- API types: `src/shared/api/openapi.d.ts` is generated from `docs/apifox-full.openapi.json` by `apps/web/scripts/api-types.mjs`; `pnpm openapi:generate` regenerates it (so a doc fix reaches the frontend types), and `apps/web/test/api-types.test.ts` fails when it is stale. Never edit it by hand; if a type is wrong, fix the OpenAPI doc
 - 401 redirects to the login page automatically; write requests carry the CSRF header automatically
 
 ### UI components
@@ -481,7 +481,7 @@ The UI supports Simplified Chinese / English / Japanese, and **the Chinese sourc
   - String props passed to shared components (PageHeader / Panel titles, DataTable column titles, FormFields label / placeholder / options / rules messages, FilterSelect / SegmentedTabs / StatusBadge / StatCard / RowActions / ConfirmAction / FormDialog, etc.) are translated by the component: write the Chinese and add the translations. `toast.success('固定中文')` (a fixed Chinese string) is translated automatically too.
   - Must be wrapped in `t()`: Chinese written directly in JSX, aria-label / title / placeholder on native elements, copy with variables (don't use Chinese template strings), and other display channels such as chart axes / legends.
   - Demo content (sample data, sample documents) isn't translated; mark it with `// i18n-ignore-next-line` or the file-level `i18n-ignore-file`.
-  - Check: `node apps/web/scripts/i18n-scan.mjs <dir>` must report 0 problems (the frontend test `test/i18n.test.js` runs it on every page).
+  - Check: `node apps/web/scripts/i18n-scan.mjs <dir>` must report 0 problems (the frontend test `test/i18n.test.ts` runs it on every page).
 - **Backend**: keep throwing Chinese errors (`new ServiceError('用户名已存在')`, "username already exists"); a response hook translates `error` / `message` / the `reason` of import error rows according to the `Accept-Language` request header (no supported language → English; API tests send `zh-CN` by default via `chineseByDefault` in `test/helpers.ts`). Register English and Japanese translations for new messages in `apps/api/src/i18n/messages.ts` (messages with variables go in `PATTERNS`); `test/i18n-messages.test.ts` catches missing ones. Headers in import / export files stay in Chinese.
 - **Code comments are always in English** (frontend, backend, scripts, tests, scaffold-generated code). UI copy is still written in Chinese as the key.
 
@@ -495,7 +495,7 @@ apps/web/scripts/shadcn-add.sh --view badge         # only view the registry con
 apps/web/scripts/shadcn-add.sh badge -o -y          # overwrite existing files (loses local changes; confirm first)
 ```
 
-The script clears `HTTP(S)_PROXY` before running the CLI (npm package downloads still use the original proxy via `npm_config_proxy`), rewrites `import { cn } from "cn"` in the registry source back to `@/lib/utils`, and removes the `cn` package if it was installed by mistake. After adding, check `git diff apps/web/package.json` and make sure the component only uses semantic color classes; change focus styles to the project's `ring-2` + `ring-ring/20` (shadcn's default `ring-[3px]` / `ring-ring/50` is too heavy; `apps/web/test/focus-ring.test.js` catches it). Every project change to an upstream component is listed in `docs/shadcn-changes.md`: re-apply it after overwriting a component with `-o`, and add a line there when you change one.
+The script clears `HTTP(S)_PROXY` before running the CLI (npm package downloads still use the original proxy via `npm_config_proxy`), rewrites `import { cn } from "cn"` in the registry source back to `@/lib/utils`, and removes the `cn` package if it was installed by mistake. After adding, check `git diff apps/web/package.json` and make sure the component only uses semantic color classes; change focus styles to the project's `ring-2` + `ring-ring/20` (shadcn's default `ring-[3px]` / `ring-ring/50` is too heavy; `apps/web/test/focus-ring.test.ts` catches it). Every project change to an upstream component is listed in `docs/shadcn-changes.md`: re-apply it after overwriting a component with `-o`, and add a line there when you change one.
 
 ### Adding AI Elements components
 
@@ -741,7 +741,7 @@ pnpm dev:web                 # frontend only (vite)
 pnpm --filter @castor-kit/api worker   # standalone scheduler process (when RUN_SCHEDULER_IN_WEB=false)
 
 # Quality
-pnpm typecheck               # tsc --noEmit (api / mcp)
+pnpm typecheck               # tsc --noEmit (api / mcp / web, web's tests and Vite configs included)
 pnpm test                    # vitest (needs the castor_kit_test database) + web unit tests
 pnpm lint
 pnpm build                   # web(vite) + api(tsup) + mcp
