@@ -12,7 +12,12 @@ import { describe, expect, it } from 'vitest'
 const SRC = resolve(__dirname, '../src')
 const SPECIFIER_RE = /(?:from\s*|import\s*\(?\s*)['"](@\/[^'"]+)['"]/g
 
-const RULES = [
+interface Rule {
+  dir: string
+  allowed: (spec: string) => boolean
+}
+
+const RULES: Rule[] = [
   {
     dir: 'components/ui',
     allowed: (spec) => spec.startsWith('@/components/ui/') || spec === '@/lib/utils' || spec === '@/shared/hooks/use-mobile',
@@ -24,7 +29,7 @@ const RULES = [
   },
 ]
 
-const ALLOWED = new Map([
+const ALLOWED = new Map<string, RegExp>([
   // Project changes to shadcn originals: form translates validation messages, sonner follows the app theme
   ['components/ui/form.tsx', /@\/i18n/],
   ['components/ui/sonner.tsx', /@\/context\/ThemeContext/],
@@ -33,7 +38,7 @@ const ALLOWED = new Map([
   ['shared/components/upload/AvatarUpload.tsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],
 ])
 
-function walk(dir, out = []) {
+function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
     if (statSync(path).isDirectory()) walk(path, out)
@@ -48,7 +53,7 @@ describe('component boundaries', () => {
       const offenders = walk(join(SRC, rule.dir)).flatMap((file) => {
         const rel = relative(SRC, file)
         if (ALLOWED.has(rel)) return []
-        const specs = [...readFileSync(file, 'utf8').matchAll(SPECIFIER_RE)].map((m) => m[1])
+        const specs = [...readFileSync(file, 'utf8').matchAll(SPECIFIER_RE)].flatMap((m) => m[1] ?? [])
         return specs.filter((spec) => !rule.allowed(spec)).map((spec) => `${rel} → ${spec}`)
       })
       expect(offenders).toEqual([])

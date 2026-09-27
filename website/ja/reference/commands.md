@@ -22,7 +22,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 
 | コマンド | 説明 |
 |---|---|
-| `pnpm typecheck` | TypeScript の型チェック（`apps/api`、`apps/mcp`） |
+| `pnpm typecheck` | TypeScript の型チェック（`apps/api`、`apps/mcp`、テストを含む `apps/web`） |
 | `pnpm test` | すべてのテストを実行（バックエンドにはテスト用データベース `castor_kit_test` が必要） |
 | `pnpm --filter @castor-kit/api test` | バックエンドのテストだけを実行 |
 | `pnpm --filter @castor-kit/web test` | フロントエンドのテストだけを実行 |

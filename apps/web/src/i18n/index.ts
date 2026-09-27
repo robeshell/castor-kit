@@ -8,7 +8,7 @@
  * - Page strings: live next to the page, e.g. modules/admin/pages/users/locales/en-US.json
  * - Menu names: translated by menu code in src/locales/menus/<lang>.json; without a translation the name from the database is shown (see lib/menu-label.ts)
  *
- * All locales/*.json files are merged into one namespace at build time; giving the same Chinese key different translations in two places is caught by a test (test/i18n.test.js).
+ * All locales/*.json files are merged into one namespace at build time; giving the same Chinese key different translations in two places is caught by a test (test/i18n.test.ts).
  */
 
 import { useCallback } from 'react'

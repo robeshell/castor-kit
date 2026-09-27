@@ -1,5 +1,6 @@
 /** Tags view state: tabs follow navigation, affixed root pages stay, closing moves to a neighbor */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import { act, renderHook } from '@testing-library/react'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { TagsViewProvider, useTagsView } from '@/context/TagsViewContext'
@@ -23,7 +24,7 @@ const MENUS = [
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ menus: MENUS }) }))
 
 function setup(initial = '/dashboard') {
-  const wrapper = ({ children }) => (
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter initialEntries={[initial]}>
       <TagsViewProvider>{children}</TagsViewProvider>
     </MemoryRouter>
@@ -31,7 +32,7 @@ function setup(initial = '/dashboard') {
   return renderHook(() => ({ tags: useTagsView(), navigate: useNavigate(), location: useLocation() }), { wrapper })
 }
 
-const paths = (result) => result.current.tags.tabs.map((t) => t.path)
+const paths = (result: ReturnType<typeof setup>['result']) => result.current.tags.tabs.map((t) => t.path)
 
 describe('tags view', () => {
   beforeEach(() => sessionStorage.clear())
@@ -43,8 +44,8 @@ describe('tags view', () => {
     act(() => result.current.navigate('/nope'))
     act(() => result.current.navigate('/system/users'))
     expect(paths(result)).toEqual(['/dashboard', '/system/users', '/system/roles'])
-    expect(result.current.tags.tabs[0].affix).toBe(true)
-    expect(result.current.tags.tabs[2].fullPath).toBe('/system/roles?page=2')
+    expect(result.current.tags.tabs[0]?.affix).toBe(true)
+    expect(result.current.tags.tabs[2]?.fullPath).toBe('/system/roles?page=2')
   })
 
   it('closing the active tab moves to the tab on its right, else its left', () => {

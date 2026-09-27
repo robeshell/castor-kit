@@ -1191,7 +1191,7 @@ export type Catalogs = Partial<Record<PageLang, Record<string, string>>>
 /**
  * Translations of every fixed Chinese string a generated page can contain.
  * Most of them are shared CRUD strings already in apps/web/src/locales; the values must match those files exactly
- * (a key translated differently in two locales files is a conflict, see apps/web/test/i18n.test.js).
+ * (a key translated differently in two locales files is a conflict, see apps/web/test/i18n.test.ts).
  * They are still listed here so a checkout whose shared locales lack a string gets it in the page's own locales.
  */
 export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {

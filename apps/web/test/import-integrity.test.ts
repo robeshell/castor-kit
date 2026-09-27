@@ -14,7 +14,7 @@ const SRC = resolve(process.cwd(), 'src')
 const SPECIFIER_RE = /(?:from\s*|import\s*)['"]([^'"]+)['"]/g
 const RESOURCE_RE = /\.(css|scss|sass|less|svg|png|jpe?g|gif|webp|woff2?|ttf|otf|eot|json)$/i
 
-function collectFiles(dir, out = []) {
+function collectFiles(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
     if (statSync(full).isDirectory()) {
@@ -26,16 +26,15 @@ function collectFiles(dir, out = []) {
   return out
 }
 
-function collectSpecifiers(file) {
+function collectSpecifiers(file: string): { spec: string; line: number }[] {
   const source = readFileSync(file, 'utf-8')
-  const out = []
-  const lines = source.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('import.meta.glob') || /import\s*\(/.test(lines[i])) {
+  const out: { spec: string; line: number }[] = []
+  for (const [i, text] of source.split('\n').entries()) {
+    if (text.includes('import.meta.glob') || /import\s*\(/.test(text)) {
       continue
     }
-    for (const m of lines[i].matchAll(SPECIFIER_RE)) {
-      out.push({ spec: m[1], line: i + 1 })
+    for (const [, spec] of text.matchAll(SPECIFIER_RE)) {
+      if (spec !== undefined) out.push({ spec, line: i + 1 })
     }
   }
   return out
@@ -45,7 +44,7 @@ describe('导入完整性', () => {
   it('每个模块导入路径都能解析到真实文件（@/ 别名或相对路径）', () => {
     const files = collectFiles(SRC)
     expect(files.length).toBeGreaterThan(50)
-    const broken = []
+    const broken: string[] = []
     let aliasCount = 0
     let relativeJsCount = 0
 

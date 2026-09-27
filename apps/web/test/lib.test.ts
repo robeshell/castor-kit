@@ -3,10 +3,27 @@ import { findActiveMenu, flattenMenus, navigablePages } from '@/components/app/m
 import { formatBytes, formatDate, formatDateTime, formatNumber, localToIso, parseApiTime } from '@/lib/format'
 import { resolveMenuIcon } from '@/lib/menu-icons'
 import { Home, List } from 'lucide-react'
+import type { MenuNode } from '@/context/AuthContext'
 
-const MENUS = [
-  { id: 1, name: '首页', code: 'dashboard', path: '/dashboard', menu_type: 'menu', is_active: true, is_visible: true, icon: 'Home' },
-  {
+/** A menu as /my-menus returns it: fields a test doesn't set are null */
+const menu = (fields: Pick<MenuNode, 'id' | 'name' | 'code'> & Partial<MenuNode>): MenuNode => ({
+  icon: null,
+  path: null,
+  component: null,
+  parent_id: null,
+  sort_order: null,
+  is_visible: null,
+  is_active: null,
+  menu_type: null,
+  description: null,
+  created_at: null,
+  updated_at: null,
+  ...fields,
+})
+
+const MENUS: MenuNode[] = [
+  menu({ id: 1, name: '首页', code: 'dashboard', path: '/dashboard', menu_type: 'menu', is_active: true, is_visible: true, icon: 'Home' }),
+  menu({
     id: 2,
     name: '系统管理',
     code: 'system',
@@ -14,22 +31,22 @@ const MENUS = [
     is_active: true,
     is_visible: true,
     children: [
-      { id: 21, name: '用户管理', code: 'system_users', path: '/system/users', menu_type: 'menu', is_active: true, is_visible: true },
-      { id: 211, name: '新增', code: 'system_users_add', menu_type: 'button', is_active: true, is_visible: false },
-      { id: 22, name: '隐藏页', code: 'hidden', path: '/system/hidden', menu_type: 'menu', is_active: true, is_visible: false },
+      menu({ id: 21, name: '用户管理', code: 'system_users', path: '/system/users', menu_type: 'menu', is_active: true, is_visible: true }),
+      menu({ id: 211, name: '新增', code: 'system_users_add', menu_type: 'button', is_active: true, is_visible: false }),
+      menu({ id: 22, name: '隐藏页', code: 'hidden', path: '/system/hidden', menu_type: 'menu', is_active: true, is_visible: false }),
     ],
-  },
+  }),
 ]
 
 describe('menu-tree', () => {
   it('flatten 只保留可见、启用、非按钮菜单，并带上祖先链', () => {
     const flat = flattenMenus(MENUS)
     expect(flat.map((m) => m.id)).toEqual([1, 2, 21])
-    expect(flat.find((m) => m.id === 21).parents.map((p) => p.id)).toEqual([2])
+    expect(flat.find((m) => m.id === 21)?.parents.map((p) => p.id)).toEqual([2])
   })
   it('最长前缀匹配当前菜单', () => {
     const flat = flattenMenus(MENUS)
-    expect(findActiveMenu(flat, '/system/users/12').id).toBe(21)
+    expect(findActiveMenu(flat, '/system/users/12')?.id).toBe(21)
     expect(findActiveMenu(flat, '/nope')).toBeUndefined()
   })
   it('可导航页面只包含有 path 的 menu 类型', () => {

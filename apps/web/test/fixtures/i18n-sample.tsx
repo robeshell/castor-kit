@@ -1,4 +1,4 @@
-// Fixture for test/i18n.test.js: the same problem kinds in a .tsx file with type syntax
+// Fixture for test/i18n.test.ts: the same problem kinds in a .tsx file with type syntax
 interface SampleProps {
   name: string
   t: (key: string) => string

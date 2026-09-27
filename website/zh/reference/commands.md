@@ -22,7 +22,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 
 | 命令 | 说明 |
 |---|---|
-| `pnpm typecheck` | TypeScript 类型检查（`apps/api`、`apps/mcp`） |
+| `pnpm typecheck` | TypeScript 类型检查（`apps/api`、`apps/mcp`、`apps/web`，含前端测试） |
 | `pnpm test` | 运行全部测试（后端需要测试库 `castor_kit_test`） |
 | `pnpm --filter @castor-kit/api test` | 只运行后端测试 |
 | `pnpm --filter @castor-kit/web test` | 只运行前端测试 |

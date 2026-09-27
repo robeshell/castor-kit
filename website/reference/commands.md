@@ -22,7 +22,7 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 
 | Command | Description |
 |---|---|
-| `pnpm typecheck` | TypeScript type check (`apps/api`, `apps/mcp`) |
+| `pnpm typecheck` | TypeScript type check (`apps/api`, `apps/mcp`, `apps/web` including its tests) |
 | `pnpm test` | Run all tests (the backend needs the test database `castor_kit_test`) |
 | `pnpm --filter @castor-kit/api test` | Run backend tests only |
 | `pnpm --filter @castor-kit/web test` | Run frontend tests only |

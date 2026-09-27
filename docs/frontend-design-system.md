@@ -68,7 +68,7 @@ apps/web/src/
 | `src/shared/components/` (shared business components) | primitives, `@/lib/*`, `@/i18n`, generic hooks, other shared components | `@/shared/api`, `@/context`, `@/modules`, `@/components/app`, `@/shared/hooks/useAppInfo` |
 | `src/components/app/` (app shell), pages | anything | - |
 
-Shared components get their data through props and callbacks, never by calling the API or reading app context themselves, so they stay reusable outside this app (a possible shadcn registry later). `apps/web/test/component-boundaries.test.js` enforces this; its allowlist holds the files that predate the rule (the file / avatar upload components, and two project changes to shadcn originals: `form` translates messages, `sonner` follows the app theme). Don't add to it: move the dependency into a prop instead. Changes to shadcn originals should stay small and are listed in `docs/shadcn-changes.md`.
+Shared components get their data through props and callbacks, never by calling the API or reading app context themselves, so they stay reusable outside this app (a possible shadcn registry later). `apps/web/test/component-boundaries.test.ts` enforces this; its allowlist holds the files that predate the rule (the file / avatar upload components, and two project changes to shadcn originals: `form` translates messages, `sonner` follows the app theme). Don't add to it: move the dependency into a prop instead. Changes to shadcn originals should stay small and are listed in `docs/shadcn-changes.md`.
 
 The components live in `apps/web/src/shared/components/`; full usage is in `.claude/skills/shadcn-ui-skills/COMPONENTS.md`.
 
