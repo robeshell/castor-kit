@@ -123,9 +123,9 @@
 }
 
 /*
- * Accent presets (ids match ACCENTS in src/lib/appearance.js). <html data-accent> selects the page accent;
+ * Accent presets (ids match ACCENTS in src/lib/appearance.ts). <html data-accent> selects the page accent;
  * any element with data-accent (e.g. a swatch in the appearance menu) previews that preset inside its own box.
- * Keep the three stops as hex: lib/chart-theme.js converts --brand-from to rgba.
+ * Keep the three stops as hex: lib/chart-theme.ts converts --brand-from to rgba.
  */
 [data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
 .dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
@@ -218,7 +218,7 @@
       transform: translateX(100%);
     }
   }
-  /* Fake caret of the one-time code input (components/ui/input-otp.jsx) */
+  /* Fake caret of the one-time code input (components/ui/input-otp.tsx) */
   --animate-caret-blink: caret-blink 1.2s ease-out infinite;
   @keyframes caret-blink {
     0%,

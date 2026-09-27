@@ -88,7 +88,7 @@ castor-kit はロールベースのアクセス制御を採用しています。
 ```
 
 - `component` には `pnpm scaffold` が出力する Menu component の値を使います。
-- `icon` には `apps/web/src/lib/menu-icons.js` のマッピング表にある既存の名前を使います。
+- `icon` には `apps/web/src/lib/menu-icons.ts` のマッピング表にある既存の名前を使います。
 - 新しいメニューは、`apps/web/src/locales/menus/en-US.json` と `ja-JP.json` にも `code` をキーとして訳名を追加する必要があります。[多言語対応](/ja/guide/i18n#メニュー名の翻訳) を参照してください。
 
 ### データベースに同期する

@@ -163,7 +163,7 @@ Naming: backend directories and file names are lowercase and hyphenated (`compon
 ### 4.5 CSRF
 - Double-submit check: only `POST/PUT/PATCH/DELETE` under `/api/*`; `/api/admin/login` is exempt; skipped when there is no session (sessions waiting for two-factor are still checked, and the login response includes `csrf_token`). `X-CSRF-Token` is compared with the session token using `timingSafeEqual`; on failure `403 {error:'CSRF 校验失败，请刷新页面后重试'}` ("CSRF check failed, please refresh and retry").
 - It runs in `preValidation`, so the body of a rejected request still reaches the operation log, and signed-in write requests to unmatched routes also get 403 first.
-- The frontend's `shared/api/request.js` sends the CSRF header automatically.
+- The frontend's `shared/api/request.ts` sends the CSRF header automatically.
 
 ### 4.6 Permissions (RBAC)
 - `common/rbac.ts` is pure functions (`isSuperAdmin` / collecting menu codes); `common/auth.ts` provides `hasMenuPermission` / `hasAnyMenuPermission` / `menuPermissionRequired`.

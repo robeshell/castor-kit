@@ -88,7 +88,7 @@ For example, adding "客户管理" (Customers) under System → Organization (th
 ```
 
 - For `component`, use the Menu component value printed by `pnpm scaffold`.
-- For `icon`, reuse a name that already exists in the map in `apps/web/src/lib/menu-icons.js`.
+- For `icon`, reuse a name that already exists in the map in `apps/web/src/lib/menu-icons.ts`.
 - New menus also need translated names, keyed by `code`, in `apps/web/src/locales/menus/en-US.json` and `ja-JP.json`; see [Internationalization](/guide/i18n#menu-name-translations).
 
 ### Syncing to the database

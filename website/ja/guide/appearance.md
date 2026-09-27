@@ -10,7 +10,7 @@
 - 選択内容は `localStorage` の `theme` キーに保存されます。一度も選択していない場合はシステムの設定に従います。
 - 切り替え時には一時的にグローバルな色のトランジションを有効にし、終わったら解除します。通常の hover アニメーションには影響しません。
 
-実装は `apps/web/src/context/ThemeContext.jsx` にあります。ページでセマンティックカラークラスを使っていれば（[フロントエンド](/ja/guide/frontend#スタイル規約) を参照）、ダークモードは自動で正しく表示されます。
+実装は `apps/web/src/context/ThemeContext.tsx` にあります。ページでセマンティックカラークラスを使っていれば（[フロントエンド](/ja/guide/frontend#スタイル規約) を参照）、ダークモードは自動で正しく表示されます。
 
 ## アクセントカラー
 
@@ -51,8 +51,8 @@ ECharts のグラフは `@/lib/chart-theme` の `useChartColors()` で現在の 
 
 ### アクセントカラーを追加する
 
-1. `apps/web/src/lib/appearance.js` の `ACCENTS` に `{ id, label }` を追加します。`label` は中国語の原文で、翻訳キーも兼ねます。
-2. `apps/web/src/index.css` に、対応する `[data-accent='<id>']` のライトとダークの 2 組のカラーストップを追加します。カラーストップは 16 進表記のままにしてください。`chart-theme.js` が `--brand-from` を rgba に変換します。
+1. `apps/web/src/lib/appearance.ts` の `ACCENTS` に `{ id, label }` を追加します。`label` は中国語の原文で、翻訳キーも兼ねます。
+2. `apps/web/src/index.css` に、対応する `[data-accent='<id>']` のライトとダークの 2 組のカラーストップを追加します。カラーストップは 16 進表記のままにしてください。`chart-theme.ts` が `--brand-from` を rgba に変換します。
 3. `label` の英語と日本語の訳文を追加します。
 
 ## ナビゲーションモード
@@ -98,7 +98,7 @@ shadcn の `<Sidebar variant>` と 1 対 1 で対応しています。
 - タブの一覧は `sessionStorage` の `tags-view` キーに保存され、現在のブラウザタブでのみ有効です
 - タブに戻ると、前回のクエリパラメーターとスクロール位置が復元されます
 
-状態管理は `apps/web/src/context/TagsViewContext.jsx`、ページ領域の描画は `apps/web/src/components/app/AppLayout.jsx` にあります。
+状態管理は `apps/web/src/context/TagsViewContext.tsx`、ページ領域の描画は `apps/web/src/components/app/AppLayout.jsx` にあります。
 
 ### 状態保持の仕組み
 
@@ -136,4 +136,4 @@ useEffect(() => {
 | `localStorage` | `lang` | UI の言語。[多言語対応](/ja/guide/i18n) を参照 |
 | `sessionStorage` | `tags-view` | 開いているタブ |
 
-`appearance` 内の未知のキーや不正な値は無視され、デフォルト値に戻ります。外観設定パネルには「デフォルトに戻す」ボタンがあります。オプションの唯一の定義は `apps/web/src/lib/appearance.js` にあります。
+`appearance` 内の未知のキーや不正な値は無視され、デフォルト値に戻ります。外観設定パネルには「デフォルトに戻す」ボタンがあります。オプションの唯一の定義は `apps/web/src/lib/appearance.ts` にあります。

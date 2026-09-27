@@ -12,7 +12,7 @@ import TotpCodeInput from '@/modules/admin/components/two-factor/TotpCodeInput'
 
 /**
  * "Confirm it's you" before a sensitive change: the current password, plus the two-step code (or a recovery code)
- * when the account uses 2FA. Driven by useReauth (shared/hooks/useReauth.js).
+ * when the account uses 2FA. Driven by useReauth (shared/hooks/useReauth.ts).
  */
 export default function ReauthDialog({ open, onVerified, onCancel }) {
   const { t } = useTranslation()

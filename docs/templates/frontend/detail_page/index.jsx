@@ -72,7 +72,7 @@ export default function <Resource>Page() {
   const fetchList = (keepId) =>
     getItems({ page: 1, per_page: 100 })
       .then((res) => {
-        const items = res.items || [] // request.js already unwraps the response; don't write res.data.items
+        const items = res.items || [] // request.ts already unwraps the response; don't write res.data.items
         setList(items)
         setSelected((prev) => items.find((i) => i.id === (keepId ?? prev?.id)) ?? items[0] ?? null)
       })

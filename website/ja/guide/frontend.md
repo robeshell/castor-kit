@@ -111,7 +111,7 @@ export const importItems = (file) => {
 }
 ```
 
-`request.js` が処理済みの内容：
+`request.ts` が処理済みの内容：
 
 - `baseURL` は `/api` なので、パスは `/admin/...` と書きます
 - レスポンスはアンラップ済みです。`res.items`、`res.total` をそのまま使い、`res.data.items` とは**書かない**でください
@@ -210,7 +210,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # registry の内容を表示�
 
 ## メニューアイコン
 
-`menus.icon` フィールドには lucide のアイコン名（例：`Users`、`Settings`）が保存されており、`apps/web/src/lib/menu-icons.js` で lucide のアイコンコンポーネントに解決されます。メニューを追加するときはマッピング表にある既存の名前を使い、新しいアイコンが必要な場合はマッピング表に 1 行追加してください。
+`menus.icon` フィールドには lucide のアイコン名（例：`Users`、`Settings`）が保存されており、`apps/web/src/lib/menu-icons.ts` で lucide のアイコンコンポーネントに解決されます。メニューを追加するときはマッピング表にある既存の名前を使い、新しいアイコンが必要な場合はマッピング表に 1 行追加してください。
 
 ## 多言語対応と副作用
 

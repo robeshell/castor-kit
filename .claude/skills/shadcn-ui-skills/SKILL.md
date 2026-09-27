@@ -31,7 +31,7 @@ Design system: `docs/frontend-design-system.md`; project conventions: `AGENTS.md
    ```bash
    apps/web/scripts/shadcn-add.sh hover-card        # add
    apps/web/scripts/shadcn-add.sh --view badge      # only view the registry source
-   apps/web/scripts/shadcn-add.sh badge -o -y       # overwrite existing files (loses local changes, such as button's brand variant; confirm first)
+   apps/web/scripts/shadcn-add.sh badge -o -y       # overwrite existing files (loses local changes, such as button's brand variant; confirm first, then re-apply from docs/shadcn-changes.md)
    ```
 
    The script starts a local Node relay (curl fetches https://ui.shadcn.com/r/... through the system proxy), clears `HTTP(S)_PROXY`, runs `REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add ...`,

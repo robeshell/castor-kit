@@ -64,7 +64,7 @@ export function specJsonSchema(): Record<string, unknown> {
         additionalProperties: false,
         properties: {
           parentId: { type: 'integer', description: 'Parent menu ID; defaults to the 业务管理 (Business) directory (ID 1000)' },
-          icon: { type: 'string', description: 'An icon name from apps/web/src/lib/menu-icons.js' },
+          icon: { type: 'string', description: 'An icon name from apps/web/src/lib/menu-icons.ts' },
         },
         description: 'Only when present are the menu and button permissions added to scripts/seed-rbac.ts; new business modules usually use {}',
       },

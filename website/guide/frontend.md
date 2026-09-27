@@ -111,7 +111,7 @@ export const importItems = (file) => {
 }
 ```
 
-`request.js` already takes care of:
+`request.ts` already takes care of:
 
 - `baseURL` is `/api`, so paths start with `/admin/...`
 - Responses are unwrapped: use `res.items` and `res.total` directly; **don't** write `res.data.items`
@@ -210,7 +210,7 @@ Always use Tailwind semantic color classes for color. They adapt automatically t
 
 ## Menu icons
 
-The `menus.icon` field stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.js` resolves to a lucide icon component. When adding a menu, reuse a name that already exists in the map; if you need a new icon, add an entry to the map.
+The `menus.icon` field stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.ts` resolves to a lucide icon component. When adding a menu, reuse a name that already exists in the map; if you need a new icon, add an entry to the map.
 
 ## i18n and side effects
 

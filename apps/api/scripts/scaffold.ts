@@ -44,7 +44,7 @@
  * the table name is `<name>s`; the frontend path is admin/pages/<name> or component_center/pages/admin/<name>_page.
  *
  * i18n: generated pages follow apps/web/src/modules/admin/pages/users/index.jsx (Chinese source text is the key,
- * see apps/web/src/i18n/index.js); backend error messages stay Chinese and are translated by apps/api/src/i18n/messages.ts.
+ * see apps/web/src/i18n/index.ts); backend error messages stay Chinese and are translated by apps/api/src/i18n/messages.ts.
  * Generated code comments are English.
  */
 
@@ -128,7 +128,7 @@ export interface FieldMeta {
 export interface MenuSpec {
   /** Parent menu id; default: the business group (code biz, created on first use) */
   parentId?: number
-  /** Icon name from apps/web/src/lib/menu-icons.js */
+  /** Icon name from apps/web/src/lib/menu-icons.ts */
   icon?: string
 }
 
@@ -1131,7 +1131,7 @@ ${lines.join('\n')}
 // PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
 // + ConfirmAction + toast + useCrudList. Field → form component / table column rendering: see FRONTEND_FIELD_MAP.
 //
-// i18n (see apps/web/src/i18n/index.js): Chinese source text is the key. Strings passed to shared components stay
+// i18n (see apps/web/src/i18n/index.ts): Chinese source text is the key. Strings passed to shared components stay
 // plain Chinese (the components translate them); JSX text, native attributes and interpolated text go through
 // t() / <Trans>. Every fixed Chinese string the page emits must have an entry in PAGE_TEXTS; the ones missing from
 // apps/web/src/locales are written to the page's own locales/ (see genFrontendLocales).

@@ -1,7 +1,7 @@
 # castor-kit frontend design system
 
 > The UI system of `apps/web`: shadcn/ui + Tailwind CSS v4 + motion + lucide-react (moving from JSX to TSX, see AGENTS.md "TypeScript (migration in progress)"). Visual direction: clean, with smooth motion, in the style of English-language SaaS products (Linear / Vercel / Stripe),
-> on a neutral gray base, with the **Ocean gradient (blue → sky → cyan)** as the default accent color; the gradient is only an accent. The accent can be switched to other presets in the Appearance menu (`src/lib/appearance.js`), and every accent token is derived from `--brand-from/via/to`.
+> on a neutral gray base, with the **Ocean gradient (blue → sky → cyan)** as the default accent color; the gradient is only an accent. The accent can be switched to other presets in the Appearance menu (`src/lib/appearance.ts`), and every accent token is derived from `--brand-from/via/to`.
 > Component usage, common page patterns and things not to do are in `.claude/skills/shadcn-ui-skills/`; project conventions are in `AGENTS.md` "Frontend conventions".
 
 ## 1. Tech stack
@@ -10,9 +10,9 @@
 |---|---|
 | React | React 19 (TypeScript / TSX; converted layer by layer from JSX) |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS variable themes (light / dark) |
-| Components | shadcn/ui (new-york, Radix), source in `src/components/ui/`, still JSX (`components.json` `tsx: false` until the layer is converted) |
+| Components | shadcn/ui (new-york, Radix), source in `src/components/ui/` (TSX); changes from upstream in `docs/shadcn-changes.md` |
 | Motion | `motion` (page transitions, staggered list entrances, layoutId indicators, number counters) + `tw-animate-css` (overlay enter / exit) |
-| Icons | `lucide-react`; the menu table stores lucide icon names (e.g. `Users`, `Settings`), resolved by `lib/menu-icons.js` |
+| Icons | `lucide-react`; the menu table stores lucide icon names (e.g. `Users`, `Settings`), resolved by `lib/menu-icons.ts` |
 | Tables | shared `DataTable` component (pagination, selection, empty state, skeleton) |
 | Forms | `react-hook-form` (shadcn Form pattern) + `FormFields` |
 | Notifications | `sonner` (the shared `toast`) |
@@ -68,7 +68,7 @@ apps/web/src/
 | `src/shared/components/` (shared business components) | primitives, `@/lib/*`, `@/i18n`, generic hooks, other shared components | `@/shared/api`, `@/context`, `@/modules`, `@/components/app`, `@/shared/hooks/useAppInfo` |
 | `src/components/app/` (app shell), pages | anything | - |
 
-Shared components get their data through props and callbacks, never by calling the API or reading app context themselves, so they stay reusable outside this app (a possible shadcn registry later). `apps/web/test/component-boundaries.test.js` enforces this; its allowlist holds the files that predate the rule (the file / avatar upload components, and two project changes to shadcn originals: `form` translates messages, `sonner` follows the app theme). Don't add to it: move the dependency into a prop instead. Changes to shadcn originals should stay small and be listed there or in the file's header comment.
+Shared components get their data through props and callbacks, never by calling the API or reading app context themselves, so they stay reusable outside this app (a possible shadcn registry later). `apps/web/test/component-boundaries.test.js` enforces this; its allowlist holds the files that predate the rule (the file / avatar upload components, and two project changes to shadcn originals: `form` translates messages, `sonner` follows the app theme). Don't add to it: move the dependency into a prop instead. Changes to shadcn originals should stay small and are listed in `docs/shadcn-changes.md`.
 
 The components live in `apps/web/src/shared/components/`; full usage is in `.claude/skills/shadcn-ui-skills/COMPONENTS.md`.
 

@@ -48,7 +48,7 @@
 
 ### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react; moving from JSX to TSX, see AGENTS.md "TypeScript (migration in progress)")
 - **Dynamic routing**: `App.jsx` scans `import.meta.glob('./modules/**/pages/**/index.jsx')`; `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/admin/kanban_page`)
-- **API client**: `apps/web/src/shared/api/request.js` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
+- **API client**: `apps/web/src/shared/api/request.ts` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
 - **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.jsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`
 - **Import / export**: reuse `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
 - **Styling**: only Tailwind semantic color classes (`bg-card` / `text-muted-foreground` / `bg-brand-soft` ...); the Ocean gradient is only an accent; no hard-coded hex colors; only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes, no other UI component libraries (antd, MUI, etc.)

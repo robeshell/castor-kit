@@ -10,7 +10,7 @@
 - 选择保存在 `localStorage` 的 `theme` 键中；从未选择过时跟随系统设置。
 - 切换时会短暂开启全局颜色过渡，结束后移除，不影响平常的 hover 动效。
 
-实现位于 `apps/web/src/context/ThemeContext.jsx`。页面只要使用语义色类（见 [前端开发](/zh/guide/frontend#样式规范)），深色模式就自动正确。
+实现位于 `apps/web/src/context/ThemeContext.tsx`。页面只要使用语义色类（见 [前端开发](/zh/guide/frontend#样式规范)），深色模式就自动正确。
 
 ## 强调色
 
@@ -51,8 +51,8 @@ ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS
 
 ### 新增一个强调色
 
-1. 在 `apps/web/src/lib/appearance.js` 的 `ACCENTS` 中添加 `{ id, label }`，`label` 是中文原文，同时作为翻译 key。
-2. 在 `apps/web/src/index.css` 中添加对应的 `[data-accent='<id>']` 浅色和深色两组色标。色标保持十六进制写法，`chart-theme.js` 会把 `--brand-from` 转换为 rgba。
+1. 在 `apps/web/src/lib/appearance.ts` 的 `ACCENTS` 中添加 `{ id, label }`，`label` 是中文原文，同时作为翻译 key。
+2. 在 `apps/web/src/index.css` 中添加对应的 `[data-accent='<id>']` 浅色和深色两组色标。色标保持十六进制写法，`chart-theme.ts` 会把 `--brand-from` 转换为 rgba。
 3. 为 `label` 补充英文和日文译文。
 
 ## 导航模式
@@ -98,7 +98,7 @@ ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS
 - 标签列表保存在 `sessionStorage` 的 `tags-view` 键中，仅对当前浏览器标签页有效
 - 切回某个标签时恢复它上次的查询参数和滚动位置
 
-状态管理在 `apps/web/src/context/TagsViewContext.jsx`，页面区域的渲染在 `apps/web/src/components/app/AppLayout.jsx`。
+状态管理在 `apps/web/src/context/TagsViewContext.tsx`，页面区域的渲染在 `apps/web/src/components/app/AppLayout.jsx`。
 
 ### 保活机制
 
@@ -136,4 +136,4 @@ useEffect(() => {
 | `localStorage` | `lang` | 界面语言，见 [多语言](/zh/guide/i18n) |
 | `sessionStorage` | `tags-view` | 已打开的标签 |
 
-`appearance` 中的未知键或非法值会被忽略并回退到默认值。外观设置面板提供“恢复默认”按钮。选项的唯一定义在 `apps/web/src/lib/appearance.js`。
+`appearance` 中的未知键或非法值会被忽略并回退到默认值。外观设置面板提供“恢复默认”按钮。选项的唯一定义在 `apps/web/src/lib/appearance.ts`。

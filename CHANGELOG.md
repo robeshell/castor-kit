@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format is based on 
   - `apps/web/tsconfig.json` (strict, `allowJs`) replaces `jsconfig.json`; `pnpm typecheck` and the `verify` gate type-check the web app's `.ts` / `.tsx` files, and `pnpm lint` now lints the web app too (typescript-eslint for TS files).
   - Page routing, the i18n scanner, the import check and `shadcn-add.sh` accept `.ts` / `.tsx`.
   - First files converted: `lib/utils`, `PageHeader`, `StatusBadge`, the sessions API; shared response shapes in `@/shared/api/types`.
+  - Converted to TSX: the shadcn primitives (`components/ui`, 46 files) and AI Elements, `lib`, `i18n`, the contexts (`AuthContextValue`, `TagsViewContextValue`, `ThemeContextValue`), `shared/hooks` (`useCrudList<Row>` is generic), `shared/api` and `shared/utils`. Markup and behavior are unchanged; the shadcn CLI now writes TSX (`components.json` `tsx: true`).
+  - `docs/shadcn-changes.md` lists every project change to an upstream shadcn / AI Elements component, to re-apply after re-adding one.
   - Component layers are enforced by a test: shadcn primitives import only primitives, and shared components get data through props instead of calling the API or reading app context.
 - English first, for a global audience:
   - The developer specs are written in English: `AGENTS.md`, `CLAUDE.md`, `docs/`, the `new-feature-autopilot` and `shadcn-ui-skills` skills, and the MCP server's tool descriptions. UI copy is still written in Chinese as the i18n key (`t('中文原文')`), with English and Japanese translations.

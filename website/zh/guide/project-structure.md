@@ -93,7 +93,7 @@ apps/web/
 └── src/
     ├── App.jsx               # 动态路由（import.meta.glob 扫描页面）
     ├── index.css             # Tailwind v4 入口 + 设计 tokens（浅色 / 深色 / 强调色）
-    ├── i18n/index.js         # i18next 初始化
+    ├── i18n/index.ts         # i18next 初始化
     ├── locales/              # 公共文案译文；menus/ 为菜单名译文
     ├── context/              # AuthContext / ThemeContext / TagsViewContext
     ├── components/
