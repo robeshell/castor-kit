@@ -51,3 +51,15 @@ export function writeError(err: unknown): ServiceError {
   if (err instanceof ServiceError) return err
   return dbConstraintError(err) ?? internalError(err)
 }
+
+/** Whether a DB execution error (incl. the drizzle-wrapped cause chain) mentions a constraint/keyword */
+export function dbErrorMentions(err: unknown, needle: string): boolean {
+  let cur: unknown = err
+  for (let depth = 0; cur && depth < 5; depth += 1) {
+    const e = cur as { message?: unknown; constraint?: unknown; cause?: unknown }
+    if (e.constraint === needle) return true
+    if (typeof e.message === 'string' && e.message.includes(needle)) return true
+    cur = e.cause
+  }
+  return false
+}

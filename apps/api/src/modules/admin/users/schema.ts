@@ -4,10 +4,32 @@
 
 import { z } from 'zod'
 import { formatDateTime } from '@/common/serialize'
+import { exportBody, field } from '@/common/validation'
 import type { AdminUserWithRoles } from '@/db/schema'
 
-/** Request body: loose + all optional; normalization happens in the service */
-export const userBodySchema = z.record(z.string(), z.unknown()).nullish()
+/** Profile fields; their formats are checked by normalizeProfile (shared with import) */
+export const profileBody = z.object({
+  nickname: field.text('昵称'),
+  email: field.text('邮箱'),
+  phone: field.text('手机号'),
+  avatar: field.text('头像地址'),
+})
+
+export const userBody = profileBody.extend({
+  username: field.requiredText('用户名', '用户名和密码不能为空'),
+  password: field.secret('密码'),
+  dept_id: field.id('部门'),
+  role_ids: field.ids('角色'),
+})
+
+export type UserInput = z.output<typeof userBody>
+
+/** Edit: the username can't change, so it isn't read */
+export const userUpdateBody = userBody.omit({ username: true })
+
+export const userStatusBody = z.object({ status: field.text('状态') })
+
+export const userExportBody = exportBody({ search: field.text('搜索'), status: field.text('状态'), dept_id: field.id('部门') })
 
 /**
  * Data scope declaration (checked by `pnpm verify`): user rows belong to their department, and "own data" means
@@ -84,12 +106,11 @@ const TOO_LONG: Record<ProfileField, string> = {
  * Normalize the profile fields present in `data` (absent keys stay absent, so partial updates don't clear them).
  * Blank values become null — email is unique, and '' would collide across users. Returns the values or an error message.
  */
-export function normalizeProfile(data: Record<string, unknown>): { values: ProfileValues } | { error: string } {
+export function normalizeProfile(data: Partial<Record<ProfileField, string | null>>): { values: ProfileValues } | { error: string } {
   const values: ProfileValues = {}
   for (const field of PROFILE_FIELDS) {
     if (!(field in data)) continue
-    const raw = data[field]
-    const text = raw === null || raw === undefined ? '' : String(raw).trim()
+    const text = (data[field] ?? '').trim()
     if (!text) {
       values[field] = null
       continue

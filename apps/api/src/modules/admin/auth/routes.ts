@@ -10,7 +10,8 @@ import { passwordPolicyOf } from '@/common/password-policy'
 import { authRateLimit } from '@/common/rate-limit'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { attachSession, clearSession, createSession, isSignedIn, revokeSessions } from '@/common/session'
-import { changePasswordBodySchema, loginBodySchema } from './schema'
+import { parseBody } from '@/common/validation'
+import { changePasswordBody, loginBodySchema } from './schema'
 import { AuthService } from './service'
 
 export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void> {
@@ -57,10 +58,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
 
   app.post(
     '/api/admin/change-password',
-    { preHandler: loginRequired, schema: { body: changePasswordBodySchema } },
+    { preHandler: loginRequired },
     async (request) => {
       const user = await getCurrentAdminUser(request)
-      const result = await service.changePassword(user?.id, request.body, passwordPolicyOf(await app.settings.get()))
+      const result = await service.changePassword(user?.id, parseBody(changePasswordBody, request.body), passwordPolicyOf(await app.settings.get()))
       // Other devices must sign in again with the new password; this one stays signed in
       await revokeSessions(app.db, { userId: user!.id, exceptId: request.authSession!.id })
       return result

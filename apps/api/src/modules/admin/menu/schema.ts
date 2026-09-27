@@ -2,8 +2,8 @@
  * Menu module schema layer: parameter mapping, validation, type conversion
  */
 
-import { ServiceError } from '@/common/errors'
-import { pyInt, pyStr, pyStrOrEmpty } from '@/common/py'
+import { z } from 'zod'
+import { exportBody, field, parseIntText, parseYesNo } from '@/common/validation'
 import type { Menu } from '@/db/schema'
 
 /** Export row: menu + parent code (`item.parent.code`) */
@@ -41,42 +41,27 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 export const TEMPLATE_HEADERS = ['菜单名称', '菜单编码', '类型', '路径', '组件', '图标', '父级编码', '排序', '是否显示', '是否启用', '描述']
 export const TEMPLATE_ROWS = [['示例菜单', 'demo_menu', 'menu', '/demo/menu', 'DemoMenu', 'IconApps', '', 99, '是', '是', '示例描述']]
 
-export const MENU_TYPES = new Set(['directory', 'menu', 'button'])
+export const MENU_TYPES = ['directory', 'menu', 'button'] as const
 
-export const MENU_MUTABLE_FIELDS = [
-  'name',
-  'code',
-  'icon',
-  'path',
-  'component',
-  'parent_id',
-  'sort_order',
-  'is_visible',
-  'is_active',
-  'menu_type',
-  'description',
-] as const
-export type MenuMutableField = (typeof MENU_MUTABLE_FIELDS)[number]
+export const menuBody = z.object({
+  name: field.requiredText('菜单名称', '菜单名称不能为空'),
+  code: field.requiredText('菜单编码', '菜单编码不能为空'),
+  icon: field.text('图标'),
+  path: field.text('路径'),
+  component: field.text('组件'),
+  parent_id: field.id('父级菜单'),
+  sort_order: field.int('排序', 0),
+  is_visible: field.bool('是否显示', true),
+  is_active: field.bool('是否启用', true),
+  menu_type: field.choice('菜单类型', MENU_TYPES, 'menu', '菜单类型只能是 directory、menu 或 button'),
+  description: field.text('描述'),
+})
 
-const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', '是', '启用'])
-const FALSE_VALUES = new Set(['0', 'false', 'no', 'off', '否', '停用'])
+export type MenuInput = z.output<typeof menuBody>
 
-export function parseBool(value: unknown, fallback: boolean | null = null): boolean | null {
-  if (value === null || value === undefined || value === '') return fallback
-  if (typeof value === 'boolean') return value
-  const raw = pyStr(value).trim().toLowerCase()
-  if (TRUE_VALUES.has(raw)) return true
-  if (FALSE_VALUES.has(raw)) return false
-  return fallback
-}
+export const menuSortBody = z.object({ direction: field.text('direction') })
 
-export function parseIntOr(value: unknown, fallback = 0): number {
-  try {
-    return pyInt(value)
-  } catch {
-    return fallback
-  }
-}
+export const menuExportBody = exportBody({ search: field.text('搜索') })
 
 export interface ErrorRow {
   line: number
@@ -90,27 +75,6 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
     reason,
     row: Object.fromEntries(Object.entries(row ?? {}).map(([k, v]) => [k, v === null || v === undefined ? '' : String(v)])),
   }
-}
-
-/** menu_type, when given, must be one of MENU_TYPES (import checks the same) */
-function assertMenuType(data: Record<string, unknown>): void {
-  const type = data.menu_type
-  if (type !== undefined && type !== null && type !== '' && !MENU_TYPES.has(String(type))) {
-    throw new ServiceError('菜单类型只能是 directory、menu 或 button', 400)
-  }
-}
-
-export function validateCreatePayload(data: Record<string, unknown>): void {
-  if (!pyStrOrEmpty(data.name) || !pyStrOrEmpty(data.code)) {
-    throw new ServiceError('菜单名称和编码不能为空', 400)
-  }
-  assertMenuType(data)
-}
-
-export function validateUpdatePayload(data: Record<string, unknown>): void {
-  if ('name' in data && !pyStrOrEmpty(data.name)) throw new ServiceError('菜单名称不能为空', 400)
-  if ('code' in data && !pyStrOrEmpty(data.code)) throw new ServiceError('菜单编码不能为空', 400)
-  assertMenuType(data)
 }
 
 export function mapImportHeaders(fieldnames: string[]): Map<string, string> {
@@ -137,18 +101,18 @@ export interface ParsedImportRow {
 }
 
 export function parseImportRow(mapped: Record<string, string>): ParsedImportRow {
-  const text = (key: string) => pyStrOrEmpty(mapped[key])
+  const text = (key: string) => (mapped[key] ?? '').trim()
   return {
     name: text('name'),
     code: text('code'),
-    menu_type: pyStrOrEmpty(mapped.menu_type || 'menu') || 'menu',
+    menu_type: text('menu_type') || 'menu',
     path: text('path') || null,
     component: text('component') || null,
     icon: text('icon') || null,
     parent_code: text('parent_code'),
-    sort_order: parseIntOr(mapped.sort_order, 0),
-    is_visible: parseBool(mapped.is_visible, true)!,
-    is_active: parseBool(mapped.is_active, true)!,
+    sort_order: parseIntText(mapped.sort_order, 0),
+    is_visible: parseYesNo(mapped.is_visible, true)!,
+    is_active: parseYesNo(mapped.is_active, true)!,
     description: text('description') || null,
   }
 }

@@ -3,16 +3,15 @@
  */
 
 import { sql, type SQL } from 'drizzle-orm'
-import { writeError } from '@/common/db-errors'
-import { ServiceError } from '@/common/errors'
-import { invalidInput } from '@/common/py-values'
+import type { z } from 'zod'
+import { dbConstraintError, writeError } from '@/common/db-errors'
+import { internalError, ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { pyInt, pyStr, pyTruthy } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
+import { changedFields } from '@/common/validation'
 import type { Db } from '@/db/client'
 import { utcNow } from '@/db/schema/columns'
 import { announcementToDict, type Announcement } from '@/db/schema'
-import { bindText, omitNull, pyEq } from '@/common/sqla-bind'
 import { AnnouncementRepository, type AnnouncementFilters, type AnnouncementUpdate } from './repository'
 import {
   ANNOUNCE_TYPES,
@@ -21,67 +20,18 @@ import {
   STATUSES,
   TEMPLATE_HEADERS,
   TEMPLATE_ROWS,
-  idsForInClause,
-  normalizeDbTimestamp,
-  parsePublishAt,
-  pickExportFields,
-  stripOrEmpty,
-  type PyDateTime,
+  type AnnouncementInput,
+  type announcementExportBody,
 } from './schema'
 
-type Data = Record<string, unknown>
+/** Value to write for publish_at: a parsed date-time, the current time, or none */
+type PublishAt = string | 'now' | null
 
-/** Integer conversion: a value that isn't an integer is the caller's input error → 400 */
-function pyIntOrInvalid(value: unknown): number {
-  try {
-    return pyInt(value)
-  } catch {
-    throw invalidInput()
-  }
-}
-
-/** announce_type / status, when given, must be one of the allowed values */
-function assertChoices(data: Data): void {
-  if (pyTruthy(data.announce_type) && !ANNOUNCE_TYPES.includes(String(data.announce_type))) {
-    throw new ServiceError('公告类型只能是 system、activity 或 update', 400)
-  }
-  if (pyTruthy(data.status) && !STATUSES.includes(String(data.status))) {
-    throw new ServiceError('状态只能是 draft 或 published', 400)
-  }
-}
-
-
-/** Value to write for publish_at: parsed result / current UTC time / None */
-type PublishAtValue = PyDateTime | 'now' | null
-
-function publishAtSql(value: PublishAtValue): SQL | string | null {
+/** A date-time with an offset is cast to timestamptz, which PostgreSQL converts to the session time zone on store */
+function publishAtSql(value: PublishAt): SQL | string | null {
   if (value === null) return null
   if (value === 'now') return utcNow()
-  // aware datetimes are sent as `'...'::timestamptz` and converted to the session time zone when stored in a timestamp column
-  return value.aware ? sql`${value.text}::timestamptz` : value.text
-}
-
-/** Whether the publish time is unchanged: naive values compare by value; aware values never equal the naive DB value */
-function publishAtEquals(value: PublishAtValue, current: string | null): boolean {
-  if (value === null) return current === null
-  if (value === 'now' || value.aware) return false
-  return value.text === normalizeDbTimestamp(current)
-}
-
-/** SQLSTATE → error class name, used as the prefix of import row error reasons (keeps the existing error message format) */
-const PG_ERROR_CLASS: Record<string, string> = {
-  '22001': 'StringDataRightTruncation',
-  '22003': 'NumericValueOutOfRange',
-  '22P02': 'InvalidTextRepresentation',
-  '23502': 'NotNullViolation',
-}
-
-function importRowReason(err: unknown): string {
-  // Drizzle wraps the pg error in `cause`
-  const e = ((err as { cause?: unknown }).cause ?? err) as { code?: string; message?: string }
-  const cls = e.code && PG_ERROR_CLASS[e.code]
-  const message = e.message ?? String(err)
-  return cls ? `(psycopg2.errors.${cls}) ${message}` : message
+  return /[+-]\d{2}:\d{2}$/.test(value) ? sql`${value}::timestamptz` : value
 }
 
 export class AnnouncementService {
@@ -102,28 +52,12 @@ export class AnnouncementService {
     return { items: rows.map(announcementToDict), total }
   }
 
-  async createItem(data: Data) {
-    const title = stripOrEmpty(data.title)
-    if (!title) throw new ServiceError('标题不能为空', 400)
-    assertChoices(data)
-
-    const publishAt = pyTruthy(data.publish_at) ? parsePublishAt(data.publish_at) : null
-
-    const content = bindText(pyTruthy(data.content) ? data.content : '')
-    const announceType = bindText(pyTruthy(data.announce_type) ? data.announce_type : 'system')
-    const status = bindText(pyTruthy(data.status) ? data.status : 'draft')
-    const isTop = pyTruthy('is_top' in data ? data.is_top : false)
-    const sortOrder = pyIntOrInvalid(pyTruthy(data.sort_order) ? data.sort_order : 0)
-
+  async createItem(values: AnnouncementInput) {
     try {
       const created = await this.repo.insert({
-        title,
-        content: omitNull(content),
-        announce_type: omitNull(announceType),
-        status: omitNull(status),
-        is_top: isTop,
-        sort_order: sortOrder,
-        publish_at: omitNull(publishAtSql(publishAt)) as string | undefined,
+        ...values,
+        content: values.content ?? '',
+        publish_at: publishAtSql(values.publish_at) as string | null,
       })
       return announcementToDict(created)
     } catch (err) {
@@ -131,23 +65,13 @@ export class AnnouncementService {
     }
   }
 
-  /** Compute final values in a fixed field order and write back only columns that differ from the current value (`==` semantics); no UPDATE when nothing changed */
-  private async applyChanges(item: Announcement, assigned: Record<string, unknown>, publishAt?: PublishAtValue) {
-    const changes: AnnouncementUpdate = {}
-    for (const [field, value] of Object.entries(assigned)) {
-      if (!pyEq(value, (item as Record<string, unknown>)[field])) {
-        ;(changes as Record<string, unknown>)[field] = value
-      }
-    }
-    if (publishAt !== undefined && !publishAtEquals(publishAt, item.publish_at)) {
+  /** Writes only the columns that change (none → no UPDATE, updated_at stays); a publish_at that is given is always written */
+  private async applyChanges(item: Announcement, values: AnnouncementUpdate, publishAt?: PublishAt) {
+    const changes: AnnouncementUpdate = changedFields(item, values)
+    if (publishAt !== undefined && !(publishAt === null && item.publish_at === null)) {
       changes.publish_at = publishAtSql(publishAt) as string | null
     }
     if (Object.keys(changes).length === 0) return announcementToDict(item)
-
-    // Bind by column type before writing (PG assignment-cast semantics)
-    for (const field of ['content', 'announce_type', 'status'] as const) {
-      if (field in changes) changes[field] = bindText(changes[field]) as never
-    }
     try {
       return announcementToDict(await this.repo.update(item.id, changes))
     } catch (err) {
@@ -155,33 +79,12 @@ export class AnnouncementService {
     }
   }
 
-  async updateItem(item: Announcement, data: Data) {
-    assertChoices(data)
-    const assigned: Record<string, unknown> = {}
-    let publishAt: PublishAtValue | undefined
-
-    if ('title' in data) {
-      const title = stripOrEmpty(data.title)
-      if (!title) throw new ServiceError('标题不能为空', 400)
-      assigned.title = title
-    }
-    if ('content' in data) assigned.content = pyTruthy(data.content) ? data.content : ''
-    if ('announce_type' in data) assigned.announce_type = data.announce_type
-    if ('status' in data) {
-      assigned.status = data.status
-      if (data.status === 'published' && item.publish_at === null) publishAt = 'now'
-    }
-    if ('is_top' in data) assigned.is_top = pyTruthy(data.is_top)
-    if ('sort_order' in data) assigned.sort_order = pyIntOrInvalid(pyTruthy(data.sort_order) ? data.sort_order : 0)
-    if ('publish_at' in data) {
-      if (pyTruthy(data.publish_at)) {
-        const parsed = parsePublishAt(data.publish_at)
-        if (parsed) publishAt = parsed
-      } else {
-        publishAt = null
-      }
-    }
-    return this.applyChanges(item, assigned, publishAt)
+  async updateItem(item: Announcement, values: Partial<AnnouncementInput>) {
+    const { publish_at: givenPublishAt, content, ...rest } = values
+    let publishAt: PublishAt | undefined = givenPublishAt
+    // Publishing an announcement that was never published stamps the publish time, unless the request sets one
+    if (publishAt === undefined && rest.status === 'published' && item.publish_at === null) publishAt = 'now'
+    return this.applyChanges(item, content === undefined ? rest : { ...rest, content: content ?? '' }, publishAt)
   }
 
   async deleteItem(item: Announcement) {
@@ -205,18 +108,14 @@ export class AnnouncementService {
     return Object.entries(EXPORT_FIELD_MAP).map(([value, [label]]) => ({ label, value }))
   }
 
-  async exportItems(data: Data) {
-    const fieldsRaw = pyTruthy(data.fields) ? data.fields : []
-    const fileType = normalizeTableFileType(data.file_type, 'xlsx')
-    const ids = pyTruthy(data.ids) ? data.ids : []
-    const exportMode = pyStr(pyTruthy(data.export_mode) ? data.export_mode : 'all').trim()
-
-    let validFields = pickExportFields(fieldsRaw)
+  async exportItems(options: z.output<typeof announcementExportBody>) {
+    const fileType = normalizeTableFileType(options.file_type, 'xlsx')
+    let validFields = options.fields.filter((f) => Object.hasOwn(EXPORT_FIELD_MAP, f))
     if (validFields.length === 0) validFields = Object.keys(EXPORT_FIELD_MAP)
 
     const items =
-      exportMode === 'selected' && pyTruthy(ids)
-        ? await this.repo.listByIdsOrdered(idsForInClause(ids))
+      options.export_mode === 'selected' && options.ids.length > 0
+        ? await this.repo.listByIdsOrdered(options.ids)
         : await this.repo.listAllForExport()
 
     const headers = validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
@@ -240,11 +139,10 @@ export class AnnouncementService {
     }
     if (table.fieldnames.length === 0) throw new ServiceError('文件为空或格式错误', 400)
 
-    // Note: keys are the stripped headers, but lookups check the raw headers (a header with surrounding whitespace is not mapped; preserves existing behavior)
     const colMap = new Map<string, string>()
     for (const col of table.fieldnames) {
       const key = col.trim()
-      if (Object.hasOwn(IMPORT_HEADER_MAP, key)) colMap.set(key, IMPORT_HEADER_MAP[key]!)
+      if (Object.hasOwn(IMPORT_HEADER_MAP, key)) colMap.set(col, IMPORT_HEADER_MAP[key]!)
     }
 
     let created = 0
@@ -260,17 +158,13 @@ export class AnnouncementService {
         errorRows.push({ line, reason: '标题不能为空', row })
         continue
       }
-      const isTop = ['是', 'true', 'True', '1'].includes((mapped.is_top || '').trim())
-      let sortOrder: number
-      try {
-        sortOrder = pyInt(mapped.sort_order || 0)
-      } catch {
-        sortOrder = 0
-      }
+      const isTop = ['是', 'true', '1'].includes((mapped.is_top || '').trim().toLowerCase())
+      const sortText = (mapped.sort_order || '').trim()
+      const sortOrder = /^[+-]?\d+$/.test(sortText) ? Number.parseInt(sortText, 10) : 0
       let announceType = (mapped.announce_type || 'system').trim()
-      if (!ANNOUNCE_TYPES.includes(announceType)) announceType = 'system'
+      if (!(ANNOUNCE_TYPES as readonly string[]).includes(announceType)) announceType = 'system'
       let status = (mapped.status || 'draft').trim()
-      if (!STATUSES.includes(status)) status = 'draft'
+      if (!(STATUSES as readonly string[]).includes(status)) status = 'draft'
       try {
         await this.repo.insert({
           title,
@@ -282,7 +176,9 @@ export class AnnouncementService {
         })
         created += 1
       } catch (err) {
-        errorRows.push({ line, reason: importRowReason(err), row })
+        const rejected = dbConstraintError(err)
+        if (!rejected) throw internalError(err)
+        errorRows.push({ line, reason: rejected.message, row })
       }
     }
 

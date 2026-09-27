@@ -6,9 +6,10 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, parseIntParam, queryString, rawJsonBody } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { sendTable } from '@/common/tabular'
-import { dictBody } from '@/common/py-values'
+import { parseBody, parsePatch } from '@/common/validation'
+import { menuBody, menuExportBody, menuSortBody } from './schema'
 import { MenuService } from './service'
 
 function menuIdOf(request: FastifyRequest): number {
@@ -30,7 +31,7 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_menus_add'))) {
       return reply.status(403).send({ error: '无权限新增菜单' })
     }
-    return reply.status(201).send(await service.createMenu(dictBody(rawJsonBody(request))))
+    return reply.status(201).send(await service.createMenu(parseBody(menuBody, request.body)))
   })
 
   app.get(`/api/admin/menus/${intParam('menu_id')}`, opts, async (request, reply) => {
@@ -46,7 +47,7 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限编辑菜单' })
     }
     const menu = await service.getMenuOr404(menuIdOf(request))
-    return service.updateMenu(menu, dictBody(rawJsonBody(request)))
+    return service.updateMenu(menu, parsePatch(menuBody, request.body))
   })
 
   app.delete(`/api/admin/menus/${intParam('menu_id')}`, opts, async (request, reply) => {
@@ -62,7 +63,7 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ error: '无权限排序菜单' })
     }
     const menu = await service.getMenuOr404(menuIdOf(request))
-    return service.sortMenu(menu, dictBody(rawJsonBody(request)).direction)
+    return service.sortMenu(menu, parseBody(menuSortBody, request.body).direction)
   })
 
   app.get('/api/admin/my-menus', opts, async (request) => {
@@ -73,7 +74,7 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
     if (!(await hasMenuPermission(request, 'system_menus_export'))) {
       return reply.status(403).send({ error: '无权限导出菜单' })
     }
-    return sendTable(reply, await service.exportMenus(dictBody(rawJsonBody(request))))
+    return sendTable(reply, await service.exportMenus(parseBody(menuExportBody, request.body)))
   })
 
   app.get('/api/admin/menus/template', opts, async (request, reply) => {

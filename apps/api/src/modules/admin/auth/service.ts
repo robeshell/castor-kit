@@ -189,13 +189,13 @@ export class AuthService {
 
     const admin = userId !== undefined ? await this.repo.getAdminById(userId) : null
     if (!admin) throw new ServiceError('用户不存在', 404)
-    if (!(await checkPasswordHash(admin.password_hash, data?.old_password))) {
+    if (!(await checkPasswordHash(admin.password_hash, data.old_password))) {
       throw new ServiceError('旧密码错误', 400)
     }
 
     try {
       // New hashes keep the existing `pbkdf2:sha256:<iterations>$<salt>$<hex>` format, compatible with hashes already stored
-      await this.repo.updatePasswordHash(admin.id, await generatePasswordHash(String(data?.new_password)))
+      await this.repo.updatePasswordHash(admin.id, await generatePasswordHash(data.new_password!))
     } catch (err) {
       throw internalError(err)
     }

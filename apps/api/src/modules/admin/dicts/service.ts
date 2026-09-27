@@ -6,7 +6,7 @@ import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
-import { changedFields } from '@/common/validation'
+import { changedFields, parseIntText, parseYesNo } from '@/common/validation'
 import type { Db } from '@/db/client'
 import { dictItemToDict, dictTypeToDict, type DictItem, type DictType } from '@/db/schema'
 import type { z } from 'zod'
@@ -15,8 +15,6 @@ import {
   CSV_HEADER_TO_FIELD,
   ITEM_TABLE_HEADERS,
   LEGACY_CSV_HEADER_TO_FIELD,
-  parseBoolText,
-  parseIntText,
   type dictItemBody,
   type dictTypeBody,
 } from './schema'
@@ -252,8 +250,8 @@ export class DictsService {
         const value = (mapped.value ?? '').trim()
         if (!label || !value) throw new ServiceError(`第 ${line} 行“字典标签/字典值”不能为空`, 400)
 
-        const isDefault = parseBoolText(mapped.is_default)
-        const isActive = parseBoolText(mapped.is_active)
+        const isDefault = parseYesNo(mapped.is_default)
+        const isActive = parseYesNo(mapped.is_active)
         const color = (mapped.color ?? '').trim() || null
         const description = (mapped.description ?? '').trim() || null
         const existing = await repo.getItemByTypeValue(type.id, value)

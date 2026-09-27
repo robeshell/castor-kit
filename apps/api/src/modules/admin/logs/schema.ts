@@ -3,7 +3,11 @@
  */
 
 import { formatDateTime } from '@/common/serialize'
+import { exportBody, field } from '@/common/validation'
 import type { LoginLog, OperationLog } from '@/db/schema'
+
+export const loginLogExportBody = exportBody({ username: field.text('用户名'), status: field.text('状态') })
+export const operationLogExportBody = exportBody({ username: field.text('用户名'), module: field.text('模块'), action: field.text('操作') })
 
 export const LOGIN_EXPORT_FIELD_MAP: Record<string, [string, (item: LoginLog) => unknown]> = {
   id: ['ID', (item) => item.id],

@@ -474,7 +474,6 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '菜单类型只能是 directory、menu 或 button': { 'en-US': 'Menu type must be directory, menu or button', 'ja-JP': 'メニューの種類は directory、menu、button のいずれかです' },
   '请选择接收通知的用户': { 'en-US': 'Choose the user who receives the notification', 'ja-JP': '通知を受け取るユーザーを選択してください' },
   '接收通知的用户不存在': { 'en-US': 'The user receiving the notification does not exist', 'ja-JP': '通知を受け取るユーザーが存在しません' },
-  'role_ids 必须是数组': { 'en-US': 'role_ids must be an array', 'ja-JP': 'role_ids は配列で指定してください' },
   '开始日期不能晚于结束日期': { 'en-US': 'The start date cannot be after the end date', 'ja-JP': '開始日は終了日より後にできません' },
 }
 

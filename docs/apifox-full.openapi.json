@@ -371,7 +371,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "ISO 8601 时间（如 2026-01-02T08:00:00 或带时区），格式不合法时按空处理"
+                    "description": "发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM）；空值表示未设置；格式不合法返回 400「发布时间的值无效」"
                   }
                 },
                 "required": [
@@ -855,7 +855,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "ISO 8601 时间；传空值清空发布时间，格式不合法时保持原值"
+                    "description": "发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM）；传空值清空；格式不合法返回 400「发布时间的值无效」"
                   }
                 }
               }
@@ -20305,7 +20305,7 @@
                       "error"
                     ],
                     "default": "info",
-                    "description": "通知类型，其他值按 info"
+                    "description": "通知类型：info / warning / success / error，默认 info；其他值返回 400「通知类型的值无效」"
                   },
                   "link": {
                     "type": [
@@ -25483,10 +25483,9 @@
                   "dept_id": {
                     "type": [
                       "integer",
-                      "string",
                       "null"
                     ],
-                    "description": "部门 ID（整数或数字字符串），null / 空串表示不分配；部门必须存在且在当前数据权限范围内"
+                    "description": "部门 ID，null 表示不分配；部门必须存在且在当前数据权限范围内"
                   },
                   "role_ids": {
                     "type": "array",
@@ -25986,10 +25985,9 @@
                   "dept_id": {
                     "type": [
                       "integer",
-                      "string",
                       "null"
                     ],
-                    "description": "部门 ID（整数或数字字符串），null / 空串表示不分配；部门必须存在且在当前数据权限范围内"
+                    "description": "部门 ID，null 表示不分配；部门必须存在且在当前数据权限范围内"
                   },
                   "role_ids": {
                     "type": "array",

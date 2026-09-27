@@ -3,23 +3,14 @@
  */
 
 import type { EventBus } from '@/common/webhooks'
-import { isDataScopeCode } from '@/common/data-scope'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { pyStrOrEmpty, pyTruthy } from '@/common/py'
 import { buildTable, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import type { Db } from '@/db/client'
 import { roleToDict, type Menu, type Role } from '@/db/schema'
-import {
-  adaptIdsForIn,
-  adaptText,
-  dictGet,
-  invalidInput,
-  parseExportArgs,
-  pyEq,
-  selectedIdsOrNull,
-} from '@/common/py-values'
 import { writeError } from '@/common/db-errors'
+import { changedFields, exportColumns } from '@/common/validation'
+import type { z } from 'zod'
 import { RoleRepository } from './repository'
 import {
   buildErrorRow,
@@ -31,9 +22,9 @@ import {
   TEMPLATE_ROWS,
   type ErrorRow,
   type RoleExportItem,
+  type RoleInput,
+  type roleExportBody,
 } from './schema'
-
-type Data = Record<string, unknown>
 
 /** The built-in super admin role (common/rbac.ts short-circuits every check for it) */
 const SUPER_ADMIN = 'super_admin'
@@ -58,11 +49,6 @@ export class RoleService {
     }
   }
 
-  /** `data.get('menu_ids') or []` → `list_menus_by_ids(...)` */
-  private async resolveMenus(raw: unknown): Promise<Menu[]> {
-    const ids = pyTruthy(raw) ? adaptIdsForIn(raw) : []
-    return this.repo.listMenusByIds(ids)
-  }
 
   private async roleDict(repo: RoleRepository, id: number) {
     const role = (await repo.getWithMenus(id))!
@@ -71,7 +57,7 @@ export class RoleService {
   }
 
   async listRoles() {
-    const items = await this.repo.listWithMenusPyOrder()
+    const items = await this.repo.listWithMenus()
     const depts = await this.repo.deptIdsByRole(items.map((r) => r.id))
     return items.map((r) => roleToDict({ ...r, dept_ids: depts.get(r.id) ?? [] }, true))
   }
@@ -80,20 +66,14 @@ export class RoleService {
    * data_scope / dept_ids from a request body. Returns the scope to store (undefined = unchanged) and the custom
    * departments to store (undefined = unchanged; [] clears them — any scope other than 'custom' keeps none).
    */
-  private async resolveDataScope(data: Data, current: string) {
-    let dataScope: string | undefined
-    if ('data_scope' in data) {
-      if (!isDataScopeCode(data.data_scope)) throw new ServiceError('数据范围取值不合法', 400)
-      dataScope = data.data_scope
-    }
+  private async resolveDataScope(values: Partial<RoleInput>, current: string) {
+    const dataScope = values.data_scope
     const effective = dataScope ?? current
     let deptIds: number[] | undefined
     if (effective !== 'custom') {
       if (dataScope !== undefined) deptIds = []
-    } else if ('dept_ids' in data) {
-      const raw = data.dept_ids ?? []
-      if (!Array.isArray(raw) || !raw.every((v) => Number.isSafeInteger(v))) throw new ServiceError('部门不存在', 400)
-      const wanted = [...new Set(raw as number[])]
+    } else if (values.dept_ids !== undefined) {
+      const wanted = values.dept_ids
       if ((await this.repo.existingDeptIds(wanted)).length !== wanted.length) throw new ServiceError('部门不存在', 400)
       deptIds = wanted
     }
@@ -106,23 +86,19 @@ export class RoleService {
     return role
   }
 
-  async createRole(data: Data) {
-    if (!pyTruthy(data.name)) throw new ServiceError('角色名称不能为空', 400)
-    if (!pyTruthy(data.code)) throw new ServiceError('角色编码不能为空', 400)
-    if (typeof data.code !== 'string') throw invalidInput()
-    if (await this.repo.getByCode(data.code)) throw new ServiceError('角色编码已存在', 400)
+  async createRole(values: RoleInput) {
+    if (await this.repo.getByCode(values.code)) throw new ServiceError('角色编码已存在', 400)
 
-    const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
-    const scope = await this.resolveDataScope(data, 'all')
-    const code = data.code
+    const menuList = await this.repo.listMenusByIds(values.menu_ids)
+    const scope = await this.resolveDataScope(values, 'all')
     const dict = await this.inTx(async (repo) => {
       const created = await repo.insert({
-        name: adaptText(data.name)!,
-        code,
-        description: adaptText(data.description),
-        ...(scope.dataScope ? { data_scope: scope.dataScope } : {}),
+        name: values.name,
+        code: values.code,
+        description: values.description,
+        data_scope: values.data_scope,
       })
-      if (menuList) await repo.setMenus(created.id, menuList.map((m) => m.id))
+      await repo.setMenus(created.id, menuList.map((m) => m.id))
       if (scope.deptIds) await repo.setDepts(created.id, scope.deptIds)
       return this.roleDict(repo, created.id)
     })
@@ -135,10 +111,10 @@ export class RoleService {
    * would either do nothing (permission checks skip super admins) or lock every super admin out. Name and description
    * stay editable.
    */
-  private async assertSuperAdminEdit(role: Role, data: Data, menuList: Menu[] | null) {
+  private async assertSuperAdminEdit(role: Role, values: Partial<RoleInput>, menuList: Menu[] | null) {
     if (role.code !== SUPER_ADMIN) return
-    if ('code' in data && !pyEq(data.code, role.code)) throw new ServiceError('超级管理员角色的编码不能修改', 400)
-    if ('data_scope' in data && data.data_scope !== 'all') throw new ServiceError('超级管理员角色的数据范围固定为全部数据', 400)
+    if (values.code !== undefined && values.code !== role.code) throw new ServiceError('超级管理员角色的编码不能修改', 400)
+    if (values.data_scope !== undefined && values.data_scope !== 'all') throw new ServiceError('超级管理员角色的数据范围固定为全部数据', 400)
     if (menuList) {
       const granted = new Set(menuList.map((m) => m.id))
       if (!(await this.repo.allMenuIds()).every((id) => granted.has(id))) {
@@ -147,24 +123,17 @@ export class RoleService {
     }
   }
 
-  async updateRole(role: Role, data: Data) {
-    if ('name' in data && !pyTruthy(data.name)) throw new ServiceError('角色名称不能为空', 400)
-    if ('code' in data) {
-      if (!pyTruthy(data.code)) throw new ServiceError('角色编码不能为空', 400)
-      if (typeof data.code !== 'string') throw invalidInput()
-      if (data.code !== role.code && (await this.repo.getByCode(data.code))) throw new ServiceError('角色编码已存在', 400)
+  async updateRole(role: Role, values: Partial<RoleInput>) {
+    if (values.code !== undefined && values.code !== role.code && (await this.repo.getByCode(values.code))) {
+      throw new ServiceError('角色编码已存在', 400)
     }
-    const changes: Record<string, unknown> = {}
-    for (const field of ['name', 'code', 'description'] as const) {
-      if (field in data && !pyEq(data[field], role[field])) changes[field] = data[field]
-    }
-    const menuList = 'menu_ids' in data ? await this.resolveMenus(data.menu_ids) : null
-    await this.assertSuperAdminEdit(role, data, menuList)
-    const scope = await this.resolveDataScope(data, role.data_scope)
+    const changes = changedFields(role, { name: values.name, code: values.code, description: values.description })
+    const menuList = values.menu_ids !== undefined ? await this.repo.listMenusByIds(values.menu_ids) : null
+    await this.assertSuperAdminEdit(role, values, menuList)
+    const scope = await this.resolveDataScope(values, role.data_scope)
 
     const dict = await this.inTx(async (repo) => {
-      const values = Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, adaptText(v)]))
-      await repo.update(role.id, { ...values, ...(scope.dataScope ? { data_scope: scope.dataScope } : {}) })
+      await repo.update(role.id, { ...changes, ...(scope.dataScope ? { data_scope: scope.dataScope } : {}) })
       if (menuList) await repo.setMenus(role.id, menuList.map((m) => m.id))
       if (scope.deptIds) await repo.setDepts(role.id, scope.deptIds)
       return this.roleDict(repo, role.id)
@@ -180,36 +149,31 @@ export class RoleService {
     return { message: '删除成功' }
   }
 
-  async exportRoles(data: Data, currentUsername: string | undefined) {
-    const args = parseExportArgs(data, EXPORT_FIELD_MAP)
+  async exportRoles(options: z.output<typeof roleExportBody>) {
+    const validFields = exportColumns(options.fields, EXPORT_FIELD_MAP)
 
     let items: Role[]
-    if (args.exportMode === 'filtered') {
-      items = await this.repo.listForExportFiltered(pyStrOrEmpty(dictGet(args.filters, 'search')))
+    if (options.export_mode !== 'selected') {
+      items = await this.repo.listForExportFiltered(options.filters.search ?? '')
     } else {
-      const ids = selectedIdsOrNull(args.ids)
-      if (!ids) throw new ServiceError('请先勾选要导出的角色数据', 400)
-      items = await this.repo.listByIdsOrdered(adaptIdsForIn(ids))
+      if (options.ids.length === 0) throw new ServiceError('请先勾选要导出的角色数据', 400)
+      items = await this.repo.listByIdsOrdered(options.ids)
     }
 
-    // Role menus: the current user's roles reuse the set preloaded by currentUserRoleMenus; other roles are queried individually on demand
     let exportItems: RoleExportItem[] = items.map((r) => ({ ...r, menus: [] }))
-    if (args.validFields.some((f) => f === 'menu_codes' || f === 'menu_names')) {
-      const preloaded = currentUsername ? await this.repo.currentUserRoleMenus(currentUsername) : new Map<number, Menu[]>()
-      exportItems = []
-      for (const r of items) {
-        exportItems.push({ ...r, menus: preloaded.get(r.id) ?? (await this.repo.lazyMenus(r.id)) })
-      }
+    if (validFields.some((f) => f === 'menu_codes' || f === 'menu_names')) {
+      const byRole = await this.repo.menusByRole(items.map((r) => r.id))
+      exportItems = items.map((r) => ({ ...r, menus: byRole.get(r.id) ?? [] }))
     }
 
-    if (args.validFields.includes('dept_codes')) {
+    if (validFields.includes('dept_codes')) {
       const codes = await this.repo.deptCodesByRole(exportItems.map((r) => r.id))
       exportItems = exportItems.map((r) => ({ ...r, dept_codes: codes.get(r.id) ?? [] }))
     }
 
-    const headers = args.validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
-    const rows = exportItems.map((item) => args.validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
-    return buildTable(headers, rows, 'roles_export', args.fileType)
+    const headers = validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
+    const rows = exportItems.map((item) => validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
+    return buildTable(headers, rows, 'roles_export', options.file_type)
   }
 
   async downloadTemplate(fileTypeRaw: unknown) {

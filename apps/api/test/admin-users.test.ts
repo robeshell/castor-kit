@@ -66,10 +66,12 @@ describe('users', () => {
     const badRole = await s.inject({
       method: 'POST',
       url: '/api/admin/users',
-      payload: { username: `${P}c`, password: 'x', role_ids: [999999, '1'] },
+      payload: { username: `${P}c`, password: 'x', role_ids: [999999, 999998] },
     })
     expect(badRole.statusCode).toBe(400)
-    expect(badRole.json()).toEqual({ error: "角色不存在: [999999, '1']" })
+    expect(badRole.json()).toEqual({ error: '角色不存在: 999999, 999998' })
+    const stringId = await s.inject({ method: 'POST', url: '/api/admin/users', payload: { username: `${P}c`, password: 'x', role_ids: ['1'] } })
+    expect(stringId.json()).toEqual({ error: '角色的值无效' })
   })
 
   it('编辑：改密 + 清空角色；不存在 id → 404；非数字 id 不匹配带 id 的路由（405）', async () => {

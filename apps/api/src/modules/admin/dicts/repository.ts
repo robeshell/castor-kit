@@ -61,7 +61,7 @@ export class DictsRepository {
     return { total: totalRow?.n ?? 0, rows }
   }
 
-  /** Item count per dict type (item_count in DictType.to_dict) */
+  /** Item count per dict type (item_count in dictTypeToDict) */
   async countItemsByTypeIds(typeIds: number[]): Promise<Map<number, number>> {
     const result = new Map<number, number>()
     if (typeIds.length === 0) return result

@@ -2,9 +2,24 @@
  * Roles module schema layer
  */
 
-import type { DataScopeCode } from '@/common/data-scope'
+import { z } from 'zod'
+import { DATA_SCOPES, type DataScopeCode } from '@/common/data-scope'
 import { formatDateTime } from '@/common/serialize'
+import { exportBody, field } from '@/common/validation'
 import type { Menu, Role } from '@/db/schema'
+
+export const roleBody = z.object({
+  name: field.requiredText('角色名称', '角色名称不能为空'),
+  code: field.requiredText('角色编码', '角色编码不能为空'),
+  description: field.text('描述'),
+  menu_ids: field.ids('菜单'),
+  data_scope: field.choice('数据范围', DATA_SCOPES, 'all', '数据范围取值不合法'),
+  dept_ids: field.ids('部门'),
+})
+
+export type RoleInput = z.output<typeof roleBody>
+
+export const roleExportBody = exportBody({ search: field.text('搜索') })
 
 /** Export row: role + its menus in the order they were actually loaded, + the codes of its custom-scope departments */
 export type RoleExportItem = Role & { menus: Menu[]; dept_codes?: string[] }

@@ -36,14 +36,21 @@ export const field = {
       .nullish()
       .transform((v) => v ?? null),
 
+  /** A password or other secret: a string kept exactly as sent (no trimming); missing / null → null */
+  secret: (label: string) =>
+    z
+      .string({ error: invalid(label) })
+      .nullish()
+      .transform((v) => v ?? null),
+
   /** Integer; missing / null → `fallback` */
-  int: (label: string, fallback: number, options: { min?: number } = {}) =>
+  int: (label: string, fallback: number, options: IntRange = {}) =>
     intSchema(label, options)
       .nullish()
       .transform((v) => v ?? fallback),
 
   /** Optional integer; missing / null → null */
-  optionalInt: (label: string, options: { min?: number } = {}) =>
+  optionalInt: (label: string, options: IntRange = {}) =>
     intSchema(label, options)
       .nullish()
       .transform((v) => v ?? null),
@@ -62,20 +69,120 @@ export const field = {
       .nullish()
       .transform((v): T[number] => v ?? fallback),
 
-  /** Record id (positive integer); missing / null → null */
-  id: (label: string) => field.optionalInt(label, { min: 1 }),
+  /** A calendar date `YYYY-MM-DD`; missing / null / '' → null */
+  date: (label: string) =>
+    z.preprocess(
+      (v) => (v === '' ? null : v),
+      z
+        .string({ error: invalid(label) })
+        .trim()
+        .refine(isDate, { error: invalid(label) })
+        .nullish()
+        .transform((v) => v ?? null),
+    ),
+
+  /**
+   * A date and time `YYYY-MM-DD HH:MM[:SS[.ffffff]]` (`T` also accepted as the separator), optionally with an offset
+   * (`Z` / `±HH:MM`); returned with a space separator and `Z` as `+00:00`. Missing / null / '' → null.
+   */
+  dateTime: (label: string) =>
+    z.preprocess(
+      (v) => (v === '' ? null : v),
+      z
+        .string({ error: invalid(label) })
+        .trim()
+        .refine(isDateTime, { error: invalid(label) })
+        .nullish()
+        .transform((v) => (v ? v.replace('T', ' ').replace(/Z$/, '+00:00') : null)),
+    ),
+
+  /** List of strings; missing / null → [] */
+  textList: (label: string) =>
+    z
+      .array(z.string({ error: invalid(label) }), { error: invalid(label) })
+      .nullish()
+      .transform((v) => v ?? []),
+
+  /** Record id (a positive int4, the id column type); missing / null → null */
+  id: (label: string) => field.optionalInt(label, { min: 1, max: INT4_MAX }),
 
   /** List of record ids; missing / null → [] (duplicates removed) */
   ids: (label: string) =>
     z
-      .array(z.number({ error: invalid(label) }).int({ error: invalid(label) }), { error: invalid(label) })
+      .array(intSchema(label, { min: 1, max: INT4_MAX }), { error: invalid(label) })
       .nullish()
       .transform((v) => [...new Set(v ?? [])]),
 }
 
-function intSchema(label: string, { min }: { min?: number }) {
-  const schema = z.number({ error: invalid(label) }).int({ error: invalid(label) })
-  return min === undefined ? schema : schema.min(min, { error: invalid(label) })
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+const DATE_TIME_RE = /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d{1,6})?)?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)?$/
+
+/** `YYYY-MM-DD` naming a real day (no 2026-02-30) */
+export function isDate(text: string): boolean {
+  const m = DATE_RE.exec(text)
+  if (!m) return false
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  return day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]!
+}
+
+function isDateTime(text: string): boolean {
+  const m = DATE_TIME_RE.exec(text)
+  return m !== null && isDate(m[1]!)
+}
+
+const INT4_MAX = 2_147_483_647
+
+interface IntRange {
+  min?: number
+  max?: number
+}
+
+function intSchema(label: string, { min, max }: IntRange) {
+  let schema = z.number({ error: invalid(label) }).int({ error: invalid(label) })
+  if (min !== undefined) schema = schema.min(min, { error: invalid(label) })
+  if (max !== undefined) schema = schema.max(max, { error: invalid(label) })
+  return schema
+}
+
+/**
+ * The export request of a list page: the rows (`selected` ids or the current `filters`), the columns (`fields`, unknown
+ * ones dropped by exportColumns) and the file type. `filters` is the module's own shape of filter fields.
+ */
+export function exportBody<F extends z.ZodRawShape>(filters: F, defaultMode: 'selected' | 'filtered' | 'all' = 'selected') {
+  return z.object({
+    ids: field.ids('导出记录'),
+    fields: field.textList('导出字段'),
+    export_mode: field.choice('导出范围', ['selected', 'filtered', 'all'], defaultMode),
+    filters: z.preprocess((v) => v ?? {}, z.object(filters, { error: invalid('筛选条件') })),
+    file_type: field.text('文件类型'),
+  })
+}
+
+/** The requested export columns that exist, in request order; none → every column */
+export function exportColumns(fields: string[], columns: Record<string, unknown>): string[] {
+  const valid = fields.filter((f) => Object.hasOwn(columns, f))
+  return valid.length > 0 ? valid : Object.keys(columns)
+}
+
+// ---- Text input: query strings and import-file cells are always text ----
+
+const YES = new Set(['1', 'true', 'yes', 'on', '是', '启用'])
+const NO = new Set(['0', 'false', 'no', 'off', '否', '停用'])
+
+/** A yes / no written as text (`true` / `1` / `是` / `启用`, `false` / `0` / `否` / `停用` …); empty or unrecognised → fallback */
+export function parseYesNo(text: string | null | undefined, fallback: boolean | null = null): boolean | null {
+  const value = (text ?? '').trim().toLowerCase()
+  if (YES.has(value)) return true
+  if (NO.has(value)) return false
+  return fallback
+}
+
+/** An integer written as text; empty or not an integer → fallback */
+export function parseIntText(text: string | null | undefined, fallback: number): number {
+  const value = (text ?? '').trim()
+  return /^[+-]?\d+$/.test(value) ? Number.parseInt(value, 10) : fallback
 }
 
 type BodySchema = z.ZodObject<z.ZodRawShape>

@@ -59,31 +59,19 @@ export function handWritten500s(source: string): string[] {
 }
 
 /** Imports of the Python-semantics helpers */
-const PY_COMPAT_IMPORT = /from '(@\/common\/(py|py-values|py-date|sqla-bind|scheduler\/py-compat|scheduler\/py-json)|\.\/(py-compat|py-json|pg-values|py|py-values|py-date|sqla-bind))'/
+const PY_COMPAT_IMPORT = /from '(@\/common\/(py|py-values|py-date|sqla-bind|scheduler\/py-compat|scheduler\/py-json)|\.\/(py-compat|py-json|pg-values|py|py-values|py-date|sqla-bind)|\.\.\/src\/common\/py[\w-]*)'/
 
-/** Files still importing them, until their module is migrated (remove a file here once it no longer does) */
+/** Files (src/ and scripts/) still importing them, until their module is migrated (remove a file here once it no longer does) */
 const PY_COMPAT_PENDING = [
+  'scripts/import-apifox.ts',
   'src/common/py-date.ts',
   'src/common/py-values.ts',
   'src/common/scheduler/cron.ts',
   'src/common/scheduler/ssrf.ts',
   'src/db/schema/component-center/list-page.ts',
-  'src/modules/admin/announcement/schema.ts',
-  'src/modules/admin/announcement/service.ts',
-  'src/modules/admin/auth/schema.ts',
-  'src/modules/admin/logs/routes.ts',
-  'src/modules/admin/logs/service.ts',
-  'src/modules/admin/menu/routes.ts',
-  'src/modules/admin/menu/schema.ts',
-  'src/modules/admin/menu/service.ts',
-  'src/modules/admin/notification/schema.ts',
-  'src/modules/admin/notification/service.ts',
-  'src/modules/admin/roles/routes.ts',
-  'src/modules/admin/roles/service.ts',
   'src/modules/admin/scheduled-task/routes.ts',
   'src/modules/admin/scheduled-task/schema.ts',
   'src/modules/admin/scheduled-task/service.ts',
-  'src/modules/admin/users/service.ts',
   'src/modules/component-center/advanced-table/routes.ts',
   'src/modules/component-center/advanced-table/schema.ts',
   'src/modules/component-center/advanced-table/service.ts',
@@ -113,6 +101,9 @@ const PY_COMPAT_PENDING = [
 
 /** Files still mentioning Python / Flask / SQLAlchemy */
 const PY_MENTION_PENDING = [
+  'scripts/generate-openapi.ts',
+  'scripts/import-apifox.ts',
+  'scripts/lib/ordered-json.ts',
   'src/common/py-date.ts',
   'src/common/py-values.ts',
   'src/common/py.ts',
@@ -156,7 +147,7 @@ describe('conventions', () => {
   })
 
   it('no Python emulation: helper imports and Python / Flask / SQLAlchemy mentions only in files not yet migrated', () => {
-    const files = walk(SRC).map((f) => ({ path: relative(API_DIR, f), source: readFileSync(f, 'utf8') }))
+    const files = [...walk(SRC), ...walk(join(API_DIR, 'scripts'))].map((f) => ({ path: relative(API_DIR, f), source: readFileSync(f, 'utf8') }))
     expect(files.filter((f) => PY_COMPAT_IMPORT.test(f.source)).map((f) => f.path).sort(), 'declare the body with common/validation.ts').toEqual(
       PY_COMPAT_PENDING,
     )

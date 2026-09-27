@@ -6,9 +6,11 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
+import { parseBody, parsePatch } from '@/common/validation'
+import { announcementBody, announcementExportBody } from './schema'
 import { AnnouncementService } from './service'
 
 const FORBIDDEN = { error: '无权限' }
@@ -31,13 +33,13 @@ export async function registerAnnouncementRoutes(app: FastifyInstance): Promise<
 
   app.post('/api/admin/announcements', opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_announcements_add'))) return reply.status(403).send(FORBIDDEN)
-    return reply.status(201).send(await service.createItem(jsonBody(request)))
+    return reply.status(201).send(await service.createItem(parseBody(announcementBody, request.body)))
   })
 
   app.put(itemPath, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_announcements_edit'))) return reply.status(403).send(FORBIDDEN)
     const item = await service.getOr404(itemIdOf(request))
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(announcementBody, request.body))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
@@ -60,7 +62,7 @@ export async function registerAnnouncementRoutes(app: FastifyInstance): Promise<
 
   app.post('/api/admin/announcements/export', opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_announcements_export'))) return reply.status(403).send(FORBIDDEN)
-    return sendTable(reply, await service.exportItems(jsonBody(request)))
+    return sendTable(reply, await service.exportItems(parseBody(announcementExportBody, request.body)))
   })
 
   app.get('/api/admin/announcements/template', opts, async (request, reply) => {

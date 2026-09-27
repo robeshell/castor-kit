@@ -10,9 +10,10 @@ import { generatePasswordHash } from '@/common/password'
 import { DEFAULT_PASSWORD_POLICY, passwordPolicyError, passwordPolicyOf, type PasswordPolicy } from '@/common/password-policy'
 import type { SettingsStore } from '@/common/settings'
 import type { EventBus } from '@/common/webhooks'
-import { pyStr, pyTruthy, isPlainObject } from '@/common/py'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
+import { exportColumns } from '@/common/validation'
 import type { Db, Executor } from '@/db/client'
+import type { z } from 'zod'
 import { adminUserToDict, type AdminUserWithRoles, type Role } from '@/db/schema'
 import { UserRepository, type UserFilters } from './repository'
 import {
@@ -26,11 +27,14 @@ import {
   PROFILE_FIELDS,
   type ErrorRow,
   type ProfileValues,
+  type profileBody,
+  type UserInput,
   type UserItem,
+  type userExportBody,
   type UserStatus,
 } from './schema'
 
-type Data = Record<string, unknown>
+type ProfileInput = z.output<typeof profileBody>
 
 export interface ListFilters {
   search: string
@@ -61,7 +65,7 @@ export interface ImportOptions {
 }
 
 /** Normalize profile fields or throw 400 */
-export function profileOrThrow(data: Data): ProfileValues {
+export function profileOrThrow(data: Partial<ProfileInput>): ProfileValues {
   const result = normalizeProfile(data)
   if ('error' in result) throw new ServiceError(result.error, 400)
   return result.values
@@ -128,25 +132,19 @@ export class UserService {
    * dept_id from a request body: undefined when absent, null to clear, else an existing department inside the scope.
    * A restricted admin can't move users into departments they can't see.
    */
-  private async resolveDept(data: Data, scope: DataScope): Promise<number | null | undefined> {
-    if (!('dept_id' in data)) return undefined
-    const raw = data.dept_id
-    if (raw === null || raw === undefined || raw === '') return null
-    const id = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN
-    if (!Number.isSafeInteger(id) || !(await this.repo.getDeptById(id))) throw new ServiceError('部门不存在', 400)
+  private async resolveDept(id: number | null | undefined, scope: DataScope): Promise<number | null | undefined> {
+    if (id === undefined || id === null) return id
+    if (!(await this.repo.getDeptById(id))) throw new ServiceError('部门不存在', 400)
     if (!scopeCoversDept(scope, id)) throw new ServiceError('不能把用户分配到数据权限范围外的部门', 400)
     return id
   }
 
-  /** Verify all role_ids exist and return the roles; throws on any invalid id */
-  private async resolveRoles(repo: UserRepository, roleIdsRaw: unknown): Promise<Role[]> {
-    const ids = pyTruthy(roleIdsRaw) ? roleIdsRaw : []
-    if (!Array.isArray(ids)) throw new ServiceError('role_ids 必须是数组', 400)
-    const numericIds = ids.filter((v): v is number => typeof v === 'number' && Number.isInteger(v))
-    const found = await repo.listRolesByIds(numericIds)
+  /** Verify all role ids exist and return the roles; throws naming the ones that don't */
+  private async resolveRoles(repo: UserRepository, ids: number[]): Promise<Role[]> {
+    const found = await repo.listRolesByIds(ids)
     const validIds = new Set(found.map((r) => r.id))
-    const missing = ids.filter((rid) => !(typeof rid === 'number' && validIds.has(rid)))
-    if (missing.length > 0) throw new ServiceError(`角色不存在: ${pyStr(missing)}`, 400)
+    const missing = ids.filter((id) => !validIds.has(id))
+    if (missing.length > 0) throw new ServiceError(`角色不存在: ${missing.join(', ')}`, 400)
     return found
   }
 
@@ -188,9 +186,8 @@ export class UserService {
   }
 
   /** Update the signed-in user's own profile (nickname / email / phone / avatar only) */
-  async updateOwnProfile(user: AdminUserWithRoles, data: Data) {
-    const picked = Object.fromEntries(PROFILE_FIELDS.filter((f) => f in data).map((f) => [f, data[f]]))
-    const profile = profileOrThrow(picked)
+  async updateOwnProfile(user: AdminUserWithRoles, values: Partial<ProfileInput>) {
+    const profile = profileOrThrow(values)
     await this.assertEmailFree(this.repo, profile.email, user.id)
     const updated = await this.inTx(async (repo) => {
       await repo.updateProfile(user.id, profile)
@@ -209,23 +206,21 @@ export class UserService {
     }
   }
 
-  async createUser(data: Data, scope: DataScope, caller: Caller) {
-    if (!pyTruthy(data.username) || !pyTruthy(data.password)) {
-      throw new ServiceError('用户名和密码不能为空', 400)
-    }
-    const username = pyStr(data.username)
+  async createUser(values: UserInput, scope: DataScope, caller: Caller) {
+    const { username, password } = values
+    if (!password) throw new ServiceError('用户名和密码不能为空', 400)
     if (await this.repo.getByUsername(username)) throw new ServiceError('用户名已存在', 400)
-    const profile = profileOrThrow(data)
+    const profile = profileOrThrow(values)
     await this.assertEmailFree(this.repo, profile.email)
-    const deptId = await this.resolveDept(data, scope)
+    const deptId = await this.resolveDept(values.dept_id, scope)
 
-    const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
-    if (roleIds) await this.assertRoleChange(null, roleIds, caller)
-    await this.assertPasswordOk(pyStr(data.password))
-    const passwordHash = await generatePasswordHash(pyStr(data.password))
+    const roleIds = (await this.resolveRoles(this.repo, values.role_ids)).map((r) => r.id)
+    await this.assertRoleChange(null, roleIds, caller)
+    await this.assertPasswordOk(password)
+    const passwordHash = await generatePasswordHash(password)
     const user = await this.inTx(async (repo) => {
       const created = await repo.insert(username, passwordHash, profile, undefined, deptId)
-      if (roleIds) await repo.setRoles(created.id, roleIds)
+      await repo.setRoles(created.id, roleIds)
       return repo.getWithRoles(created.id)
     })
     const dict = await this.dict(user!)
@@ -234,15 +229,16 @@ export class UserService {
   }
 
   /** `status` is ignored here: it has its own endpoint and permission (setUserStatus) */
-  async updateUser(user: AdminUserWithRoles, data: Data, scope: DataScope, caller: Caller) {
+  async updateUser(user: AdminUserWithRoles, values: Partial<UserInput>, scope: DataScope, caller: Caller) {
     this.assertCanManage(user, caller)
-    const profile = profileOrThrow(data)
+    const profile = profileOrThrow(values)
     await this.assertEmailFree(this.repo, profile.email, user.id)
-    const deptId = await this.resolveDept(data, scope)
-    const newPassword = 'password' in data && pyTruthy(data.password) ? pyStr(data.password) : null
+    const deptId = await this.resolveDept(values.dept_id, scope)
+    // An empty password leaves the current one
+    const newPassword = values.password || null
     if (newPassword !== null) await this.assertPasswordOk(newPassword)
     const passwordHash = newPassword !== null ? await generatePasswordHash(newPassword) : null
-    const roleIds = 'role_ids' in data ? (await this.resolveRoles(this.repo, data.role_ids)).map((r) => r.id) : null
+    const roleIds = values.role_ids !== undefined ? (await this.resolveRoles(this.repo, values.role_ids)).map((r) => r.id) : null
     if (roleIds) await this.assertRoleChange(user, roleIds, caller)
     const updated = await this.inTx(async (repo) => {
       await repo.updateProfile(user.id, profile)
@@ -256,7 +252,7 @@ export class UserService {
     return dict
   }
 
-  async setUserStatus(user: AdminUserWithRoles, statusRaw: unknown, caller: Caller) {
+  async setUserStatus(user: AdminUserWithRoles, statusRaw: string | null, caller: Caller) {
     this.assertCanManage(user, caller)
     if (!isUserStatus(statusRaw)) throw new ServiceError('状态取值不合法', 400)
     if (statusRaw === 'disabled') {
@@ -281,31 +277,23 @@ export class UserService {
     return { message: '删除成功' }
   }
 
-  async exportUsers(data: Data, scope: DataScope = UNRESTRICTED) {
-    const ids = pyTruthy(data.ids) ? data.ids : []
-    const fields = pyTruthy(data.fields) ? data.fields : []
-    const exportMode = pyTruthy(data.export_mode) ? pyStr(data.export_mode).trim() : 'selected'
-    const filters = pyTruthy(data.filters) && isPlainObject(data.filters) ? data.filters : {}
-
-    let validFields = Array.isArray(fields) ? fields.filter((f): f is string => typeof f === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, f)) : []
-    if (validFields.length === 0) validFields = Object.keys(EXPORT_FIELD_MAP)
+  async exportUsers(options: z.output<typeof userExportBody>, scope: DataScope = UNRESTRICTED) {
+    const validFields = exportColumns(options.fields, EXPORT_FIELD_MAP)
 
     let users: AdminUserWithRoles[]
-    if (exportMode === 'filtered') {
-      const search = pyTruthy(filters.search) ? pyStr(filters.search).trim() : ''
-      const status = isUserStatus(filters.status) ? filters.status : ''
-      const deptId = Number.isSafeInteger(filters.dept_id) ? (filters.dept_id as number) : null
+    if (options.export_mode !== 'selected') {
+      const { search, status, dept_id: deptId } = options.filters
       const deptIds = deptId !== null ? await this.repo.deptSubtree(deptId) : null
-      users = await this.repo.listAllOrdered({ search, status, deptIds }, scope)
+      users = await this.repo.listAllOrdered({ search: search ?? '', status: isUserStatus(status) ? status : '', deptIds }, scope)
     } else {
-      if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先勾选要导出的用户数据', 400)
-      users = await this.repo.listByIdsOrdered(ids.filter((v): v is number => Number.isInteger(v)), scope)
+      if (options.ids.length === 0) throw new ServiceError('请先勾选要导出的用户数据', 400)
+      users = await this.repo.listByIdsOrdered(options.ids, scope)
     }
     const items = await this.withDeptNames(users)
 
     const headers = validFields.map((f) => EXPORT_FIELD_MAP[f]![0])
     const rows = items.map((item) => validFields.map((f) => EXPORT_FIELD_MAP[f]![1](item)))
-    return buildTable(headers, rows, 'users_export', normalizeTableFileType(data.file_type))
+    return buildTable(headers, rows, 'users_export', normalizeTableFileType(options.file_type))
   }
 
   async downloadTemplate(fileTypeRaw: unknown) {
