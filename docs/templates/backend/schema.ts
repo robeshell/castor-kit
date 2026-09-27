@@ -4,17 +4,31 @@
  * TODO: replace <Resource> with the type name (PascalCase, e.g. Customer)
  * TODO: replace <resource> with the resource name (snake_case, e.g. customer)
  *
- * Responsibilities: request body normalization and import/export field mapping. No database access.
- * Request bodies and import rows both go through buildValues: each value is normalized by field type, and a value that
- * doesn't fit its column throws ServiceError(400)「<field>的值无效」.
+ * Responsibilities: the request body declaration and import/export field mapping. No database access.
+ * The body is declared field by field with common/validation.ts; import rows go through the same declaration (rowToBody).
  */
 
 import { z } from 'zod'
-import { ServiceError } from '@/common/errors'
-import type { <Resource>, New<Resource> } from '@/db/schema'
+import { field } from '@/common/validation'
+import type { <Resource> } from '@/db/schema'
 
-/** Request body: loose + all optional (drives OpenAPI); normalization happens in buildValues */
-export const <resource>BodySchema = z.record(z.string(), z.unknown()).nullish()
+/**
+ * Request body. Pick the builder by column type: field.requiredText / text / int / optionalInt / decimal / bool /
+ * optionalBool / date / dateTime / choice / fileId; wrap with required(…) or withDefault(…) when needed.
+ */
+export const <resource>Body = z.object({
+  name: field.requiredText('名称', '名称不能为空'),
+  // TODO: add other fields, e.g. sort_order: field.int('排序', 0), status: field.choice('状态', ['draft', 'published'] as const, 'draft')
+})
+
+export type <Resource>Input = z.output<typeof <resource>Body>
+
+/** Export request: the rows (ids; none = every row), the columns (fields; none = every column), the file type */
+export const <resource>ExportBody = z.object({
+  ids: field.ids('导出记录'),
+  fields: field.textList('导出字段'),
+  file_type: field.text('文件类型'),
+})
 
 /**
  * Export columns: a header string (value taken from the same-named field of toDict), or [header, getter] (when a conversion is needed, e.g. showing enum labels in Chinese or booleans as yes/no).
@@ -41,38 +55,13 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   // TODO: add other importable fields
 }
 
-export type <Resource>Values = Partial<Omit<New<Resource>, 'id' | 'created_at' | 'updated_at'>>
-
-function invalid(field: string): ServiceError {
-  return new ServiceError(`${fieldLabel(field)}的值无效`, 400)
-}
-
-/** Text, trimmed */
-function toStr(field: string, value: unknown): string | null {
-  if (value === null || value === undefined) return null
-  if (typeof value !== 'string') throw invalid(field)
-  return value.trim()
-}
-
-/** Example: integer field (parsed as an integer); empty values become null */
-export function toInt(field: string, value: unknown): number | null {
-  if (value === null || value === undefined || value === '') return null
-  if (typeof value === 'number' && Number.isInteger(value)) return value
-  if (typeof value === 'string' && /^[+-]?\d+$/.test(value.trim())) return Number.parseInt(value.trim(), 10)
-  throw invalid(field)
-}
-
 /**
- * Request body → column values.
- * - Create (partial=false): all fields are written; missing ones become null
- * - Update (partial=true): only fields present in the request body are written (`'x' in data`)
+ * An import row (text cells) → the request-body shape, checked by the same declaration.
+ * TODO: convert non-text cells, e.g. `if (row.sort_order !== undefined) body.sort_order = /^[+-]?\d+$/.test(row.sort_order) ? Number(row.sort_order) : row.sort_order`
+ * and `body.is_active = parseYesNo(row.is_active) ?? row.is_active` (parseYesNo from @/common/validation)
  */
-export function buildValues(data: Record<string, unknown>, partial: boolean): <Resource>Values {
-  const values: <Resource>Values = {}
-  if (!partial || Object.hasOwn(data, 'name')) values.name = toStr('name', data.name) ?? ''
-  // TODO: add other fields, e.g.
-  // if (!partial || Object.hasOwn(data, 'sort_order')) values.sort_order = toInt('sort_order', data.sort_order)
-  return values
+export function rowToBody(row: Record<string, string>): Record<string, unknown> {
+  return { ...row }
 }
 
 export interface ErrorRow {

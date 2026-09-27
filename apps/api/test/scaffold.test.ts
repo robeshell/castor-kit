@@ -274,14 +274,24 @@ describe('scaffold 纯函数', () => {
     }
   })
 
-  it('schema.ts 只生成用到的归一化函数', () => {
+  it('schema.ts：按字段类型声明请求体（common/validation.ts），导入行走同一份声明', () => {
     const onlyStr = genModuleSchema(buildSpec('a', 'admin', parseFields('name:str')))
-    expect(onlyStr).toContain('function toStr(')
-    expect(onlyStr).not.toContain('function toInt(')
-    expect(onlyStr).not.toContain('@/common/py')
-    const mixed = genModuleSchema(buildSpec('a', 'admin', parseFields('n:int,f:float,b:bool,d:date,t:datetime')))
-    for (const fn of ['toInt', 'toNumeric', 'toBool', 'toDate', 'toDateTime', 'invalid']) expect(mixed).toContain(`function ${fn}(`)
-    expect(mixed).not.toContain('function toStr(')
+    expect(onlyStr).toContain("  name: field.text('Name'),")
+    expect(onlyStr).toContain("import { field } from '@/common/validation'")
+    expect(onlyStr).not.toContain('intCell')
+    const mixed = genModuleSchema(buildSpec('a', 'admin', parseFields('n:int,f:float,b:bool,d:date,t:datetime,img:image')))
+    for (const decl of [
+      "  n: field.optionalInt('N'),",
+      "  f: field.decimal('F'),",
+      "  b: field.optionalBool('B'),",
+      "  d: field.date('D'),",
+      "  t: field.dateTime('T', { offset: false }),",
+      "  img: field.fileId('Img'),",
+      '  if (row.n !== undefined) body.n = intCell(row.n)',
+      '  if (row.b !== undefined) body.b = parseYesNo(row.b) ?? row.b',
+    ]) {
+      expect(mixed).toContain(decl)
+    }
   })
 
   it('注册 db/schema/index.ts：插在同域最后一行之后；已注册返回 null', () => {
@@ -728,9 +738,11 @@ describe('scaffold CLI（临时目录副本）', () => {
     }
     // Backend error messages stay Chinese (translated by src/i18n/messages.ts, see test/i18n-messages.test.ts)
     const schemaTs = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/schema.ts'), 'utf8')
-    expect(schemaTs).toContain('new ServiceError(`${fieldLabel(field)}的值无效`, 400)')
+    expect(schemaTs).toContain('export const ckScaffoldDemoBody = z.object({')
     const serviceTs = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/service.ts'), 'utf8')
     for (const msg of ["'删除成功'", "'导入失败，存在错误数据'", "'导入成功'", '`${requiredHeader}不能为空`']) expect(serviceTs).toContain(msg)
+    // No unique numeric field: the generated test has no unused nextNumber helper (it would fail lint)
+    expect(readFileSync(join(root, 'apps/api/test/admin-ck-scaffold-demo.test.ts'), 'utf8')).not.toContain('nextNumber')
 
     // Migration SQL
     const sqlFiles = readdirSync(join(root, 'apps/api/drizzle')).filter((f) => f.endsWith('.sql'))
@@ -828,13 +840,13 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(repo).toContain('.where(and(eq(ck_scaffold_dss.id, id), this.scopeWhere(scope)))')
 
     const service = read(`${dir}/service.ts`)
-    expect(service).toContain('const values = { ...buildValues(data, false), ...stamp(actor) }')
+    expect(service).toContain('const created = await this.inTx((repo) => repo.insert({ ...values, ...stamp(actor) }))')
     expect(service).toContain('await repo.insert({ ...values, ...stamp(actor) })')
 
     const routes = read(`${dir}/routes.ts`)
     expect(routes.match(/service\.getOr404\(itemId\(request\.params\), await resolveDataScope\(request\)\)/g)).toHaveLength(3)
-    expect(routes).toContain('service.createItem(jsonBody(request), await currentActor(request))')
-    expect(routes).toContain('service.exportItems(jsonBody(request), await resolveDataScope(request))')
+    expect(routes).toContain('service.createItem(parseBody(ckScaffoldDsBody, request.body), await currentActor(request))')
+    expect(routes).toContain('service.exportItems(parseBody(ckScaffoldDsExportBody, request.body), await resolveDataScope(request))')
     expect(routes).toContain('service.importItems(await getUploadedFile(request), await currentActor(request))')
 
     expect(read('apps/api/test/admin-ck-scaffold-ds.test.ts')).toContain("dataScope: 'self'")
@@ -855,8 +867,7 @@ describe('scaffold CLI（临时目录副本）', () => {
 
     expect(read('apps/api/src/db/schema/admin/ck-scaffold-fl.ts')).toContain('  cover: varchar({ length: 36 }),')
     const schema = read(`${dir}/schema.ts`)
-    expect(schema).toContain("import { fileIdOf } from '@/common/file-refs'")
-    expect(schema).toContain("values.cover = toFileId('cover', data['cover'])")
+    expect(schema).toContain("  cover: field.fileId('Cover'),")
     const repo = read(`${dir}/repository.ts`)
     expect(repo).toContain("await syncFileRefs(this.db, 'ck_scaffold_fls', row!.id, { cover: row!.cover, attachment: row!.attachment })")
     expect(repo).toContain("await clearFileRefs(this.db, 'ck_scaffold_fls', id)")
@@ -891,7 +902,11 @@ describe('scaffold CLI（临时目录副本）', () => {
     const schema = read('apps/api/src/modules/admin/ck-spec-device/schema.ts')
     expect(schema).toContain("  status: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中' }],")
     expect(schema).toContain("  status: ['设备状态', (item) => optionLabel('status', item.status)],")
-    expect(schema).toContain("const REQUIRED: string[] = ['code', 'name', 'status']")
+    expect(schema).toContain("  code: field.requiredText('设备编号', '设备编号不能为空'),")
+    expect(schema).toContain("  status: field.choice('设备状态', ['idle', 'in_use'] as const, 'idle'),")
+    expect(schema).toContain("  price: withDefault(field.decimal('采购价格'), '1999.5'),")
+    expect(schema).toContain("  active: field.bool('在用', true),")
+    expect(schema).toContain("  if (row.status !== undefined) body.status = FIELD_OPTIONS.status!.find((o) => o.label === row.status)?.value ?? row.status")
     expect(schema).toContain("  '设备编号': 'code',")
 
     const test = read('apps/api/test/admin-ck-spec-device.test.ts')

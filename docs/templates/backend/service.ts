@@ -11,13 +11,23 @@ import { dbConstraintError, writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
+import { exportColumns, parseBody } from '@/common/validation'
 import type { EventBus } from '@/common/webhooks'
+import type { z } from 'zod'
 import type { Db } from '@/db/client'
 import { <resource>ToDict, type <Resource> } from '@/db/schema'
 import { <Resource>Repository } from './repository'
-import { buildErrorRow, buildValues, EXPORT_FIELD_MAP, fieldLabel, IMPORT_HEADER_MAP, type ErrorRow } from './schema'
-
-type Data = Record<string, unknown>
+import {
+  <resource>Body,
+  buildErrorRow,
+  EXPORT_FIELD_MAP,
+  fieldLabel,
+  IMPORT_HEADER_MAP,
+  rowToBody,
+  type <resource>ExportBody,
+  type <Resource>Input,
+  type ErrorRow,
+} from './schema'
 
 export class <Resource>Service {
   private readonly repo: <Resource>Repository
@@ -54,18 +64,15 @@ export class <Resource>Service {
     return <resource>ToDict(item)
   }
 
-  async createItem(data: Data) {
-    const values = buildValues(data, false)
-    if (!values.name) throw new ServiceError('名称不能为空', 400)
-    // TODO: add uniqueness checks (if needed)
+  async createItem(values: <Resource>Input) {
+    // TODO: add uniqueness / cross-field checks (if needed); type and required checks are in the body declaration
     const created = await this.inTx((repo) => repo.insert(values))
     const dict = <resource>ToDict(created)
     await this.events?.emit('<resource>.created', dict)
     return dict
   }
 
-  async updateItem(item: <Resource>, data: Data) {
-    const values = buildValues(data, true)
+  async updateItem(item: <Resource>, values: Partial<<Resource>Input>) {
     if (Object.keys(values).length === 0) return <resource>ToDict(item)
     const updated = await this.inTx((repo) => repo.update(item.id, values))
     if (!updated) throw notFound()
@@ -81,12 +88,10 @@ export class <Resource>Service {
   }
 
   /** Export: fields defaults to all exportable fields; empty ids exports everything; xlsx by default */
-  async exportItems(data: Data) {
-    const fileType = normalizeTableFileType(data.file_type, 'xlsx')
-    const rawFields = Array.isArray(data.fields) && data.fields.length > 0 ? data.fields : Object.keys(EXPORT_FIELD_MAP)
-    const fields = rawFields.map((f) => String(f))
-    const ids =
-      Array.isArray(data.ids) && data.ids.length > 0 ? data.ids.filter((v): v is number => Number.isInteger(v)) : null
+  async exportItems(options: z.output<typeof <resource>ExportBody>) {
+    const fileType = normalizeTableFileType(options.file_type, 'xlsx')
+    const fields = exportColumns(options.fields, EXPORT_FIELD_MAP)
+    const ids = options.ids.length > 0 ? options.ids : null
 
     const items = await this.repo.listForExport(ids)
     const headers = fields.map((f) => fieldLabel(f))
@@ -125,14 +130,14 @@ export class <Resource>Service {
           errors.push(buildErrorRow(line, '名称不能为空', row))
           continue
         }
-        const mapped: Data = {}
+        const mapped: Record<string, string> = {}
         for (const [header, value] of Object.entries(row)) {
           const field = IMPORT_HEADER_MAP[header]
           if (field && value) mapped[field] = value
         }
         let values
         try {
-          values = buildValues(mapped, true)
+          values = parseBody(<resource>Body, rowToBody(mapped))
         } catch (err) {
           if (!(err instanceof ServiceError)) throw err
           errors.push(buildErrorRow(line, err.message, row))

@@ -18,10 +18,12 @@
 
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
+import { parseBody, parsePatch } from '@/common/validation'
 import { declareEvents } from '@/common/webhooks'
+import { <resource>Body, <resource>ExportBody } from './schema'
 import { <Resource>Service } from './service'
 
 const BASE = '/api/admin/<resource>s'
@@ -47,7 +49,7 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
     if (!(await hasMenuPermission(request, '<domain_resource>_add'))) {
       return reply.status(403).send({ error: '无权限新增' })
     }
-    return reply.status(201).send(await service.createItem(jsonBody(request)))
+    return reply.status(201).send(await service.createItem(parseBody(<resource>Body, request.body)))
   })
 
   app.get(itemPath, opts, async (request, reply) => {
@@ -63,7 +65,7 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
       return reply.status(403).send({ error: '无权限编辑' })
     }
     const item = await service.getOr404(itemId(request.params))
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(<resource>Body, request.body))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
@@ -78,7 +80,7 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
     if (!(await hasMenuPermission(request, '<domain_resource>_export'))) {
       return reply.status(403).send({ error: '无权限导出' })
     }
-    return sendTable(reply, await service.exportItems(jsonBody(request)))
+    return sendTable(reply, await service.exportItems(parseBody(<resource>ExportBody, request.body)))
   })
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
