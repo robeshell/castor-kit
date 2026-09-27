@@ -17,6 +17,7 @@ import { registerListPageRoutes } from './list-page/routes'
 import { registerTrafficFlowRoutes } from './traffic-flow/routes'
 import { registerStatsListPageRoutes } from './stats-list-page/routes'
 import { registerTreeListPageRoutes } from './tree-list-page/routes'
+import { registerDemoRecordRoutes } from './demo-record/routes'
 
 export async function registerComponentCenterRoutes(app: FastifyInstance): Promise<void> {
   await registerListPageRoutes(app)
@@ -33,4 +34,5 @@ export async function registerComponentCenterRoutes(app: FastifyInstance): Promi
   await registerAiPromptRoutes(app)
   await registerAiSqlRoutes(app)
   await registerDevtoolsRoutes(app)
+  await registerDemoRecordRoutes(app)
 }

@@ -133,5 +133,12 @@
   "system_webhooks_add": "Webhook を追加",
   "system_webhooks_edit": "Webhook を編集",
   "system_webhooks_delete": "Webhook を削除",
-  "cc_dataviz_traffic_flow": "トラフィック分析"
+  "cc_dataviz_traffic_flow": "トラフィック分析",
+  "cc_patterns": "ページテンプレート",
+  "cc_patterns_standard_list": "標準リスト",
+  "cc_patterns_add": "レコードの追加",
+  "cc_patterns_edit": "レコードの編集",
+  "cc_patterns_delete": "レコードの削除",
+  "cc_patterns_export": "レコードのエクスポート",
+  "cc_patterns_import": "レコードのインポート"
 }

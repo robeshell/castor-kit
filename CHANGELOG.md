@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Added
+
+- **Shared demo data for the component gallery's page patterns** (`docs/roadmap.md` "Component gallery redesign", step 2): table `demo_records` (migration `0003_demo_record`) and the API `/api/admin/component-center/demo-records` — list with filters (search, category, status, owner, enabled, parent / `root`, start-date range) and sorting (`sort_field` + `sort_dir`), `tree`, `stats` (count, amount / quantity sums, counts per status and category, same filters), CRUD, `batch-update`, `batch-delete`, `reorder` (sort order plus status for kanban moves and parent for tree drags, cycle-checked), import / export / template. A record with children can't be deleted (400); a batch delete may take a parent together with all of its children. Demo fixtures: a three-level project tree of 24 rows.
+- **组件示例中心 → 页面模板 (Page patterns)** directory (menu 43, `cc_patterns`) with its first page, **标准列表 (Standard list)** (menu 4301, `/component-center/patterns/standard-list`): the scaffold-generated list page on the shared API, the reference implementation of the standard list pattern. The API's buttons (`cc_patterns_add` / `_edit` / `_delete` / `_export` / `_import`, menus 431–435) belong to the directory, and any page under it may read. Run `pnpm db:migrate && pnpm seed:rbac -- --incremental` after upgrading.
+
 ### Removed
 
 - The component gallery's 3D / creative pages (particle network, CSS 3D cards, Three.js globe, particle morphing) and the `three` dependency: the gallery is being reshaped into reference implementations for developers and AI (`docs/roadmap.md` "Component gallery redesign"). Migration `0002_remove_creative_menus` deletes their menus and role grants on existing databases.

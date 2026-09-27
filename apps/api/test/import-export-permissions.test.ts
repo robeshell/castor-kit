@@ -61,6 +61,8 @@ beforeAll(async () => {
     standard('tree-list-page', 'cc_admin_tree_list', `${CC}/tree-list-page`, ['GET', 'POST']),
     standard('card-list-page', 'cc_admin_card_list', `${CC}/card-list-page`, ['GET', 'POST']),
     standard('dynamic-form-page', 'cc_admin_dynamic_form', `${CC}/dynamic-form-page`, ['GET', 'POST']),
+    // Shared demo API of the page patterns: the buttons belong to the Page patterns directory (cc_patterns)
+    standard('demo-records', 'cc_patterns', `${CC}/demo-records`),
   ]
   const codes = (suffixes: string[]) => cases.flatMap((c) => [c.perm, ...suffixes.map((s) => `${c.perm}_${s}`)])
   editor = await scopedSession(app, handle, { name: 'ie_editor', codes: codes(['add', 'edit', 'delete']), dataScope: 'all' })

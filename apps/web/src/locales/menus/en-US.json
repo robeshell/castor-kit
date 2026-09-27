@@ -133,5 +133,12 @@
   "system_webhooks_add": "Add webhooks",
   "system_webhooks_edit": "Edit webhooks",
   "system_webhooks_delete": "Delete webhooks",
-  "cc_dataviz_traffic_flow": "Traffic Flow"
+  "cc_dataviz_traffic_flow": "Traffic Flow",
+  "cc_patterns": "Page Patterns",
+  "cc_patterns_standard_list": "Standard List",
+  "cc_patterns_add": "Add record",
+  "cc_patterns_edit": "Edit record",
+  "cc_patterns_delete": "Delete record",
+  "cc_patterns_export": "Export records",
+  "cc_patterns_import": "Import records"
 }
