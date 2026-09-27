@@ -37,7 +37,7 @@ castor-kit 的目标是：你用自然语言描述业务需求，AI 编程工具
 
 ### 1. 读取上下文
 
-AI 读取 `AGENTS.md`、`docs/templates/` 下的代码骨架模板、现有的参考模块（后端 `apps/api/src/modules/admin/users/`，前端 `apps/web/src/modules/admin/pages/users/index.jsx`），以及 `apps/api/scripts/seed-rbac.ts` 中的菜单树。如果需求可以通过扩展已有模块实现，会优先扩展。
+AI 读取 `AGENTS.md`、`docs/templates/` 下的代码骨架模板、现有的参考模块（后端 `apps/api/src/modules/admin/users/`，前端 `apps/web/src/modules/admin/pages/users/index.tsx`），以及 `apps/api/scripts/seed-rbac.ts` 中的菜单树。如果需求可以通过扩展已有模块实现，会优先扩展。
 
 ### 2. 推断技术规格
 

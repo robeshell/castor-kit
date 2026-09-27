@@ -37,7 +37,7 @@ The `new-feature-autopilot` skill (type `/new-feature-autopilot` in Claude Code,
 
 ### 1. Read the context
 
-The AI reads `AGENTS.md`, the code scaffold templates under `docs/templates/`, the existing reference modules (backend `apps/api/src/modules/admin/users/`, frontend `apps/web/src/modules/admin/pages/users/index.jsx`), and the menu tree in `apps/api/scripts/seed-rbac.ts`. If the requirement can be met by extending an existing module, it prefers that.
+The AI reads `AGENTS.md`, the code scaffold templates under `docs/templates/`, the existing reference modules (backend `apps/api/src/modules/admin/users/`, frontend `apps/web/src/modules/admin/pages/users/index.tsx`), and the menu tree in `apps/api/scripts/seed-rbac.ts`. If the requirement can be met by extending an existing module, it prefers that.
 
 ### 2. Infer the technical spec
 

@@ -26,7 +26,7 @@
   "目录": "Directory",
   "确认删除该菜单？": "Delete this menu?",
   "组件": "Component",
-  "组件名需对应 src/modules/**/pages/**/index.jsx，例如 admin/users → /modules/admin/pages/users/index.jsx": "The component must match src/modules/**/pages/**/index.jsx, e.g. admin/users → /modules/admin/pages/users/index.jsx",
+  "组件名需对应 src/modules/**/pages/**/index.tsx，例如 admin/users → /modules/admin/pages/users/index.tsx": "The component must match src/modules/**/pages/**/index.tsx, e.g. admin/users → /modules/admin/pages/users/index.tsx",
   "编辑菜单": "Edit menu",
   "菜单": "Menu",
   "菜单导出字段": "Export menus",

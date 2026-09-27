@@ -55,7 +55,7 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 - App shell (sidebar, top bar, ⌘K, theme): `apps/web/src/components/app/`
 - shadcn/ui primitives: `apps/web/src/components/ui/` (config `apps/web/components.json`)
 - Design tokens (light/dark) and brand gradient utilities: `apps/web/src/index.css`
-- Module pages: `apps/web/src/modules/**/pages/**/index.tsx` (`index.jsx` for pages not yet converted; reference CRUD page: `apps/web/src/modules/admin/pages/users/index.jsx`)
+- Module pages: `apps/web/src/modules/**/pages/**/index.tsx` (`index.jsx` for pages not yet converted; reference CRUD page: `apps/web/src/modules/admin/pages/users/index.tsx`)
 - Module APIs: `apps/web/src/modules/**/api/*.js`
 - Shared business components (PageHeader, DataTable, Filters, FormDialog, FormFields, ConfirmAction, StatusBadge, …): `apps/web/src/shared/components/`
 - Shared import/export UI: `apps/web/src/shared/components/data-transfer/` (ImportDialog / ExportDialog)

@@ -5,6 +5,7 @@ import logoUrl from '@/assets/castor-logo.png'
  * Brand mark: beaver avatar + wordmark.
  * Wordmark = "castor" in bold Geist (tight tracking) + "kit" in the brand gradient, so it follows the accent color.
  * The text sits in the last child div: the collapsed sidebar hides it with [&>div:last-child]:hidden.
+ * @param {{ className?: string, imageClassName?: string, showText?: boolean, subtitle?: import('react').ReactNode }} props
  */
 export default function BrandMark({ className, imageClassName, showText = true, subtitle }) {
   return (

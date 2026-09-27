@@ -37,7 +37,7 @@ castor-kit が目指すのは、業務要件を自然言語で伝えるだけで
 
 ### 1. コンテキストを読み込む
 
-AI は `AGENTS.md`、`docs/templates/` にあるコード骨格のテンプレート、既存の参考モジュール（バックエンドは `apps/api/src/modules/admin/users/`、フロントエンドは `apps/web/src/modules/admin/pages/users/index.jsx`）、そして `apps/api/scripts/seed-rbac.ts` のメニューツリーを読み込みます。既存モジュールの拡張で要件を満たせる場合は、拡張を優先します。
+AI は `AGENTS.md`、`docs/templates/` にあるコード骨格のテンプレート、既存の参考モジュール（バックエンドは `apps/api/src/modules/admin/users/`、フロントエンドは `apps/web/src/modules/admin/pages/users/index.tsx`）、そして `apps/api/scripts/seed-rbac.ts` のメニューツリーを読み込みます。既存モジュールの拡張で要件を満たせる場合は、拡張を優先します。
 
 ### 2. 技術仕様を推測する
 

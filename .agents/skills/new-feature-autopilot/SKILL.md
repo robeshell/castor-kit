@@ -27,7 +27,7 @@ When to use: triggered when the user expresses an intent such as "build feature 
 Read these, in order:
 1. AGENTS.md (project conventions, naming, field type inference, anti-patterns)
 2. docs/templates/backend/ (including the replacement rules in README.md) and docs/templates/frontend/ (code skeleton templates)
-3. Existing similar modules (backend: apps/api/src/modules/admin/users/, frontend: apps/web/src/modules/admin/pages/users/index.jsx)
+3. Existing similar modules (backend: apps/api/src/modules/admin/users/, frontend: apps/web/src/modules/admin/pages/users/index.tsx)
    + frontend conventions: AGENTS.md "Frontend conventions", docs/frontend-design-system.md, .claude/skills/shadcn-ui-skills/
 4. apps/api/scripts/seed-rbac.ts (MENUS_DATA: look up the current menu tree to determine parent_id and the next free ID)
 5. Scan the existing modules first: if the requirement can be met by extending an existing module, extend it rather than creating a duplicate module

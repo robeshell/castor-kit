@@ -6,9 +6,9 @@
 
 | 文件 | 参考用途 |
 |---|---|
-| `apps/web/src/modules/admin/pages/users/index.jsx` | 标准 CRUD 列表页 |
-| `apps/web/src/modules/admin/pages/dashboard/index.jsx` | 卡片、图表、动效 |
-| `apps/web/src/modules/admin/pages/profile/index.jsx` | 表单页 |
+| `apps/web/src/modules/admin/pages/users/index.tsx` | 标准 CRUD 列表页 |
+| `apps/web/src/modules/admin/pages/dashboard/index.tsx` | 卡片、图表、动效 |
+| `apps/web/src/modules/admin/pages/profile/index.tsx` | 表单页 |
 | `docs/templates/frontend/` | 列表页与详情页模板 |
 
 ## 动态路由
@@ -20,7 +20,7 @@
 
 | `component` 值 | 对应文件 |
 |---|---|
-| `admin/users` | `modules/admin/pages/users/index.jsx` |
+| `admin/users` | `modules/admin/pages/users/index.tsx` |
 | `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.jsx` |
 | `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.jsx` |
 
@@ -82,7 +82,7 @@ export default function Customers() {
 }
 ```
 
-完整写法以 `apps/web/src/modules/admin/pages/users/index.jsx` 为准。
+完整写法以 `apps/web/src/modules/admin/pages/users/index.tsx` 为准。
 
 ## API 调用
 

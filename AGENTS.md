@@ -351,7 +351,7 @@ The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api
 **Menu `component` field format:** `<module>/<subdir>/<page_name>`
 
 ```
-admin/users                              → modules/admin/pages/users/index.jsx
+admin/users                              → modules/admin/pages/users/index.tsx
 component_center/admin/list_page         → modules/component_center/pages/admin/list_page/index.jsx
 component_center/dataviz/dashboard_page  → modules/component_center/pages/dataviz/dashboard_page/index.jsx
 ```
@@ -367,7 +367,7 @@ Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_
 
 ### TypeScript (migration in progress)
 
-The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. Still JSX: `components/app` and the existing pages. `pnpm scaffold` generates TSX: `pages/.../index.tsx` and `api/<name>.ts`, typed like `docs/templates/frontend/` (see "Typed pages" below). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. The auth and admin pages are TSX too. Still JSX: `components/app` and the component center pages (`modules/component_center/pages`). `pnpm scaffold` generates TSX: `pages/.../index.tsx` and `api/<name>.ts`, typed like `docs/templates/frontend/` (see "Typed pages" below). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
 
 - New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
 - New component files are TSX: shared components and primitives (the shadcn CLI writes TSX) and new pages (scaffold writes `index.tsx`). Existing pages stay JSX until step 5; edit them in place.
@@ -417,7 +417,7 @@ export const importItems = (file: File) => {
 - **Component system**: shadcn/ui primitives (`@/components/ui/*`; the source lives in the repo and can be changed as needed) + shared business components (`@/shared/components/*`); icons come only from `lucide-react`
 - **Use only** `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes; don't add other UI libraries (antd, MUI, etc.)
 - **Forbidden**: hard-coded hex colors in pages (exceptions: shading inside canvas / WebGL and chart data colors; for charts, try `useChartColors` first), large inline styles for layout, emoji as icons
-- **Reference implementations**: `apps/web/src/modules/admin/pages/users/index.jsx` (standard CRUD list page), `apps/web/src/modules/admin/pages/dashboard/index.jsx` (cards / charts / motion), `apps/web/src/modules/admin/pages/profile/index.jsx` (form page); templates in `docs/templates/frontend/`
+- **Reference implementations**: `apps/web/src/modules/admin/pages/users/index.tsx` (standard CRUD list page), `apps/web/src/modules/admin/pages/dashboard/index.tsx` (cards / charts / motion), `apps/web/src/modules/admin/pages/profile/index.tsx` (form page); templates in `docs/templates/frontend/`
 - **Docs first**: before implementing a shadcn component, check the official shadcn/ui docs (https://ui.shadcn.com/docs/components; prefer the shadcn MCP when available); the skill is at `.claude/skills/shadcn-ui-skills/SKILL.md`. When the docs conflict with the existing implementation in the repo, the repo wins (components in `components/ui` may have been adjusted to this project's tokens)
 
 **Page structure (list pages follow the users page):**
@@ -539,7 +539,7 @@ component_center/dataviz/realtime_chart_page
 - Export dialog: `@/shared/components/data-transfer/ExportDialog` (`open` / `onOpenChange` / `fieldOptions` / `ruleHint` / `onConfirm({ fields, fileType })`)
 - Import dialog: `@/shared/components/data-transfer/ImportDialog` (`onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)`; CSV / XLSX only; error rows can be downloaded)
 - Download: `import { downloadBlobFile } from '@/shared/utils/file'`
-- Reference implementation: `apps/web/src/modules/admin/pages/users/index.jsx` (exports the selected rows first + template download + import result message)
+- Reference implementation: `apps/web/src/modules/admin/pages/users/index.tsx` (exports the selected rows first + template download + import result message)
 
 ---
 
@@ -658,7 +658,7 @@ AI infers types from the business description; **the PM never specifies technica
 Step 1  Read the context
         → Read this file (AGENTS.md)
         → Read the code skeleton templates in docs/templates/ (backend/README.md has the substitution rules)
-        → Look at similar existing modules for naming (backend: modules/admin/users/, frontend: apps/web/src/modules/admin/pages/users/index.jsx)
+        → Look at similar existing modules for naming (backend: modules/admin/users/, frontend: apps/web/src/modules/admin/pages/users/index.tsx)
         → Check the current menu tree (MENUS_DATA in apps/api/scripts/seed-rbac.ts) to pick the parent_id and the next free ID
 
 Step 2  Write the internal spec (an AI-internal document; the PM doesn't read it)
