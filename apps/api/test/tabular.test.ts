@@ -18,11 +18,11 @@ describe('tabular', () => {
     const t = await buildTable(['名称', '备注'], [['a,b', 'say "hi"'], ['=cmd', null], [1.0, 2.5]], 'x', 'csv')
     expect(t.filename).toBe('x.csv')
     expect(t.contentType).toBe('text/csv; charset=utf-8')
-    expect(t.payload.toString('utf8')).toBe('﻿名称,备注\r\n"a,b","say ""hi"""\r\n\'=cmd,\r\n1,2.5\r\n')
+    expect(t.payload.toString('utf8')).toBe('\uFEFF名称,备注\r\n"a,b","say ""hi"""\r\n\'=cmd,\r\n1,2.5\r\n')
   })
 
   it('CSV 读取：BOM、空行跳过且不计行号、全空行跳过但计行号、缺列补空', async () => {
-    const csv = '﻿用户名,密码\r\nalice,1\r\n\r\n,\r\nbob\r\n'
+    const csv = '\uFEFF用户名,密码\r\nalice,1\r\n\r\n,\r\nbob\r\n'
     const r = await readTableFile({ filename: 'a.CSV', data: Buffer.from(csv) })
     expect(r.fieldnames).toEqual(['用户名', '密码'])
     expect(r.rows).toEqual([

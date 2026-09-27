@@ -27,11 +27,11 @@ const SRC = join(API_DIR, 'src')
 /** Awaited calls that read the caller's own context, not the requested record */
 const CALLER_CONTEXT = new Set(['getCurrentAdminUser', 'resolveDataScope', 'currentActor', 'callerOf', 'actorOf'])
 
-function walk(dir: string, out: string[] = []): string[] {
+function walk(dir: string, out: string[] = [], ext = /\.ts$/): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
-    if (statSync(path).isDirectory()) walk(path, out)
-    else if (name.endsWith('.ts')) out.push(path)
+    if (statSync(path).isDirectory()) walk(path, out, ext)
+    else if (ext.test(name)) out.push(path)
   }
   return out
 }
@@ -60,7 +60,7 @@ export function handWritten500s(source: string): string[] {
 }
 
 /** The Python stack by name: the language, its web framework and ORM, and the libraries whose behavior used to be replayed */
-const PYTHON_TERMS = /\b(python|flask|sqlalchemy|werkzeug|psycopg2?|urllib|json\.(dumps|loads)|py[A-Z]\w*)\b/i
+const PYTHON_TERMS = /\b(python|flask|sqlalchemy|werkzeug|psycopg2?|urllib|url(split|parse)|ensure_ascii|str\.title|json\.(dumps|loads)|py[A-Z]\w*)\b/i
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]
 
@@ -89,9 +89,18 @@ describe('conventions', () => {
     expect(problems, 'input problems are 4xx; server failures use internalError() / writeError()').toEqual([])
   })
 
-  it('no emulation of the old Python backend (src/, scripts/, the backend template, scaffold output)', () => {
+  it('no emulation of the old Python backend (API code, scripts and tests, lint config, web and MCP scripts, the backend template, scaffold output)', () => {
+    const files = [
+      ...walk(SRC),
+      ...walk(join(API_DIR, 'scripts')),
+      ...walk(join(API_DIR, 'test')).filter((f) => !f.endsWith('conventions.test.ts')),
+      join(API_DIR, 'eslint.config.js'),
+      ...walk(join(REPO, 'apps/web/scripts'), [], /\.(m?js|sh)$/),
+      ...walk(join(REPO, 'apps/mcp/src')),
+      ...walk(join(REPO, 'apps/mcp/test')),
+    ]
     const sources: Array<[string, string]> = [
-      ...[...walk(SRC), ...walk(join(API_DIR, 'scripts'))].map((f): [string, string] => [relative(API_DIR, f), readFileSync(f, 'utf8')]),
+      ...files.map((f): [string, string] => [relative(REPO, f), readFileSync(f, 'utf8')]),
       ['docs/templates/backend/schema.ts', readFileSync(join(REPO, 'docs/templates/backend/schema.ts'), 'utf8')],
       ['docs/templates/backend/service.ts', readFileSync(join(REPO, 'docs/templates/backend/service.ts'), 'utf8')],
       ...specs.flatMap((s): Array<[string, string]> => [
@@ -119,5 +128,6 @@ describe('conventions', () => {
     expect(PYTHON_TERMS.test('/** Python `str(x or \'\')` */')).toBe(true)
     expect(PYTHON_TERMS.test('const v = pyTruthy(x)')).toBe(true)
     expect(PYTHON_TERMS.test('const copy = happyPath(x)')).toBe(false)
+    expect(PYTHON_TERMS.test('// same as urlsplit()')).toBe(true)
   })
 })

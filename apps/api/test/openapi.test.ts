@@ -3,7 +3,7 @@
  *
  * - Stub detection
  * - The generator adds stubs per missing route + method (compared by path shape; `{int:x}` is equivalent to `{x}`)
- * - Write-back format matches json.dumps(indent=2, ensure_ascii=False), byte-for-byte stable
+ * - Write-back format: JSON.stringify with 2-space indent and a trailing newline, byte-for-byte stable
  * - Apifox push: uses a local fake server to check URL / headers / body and exit code, sends no real requests to Apifox
  */
 
@@ -49,7 +49,7 @@ describe('骨架识别', () => {
     expect(isStubEntry(withParams)).toBe(false)
   })
 
-  it('Python 真值语义：空 parameters / 空 content 仍是骨架；非对象条目算骨架', () => {
+  it('空 parameters / 空 content 仍是骨架；非对象条目算骨架', () => {
     expect(isStubEntry({ GET: { parameters: [], requestBody: null, responses: { '200': { content: {} } } } })).toBe(true)
     expect(isStubEntry({ POST: { requestBody: { content: {} } } })).toBe(false)
     expect(isStubEntry('x')).toBe(true)

@@ -184,7 +184,7 @@ describe('dynamic-form-page', () => {
       payload: { ids: [b.id, a.id], fields: ['record_code', 'fields_count', 'category', 'is_active', 'owner'] },
     })
     expect(res.headers['content-disposition']).toBe('attachment; filename=dynamic_form_page_export.csv')
-    expect(res.body).toBe(`﻿记录编码,字段数量,分类,启用,负责人\r\n${P}a,2,general,停用,\r\n${P}b,0,spec,启用,ow\r\n`)
+    expect(res.body).toBe(`\uFEFF记录编码,字段数量,分类,启用,负责人\r\n${P}a,2,general,停用,\r\n${P}b,0,spec,启用,ow\r\n`)
     const x = await s.inject({ method: 'POST', url: `${B}/export`, payload: { export_mode: 'filtered', filters: { search: P, category: 'spec' }, file_type: 'xlsx', fields: ['title', 'fields_count'] } })
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.load(x.rawPayload as unknown as ArrayBuffer)
@@ -192,7 +192,7 @@ describe('dynamic-form-page', () => {
     wb.worksheets[0]!.eachRow((row) => rows.push((row.values as unknown[]).slice(1)))
     expect(rows).toEqual([['标题', '字段数量'], ['表单B', '0']])
     const g = await s.inject({ url: `${B}/export?search=${P}&status=published&fields=record_code` })
-    expect(g.body).toBe(`﻿记录编码\r\n${P}a\r\n`)
+    expect(g.body).toBe(`\uFEFF记录编码\r\n${P}a\r\n`)
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的数据' })
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 'x' } })).json()).toEqual({ error: '导出记录的值无效' })
   })
@@ -200,7 +200,7 @@ describe('dynamic-form-page', () => {
   it('模板 csv 字节精确', async () => {
     const res = await s.inject({ url: `${B}/template` })
     expect(res.headers['content-disposition']).toBe('attachment; filename=dynamic_form_page_import_template.csv')
-    expect(res.body).toBe('﻿标题,记录编码,分类,发布状态,负责人,优先级,启用,描述\r\n示例表单A,form_001,general,draft,admin,0,启用,示例描述\r\n')
+    expect(res.body).toBe('\uFEFF标题,记录编码,分类,发布状态,负责人,优先级,启用,描述\r\n示例表单A,form_001,general,draft,admin,0,启用,示例描述\r\n')
   })
 
   it('导入：成功（新增 + 更新，字段不受影响）/ 错误行回滚 / 状态非法回滚 / 缺列', async () => {

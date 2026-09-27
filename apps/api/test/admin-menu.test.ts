@@ -280,7 +280,7 @@ describe('menus 导出 / 模板 / 导入', () => {
     })
     expect(res.headers['content-disposition']).toBe('attachment; filename=menus_export.csv')
     expect(res.body).toBe(
-      '﻿菜单编码,父级编码,排序,是否显示,是否启用,路径\r\n' +
+      '\uFEFF菜单编码,父级编码,排序,是否显示,是否启用,路径\r\n' +
         `${P}c3,${P}root,10,否,是,"/p,""q"""\r\n` +
         `${P}c1,${P}root,20,否,是,\r\n` +
         `${P}c2,${P}root,30,是,是,\r\n`,
@@ -303,7 +303,7 @@ describe('menus 导出 / 模板 / 导入', () => {
     const res = await s.inject({ url: '/api/admin/menus/template' })
     expect(res.headers['content-disposition']).toBe('attachment; filename=menus_import_template.csv')
     expect(res.body).toBe(
-      '﻿菜单名称,菜单编码,类型,路径,组件,图标,父级编码,排序,是否显示,是否启用,描述\r\n示例菜单,demo_menu,menu,/demo/menu,DemoMenu,IconApps,,99,是,是,示例描述\r\n',
+      '\uFEFF菜单名称,菜单编码,类型,路径,组件,图标,父级编码,排序,是否显示,是否启用,描述\r\n示例菜单,demo_menu,menu,/demo/menu,DemoMenu,IconApps,,99,是,是,示例描述\r\n',
     )
   })
 

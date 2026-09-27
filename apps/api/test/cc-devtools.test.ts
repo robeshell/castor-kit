@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import WebSocket from 'ws'
 import type { DbHandle } from '@/db/client'
-import { WS_TIMINGS, originAllowed, urlNetloc } from '@/modules/component-center/devtools/routes'
+import { WS_TIMINGS, originAllowed, sameHost } from '@/modules/component-center/devtools/routes'
 import { metricMessage, systemSnapshot } from '@/modules/component-center/devtools/service'
 import {
   FIXTURE_PASSWORD,
@@ -92,13 +92,16 @@ describe('perf-stats', () => {
   })
 })
 
-describe('Origin 校验（urlparse(origin).netloc == Host 或白名单）', () => {
-  it('urlNetloc', () => {
-    expect(urlNetloc('http://localhost:5173')).toBe('localhost:5173')
-    expect(urlNetloc('https://a.b/c?d')).toBe('a.b')
-    expect(urlNetloc('null')).toBe('')
-    expect(urlNetloc('localhost:5173')).toBe('')
-    expect(urlNetloc('//host:1/x')).toBe('host:1')
+describe('Origin 校验（与 Host 同主机或在白名单内）', () => {
+  it('sameHost', () => {
+    expect(sameHost('http://localhost:5173', 'localhost:5173')).toBe(true)
+    expect(sameHost('https://A.b', 'a.b')).toBe(true)
+    expect(sameHost('https://a.b', 'a.b:443')).toBe(true)
+    expect(sameHost('http://a.b', 'a.b:8080')).toBe(false)
+    expect(sameHost('null', 'null')).toBe(false)
+    expect(sameHost('localhost:5173', 'localhost:5173')).toBe(false)
+    expect(sameHost('http://a.b', 'a.b/evil')).toBe(false)
+    expect(sameHost('http://a.b', 'x@a.b')).toBe(false)
   })
 
   it('originAllowed', () => {

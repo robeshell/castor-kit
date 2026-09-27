@@ -123,7 +123,7 @@ describe('日志导出', () => {
     const res = await s.inject({ method: 'POST', url: '/api/admin/logs/login/export', payload: { ids: [loginIds[2], loginIds[0]] } })
     expect(res.headers['content-disposition']).toBe('attachment; filename=login_logs_export.csv')
     expect(res.body).toBe(
-      '﻿ID,用户名,状态,IP 地址,User-Agent,说明,时间\r\n' +
+      '\uFEFFID,用户名,状态,IP 地址,User-Agent,说明,时间\r\n' +
         `${loginIds[0]},${P}alice,success,1.1.1.1,UA,,2026-01-01 08:00:00\r\n` +
         `${loginIds[2]},${P}bob,success,2.2.2.2,UA,,2026-01-03 10:00:00\r\n`,
     )
@@ -141,7 +141,7 @@ describe('日志导出', () => {
       url: '/api/admin/logs/login/export',
       payload: { export_mode: 'filtered', filters: { username: `${P}alice`, status: 'failed' }, fields: ['created_at', 'message'] },
     })
-    expect(res.body).toBe('﻿时间,说明\r\n2026-01-02 09:30:00,密码错误\r\n')
+    expect(res.body).toBe('\uFEFF时间,说明\r\n2026-01-02 09:30:00,密码错误\r\n')
   })
 
   it('操作日志导出 csv / xlsx', async () => {
@@ -152,7 +152,7 @@ describe('日志导出', () => {
     })
     expect(csv.headers['content-disposition']).toBe('attachment; filename=operation_logs_export.csv')
     expect(csv.body).toBe(
-      '﻿ID,用户名,模块,操作,方法,路径,目标ID,状态码,IP 地址,User-Agent,请求体,时间\r\n' +
+      '\uFEFFID,用户名,模块,操作,方法,路径,目标ID,状态码,IP 地址,User-Agent,请求体,时间\r\n' +
         `${opIds[2]},${P}bob,roles,delete,POST,/api/admin/roles,3,,,,"{""a"":1}",2026-02-01 12:00:00\r\n`,
     )
     const xlsx = await s.inject({

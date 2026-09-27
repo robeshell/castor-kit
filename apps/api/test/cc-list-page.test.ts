@@ -315,7 +315,7 @@ describe('list-page 导入导出', () => {
     expect(res.statusCode).toBe(200)
     expect(res.headers['content-disposition']).toBe('attachment; filename=list_page_export.csv')
     const expected =
-      '﻿编码,关键字,图片URL列表,文件URL列表,状态,条件配置JSON,优先级\r\n' +
+      '\uFEFF编码,关键字,图片URL列表,文件URL列表,状态,条件配置JSON,优先级\r\n' +
       `${P}e1,'=cmd,"u1,u2",,启用,"{""groups"":[],""items"":[{""field"":""x"",""operator"":""eq"",""value"":""v,1"",""logic"":""AND""}]}",3\r\n` +
       `${P}e2,,,f.pdf,停用,"{""groups"":[],""items"":[]}",0\r\n`
     expect(res.rawPayload.toString('utf8')).toBe(expected)
@@ -335,7 +335,7 @@ describe('list-page 导入导出', () => {
       url: `${B}/export`,
       payload: { export_mode: 'filtered', filters: { search: `${P}e`, is_active: 'false' }, fields: ['name'] },
     })
-    expect(filtered.rawPayload.toString('utf8')).toBe('﻿名称\r\n导出2\r\n')
+    expect(filtered.rawPayload.toString('utf8')).toBe('\uFEFF名称\r\n导出2\r\n')
   })
 
   it('导出 错误分支（非法参数 → 400）', async () => {
@@ -358,7 +358,7 @@ describe('list-page 导入导出', () => {
     const res = await s.inject({ url: `${B}/template` })
     expect(res.headers['content-disposition']).toBe('attachment; filename=list_page_import_template.csv')
     expect(res.rawPayload.toString('utf8')).toBe(
-      '﻿查询名称,查询编码,查询分类,关键字,数据源,负责人,图片URL列表,文件URL列表,优先级,状态,发布状态,描述\r\n' +
+      '\uFEFF查询名称,查询编码,查询分类,关键字,数据源,负责人,图片URL列表,文件URL列表,优先级,状态,发布状态,描述\r\n' +
         '订单主查询,order_main_query,order,"订单,时间范围",orders,admin,"https://example.com/1.png,https://example.com/2.png","https://example.com/a.pdf,https://example.com/b.xlsx",10,启用,draft,查询模板示例\r\n',
     )
     const xlsx = await s.inject({ url: `${B}/template?file_type=xlsx` })
@@ -367,7 +367,7 @@ describe('list-page 导入导出', () => {
 
   it('导入成功：新增 + 按编码更新（import_update 快照）', async () => {
     const csv =
-      '﻿查询名称,查询编码,图片URL列表,优先级,状态,发布状态\r\n' +
+      '\uFEFF查询名称,查询编码,图片URL列表,优先级,状态,发布状态\r\n' +
       `新导入,${P}i1,"a.png,b.png",7,停用,published\r\n` +
       `改名,${P}e1,,x,,draft\r\n`
     const file = multipartFile('import.csv', csv)

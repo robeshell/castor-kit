@@ -36,6 +36,12 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Last traces of the old Python backend outside the API code:
+  - `apps/web/scripts/shadcn-add.sh` relays the shadcn registry with a small Node server instead of a Python one, so adding shadcn components no longer needs python3.
+  - The WebSocket Origin check compares hosts with the WHATWG URL parser (`sameHost`) instead of a port of Python's `urlsplit`; case and default ports compare equal, and a Host header that isn't `host[:port]` never matches.
+  - Scaffold labels are plain title case (`name2x` → `Name2x`, not `str.title()`'s `Name2X`).
+  - ESLint's `no-control-regex` / `no-irregular-whitespace` are back on: file names drop control characters with `\p{Cc}` (C1 controls included), and byte order marks are written as `\uFEFF` instead of invisible characters.
+  - The conventions guard also checks the API tests, the ESLint config and the web / MCP scripts, and knows `urlsplit` / `urlparse` / `ensure_ascii` / `str.title`.
 - Scaffolded modules declare their request body field by field with `common/validation.ts` (`field.requiredText(…)`, `field.choice(…, 'idle')`, `withDefault(field.decimal(…), '12.5')`), like the hand-written modules, instead of a `buildValues` function with per-field checks. The spec's required / default / option rules become the declaration; create uses `parseBody`, edit `parsePatch` (only the fields sent), export `parseBody(<resource>ExportBody)`; import rows are turned into a body by `rowToBody` (option labels, 是 / 否, integer text) and parsed by the same declaration, so import and API errors match. The backend template (`docs/templates/backend/`) and the docs follow.
   - `common/validation.ts` gains `field.decimal` (numeric kept as a string), `field.optionalBool`, `field.optionalChoice`, `field.fileId` (a file-center id or its URL), `field.dateTime(label, { offset: false })`, and the combinators `required(schema, message)` / `withDefault(schema, value)`, with unit tests.
   - The API takes JSON types only: integers as numbers (digit strings are a 400), booleans as `true` / `false` (not `1` / `'yes'` / `'是'`), dates as `YYYY-MM-DD` (a time part is a 400 instead of being cut off), option fields by value (labels only on import); blank optional text is stored as null instead of `''`. Import files still take text cells, 是 / 否 and option labels. The generated pages already send these types; the generated OpenAPI now types integer and boolean fields as `integer` / `boolean`.

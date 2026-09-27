@@ -251,7 +251,7 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 
 - 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），**先做权限检查（403）再 `service.getOr404(id)`（404）**：没有权限的人不能靠 404 / 403 的差别试探某个 id 是否存在；有权限但不在数据权限范围内的记录同样返回 404。`test/conventions.test.ts` 会检查所有路由、后端模板和 scaffold 生成的路由
 - 请求体：在 `schema.ts` 用 `z.object({ name: field.requiredText('名称', '名称不能为空'), sort_order: field.int('排序', 0), … })` 声明，路由在权限检查之后调用 `parseBody(schema, request.body)`（新建，缺省字段取默认值）/ `parsePatch(schema, request.body)`（编辑，只含请求里出现的字段），service 拿到的是已校验、有类型的值（样板：`modules/admin/dicts`）。`pnpm scaffold` 生成的模块也是这套写法（导入行经 `rowToBody` 转成请求体形状，走同一份声明）。只收 JSON 原生类型：文本是字符串（去首尾空白），整数是 number，布尔是 true / false，不做 `'1'` → 1 之类的隐式转换。需要登录或权限的路由不要用 `schema: { body }`——它在登录与权限检查之前执行，会把 401 / 403 变成 400（登录这类无需登录的接口可以用）
-- 不要模拟其他语言的语义：本项目由 Python（Flask / SQLAlchemy）版移植而来，曾经复刻它的真值判断、`str()`、`json.dumps` 格式、`date.fromisoformat`、`urlsplit` 等行为，2026-09 已全部移除。直接用 JavaScript / Node 的标准做法（`JSON.stringify`、`new URL()`、Zod 声明），注释也不要用 Python 的术语描述行为（`test/conventions.test.ts` 检查 src、scripts、后端模板和脚手架输出）
+- 不要模拟其他语言的语义：本项目由 Python（Flask / SQLAlchemy）版移植而来，曾经复刻它的真值判断、`str()`、`json.dumps` 格式、`date.fromisoformat`、`urlsplit` 等行为，2026-09 已全部移除。直接用 JavaScript / Node 的标准做法（`JSON.stringify`、`new URL()`、Zod 声明），注释也不要用 Python 的术语描述行为（`test/conventions.test.ts` 检查 API 的 src / scripts / test、ESLint 配置、web 与 MCP 的脚本、后端模板和脚手架输出）
 - 查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`；查询参数和导入单元格永远是文本，用 `@/common/validation` 的 `parseYesNo` / `parseIntText` / `parseNumberText` 解析
 
 ### OpenAPI 编写规范

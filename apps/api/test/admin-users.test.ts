@@ -104,7 +104,7 @@ describe('users', () => {
       payload: { export_mode: 'filtered', filters: { search: 'ck_test_super' }, fields: ['username', 'role_codes', 'bogus'] },
     })
     expect(res.headers['content-disposition']).toBe('attachment; filename=users_export.csv')
-    expect(res.body).toBe('﻿用户名,角色编码\r\nck_test_super,super_admin\r\n')
+    expect(res.body).toBe('\uFEFF用户名,角色编码\r\nck_test_super,super_admin\r\n')
   })
 
   it('模板下载 xlsx', async () => {
