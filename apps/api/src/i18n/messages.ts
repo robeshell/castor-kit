@@ -370,8 +370,6 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '模板名称和内容不能为空': { 'en-US': 'Template name and content are required', 'ja-JP': 'テンプレート名と内容を入力してください' },
   '模板名称不能为空': { 'en-US': 'Template name is required', 'ja-JP': 'テンプレート名を入力してください' },
   '模板内容不能为空': { 'en-US': 'Template content is required', 'ja-JP': 'テンプレートの内容を入力してください' },
-  '保存模板失败，请稍后重试': { 'en-US': 'Failed to save the template. Please try again later.', 'ja-JP': 'テンプレートを保存できませんでした。しばらくしてから再度お試しください。' },
-  '删除模板失败，请稍后重试': { 'en-US': 'Failed to delete the template. Please try again later.', 'ja-JP': 'テンプレートを削除できませんでした。しばらくしてから再度お試しください。' },
   '获取数据库结构失败': { 'en-US': 'Failed to load the database schema', 'ja-JP': 'データベース構造を取得できませんでした' },
   '问题不能为空': { 'en-US': 'Question is required', 'ja-JP': '質問を入力してください' },
   'AI 生成失败，请检查模型配置后重试': { 'en-US': 'AI generation failed. Check the model configuration and try again.', 'ja-JP': 'AI による生成に失敗しました。モデルの設定を確認してから再度お試しください。' },

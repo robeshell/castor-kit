@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { loadConfig } from '@/config'
 import { ReadonlyDb } from '@/db/readonly'
-import { decimalStr, pgToPy, pyFloatRepr, pyStrRepr, toResponseValue } from '@/modules/component-center/ai-sql/pg-values'
+import { columnValue } from '@/modules/component-center/ai-sql/result-values'
 import { cleanSql, isSafeSql, isVisibleTable, stripLiterals } from '@/modules/component-center/ai-sql/schema'
 import type { DbHandle } from '@/db/client'
 import { startFakeUpstream, type FakeUpstream } from './cc-ai-fake-upstream'
@@ -127,7 +127,7 @@ describe('isSafeSql 细节', () => {
     expect(isSafeSql('select 1; ;')[0]).toBe(false)
   })
 
-  it('单词边界按 Unicode 单词字符（Python re）', () => {
+  it('单词边界按 Unicode 单词字符', () => {
     expect(isSafeSql('SELECT 1 AS 中DELETE')[0]).toBe(true)
     expect(isSafeSql('SELECT 1 AS éSET')[0]).toBe(true)
     expect(isSafeSql('SELECT 1 AS "x" , 2 AS a·DELETE')[0]).toBe(false)
@@ -141,63 +141,43 @@ describe('isSafeSql 细节', () => {
   })
 })
 
-describe('Python 值转换', () => {
-  it('Decimal / float repr / str repr', () => {
-    expect(decimalStr('1.50')).toBe('1.50')
-    expect(decimalStr('0.00000012')).toBe('1.2E-7')
-    expect(decimalStr('0.0000001000')).toBe('1.000E-7')
-    expect(decimalStr('0.0000000')).toBe('0E-7')
-    expect(decimalStr('0.00')).toBe('0.00')
-    expect(decimalStr('-0.0000001')).toBe('-1E-7')
-    expect(decimalStr('100000000000000000000')).toBe('100000000000000000000')
-    expect(pyFloatRepr(2)).toBe('2.0')
-    expect(pyFloatRepr(1e-5)).toBe('1e-05')
-    expect(pyFloatRepr(1e16)).toBe('1e+16')
-    expect(pyFloatRepr(1.2345679e20)).toBe('1.2345679e+20')
-    expect(pyFloatRepr(-0)).toBe('-0.0')
-    expect(pyFloatRepr(0.0001)).toBe('0.0001')
-    expect(pyStrRepr("it's")).toBe(`"it's"`)
-    expect(pyStrRepr(`q'"`)).toBe(`'q\\'"'`)
-    expect(pyStrRepr('\x01\x7f\x85\xa0\u200b\u2028 é😀')).toBe("'\\x01\\x7f\\x85\\xa0\\u200b\\u2028 é😀'")
+describe('查询结果转成 JSON 值', () => {
+  it('数字 / 布尔 / numeric', () => {
+    expect(columnValue('42', 23)).toBe(42)
+    expect(columnValue('9007199254740993', 20)).toBe('9007199254740993')
+    expect(columnValue('1.5', 701)).toBe(1.5)
+    expect(columnValue('NaN', 701)).toBeNull()
+    expect(columnValue('Infinity', 700)).toBeNull()
+    expect(columnValue('t', 16)).toBe(true)
+    expect(columnValue('0.00000012', 1700)).toBe('0.00000012')
+    expect(columnValue(null, 23)).toBeNull()
   })
 
-  it('interval → str(timedelta)（年=365 天、月=30 天）', () => {
-    const iv = (text: string) => toResponseValue(pgToPy(text, 1186))
-    expect(iv('1 day 02:00:00')).toBe('1 day, 2:00:00')
-    expect(iv('-1 days +02:03:04.5')).toBe('-1 day, 2:03:04.500000')
-    expect(iv('1 year 2 mons 3 days')).toBe('428 days, 0:00:00')
-    expect(iv('-00:00:01')).toBe('-1 day, 23:59:59')
-    expect(iv('00:00:00')).toBe('0:00:00')
-    expect(iv('-3 days -04:00:00')).toBe('-4 days, 20:00:00')
+  it('json / jsonb 解析成 JSON 值', () => {
+    expect(columnValue('{"b": 1, "a": {"0": [1e2, true, null, "s"]}}', 114)).toEqual({ b: 1, a: { 0: [100, true, null, 's'] } })
+    expect(columnValue('"str"', 3802)).toBe('str')
   })
 
-  it('json 保序、大整数精确、repr', () => {
-    const json = toResponseValue(pgToPy('{"b": 1, "a": {"1": 2, "0": [1e2, -0.0, 12345678901234567890, true, null, "s"]}}', 114))
-    expect(json).toBe("{'b': 1, 'a': {'1': 2, '0': [100.0, -0.0, 12345678901234567890, True, None, 's']}}")
-    expect(JSON.stringify({ v: toResponseValue(pgToPy('9007199254740993', 20)) })).toBe('{"v":9007199254740993}')
-    expect(toResponseValue(pgToPy('"str"', 3802))).toBe('str')
+  it('时间：timestamp 用 T 分隔，timestamptz 带 ±HH:MM；date / time / interval 保留 PostgreSQL 文本', () => {
+    expect(columnValue('2024-06-01 01:02:03.4567', 1114)).toBe('2024-06-01T01:02:03.4567')
+    expect(columnValue('2024-06-01 01:02:03.4567-03:30', 1184)).toBe('2024-06-01T01:02:03.4567-03:30')
+    expect(columnValue('2024-01-01 20:00:00+08', 1184)).toBe('2024-01-01T20:00:00+08:00')
+    expect(columnValue('2024-06-01', 1082)).toBe('2024-06-01')
+    expect(columnValue('1 day 02:00:00', 1186)).toBe('1 day 02:00:00')
   })
 
-  it('数组 / 时间 / range', () => {
-    expect(toResponseValue(pgToPy('{"2024-01-01 12:00:00","2024-01-01 12:00:00.5"}', 1115))).toBe(
-      '[datetime.datetime(2024, 1, 1, 12, 0), datetime.datetime(2024, 1, 1, 12, 0, 0, 500000)]',
-    )
-    expect(toResponseValue(pgToPy('{"2024-01-01 20:00:00+08"}', 1185))).toBe(
-      '[datetime.datetime(2024, 1, 1, 20, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=28800)))]',
-    )
-    expect(toResponseValue(pgToPy('{1.5,2}', 1231))).toBe("[Decimal('1.5'), Decimal('2')]")
-    expect(toResponseValue(pgToPy('{NULL,"NULL","a,b"}', 1009))).toBe("[None, 'NULL', 'a,b']")
-    expect(toResponseValue(pgToPy('2024-06-01 01:02:03.4567-03:30', 1184))).toBe('2024-06-01T01:02:03.456700-03:30')
-    expect(toResponseValue(pgToPy('infinity', 1114))).toBe('9999-12-31T23:59:59.999999')
-    expect(toResponseValue(pgToPy('24:00:00', 1083))).toBe('00:00:00')
-    expect(toResponseValue(pgToPy('[1,5)', 3904))).toBe('[1, 5)')
-    expect(toResponseValue(pgToPy('{"[1,5)",empty}', 3905))).toBe("[NumericRange(1, 5, '[)'), NumericRange(empty=True)]")
-    expect(toResponseValue(pgToPy('{192.168.0.1}', 1041))).toBe("['192.168.0.1']")
-    expect(toResponseValue(pgToPy('{$12.50}', 791))).toBe('{$12.50}')
+  it('数组逐个元素转换；range / 其他类型保留文本', () => {
+    expect(columnValue('{1,2,NULL}', 1007)).toEqual([1, 2, null])
+    expect(columnValue('{{1,2},{3,4}}', 1007)).toEqual([[1, 2], [3, 4]])
+    expect(columnValue('{"2024-01-01 12:00:00","2024-01-01 12:00:00.5"}', 1115)).toEqual(['2024-01-01T12:00:00', '2024-01-01T12:00:00.5'])
+    expect(columnValue('{1.5,2}', 1231)).toEqual(['1.5', '2'])
+    expect(columnValue('{NULL,"NULL","a,b"}', 1009)).toEqual([null, 'NULL', 'a,b'])
+    expect(columnValue('{"{\\"a\\": 1}"}', 3807)).toEqual([{ a: 1 }])
+    expect(columnValue('[1,5)', 3904)).toBe('[1,5)')
+    expect(columnValue('{192.168.0.1}', 1041)).toEqual(['192.168.0.1'])
+    expect(columnValue('{$12.50}', 791)).toBe('{$12.50}')
   })
 })
-
-// ---- Read-only connection pool (real PG) ----
 
 describe('ReadonlyDb（只读引擎）', () => {
   let ro: ReadonlyDb
@@ -349,16 +329,14 @@ describe('AI SQL 路由', () => {
   })
 
   it('execute：参数校验', async () => {
-    for (const body of [{}, { sql: '' }, { sql: '  \n' }, { sql: null }, { sql: 0 }]) {
+    for (const body of [{}, { sql: '' }, { sql: '  \n' }, { sql: null }]) {
       const res = await s.inject({ method: 'POST', url: EXECUTE, payload: body })
       expect(res.statusCode).toBe(400)
       expect(res.json()).toEqual({ error: 'SQL 不能为空' })
     }
-    // Non-string truthy value → global 500 generic message
-    for (const sql of [5, ['SELECT 1'], { a: 1 }, true]) {
+    for (const sql of [0, 5, ['SELECT 1'], { a: 1 }, true]) {
       const res = await s.inject({ method: 'POST', url: EXECUTE, payload: { sql } })
-      expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+      expect([res.statusCode, res.json()]).toEqual([400, { error: 'SQL的值无效' }])
     }
   })
 
@@ -401,7 +379,7 @@ describe('AI SQL 路由', () => {
     expect(exact.truncated).toBe(false)
   })
 
-  it('execute：字面量剥离后放行，结果行按 Python 规则序列化', async () => {
+  it('execute：字面量剥离后放行，结果行转成 JSON 值', async () => {
     const res = await s.inject({
       method: 'POST',
       url: EXECUTE,
@@ -411,7 +389,7 @@ describe('AI SQL 路由', () => {
     const body = res.json()
     expect(body.sql).toBe(`SELECT id, c, e, p, q, 'delete' AS label, 1 AS "DROP" FROM ${TABLE} ORDER BY id`)
     expect(body.columns).toEqual(['id', 'c', 'e', 'p', 'q', 'label', 'DROP'])
-    expect(body.rows[0]).toEqual({ id: 1, c: 'row1', e: '1.5', p: "{'k': 'v'}", q: '[1]', label: 'delete', DROP: 1 })
+    expect(body.rows[0]).toEqual({ id: 1, c: 'row1', e: '1.5', p: { k: 'v' }, q: [1], label: 'delete', DROP: 1 })
   })
 
   it('execute：执行错误 400 带 sql；重复列名取最后一个值', async () => {
@@ -436,8 +414,7 @@ describe('AI SQL 路由', () => {
       expect(res.json()).toEqual({ error: '问题不能为空' })
     }
     const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question: { a: 1 } } })
-    expect(res.statusCode).toBe(400)
-    expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    expect(res.json()).toEqual({ error: '问题的值无效' })
   })
 
   it('generate：成功（系统提示词 + schema 文本 + 问题发给上游）', async () => {

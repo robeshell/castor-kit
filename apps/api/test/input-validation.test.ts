@@ -44,10 +44,6 @@ describe('bad input → 400', () => {
     const cases: Array<[string, string, unknown]> = [
       ['PUT', `${CC}/advanced-table/rows/reorder`, [5]],
       ['PUT', `${CC}/kanban/cards/reorder`, [5]],
-      ['POST', `${CC}/ai/prompt/templates`, { name: 5, content: 'x' }],
-      ['POST', `${CC}/ai/prompt/preview`, { content: 5 }],
-      ['POST', `${CC}/ai/sql/generate`, { question: 5 }],
-      ['POST', `${CC}/ai/sql/execute`, { sql: 5 }],
     ]
     for (const [method, url, payload] of cases) {
       expect(await send(method, url, payload), `${method} ${url} ${JSON.stringify(payload)}`).toEqual(bad('请求参数格式不正确'))
@@ -64,6 +60,10 @@ describe('bad input → 400', () => {
     expect(await send('POST', `${CC}/card-list-page/export`, { export_mode: 'filtered', filters: 'x' })).toEqual(bad('筛选条件的值无效'))
     expect(await send('POST', `${CC}/stats-list-page/export`, { export_mode: 'selected', ids: ['a'] })).toEqual(bad('导出记录的值无效'))
     expect(await send('POST', `${CC}/advanced-table/rows/batch-delete`, { ids: [true] })).toEqual(bad('记录的值无效'))
+    expect(await send('POST', `${CC}/ai/sql/generate`, { question: 5 })).toEqual(bad('问题的值无效'))
+    expect(await send('POST', `${CC}/ai/sql/execute`, { sql: 5 })).toEqual(bad('SQL的值无效'))
+    expect(await send('POST', `${CC}/ai/prompt/templates`, { name: 5, content: 'x' })).toEqual(bad('模板名称的值无效'))
+    expect(await send('POST', `${CC}/ai/prompt/preview`, { content: 5 })).toEqual(bad('模板内容的值无效'))
   })
 
   it('body checks run after authentication: a signed-out caller gets 401, not 400', async () => {

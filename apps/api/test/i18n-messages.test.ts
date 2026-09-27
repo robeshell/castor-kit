@@ -312,7 +312,6 @@ describe('i18n messages coverage', () => {
       'Cron 表达式不能为空', // err.message after instanceof ScheduledTaskSchemaError
       '不允许访问内网地址（${…} 解析为 ${…}）', // new ScheduledTaskSchemaError(blockedHostMessage(…))
       '仅支持 csv/xlsx 文件', // err.message after instanceof TableFileError
-      '保存模板失败，请稍后重试', // err.message after instanceof AiPromptPersistError
       '新增用户必须提供密码', // buildErrorRow
     ]) {
       expect(texts, text).toContain(text)
