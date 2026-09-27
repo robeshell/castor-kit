@@ -17,7 +17,7 @@
  * - Path params are converted to standard OpenAPI form: `:user_id(^\d+$)` → `{user_id}`, wildcard `*` → `{path}`.
  * - "Is it documented" compares by path shape (parameter names ignored) and method, so a stub joins an existing key of
  *   the same shape instead of creating a second one; the lint then reports keys whose names differ from the route.
- * - Write-back preserves the document's original key order (including integer-like keys such as "201" before "200"), with output formatted like Python `json.dumps(indent=2, ensure_ascii=False)`, byte-for-byte stable.
+ * - Write-back keeps paths sorted, in the repository's JSON format (scripts/lib/json-doc.ts), so a re-run changes nothing.
  */
 
 import diagnostics from 'node:diagnostics_channel'
@@ -29,7 +29,7 @@ import type { FastifyInstance } from 'fastify'
 import { buildApp } from '../src/app'
 import { loadConfig, loadEnvFiles, type AppConfig, type AppEnv } from '../src/config'
 import { formatLintIssues, lintOpenApi, type LintIssue } from './lib/openapi-lint'
-import { dumpIndented, parseOrderedJson, toOrdered, type OrderedJson } from './lib/ordered-json'
+import { formatJsonDoc, sortKeys } from './lib/json-doc'
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 export const DOC_PATH = resolve(REPO_ROOT, 'docs/apifox-full.openapi.json')
@@ -99,14 +99,14 @@ export async function collectApiRoutes(config: AppConfig): Promise<Map<string, s
 }
 
 // ---------------------------------------------------------------------------
-// Stub detection / stats (same rules as verify_feature._openapi_is_stub_path)
+// Stub detection / stats
 // ---------------------------------------------------------------------------
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
-/** Python truthiness: None / False / 0 / '' / empty containers are falsy */
-function pyTruthy(v: unknown): boolean {
-  if (v === null || v === undefined || v === false || v === 0 || v === '') return false
+/** Present and not empty (an empty list / object counts as absent) */
+function hasContent(v: unknown): boolean {
+  if (v === null || v === undefined || v === false || v === '') return false
   if (Array.isArray(v)) return v.length > 0
   if (isObject(v)) return Object.keys(v).length > 0
   return true
@@ -117,10 +117,10 @@ export function isStubEntry(entry: unknown): boolean {
   if (!isObject(entry)) return true
   for (const op of Object.values(entry)) {
     if (!isObject(op)) continue
-    if (pyTruthy(op.requestBody) || pyTruthy(op.parameters)) return false
-    const responses = pyTruthy(op.responses) && isObject(op.responses) ? op.responses : {}
+    if (hasContent(op.requestBody) || hasContent(op.parameters)) return false
+    const responses = isObject(op.responses) ? op.responses : {}
     for (const resp of Object.values(responses)) {
-      if (isObject(resp) && pyTruthy(resp.content)) return false
+      if (isObject(resp) && hasContent(resp.content)) return false
     }
   }
   return true
@@ -138,13 +138,6 @@ export function pathStats(paths: Record<string, unknown>): PathStats {
   return { total: entries.length, detailed: entries.length - stubs, stubs }
 }
 
-/** Python `f'{x:.0f}'`：round-half-even */
-function formatPercent0(value: number): string {
-  const floor = Math.floor(value)
-  const diff = value - floor
-  if (diff === 0.5) return String(floor % 2 === 0 ? floor : floor + 1)
-  return value.toFixed(0)
-}
 
 /**
  * Stub operations for routes missing from the document: lowercase methods, path parameters declared, generic responses.
@@ -221,21 +214,11 @@ export async function generateOpenApi(options: GenerateOptions): Promise<Generat
   log(`收集到 /api 路由 ${routes.size} 条`)
   for (const [path, methods] of added) log(`  + ${methods.join(',')} ${path}`)
   log(`补齐 ${added.reduce((n, [, methods]) => n + methods.length, 0)} 个接口（均为骨架，需按 AGENTS.md「OpenAPI 编写规范」补全）`)
-  const percent = stats.total ? formatPercent0((stats.detailed / stats.total) * 100) : '0'
+  const percent = stats.total ? Math.round((stats.detailed / stats.total) * 100) : 0
   log(`文档路径统计：总数 ${stats.total}，详细 ${stats.detailed}（${percent}%），骨架 ${stats.stubs}`)
 
   if (!options.dryRun) {
-    const ordered = parseOrderedJson(text)
-    if (!(ordered instanceof Map)) throw new Error('OpenAPI 文档根节点必须是对象')
-    const orderedPaths = ordered.get('paths') instanceof Map ? (ordered.get('paths') as Map<string, OrderedJson>) : new Map()
-    for (const [path, methods] of added) {
-      const current = orderedPaths.get(path)
-      const merged = current instanceof Map ? new Map(current) : new Map<string, OrderedJson>()
-      for (const [method, op] of Object.entries(buildStubEntry(path, methods))) merged.set(method, toOrdered(op))
-      orderedPaths.set(path, merged)
-    }
-    ordered.set('paths', new Map([...orderedPaths].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))))
-    writeFileSync(docPath, dumpIndented(ordered), 'utf8')
+    writeFileSync(docPath, formatJsonDoc({ ...doc, paths: sortKeys(paths) }), 'utf8')
     log(`已写回 ${relative(REPO_ROOT, docPath)}`)
   }
 

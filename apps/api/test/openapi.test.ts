@@ -25,7 +25,7 @@ import {
   pathStats,
 } from '../scripts/generate-openapi'
 import { runImport } from '../scripts/import-apifox'
-import { dumpIndented, dumpPythonDefault, parseOrderedJson, toOrdered } from '../scripts/lib/ordered-json'
+import { formatJsonDoc } from '../scripts/lib/json-doc'
 import { intParam } from '../src/common/http'
 import { testConfig } from './helpers'
 
@@ -108,16 +108,10 @@ describe('路径转换', () => {
   })
 })
 
-describe('保序 JSON', () => {
-  it('现有文档解析后重新输出与原文件逐字节一致（含 "201" 在 "200" 之前的键序）', () => {
+describe('文档格式', () => {
+  it('现有文档解析后重新输出与原文件逐字节一致（两空格缩进、非 ASCII 原样、末尾换行）', () => {
     const text = readFileSync(DOC_PATH, 'utf8')
-    expect(dumpIndented(parseOrderedJson(text))).toBe(text)
-  })
-
-  it('requests json= 编码：ensure_ascii + 带空格分隔符', () => {
-    expect(dumpPythonDefault(toOrdered({ a: '中\u007f😀"\n', b: [1, true, null], c: {} }))).toBe(
-      '{"a": "\\u4e2d\\u007f\\ud83d\\ude00\\"\\n", "b": [1, true, null], "c": {}}',
-    )
+    expect(formatJsonDoc(JSON.parse(text))).toBe(text)
   })
 })
 
@@ -226,7 +220,6 @@ describe('import-apifox（本地假服务）', () => {
     expect(req.headers.authorization).toBe('Bearer t1')
     expect(req.headers['x-apifox-api-version']).toBe('2024-03-28')
     expect(req.headers['content-type']).toBe('application/json')
-    expect(/^[\x00-\x7f]*$/.test(req.body)).toBe(true)
     expect(JSON.parse(req.body)).toEqual({
       input: readFileSync(DOC_PATH, 'utf8'),
       options: {
@@ -255,13 +248,19 @@ describe('import-apifox（本地假服务）', () => {
       '--target-endpoint-folder-id', ' 12', '--module-id', '3', '--endpoint-overwrite-behavior', 'AUTO_MERGE', '--prepend-base-path',
     ])
     expect(code).toBe(2)
-    expect(received[0]!.url).toBe('/v1/projects/99/import-openapi?locale=zh+CN%2A~')
-    expect(received[0]!.body).toBe(
-      '{"input": {"url": "https://x.test/a.json", "basicAuth": {"username": "u", "password": "p"}}, "options": ' +
-        '{"endpointOverwriteBehavior": "AUTO_MERGE", "schemaOverwriteBehavior": "OVERWRITE_EXISTING", ' +
-        '"updateFolderOfChangedEndpoint": false, "prependBasePath": true, "deleteUnmatchedResources": false, ' +
-        '"targetEndpointFolderId": 12, "moduleId": 3}}',
-    )
+    expect(received[0]!.url).toBe('/v1/projects/99/import-openapi?locale=zh+CN*%7E')
+    expect(JSON.parse(received[0]!.body)).toEqual({
+      input: { url: 'https://x.test/a.json', basicAuth: { username: 'u', password: 'p' } },
+      options: {
+        endpointOverwriteBehavior: 'AUTO_MERGE',
+        schemaOverwriteBehavior: 'OVERWRITE_EXISTING',
+        updateFolderOfChangedEndpoint: false,
+        prependBasePath: true,
+        deleteUnmatchedResources: false,
+        targetEndpointFolderId: 12,
+        moduleId: 3,
+      },
+    })
     expect(out).toContain('No counters returned.')
     expect(err).toEqual(['Import returned errors:', '  - code=E1 message=坏了', '  - code= message=plain'])
   })

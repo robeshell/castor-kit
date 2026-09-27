@@ -9,7 +9,7 @@
 
 import type { FieldMeta, ScaffoldSpec } from '../scaffold'
 import { expectedSecurity } from './openapi-lint'
-import { dumpIndented, parseOrderedJson, toOrdered, type OrderedJson } from './ordered-json'
+import { formatJsonDoc, sortKeys } from './json-doc'
 
 type Schema = Record<string, unknown>
 type Operation = Record<string, unknown>
@@ -277,18 +277,15 @@ export function scaffoldOperations(s: ScaffoldSpec, label: (field: string) => st
  * code that wasn't regenerated.
  */
 export function applyScaffoldOpenApi(docText: string, s: ScaffoldSpec, label: (field: string) => string): string {
-  const doc = parseOrderedJson(docText)
-  if (!(doc instanceof Map)) throw new Error('OpenAPI 文档根节点必须是对象')
-  const existing = doc.get('paths')
-  if (existing instanceof Map && existing.has(s.apiBase)) return docText
+  const doc = JSON.parse(docText) as { paths?: Record<string, unknown>; tags?: Array<{ name?: string }> }
+  const paths = doc.paths ?? {}
+  if (Object.hasOwn(paths, s.apiBase)) return docText
   const tag = scaffoldTag(s)
-  const tags = Array.isArray(doc.get('tags')) ? (doc.get('tags') as OrderedJson[]) : []
-  if (!tags.some((t) => t instanceof Map && t.get('name') === tag.name)) {
-    tags.push(toOrdered({ name: tag.name, description: `${s.title}：增删改查与导入导出（scripts/scaffold.ts 生成）` }))
+  const tags = doc.tags ?? []
+  if (!tags.some((t) => t.name === tag.name)) {
+    tags.push({ name: tag.name, description: `${s.title}：增删改查与导入导出（scripts/scaffold.ts 生成）` } as { name: string })
   }
-  doc.set('tags', tags)
-  const paths = doc.get('paths') instanceof Map ? (doc.get('paths') as Map<string, OrderedJson>) : new Map<string, OrderedJson>()
-  for (const [path, ops] of Object.entries(scaffoldOperations(s, label))) paths.set(path, toOrdered(ops))
-  doc.set('paths', new Map([...paths].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))))
-  return dumpIndented(doc)
+  doc.tags = tags
+  doc.paths = sortKeys({ ...paths, ...scaffoldOperations(s, label) })
+  return formatJsonDoc(doc)
 }
