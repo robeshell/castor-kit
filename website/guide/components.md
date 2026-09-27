@@ -29,7 +29,7 @@
 | 数据大屏 | `/component-center/dashboard-page` | 多个图表与事件流组成的综合大屏 |
 | 实时折线图 | `/component-center/dataviz/realtime-chart` | 持续滚动更新的传感器曲线（纯前端） |
 | 热力日历图 | `/component-center/dataviz/heatmap` | 年度日历热力图与小时 × 星期热力图（纯前端） |
-| 地图热力图 | `/component-center/dataviz/map-heatmap` | 中国地图省份热力与 Top 10 排行，地图数据随仓库提供 |
+| 流量转化分析 | `/component-center/dataviz/traffic-flow` | 桑基图展示访问来源 → 落地页 → 结果的流向，旁边是从访问到支付的转化漏斗 |
 
 ## 3D / 创意
 

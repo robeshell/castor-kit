@@ -14,7 +14,7 @@ import { registerDynamicFormPageRoutes } from './dynamic-form-page/routes'
 import { registerGanttRoutes } from './gantt/routes'
 import { registerKanbanRoutes } from './kanban/routes'
 import { registerListPageRoutes } from './list-page/routes'
-import { registerMapHeatmapRoutes } from './map-heatmap/routes'
+import { registerTrafficFlowRoutes } from './traffic-flow/routes'
 import { registerStatsListPageRoutes } from './stats-list-page/routes'
 import { registerTreeListPageRoutes } from './tree-list-page/routes'
 
@@ -28,7 +28,7 @@ export async function registerComponentCenterRoutes(app: FastifyInstance): Promi
   await registerDetailTabsRoutes(app)
   await registerGanttRoutes(app)
   await registerAdvancedTableRoutes(app)
-  await registerMapHeatmapRoutes(app)
+  await registerTrafficFlowRoutes(app)
   await registerAiChatRoutes(app)
   await registerAiPromptRoutes(app)
   await registerAiSqlRoutes(app)

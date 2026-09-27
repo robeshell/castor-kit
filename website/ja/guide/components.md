@@ -29,7 +29,7 @@
 | データダッシュボード | `/component-center/dashboard-page` | 複数のグラフとイベントストリームで構成された総合ダッシュボード |
 | リアルタイム折れ線グラフ | `/component-center/dataviz/realtime-chart` | 絶えずスクロール更新されるセンサーの曲線（フロントエンドのみ） |
 | カレンダーヒートマップ | `/component-center/dataviz/heatmap` | 年間のカレンダーヒートマップと、時間 × 曜日のヒートマップ（フロントエンドのみ） |
-| 地図ヒートマップ | `/component-center/dataviz/map-heatmap` | 中国地図の省別ヒートマップと Top 10 ランキング。地図データはリポジトリに同梱 |
+| トラフィック分析 | `/component-center/dataviz/traffic-flow` | 流入元 → ランディングページ → 結果の流れを示すサンキー図と、訪問から決済までのコンバージョンファネル |
 
 ## 3D / クリエイティブ
 

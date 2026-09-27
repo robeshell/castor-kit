@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- The component gallery's map heatmap is replaced by **Traffic flow** (`/component-center/dataviz/traffic-flow`, permission `cc_dataviz_traffic_flow`):
+  - a Sankey diagram of visits from source to landing page to outcome, and a conversion funnel;
+  - mock data from `GET /api/admin/component-center/dataviz/traffic-flow/data`.
+  - Migration `0001_traffic_flow_menu` renames the existing menu in place, so role grants carry over. The map endpoint and the bundled China GeoJSON are gone.
 - Pages open faster the first time:
   - ECharts is registered on demand. `@/shared/components/Chart` is bound to `@/lib/echarts`, which registers only the charts, components and renderers the pages use. Chart pages load about 40% less code.
   - The sign-in, reset-password and profile pages load on demand. The first download is about a fifth smaller.

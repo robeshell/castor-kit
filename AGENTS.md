@@ -132,7 +132,7 @@ castor-kit/
 │   │   │       └── component-center/  # 组件示例中心域
 │   │   │           ├── router.ts
 │   │   │           └── list-page/ stats-list-page/ card-list-page/ tree-list-page/ dynamic-form-page/
-│   │   │               kanban/ detail-tabs/ gantt/ advanced-table/ map-heatmap/
+│   │   │               kanban/ detail-tabs/ gantt/ advanced-table/ traffic-flow/
 │   │   │               ai-chat/ ai-prompt/ ai-sql/ devtools/
 │   │   ├── drizzle/                   # SQL 迁移 + meta/_journal.json（drizzle-kit 生成）
 │   │   ├── scripts/                   # 工具链：scaffold / verify-feature / seed-rbac / setup-once /
@@ -812,7 +812,7 @@ ID=3   组件示例中心 (component_center)
   ID=41  数据可视化 (cc_dataviz)
     ID=411 实时折线图 → /component-center/dataviz/realtime-chart → component_center/dataviz/realtime_chart_page
     ID=412 热力日历图 → /component-center/dataviz/heatmap → component_center/dataviz/heatmap_page
-    ID=413 地图热力图 → /component-center/dataviz/map-heatmap → component_center/dataviz/map_heatmap_page
+    ID=413 流量转化分析 (cc_dataviz_traffic_flow) → /component-center/dataviz/traffic-flow → component_center/dataviz/traffic_flow_page
     ID=414 数据大屏 (cc_dataviz_dashboard) → /component-center/dashboard-page → component_center/dataviz/dashboard_page
   ID=42  3D / 创意 (cc_3d)
     ID=421 粒子连线动画 → /component-center/creative/particle → component_center/creative/particle_canvas_page

@@ -38,6 +38,7 @@ import {
   User,
   Users,
   Webhook,
+  Workflow,
 } from 'lucide-react'
 
 /**
@@ -85,6 +86,7 @@ export const MENU_ICONS = {
   User,
   Users,
   Webhook,
+  Workflow,
 }
 
 const BY_CODE = {

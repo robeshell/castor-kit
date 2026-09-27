@@ -1,8 +1,7 @@
-import { BarChart, HeatmapChart, LineChart, MapChart, PieChart } from 'echarts/charts'
+import { BarChart, FunnelChart, HeatmapChart, LineChart, PieChart, SankeyChart } from 'echarts/charts'
 import {
   AxisPointerComponent,
   CalendarComponent,
-  GeoComponent,
   GridComponent,
   LegendComponent,
   TitleComponent,
@@ -19,13 +18,13 @@ import { CanvasRenderer, SVGRenderer } from 'echarts/renderers'
  */
 echarts.use([
   BarChart,
+  FunnelChart,
   HeatmapChart,
   LineChart,
-  MapChart,
   PieChart,
+  SankeyChart,
   AxisPointerComponent,
   CalendarComponent,
-  GeoComponent,
   GridComponent,
   LegendComponent,
   TitleComponent,
