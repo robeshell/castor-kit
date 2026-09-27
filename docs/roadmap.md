@@ -74,12 +74,17 @@ Done early (step 5 needed it): `useAuth()` / `useTagsView()` throw outside their
 
 **Why steps 1-5 don't change behavior**: each converted file is checked by stripping its types and comparing with the old JS, so a regression can only come from the types themselves. Code that is correct but not idiomatic TypeScript is kept as it was and cleaned up in step 6, where behavior changes are reviewed on their own.
 
-**Follow-up: keep the OpenAPI request bodies in sync automatically.** The reconciliation (332 differences between the doc and the Zod `field.*` declarations) was a one-off comparison. To stop the drift coming back:
+**~~Follow-up: keep the OpenAPI request bodies in sync automatically~~** Done. The reconciliation (332 differences between the doc and the Zod `field.*` declarations) was a one-off comparison; now the drift can't come back:
 
-1. Each route that parses a body registers its schema (a `BODY_SCHEMAS` list per module, or a `parseBody` wrapper that records the schema while `collectApiRoutes` builds the app); fail when a body-reading route has no entry.
-2. `test/openapi-doc.test.ts` and verify's `openapi_sync` compare each documented request body with `z.toJSONSchema(schema, { io: 'input' })` plus real `safeParse` probes for null / missing / `''` (preprocess wrappers make the JSON Schema alone misleading), against an allowlist of intentional differences, each with its reason.
-3. Move the 18 fields the services enforce (e.g. change-password `old_password`, scheduled task `request_url`, gantt dates) into `required(...)` in Zod, so the allowlist shrinks to the export `fields[]` / `file_type` enums.
-4. `scripts/lib/scaffold-openapi.ts` still documents export `ids` / `fields` / `file_type` as non-null; align it.
+- ~~Each route that parses a body registers its schema~~ Routes declare their body with `routeBody(schema, 'create' | 'patch' | 'array')` (`common/validation.ts`): the schema goes into the Fastify route `config`, where `collectApiRoutes` records it; all 79 body-reading routes use it, and `test/conventions.test.ts` fails on a direct `parseBody` / `parsePatch` / `parseArrayBody` in a `routes.ts`, in the backend template or in what `pnpm scaffold` generates
+- ~~Compare each documented request body with the schema~~ The `body-sync` rule of `lintOpenApi` (`scripts/lib/openapi-body-sync.ts`; runs in `pnpm openapi:generate [--strict]`, verify's `openapi_sync` and `test/openapi-doc.test.ts`) checks nullability, requiredness, types and enums per property, nested `filters`, array items and `conditions` included. Export `fields[]` / `file_type` enums are the contract by design (`isExportContractEnum`); other intentional differences are in `BODY_SYNC_ALLOWLIST` (one entry per field, each with its reason; stale entries fail)
+- ~~`scripts/lib/scaffold-openapi.ts` still documents export `ids` / `fields` / `file_type` as non-null~~ Aligned: nullable (the column / file-type enums stay, as the contract), and required fields without a default are non-null and listed in `required` (a required field with a default isn't); `test/scaffold.test.ts` checks generated modules against their generated schemas
+
+Left out on purpose:
+
+- Moving the ~20 fields the services enforce (change-password `old_password` / `new_password`, reauth / 2FA `password` / `code`, users `password` and `status`, menus sort `direction`, scheduled task `request_url`, gantt dates, kanban card `board_id`, advanced-table batch `ids`) into Zod's `required(...)`: it changes which layer answers the 400 and the messages tests assert; they stay in the allowlist until then
+- Query parameters: the rule only covers JSON bodies declared with `routeBody` (query strings are read with `queryString` / `parseYesNo` / …, which carry no declaration)
+- Defaults: a documented `default` is not compared with the Zod fallback
 
 ---
 

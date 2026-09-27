@@ -9,7 +9,7 @@ import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
-import { parseBody, parseIntText, parsePatch, parseYesNo } from '@/common/validation'
+import { parseIntText, parseYesNo, routeBody } from '@/common/validation'
 import { scheduledTaskToDict } from '@/db/schema'
 import { taskBody } from './schema'
 import { ScheduledTaskService } from './service'
@@ -30,11 +30,12 @@ export async function registerScheduledTaskRoutes(app: FastifyInstance): Promise
     return service.listTasks(page, per_page, search, isActive, status)
   })
 
-  app.post('/api/admin/scheduled-tasks', opts, async (request, reply) => {
+  const taskInput = routeBody(taskBody, 'create')
+  app.post('/api/admin/scheduled-tasks', { ...opts, ...taskInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks_add'))) {
       return reply.status(403).send({ error: '无权限新增定时任务' })
     }
-    return reply.status(201).send(await service.createTask(parseBody(taskBody, request.body)))
+    return reply.status(201).send(await service.createTask(taskInput.parse(request)))
   })
 
   // The static path /runs must be reachable: intParam only matches digits, so it doesn't conflict with /runs
@@ -57,12 +58,13 @@ export async function registerScheduledTaskRoutes(app: FastifyInstance): Promise
     return scheduledTaskToDict(task)
   })
 
-  app.put(`/api/admin/scheduled-tasks/${intParam('task_id')}`, opts, async (request, reply) => {
+  const taskPatch = routeBody(taskBody, 'patch')
+  app.put(`/api/admin/scheduled-tasks/${intParam('task_id')}`, { ...opts, ...taskPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks_edit'))) {
       return reply.status(403).send({ error: '无权限编辑定时任务' })
     }
     const task = await service.getTaskOr404(taskIdOf(request.params))
-    return service.updateTask(task, parsePatch(taskBody, request.body))
+    return service.updateTask(task, taskPatch.parse(request))
   })
 
   app.delete(`/api/admin/scheduled-tasks/${intParam('task_id')}`, opts, async (request, reply) => {

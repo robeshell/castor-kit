@@ -10,7 +10,7 @@ import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
 import type { TreeListFilters } from './repository'
-import { parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { parseYesNo, routeBody } from '@/common/validation'
 import { treeExportBody, treeNodeBody } from './schema'
 import { TreeListPageService } from './service'
 
@@ -61,11 +61,12 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
     return service.listItems(page, per_page, listFilters(request), parentId)
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const treeNodeInput = routeBody(treeNodeBody, 'create')
+  app.post(BASE, { ...opts, ...treeNodeInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_tree_list_add'))) {
       return reply.status(403).send({ error: '无权限新增节点' })
     }
-    const [payload, status] = await service.createItem(parseBody(treeNodeBody, request.body))
+    const [payload, status] = await service.createItem(treeNodeInput.parse(request))
     return reply.status(status).send(payload)
   })
 
@@ -81,12 +82,13 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
     return service.toDict(item)
   })
 
-  app.put(detailPath, opts, async (request, reply) => {
+  const treeNodePatch = routeBody(treeNodeBody, 'patch')
+  app.put(detailPath, { ...opts, ...treeNodePatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_tree_list_edit'))) {
       return reply.status(403).send({ error: '无权限编辑节点' })
     }
     const item = await loadItem(request)
-    return service.updateItem(item, parsePatch(treeNodeBody, request.body))
+    return service.updateItem(item, treeNodePatch.parse(request))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -97,15 +99,16 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
     return service.deleteItem(item)
   })
 
+  const treeExportInput = routeBody(treeExportBody, 'create')
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_tree_list_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
     const body = request.method === 'GET' ? exportQuery(request) : request.body
-    return sendTable(reply, await service.exportItems(parseBody(treeExportBody, body)))
+    return sendTable(reply, await service.exportItems(treeExportInput.parse({ body })))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
-  app.post(`${BASE}/export`, opts, exportHandler)
+  app.post(`${BASE}/export`, { ...opts, ...treeExportInput.route }, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_tree_list_import'))) {

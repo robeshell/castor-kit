@@ -8,7 +8,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, queryString } from '@/common/http'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { parsePagination } from '@/common/pagination'
 import { notificationBody } from './schema'
 import { NotificationService } from './service'
@@ -29,13 +29,14 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
     return service.listItems(user.id, page, per_page, isReadFilter)
   })
 
-  app.post('/api/admin/notifications', opts, async (request, reply) => {
+  const notificationInput = routeBody(notificationBody, 'create')
+  app.post('/api/admin/notifications', { ...opts, ...notificationInput.route }, async (request, reply) => {
     const user = await getCurrentAdminUser(request)
     if (!user) return reply.status(404).send(USER_NOT_FOUND)
     if (!(await hasMenuPermission(request, 'system_notifications_add'))) {
       return reply.status(403).send({ error: '无权限创建通知' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(notificationBody, request.body)))
+    return reply.status(201).send(await service.createItem(notificationInput.parse(request)))
   })
 
   app.get('/api/admin/notifications/unread-count', opts, async (request) => {

@@ -6,8 +6,11 @@
  *    permission which ids exist. Reading the caller's own context first (the signed-in user, their data scope) is fine.
  * 2. No hand-written `new ServiceError(…, 500)`: input problems are 4xx, and real server failures go through
  *    internalError() / writeError() (common/errors.ts, common/db-errors.ts), so every 500 is recognisably one.
+ * 3. Routes read their JSON body through routeBody (common/validation.ts), never parseBody / parsePatch /
+ *    parseArrayBody directly: routeBody puts the schema on the route, where the OpenAPI body check
+ *    (scripts/lib/openapi-lint.ts) finds it. A declaration has to be both on the route (`.route`) and parsed (`.parse(`).
  *
- * Both run over the repository's modules, the backend template and what `pnpm scaffold` generates.
+ * They run over the repository's modules, the backend template and what `pnpm scaffold` generates.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -55,6 +58,15 @@ export function handWritten500s(source: string): string[] {
   return [...source.matchAll(/new ServiceError\((?:[^()]|\([^()]*\))*?,\s*500\s*,?\s*\)/g)].map((m) => m[0].replace(/\s+/g, ' ').slice(0, 120))
 }
 
+/** Direct parseBody / parsePatch / parseArrayBody calls, and routeBody declarations not both on a route and parsed */
+export function bodyParsesOutsideRouteBody(source: string): string[] {
+  const found = [...source.matchAll(/\b(parseBody|parsePatch|parseArrayBody)\(/g)].map((m) => `${m[1]}() called directly`)
+  for (const [, name] of source.matchAll(/\bconst (\w+) = routeBody\(/g)) {
+    if (!new RegExp(`\\b${name}\\.route\\b`).test(source)) found.push(`${name}: routeBody not in any route's options (${name}.route)`)
+    if (!new RegExp(`\\b${name}\\.parse\\(`).test(source)) found.push(`${name}: routeBody never parsed (${name}.parse(request))`)
+  }
+  return found
+}
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]
 
@@ -83,6 +95,18 @@ describe('conventions', () => {
     expect(problems, 'input problems are 4xx; server failures use internalError() / writeError()').toEqual([])
   })
 
+  it('routes read their body through routeBody, so the OpenAPI check sees the schema', () => {
+    const problems: string[] = []
+    for (const file of walk(join(SRC, 'modules')).filter((f) => f.endsWith('routes.ts'))) {
+      for (const hit of bodyParsesOutsideRouteBody(readFileSync(file, 'utf8'))) problems.push(`${relative(API_DIR, file)}: ${hit}`)
+    }
+    for (const hit of bodyParsesOutsideRouteBody(readFileSync(join(REPO, 'docs/templates/backend/routes.ts'), 'utf8'))) {
+      problems.push(`docs/templates/backend/routes.ts: ${hit}`)
+    }
+    for (const s of specs) for (const hit of bodyParsesOutsideRouteBody(genRoutes(s))) problems.push(`scaffold genRoutes: ${hit}`)
+    expect(problems, 'declare the body with routeBody(schema, mode), spread .route into the route options and call .parse(request) after the permission check').toEqual([])
+  })
+
   it('the checks themselves catch what they are for', () => {
     const route = (body: string) => `\n  app.put(itemPath, opts, async (request, reply) => {\n${body}\n  })\n`
     const permission = "    if (!(await hasMenuPermission(request, 'x_edit'))) {\n      return reply.status(403).send({ error: '无权限' })\n    }"
@@ -92,5 +116,10 @@ describe('conventions', () => {
     expect(handWritten500s("throw new ServiceError('失败', 500)")).toHaveLength(1)
     expect(handWritten500s('throw new ServiceError(\n  err instanceof Error ? err.message : String(err),\n  500,\n)')).toHaveLength(1)
     expect(handWritten500s("throw new ServiceError('无权限', 403)")).toEqual([])
+    expect(bodyParsesOutsideRouteBody('return service.createItem(parseBody(itemBody, request.body))')).toEqual(['parseBody() called directly'])
+    expect(bodyParsesOutsideRouteBody("const reorder = routeBody(reorderItem, 'array')\napp.put(p, opts, async (request) => reorder.parse(request))")).toEqual([
+      "reorder: routeBody not in any route's options (reorder.route)",
+    ])
+    expect(bodyParsesOutsideRouteBody("const create = routeBody(itemBody, 'create')\napp.post(p, { ...opts, ...create.route }, async (request) => create.parse(request))")).toEqual([])
   })
 })

@@ -13,7 +13,7 @@ import { Readable } from 'node:stream'
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { chatBody } from './schema'
 import { AiChatService } from './service'
 
@@ -31,9 +31,10 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
   })
   app.addHook('onClose', async () => service.close())
 
+  const chatInput = routeBody(chatBody, 'create')
   app.post(
     '/api/admin/component-center/ai/chat/stream',
-    { preHandler: loginRequired, compress: false },
+    { preHandler: loginRequired, compress: false, ...chatInput.route },
     async (request, reply) => {
       if (!(await hasMenuPermission(request, PERMISSION))) {
         return reply.status(403).send({ error: '无权限' })
@@ -43,7 +44,7 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
       }
 
       // The page (useChat) sends the conversation as UI messages: [{ id, role, parts }, …]
-      const messages = await service.parseMessages(parseBody(chatBody, request.body).messages)
+      const messages = await service.parseMessages(chatInput.parse(request).messages)
 
       const abort = new AbortController()
       reply.raw.on('close', () => {

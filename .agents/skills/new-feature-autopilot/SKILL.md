@@ -170,6 +170,8 @@ pnpm openapi:generate -- --strict  # re-check; lists the specific problems of ea
 
 The AI assistant and external callers rely only on this doc, so fields must not be made up.
 
+A new route that reads a JSON body declares it with `routeBody(schema, 'create' | 'patch' | 'array')` like the generated ones (`{ ...opts, ...item.route }` in the route options, `item.parse(request)` after the permission check; never `parseBody` directly). `--strict` then also compares each documented request body with that Zod declaration (rule `body-sync`: nullability, `required`, types, enums), so a field you add or change in `schema.ts` must be updated in the doc too.
+
 ### Step 5 — Verification gate (mandatory, never skip)
 
 ```bash

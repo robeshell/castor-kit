@@ -7,7 +7,7 @@
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam } from '@/common/http'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { previewBody, templateBody } from './schema'
 import { AiPromptService } from './service'
 
@@ -29,20 +29,22 @@ export async function registerAiPromptRoutes(app: FastifyInstance): Promise<void
     return service.listTemplates(category)
   })
 
-  app.post(`${BASE}/templates`, opts, async (request, reply) => {
+  const templateInput = routeBody(templateBody, 'create')
+  app.post(`${BASE}/templates`, { ...opts, ...templateInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_ai_prompt_add'))) {
       return reply.status(403).send({ error: '无权限新建模板' })
     }
-    return reply.status(201).send(await service.createTemplate(parseBody(templateBody, request.body)))
+    return reply.status(201).send(await service.createTemplate(templateInput.parse(request)))
   })
 
-  app.put(`${BASE}/templates/${intParam('template_id')}`, opts, async (request, reply) => {
+  const templatePatch = routeBody(templateBody, 'patch')
+  app.put(`${BASE}/templates/${intParam('template_id')}`, { ...opts, ...templatePatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_ai_prompt_edit'))) {
       return reply.status(403).send({ error: '无权限编辑模板' })
     }
     const template = await service.getTemplate((request.params as IdParams).template_id)
     if (!template) return reply.status(404).send({ error: '模板不存在' })
-    return service.updateTemplate(template, parsePatch(templateBody, request.body))
+    return service.updateTemplate(template, templatePatch.parse(request))
   })
 
   app.delete(`${BASE}/templates/${intParam('template_id')}`, opts, async (request, reply) => {
@@ -54,10 +56,11 @@ export async function registerAiPromptRoutes(app: FastifyInstance): Promise<void
     return service.deleteTemplate(template)
   })
 
-  app.post(`${BASE}/preview`, opts, async (request, reply) => {
+  const previewInput = routeBody(previewBody, 'create')
+  app.post(`${BASE}/preview`, { ...opts, ...previewInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_ai_prompt'))) {
       return reply.status(403).send({ error: '无权限' })
     }
-    return service.preview(parseBody(previewBody, request.body))
+    return service.preview(previewInput.parse(request))
   })
 }

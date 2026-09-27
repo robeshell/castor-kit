@@ -43,6 +43,17 @@ export const FIELD_OPENAPI: Record<string, { request: Schema; response: Schema; 
   dict: { request: { type: ['string', 'null'], maxLength: 100 }, response: { type: ['string', 'null'] } },
 }
 
+const hasDefault = (meta: FieldMeta) => meta.default !== undefined && meta.default !== null && meta.default !== ''
+
+/**
+ * A required field the body rejects when missing / null (fieldDeclaration in scaffold.ts): required without a
+ * default; a file / image field has no default, so required is enough. A required field with a default takes the
+ * default instead, so it may be left out.
+ */
+function mustBeSent(type: string, meta: FieldMeta): boolean {
+  return meta.required === true && (type === 'file' || type === 'image' || !hasDefault(meta))
+}
+
 function fieldDescription(label: string, type: string, meta: FieldMeta, forRequest: boolean): string {
   const parts = [label]
   const note = FIELD_OPENAPI[type]?.note
@@ -50,7 +61,7 @@ function fieldDescription(label: string, type: string, meta: FieldMeta, forReque
   if (type === 'enum' && meta.options?.length) parts.push(`可选值：${meta.options.map((o) => `${o.value}=${o.label}`).join('，')}`)
   if (type === 'dict' && meta.dict) parts.push(`数据字典「${meta.dict}」的字典项值（可选值见 GET /api/admin/dicts/options?codes=${meta.dict}）`)
   if (forRequest) {
-    if (meta.required) parts.push('必填')
+    if (mustBeSent(type, meta)) parts.push('必填')
     if (meta.unique) parts.push('唯一')
     if (meta.default !== undefined && meta.default !== null && meta.default !== '') parts.push(`新增时缺省为 ${String(meta.default)}`)
   }
@@ -61,8 +72,11 @@ function fieldSchema(s: ScaffoldSpec, label: (field: string) => string, field: s
   const meta = s.meta[field] ?? {}
   const base = FIELD_OPENAPI[type] ?? FIELD_OPENAPI.str!
   const schema: Schema = { ...(forRequest ? base.request : base.response) }
-  if (type === 'enum' && meta.options?.length) schema.enum = [...meta.options.map((o) => o.value), null]
-  if (forRequest && meta.default !== undefined && meta.default !== null && meta.default !== '') schema.default = meta.default
+  // A field that must be sent rejects null too
+  const nullable = !(forRequest && mustBeSent(type, meta))
+  if (!nullable && Array.isArray(schema.type)) schema.type = schema.type.filter((t) => t !== 'null')
+  if (type === 'enum' && meta.options?.length) schema.enum = [...meta.options.map((o) => o.value), ...(nullable ? [null] : [])]
+  if (forRequest && hasDefault(meta)) schema.default = meta.default
   schema.description = fieldDescription(label(field), type, meta, forRequest)
   return schema
 }
@@ -83,7 +97,7 @@ function itemSchema(s: ScaffoldSpec, label: (field: string) => string): Schema {
 function bodySchema(s: ScaffoldSpec, label: (field: string) => string, create: boolean): Schema {
   const properties: Record<string, Schema> = {}
   for (const [field, type] of s.fields) properties[field] = fieldSchema(s, label, field, type, true)
-  const required = s.fields.filter(([f]) => s.meta[f]?.required).map(([f]) => f)
+  const required = s.fields.filter(([f, t]) => mustBeSent(t, s.meta[f] ?? {})).map(([f]) => f)
   return { type: 'object', properties, ...(create && required.length ? { required } : {}) }
 }
 
@@ -214,13 +228,15 @@ export function scaffoldOperations(s: ScaffoldSpec, label: (field: string) => st
           content: json({
             type: 'object',
             properties: {
-              ids: { type: 'array', items: { type: 'integer' }, description: '要导出的记录 ID，为空导出全部' },
+              // Nullable as the module's export body reads them (field.ids / textList / text); the fields / file_type
+              // enums are the contract (openapi-body-sync.ts isExportContractEnum), the backend's leniency a fallback
+              ids: { type: ['array', 'null'], items: { type: 'integer' }, description: '要导出的记录 ID；缺省、null 或为空时导出全部' },
               fields: {
-                type: 'array',
+                type: ['array', 'null'],
                 items: { type: 'string', enum: ['id', ...s.exportFields.map(([f]) => f), 'created_at'] },
-                description: '导出列，缺省导出所有列',
+                description: '导出列；缺省、null 或为空时导出所有列',
               },
-              file_type: { type: 'string', enum: ['csv', 'xlsx'], default: 'xlsx', description: '文件格式，缺省或其他值按 xlsx' },
+              file_type: { type: ['string', 'null'], enum: ['csv', 'xlsx', null], default: 'xlsx', description: '文件格式，缺省、null 或其他值按 xlsx' },
             },
           }),
         },

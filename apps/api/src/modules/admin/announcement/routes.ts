@@ -9,7 +9,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { announcementBody, announcementExportBody } from './schema'
 import { AnnouncementService } from './service'
 
@@ -31,15 +31,17 @@ export async function registerAnnouncementRoutes(app: FastifyInstance): Promise<
     })
   })
 
-  app.post('/api/admin/announcements', opts, async (request, reply) => {
+  const announcementInput = routeBody(announcementBody, 'create')
+  app.post('/api/admin/announcements', { ...opts, ...announcementInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_announcements_add'))) return reply.status(403).send(FORBIDDEN)
-    return reply.status(201).send(await service.createItem(parseBody(announcementBody, request.body)))
+    return reply.status(201).send(await service.createItem(announcementInput.parse(request)))
   })
 
-  app.put(itemPath, opts, async (request, reply) => {
+  const announcementPatch = routeBody(announcementBody, 'patch')
+  app.put(itemPath, { ...opts, ...announcementPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_announcements_edit'))) return reply.status(403).send(FORBIDDEN)
     const item = await service.getOr404(itemIdOf(request))
-    return service.updateItem(item, parsePatch(announcementBody, request.body))
+    return service.updateItem(item, announcementPatch.parse(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
@@ -60,9 +62,10 @@ export async function registerAnnouncementRoutes(app: FastifyInstance): Promise<
     return service.unpublishItem(item)
   })
 
-  app.post('/api/admin/announcements/export', opts, async (request, reply) => {
+  const announcementExportInput = routeBody(announcementExportBody, 'create')
+  app.post('/api/admin/announcements/export', { ...opts, ...announcementExportInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_announcements_export'))) return reply.status(403).send(FORBIDDEN)
-    return sendTable(reply, await service.exportItems(parseBody(announcementExportBody, request.body)))
+    return sendTable(reply, await service.exportItems(announcementExportInput.parse(request)))
   })
 
   app.get('/api/admin/announcements/template', opts, async (request, reply) => {

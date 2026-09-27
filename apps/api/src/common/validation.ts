@@ -1,7 +1,8 @@
 /**
  * Request body validation. Each module declares its JSON body as a Zod object built from these fields, and the route
  * parses it after the permission check (a route-level `schema: { body }` would run before authentication and answer
- * 400 where the caller should get 401 / 403).
+ * 400 where the caller should get 401 / 403). Routes go through routeBody: it hands the schema to the route's
+ * `config` (so the OpenAPI check can compare it with the documented requestBody) and parses the body later, in the handler.
  *
  * Fields take JSON types only: text is a string, integers are numbers, booleans are true / false. A value of the wrong
  * type is the caller's error → 400「<label>的值无效」. Query strings and import-file cells are always text and have their
@@ -13,8 +14,12 @@
  *   sort_order: field.int('排序', 0),
  *   is_active: field.bool('是否启用', true),
  * })
- * const values = parseBody(itemBody, request.body)    // create: missing fields take their defaults
- * const changes = parsePatch(itemBody, request.body)  // update: only the fields present in the body
+ * const create = routeBody(itemBody, 'create')   // create: missing fields take their defaults
+ * app.post(BASE, { ...opts, ...create.route }, async (request, reply) => {
+ *   if (!(await hasMenuPermission(request, 'x_add'))) return reply.status(403).send({ error: '无权限' })
+ *   const values = create.parse(request)
+ * })
+ * const update = routeBody(itemBody, 'patch')    // update: only the fields present in the body
  * ```
  */
 
@@ -286,7 +291,7 @@ export function parseIntText(text: string | null | undefined, fallback: number):
   return /^[+-]?\d+$/.test(value) ? Number.parseInt(value, 10) : fallback
 }
 
-type BodySchema = z.ZodObject<z.ZodRawShape>
+export type BodySchema = z.ZodObject<z.ZodRawShape>
 
 function objectBody(body: unknown): Record<string, unknown> {
   if (body === null || body === undefined) return {}
@@ -323,6 +328,59 @@ export function parseArrayBody<S extends BodySchema>(itemSchema: S, body: unknow
   if (body === null || body === undefined) return []
   if (!Array.isArray(body)) throw notArrayMessage ? new ServiceError(notArrayMessage, 400) : invalidInput()
   return body.map((item) => parse(itemSchema, objectBody(item)))
+}
+
+/**
+ * How a route reads its JSON body: 'create' → parseBody, 'patch' → parsePatch, 'array' → parseArrayBody (a JSON array
+ * of `schema` objects)
+ */
+export type BodyMode = 'create' | 'patch' | 'array'
+
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    /** The Zod declaration of the route's JSON body (set by routeBody; read by the OpenAPI body check) */
+    body?: BodySchema
+    /** How the route parses `body` */
+    bodyMode?: BodyMode
+  }
+}
+
+/** A route's body declaration: `route` goes into the route options, `parse` reads the body inside the handler */
+export interface RouteBody<T> {
+  /** Route options to merge into the route's own: `{ ...opts, ...item.route }` */
+  readonly route: { config: { body: BodySchema; bodyMode: BodyMode } }
+  /**
+   * The parsed body, exactly as parseBody / parsePatch / parseArrayBody return it. Call it after the permission
+   * check. A handler shared with a GET route passes the body it builds from the query: `item.parse({ body })`.
+   */
+  parse(request: { body: unknown }): T
+}
+
+/**
+ * Declare a route's JSON body once: the schema travels with the route (Fastify route `config`, not `schema`, so
+ * nothing runs before authentication) and `parse` validates it in the handler.
+ *
+ * ```ts
+ * const item = routeBody(itemBody, 'create')
+ * app.post(BASE, { ...opts, ...item.route }, async (request, reply) => {
+ *   if (!(await hasMenuPermission(request, 'x_add'))) return reply.status(403).send({ error: '无权限' })
+ *   return service.createItem(item.parse(request))
+ * })
+ * ```
+ */
+export function routeBody<S extends BodySchema>(schema: S, mode: 'create'): RouteBody<z.output<S>>
+export function routeBody<S extends BodySchema>(schema: S, mode: 'patch'): RouteBody<Partial<z.output<S>>>
+export function routeBody<S extends BodySchema>(schema: S, mode: 'array', notArrayMessage?: string): RouteBody<z.output<S>[]>
+export function routeBody<S extends BodySchema>(
+  schema: S,
+  mode: BodyMode,
+  notArrayMessage?: string,
+): RouteBody<z.output<S> | Partial<z.output<S>> | z.output<S>[]> {
+  return {
+    route: { config: { body: schema, bodyMode: mode } },
+    parse: ({ body }) =>
+      mode === 'create' ? parseBody(schema, body) : mode === 'patch' ? parsePatch(schema, body) : parseArrayBody(schema, body, notArrayMessage),
+  }
 }
 
 /** The fields of `values` that differ from `current`, so an update that changes nothing leaves updated_at alone */

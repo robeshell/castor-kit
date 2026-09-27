@@ -49,7 +49,9 @@ import {
 } from '../scripts/scaffold'
 import { existingMenus, insertMenus, planMenus } from '../scripts/lib/menus'
 import Ajv2020 from 'ajv/dist/2020'
+import type { RouteBodyDeclaration } from '../scripts/lib/openapi-body-sync'
 import { lintOpenApi } from '../scripts/lib/openapi-lint'
+import type { BodySchema } from '@/common/validation'
 import { specSchemaText } from '../scripts/lib/spec-schema'
 import { applyScaffoldOpenApi, FIELD_OPENAPI, scaffoldOperations, scaffoldRoutes } from '../scripts/lib/scaffold-openapi'
 
@@ -69,6 +71,23 @@ const DOC = join(REPO_ROOT, 'docs', 'apifox-full.openapi.json')
 function moduleDocIssues(docText: string, name: string, domain: 'admin' | 'component_center' = 'admin') {
   const s = buildSpec(name, domain, [])
   return lintOpenApi(JSON.parse(docText), scaffoldRoutes(s)).filter((i) => i.operation.includes(s.apiBase))
+}
+
+/**
+ * Body-sync differences (scripts/lib/openapi-body-sync.ts) between a scaffolded module's documented bodies and its Zod
+ * declarations, imported from the generated schema.ts; the route → body map mirrors genRoutes' routeBody calls
+ */
+async function moduleBodyIssues(root: string, docText: string, name: string, domain: 'admin' | 'component_center' = 'admin') {
+  const s = buildSpec(name, domain, [])
+  const dir = `apps/api/src/modules/${domain === 'admin' ? 'admin' : 'component-center'}/${toKebab(name)}`
+  const schemas = (await import(pathToFileURL(join(root, dir, 'schema.ts')).href)) as Record<string, BodySchema>
+  const body = schemas[`${s.camel}Body`]!
+  const bodies = new Map<string, RouteBodyDeclaration>([
+    [`POST ${s.apiBase}`, { schema: body, mode: 'create' }],
+    [`PUT ${s.apiBase}/{item_id}`, { schema: body, mode: 'patch' }],
+    [`POST ${s.apiBase}/export`, { schema: schemas[`${s.camel}ExportBody`]!, mode: 'create' }],
+  ])
+  return lintOpenApi(JSON.parse(docText), Object.assign(scaffoldRoutes(s), { bodies })).filter((i) => i.operation.includes(s.apiBase))
 }
 
 type Catalog = Record<string, string>
@@ -513,7 +532,9 @@ describe('scaffold OpenAPI 条目', () => {
     expect(create).toMatchObject({ summary: '新增设备台账', 'x-apifox-folder': '后台/业务管理/设备台账' })
     expect(create.description).toContain('需要 system_ck_spec_device_add')
     const body = create.requestBody.content['application/json'].schema
-    expect(body.required).toEqual(['code', 'name', 'status'])
+    // Required without a default: must be sent, null rejected; status is required but has a default, so it may be left out
+    expect(body.required).toEqual(['code', 'name'])
+    expect(body.properties.code.type).toEqual(['string'])
     expect(body.properties.status).toMatchObject({ enum: ['idle', 'in_use', null], default: 'idle' })
     expect(body.properties.status.description).toContain('idle=闲置')
     expect(body.properties.code).toMatchObject({ maxLength: 20 })
@@ -655,10 +676,12 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(existsSync(join(root, 'apps/web/src/shared/api/openapi.d.ts'))).toBe(false)
   })
 
-  it('生成：文件 + 注册 + drizzle 迁移，生成代码通过 tsc', () => {
+  it('生成：文件 + 注册 + drizzle 迁移，生成代码通过 tsc', async () => {
     const res = scaffoldCli(['--name', name, '--domain', 'admin', '--fields', fields, '--root', root])
     expect(res.code, res.out).toBe(0)
     expect(moduleDocIssues(readFileSync(join(root, 'docs/apifox-full.openapi.json'), 'utf8'), name)).toEqual([])
+    // ... and the documented bodies match the generated Zod declarations
+    expect(await moduleBodyIssues(root, readFileSync(join(root, 'docs/apifox-full.openapi.json'), 'utf8'), name)).toEqual([])
     for (const rel of [
       'apps/api/src/db/schema/admin/ck-scaffold-demo.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/schema.ts',
@@ -890,8 +913,8 @@ describe('scaffold CLI（临时目录副本）', () => {
 
     const routes = read(`${dir}/routes.ts`)
     expect(routes.match(/service\.getOr404\(itemId\(request\.params\), await resolveDataScope\(request\)\)/g)).toHaveLength(3)
-    expect(routes).toContain('service.createItem(parseBody(ckScaffoldDsBody, request.body), await currentActor(request))')
-    expect(routes).toContain('service.exportItems(parseBody(ckScaffoldDsExportBody, request.body), await resolveDataScope(request))')
+    expect(routes).toContain('service.createItem(create.parse(request), await currentActor(request))')
+    expect(routes).toContain('service.exportItems(exportRequest.parse(request), await resolveDataScope(request))')
     expect(routes).toContain('service.importItems(await getUploadedFile(request), await currentActor(request))')
 
     expect(read('apps/api/test/admin-ck-scaffold-ds.test.ts')).toContain("dataScope: 'self'")
@@ -906,7 +929,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(webTypeErrors(root, /ck_scaffold_ds/)).toEqual([])
   }, 180_000)
 
-  it('file / image 字段：存文件 ID，接受文件地址，写入时登记引用，页面用上传控件和缩略图 / 链接', () => {
+  it('file / image 字段：存文件 ID，接受文件地址，写入时登记引用，页面用上传控件和缩略图 / 链接', async () => {
     const res = scaffoldCli(['--name', 'ck_scaffold_fl', '--domain', 'admin', '--fields', 'title:str,cover:image,attachment:file', '--skip-migration', '--root', root])
     expect(res.code, res.out).toBe(0)
     const dir = 'apps/api/src/modules/admin/ck-scaffold-fl'
@@ -923,6 +946,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain('<FormImageUpload control={form.control} name="cover"')
     expect(page).toContain('<FormFileUpload control={form.control} name="attachment"')
     expect(page).toContain("import { fileUrl } from '@/shared/api/files'")
+    expect(await moduleBodyIssues(root, read('docs/apifox-full.openapi.json'), 'ck_scaffold_fl')).toEqual([])
 
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-fl/.test(l))
@@ -931,7 +955,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(webTypeErrors(root, /ck_scaffold_fl/)).toEqual([])
   }, 180_000)
 
-  it('--spec：中文标签、NOT NULL / UNIQUE / 默认值、固定选项、字典、规则测试、菜单与菜单译文；页面 eslint 与 i18n 扫描通过，代码通过 tsc', () => {
+  it('--spec：中文标签、NOT NULL / UNIQUE / 默认值、固定选项、字典、规则测试、菜单与菜单译文；页面 eslint 与 i18n 扫描通过，代码通过 tsc', async () => {
     const specPath = join(root, 'device.spec.json')
     writeFileSync(specPath, JSON.stringify(DEVICE_SPEC))
     const res = scaffoldCli(['--spec', specPath, '--skip-migration', '--root', root])
@@ -941,6 +965,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     // The module is documented per the OpenAPI rules straight away
     expect(res.out).toContain('[update] docs/apifox-full.openapi.json')
     expect(moduleDocIssues(read('docs/apifox-full.openapi.json'), DEVICE_SPEC.name)).toEqual([])
+    expect(await moduleBodyIssues(root, read('docs/apifox-full.openapi.json'), DEVICE_SPEC.name)).toEqual([])
 
     const table = read('apps/api/src/db/schema/admin/ck-spec-device.ts')
     expect(table).toContain('  code: varchar({ length: 20 }).notNull().unique(),')

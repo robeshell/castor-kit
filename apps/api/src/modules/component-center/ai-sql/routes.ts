@@ -9,7 +9,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { ReadonlyDb } from '@/db/readonly'
 import { AiSqlRepository } from './repository'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { executeBody, generateBody, isSafeSql } from './schema'
 import { AiSqlService, LlmConfigError } from './service'
 
@@ -46,10 +46,11 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
   })
 
   /** Natural language → SQL → execute → return results */
-  app.post('/api/admin/component-center/ai/sql/generate', opts, async (request, reply) => {
+  const generateInput = routeBody(generateBody, 'create')
+  app.post('/api/admin/component-center/ai/sql/generate', { ...opts, ...generateInput.route }, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
 
-    const { question } = parseBody(generateBody, request.body)
+    const { question } = generateInput.parse(request)
 
     let sql: string
     try {
@@ -80,10 +81,11 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
   })
 
   /** Execute SQL manually edited by the user */
-  app.post('/api/admin/component-center/ai/sql/execute', opts, async (request, reply) => {
+  const executeInput = routeBody(executeBody, 'create')
+  app.post('/api/admin/component-center/ai/sql/execute', { ...opts, ...executeInput.route }, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
 
-    const { sql } = parseBody(executeBody, request.body)
+    const { sql } = executeInput.parse(request)
 
     const [safe, reason] = isSafeSql(sql)
     if (!safe) return reply.status(400).send({ error: reason })

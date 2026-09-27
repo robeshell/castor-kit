@@ -84,7 +84,7 @@ export function customerToDict(item: Customer) {
 |---|---|---|
 | `intParam('item_id')` | `@/common/http` | 生成只匹配数字的路径参数 |
 | `parseIntParam(value)` | `@/common/http` | 解析路径参数 |
-| `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | 按 Zod 声明校验请求体（新建取默认值 / 编辑只含传入字段），只收 JSON 原生类型，类型不对 → 400`<字段>的值无效`；在权限检查之后调用 |
+| `routeBody(schema, 'create' \| 'patch' \| 'array')` + `field.*` | `@/common/validation` | 用 Zod 声明请求体：`.route` 放进路由选项（OpenAPI 检查据此对照文档里的请求体），权限检查之后 `.parse(request)` 校验（新建取默认值 / 编辑只含传入字段）；只收 JSON 原生类型，类型不对 → 400`<字段>的值无效` |
 | `queryString(request, key)` | `@/common/http` | 读取查询参数 |
 | `getUploadedFile(request)` | `@/common/http` | 读取上传文件 |
 | `parsePagination(query)` | `@/common/pagination` | 分页参数，默认 20 条，上限 200 |
@@ -93,7 +93,7 @@ export function customerToDict(item: Customer) {
 
 - **时间**：`timestamp` / `date` 列以文本读取，不经过 JS `Date`；输出一律用 `toIso()`，格式为 ISO 8601 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`。请求里的时间带时区的会换算成 UTC，不带时区的按 UTC 处理；前端按浏览器时区显示。导出文件、导入文件里的时间和首页统计的日期按请求头 `X-Time-Zone`（前端自动带上浏览器时区）计算：导出列用 `formatDateTime()`，导入的时间单元格先 `withZoneOffset()`。禁止使用 `Date#toISOString()`（只有毫秒精度）。
 - **数值**：`numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里不要转成数字。
-- **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由在权限检查之后 `parseBody` / `parsePatch`。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块同样如此，导入行经 `rowToBody` 转成请求体形状后走同一份声明。
+- **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由用 `routeBody(schema, mode)` 声明，在权限检查之后 `.parse(request)`；`pnpm openapi:generate -- --strict` 会拿同一份声明核对文档里的请求体。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块同样如此，导入行经 `rowToBody` 转成请求体形状后走同一份声明。
 - **操作日志**：由 logs 模块注册的全局 `onResponse` 钩子统一写入 `operation_logs`，不要在 service 里手写。
 - **CSRF**：`/api/*` 下的写请求需要带 `X-CSRF-Token` 头，前端的 `request.ts` 已自动处理，登录接口豁免。
 
@@ -105,27 +105,29 @@ export function customerToDict(item: Customer) {
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam } from '@/common/http'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { customerBody } from './schema'
 
 export async function registerCustomerRoutes(app: FastifyInstance): Promise<void> {
   const service = new CustomerService(app.db)
   const opts = { preHandler: loginRequired }
 
-  app.post('/api/admin/customers', opts, async (request, reply) => {
+  const create = routeBody(customerBody, 'create')
+  app.post('/api/admin/customers', { ...opts, ...create.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_customer_add'))) {
       return reply.status(403).send({ error: '无权限' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(customerBody, request.body)))
+    return reply.status(201).send(await service.createItem(create.parse(request)))
   })
 
-  app.put(`/api/admin/customers/${intParam('item_id')}`, opts, async (request, reply) => {
+  const update = routeBody(customerBody, 'patch')
+  app.put(`/api/admin/customers/${intParam('item_id')}`, { ...opts, ...update.route }, async (request, reply) => {
     // Check the permission first (403), then look up the record (404): no permission, no probing of ids
     if (!(await hasMenuPermission(request, 'system_customer_edit'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     const item = await service.getOr404(parseIntParam((request.params as { item_id: string }).item_id))
-    return service.updateItem(item, parsePatch(customerBody, request.body))
+    return service.updateItem(item, update.parse(request))
   })
 }
 ```

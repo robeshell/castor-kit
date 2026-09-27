@@ -8,7 +8,7 @@ import { declareEvents } from '@/common/webhooks'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasAnyMenuPermission, hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam, queryString } from '@/common/http'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { departmentBody, departmentSortBody, isDeptStatus } from './schema'
 import { DepartmentService } from './service'
 
@@ -30,11 +30,12 @@ export async function registerDepartmentRoutes(app: FastifyInstance): Promise<vo
     return service.listTree(queryString(request, 'search').trim(), isDeptStatus(status) ? status : '')
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const departmentInput = routeBody(departmentBody, 'create')
+  app.post(BASE, { ...opts, ...departmentInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_departments_add'))) {
       return reply.status(403).send({ error: '无权限新增部门' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(departmentBody, request.body)))
+    return reply.status(201).send(await service.createItem(departmentInput.parse(request)))
   })
 
   app.get(itemPath, opts, async (request, reply) => {
@@ -45,12 +46,13 @@ export async function registerDepartmentRoutes(app: FastifyInstance): Promise<vo
     return service.getItem(dept)
   })
 
-  app.put(itemPath, opts, async (request, reply) => {
+  const departmentPatch = routeBody(departmentBody, 'patch')
+  app.put(itemPath, { ...opts, ...departmentPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_departments_edit'))) {
       return reply.status(403).send({ error: '无权限编辑部门' })
     }
     const dept = await service.getOr404(deptId(request))
-    return service.updateItem(dept, parsePatch(departmentBody, request.body))
+    return service.updateItem(dept, departmentPatch.parse(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
@@ -61,11 +63,12 @@ export async function registerDepartmentRoutes(app: FastifyInstance): Promise<vo
     return service.deleteItem(dept)
   })
 
-  app.post(`${itemPath}/sort`, opts, async (request, reply) => {
+  const departmentSortInput = routeBody(departmentSortBody, 'create')
+  app.post(`${itemPath}/sort`, { ...opts, ...departmentSortInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_departments_edit'))) {
       return reply.status(403).send({ error: '无权限编辑部门' })
     }
     const dept = await service.getOr404(deptId(request))
-    return service.sortItem(dept, parseBody(departmentSortBody, request.body).direction)
+    return service.sortItem(dept, departmentSortInput.parse(request).direction)
   })
 }

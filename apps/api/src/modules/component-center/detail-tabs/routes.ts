@@ -7,7 +7,7 @@
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam, queryString } from '@/common/http'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { memberBody } from './schema'
 import { DetailTabsService } from './service'
 
@@ -26,11 +26,12 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
     return service.getAllMembers(search)
   })
 
-  app.post(`${BASE}/members`, opts, async (request, reply) => {
+  const memberInput = routeBody(memberBody, 'create')
+  app.post(`${BASE}/members`, { ...opts, ...memberInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_add'))) {
       return reply.status(403).send({ error: '无权限新建成员' })
     }
-    return reply.status(201).send(await service.createMember(parseBody(memberBody, request.body)))
+    return reply.status(201).send(await service.createMember(memberInput.parse(request)))
   })
 
   app.get(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
@@ -41,12 +42,13 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
     return service.getMember(member.id)
   })
 
-  app.put(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
+  const memberPatch = routeBody(memberBody, 'patch')
+  app.put(`${BASE}/members/${intParam('member_id')}`, { ...opts, ...memberPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_edit'))) {
       return reply.status(403).send({ error: '无权限编辑成员' })
     }
     const member = await service.getMemberOr404(memberId(request))
-    return service.updateMember(member, parsePatch(memberBody, request.body))
+    return service.updateMember(member, memberPatch.parse(request))
   })
 
   app.delete(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {

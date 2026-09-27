@@ -13,6 +13,8 @@
  * - Permission checks are always imported from common/auth (never define a custom hasPermission here)
  * - No raw SQL here (go through service → repository)
  * - Routes with an id check permissions (403) first, then getOr404 (404): a caller without permission can't probe ids
+ * - JSON bodies are declared with routeBody(schema, 'create' | 'patch' | 'array'): `.route` goes into the route options
+ *   (the OpenAPI check compares the schema with the documented requestBody), `.parse(request)` runs after the permission check
  * - Business errors are thrown by the service as ServiceError; the global error handler turns them into { error, ...payload }
  */
 
@@ -21,7 +23,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { declareEvents } from '@/common/webhooks'
 import { <resource>Body, <resource>ExportBody } from './schema'
 import { <Resource>Service } from './service'
@@ -45,11 +47,12 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
     return service.listItems(page, per_page, queryString(request, 'search').trim())
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const create = routeBody(<resource>Body, 'create')
+  app.post(BASE, { ...opts, ...create.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, '<domain_resource>_add'))) {
       return reply.status(403).send({ error: '无权限新增' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(<resource>Body, request.body)))
+    return reply.status(201).send(await service.createItem(create.parse(request)))
   })
 
   app.get(itemPath, opts, async (request, reply) => {
@@ -60,12 +63,13 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
     return service.getItem(item)
   })
 
-  app.put(itemPath, opts, async (request, reply) => {
+  const update = routeBody(<resource>Body, 'patch')
+  app.put(itemPath, { ...opts, ...update.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, '<domain_resource>_edit'))) {
       return reply.status(403).send({ error: '无权限编辑' })
     }
     const item = await service.getOr404(itemId(request.params))
-    return service.updateItem(item, parsePatch(<resource>Body, request.body))
+    return service.updateItem(item, update.parse(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
@@ -76,11 +80,12 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
     return service.deleteItem(item)
   })
 
-  app.post(`${BASE}/export`, opts, async (request, reply) => {
+  const exportRequest = routeBody(<resource>ExportBody, 'create')
+  app.post(`${BASE}/export`, { ...opts, ...exportRequest.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, '<domain_resource>_export'))) {
       return reply.status(403).send({ error: '无权限导出' })
     }
-    return sendTable(reply, await service.exportItems(parseBody(<resource>ExportBody, request.body)))
+    return sendTable(reply, await service.exportItems(exportRequest.parse(request)))
   })
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
