@@ -1,18 +1,19 @@
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { pickLanguage, translateMessage } from '@/common/i18n'
-import { buildTestApp } from './helpers'
+import { buildApp } from '../src/app'
+import { buildTestApp, testConfig } from './helpers'
 
 describe('pickLanguage', () => {
-  it('maps Accept-Language to zh-CN / en-US / ja-JP, honouring q-values; defaults to zh-CN', () => {
-    expect(pickLanguage(undefined)).toBe('zh-CN')
-    expect(pickLanguage('')).toBe('zh-CN')
+  it('maps Accept-Language to zh-CN / en-US / ja-JP, honouring q-values; defaults to en-US', () => {
+    expect(pickLanguage(undefined)).toBe('en-US')
+    expect(pickLanguage('')).toBe('en-US')
     expect(pickLanguage('en-US')).toBe('en-US')
     expect(pickLanguage('en')).toBe('en-US')
     expect(pickLanguage('ja-JP,ja;q=0.9')).toBe('ja-JP')
     expect(pickLanguage('zh-TW')).toBe('zh-CN')
     expect(pickLanguage('fr-FR,ja;q=0.5,en;q=0.8')).toBe('en-US')
-    expect(pickLanguage('de-DE')).toBe('zh-CN')
+    expect(pickLanguage('de-DE')).toBe('en-US')
   })
 })
 
@@ -36,12 +37,25 @@ describe('response translation hook', () => {
     await app.close()
   })
 
-  it('translates { error } by Accept-Language; no header keeps Chinese', async () => {
+  it('translates { error } by Accept-Language (test apps treat no header as zh-CN)', async () => {
     const get = (lang?: string) =>
       app.inject({ url: '/api/admin/ck-no-such-route', headers: lang ? { 'accept-language': lang } : {} })
     expect((await get()).json()).toEqual({ error: '资源不存在' })
     expect((await get('en-US')).json()).toEqual({ error: 'Resource not found' })
     expect((await get('ja-JP')).json()).toEqual({ error: 'リソースが見つかりません' })
+  })
+
+  it('a request without a supported language gets English', async () => {
+    const prod = await buildApp({ config: testConfig() })
+    try {
+      const get = (lang?: string) =>
+        prod.inject({ url: '/api/admin/ck-no-such-route', headers: lang ? { 'accept-language': lang } : {} })
+      expect((await get()).json()).toEqual({ error: 'Resource not found' })
+      expect((await get('de-DE')).json()).toEqual({ error: 'Resource not found' })
+      expect((await get('zh-CN')).json()).toEqual({ error: '资源不存在' })
+    } finally {
+      await prod.close()
+    }
   })
 
   it('translates auth errors raised before route handlers', async () => {

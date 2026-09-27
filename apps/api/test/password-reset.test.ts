@@ -8,6 +8,7 @@ import { admin_users, password_reset_tokens, system_settings } from '@/db/schema
 import { PasswordResetRepository } from '@/modules/admin/password-reset/repository'
 import {
   buildTestApp,
+  chineseByDefault,
   cleanupFixture,
   createFixture,
   FIXTURE_PASSWORD,
@@ -27,7 +28,7 @@ const EMAIL = 'ck_test_reset@example.com'
 beforeAll(async () => {
   handle = openTestDb()
   const config = testConfig({ mailDriver: 'log', settingsEnv: { APP_BASE_URL: 'https://admin.example.com' } })
-  app = await buildApp({ config, mailer: { send: async (m) => void outbox.push(m) } })
+  app = chineseByDefault(await buildApp({ config, mailer: { send: async (m) => void outbox.push(m) } }))
   await app.ready()
 })
 

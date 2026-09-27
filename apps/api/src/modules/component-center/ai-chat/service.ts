@@ -124,7 +124,7 @@ export class AiChatService {
    * Start the reply. Resolves to a streaming Response (UI message stream); `signal` fires when the client disconnects
    * and aborts the upstream request; `lang` translates the error text sent inside the stream.
    */
-  async stream(messages: UIMessage[], signal: AbortSignal, lang: Language = 'zh-CN'): Promise<Response> {
+  async stream(messages: UIMessage[], signal: AbortSignal, lang: Language = 'en-US'): Promise<Response> {
     const ai = await this.ai()
     const result = streamText({
       ...AI_CALL_DEFAULTS,

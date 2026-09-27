@@ -3,7 +3,8 @@
  *
  * The frontend sends `Accept-Language` (zh-CN / en-US / ja-JP). Services keep throwing Chinese messages; an
  * onSend hook translates `error`, `message` and `error_rows[].reason` in JSON responses for non-Chinese
- * requests. Untranslated text is returned as-is, so a missing entry degrades to Chinese instead of failing.
+ * requests. A request without a supported language (curl, API-token clients) gets English. Untranslated text is
+ * returned as-is, so a missing entry degrades to Chinese instead of failing.
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
@@ -11,7 +12,7 @@ import { MESSAGES, PATTERNS, type TranslatedLanguage } from '@/i18n/messages'
 
 export type Language = 'zh-CN' | TranslatedLanguage
 
-/** First supported language in Accept-Language (q-values honoured); default zh-CN */
+/** First supported language in Accept-Language (q-values honoured); English when none matches (API clients, curl) */
 export function pickLanguage(header: string | string[] | undefined): Language {
   const text = Array.isArray(header) ? header.join(',') : (header ?? '')
   const ranked = text
@@ -28,7 +29,7 @@ export function pickLanguage(header: string | string[] | undefined): Language {
     if (tag.startsWith('en')) return 'en-US'
     if (tag.startsWith('ja')) return 'ja-JP'
   }
-  return 'zh-CN'
+  return 'en-US'
 }
 
 export function requestLanguage(request: FastifyRequest): Language {
