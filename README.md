@@ -113,7 +113,7 @@ The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workfl
 | Layer | Technology |
 |---|---|
 | **Backend** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **Frontend** | React 19 · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
+| **Frontend** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
 | **Data & charts** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
 | **Tooling** | pnpm workspaces · Vitest · ESLint · MCP server · Docker Compose |
 

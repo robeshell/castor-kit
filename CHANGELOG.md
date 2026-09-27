@@ -4,55 +4,57 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-27
+
+English first and TypeScript throughout: the specs, docs and tools speak English, the admin frontend is TypeScript end to end, and the OpenAPI doc is kept in sync with the backend by a check instead of by hand.
+
+### Highlights
+
+- **English first.** `AGENTS.md`, `CLAUDE.md`, `docs/`, the skills, the MCP tool descriptions and every developer tool (`pnpm verify`, `pnpm scaffold`, `pnpm openapi:generate`, the setup wizard) are in English; the docs site defaults to English (Chinese at `/zh/`, Japanese at `/ja/`); English is the fallback UI / API language.
+- **TypeScript frontend.** `apps/web` (source, tests and configs) is TypeScript with the same strict settings as the API, checked by `pnpm typecheck` and the `verify` gate; `pnpm scaffold` generates typed TSX pages and TS API files.
+- **API types from the OpenAPI doc.** The frontend's API types are generated from `docs/apifox-full.openapi.json`, and a new `body-sync` rule keeps every documented request body in line with the backend's Zod declarations.
+
+### Added
+
+- `routeBody(schema, 'create' | 'patch' | 'array')` (`@/common/validation`): a route declares its JSON body once — `.route` goes into the route options (Fastify route `config`, so nothing runs before the login and permission checks), `.parse(request)` validates after the permission check. All 79 body-reading routes, the backend template and `pnpm scaffold` use it; `test/conventions.test.ts` rejects a direct `parseBody` / `parsePatch` / `parseArrayBody` in a `routes.ts`.
+- `body-sync` OpenAPI rule (`apps/api/scripts/lib/openapi-body-sync.ts`): compares each documented JSON request body with the route's declaration — nullability, requiredness, types and enums per property, nested objects and array items included — wherever the doc rules run (`pnpm openapi:generate --strict`, verify's `openapi_sync`, `test/openapi-doc.test.ts`). Export `fields[]` / `file_type` enums are the contract by design; other intentional differences live in `BODY_SYNC_ALLOWLIST` with a reason each, and a stale entry fails.
+- Generated frontend API types: `apps/web/src/shared/api/openapi.d.ts` (by `apps/web/scripts/api-types.mjs`) with `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody` helpers in `@/shared/api/types`; `pnpm openapi:generate` regenerates it and `test/api-types.test.ts` fails when it is stale.
+- **Traffic flow** in the component gallery (`/component-center/dataviz/traffic-flow`, permission `cc_dataviz_traffic_flow`): a Sankey diagram of visits (source → landing page → outcome) and a conversion funnel, replacing the map heatmap. Migration `0001_traffic_flow_menu` renames the existing menu in place, so role grants carry over.
+- `docs/shadcn-changes.md`: every project change to an upstream shadcn / AI Elements component, to re-apply after re-adding one.
+- Component layer boundaries enforced by a test: shadcn primitives import only primitives; shared components get data through props instead of calling the API or reading app context.
+
 ### Changed
 
-- The frontend is TypeScript (migrated layer by layer; plan and follow-ups in `docs/roadmap.md` "TypeScript frontend"):
-  - `apps/web/tsconfig.json` (strict, `allowJs`) replaces `jsconfig.json`; `pnpm typecheck` and the `verify` gate type-check the web app's `.ts` / `.tsx` files, and `pnpm lint` now lints the web app too (typescript-eslint for TS files).
-  - Page routing, the i18n scanner, the import check and `shadcn-add.sh` accept `.ts` / `.tsx`.
-  - First files converted: `lib/utils`, `PageHeader`, `StatusBadge`, the sessions API; shared response shapes in `@/shared/api/types`.
-  - Converted to TSX: the shadcn primitives (`components/ui`, 46 files) and AI Elements, `lib`, `i18n`, the contexts (`AuthContextValue`, `TagsViewContextValue`, `ThemeContextValue`), `shared/hooks` (`useCrudList<Row>` is generic), `shared/api` and `shared/utils`. Markup and behavior are unchanged; the shadcn CLI now writes TSX (`components.json` `tsx: true`).
-  - Converted to TSX: the shared components (`DataTable<Row>` with typed columns, FormFields / FormDialog typed against react-hook-form, generic trees and selects, import / export, uploads) and every module API file.
-  - API types are generated from the OpenAPI doc (`src/shared/api/openapi.d.ts`; `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody` in `@/shared/api/types`); `pnpm openapi:generate` regenerates them and a test fails when they are stale. The doc was corrected where the types showed it disagreed with the backend (user status / profile responses, two-factor enable, task run result).
-  - `pnpm scaffold` generates TypeScript: the API file `api/<name>.ts` is typed from the module's OpenAPI entries (`export type <Name> = ApiItem<'/api/admin/<name>s'>`, `ApiQuery` / `ApiBody` / `ApiResponse`), and the list page `index.tsx` declares its `FormValues` field by field and types its columns with `DataTableColumn<Row>`, so a form that doesn't match the documented body fails `tsc`. Scaffold regenerates `openapi.d.ts` after writing the module's API docs (`apps/web/scripts/api-types.mjs` takes `--root`). The templates in `docs/templates/frontend/` are TSX too.
-  - The app shell (`components/app`, `App.tsx`, `main.tsx`) is TSX, so `apps/web/src` has no JavaScript left: `allowJs` is gone and `test/typescript-only.test.ts` keeps it that way. Page routing only looks for `index.tsx`.
-  - The frontend tests (`apps/web/test/*.test.ts(x)`, `test/setup.ts`) and `vite.config.ts` / `vitest.config.ts` are TypeScript, type-checked by `apps/web/tsconfig.test.json`; the web app's `pnpm typecheck` and the `verify` gate run it after `tsconfig.json`. jest-dom's matchers are typed on vitest's `expect`, and the two node scripts the tests import (`api-types.mjs`, `i18n-scan.mjs`) have `.d.mts` declarations.
-  - Idiomatic TypeScript cleanup: casts and non-null assertions replaced by narrowing, type guards and precise generics wherever the types allow (the few left are commented), defensive code the types rule out and dead branches removed, the reauth guards shared from `useReauth.ts`, and one mobile-breakpoint hook instead of two. Naming and export conventions are documented in AGENTS.md "TypeScript".
-  - The component center pages are TSX too; `@/shared/components/Chart` takes echarts' own `EChartsOption` (echarts-for-react types `option` as `any`), so chart options are type-checked.
-  - The auth and admin pages are TSX, typed with the API row types, `DataTableColumn<Row>[]` and `useForm<FormValues>`; `useAuth()` / `useTagsView()` return non-null values and throw outside their provider.
-  - `docs/shadcn-changes.md` lists every project change to an upstream shadcn / AI Elements component, to re-apply after re-adding one.
-  - Component layers are enforced by a test: shadcn primitives import only primitives, and shared components get data through props instead of calling the API or reading app context.
-- The OpenAPI request bodies stay in sync with the backend automatically:
-  - Routes declare their JSON body once with `routeBody(schema, 'create' | 'patch' | 'array')` (`@/common/validation`): `.route` goes into the route options (Fastify route `config`, so nothing runs before the login and permission checks) and `.parse(request)` validates the body after the permission check, exactly as `parseBody` / `parsePatch` / `parseArrayBody` did. All 79 body-reading routes, the backend template and `pnpm scaffold` use it; `test/conventions.test.ts` rejects a direct call in a `routes.ts`.
-  - `pnpm openapi:generate` records each route's declaration, and the new `body-sync` rule (`apps/api/scripts/lib/openapi-body-sync.ts`) compares every documented JSON request body with it: nullability, requiredness, types and enums per property, nested objects and array items included. It runs wherever the doc rules run (`--strict`, verify's `openapi_sync`, `test/openapi-doc.test.ts`). On export requests the documented `fields[]` columns and `file_type` enums are the contract by design (the backend's leniency is a fallback); other intentional differences are listed in `BODY_SYNC_ALLOWLIST`, one entry per field with its reason, and an entry that no longer matches fails too.
-  - Scaffolded modules document export `ids` / `fields` / `file_type` as nullable (keeping the column and file-type enums), and only required fields without a default are non-null and listed in `required`.
-- English first, for a global audience:
-  - The developer specs are written in English: `AGENTS.md`, `CLAUDE.md`, `docs/`, the `new-feature-autopilot` and `shadcn-ui-skills` skills, and the MCP server's tool descriptions. UI copy is still written in Chinese as the i18n key (`t('中文原文')`), with English and Japanese translations.
-  - English is the fallback language: the admin UI uses it when neither a saved choice nor the browser language matches, and the API answers in English when a request has no supported `Accept-Language` (curl, API-token clients). The page title and `<html lang>` are English.
-  - The developer tools speak English: `pnpm verify`, `pnpm scaffold` (including spec validation errors and the `docs/spec.schema.json` hints), `pnpm openapi:generate`, `pnpm seed:rbac`, the setup / seed scripts and the Docker setup wizard (`scripts/setup.sh`). Generated code keeps Chinese UI copy as the i18n key, and the generated OpenAPI text stays Chinese.
-  - The docs site's default language is English, at the root (`/guide/…`). Chinese moved to `/zh/`; Japanese stays at `/ja/`. Old `/en/…` links redirect to the same page at its new address.
-- Repository root tidied:
-  - The Docker setup wizard is `bash scripts/setup.sh`; the image entry point moved to `scripts/docker-entrypoint.sh`.
-  - The Chinese README is `README.zh-CN.md`.
-  - The root env reference is `.env.production.example`; local development still uses `apps/api/.env.example`.
-  - `llms.txt` is served by the docs site at `/llms.txt`.
-  - AI tools read one shared `AGENTS.md`, plus `CLAUDE.md` for Claude Code. The per-tool copies (`CODEX.md`, `.windsurfrules`, `.cursor/rules/`, `.github/copilot-instructions.md`) are gone.
-- The component gallery's map heatmap is replaced by **Traffic flow** (`/component-center/dataviz/traffic-flow`, permission `cc_dataviz_traffic_flow`):
-  - a Sankey diagram of visits from source to landing page to outcome, and a conversion funnel;
-  - mock data from `GET /api/admin/component-center/dataviz/traffic-flow/data`.
-  - Migration `0001_traffic_flow_menu` renames the existing menu in place, so role grants carry over. The map endpoint and the bundled China GeoJSON are gone.
-- Pages open faster the first time:
-  - ECharts is registered on demand. `@/shared/components/Chart` is bound to `@/lib/echarts`, which registers only the charts, components and renderers the pages use. Chart pages load about 40% less code.
-  - The sign-in, reset-password and profile pages load on demand. The first download is about a fifth smaller.
-  - A page's code is prefetched when the pointer or keyboard focus reaches its menu item. While the browser is idle, the system pages and the gallery's admin pages are prefetched one at a time; this is skipped in data-saver mode.
+- **Frontend in TypeScript** (plan and details in `docs/roadmap.md` "TypeScript frontend"):
+  - `apps/web/tsconfig.json` is strict (same options as the API: `noUncheckedIndexedAccess`, `verbatimModuleSyntax`); `src` is TypeScript only (`test/typescript-only.test.ts`), and tests and the Vite / Vitest configs are checked by `tsconfig.test.json`. `pnpm lint` lints the web app too.
+  - Everything is typed: shadcn primitives (`components.json` `tsx: true`), shared components (`DataTable<Row>` with typed columns, FormFields / FormDialog over react-hook-form, generic trees and selects, `Chart` over echarts' `EChartsOption`), contexts (`useAuth()` / `useTagsView()` return non-null values), hooks (`useCrudList<Row>`), every module API file and every page.
+  - `pnpm scaffold` writes `api/<name>.ts` typed from the module's OpenAPI entries and a list page `index.tsx` with `FormValues` and `DataTableColumn<Row>[]`, so a form that doesn't match the documented body fails `tsc`; it regenerates `openapi.d.ts` itself. `docs/templates/frontend/` is TSX.
+  - Idiomatic cleanup: casts and non-null assertions replaced by narrowing, type guards and precise generics (the few left are commented); naming and export conventions documented in AGENTS.md "TypeScript".
+- **English first:**
+  - Developer specs, skills and MCP tool descriptions in English; UI copy is still Chinese source text as the i18n key (`t('中文原文')`) with English and Japanese translations.
+  - English is the fallback: the UI uses it when neither a saved choice nor the browser language matches; the API answers in English when a request has no supported `Accept-Language` (curl, API-token clients). Page title and `<html lang>` are English.
+  - Tool output in English (`pnpm verify`, `pnpm scaffold` incl. spec validation and `docs/spec.schema.json` hints, `pnpm openapi:generate`, `pnpm seed:rbac`, setup / seed scripts, `scripts/setup.sh`). Generated code keeps Chinese UI copy as the i18n key, and generated OpenAPI text stays Chinese.
+  - Docs site: English at the root (`/guide/…`), Chinese at `/zh/`, Japanese at `/ja/`; old `/en/…` links redirect.
+- **Repository root tidied:** the Docker setup wizard is `bash scripts/setup.sh` (entry point `scripts/docker-entrypoint.sh`); `README.zh-CN.md`; `.env.production.example`; `llms.txt` served at `/llms.txt`; one shared `AGENTS.md` (+ `CLAUDE.md`) instead of per-tool rule copies.
+- **Faster first page opens:** ECharts registered on demand (chart pages load about 40% less code); sign-in, reset-password and profile pages lazy-loaded (first download about a fifth smaller); page code prefetched on menu hover / focus and, for light pages, while the browser is idle (skipped in data-saver mode).
+- Scaffolded modules document export `ids` / `fields` / `file_type` as nullable, and only required fields without a default are non-null and listed in `required`.
 
 ### Fixed
 
-- Bugs found during the TypeScript migration:
-  - Dashboard: the system status network tiles always showed 0.00 (they read fields the API doesn't return); they now show the cumulative traffic since boot with a readable unit.
-  - Card list: a card with no `is_active` value showed the switch off but was saved as enabled; the form, badge and detail now show the saved value, and edits send only the form fields.
-  - Heatmap dates were a day off before 08:00 in UTC+8 (UTC labels, local weekends); times on the dashboard, perf monitor and WebSocket pages follow the UI language; the code editor says when a language can't be formatted; the AI SQL schema sheet shows an error with a retry after a failed load; the prompt studio keeps the trimmed values after saving; kanban no longer sends `board_code` on update; the list page's section titles and the image upload hint are translated; the Three.js pages resize with their container; smaller fixes in `DataTable` keys, pagination with a zero page size, the particle canvas and the code highlighter's language check.
-- The OpenAPI doc's request side matches the backend (332 differences found by comparing every documented request body with its Zod `field.*` declaration): nullish fields are nullable with their defaults spelled out, list / export filters accept `''` for "all", `export_mode` lists `all`, announcements / menus document their validated enums, webhooks mark `name` / `url` / `events` required, and descriptions that promised lenient parsing where the API returns 400 are corrected. The frontend API files use the generated types everywhere (no local workarounds left).
-- Tags view: the close button on inactive tabs is faintly visible instead of leaving an invisible gap, so the spacing between tabs is even.
+- OpenAPI request side matches the backend: 332 differences between documented request bodies and the Zod `field.*` declarations fixed (nullable fields with their defaults, `''` = "all" filters, `export_mode: all`, validated enums on announcements / menus, required webhook fields, descriptions that promised lenient parsing where the API returns 400).
+- Dashboard network tiles always showed 0.00 (they read fields the API doesn't return); they now show cumulative traffic since boot with a readable unit.
+- Card list: a card with no `is_active` value showed the switch off but was saved as enabled; edits sent `id` / timestamps along with the form.
+- Heatmap dates were a day off before 08:00 in UTC+8; times on the dashboard, perf monitor and WebSocket pages ignored the UI language; the code editor reported success for languages it can't format; the AI SQL schema sheet showed "no tables" after a failed load; the prompt studio kept untrimmed values after saving; kanban sent `board_code` on update; untranslated list-page section titles and image-upload hint; Three.js pages didn't resize with their container; smaller fixes in `DataTable` keys, zero page size, the particle canvas and the code highlighter.
+- Tags view: even spacing between tabs (the close button on inactive tabs no longer leaves an invisible gap).
+
+### Upgrading from 0.1.0
+
+- Run `pnpm db:migrate` (migration `0001_traffic_flow_menu`) and `pnpm seed:rbac -- --incremental`.
+- Frontend pages must be `index.tsx`: page routing no longer finds `index.jsx`, and `apps/web/src` accepts no `.js` / `.jsx` files. Convert custom pages and components to TypeScript (see AGENTS.md "TypeScript" and `docs/templates/frontend/`).
+- Backend routes read JSON bodies through `routeBody(...)` instead of calling `parseBody` / `parsePatch` / `parseArrayBody` directly (enforced by `test/conventions.test.ts`), and `pnpm openapi:generate -- --strict` now also checks request bodies against the Zod declarations.
+- API clients that send no `Accept-Language` now get English messages; send `Accept-Language: zh-CN` for Chinese.
+- Docs site links: English pages moved from `/en/…` to the root (old links redirect), Chinese pages from the root to `/zh/…`.
+- Moved at the repo root: `setup.sh` → `scripts/setup.sh`, `docker-entrypoint.sh` → `scripts/docker-entrypoint.sh`, `README_CN.md` → `README.zh-CN.md`, the production env reference `.env.example` → `.env.production.example` (local development still uses `apps/api/.env.example`).
 
 ## [0.1.0] - 2026-09-27
 
@@ -90,5 +92,6 @@ First public release: an AI-first admin framework on Node.js + TypeScript (Fasti
 - Docker image with migrations and RBAC sync on start; a public demo mode (read-only system management, one-click sign-in, data reset on a schedule) and a Render + Neon blueprint.
 - Documentation site (VitePress) in Chinese, English and Japanese; MIT license and community files.
 
-[Unreleased]: https://github.com/robeshell/castor-kit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/robeshell/castor-kit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/robeshell/castor-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/robeshell/castor-kit/releases/tag/v0.1.0
