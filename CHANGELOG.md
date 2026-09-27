@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Changed
+
+- Pages open faster the first time:
+  - ECharts is registered on demand. `@/shared/components/Chart` is bound to `@/lib/echarts`, which registers only the charts, components and renderers the pages use. Chart pages load about 40% less code.
+  - The sign-in, reset-password and profile pages load on demand. The first download is about a fifth smaller.
+  - A page's code is prefetched when the pointer or keyboard focus reaches its menu item. While the browser is idle, the system pages and the gallery's admin pages are prefetched one at a time; this is skipped in data-saver mode.
+
 ## [0.1.0] - 2026-09-27
 
 First public release: an AI-first admin framework on Node.js + TypeScript (Fastify 5, Zod, Drizzle ORM, PostgreSQL) and React 19 (shadcn/ui, Tailwind CSS v4, Motion).

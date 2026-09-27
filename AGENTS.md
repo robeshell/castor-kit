@@ -63,7 +63,7 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 | 图标 | `lucide-react` | - |
 | 表格 / 表单 / 提示 | `@tanstack/react-table`（封装为 DataTable）/ `react-hook-form` / `sonner` | - |
 | 日期 / 命令面板 | `react-day-picker` + `date-fns` / `cmdk`（⌘K） | - |
-| 图表 | ECharts 6 + echarts-for-react（主题色取自 `@/lib/chart-theme`） | - |
+| 图表 | ECharts 6，按需引入：页面用 `@/shared/components/Chart`，图表类型 / 组件在 `@/lib/echarts` 注册（新用到的在那里加上），不要直接引 `echarts` / `echarts-for-react`；主题色取自 `@/lib/chart-theme` | - |
 | 3D | Three.js | 0.176 |
 | 代码编辑器 | @monaco-editor/react | - |
 | 富文本 | react-quill-new（React 19 兼容） | - |
