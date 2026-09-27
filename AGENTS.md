@@ -377,7 +377,7 @@ apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.tsx   ← page co
 apps/web/src/modules/<module>/api/<page_name>.ts                      ← API call layer
 ```
 
-Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_center domain → `pages/admin/<name>_page/index.tsx`; the API file is `api/<name>.ts`.
+Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_center domain → `pages/patterns/<name>_page/index.tsx` (next to the gallery's page patterns); the API file is `api/<name>.ts`.
 
 ### TypeScript
 

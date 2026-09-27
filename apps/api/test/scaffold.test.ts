@@ -207,13 +207,22 @@ describe('scaffold 纯函数', () => {
     expect(cc).toMatchObject({
       permPrefix: 'cc_order_item',
       apiBase: '/api/admin/order-items',
-      menuComponent: 'component_center/admin/order_item_page',
+      menuComponent: 'component_center/patterns/order_item_page',
+      pageDir: 'patterns/order_item_page',
       domainDir: 'component-center',
       webModule: 'component_center',
       nameField: 'qty', // With no string field, take the first field
     })
     // No string field: import all fields with their original types (don't treat the first field as str)
     expect(cc.importFields).toEqual([['qty', 'int'], ['price', 'float']])
+  })
+
+  it('component_center pages go next to the gallery page patterns (the scaffolded standard list, demo_record, lives there)', () => {
+    const s = buildSpec('demo_record', 'component_center', parseFields('name:str'))
+    expect(s.menuComponent).toBe('component_center/patterns/demo_record_page')
+    const seed = readFileSync(join(API_DIR, 'scripts', 'seed-rbac.ts'), 'utf8')
+    expect(seed).toContain(`component: "${s.menuComponent}"`)
+    expect(existsSync(join(REPO_ROOT, 'apps/web/src/modules', s.webModule, 'pages', s.pageDir, 'index.tsx'))).toBe(true)
   })
 
   it('前端页面：只导入用到的组件，@/ 导入在 apps/web/src 都存在，apps/web 的 eslint 零错误零告警', () => {
@@ -697,7 +706,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(res.out).toContain('[dry-run] would write: apps/api/src/modules/component-center/ck-scaffold-demo/routes.ts')
     expect(res.out).toContain('[dry-run] would write: apps/api/test/cc-ck-scaffold-demo.test.ts')
     expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/api/ck_scaffold_demo.ts')
-    expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/pages/admin/ck_scaffold_demo_page/index.tsx')
+    expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/pages/patterns/ck_scaffold_demo_page/index.tsx')
     expect(res.out).toContain('[dry-run] would run: drizzle-kit generate --name ck_scaffold_demo')
     expect(res.out).toContain('Perm prefix: cc_ck_scaffold_demo')
     expect(existsSync(join(root, 'apps/api/src/modules/component-center/ck-scaffold-demo'))).toBe(false)
@@ -914,7 +923,7 @@ describe('scaffold CLI（临时目录副本）', () => {
       renameSync(`${sharedDir}.hidden`, sharedDir)
     }
     expect(res.code, res.out).toBe(0)
-    const pageDir = 'apps/web/src/modules/component_center/pages/admin/ck_scaffold_cc_page'
+    const pageDir = 'apps/web/src/modules/component_center/pages/patterns/ck_scaffold_cc_page'
     const locales = Object.fromEntries(
       PAGE_LANGS.map((lang) => {
         expect(res.out).toContain(`[create] ${pageDir}/locales/${lang}.json`)
@@ -930,7 +939,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     // Shared locales restored: the page locales duplicate them with identical translations → no conflicts
     expect(scanInCopy(root, pageDir.replace('apps/web/', ''))).toEqual({ problems: [], conflicts: [] })
     expect(res.out).toContain('[create] apps/api/src/modules/component-center/ck-scaffold-cc/routes.ts')
-    expect(res.out).toContain('[create] apps/web/src/modules/component_center/pages/admin/ck_scaffold_cc_page/index.tsx')
+    expect(res.out).toContain('[create] apps/web/src/modules/component_center/pages/patterns/ck_scaffold_cc_page/index.tsx')
     expect(res.out).toContain('[skip] migration (--skip-migration)')
     const router = readFileSync(join(root, 'apps/api/src/modules/component-center/router.ts'), 'utf8')
     expect(router).toContain('  await registerCkScaffoldCcRoutes(app)')
