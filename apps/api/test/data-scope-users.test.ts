@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { generatePasswordHash } from '@/common/password'
 import type { DbHandle } from '@/db/client'
 import { admin_users, departments } from '@/db/schema'
-import { buildTestApp, cleanupFixture, openTestDb, scopedSession, superAdminSession, type AuthedSession } from './helpers'
+import { type AuthedSession, buildTestApp, cleanupFixture, FAST_HASH, openTestDb, scopedSession, superAdminSession } from './helpers'
 
 const P = 'ck_test_ds_'
 const CODES = ['system_users', 'system_users_add', 'system_users_edit', 'system_users_delete', 'system_users_status']
@@ -44,7 +44,7 @@ beforeAll(async () => {
   await add('A1', 'A')
   await add('A2', 'A')
   await add('B', null)
-  const hash = await generatePasswordHash('member-pass', 1000)
+  const hash = await generatePasswordHash('member-pass', FAST_HASH)
   for (const [key, d] of [['m_a', 'A'], ['m_a1', 'A1'], ['m_a2', 'A2'], ['m_b', 'B']] as const) {
     const [row] = await handle.db.insert(admin_users).values({ username: `${P}${key}`, password_hash: hash, dept_id: dept[d]! }).returning()
     member[key] = row!.id

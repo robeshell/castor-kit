@@ -4,17 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { generatePasswordHash } from '@/common/password'
 import type { DbHandle } from '@/db/client'
 import { admin_users, notification_reads, notifications } from '@/db/schema'
-import {
-  buildTestApp,
-  cleanupFixture,
-  createFixture,
-  FIXTURE_PASSWORD,
-  FIXTURE_USER,
-  loginSession,
-  openTestDb,
-  superAdminSession,
-  type AuthedSession,
-} from './helpers'
+import { type AuthedSession, buildTestApp, cleanupFixture, createFixture, FAST_HASH, FIXTURE_PASSWORD, FIXTURE_USER, loginSession, openTestDb, superAdminSession } from './helpers'
 
 const P = 'ck_test_r2_t_'
 let app: FastifyInstance
@@ -185,7 +175,7 @@ describe('notification', () => {
   it('会话用户已被删除：所有接口 → 401 并清掉会话', async () => {
     const [ghost] = await handle.db
       .insert(admin_users)
-      .values({ username: `${P}ghost`, password_hash: await generatePasswordHash('ghost-pass', 1000) })
+      .values({ username: `${P}ghost`, password_hash: await generatePasswordHash('ghost-pass', FAST_HASH) })
       .returning()
     const g = await loginSession(app, `${P}ghost`, 'ghost-pass', ghost!.id)
     await handle.db.delete(admin_users).where(eq(admin_users.id, ghost!.id))

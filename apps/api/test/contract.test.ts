@@ -253,7 +253,7 @@ describe('CSRF', () => {
 })
 
 describe('改密 / 登出', () => {
-  it('校验、旧密码错误、成功后写 pbkdf2:sha256 格式哈希并记操作日志', async () => {
+  it('校验、旧密码错误、成功后写 scrypt 哈希并记操作日志', async () => {
     const { cookie, csrf } = await loggedIn()
     const post = (payload: unknown) =>
       app.inject({
@@ -275,7 +275,7 @@ describe('改密 / 登出', () => {
     expect(ok.json()).toEqual({ message: '密码修改成功' })
 
     const [row] = await handle.db.select().from(admin_users).where(eq(admin_users.id, fx.userId))
-    expect(row!.password_hash).toMatch(/^pbkdf2:sha256:1000000\$[A-Za-z0-9]{16}\$[0-9a-f]{64}$/)
+    expect(row!.password_hash).toMatch(/^\$scrypt\$ln=15,r=8,p=3\$/)
     expect(await checkPasswordHash(row!.password_hash, 'changed-pass-2')).toBe(true)
 
     // The onResponse audit hook persists asynchronously; wait a bit before querying

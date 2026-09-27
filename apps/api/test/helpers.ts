@@ -31,6 +31,8 @@ export function sessionCookie(res: LightMyRequestResponse): string | undefined {
 export const FIXTURE_PREFIX = 'ck_test_'
 export const FIXTURE_USER = `${FIXTURE_PREFIX}user`
 export const FIXTURE_PASSWORD = 'fixture-pass-1'
+/** Cheap scrypt parameters for test accounts (hashing at the real cost would slow every fixture down) */
+export const FAST_HASH = { ln: 4, r: 8, p: 1 }
 
 export interface Fixture {
   userId: number
@@ -62,7 +64,7 @@ export async function cleanupFixture(handle: DbHandle): Promise<void> {
 export async function createFixture(handle: DbHandle): Promise<Fixture> {
   await cleanupFixture(handle)
   const { db } = handle
-  const passwordHash = await generatePasswordHash(FIXTURE_PASSWORD, 1000)
+  const passwordHash = await generatePasswordHash(FIXTURE_PASSWORD, FAST_HASH)
   const [user] = await db.insert(admin_users).values({ username: FIXTURE_USER, password_hash: passwordHash }).returning()
   const [role] = await db
     .insert(roles)
@@ -125,7 +127,7 @@ export async function ensureSuperAdmin(handle: DbHandle): Promise<number> {
   if (existing) await db.delete(admin_users).where(eq(admin_users.id, existing.id))
   const [user] = await db
     .insert(admin_users)
-    .values({ username: SUPER_USER, password_hash: await generatePasswordHash(SUPER_PASSWORD, 1000) })
+    .values({ username: SUPER_USER, password_hash: await generatePasswordHash(SUPER_PASSWORD, FAST_HASH) })
     .returning()
   await db.insert(user_roles).values({ user_id: user!.id, role_id: role!.id })
   return user!.id
@@ -225,7 +227,7 @@ export async function scopedSession(app: FastifyInstance, handle: DbHandle, opts
   }
   const [user] = await db
     .insert(admin_users)
-    .values({ username, password_hash: await generatePasswordHash(FIXTURE_PASSWORD, 1000), dept_id: opts.deptId ?? null })
+    .values({ username, password_hash: await generatePasswordHash(FIXTURE_PASSWORD, FAST_HASH), dept_id: opts.deptId ?? null })
     .returning()
   await db.insert(user_roles).values({ user_id: user!.id, role_id: role!.id })
   return loginSession(app, username, FIXTURE_PASSWORD, user!.id)

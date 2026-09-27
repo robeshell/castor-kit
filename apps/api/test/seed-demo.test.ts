@@ -84,6 +84,12 @@ describe('seed-demo', () => {
     expect((await query<{ n: number }>(TEMP_URL, 'SELECT count(*)::int AS n FROM admin_users'))[0]!.n).toBe(before[0]!.n)
     const [li] = await query<{ password_hash: string }>(TEMP_URL, "SELECT password_hash FROM admin_users WHERE username = 'li.na'")
     expect(await checkPasswordHash(li!.password_hash, 'demo-pass-1')).toBe(true)
+
+    // --reset-passwords: existing sample users get the new password
+    await seedDemo({ databaseUrl: TEMP_URL, password: 'another-pass', resetPasswords: true, log: quiet })
+    const [reset] = await query<{ password_hash: string }>(TEMP_URL, "SELECT password_hash FROM admin_users WHERE username = 'li.na'")
+    expect(await checkPasswordHash(reset!.password_hash, 'another-pass')).toBe(true)
+    await seedDemo({ databaseUrl: TEMP_URL, password: 'demo-pass-1', resetPasswords: true, log: quiet })
   })
 
   it('数据范围：研发部主管看到研发部及其下级，普通员工只看到自己', async () => {

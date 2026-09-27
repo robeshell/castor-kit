@@ -125,8 +125,16 @@ describe('全量重建（空库）', () => {
     expect(snap.roleMenus).toHaveLength(MENU_COUNT)
 
     const [user] = await query<{ password_hash: string }>(TEMP_URL, "SELECT password_hash FROM admin_users WHERE username = 'admin'")
-    expect(user!.password_hash).toMatch(/^pbkdf2:sha256:1000000\$[A-Za-z0-9]{16}\$[0-9a-f]{64}$/)
+    expect(user!.password_hash).toMatch(/^\$scrypt\$ln=15,r=8,p=3\$/)
     expect(await checkPasswordHash(user!.password_hash, 'ck_test_r8_pw')).toBe(true)
+
+    // An existing admin keeps its password, unless --reset-admin-password
+    const adminHash = async () =>
+      (await query<{ password_hash: string }>(TEMP_URL, "SELECT password_hash FROM admin_users WHERE username = 'admin'"))[0]!.password_hash
+    await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'ck_test_r8_other', incremental: true, log: quiet })
+    expect(await checkPasswordHash(await adminHash(), 'ck_test_r8_pw')).toBe(true)
+    await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'ck_test_r8_other', incremental: true, resetAdminPassword: true, log: quiet })
+    expect(await checkPasswordHash(await adminHash(), 'ck_test_r8_other')).toBe(true)
   })
 
   it('再次全量：清空后重建（自定义角色与用户被删除，角色/用户走新序列号）', async () => {

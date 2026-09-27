@@ -105,7 +105,7 @@ castor-kit/
 │   │   │   │   ├── serialize.ts       # toIso() 等，统一时间输出格式
 │   │   │   │   ├── tabular.ts         # csv/xlsx 读写 + 公式注入防护 + 5MB 上限
 │   │   │   │   ├── request-meta.ts    # clientIp / userAgent / safePayload（脱敏）
-│   │   │   │   ├── password.ts        # pbkdf2:sha256 密码哈希
+│   │   │   │   ├── password.ts        # scrypt 密码哈希（PHC 格式）
 │   │   │   │   ├── password-policy.ts # 密码规则（来自系统设置）
 │   │   │   │   ├── session.ts         # 服务端会话：isSignedIn / createSession / revokeSessions
 │   │   │   │   ├── settings.ts        # 系统设置注册表 + SettingsStore（app.settings）
@@ -842,7 +842,7 @@ ID=3   组件示例中心 (component_center)
 - 后端：Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino；不用 NestJS
 - 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-redesign-plan.md`
 - `.xls` 不支持，只支持 csv / xlsx
-- 密码哈希格式 `pbkdf2:sha256:<iter>$<salt>$<hex>`（`common/password.ts`，异步 pbkdf2）
+- 密码哈希用 scrypt，存成 PHC 字符串 `$scrypt$ln=15,r=8,p=3$<盐>$<哈希>`（`common/password.ts`，异步；参数写在字符串里，调高参数后旧哈希照样能校验）
 - 会话：服务端会话表 `sessions` 是唯一事实源（可列出、可强制下线、改密码 / 停用 / 重置密码即失效）；`@fastify/secure-session` 的 cookie `castor_session` 只装 `{ sid, csrf_token }`，密钥用 HKDF 从 `SECRET_KEY` 派生。判断登录一律用 `common/session.ts` 的 `isSignedIn(request)`，不要读 cookie 字段
 - 配置分两层：服务启动前就要用的（数据库地址、`SECRET_KEY`、端口、调度器开关等）放环境变量；其余一律进系统设置（`common/settings.ts` 注册表 + `system_settings` 表）——功能开关、安全参数、邮件、文件存储、上传限制、AI 模型、网站地址。密钥类（`type: 'secret'`）用 `secret-box` 加密存储、从不回显；注册表项可声明 `env`，该环境变量非空时锁定取值（页面只读），变量名同时登记在 `common/settings-env.ts`。新功能需要配置时加注册表项，不要再加只能改环境变量的配置；读取用 `app.settings.get()`（热路径 `peek()`），邮件 / 存储这类客户端通过 `MailerProvider` / `StorageProvider` 按当前设置重建。改设置的接口（保存与测试）必须先过 `requireRecentAuth(request)`（10 分钟内登录或 `/api/admin/reauth` 验证过身份），保存后通知所有超级管理员；会让服务器主动连接的地址类设置要在保存和测试时过 `common/outbound.ts` 的检查（保留地址始终拒绝，内网看 `SETTINGS_ALLOW_PRIVATE_NETWORK`）
 - 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T`、小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0）、末尾加 `Z`；写库用 `utcNow()`（`timezone('utc', now())`），应用侧生成的当前时间用 `utcNowIso()`（接口）/ `utcNowText()`（写库）

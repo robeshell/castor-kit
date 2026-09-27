@@ -68,7 +68,7 @@ So a mistake can't leave nobody able to run the system, the backend enforces the
 - You can't remove the super admin role from yourself, or disable or delete yourself
 - The last active super admin can't be disabled, deleted or lose the role; imports are checked the same way
 
-If the super admin role or the `admin` account still ends up broken, run `pnpm seed:rbac -- --incremental` (with Docker, restarting the container does it): it recreates the `super_admin` role, grants it every menu again and puts the `admin` account back in it. It doesn't restore other accounts' roles, and doesn't reset passwords or account status.
+If the super admin role or the `admin` account still ends up broken, run `pnpm seed:rbac -- --incremental` (with Docker, restarting the container does it): it recreates the `super_admin` role, grants it every menu again and puts the `admin` account back in it. It doesn't restore other accounts' roles, and doesn't reset passwords or account status; add `--reset-admin-password` to set the `admin` password to `ADMIN_PASSWORD`.
 
 ## seed-rbac.ts: the single source of truth for menus
 
