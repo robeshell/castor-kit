@@ -33,7 +33,7 @@
  *   apps/web/src/modules/<module>/api/<name>.ts                     typed from the module's OpenAPI entries
  *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.tsx   shadcn/ui list page (same structure as the users page)
  *   apps/web/src/modules/<module>/pages/<subdir>/<name>/locales/{en-US,ja-JP}.json
- *                     only when the page uses fixed Chinese text that apps/web/src/locales doesn't translate
+ *                     the module's webhook event descriptions, plus any fixed page text no locales file translates yet
  * Auto-registration:
  *   apps/api/src/db/schema/index.ts          export * from './<domain>/<name>'
  *   apps/api/src/modules/<domain>/router.ts  import + await register<Name>Routes(app)

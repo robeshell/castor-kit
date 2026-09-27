@@ -87,7 +87,15 @@ AI 只展示业务层面的信息，等你确认或调整：
 
 ## pnpm scaffold
 
-`pnpm scaffold` 根据字段定义一次生成后端模块、前端页面、接口测试和迁移。
+`pnpm scaffold` 一次生成后端模块、前端页面、接口测试和迁移。常用的输入是 [spec 文件](#spec-文件)（中文标签、规则、选项、菜单）：
+
+```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # 校验，并预览接口、权限、表和菜单
+pnpm scaffold -- --spec device.spec.json --dry-run         # 列出将写入的文件，不写入
+pnpm scaffold -- --spec device.spec.json                   # 生成
+```
+
+没有 spec 时也可以只给字段列表（标签是英文占位，没有规则和菜单）：
 
 ```bash
 # 预览将生成的文件，不写入

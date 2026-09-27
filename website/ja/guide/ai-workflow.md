@@ -87,7 +87,15 @@ AI が追加で質問するのは、データモデルに取り返しのつか�
 
 ## pnpm scaffold
 
-`pnpm scaffold` はフィールド定義をもとに、バックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを一度に生成します。
+`pnpm scaffold` はバックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを一度に生成します。通常の入力は [spec ファイル](#spec-ファイル)（中国語のラベル、ルール、選択肢、メニュー）です。
+
+```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # 検証し、API・権限・テーブル・メニューをプレビュー
+pnpm scaffold -- --spec device.spec.json --dry-run         # 書き込むファイルを一覧表示（書き込みはしない）
+pnpm scaffold -- --spec device.spec.json                   # 生成
+```
+
+spec がなくてもフィールド一覧だけで生成できます（ラベルは英語の仮の名前、ルールやメニューはなし）。
 
 ```bash
 # 生成されるファイルをプレビューする（書き込みはしない）

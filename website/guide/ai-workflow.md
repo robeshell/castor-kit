@@ -87,7 +87,15 @@ Generating the migration file or passing static checks is not enough. You must r
 
 ## pnpm scaffold
 
-`pnpm scaffold` generates the backend module, frontend page, API tests and migration from a field definition in one go.
+`pnpm scaffold` generates the backend module, frontend page, API tests and migration in one go. The usual input is a [spec file](#spec-files) (Chinese labels, rules, options, menu):
+
+```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # check it; preview the API, permissions, table and menu
+pnpm scaffold -- --spec device.spec.json --dry-run         # list the files it would write, write nothing
+pnpm scaffold -- --spec device.spec.json                   # generate
+```
+
+Without a spec, a field list works too (English placeholder labels, no rules or menu):
 
 ```bash
 # Preview the files to be generated without writing anything
