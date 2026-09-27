@@ -5,10 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { mixHex, useChartColors, type ChartColors } from '@/lib/chart-theme'
 import { cn } from '@/lib/utils'
 import PageHeader from '@/shared/components/PageHeader'
-import { CITIES } from '@/modules/component_center/pages/creative/threejs_globe_page/demo-content'
-
-// Pairs of CITIES indexes
-const ARC_PAIRS: [number, number][] = [[0,1],[0,4],[1,2],[2,3],[3,7],[4,5],[5,6],[6,8],[7,9],[8,0]]
+import { ARC_PAIRS, CITIES } from '@/modules/component_center/pages/creative/threejs_globe_page/demo-content'
 
 /** Scene colors derived from the accent stops (brand-from / via / to); the scene itself stays dark in both themes */
 function globePalette(c: ChartColors) {
@@ -82,8 +79,9 @@ export default function ThreejsGlobePage() {
   const partsRef = useRef<SceneParts | null>(null) // materials / lights that follow the accent
 
   useEffect(() => {
-    // The effect runs after the mount div is attached
-    const mount = mountRef.current!
+    // The effect runs after the mount div is attached, so this never returns early
+    const mount = mountRef.current
+    if (!mount) return
     const W = mount.clientWidth, H = mount.clientHeight
 
     /* ── renderer ── */
@@ -160,9 +158,8 @@ export default function ThreejsGlobePage() {
     /* ── arc lines ── */
     const arcMats: THREE.LineBasicMaterial[] = []
     for (const [a, b] of ARC_PAIRS) {
-      // ARC_PAIRS only holds valid CITIES indexes
-      const p1  = latLonToVec3(CITIES[a]!.lat, CITIES[a]!.lon, 1.0)
-      const p2  = latLonToVec3(CITIES[b]!.lat, CITIES[b]!.lon, 1.0)
+      const p1  = latLonToVec3(a.lat, a.lon, 1.0)
+      const p2  = latLonToVec3(b.lat, b.lon, 1.0)
       const mid = p1.clone().add(p2).multiplyScalar(0.5).normalize().multiplyScalar(1.4)
       const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2)
       const arcGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(60))
@@ -213,7 +210,7 @@ export default function ThreejsGlobePage() {
     renderer.domElement.addEventListener('mousemove', onPointerMove)
 
     // Collect the hoverable dots
-    const dotMeshes = globeGroup.children.filter(c => c.userData?.name)
+    const dotMeshes = globeGroup.children.filter(c => c.userData.name)
 
     /* ── animate ── */
     let frame = 0, raf: number
@@ -236,10 +233,9 @@ export default function ThreejsGlobePage() {
 
       // hover detection
       raycaster.setFromCamera(pointer, camera)
-      const hits = raycaster.intersectObjects(dotMeshes)
-      if (hits.length) {
-        // hits.length was checked above
-        const name: string = hits[0]!.object.userData.name
+      const [hit] = raycaster.intersectObjects(dotMeshes)
+      if (hit) {
+        const name: string = hit.object.userData.name
         // Only update state when the hovered city changes, so we don't re-render every frame
         if (hoveredRef.current !== name) {
           hoveredRef.current = name

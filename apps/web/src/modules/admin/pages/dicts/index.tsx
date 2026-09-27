@@ -82,7 +82,7 @@ interface ColorFieldProps {
 
 function ColorField({ value, onChange }: ColorFieldProps) {
   const { t } = useTranslation()
-  const color = (value || '').trim()
+  const color = value.trim()
   const pickerRef = useRef<HTMLInputElement>(null)
   // Keep the picker uncontrolled (browsers warn on an empty value); sync a valid color into it as the initial value
   useEffect(() => {
@@ -100,7 +100,7 @@ function ColorField({ value, onChange }: ColorFieldProps) {
           className="absolute inset-0 cursor-pointer opacity-0"
         />
       </label>
-      <Input value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder={t('例如：#16a34a')} className="h-9 w-44 font-mono" />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={t('例如：#16a34a')} className="h-9 w-44 font-mono" />
       {color ? (
         <span className="inline-flex h-6 items-center rounded-md px-2 font-mono text-xs text-white" style={{ backgroundColor: color }}>
           {color}
@@ -119,7 +119,7 @@ export default function Dicts() {
     (params) =>
       getDictTypes(params)
         .then((res) => {
-          const list = Array.isArray(res?.items) ? res.items : []
+          const list = res.items
           setSelectedType((prev) => {
             if (!prev?.id) return list[0] || null
             return list.find((item) => item.id === prev.id) || list[0] || null
@@ -147,8 +147,8 @@ export default function Dicts() {
 
   const typeForm = useForm<TypeFormValues>({ defaultValues: TYPE_DEFAULTS })
   const itemForm = useForm<ItemFormValues>({ defaultValues: ITEM_DEFAULTS })
-  const typeDescLength = (useWatch({ control: typeForm.control, name: 'description' }) || '').length
-  const itemDescLength = (useWatch({ control: itemForm.control, name: 'description' }) || '').length
+  const typeDescLength = useWatch({ control: typeForm.control, name: 'description' }).length
+  const itemDescLength = useWatch({ control: itemForm.control, name: 'description' }).length
 
   const typeId = selectedType?.id ?? null
 
@@ -170,7 +170,7 @@ export default function Dicts() {
     if (!typeId) return undefined
     let alive = true
     getDictItems(typeId, { search: '' })
-      .then((res) => alive && setItemData(Array.isArray(res.items) ? res.items : []))
+      .then((res) => alive && setItemData(res.items))
       .catch(() => alive && toast.error('加载字典项失败'))
       .finally(() => alive && setItemLoading(false))
     return () => {
@@ -178,14 +178,14 @@ export default function Dicts() {
     }
   }, [typeId])
 
-  const fetchItems = (dictTypeId = typeId, search = itemSearch) => {
+  const fetchItems = (dictTypeId: number | null, search: string) => {
     if (!dictTypeId) {
       setItemData([])
       return
     }
     setItemLoading(true)
     getDictItems(dictTypeId, { search })
-      .then((res) => setItemData(Array.isArray(res.items) ? res.items : []))
+      .then((res) => setItemData(res.items))
       .catch(() => toast.error('加载字典项失败'))
       .finally(() => setItemLoading(false))
   }
@@ -209,8 +209,8 @@ export default function Dicts() {
   const openEditType = (record: DictType) => {
     setTypeEditing(record)
     typeForm.reset({
-      name: record.name ?? '',
-      code: record.code ?? '',
+      name: record.name,
+      code: record.code,
       sort_order: record.sort_order ?? 0,
       is_active: Boolean(record.is_active),
       description: record.description ?? '',
@@ -230,8 +230,8 @@ export default function Dicts() {
   const openEditItem = (record: DictItem) => {
     setItemEditing(record)
     itemForm.reset({
-      label: record.label ?? '',
-      value: record.value ?? '',
+      label: record.label,
+      value: record.value,
       color: record.color || '',
       sort_order: record.sort_order ?? 0,
       is_default: Boolean(record.is_default),
@@ -267,11 +267,15 @@ export default function Dicts() {
   }
 
   const submitItem = async (values: ItemFormValues) => {
-    const payload = { ...values, color: (values.color || '').trim() || null }
+    const payload = { ...values, color: values.color.trim() || null }
     try {
       if (itemEditing) await updateDictItem(itemEditing.id, payload)
-      // The item dialog only opens with a type selected (openCreateItem checks typeId)
-      else await createDictItem(typeId!, payload)
+      else if (typeId) await createDictItem(typeId, payload)
+      else {
+        // Not reached: the item dialog only opens for a new item with a type selected (openCreateItem checks typeId)
+        toast.warning('请先选择一个字典类型')
+        return
+      }
       toast.success(itemEditing ? '字典项更新成功' : '字典项创建成功')
       setItemFormOpen(false)
       fetchItems(typeId, itemSearch)
@@ -293,15 +297,14 @@ export default function Dicts() {
   }
 
   const handleExportItems = (fileType: string) => {
-    if (!typeId) {
+    if (!selectedType) {
       toast.warning('请先选择字典类型')
       return
     }
     const type = normalizeFileType(fileType)
-    exportDictItems(typeId, type)
+    exportDictItems(selectedType.id, type)
       .then((blob) => {
-        // typeId is selectedType's id and was checked above
-        downloadBlobFile(blob, `dict_${selectedType!.code}_items.${type}`)
+        downloadBlobFile(blob, `dict_${selectedType.code}_items.${type}`)
         toast.success('导出成功')
       })
       .catch((err: unknown) => toast.apiError(err, '导出失败'))
@@ -557,33 +560,31 @@ export default function Dicts() {
         <FormTextarea control={itemForm.control} name="description" label="描述" rows={3} inputClassName="min-h-16" description={`${itemDescLength} / 300`} />
       </FormDialog>
 
-      <ImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        title="导入字典项"
-        targetLabel={selectedType ? t('数据字典 / {{name}} ({{code}})', { name: selectedType.name, code: selectedType.code }) : undefined}
-        templateFormatOptions={FILE_TYPE_OPTIONS}
-        onDownloadTemplate={(fileType) => {
-          if (!selectedType) {
-            toast.warning('请先选择字典类型')
-            return
-          }
-          const type = normalizeFileType(fileType)
-          downloadDictItemsTemplate(selectedType.id, type)
-            .then((blob) => {
-              downloadBlobFile(blob, `dict_${selectedType.code}_import_template.${type}`)
-              toast.success('模板下载成功')
-            })
-            .catch((err: unknown) => toast.apiError(err, '模板下载失败'))
-        }}
-        // The import dialog only opens with a type selected (openImport checks typeId)
-        onImport={(file) => importDictItems(selectedType!.id, file)}
-        onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
-          fetchItems(selectedType!.id, itemSearch)
-        }}
-        errorExportFileName={`dict_${selectedType?.code || 'items'}_import_error_rows.csv`}
-      />
+      {/* The import dialog only opens with a type selected (openImport checks it) */}
+      {selectedType ? (
+        <ImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          title="导入字典项"
+          targetLabel={t('数据字典 / {{name}} ({{code}})', { name: selectedType.name, code: selectedType.code })}
+          templateFormatOptions={FILE_TYPE_OPTIONS}
+          onDownloadTemplate={(fileType) => {
+            const type = normalizeFileType(fileType)
+            downloadDictItemsTemplate(selectedType.id, type)
+              .then((blob) => {
+                downloadBlobFile(blob, `dict_${selectedType.code}_import_template.${type}`)
+                toast.success('模板下载成功')
+              })
+              .catch((err: unknown) => toast.apiError(err, '模板下载失败'))
+          }}
+          onImport={(file) => importDictItems(selectedType.id, file)}
+          onImported={(res) => {
+            toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created || 0, updated: res.updated || 0 }))
+            fetchItems(selectedType.id, itemSearch)
+          }}
+          errorExportFileName={`dict_${selectedType.code}_import_error_rows.csv`}
+        />
+      ) : null}
     </div>
   )
 }

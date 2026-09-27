@@ -10,7 +10,7 @@ import Panel from '@/shared/components/Panel'
 
 interface CanvasPalette {
   bg: string
-  colors: string[]
+  colors: [string, ...string[]]
 }
 
 type PaletteKey = 'ocean' | 'glacier' | 'abyss' | 'lagoon'
@@ -25,8 +25,11 @@ const THEMES = {
   lagoon: { label: '潟湖绿', bg: '#021312', colors: ['#14b8a6', '#2dd4bf', '#22d3ee', '#5eead4'] },
 } satisfies { accent: { label: string } } & Record<PaletteKey, { label: string } & CanvasPalette>
 
-/** One [key, item] pair of THEMES, keyed so that checking the key narrows the item */
-type ThemeEntry = { [K in ThemeKey]: [K, (typeof THEMES)[K]] }[ThemeKey]
+/** Theme keys in menu order */
+const THEME_KEYS: ThemeKey[] = ['accent', 'ocean', 'glacier', 'abyss', 'lagoon']
+
+/** list[i] wrapped around the list's length (i ≥ 0), so it is always an element of the list */
+const cyclic = <T,>(list: readonly [T, ...T[]], i: number): T => list[i % list.length] ?? list[0]
 
 interface Particle {
   x: number
@@ -77,7 +80,7 @@ function ControlSlider({ label, value, display, min, max, step, onChange }: Cont
 export default function ParticleCanvasPage() {
   const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number | undefined>(undefined)
+  const animRef = useRef(0)
   const particlesRef = useRef<Particle[]>([])
   const mouseRef = useRef({ x: -9999, y: -9999 })
   const pausedRef = useRef(false)
@@ -103,8 +106,7 @@ export default function ParticleCanvasPage() {
         vx: (Math.random() - 0.5) * 0.8,
         vy: (Math.random() - 0.5) * 0.8,
         r: Math.random() * 2.5 + 1,
-        // The index is always within colors
-        color: colors[Math.floor(Math.random() * colors.length)]!,
+        color: cyclic(colors, Math.floor(Math.random() * colors.length)),
         opacity: Math.random() * 0.5 + 0.5,
       })
     }
@@ -113,11 +115,11 @@ export default function ParticleCanvasPage() {
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    // getContext('2d') is null only when the canvas already has another context type, which this one never gets
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
 
     const draw = () => {
-      // Only a 2d context is ever requested from this canvas, so it is always available
-      const ctx = canvas.getContext('2d')!
       const { theme, linkDist, speed } = settingsRef.current
       const { bg } = theme === 'accent' ? accentRef.current : THEMES[theme]
       const mouse = mouseRef.current
@@ -185,17 +187,19 @@ export default function ParticleCanvasPage() {
         ctx.globalAlpha = 1
       }
 
-      // Draw links (i and j stay within particles)
+      // Draw links (i and j stay within particles; `!` keeps this per-frame O(n²) loop free of checks)
       for (let i = 0; i < particles.length; i++) {
+        const a = particles[i]!
         for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i]!.x - particles[j]!.x
-          const dy = particles[i]!.y - particles[j]!.y
+          const b = particles[j]!
+          const dx = a.x - b.x
+          const dy = a.y - b.y
           const d = Math.sqrt(dx * dx + dy * dy)
           if (d < linkDist) {
             ctx.beginPath()
-            ctx.moveTo(particles[i]!.x, particles[i]!.y)
-            ctx.lineTo(particles[j]!.x, particles[j]!.y)
-            ctx.strokeStyle = particles[i]!.color
+            ctx.moveTo(a.x, a.y)
+            ctx.lineTo(b.x, b.y)
+            ctx.strokeStyle = a.color
             ctx.globalAlpha = (1 - d / linkDist) * 0.4
             ctx.lineWidth = 0.8
             ctx.stroke()
@@ -220,8 +224,7 @@ export default function ParticleCanvasPage() {
     animRef.current = requestAnimationFrame(draw)
     return () => {
       ro.disconnect()
-      // Set by the requestAnimationFrame call above before this cleanup can run
-      cancelAnimationFrame(animRef.current!)
+      cancelAnimationFrame(animRef.current)
     }
   }, [initParticles])
 
@@ -230,29 +233,33 @@ export default function ParticleCanvasPage() {
     accentRef.current = accent
     if (settingsRef.current.theme !== 'accent') return
     particlesRef.current.forEach((p, i) => {
-      p.color = accent.colors[i % accent.colors.length]!
+      p.color = cyclic(accent.colors, i)
     })
   }, [accent])
 
-  // The canvas handlers and the controls below only run while the canvas is mounted, so canvasRef.current is set
   const handleMouseMove = (e: MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current!.getBoundingClientRect()
+    const rect = e.currentTarget.getBoundingClientRect()
     mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
   const handleMouseLeave = () => {
     mouseRef.current = { x: -9999, y: -9999 }
   }
 
+  // The controls only run while the canvas is mounted, so the ref is always set
+  const resetParticles = () => {
+    if (canvasRef.current) initParticles(canvasRef.current)
+  }
+
   // The theme Select only offers THEMES keys
   const applyTheme = (v: ThemeKey) => {
     setTheme(v)
     settingsRef.current.theme = v
-    initParticles(canvasRef.current!)
+    resetParticles()
   }
   const applyCount = (v: number) => {
     setCount(v)
     settingsRef.current.count = v
-    initParticles(canvasRef.current!)
+    resetParticles()
   }
   const applyLinkDist = (v: number) => {
     setLinkDist(v)
@@ -266,7 +273,6 @@ export default function ParticleCanvasPage() {
     pausedRef.current = !pausedRef.current
     setPaused((p) => !p)
   }
-  const handleRefresh = () => initParticles(canvasRef.current!)
 
   return (
     <div className="space-y-5">
@@ -278,7 +284,7 @@ export default function ParticleCanvasPage() {
               {paused ? <Play /> : <Pause />}
               {paused ? t('继续') : t('暂停')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={handleRefresh}>
+            <Button size="sm" variant="ghost" onClick={resetParticles}>
               <RotateCcw />
               {t('重置')}
             </Button>
@@ -294,14 +300,13 @@ export default function ParticleCanvasPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {/* Object.entries widens the keys to string; THEMES has exactly the ThemeKey keys */}
-              {(Object.entries(THEMES) as ThemeEntry[]).map(([key, item]) => {
-                const { colors } = key === 'accent' ? accent : item
+              {THEME_KEYS.map((key) => {
+                const { colors } = key === 'accent' ? accent : THEMES[key]
                 return (
                   <SelectItem key={key} value={key}>
                     <span className="flex items-center gap-2">
                       <span className="size-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[2]})` }} />
-                      {t(item.label)}
+                      {t(THEMES[key].label)}
                     </span>
                   </SelectItem>
                 )

@@ -70,12 +70,10 @@ export function TagsViewProvider({ children }: { children?: ReactNode }) {
     if (isKnown(path) && !affixPaths.includes(path)) {
       const fullPath = path + location.search
       setOpened((prev) => {
-        const index = prev.findIndex((t) => t.path === path)
-        if (index < 0) return [...prev, { path, fullPath }]
-        if (prev[index]!.fullPath === fullPath) return prev
-        const next = [...prev]
-        next[index] = { path, fullPath }
-        return next
+        const existing = prev.find((t) => t.path === path)
+        if (!existing) return [...prev, { path, fullPath }]
+        if (existing.fullPath === fullPath) return prev
+        return prev.map((t) => (t === existing ? { path, fullPath } : t))
       })
     }
   }
@@ -110,7 +108,8 @@ export function TagsViewProvider({ children }: { children?: ReactNode }) {
   const close = useCallback(
     (path: string) => {
       const index = tabs.findIndex((t) => t.path === path)
-      if (index < 0 || tabs[index]!.affix) return
+      const tab = tabs[index]
+      if (!tab || tab.affix) return
       retain((t) => t.path !== path, tabs[index + 1] ?? tabs[index - 1])
     },
     [tabs, retain],

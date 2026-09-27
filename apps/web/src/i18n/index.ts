@@ -37,7 +37,7 @@ const menuFiles = import.meta.glob<Messages>('../locales/menus/*.json', { eager:
 
 /** File path → language code (…/locales/en-US.json → en-US) */
 function langOf(path: string): string {
-  return path.split('/').pop()!.replace(/\.json$/, '')
+  return path.slice(path.lastIndexOf('/') + 1).replace(/\.json$/, '')
 }
 
 function buildResources(): Resource {
@@ -57,7 +57,7 @@ function buildResources(): Resource {
 
 /** Normalize to a supported language code: zh* → zh-CN, en* → en-US, ja* → ja-JP, anything else null */
 export function normalizeLanguage(value: string | null | undefined): LanguageCode | null {
-  const text = String(value || '').toLowerCase()
+  const text = (value || '').toLowerCase()
   if (text.startsWith('zh')) return 'zh-CN'
   if (text.startsWith('en')) return 'en-US'
   if (text.startsWith('ja')) return 'ja-JP'
@@ -105,7 +105,12 @@ export type Tx = <T>(value: T, options?: TOptions) => T | string
 
 export function useTx(): Tx {
   const { t } = useTranslation()
-  return useCallback<Tx>((value, options) => (typeof value === 'string' && value ? t(value as string, options) : value), [t])
+  return useCallback<Tx>((value, options) => {
+    if (typeof value !== 'string' || !value) return value
+    // A plain string key: the generic T would pick i18next's typed-key overloads
+    const key: string = value
+    return t(key, options)
+  }, [t])
 }
 
 /** Switch language and remember the choice */

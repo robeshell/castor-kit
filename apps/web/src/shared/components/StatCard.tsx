@@ -15,7 +15,7 @@ export interface CountUpProps {
 export function CountUp({ value = 0, decimals = 0, className }: CountUpProps) {
   const mv = useMotionValue(0)
   const text = useTransform(mv, (v) =>
-    Number(v).toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }),
+    v.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }),
   )
   useEffect(() => {
     const controls = animate(mv, Number(value) || 0, { duration: 0.9, ease: [0.2, 0.8, 0.2, 1] })
@@ -35,7 +35,7 @@ export interface SparklineProps {
 export function Sparkline({ points = [], width = 96, height = 32, className }: SparklineProps) {
   const id = useId().replace(/:/g, '')
   // With fewer than 2 valid points it would just draw a flat line + a spike at the end; better not to draw it
-  if (points.filter((p) => Number(p) > 0).length < 2) return null
+  if (points.filter((p) => p > 0).length < 2) return null
   const max = Math.max(...points)
   const min = Math.min(...points)
   const span = max - min || 1

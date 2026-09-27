@@ -20,31 +20,31 @@ export function hasRoutePath<M extends MenuNode>(menu: M): menu is RoutedMenu<M>
   return typeof menu.path === 'string' && menu.path.startsWith('/')
 }
 
-export function isNavVisible(menu: MenuNode | null | undefined): boolean {
-  return Boolean(menu && menu.is_active && menu.is_visible && menu.menu_type !== 'button')
+export function isNavVisible(menu: MenuNode): boolean {
+  return Boolean(menu.is_active && menu.is_visible && menu.menu_type !== 'button')
 }
 
-export function visibleChildren(menu: MenuNode | null | undefined): MenuNode[] {
-  return Array.isArray(menu?.children) ? menu.children.filter(isNavVisible) : []
+export function visibleChildren(menu: MenuNode): MenuNode[] {
+  return menu.children?.filter(isNavVisible) ?? []
 }
 
-export function flattenMenus(menus: MenuNode[] = []): FlatMenu[] {
+export function flattenMenus(menus: MenuNode[]): FlatMenu[] {
   const result: FlatMenu[] = []
-  const walk = (nodes: MenuNode[] = [], parents: MenuNode[] = []) => {
+  const walk = (nodes: MenuNode[], parents: MenuNode[]) => {
     nodes.forEach((node) => {
       if (!isNavVisible(node)) return
       result.push({ ...node, parents })
-      walk(node.children || [], [...parents, node])
+      walk(node.children ?? [], [...parents, node])
     })
   }
-  walk(menus)
+  walk(menus, [])
   return result
 }
 
 /** Menu matching the current path (longest prefix match) */
 export function findActiveMenu(flat: FlatMenu[], pathname: string): RoutedMenu<FlatMenu> | undefined {
   return flat
-    .filter((menu): menu is RoutedMenu<FlatMenu> => typeof menu.path === 'string' && menu.path.startsWith('/'))
+    .filter(hasRoutePath)
     .sort((a, b) => b.path.length - a.path.length)
     .find((menu) => pathname === menu.path || pathname.startsWith(`${menu.path}/`))
 }
@@ -52,7 +52,7 @@ export function findActiveMenu(flat: FlatMenu[], pathname: string): RoutedMenu<F
 /** Navigable leaf pages (has a path and type is menu) */
 export function navigablePages(flat: FlatMenu[]): RoutedMenu<FlatMenu>[] {
   return flat.filter(
-    (menu): menu is RoutedMenu<FlatMenu> => menu.menu_type === 'menu' && typeof menu.path === 'string' && menu.path.startsWith('/'),
+    (menu): menu is RoutedMenu<FlatMenu> => menu.menu_type === 'menu' && hasRoutePath(menu),
   )
 }
 

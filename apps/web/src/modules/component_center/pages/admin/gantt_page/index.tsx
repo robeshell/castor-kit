@@ -52,16 +52,20 @@ const PRIORITY_OPTIONS = [
   { value: 'high', label: '高' },
   { value: 'critical', label: '紧急' },
 ]
-const STATUS_OPTIONS = Object.entries(STATUS_META).map(([value, m]) => ({ value, label: m.label }))
+/** Statuses in display order (the legend and the status select) */
+const TASK_STATUSES: TaskStatus[] = ['not_started', 'in_progress', 'completed', 'delayed']
+const STATUS_OPTIONS = TASK_STATUSES.map((value) => ({ value, label: STATUS_META[value].label }))
 const TYPE_OPTIONS = Object.entries(TYPE_META).map(([value, m]) => ({ value, label: m.label }))
 
 type Scale = 'day' | 'week' | 'month'
 
-const SCALES: { value: Scale; label: string; px: number }[] = [
-  { value: 'day', label: '日', px: 32 },
-  { value: 'week', label: '周', px: 14 },
-  { value: 'month', label: '月', px: 5 },
+const SCALES: { value: Scale; label: string }[] = [
+  { value: 'day', label: '日' },
+  { value: 'week', label: '周' },
+  { value: 'month', label: '月' },
 ]
+/** Pixels per day at each scale */
+const SCALE_PX: Record<Scale, number> = { day: 32, week: 14, month: 5 }
 const ROW_H = 44
 /** What the task dialog holds (FormNumber sets null when progress is cleared) */
 interface FormValues {
@@ -75,7 +79,6 @@ interface FormValues {
   status: TaskStatus
   color: string
 }
-type TaskCreateBody = Parameters<typeof createGanttTask>[0]
 
 const EMPTY_FORM: FormValues = {
   title: '',
@@ -92,7 +95,7 @@ const EMPTY_FORM: FormValues = {
 // ── Dates (computed as UTC day numbers to avoid time zone / DST errors) ──
 const DAY_MS = 86400000
 function toDay(value: string | null | undefined) {
-  if (!value || typeof value !== 'string') return null
+  if (!value) return null
   const [y, m, d] = value.slice(0, 10).split('-').map(Number)
   if (!y || !m || !d) return null
   return Math.floor(Date.UTC(y, m - 1, d) / DAY_MS)
@@ -189,7 +192,7 @@ function ColorPicker({ value, onChange }: ColorPickerProps) {
 }
 
 function ProgressCell({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, Number(value) || 0))
+  const pct = Math.max(0, Math.min(100, value))
   return (
     <div className="flex items-center gap-2">
       <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
@@ -204,7 +207,7 @@ function BarTooltip({ task, children }: { task: GanttTask; children: ReactElemen
   const { t } = useTranslation()
   const s = toDay(task.start_date)
   const e = toDay(task.end_date)
-  const st = STATUS_META[task.status] || STATUS_META.not_started
+  const st = STATUS_META[task.status]
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
@@ -216,7 +219,7 @@ function BarTooltip({ task, children }: { task: GanttTask; children: ReactElemen
             {s !== null && e !== null ? ` · ${t('{{count}} 天', { count: e - s + 1 })}` : ''}
           </p>
           <p className="opacity-75">
-            {t(st.label)} · {t('进度 {{value}}%', { value: task.progress || 0 })}
+            {t(st.label)} · {t('进度 {{value}}%', { value: task.progress })}
             {task.assignee ? ` · ${task.assignee}` : ''}
           </p>
         </div>
@@ -239,10 +242,10 @@ function TaskBar({ task, range, px, index }: TaskBarProps) {
   const s = toDay(task.start_date)
   if (s === null) return <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 text-xs">{t('未设置日期')}</span>
   const e = toDay(task.end_date) ?? s
-  const st = STATUS_META[task.status] || STATUS_META.not_started
+  const st = STATUS_META[task.status]
   const left = (s - range.start) * px
   const width = Math.max((e - s + 1) * px, 6)
-  const progress = Math.max(0, Math.min(100, Number(task.progress) || 0))
+  const progress = Math.max(0, Math.min(100, task.progress))
   const delay = Math.min(index, 16) * 0.03
 
   if (task.task_type === 'milestone') {
@@ -336,7 +339,7 @@ export default function GanttPage() {
   const fetchTasks = useCallback(
     () =>
       getGanttTasks()
-        .then((res) => setTasks(res || []))
+        .then(setTasks)
         .catch(() => toast.error('加载任务失败'))
         .finally(() => setLoading(false)),
     [],
@@ -348,11 +351,11 @@ export default function GanttPage() {
 
   const range = useMemo(() => buildRange(tasks), [tasks])
   const months = useMemo(() => (range ? buildMonths(range, i18n.language) : []), [range, i18n.language])
-  const px = SCALES.find((s) => s.value === scale)?.px || 14
+  const px = SCALE_PX[scale]
   const counts = useMemo(() => {
     const c: Record<TaskStatus, number> = { not_started: 0, in_progress: 0, completed: 0, delayed: 0 }
     tasks.forEach((t) => {
-      if (c[t.status] !== undefined) c[t.status] += 1
+      c[t.status] += 1
     })
     return c
   }, [tasks])
@@ -367,32 +370,31 @@ export default function GanttPage() {
     setEditing(record)
     form.reset({
       title: record.title,
-      task_type: record.task_type || 'task',
+      task_type: record.task_type,
       start_date: record.start_date ? record.start_date.slice(0, 10) : '',
       end_date: record.end_date ? record.end_date.slice(0, 10) : '',
-      progress: record.progress ?? 0,
+      progress: record.progress,
       assignee: record.assignee || '',
-      priority: record.priority || 'medium',
-      status: record.status || 'not_started',
+      priority: record.priority,
+      status: record.status,
       color: record.color || DEFAULT_COLOR,
     })
     setFormOpen(true)
   }
 
   const submit = async (values: FormValues) => {
-    const payload = {
+    // rules.required keeps both dates filled on submit (the API answers 400 to a null date)
+    const body = {
       title: values.title,
-      task_type: values.task_type || 'task',
-      start_date: values.start_date || null,
-      end_date: values.end_date || null,
+      task_type: values.task_type,
+      start_date: values.start_date,
+      end_date: values.end_date,
       progress: values.progress ?? 0,
-      assignee: values.assignee || '',
-      priority: values.priority || 'medium',
-      status: values.status || 'not_started',
+      assignee: values.assignee,
+      priority: values.priority,
+      status: values.status,
       color: values.color || DEFAULT_COLOR,
     }
-    // rules.required keeps both dates filled on submit, so `|| null` never applies (the API answers 400 to a null date)
-    const body = payload as TaskCreateBody
     try {
       if (editing) await updateGanttTask(editing.id, body)
       else await createGanttTask(body)
@@ -470,12 +472,11 @@ export default function GanttPage() {
       >
         {!loading && tasks.length ? (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 pb-3 text-xs">
-            {Object.entries(STATUS_META).map(([key, m]) => (
+            {TASK_STATUSES.map((key) => (
               <span key={key} className="text-muted-foreground inline-flex items-center gap-1.5">
-                <span className={cn('h-2 w-3.5 rounded-sm', m.fill)} />
-                {t(m.label)}
-                {/* Object.entries widens the keys to string; they are STATUS_META's keys */}
-                <span className="text-foreground font-medium tabular-nums">{counts[key as TaskStatus]}</span>
+                <span className={cn('h-2 w-3.5 rounded-sm', STATUS_META[key].fill)} />
+                {t(STATUS_META[key].label)}
+                <span className="text-foreground font-medium tabular-nums">{counts[key]}</span>
               </span>
             ))}
             <span className="text-muted-foreground inline-flex items-center gap-1.5">
@@ -512,8 +513,8 @@ export default function GanttPage() {
                   <span className="w-14" />
                 </div>
                 {tasks.map((task) => {
-                  const tm = TYPE_META[task.task_type] || TYPE_META.task
-                  const st = STATUS_META[task.status] || { label: task.status, tone: 'neutral' }
+                  const tm = TYPE_META[task.task_type]
+                  const st = STATUS_META[task.status]
                   return (
                     <div
                       key={task.id}

@@ -72,7 +72,7 @@ interface SearchableSelectProps {
 function SearchableSelect({ value, onChange, options, placeholder, invalid }: SearchableSelectProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const current = options.find((o) => String(o.value) === String(value))
+  const current = options.find((o) => o.value === value)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -98,14 +98,14 @@ function SearchableSelect({ value, onChange, options, placeholder, invalid }: Se
             <CommandGroup>
               {options.map((opt) => (
                 <CommandItem
-                  key={String(opt.value)}
+                  key={opt.value}
                   value={`${opt.label} ${opt.value}`}
                   onSelect={() => {
                     onChange(opt.value)
                     setOpen(false)
                   }}
                 >
-                  <Check className={cn('size-4', String(opt.value) === String(value) ? 'opacity-100' : 'opacity-0')} />
+                  <Check className={cn('size-4', opt.value === value ? 'opacity-100' : 'opacity-0')} />
                   {opt.label}
                 </CommandItem>
               ))}
@@ -138,7 +138,7 @@ export default function Notifications() {
   useEffect(() => {
     handleSearch({ is_read: 'all' })
     getUsers({ page: 1, per_page: 100 })
-      .then((res) => setUsers(Array.isArray(res.items) ? res.items : []))
+      .then((res) => setUsers(res.items))
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, [])
@@ -157,7 +157,7 @@ export default function Notifications() {
   const handleMarkAllRead = () => {
     markAllAsRead()
       .then((res) => {
-        toast.success(t('已将 {{count}} 条通知标记为已读', { count: res?.marked ?? 0 }))
+        toast.success(t('已将 {{count}} 条通知标记为已读', { count: res.marked }))
         fetchData()
       })
       .catch((err: unknown) => toast.apiError(err, '操作失败'))

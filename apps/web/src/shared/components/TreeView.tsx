@@ -69,7 +69,8 @@ export default function TreeView<N extends TreeNode>({
 
   const renderNodes = (list: readonly N[], depth: number): ReactNode =>
     list.map((node) => {
-      const hasChildren = Array.isArray(node.children) && node.children.length > 0
+      const children = node.children ?? []
+      const hasChildren = children.length > 0
       const open = expanded.has(node.key)
       const active = selectedKey !== undefined && node.key === selectedKey
       return (
@@ -113,7 +114,7 @@ export default function TreeView<N extends TreeNode>({
                 transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
                 className="overflow-hidden"
               >
-                {renderNodes(node.children!, depth + 1)}
+                {renderNodes(children, depth + 1)}
               </motion.ul>
             ) : null}
           </AnimatePresence>

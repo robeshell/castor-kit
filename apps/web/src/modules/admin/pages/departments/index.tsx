@@ -56,11 +56,10 @@ const collectParentIds = (depts: readonly DepartmentNode[]): number[] =>
 // Tree -> table rows with depth; collapsed nodes hide their subtree
 const toRows = (depts: readonly DepartmentNode[], expanded: Set<number>, depth = 0): DeptRow[] =>
   depts.flatMap((d) => {
-    const hasChildren = Boolean(d.children?.length)
-    const row = { ...d, _depth: depth, _hasChildren: hasChildren }
-    if (!hasChildren || !expanded.has(d.id)) return [row]
-    // hasChildren means d.children is a non-empty array
-    return [row, ...toRows(d.children!, expanded, depth + 1)]
+    const { children } = d
+    const row = { ...d, _depth: depth, _hasChildren: Boolean(children?.length) }
+    if (!children?.length || !expanded.has(d.id)) return [row]
+    return [row, ...toRows(children, expanded, depth + 1)]
   })
 
 interface IconButtonProps {
@@ -106,8 +105,7 @@ export default function Departments() {
   // No synchronous setState here: the initial effect calls load() directly (loading starts as true)
   const load = (params = query) =>
     getDepartments(params)
-      .then((res) => {
-        const tree = Array.isArray(res) ? res : []
+      .then((tree) => {
         setData(tree)
         setExpanded(new Set(collectParentIds(tree)))
         if (!params.search && !params.status) setFullTree(tree)
@@ -125,7 +123,7 @@ export default function Departments() {
     // Leader options: needs the users permission; without it the field stays empty
     getUsers({ per_page: 200 })
       .then((res) =>
-        setUserOptions((res?.items || []).map((u) => ({ label: u.nickname ? `${u.nickname} (${u.username})` : u.username, value: u.id }))),
+        setUserOptions(res.items.map((u) => ({ label: u.nickname ? `${u.nickname} (${u.username})` : u.username, value: u.id }))),
       )
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +145,7 @@ export default function Departments() {
   const refresh = async () => {
     await fetchData()
     // The parent picker always needs the whole tree
-    if (filtered) getDepartments().then((res) => setFullTree(Array.isArray(res) ? res : [])).catch(() => {})
+    if (filtered) getDepartments().then(setFullTree).catch(() => {})
   }
 
   const openCreate = (parentId: number | null = null) => {
@@ -163,8 +161,8 @@ export default function Departments() {
       name: record.name,
       code: record.code,
       leader_id: record.leader_id,
-      sort_order: record.sort_order ?? 0,
-      status: record.status || 'active',
+      sort_order: record.sort_order,
+      status: record.status,
     })
     setFormOpen(true)
   }
@@ -200,8 +198,8 @@ export default function Departments() {
   const handleSort = (id: number, direction: 'up' | 'down') => {
     sortDepartment(id, direction)
       .then((res) => {
-        if (res?.changed) toast.success('排序成功')
-        else toast.info(res?.message || '无需调整')
+        if (res.changed) toast.success('排序成功')
+        else toast.info(res.message || '无需调整')
         refresh()
       })
       .catch((err: unknown) => toast.apiError(err, '排序失败'))
@@ -262,7 +260,6 @@ export default function Departments() {
       width: 72,
       align: 'right',
       className: 'tabular-nums',
-      render: (v) => v || 0,
     },
     { key: 'sort_order', title: '排序', dataIndex: 'sort_order', width: 64, align: 'right', className: 'tabular-nums' },
     {

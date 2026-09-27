@@ -173,7 +173,7 @@ export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarP
     if (isMobile) setOpenMobile(false)
   }
 
-  const roots = (menus || []).filter(isNavVisible)
+  const roots = menus.filter(isNavVisible)
   const leafRoots = section && section !== HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length === 0)
   const groupRoots = section === HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length > 0 && (!section || m.id === section))
 

@@ -164,19 +164,14 @@ function splitTags(str: string | null | undefined) {
     .map((s) => s.trim())
     .filter(Boolean)
 }
-function tagsToString(arr: string[] | string | null | undefined) {
-  if (!arr) return ''
-  if (Array.isArray(arr)) return arr.join(',')
-  return arr
-}
 function boardIdOfCard(boards: KanbanBoard[], cardId: number) {
   for (const b of boards) {
-    if (b.cards?.some((c) => c.id === cardId)) return b.id
+    if (b.cards.some((c) => c.id === cardId)) return b.id
   }
   return null
 }
 function orderSignature(boards: KanbanBoard[]) {
-  return boards.map((b) => `${b.id}:${(b.cards || []).map((c) => c.id).join(',')}`).join('|')
+  return boards.map((b) => `${b.id}:${b.cards.map((c) => c.id).join(',')}`).join('|')
 }
 function todayStr() {
   const d = new Date()
@@ -204,7 +199,7 @@ interface CardBodyProps {
 }
 
 function CardBody({ card, menu, lifted = false }: CardBodyProps) {
-  const pm = PRIORITY_META[card.priority] || PRIORITY_META.medium
+  const pm = PRIORITY_META[card.priority]
   const tags = splitTags(card.tags)
   const due = card.due_date ? card.due_date.slice(0, 10) : ''
   const overdue = due && due < todayStr()
@@ -331,8 +326,8 @@ interface KanbanColumnProps {
 
 function KanbanColumn({ board, highlighted, onEditBoard, onDeleteBoard, onAddCard, onEditCard, onDeleteCard }: KanbanColumnProps) {
   const { t } = useTranslation()
-  const cards = board.cards || []
-  const wip = board.wip_limit || 0
+  const cards = board.cards
+  const wip = board.wip_limit
   const warnWip = wip > 0 && cards.length >= wip
   const { setNodeRef, isOver } = useDroppable({ id: boardDndId(board.id), data: { type: 'board', boardId: board.id } satisfies BoardDropData })
   const active = highlighted || isOver
@@ -546,7 +541,7 @@ export default function KanbanPage() {
   // Show the skeleton on first load only; later refreshes (CRUD, rollback after a failed drag) run silently to avoid flicker
   const fetchBoards = useCallback(() => {
     return getKanbanBoards()
-      .then((res) => setBoards(res || []))
+      .then(setBoards)
       .catch(() => toast.error('加载看板失败'))
       .finally(() => setLoading(false))
   }, [])
@@ -566,7 +561,7 @@ export default function KanbanPage() {
     boardForm.reset({
       title: board.title,
       board_code: board.board_code,
-      wip_limit: board.wip_limit || 0,
+      wip_limit: board.wip_limit,
       is_active: board.is_active !== false,
       color: board.color || DEFAULT_COLOR,
     })
@@ -574,15 +569,15 @@ export default function KanbanPage() {
   }
   const submitBoard = async (values: BoardFormValues) => {
     const payload = {
-      title: (values.title || '').trim(),
+      title: values.title.trim(),
       color: values.color || DEFAULT_COLOR,
-      wip_limit: Number(values.wip_limit) || 0,
-      is_active: values.is_active !== false,
+      wip_limit: values.wip_limit ?? 0,
+      is_active: values.is_active,
     }
     try {
       // The column code is set on create only (the update API doesn't take it)
       if (boardEditing) await updateKanbanBoard(boardEditing.id, payload)
-      else await createKanbanBoard({ ...payload, board_code: (values.board_code || '').trim() })
+      else await createKanbanBoard({ ...payload, board_code: values.board_code.trim() })
       toast.success(boardEditing ? '列已更新' : '列已创建')
       setBoardOpen(false)
       fetchBoards()
@@ -617,9 +612,9 @@ export default function KanbanPage() {
     setCardEditing(card)
     cardForm.reset({
       title: card.title,
-      card_code: card.card_code || '',
+      card_code: card.card_code,
       board_id: card.board_id,
-      priority: card.priority || 'medium',
+      priority: card.priority,
       assignee: card.assignee || '',
       due_date: card.due_date ? card.due_date.slice(0, 10) : '',
       tags: splitTags(card.tags),
@@ -628,16 +623,17 @@ export default function KanbanPage() {
     setCardOpen(true)
   }
   const submitCard = async (values: CardFormValues) => {
+    // Unreachable: rules.required keeps a column picked on submit
+    if (values.board_id === null) return
     const payload: CardCreateBody = {
-      title: (values.title || '').trim(),
-      // rules.required keeps a column picked on submit, so board_id isn't null here
-      board_id: values.board_id as number,
-      card_code: (values.card_code || '').trim(),
-      priority: values.priority || 'medium',
-      assignee: (values.assignee || '').trim(),
+      title: values.title.trim(),
+      board_id: values.board_id,
+      card_code: values.card_code.trim(),
+      priority: values.priority,
+      assignee: values.assignee.trim(),
       due_date: values.due_date || null,
-      tags: tagsToString(values.tags),
-      description: (values.description || '').trim(),
+      tags: values.tags.join(','),
+      description: values.description.trim(),
     }
     if (cardEditing) delete payload.card_code
     try {
@@ -683,12 +679,14 @@ export default function KanbanPage() {
       // A column's droppable data is { type: 'board', boardId } (KanbanColumn)
       const dstId: number | null | undefined = overIsCard ? boardIdOfCard(prev, parseCardDndId(over.id)) : over.data.current?.boardId
       if (srcId == null || dstId == null || srcId === dstId) return prev
-      const next = prev.map((b) => ({ ...b, cards: [...(b.cards || [])] }))
+      const next = prev.map((b) => ({ ...b, cards: [...b.cards] }))
       // Both ids were read from prev (or from a rendered column), so both columns exist and src holds the card
-      const src = next.find((b) => b.id === srcId)!
-      const dst = next.find((b) => b.id === dstId)!
+      const src = next.find((b) => b.id === srcId)
+      const dst = next.find((b) => b.id === dstId)
+      if (!src || !dst) return prev
       const idx = src.cards.findIndex((c) => c.id === activeId)
       const [moved] = src.cards.splice(idx, 1)
+      if (!moved) return prev
       let insertAt = dst.cards.length
       if (overIsCard) {
         const overIdx = dst.cards.findIndex((c) => c.id === parseCardDndId(over.id))
@@ -696,7 +694,7 @@ export default function KanbanPage() {
         const below = translated && translated.top > over.rect.top + over.rect.height / 2
         insertAt = overIdx + (below ? 1 : 0)
       }
-      dst.cards.splice(insertAt, 0, { ...moved!, board_id: dstId })
+      dst.cards.splice(insertAt, 0, { ...moved, board_id: dstId })
       return next
     })
   }
@@ -733,7 +731,7 @@ export default function KanbanPage() {
 
     const payload: ReorderBody = []
     nextBoards.forEach((b) => {
-      ;(b.cards || []).forEach((c, idx) => payload.push({ id: c.id, board_id: b.id, sort_order: idx }))
+      b.cards.forEach((c, idx) => payload.push({ id: c.id, board_id: b.id, sort_order: idx }))
     })
     reorderKanbanCards(payload).catch((err) => {
       toast.apiError(err, '保存顺序失败')
@@ -743,7 +741,7 @@ export default function KanbanPage() {
 
   const boardOptions = boards.map((b) => ({ value: b.id, label: b.title }))
   const activeBoardId = activeCard ? boardIdOfCard(boards, activeCard.id) : null
-  const totalCards = boards.reduce((sum, b) => sum + (b.cards?.length || 0), 0)
+  const totalCards = boards.reduce((sum, b) => sum + b.cards.length, 0)
 
   return (
     <div>

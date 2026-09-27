@@ -113,17 +113,17 @@ export default function Users() {
   useEffect(() => {
     fetchData()
     getRoles()
-      .then((res) => setRoles(Array.isArray(res) ? res : []))
+      .then(setRoles)
       .catch(() => {})
     getDepartments()
-      .then((res) => setDeptTree(Array.isArray(res) ? res : []))
+      .then(setDeptTree)
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Only super admins may grant the super admin role or touch super admin accounts (the API enforces the same)
-  const currentIsSuper = Boolean(currentUser?.roles?.some((r) => r.code === 'super_admin'))
-  const isSuperAccount = (record: User) => Boolean(record?.roles?.some((r) => r.code === 'super_admin'))
+  const currentIsSuper = Boolean(currentUser?.roles.some((r) => r.code === 'super_admin'))
+  const isSuperAccount = (record: User) => record.roles.some((r) => r.code === 'super_admin')
   const roleOptions = useMemo(
     () => roles.filter((r) => currentIsSuper || r.code !== 'super_admin').map((r) => ({ label: r.name, value: r.id })),
     [roles, currentIsSuper],
@@ -141,7 +141,7 @@ export default function Users() {
     form.reset({
       username: record.username,
       password: '',
-      role_ids: record.roles?.map((r) => r.id) || [],
+      role_ids: record.roles.map((r) => r.id),
       dept_id: record.dept_id ?? null,
       ...profileDefaults(record),
     })
@@ -288,7 +288,7 @@ export default function Users() {
       title: '角色',
       dataIndex: 'roles',
       render: (value) =>
-        value?.length ? (
+        value.length ? (
           <div className="flex flex-wrap gap-1">
             {value.map((role) => (
               <StatusBadge key={role.id} tone={role.code === 'super_admin' ? 'brand' : 'neutral'}>
@@ -538,7 +538,7 @@ export default function Users() {
         }
         onImport={(file) => importUsers(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created || 0, updated: res.updated || 0 }))
           fetchData()
         }}
         errorExportFileName="users_import_error_rows.csv"

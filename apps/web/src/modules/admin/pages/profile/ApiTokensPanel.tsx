@@ -17,7 +17,7 @@ import { FormInput, FormSelect } from '@/shared/components/FormFields'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import type { TreeNode } from '@/shared/components/TreeView'
-import { useReauth } from '@/shared/hooks/useReauth'
+import { isReauthCancelled, useReauth } from '@/shared/hooks/useReauth'
 
 const EXPIRY_OPTIONS = [
   { label: '30 天', value: '30' },
@@ -47,9 +47,6 @@ interface ScopeNode extends TreeNode {
 interface ScopeDraft extends Omit<ScopeNode, 'children'> {
   children: ScopeDraft[]
 }
-
-/** The token was not created because the user cancelled the identity check (useReauth rejects with { cancelled: true }) */
-const isCancelled = (err: unknown): boolean => typeof err === 'object' && err !== null && 'cancelled' in err && Boolean(err.cancelled)
 
 /** Flat scope items ({ id, parent_id, code, name, grantable }) → CheckableTree nodes keyed by code */
 function toScopeTree(items: ApiTokenScope[]): ScopeNode[] {
@@ -115,7 +112,7 @@ function CreateTokenDialog({ open, onOpenChange, onCreated }: CreateTokenDialogP
   useEffect(() => {
     if (!open) return
     getApiTokenScopes()
-      .then((res) => setScopeItems(res.items || []))
+      .then((res) => setScopeItems(res.items))
       .catch((err: unknown) => {
         toast.apiError(err, '加载失败')
         setScopeItems([])
@@ -141,7 +138,7 @@ function CreateTokenDialog({ open, onOpenChange, onCreated }: CreateTokenDialogP
       )
       onCreated(res)
     } catch (err) {
-      if (!isCancelled(err)) toast.apiError(err, '创建失败')
+      if (!isReauthCancelled(err)) toast.apiError(err, '创建失败')
       throw err
     }
   }

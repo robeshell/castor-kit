@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useMonacoTheme } from '@/lib/monaco-theme'
-import { EXAMPLE_JSON, type JsonObject, type JsonValue } from '@/modules/component_center/pages/editor/json_editor_page/demo-content'
+import { EXAMPLE_JSON, type JsonValue } from '@/modules/component_center/pages/editor/json_editor_page/demo-content'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
@@ -46,10 +46,10 @@ interface JsonNodeProps {
 
 function JsonNode({ nodeKey, value, depth = 0 }: JsonNodeProps) {
   const [expanded, setExpanded] = useState(depth < 2)
-  const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
   const indent = { paddingLeft: depth * 16 }
 
-  if (type !== 'object' && type !== 'array') {
+  if (value === null || typeof value !== 'object') {
+    const type = value === null ? 'null' : typeof value
     return (
       <div className="flex gap-1 leading-6" style={indent}>
         <span className="w-3.5 shrink-0" />
@@ -61,11 +61,9 @@ function JsonNode({ nodeKey, value, depth = 0 }: JsonNodeProps) {
     )
   }
 
-  // type is 'array' or 'object' past the early return, so value is a JSON array or object
-  const entries: [string | number, JsonValue][] =
-    type === 'array' ? (value as JsonValue[]).map((v, i) => [i, v]) : Object.entries(value as JsonObject)
-  const [open, close] = type === 'array' ? ['[', ']'] : ['{', '}']
-  const summary = type === 'array' ? `Array(${(value as JsonValue[]).length})` : `Object(${Object.keys(value as JsonObject).length})`
+  const entries: [string | number, JsonValue][] = Array.isArray(value) ? value.map((v, i) => [i, v]) : Object.entries(value)
+  const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}']
+  const summary = Array.isArray(value) ? `Array(${value.length})` : `Object(${Object.keys(value).length})`
 
   return (
     <div>
@@ -142,7 +140,7 @@ export default function JsonEditorPage() {
       return parsed
     } catch (e) {
       // JSON.parse throws a SyntaxError
-      setParseError((e as SyntaxError).message)
+      setParseError(e instanceof Error ? e.message : String(e))
       setParsedJson(null)
       return null
     }

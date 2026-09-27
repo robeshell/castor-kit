@@ -30,8 +30,8 @@ export function localParts(ms: number): { date: string; time: string } {
 export function localToIso(date: string, time: string): string {
   const [y, mo, d] = date.split('-').map(Number)
   const [h, mi, s = 0] = time.split(':').map(Number)
-  // Missing parts stay undefined (→ Invalid Date), as before typing
-  const offset = -new Date(y!, mo! - 1, d, h, mi, s).getTimezoneOffset()
+  // A missing part makes an Invalid Date (NaN offset), like an undefined argument would
+  const offset = -new Date(y ?? Number.NaN, (mo ?? Number.NaN) - 1, d, h, mi, s).getTimezoneOffset()
   const sign = offset < 0 ? '-' : '+'
   return `${date}T${time}${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`
 }

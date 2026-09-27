@@ -108,7 +108,7 @@ function skeletonWidth(row: number, col: number) {
 export default function DataTable<Row extends object = Record<string, unknown>, TKey extends RowKey = RowKey>({
   data = [],
   columns = [],
-  rowKey = 'id' as keyof Row & string,
+  rowKey,
   loading = false,
   pagination,
   selectable = false,
@@ -125,8 +125,12 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
   minWidth,
 }: DataTableProps<Row, TKey>) {
   const tx = useTx()
-  // A field key yields whatever the row holds there; the page picks rowKey / selectedKeys to match
-  const getKey = (row: Row, index: number): TKey => (typeof rowKey === 'function' ? rowKey(row, index) : ((row?.[rowKey] ?? index) as TKey))
+  const getKey = (row: Row, index: number): TKey => {
+    if (typeof rowKey === 'function') return rowKey(row, index)
+    const value = rowKey === undefined ? ('id' in row ? row.id : undefined) : row[rowKey]
+    // A field key yields whatever the row holds there; the page picks rowKey / selectedKeys to match
+    return (value ?? index) as TKey
+  }
   const keySet = useMemo(() => new Set(selectedKeys), [selectedKeys])
   const pageKeys = data.map(getKey)
   const allSelected = pageKeys.length > 0 && pageKeys.every((k) => keySet.has(k))
@@ -227,7 +231,7 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                         </td>
                       ) : null}
                       {columns.map((col: ErasedColumn<Row>, j) => {
-                        const value = col.dataIndex ? row?.[col.dataIndex] : undefined
+                        const value = col.dataIndex ? row[col.dataIndex] : undefined
                         // Without render the raw value is shown: the column's field has to hold something renderable
                         const content = col.render ? col.render(value, row, index) : (value as ReactNode)
                         return (
@@ -272,7 +276,8 @@ function pageList(page: number, totalPages: number): (number | '…')[] {
   const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b)
   const result: (number | '…')[] = []
   sorted.forEach((p, i) => {
-    if (i > 0 && p - sorted[i - 1]! > 1) result.push('…')
+    const prev = sorted[i - 1]
+    if (prev !== undefined && p - prev > 1) result.push('…')
     result.push(p)
   })
   return result

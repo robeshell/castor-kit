@@ -72,15 +72,16 @@ function findOption<K extends OptionKey>(key: K, candidate: unknown): Appearance
 
 /** Drop unknown keys / values so a stale or hand-edited entry can never break the layout */
 export function normalizeAppearance(value: unknown): Appearance {
-  const result = { ...DEFAULT_APPEARANCE }
-  if (!value || typeof value !== 'object') return result
+  if (!value || typeof value !== 'object') return { ...DEFAULT_APPEARANCE }
   const input: Partial<Record<keyof Appearance, unknown>> = value
-  for (const key of Object.keys(OPTIONS) as OptionKey[]) {
-    const option = findOption(key, input[key])
-    if (option) Object.assign(result, { [key]: option.id })
+  const pick = <K extends OptionKey>(key: K): Appearance[K] => findOption(key, input[key])?.id ?? DEFAULT_APPEARANCE[key]
+  return {
+    accent: pick('accent'),
+    navMode: pick('navMode'),
+    sidebarVariant: pick('sidebarVariant'),
+    contentWidth: pick('contentWidth'),
+    tagsView: typeof input.tagsView === 'boolean' ? input.tagsView : DEFAULT_APPEARANCE.tagsView,
   }
-  if (typeof input.tagsView === 'boolean') result.tagsView = input.tagsView
-  return result
 }
 
 export function readAppearance(): Appearance {

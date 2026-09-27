@@ -32,11 +32,15 @@ const SERIES_CONFIG = [
   { key: 'pressure', name: '压力', unit: 'kPa', min: 100, max: 110, colorVar: 'chart-4', accent: 'bg-chart-4' },
   { key: 'flow', name: '流量', unit: 'm³/h', min: 50, max: 200, colorVar: 'chart-5', accent: 'bg-chart-5' },
 ] as const satisfies readonly SensorConfig[]
-type SensorKey = (typeof SERIES_CONFIG)[number]['key']
+type Sensor = (typeof SERIES_CONFIG)[number]
+type SensorKey = Sensor['key']
 /** Values keyed by sensor */
 type PerSensor<T> = Record<SensorKey, T>
-/** An empty per-sensor record; every caller fills each key in the SERIES_CONFIG.forEach that follows */
-const emptyPerSensor = <T,>() => ({}) as PerSensor<T>
+/** A per-sensor record: `value` is called with each sensor's config */
+function perSensor<T>(value: (s: Sensor) => T): PerSensor<T> {
+  const [temperature, humidity, pressure, flow] = SERIES_CONFIG
+  return { temperature: value(temperature), humidity: value(humidity), pressure: value(pressure), flow: value(flow) }
+}
 
 const SPEED_MS: Record<string, number> = { '0.5x': 2000, '1x': 1000, '2x': 500 }
 const SPEED_OPTIONS = [
@@ -58,12 +62,8 @@ function formatTime(date: Date) {
 function initialState() {
   const now = new Date()
   const timestamps = Array.from({ length: 10 }, (_, i) => formatTime(new Date(now.getTime() - (9 - i) * 1000)))
-  const series = emptyPerSensor<number[]>()
-  const current = emptyPerSensor<number>()
-  SERIES_CONFIG.forEach((s) => {
-    series[s.key] = Array.from({ length: 10 }, () => +(s.min + Math.random() * (s.max - s.min)).toFixed(2))
-    current[s.key] = +(s.min + Math.random() * (s.max - s.min)).toFixed(2)
-  })
+  const series = perSensor((s) => Array.from({ length: 10 }, () => +(s.min + Math.random() * (s.max - s.min)).toFixed(2)))
+  const current = perSensor((s) => +(s.min + Math.random() * (s.max - s.min)).toFixed(2))
   return { timestamps, series, current }
 }
 
@@ -77,23 +77,14 @@ export default function RealtimeChartPage() {
   const [timestamps, setTimestamps] = useState(init.timestamps)
   const [series, setSeries] = useState(init.series)
   const [current, setCurrent] = useState(init.current)
-  const prevRef = useRef({ ...init.current })
+  const prevRef = useRef(init.current)
 
   const addPoint = useCallback(() => {
     const now = formatTime(new Date())
-    const newVals = emptyPerSensor<number>()
-    SERIES_CONFIG.forEach((s) => {
-      newVals[s.key] = +randomValue(s.min, s.max, prevRef.current[s.key] ?? (s.min + s.max) / 2).toFixed(2)
-      prevRef.current[s.key] = newVals[s.key]
-    })
+    const newVals = perSensor((s) => +randomValue(s.min, s.max, prevRef.current[s.key]).toFixed(2))
+    prevRef.current = newVals
     setTimestamps((prev) => [...prev.slice(-(MAX_POINTS - 1)), now])
-    setSeries((prev) => {
-      const next = emptyPerSensor<number[]>()
-      SERIES_CONFIG.forEach((s) => {
-        next[s.key] = [...prev[s.key].slice(-(MAX_POINTS - 1)), newVals[s.key]]
-      })
-      return next
-    })
+    setSeries((prev) => perSensor((s) => [...prev[s.key].slice(-(MAX_POINTS - 1)), newVals[s.key]]))
     setCurrent(newVals)
   }, [])
 
@@ -105,13 +96,7 @@ export default function RealtimeChartPage() {
 
   const handleClear = () => {
     setTimestamps([])
-    setSeries(() => {
-      const v = emptyPerSensor<number[]>()
-      SERIES_CONFIG.forEach((s) => {
-        v[s.key] = []
-      })
-      return v
-    })
+    setSeries(perSensor<number[]>(() => []))
   }
 
   const option = useMemo((): EChartsOption => {
@@ -195,7 +180,7 @@ export default function RealtimeChartPage() {
             </div>
             <div className="mt-2 flex items-baseline gap-1">
               <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums">
-                {current[s.key] ?? '--'}
+                {current[s.key]}
               </span>
               <span className="text-muted-foreground text-xs">{s.unit}</span>
             </div>

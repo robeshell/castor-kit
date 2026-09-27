@@ -3,12 +3,8 @@ import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types
 
 /** A dictionary type (times are ISO 8601 UTC) */
 export type DictType = ApiItem<'/api/admin/dicts'>
-/** A dictionary type with its items (`include_items`) */
-export type DictTypeDetail = ApiResponse<'/api/admin/dicts/{dict_id}'>
 /** A dictionary item (with its type's code and name) */
 export type DictItem = ApiItem<'/api/admin/dicts/{dict_id}/items'>
-/** Options of several dictionaries, keyed by dictionary code */
-export type DictOptions = ApiResponse<'/api/admin/dicts/options'>
 
 /** Create / edit bodies of dictionary types and items (sort_order: null, e.g. a cleared number input, is saved as 0) */
 export type DictTypeBody = ApiBody<'/api/admin/dicts', 'post'>
@@ -18,11 +14,6 @@ export type DictItemUpdateBody = ApiBody<'/api/admin/dicts/items/{item_id}', 'pu
 
 export const getDictTypes = (params?: ApiQuery<'/api/admin/dicts'>) =>
   request.get<unknown, ApiResponse<'/api/admin/dicts'>>('/admin/dicts', { params })
-export const getDictTypeDetail = (id: number, params?: ApiQuery<'/api/admin/dicts/{dict_id}'>) =>
-  request.get<unknown, DictTypeDetail>(`/admin/dicts/${id}`, { params })
-export const getDictOptions = (codes: string | string[]) => request.get<unknown, DictOptions>('/admin/dicts/options', {
-  params: { codes: Array.isArray(codes) ? codes.join(',') : codes },
-})
 export const createDictType = (data: DictTypeBody) =>
   request.post<unknown, ApiResponse<'/api/admin/dicts', 'post'>>('/admin/dicts', data)
 export const updateDictType = (id: number, data: DictTypeUpdateBody) =>

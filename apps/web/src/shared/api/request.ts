@@ -20,13 +20,11 @@ export const getCsrfToken = (): string => _csrfToken
 const BROWSER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
 request.interceptors.request.use((config) => {
-  config.headers = config.headers || {}
   // The backend translates error and message text based on this header
   config.headers['Accept-Language'] = i18n.language
   // Exported files and the dashboard use the browser's time zone (API responses are always UTC)
   config.headers['X-Time-Zone'] = BROWSER_TIME_ZONE
   if (_csrfToken && ['post', 'put', 'patch', 'delete'].includes((config.method || '').toLowerCase())) {
-    config.headers = config.headers || {}
     config.headers['X-CSRF-Token'] = _csrfToken
   }
   return config

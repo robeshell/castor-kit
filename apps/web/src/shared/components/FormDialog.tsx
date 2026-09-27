@@ -84,7 +84,7 @@ export function FormDialog<TFieldValues extends FieldValues = FieldValues, TCont
   const [submitting, handleSubmit] = useSubmit(form, onSubmit)
   return (
     <Dialog open={open} onOpenChange={(next) => !submitting && onOpenChange?.(next)}>
-      <DialogContent className={cn('gap-0 p-0', SIZES[size] || SIZES.md)}>
+      <DialogContent className={cn('gap-0 p-0', SIZES[size])}>
         <Form {...form}>
           <form onSubmit={handleSubmit} noValidate className="flex max-h-[85vh] flex-col">
             <DialogHeader className="px-6 pt-6 pb-4">

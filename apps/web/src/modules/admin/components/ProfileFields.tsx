@@ -7,7 +7,7 @@ import { FormAvatarUpload, FormGrid, FormInput } from '@/shared/components/FormF
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^\+?[0-9][0-9 -]{4,19}$/
 
-const optional = (re: RegExp, message: string) => (value: string) => !value?.trim() || re.test(value.trim()) || message
+const optional = (re: RegExp, message: string) => (value: string) => !value.trim() || re.test(value.trim()) || message
 
 export interface ProfileFieldsProps<T extends ProfileValues = ProfileValues> {
   /** form.control of a form that has the profile fields (nickname / email / phone / avatar) */

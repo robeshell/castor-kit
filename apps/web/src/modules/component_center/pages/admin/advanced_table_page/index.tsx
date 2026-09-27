@@ -244,11 +244,11 @@ export default function AdvancedTablePage() {
     setEditingDraft({
       name: record.name,
       owner: record.owner || '',
-      status: record.status || 'draft',
-      priority: record.priority ?? 0,
-      progress: record.progress ?? 0,
+      status: record.status,
+      priority: record.priority,
+      progress: record.progress,
       score: record.score ?? 0,
-      tags: record.tags || '',
+      tags: record.tags,
       remark: record.remark || '',
     })
   }
@@ -316,7 +316,7 @@ export default function AdvancedTablePage() {
 
   // ── Drag-and-drop sorting ────────────────────────────────
   const openSortSheet = () => {
-    setSortItems([...data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map((item) => ({ ...item })))
+    setSortItems([...data].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ ...item })))
     setSortSheetVisible(true)
   }
 
@@ -340,7 +340,7 @@ export default function AdvancedTablePage() {
     if (!selectedRowKeys.length) return warnEmpty()
     batchUpdateAdvancedTableRows({ ids: selectedRowKeys, status: nextStatus })
       .then((res) => {
-        toast.success(res?.message || '批量更新成功')
+        toast.success(res.message || '批量更新成功')
         fetchData()
         fetchStats()
       })
@@ -350,7 +350,7 @@ export default function AdvancedTablePage() {
   const doBatchDelete = async () => {
     try {
       const res = await batchDeleteAdvancedTableRows({ ids: selectedRowKeys })
-      toast.success(res?.message || '批量删除成功')
+      toast.success(res.message || '批量删除成功')
       setLastSnapshot((snap) => (snap && selectedRowKeys.includes(snap.id) ? null : snap))
       setSelectedRowKeys([])
       fetchData()
@@ -472,7 +472,7 @@ export default function AdvancedTablePage() {
       width: 100,
       className: 'tabular-nums',
       render: (value, record) =>
-        isEditing(record) ? <NumberCell value={editingDraft.priority} onChange={setDraft('priority')} /> : (value ?? 0),
+        isEditing(record) ? <NumberCell value={editingDraft.priority} onChange={setDraft('priority')} /> : value,
     },
     progress: {
       title: '进度(%)',
@@ -480,13 +480,13 @@ export default function AdvancedTablePage() {
       width: 140,
       render: (value, record) => {
         if (isEditing(record)) return <NumberCell value={editingDraft.progress} onChange={setDraft('progress')} />
-        const pct = Math.max(0, Math.min(100, Number(value) || 0))
+        const pct = Math.max(0, Math.min(100, value))
         return (
           <div className="flex items-center gap-2">
             <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
               <div className={cn('h-full rounded-full', pct >= 100 ? 'bg-success' : 'bg-brand-gradient')} style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-xs tabular-nums">{value ?? 0}</span>
+            <span className="text-xs tabular-nums">{value}</span>
           </div>
         )
       },

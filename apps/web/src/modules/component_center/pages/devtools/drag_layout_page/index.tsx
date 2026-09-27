@@ -89,11 +89,31 @@ const LOG_LEVEL: Record<LogLevel, { tone: StatusTone; label: string }> = {
   info: { tone: 'info', label: 'INFO' },
 }
 
+/** A grid item as saved: the id and position / size (the optional fields aren't checked) */
+function isLayoutItem(item: unknown): item is Layout[number] {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'i' in item &&
+    typeof item.i === 'string' &&
+    'x' in item &&
+    typeof item.x === 'number' &&
+    'y' in item &&
+    typeof item.y === 'number' &&
+    'w' in item &&
+    typeof item.w === 'number' &&
+    'h' in item &&
+    typeof item.h === 'number'
+  )
+}
+const isLayout = (value: unknown): value is Layout => Array.isArray(value) && value.every(isLayoutItem)
+
+/** The saved layout (written by handleLayoutChange); anything else in storage falls back to the default */
 function readSavedLayout(): Layout {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    // Written by handleLayoutChange; its shape is trusted as stored (no validation)
-    return saved ? (JSON.parse(saved) as Layout) : DEFAULT_LAYOUT
+    const parsed: unknown = saved ? JSON.parse(saved) : null
+    return isLayout(parsed) ? parsed : DEFAULT_LAYOUT
   } catch {
     return DEFAULT_LAYOUT
   }
@@ -236,7 +256,7 @@ function SysLogWidget() {
   return (
     <div className="h-full overflow-y-auto">
       {LOG_DATA.map((log) => {
-        const meta = LOG_LEVEL[log.level] || LOG_LEVEL.info
+        const meta = LOG_LEVEL[log.level]
         return (
           <div key={`${log.time}-${log.msg}`} className="flex items-start gap-2 border-b px-0.5 py-1.5 last:border-b-0">
             <span className="text-muted-foreground shrink-0 font-mono text-[10px] leading-5 tabular-nums">{log.time}</span>

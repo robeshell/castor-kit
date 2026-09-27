@@ -130,22 +130,21 @@ const STATUS_META: Record<StatsListPageItem['status'], { label: string; tone: St
 const normalizeFileType = (raw: string): 'csv' | 'xlsx' => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
 const money = (value: number | null | undefined) =>
   `¥ ${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const formatAmount = (value: number | null | undefined) => (typeof value === 'number' ? money(value) : '-')
-const statusMeta = (value: StatsListPageItem['status']) => STATUS_META[value] || STATUS_META.draft
+const statusMeta = (value: StatsListPageItem['status']) => STATUS_META[value]
 const stringFilter = (value: unknown) => (typeof value === 'string' ? value : undefined)
 
 function toFormValues(record: StatsListPageItem | null): FormValues {
   if (!record) return { ...EMPTY_VALUES }
   return {
-    name: record.name ?? '',
-    item_code: record.item_code ?? '',
+    name: record.name,
+    item_code: record.item_code,
     category: record.category || 'general',
     owner: record.owner ?? '',
-    amount: record.amount ?? 0,
-    quantity: record.quantity ?? 0,
-    priority: record.priority ?? 0,
+    amount: record.amount,
+    quantity: record.quantity,
+    priority: record.priority,
     is_active: record.is_active !== false,
-    status: record.status || 'draft',
+    status: record.status,
     description: record.description ?? '',
   }
 }
@@ -201,7 +200,7 @@ function CategoryDistribution({ stats, loading }: StatsPanelProps) {
   }, [c, items, t])
 
   const highlight = (index: number, on: boolean) => {
-    const chart = chartRef.current?.getEchartsInstance?.()
+    const chart = chartRef.current?.getEchartsInstance()
     chart?.dispatchAction({ type: on ? 'highlight' : 'downplay', seriesIndex: 0, dataIndex: index })
   }
 
@@ -340,7 +339,7 @@ function SummaryCard({ values }: { values: DeepPartialSkipArrayKey<FormValues> }
         {rows.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[64px_minmax(0,1fr)] gap-2">
             <dt className="text-muted-foreground">{t(label)}</dt>
-            <dd className="truncate tabular-nums">{value === '' || value === null || value === undefined ? '-' : String(value)}</dd>
+            <dd className="truncate tabular-nums">{value === '' || value === undefined ? '-' : String(value)}</dd>
           </div>
         ))}
       </dl>
@@ -405,10 +404,10 @@ export default function StatsListPage() {
     setSelectedKeys([])
     list.handleSearch({
       search: search.trim(),
-      category: category || '',
+      category,
       owner: owner.trim(),
-      is_active: isActive || '',
-      status: statusFilter || '',
+      is_active: isActive,
+      status: statusFilter,
     })
   }
 
@@ -517,7 +516,7 @@ export default function StatsListPage() {
         )
       },
     },
-    { key: 'amount', title: '金额', dataIndex: 'amount', width: 130, align: 'right', className: 'tabular-nums', render: formatAmount },
+    { key: 'amount', title: '金额', dataIndex: 'amount', width: 130, align: 'right', className: 'tabular-nums', render: money },
     {
       key: 'quantity',
       title: '数量',
@@ -525,7 +524,7 @@ export default function StatsListPage() {
       width: 80,
       align: 'right',
       className: 'tabular-nums',
-      render: (v) => (v ?? 0).toLocaleString(),
+      render: (v) => v.toLocaleString(),
     },
     { key: 'owner', title: '负责人', dataIndex: 'owner', width: 100, render: (v) => v || '-' },
     {
@@ -818,10 +817,10 @@ export default function StatsListPage() {
                     </StatusBadge>
                   ),
                 },
-                { label: '金额', value: <span className="tabular-nums">{formatAmount(detail.amount)}</span> },
-                { label: '数量', value: <span className="tabular-nums">{(detail.quantity ?? 0).toLocaleString()}</span> },
+                { label: '金额', value: <span className="tabular-nums">{money(detail.amount)}</span> },
+                { label: '数量', value: <span className="tabular-nums">{detail.quantity.toLocaleString()}</span> },
                 { label: '负责人', value: detail.owner || '-' },
-                { label: '优先级', value: <span className="tabular-nums">{detail.priority ?? 0}</span> },
+                { label: '优先级', value: <span className="tabular-nums">{detail.priority}</span> },
                 {
                   label: '启用',
                   value: (
@@ -874,7 +873,7 @@ export default function StatsListPage() {
         }
         onImport={(file) => importStatsListPage(file)}
         onImported={(res) => {
-          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
+          toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res.created ?? 0, updated: res.updated ?? 0 }))
           reloadAll()
         }}
         errorExportFileName="stats_list_page_import_error_rows.csv"

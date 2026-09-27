@@ -15,6 +15,8 @@ const PARTICLE_COUNT = 18000
 type Shape = 'sphere' | 'torus' | 'dna' | 'galaxy' | 'cube'
 
 const SHAPES: readonly Shape[] = ['sphere', 'torus', 'dna', 'galaxy', 'cube']
+/** The shape the auto mode morphs to next (SHAPES order, wrapping around) */
+const NEXT_SHAPE: Record<Shape, Shape> = { sphere: 'torus', torus: 'dna', dna: 'galaxy', galaxy: 'cube', cube: 'sphere' }
 // Labels keep the Chinese source text and are translated when rendered
 const SHAPE_LABELS: Record<Shape, string> = { sphere: '球体', torus: '环面', dna: 'DNA 螺旋', galaxy: '星系', cube: '立方体' }
 
@@ -27,8 +29,8 @@ interface Palette {
   colors: Rgb[]
 }
 
-// WebGL vertex colors (0–1 RGB), Ocean blue / cyan family
-const PALETTES: Palette[] = [
+// WebGL vertex colors (0–1 RGB), Ocean blue / cyan family; the first one is the default
+const PALETTES: [Palette, ...Palette[]] = [
   { name: '海洋', colors: [[0.15, 0.39, 0.92], [0.01, 0.52, 0.78], [0.13, 0.83, 0.93]] },
   { name: '冰川', colors: [[0.13, 0.83, 0.93], [0.65, 0.95, 0.99], [0.22, 0.74, 0.97]] },
   { name: '潟湖', colors: [[0.08, 0.72, 0.65], [0.18, 0.83, 0.75], [0.13, 0.83, 0.93]] },
@@ -75,24 +77,26 @@ function getShapePositions(shape: Shape, count: number) {
       const face = Math.floor(Math.random() * 6)
       const a = (Math.random() - 0.5) * 2
       const b = (Math.random() - 0.5) * 2
-      const faces: Vec3[] = [[1,a,b],[-1,a,b],[a,1,b],[a,-1,b],[a,b,1],[a,b,-1]]
-      // face is 0-5, and map keeps the 3-element length
-      ;[x, y, z] = faces[face]!.map(v => v * 1.0) as Vec3
+      // Faces 0-5: +x, -x, +y, -y, +z, -z
+      const side = face % 2 === 0 ? 1 : -1
+      const axis = Math.floor(face / 2)
+      ;[x, y, z] = axis === 0 ? [side, a, b] : axis === 1 ? [a, side, b] : [a, b, side]
     }
     pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z
   }
   return pos
 }
 
-function getColors(palette: number, count: number) {
+function getColors(palette: Palette, count: number) {
   const cols = new Float32Array(count * 3)
-  // palette is a PALETTES index; ci and ci + 1 are clamped to p below
-  const p = PALETTES[palette]!.colors
+  // ci and ci + 1 are clamped to p below, so the `continue` never applies
+  const p = palette.colors
   for (let i = 0; i < count; i++) {
     const t = i / count
     const ci = Math.floor(t * (p.length - 1))
     const ct = t * (p.length - 1) - ci
-    const c1 = p[ci]!, c2 = p[Math.min(ci + 1, p.length - 1)]!
+    const c1 = p[ci], c2 = p[Math.min(ci + 1, p.length - 1)]
+    if (!c1 || !c2) continue
     cols[i * 3]     = c1[0] + (c2[0] - c1[0]) * ct
     cols[i * 3 + 1] = c1[1] + (c2[1] - c1[1]) * ct
     cols[i * 3 + 2] = c1[2] + (c2[2] - c1[2]) * ct
@@ -102,24 +106,25 @@ function getColors(palette: number, count: number) {
 
 /** Shared between the scene effect and the controls; the effect fills in the two functions */
 interface MorphState {
-  shapeIdx: number
-  paletteIdx: number
+  shape: Shape
+  palette: Palette
   auto: boolean
-  startMorph?: (newIdx: number) => void
-  applyPalette?: (idx: number) => void
+  startMorph?: (shape: Shape) => void
+  applyPalette?: (palette: Palette) => void
 }
 
 export default function MorphingParticlesPage() {
   const { t } = useTranslation()
   const mountRef = useRef<HTMLDivElement>(null)
-  const stateRef = useRef<MorphState>({ shapeIdx: 0, paletteIdx: 0, auto: true })
-  const [shapeIdx, setShapeIdx] = useState(0)
-  const [paletteIdx, setPaletteIdx] = useState(0)
+  const stateRef = useRef<MorphState>({ shape: 'sphere', palette: PALETTES[0], auto: true })
+  const [shape, setShape] = useState<Shape>('sphere')
+  const [palette, setPalette] = useState(PALETTES[0])
   const [morphing, setMorphing] = useState(false)
 
   useEffect(() => {
-    // The effect runs after the mount div is attached
-    const mount = mountRef.current!
+    // The effect runs after the mount div is attached, so this never returns early
+    const mount = mountRef.current
+    if (!mount) return
     const w = mount.clientWidth, h = mount.clientHeight
 
     const scene = new THREE.Scene()
@@ -136,7 +141,7 @@ export default function MorphingParticlesPage() {
     let fromPos = getShapePositions('sphere', PARTICLE_COUNT)
     let toPos   = fromPos.slice()
     const curPos = fromPos.slice()
-    const colors = getColors(0, PARTICLE_COUNT)
+    const colors = getColors(PALETTES[0], PARTICLE_COUNT)
 
     geo.setAttribute('position', new THREE.BufferAttribute(curPos, 3))
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
@@ -156,18 +161,17 @@ export default function MorphingParticlesPage() {
     let morphT = 1.0
     let autoTimer: ReturnType<typeof setTimeout> | undefined = undefined
 
-    function startMorph(newIdx: number) {
+    function startMorph(newShape: Shape) {
       const s = stateRef.current
       fromPos = curPos.slice()
-      // newIdx is always a SHAPES index
-      toPos = getShapePositions(SHAPES[newIdx]!, PARTICLE_COUNT)
+      toPos = getShapePositions(newShape, PARTICLE_COUNT)
       morphT = 0
-      s.shapeIdx = newIdx
-      setShapeIdx(newIdx)
+      s.shape = newShape
+      setShape(newShape)
       setMorphing(true)
 
       // Update colors
-      const newColors = getColors(s.paletteIdx, PARTICLE_COUNT)
+      const newColors = getColors(s.palette, PARTICLE_COUNT)
       geo.attributes.color.array.set(newColors)
       geo.attributes.color.needsUpdate = true
     }
@@ -175,18 +179,15 @@ export default function MorphingParticlesPage() {
     // Expose to buttons
     stateRef.current.startMorph = startMorph
     // Palette changes apply immediately (no need to wait for the next morph)
-    stateRef.current.applyPalette = (idx: number) => {
-      geo.attributes.color.array.set(getColors(idx, PARTICLE_COUNT))
+    stateRef.current.applyPalette = (p: Palette) => {
+      geo.attributes.color.array.set(getColors(p, PARTICLE_COUNT))
       geo.attributes.color.needsUpdate = true
     }
 
     function scheduleAuto() {
       clearTimeout(autoTimer)
       autoTimer = setTimeout(() => {
-        if (stateRef.current.auto) {
-          const next = (stateRef.current.shapeIdx + 1) % SHAPES.length
-          startMorph(next)
-        }
+        if (stateRef.current.auto) startMorph(NEXT_SHAPE[stateRef.current.shape])
       }, 3500)
     }
     scheduleAuto()
@@ -215,11 +216,9 @@ export default function MorphingParticlesPage() {
       if (morphT < 1) {
         morphT = Math.min(1, morphT + 0.012)
         const ease = morphT < 0.5 ? 4 * morphT * morphT * morphT : 1 - Math.pow(-2 * morphT + 2, 3) / 2
-        // All three arrays hold PARTICLE_COUNT * 3 values
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          curPos[i * 3]     = fromPos[i * 3]!     + (toPos[i * 3]!     - fromPos[i * 3]!)     * ease
-          curPos[i * 3 + 1] = fromPos[i * 3 + 1]! + (toPos[i * 3 + 1]! - fromPos[i * 3 + 1]!) * ease
-          curPos[i * 3 + 2] = fromPos[i * 3 + 2]! + (toPos[i * 3 + 2]! - fromPos[i * 3 + 2]!) * ease
+        // All three arrays hold PARTICLE_COUNT * 3 values, so j is always in range; `!` keeps this per-frame loop free of checks
+        for (let j = 0; j < curPos.length; j++) {
+          curPos[j] = fromPos[j]! + (toPos[j]! - fromPos[j]!) * ease
         }
         geo.attributes.position.needsUpdate = true
         if (morphT >= 1) {
@@ -267,21 +266,20 @@ export default function MorphingParticlesPage() {
     }
   }, [])
 
-  const handleShape = (idx: number) => {
+  const handleShape = (next: Shape) => {
     stateRef.current.auto = false
-    stateRef.current.startMorph?.(idx)
+    stateRef.current.startMorph?.(next)
   }
 
-  const handlePalette = (idx: number) => {
-    stateRef.current.paletteIdx = idx
-    stateRef.current.applyPalette?.(idx)
-    setPaletteIdx(idx)
+  const handlePalette = (next: Palette) => {
+    stateRef.current.palette = next
+    stateRef.current.applyPalette?.(next)
+    setPalette(next)
   }
 
   const handleAuto = () => {
     stateRef.current.auto = true
-    const next = (stateRef.current.shapeIdx + 1) % SHAPES.length
-    stateRef.current.startMorph?.(next)
+    stateRef.current.startMorph?.(NEXT_SHAPE[stateRef.current.shape])
   }
 
   return (
@@ -293,8 +291,8 @@ export default function MorphingParticlesPage() {
           <span className="text-muted-foreground text-xs">{t('形态')}</span>
           <SegmentedTabs
             variant="pill"
-            value={SHAPES[shapeIdx]}
-            onChange={(v) => handleShape(SHAPES.indexOf(v))}
+            value={shape}
+            onChange={handleShape}
             items={SHAPES.map((s) => ({ value: s, label: SHAPE_LABELS[s] }))}
           />
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={handleAuto}>
@@ -304,14 +302,14 @@ export default function MorphingParticlesPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs">{t('配色')}</span>
-          {PALETTES.map((p, i) => (
+          {PALETTES.map((p) => (
             <button
               key={p.name}
               type="button"
-              onClick={() => handlePalette(i)}
+              onClick={() => handlePalette(p)}
               className={cn(
                 'flex h-7 items-center gap-1.5 rounded-md px-2 text-xs ring-1 transition-colors duration-150',
-                paletteIdx === i ? 'bg-brand-soft text-foreground ring-primary/40' : 'text-muted-foreground hover:text-foreground ring-border',
+                palette === p ? 'bg-brand-soft text-foreground ring-primary/40' : 'text-muted-foreground hover:text-foreground ring-border',
               )}
             >
               <span className="h-2 w-5 rounded-full" style={{ background: paletteSwatch(p) }} />
@@ -328,15 +326,14 @@ export default function MorphingParticlesPage() {
           <div className="text-[11px] text-white/40">{t('当前形态')}</div>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={shapeIdx}
+              key={shape}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: EASE_OUT }}
               className="text-lg font-semibold text-white"
             >
-              {/* shapeIdx is always a SHAPES index */}
-              {t(SHAPE_LABELS[SHAPES[shapeIdx]!])}
+              {t(SHAPE_LABELS[shape])}
             </motion.div>
           </AnimatePresence>
           <div className={cn('text-brand-to flex items-center justify-end gap-1 text-[11px] transition-opacity duration-200', morphing ? 'opacity-100' : 'opacity-0')}>

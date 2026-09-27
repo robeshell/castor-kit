@@ -33,7 +33,7 @@ import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
 import { useTranslation } from 'react-i18next'
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS: { label: string; value: AnnounceType }[] = [
   { label: '系统公告', value: 'system' },
   { label: '活动公告', value: 'activity' },
   { label: '版本更新', value: 'update' },
@@ -45,7 +45,7 @@ const STATUS_FILTER_ITEMS = [
   { label: '草稿', value: 'draft' },
   { label: '已发布', value: 'published' },
 ]
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { label: string; value: AnnouncementStatus }[] = [
   { label: '草稿', value: 'draft' },
   { label: '已发布', value: 'published' },
 ]
@@ -68,6 +68,8 @@ const normalizeFileType = (raw: string): AnnouncementFileType => (raw === 'csv' 
 
 type AnnounceType = NonNullable<AnnouncementBody['announce_type']>
 type AnnouncementStatus = NonNullable<AnnouncementBody['status']>
+const isAnnounceType = (value: string): value is AnnounceType => TYPE_OPTIONS.some((o) => o.value === value)
+const isAnnouncementStatus = (value: string): value is AnnouncementStatus => STATUS_OPTIONS.some((o) => o.value === value)
 /** What the form holds and submits (the create / edit body) */
 interface FormValues {
   title: string
@@ -112,11 +114,11 @@ export default function Announcements() {
   const openEdit = (record: Announcement) => {
     setEditing(record)
     form.reset({
-      title: record.title ?? '',
+      title: record.title,
       content: record.content ?? '',
       // The response doc types these as text; the backend only stores the values its create / edit body accepts
-      announce_type: (record.announce_type ?? 'system') as AnnounceType,
-      status: (record.status ?? 'draft') as AnnouncementStatus,
+      announce_type: isAnnounceType(record.announce_type) ? record.announce_type : 'system',
+      status: isAnnouncementStatus(record.status) ? record.status : 'draft',
       is_top: Boolean(record.is_top),
       sort_order: record.sort_order ?? 0,
     })

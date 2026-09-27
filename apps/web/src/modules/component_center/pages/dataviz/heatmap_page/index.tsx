@@ -90,6 +90,8 @@ export default function HeatmapPage() {
   const calOption = useMemo((): EChartsOption => {
     const base = chartBase(c)
     const labels = calendarLabels(lang)
+    const first = calData[0]
+    const last = calData.at(-1)
     return {
       textStyle: base.textStyle,
       tooltip: {
@@ -108,8 +110,8 @@ export default function HeatmapPage() {
         left: 36,
         right: 12,
         cellSize: [14, 14],
-        // generateCalendarData always returns 365 points, so the first and last exist
-        range: [calData[0]![0], calData[calData.length - 1]![0]],
+        // generateCalendarData always returns 365 points, so the first and last exist (undefined never applies)
+        range: first && last ? [first[0], last[0]] : undefined,
         itemStyle: { borderWidth: 2, borderColor: c.card, color: 'transparent' },
         splitLine: { show: false },
         yearLabel: { show: false },

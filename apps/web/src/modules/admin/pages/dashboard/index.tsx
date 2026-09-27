@@ -236,7 +236,7 @@ function RecentActivity() {
 
   useEffect(() => {
     getOperationLogs({ page: 1, per_page: 7 })
-      .then((data) => setLogs(data?.items ?? []))
+      .then((data) => setLogs(data.items))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])

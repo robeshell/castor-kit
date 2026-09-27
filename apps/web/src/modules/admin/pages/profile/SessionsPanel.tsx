@@ -19,7 +19,7 @@ export default function SessionsPanel() {
   const load = useCallback(
     () =>
       getMySessions({ per_page: 50 })
-        .then((res) => setItems(res.items || []))
+        .then((res) => setItems(res.items))
         .catch((err: unknown) => {
           toast.apiError(err, '加载失败')
           setItems([])
@@ -45,7 +45,7 @@ export default function SessionsPanel() {
   const revokeOthers = async () => {
     try {
       const res = await revokeMyOtherSessions()
-      toast.success(t('已下线 {{count}} 个其他设备', { count: res.revoked ?? 0 }))
+      toast.success(t('已下线 {{count}} 个其他设备', { count: res.revoked }))
       load()
     } catch (err) {
       toast.apiError(err, '操作失败')

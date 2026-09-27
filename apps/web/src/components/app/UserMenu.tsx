@@ -45,7 +45,7 @@ function useUserMenu() {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const role = user?.roles?.[0]
+  const role = user?.roles[0]
   const roleText = role ? roleName(role) : t('成员')
   const handleLogout = async () => {
     await logout()

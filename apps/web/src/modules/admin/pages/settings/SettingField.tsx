@@ -15,14 +15,14 @@ export interface SettingFieldProps {
   /** Current form value of a switch: one that is already on can be turned off even when its prerequisites are missing */
   switchOn?: unknown
   /** Options of the role picker (security.totp_required_roles) */
-  roleOptions?: MultiSelectOption[]
+  roleOptions: MultiSelectOption[]
 }
 
 /**
  * One setting, rendered by its type. Values pinned by an environment variable are read-only and say which variable;
  * a switch whose prerequisites are missing can't be turned on (the reason replaces the description).
  */
-export default function SettingField({ item, control, canEdit, switchOn, roleOptions = [] }: SettingFieldProps) {
+export default function SettingField({ item, control, canEdit, switchOn, roleOptions }: SettingFieldProps) {
   const { t } = useTranslation()
   if (!item) return null
   const meta = FIELD_META[item.key] || { label: item.key }
@@ -48,11 +48,11 @@ export default function SettingField({ item, control, canEdit, switchOn, roleOpt
     return <FormSelect {...common} options={options} disabled={disabled} />
   }
 
-  if (item.type === 'integer') {
+  // Integer settings always define min and max (apps/api/src/common/settings.ts); the doc types them nullable for the rest
+  if (item.type === 'integer' && item.min !== null && item.max !== null) {
     const mb = meta.input === 'mb'
-    // Integer settings always define min and max (apps/api/src/common/settings.ts); the doc types them nullable for the rest
-    const min = mb ? 0.01 : (item.min as number)
-    const max = mb ? Math.round(((item.max as number) / 1024 / 1024) * 100) / 100 : (item.max as number)
+    const min = mb ? 0.01 : item.min
+    const max = mb ? Math.round((item.max / 1024 / 1024) * 100) / 100 : item.max
     const validate = (v: unknown) => {
       const ok = typeof v === 'number' && v >= min && v <= max && (mb || Number.isInteger(v))
       return ok || t('请输入 {{min}} – {{max}} 之间的数', { min, max })
@@ -73,7 +73,7 @@ export default function SettingField({ item, control, canEdit, switchOn, roleOpt
               min={min}
               max={max}
               // Integer settings hold a number, or null while the input is empty (toFormValues / onChange below)
-              value={(field.value as number | null) ?? ''}
+              value={typeof field.value === 'number' ? field.value : ''}
               onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
               disabled={disabled}
               className="h-9 w-40 tabular-nums"
@@ -106,7 +106,7 @@ export default function SettingField({ item, control, canEdit, switchOn, roleOpt
                 type="password"
                 autoComplete="new-password"
                 // Secrets hold the typed text, or null when marked for clearing
-                value={(value as string | null) ?? ''}
+                value={typeof value === 'string' ? value : ''}
                 placeholder={placeholder}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled || clearing}

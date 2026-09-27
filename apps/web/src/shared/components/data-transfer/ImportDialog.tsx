@@ -144,7 +144,7 @@ function ImportBody({
     () => templateFormatOptions.find((o) => o.value === defaultTemplateFormat)?.value || templateFormatOptions[0]?.value || 'xlsx',
   )
 
-  const formats = supportedFormats.map((f) => String(f).toLowerCase())
+  const formats = supportedFormats.map((f) => f.toLowerCase())
   const accept = formats.map((f) => `.${f}`).join(',')
   const hint = formats.map((f) => f.toUpperCase()).join(' / ')
 
@@ -152,7 +152,7 @@ function ImportBody({
 
   const pick = (raw: File | undefined) => {
     if (!raw) return
-    const ext = (raw.name || '').toLowerCase().split('.').pop()!
+    const ext = raw.name.slice(raw.name.lastIndexOf('.') + 1).toLowerCase()
     if (!formats.includes(ext)) {
       toast.error(t('仅支持 {{formats}} 文件', { formats: hint }))
       return
@@ -194,7 +194,7 @@ function ImportBody({
   }
 
   useEffect(() => {
-    onBusyChange?.(importing)
+    onBusyChange(importing)
   }, [importing, onBusyChange])
 
   return (
@@ -254,7 +254,7 @@ function ImportBody({
           onDrop={(e) => {
             e.preventDefault()
             setDragging(false)
-            pick(e.dataTransfer?.files?.[0])
+            pick(e.dataTransfer.files[0])
           }}
           className={cn(
             'group flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-8 text-center transition-all duration-200',

@@ -46,7 +46,7 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB, disable
   const urlInvalid = urlDraft !== null && urlDraft.trim() !== '' && !AVATAR_URL_RE.test(urlDraft.trim())
 
   const applyUrl = () => {
-    const url = urlDraft!.trim()
+    const url = urlDraft?.trim()
     if (!url || urlInvalid) return
     onChange?.(url)
     setUrlDraft(null)
