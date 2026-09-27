@@ -33,6 +33,7 @@ function sample(tag: string): Record<string, unknown> {
     end_date: '2026-01-15',
     parent_id: null,
     sort_order: 3,
+    board_order: 3,
     cover: null,
     description: ('ck-' + tag + '-description'),
   }
@@ -174,6 +175,9 @@ describe('demo_records 接口', () => {
     // sort_order: default when left empty
     const defaultedSortOrder = (await s.inject({ method: 'POST', url: BASE, payload: { ...sample('df-sort_order'), sort_order: null } })).json()
     expect(defaultedSortOrder.sort_order).toEqual(0)
+    // board_order: default when left empty
+    const defaultedBoardOrder = (await s.inject({ method: 'POST', url: BASE, payload: { ...sample('df-board_order'), board_order: null } })).json()
+    expect(defaultedBoardOrder.board_order).toEqual(0)
   })
 })
 
@@ -235,6 +239,10 @@ describe('demo_records: shared API of the page patterns', () => {
     expect(await list('sort_field=priority&sort_dir=asc')).toEqual([root.id, off.id, child.id])
     expect(await list('sort_field=priority&sort_dir=desc')).toEqual([child.id, off.id, root.id])
     expect(await list('sort_field=password&sort_dir=asc')).toEqual([off.id, child.id, root.id])
+    // board_order (the kanban's card order) sorts on its own, whatever sort_order says
+    await s.inject({ method: 'PUT', url: BASE + '/reorder', payload: [{ id: root.id, board_order: 2 }, { id: child.id, board_order: 0 }, { id: off.id, board_order: 1 }] })
+    expect(await list('sort_field=board_order&sort_dir=asc')).toEqual([child.id, off.id, root.id])
+    expect(await list('sort_field=board_order&sort_dir=desc')).toEqual([root.id, off.id, child.id])
   })
 
   it('树：按 parent_id 嵌套、sort_order 排序；筛选时保留命中项的上级', async () => {
@@ -353,24 +361,37 @@ describe('demo_records: shared API of the page patterns', () => {
 
   it('调整顺序：看板换列、树拖动换上级（null 为顶级），不能成环', async () => {
     const root = await make('ro-root')
-    const a = await make('ro-a', { parent_id: root.id, sort_order: 1, status: 'todo' })
-    const b = await make('ro-b', { parent_id: root.id, sort_order: 2, status: 'todo' })
+    const a = await make('ro-a', { parent_id: root.id, sort_order: 1, board_order: 1, status: 'todo' })
+    const b = await make('ro-b', { parent_id: root.id, sort_order: 2, board_order: 2, status: 'todo' })
     const reorder = (payload: object) => s.inject({ method: 'PUT', url: BASE + '/reorder', payload })
     const get = async (id: number) => (await s.inject({ url: BASE + '/' + id })).json()
 
-    // Kanban: b moves to the in-progress column, first place; parent untouched (not sent)
-    const board = await reorder([{ id: b.id, sort_order: 0, status: 'in_progress' }, { id: a.id, sort_order: 3 }])
+    // Kanban: b moves to the in-progress column, first place; the tree (sort_order, parent) is untouched
+    const board = await reorder([{ id: b.id, board_order: 0, status: 'in_progress' }, { id: a.id, board_order: 3 }])
     expect([board.statusCode, board.json()]).toEqual([200, { message: '排序成功', updated: 2 }])
-    expect(await get(b.id)).toMatchObject({ status: 'in_progress', sort_order: 0, parent_id: root.id })
-    expect(await get(a.id)).toMatchObject({ status: 'todo', sort_order: 3, parent_id: root.id })
+    expect(await get(b.id)).toMatchObject({ status: 'in_progress', board_order: 0, sort_order: 2, parent_id: root.id })
+    expect(await get(a.id)).toMatchObject({ status: 'todo', board_order: 3, sort_order: 1, parent_id: root.id })
     // Nothing changes: nothing is written
-    expect((await reorder([{ id: a.id, sort_order: 3 }])).json()).toEqual({ message: '排序成功', updated: 0 })
+    expect((await reorder([{ id: a.id, board_order: 3 }])).json()).toEqual({ message: '排序成功', updated: 0 })
+    // null means "not changed" for the NOT NULL columns
+    expect((await reorder([{ id: a.id, board_order: 4, sort_order: null, status: null }])).json()).toEqual({ message: '排序成功', updated: 1 })
+    expect(await get(a.id)).toMatchObject({ status: 'todo', board_order: 4, sort_order: 1 })
 
-    // Tree: b under a, then a to the root
+    // Tree: siblings swap places; the kanban order (board_order, status) is untouched
+    const tree = await reorder([{ id: a.id, sort_order: 2 }, { id: b.id, sort_order: 1 }])
+    expect([tree.statusCode, tree.json()]).toEqual([200, { message: '排序成功', updated: 2 }])
+    expect(await get(a.id)).toMatchObject({ sort_order: 2, board_order: 4, status: 'todo' })
+    expect(await get(b.id)).toMatchObject({ sort_order: 1, board_order: 0, status: 'in_progress' })
+
+    // Tree drag: b under a, then a to the root
     expect((await reorder([{ id: b.id, sort_order: 1, parent_id: a.id }])).statusCode).toBe(200)
     expect((await reorder([{ id: a.id, sort_order: 5, parent_id: null }])).statusCode).toBe(200)
-    expect(await get(a.id)).toMatchObject({ parent_id: null, sort_order: 5 })
-    expect(await get(b.id)).toMatchObject({ parent_id: a.id })
+    expect(await get(a.id)).toMatchObject({ parent_id: null, sort_order: 5, board_order: 4 })
+    expect(await get(b.id)).toMatchObject({ parent_id: a.id, board_order: 0 })
+    // parent_id alone is a change (null = move to the root)
+    expect((await reorder([{ id: b.id, parent_id: null }])).json()).toEqual({ message: '排序成功', updated: 1 })
+    expect(await get(b.id)).toMatchObject({ parent_id: null, sort_order: 1 })
+    expect((await reorder([{ id: b.id, parent_id: a.id }])).statusCode).toBe(200)
 
     // Cycles are checked after every move of the request is applied
     const cycle = await reorder([{ id: a.id, sort_order: 1, parent_id: b.id }])
@@ -379,26 +400,36 @@ describe('demo_records: shared API of the page patterns', () => {
     expect(swap.statusCode, swap.body).toBe(200)
     expect(await get(a.id)).toMatchObject({ parent_id: b.id })
 
+    const nothing = '排序项至少要指定一个要调整的字段'
     const errors: [object, string][] = [
-      [[{ id: a.id, sort_order: 1 }, { id: a.id, sort_order: 2 }], '排序列表中有重复的记录'],
+      [[{ id: a.id, sort_order: 1 }, { id: a.id, board_order: 2 }], '排序列表中有重复的记录'],
       [[{ id: 99999999, sort_order: 1 }], '记录不存在或已删除'],
       [[{ id: a.id, sort_order: 1, parent_id: 99999999 }], '上级记录不存在'],
       [[{ sort_order: 1 }], '记录不能为空'],
       [{ id: a.id }, '参数格式错误，需要数组'],
+      // Every field besides id is optional, but an entry must carry at least one change
+      [[{ id: a.id }], nothing],
+      [[{ id: a.id, board_order: null, sort_order: null, status: null }], nothing],
+      [[{ id: b.id, board_order: 1 }, { id: a.id }], nothing],
+      [[{ id: a.id, board_order: 'x' }], '看板顺序的值无效'],
+      [[{ id: a.id, sort_order: 1.5 }], '排序的值无效'],
+      [[{ id: a.id, status: 'x' }], '状态的值无效'],
     ]
     for (const [payload, error] of errors) {
       const res = await reorder(payload)
       expect([res.statusCode, res.json()], JSON.stringify(payload)).toEqual([400, { error }])
     }
+    // A rejected request writes nothing
+    expect(await get(b.id)).toMatchObject({ board_order: 0 })
   })
 
-  it('导入：标签按逗号拆分；上级记录必须已存在；导出带标签列', async () => {
+  it('导入：标签按逗号拆分，带排序与看板顺序；上级记录必须已存在；导出带标签与看板顺序列', async () => {
     const parent = await make('imp-parent')
     const row: Record<string, unknown> = { ...sample('imp-tags'), parent_id: parent.id, tags: '甲,乙、丙' }
     const ok = await s.inject({ method: 'POST', url: BASE + '/import', ...multipartFile('import.csv', importCsv([row])) })
     expect(ok.json()).toEqual({ message: '导入成功', created: 1, updated: 0 })
     const [created] = await handle.db.select().from(demo_records).where(eq(demo_records.code, String(row.code)))
-    expect(created).toMatchObject({ parent_id: parent.id, tags: ['甲', '乙', '丙'] })
+    expect(created).toMatchObject({ parent_id: parent.id, tags: ['甲', '乙', '丙'], sort_order: 3, board_order: 3 })
 
     const bad = await s.inject({
       method: 'POST',
@@ -408,7 +439,7 @@ describe('demo_records: shared API of the page patterns', () => {
     expect(bad.statusCode).toBe(400)
     expect(bad.json().error_rows[0].reason).toBe('上级记录不存在')
 
-    const exported = await s.inject({ method: 'POST', url: BASE + '/export', payload: { ids: [created!.id], fields: ['code', 'tags'], file_type: 'csv' } })
-    expect(exported.body.replace(/^\uFEFF/, '').trim().split('\r\n')).toEqual(['编码,标签', `${row.code},"甲,乙,丙"`])
+    const exported = await s.inject({ method: 'POST', url: BASE + '/export', payload: { ids: [created!.id], fields: ['code', 'tags', 'board_order'], file_type: 'csv' } })
+    expect(exported.body.replace(/^\uFEFF/, '').trim().split('\r\n')).toEqual(['编码,标签,看板顺序', `${row.code},"甲,乙,丙",3`])
   })
 })

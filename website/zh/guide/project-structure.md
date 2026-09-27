@@ -105,7 +105,7 @@ apps/web/
     │   ├── auth/pages/login/         # 登录页
     │   ├── admin/{pages,api}/        # 系统管理页面与接口
     │   └── component_center/
-    │       ├── pages/{admin,dataviz,ai,editor,devtools}/
+    │       ├── pages/{patterns,dataviz,ai,editor,devtools}/
     │       └── api/
     └── shared/
         ├── api/request.js    # Axios 实例（baseURL '/api'，自动带 CSRF 头与 Accept-Language）
@@ -127,7 +127,7 @@ apps/web/
 | 项目与包名 | 小写连字符 | `castor-kit`、`@castor-kit/api` |
 | 后端目录与文件名 | 小写连字符 | `component-center`、`scheduled-task` |
 | 数据库表名 | 下划线 | `scheduled_tasks` |
-| 前端目录、菜单 `component` 字段 | 下划线 | `component_center/admin/list_page` |
+| 前端目录、菜单 `component` 字段 | 下划线 | `component_center/patterns/card_list_page` |
 | 接口路径 | 连字符、复数 | `/api/admin/customer-orders` |
 
 会话 cookie 名 `castor_session` 是例外，使用下划线。

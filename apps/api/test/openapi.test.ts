@@ -69,7 +69,7 @@ describe('路径转换', () => {
       '/api/a/{item_id}/versions/{version_id}/rollback',
     )
     expect(fastifyPathToOpenApi('/api/x/:name')).toBe('/api/x/{name}')
-    expect(fastifyPathToOpenApi('/api/list-page/file/*')).toBe('/api/list-page/file/{path}')
+    expect(fastifyPathToOpenApi('/api/demo/file/*')).toBe('/api/demo/file/{path}')
   })
 
   it('按路径形状 + 方法判断缺失：参数名不同也算同一路径', () => {

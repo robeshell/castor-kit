@@ -29,6 +29,20 @@
       "when": 1790522143448,
       "tag": "0003_demo_record",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790541911246,
+      "tag": "0004_demo_record_board_order",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790542636004,
+      "tag": "0005_remove_old_gallery_modules",
+      "breakpoints": true
     }
   ]
 }

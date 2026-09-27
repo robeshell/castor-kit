@@ -56,11 +56,6 @@ beforeAll(async () => {
     standard('menus', 'system_menus', '/api/admin/menus'),
     standard('announcements', 'system_announcements', '/api/admin/announcements'),
     { name: 'dicts', perm: 'system_dicts', exports: [['GET', `${dictBase}/export`]], template: `${dictBase}/template`, import: `${dictBase}/import` },
-    standard('list-page', 'cc_admin_list', `${CC}/list-page`, ['GET', 'POST']),
-    standard('stats-list-page', 'cc_admin_stats_list', `${CC}/stats-list-page`, ['GET', 'POST']),
-    standard('tree-list-page', 'cc_admin_tree_list', `${CC}/tree-list-page`, ['GET', 'POST']),
-    standard('card-list-page', 'cc_admin_card_list', `${CC}/card-list-page`, ['GET', 'POST']),
-    standard('dynamic-form-page', 'cc_admin_dynamic_form', `${CC}/dynamic-form-page`, ['GET', 'POST']),
     // Shared demo API of the page patterns: the buttons belong to the Page patterns directory (cc_patterns)
     standard('demo-records', 'cc_patterns', `${CC}/demo-records`),
   ]

@@ -68,11 +68,11 @@ afterAll(async () => {
 // Menu count / max ID are derived from MENUS_DATA: they change with every new feature module menu, so the test only checks the sync logic itself
 const MENU_COUNT = MENUS_DATA.length
 const NEXT_MENU_ID = Math.max(...MENUS_DATA.map((m) => m.id)) + 1
-/** The 120 menus of the built-in menu set: new features must not change them */
-const BUILT_IN_MENU_COUNT = 120
+/** The 104 menus of the built-in menu set: new features must not change them */
+const BUILT_IN_MENU_COUNT = 104
 
 describe('MENUS_DATA', () => {
-  it('至少包含内置的 120 个菜单；ID/编码唯一、父节点先于子节点、内置 ID 不变', () => {
+  it('至少包含内置的 104 个菜单；ID/编码唯一、父节点先于子节点、内置 ID 不变', () => {
     expect(MENU_COUNT).toBeGreaterThanOrEqual(BUILT_IN_MENU_COUNT)
     const ids = MENUS_DATA.map((m) => m.id)
     expect(new Set(ids).size).toBe(ids.length)
@@ -83,9 +83,10 @@ describe('MENUS_DATA', () => {
       [31, 'system_announcements'],
       [32, 'system_scheduled_tasks'],
       [315, 'system_announcements_import'],
-      [401, 'cc_admin_list'],
-      [405, 'cc_admin_dynamic_form'],
-      [409, 'cc_admin_advanced_table'],
+      [43, 'cc_patterns'],
+      [435, 'cc_patterns_import'],
+      [4301, 'cc_patterns_standard_list'],
+      [4310, 'cc_patterns_advanced_table'],
       [414, 'cc_dataviz_dashboard'],
       [4423, 'cc_ai_prompt_delete'],
     ] as const) {

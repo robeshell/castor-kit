@@ -16,6 +16,7 @@
   "文档": "Documents",
   "未使用": "Unused",
   "未被任何记录使用的文件会在上传 24 小时后自动清理。": "Files no record uses are removed automatically 24 hours after upload.",
+  "查看": "View",
   "没有找到文件": "No files found",
   "还没有文件": "No files yet"
 }

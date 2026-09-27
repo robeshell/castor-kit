@@ -164,7 +164,7 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
       return res.end('{"x":1}')
     }
     if (q === 'q:hang') return
-    if (q === 'q:unsafe') return reply('DELETE FROM kanban_boards')
+    if (q === 'q:unsafe') return reply('DELETE FROM demo_records')
     if (q === 'q:badsql') return reply('SELECT * FROM no_such_table_xyz')
     if (q === 'q:fence') return reply('```sql\nSELECT 1 AS one;\n```')
     if (q === 'q:hash') {
@@ -172,7 +172,7 @@ export async function startFakeUpstream(port = 0): Promise<FakeUpstream> {
       const h = createHash('sha256').update(JSON.stringify(messages)).digest('hex')
       return reply(`SELECT '${h}' AS prompt_hash`)
     }
-    return reply('SELECT id, title FROM kanban_boards ORDER BY id LIMIT 3')
+    return reply('SELECT id, name FROM demo_records ORDER BY id LIMIT 3')
   })
 
   await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve))

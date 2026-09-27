@@ -109,7 +109,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--validate-only` | `--spec` と併用：spec を検証し、生成される API・権限・テーブル・メニューを表示するだけでファイルは書かない。問題があれば一覧表示して 1 で終了 | オフ |
 | `--write-schema` | スキャフォールドの現在のフィールド型などのルールから `docs/spec.schema.json` を再生成 | オフ |
 | `--skip-migration` | drizzle-kit によるマイグレーションの生成を行わない | オフ |
-| `--data-scope` | [データ権限](/ja/guide/rbac#データ権限)を組み込む：テーブルに `dept_id` / `created_by` を追加し、一覧・詳細・編集・削除・エクスポートを現在のユーザーのデータ範囲で絞り込み、作成時に作成者と部署を記録し、対応する API テストも生成する | オフ |
+| `--data-scope` | [データ権限](/ja/guide/rbac#data-scope)を組み込む：テーブルに `dept_id` / `created_by` を追加し、一覧・詳細・編集・削除・エクスポートを現在のユーザーのデータ範囲で絞り込み、作成時に作成者と部署を記録し、対応する API テストも生成する | オフ |
 | `-h` / `--help` | 使い方を表示する | — |
 
 ### 生成される内容

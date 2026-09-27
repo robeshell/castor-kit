@@ -3,6 +3,7 @@
   "全部展开": "Expand all",
   "全部收起": "Collapse all",
   "动态路由模式下，菜单的路径和组件名都需要配置": "With dynamic routing, a menu needs both a path and a component",
+  "图标": "Icon",
   "图标名称": "Icon name",
   "导入菜单": "Import menus",
   "平铺": "Flat",

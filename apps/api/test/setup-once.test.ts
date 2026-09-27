@@ -75,7 +75,7 @@ describe('isVisibleTable（与 AI SQL 的表可见范围同一套规则）', () 
     for (const name of ['roles', 'menus', 'user_roles', 'role_menus', 'admin_users', 'audit_x', 'scheduled_tasks', 'scheduled_task_runs', 'login_logs', 'operation_logs', 'ADMIN_USERS', '']) {
       expect(isVisibleTable(name), name).toBe(name === '')
     }
-    for (const name of ['list_page_items', 'dict_types', 'notifications', 'migrations_x', 'log_entries', 'user_roles_x']) {
+    for (const name of ['demo_items', 'dict_types', 'notifications', 'migrations_x', 'log_entries', 'user_roles_x']) {
       expect(isVisibleTable(name), name).toBe(true)
     }
     expect(isVisibleTable(null)).toBe(true)

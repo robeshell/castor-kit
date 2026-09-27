@@ -40,7 +40,7 @@ type DashboardStats = ApiResponse<'/api/admin/dashboard/stats'>
 type PerfStats = ApiResponse<'/api/admin/component-center/devtools/perf-stats'>
 
 const QUICK_LINKS = [
-  { label: '管理系统', desc: '列表 · 表单 · 看板 · 甘特', icon: LayoutGrid, path: '/component-center/list-page' },
+  { label: '页面模板', desc: '列表 · 详情 · 表单 · 看板', icon: LayoutGrid, path: '/component-center/patterns/standard-list' },
   { label: '数据可视化', desc: '大屏 · 折线 · 热力 · 流量', icon: ChartPie, path: '/component-center/dashboard-page' },
   { label: 'AI 应用', desc: '对话 · 提示词 · 数据查询', icon: Bot, path: '/component-center/ai/chat' },
   { label: '编辑器', desc: '富文本 · 代码 · JSON · MD', icon: PenLine, path: '/component-center/editor/rich-text' },

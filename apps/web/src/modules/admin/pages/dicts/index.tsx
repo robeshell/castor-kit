@@ -361,7 +361,7 @@ export default function Dicts() {
 
   const itemColumns: DataTableColumn<DictItem>[] = [
     { key: 'id', title: 'ID', dataIndex: 'id', width: 60, className: 'text-muted-foreground tabular-nums' },
-    { key: 'label', title: '标签', dataIndex: 'label', width: 120, className: 'font-medium' },
+    { key: 'label', title: '字典标签', dataIndex: 'label', width: 120, className: 'font-medium' },
     {
       key: 'value',
       title: '值',
