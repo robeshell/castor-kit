@@ -6,20 +6,13 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody, parseIntParam, rawJsonBody } from '@/common/http'
+import { intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
-import { pyTruthy } from '@/common/py'
-import { parseBool } from './schema'
+import { parseArrayBody, parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { batchDeleteBody, batchUpdateBody, reorderItem, rowBody } from './schema'
 import { AdvancedTableService } from './service'
 
 const BASE = '/api/admin/component-center/advanced-table'
-
-/** `request.args.get(key)`: None when missing */
-function queryArg(request: FastifyRequest, key: string): string | null {
-  const value = (request.query as Record<string, unknown> | undefined)?.[key]
-  const first = Array.isArray(value) ? value[0] : value
-  return typeof first === 'string' ? first : null
-}
 
 export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise<void> {
   const service = new AdvancedTableService(app.db)
@@ -38,7 +31,7 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
       return reply.status(403).send({ error: '无权限查看数据' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
-    const str = (key: string) => (queryArg(request, key) || '').trim()
+    const str = (key: string) => queryString(request, key).trim()
     return service.listItems(
       page,
       per_page,
@@ -47,11 +40,11 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
         status: str('status'),
         category: str('category'),
         owner: str('owner'),
-        isActive: parseBool(queryArg(request, 'is_active'), null),
-        pinnedOnly: parseBool(queryArg(request, 'pinned_only'), false),
+        isActive: parseYesNo(str('is_active')),
+        pinnedOnly: parseYesNo(str('pinned_only'), false)!,
       },
-      (queryArg(request, 'sort_field') || 'sort_order').trim(),
-      (queryArg(request, 'sort_order') || 'asc').trim(),
+      str('sort_field') || 'sort_order',
+      str('sort_order') || 'asc',
     )
   })
 
@@ -59,7 +52,7 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    return reply.status(201).send(await service.createItem(jsonBody(request)))
+    return reply.status(201).send(await service.createItem(parseBody(rowBody, request.body)))
   })
 
   app.put(`${BASE}/rows/${intParam('item_id')}`, opts, async (request, reply) => {
@@ -67,7 +60,7 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await service.getOr404(itemId(request))
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(rowBody, request.body))
   })
 
   app.delete(`${BASE}/rows/${intParam('item_id')}`, opts, async (request, reply) => {
@@ -83,21 +76,20 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
       return reply.status(403).send({ error: '无权限排序' })
     }
     // request.get_json() or []
-    const body = rawJsonBody(request)
-    return service.reorderRows(pyTruthy(body) ? body : [])
+    return service.reorderRows(parseArrayBody(reorderItem, request.body, '参数格式错误，需要数组'))
   })
 
   app.post(`${BASE}/rows/batch-update`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_edit'))) {
       return reply.status(403).send({ error: '无权限批量更新' })
     }
-    return service.batchUpdate(jsonBody(request))
+    return service.batchUpdate(parsePatch(batchUpdateBody, request.body))
   })
 
   app.post(`${BASE}/rows/batch-delete`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_delete'))) {
       return reply.status(403).send({ error: '无权限批量删除' })
     }
-    return service.batchDelete(jsonBody(request))
+    return service.batchDelete(parseBody(batchDeleteBody, request.body))
   })
 }

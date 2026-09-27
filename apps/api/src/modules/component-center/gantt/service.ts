@@ -4,25 +4,16 @@
 
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
+import { changedFields } from '@/common/validation'
 import type { Db } from '@/db/client'
 import { ganttTaskToDict, type GanttTask } from '@/db/schema'
-import { parseLooseDate } from '@/common/py-date'
 import { GanttRepository, type GanttTaskPatch } from './repository'
-import {
-  changedFields,
-  clampProgress,
-  colorOrDefault,
-  hasKey,
-  normalizeEnum,
-  parseIntOr,
-  PRIORITY_VALUES,
-  STATUS_VALUES,
-  strOrEmpty,
-  strOrNull,
-  TASK_TYPE_VALUES,
-} from './schema'
+import type { TaskInput } from './schema'
 
-type Data = Record<string, unknown>
+const DEFAULT_COLOR = '#4080FF'
+
+/** Progress is a percentage: out-of-range values are clamped to 0–100 */
+const clampProgress = (progress: number) => Math.max(0, Math.min(100, progress))
 
 export class GanttService {
   private readonly repo: GanttRepository
@@ -41,56 +32,34 @@ export class GanttService {
     return (await this.repo.allTasks(status, priority)).map(ganttTaskToDict)
   }
 
-  async createTask(data: Data) {
-    const title = strOrEmpty(data.title)
-    if (!title) throw new ServiceError('任务标题不能为空')
-
-    const startDate = parseLooseDate(data.start_date)
-    const endDate = parseLooseDate(data.end_date)
+  async createTask(values: TaskInput) {
+    const { start_date: startDate, end_date: endDate } = values
     if (!startDate) throw new ServiceError('开始日期不能为空')
     if (!endDate) throw new ServiceError('结束日期不能为空')
     if (startDate > endDate) throw new ServiceError('开始日期不能晚于结束日期')
 
     const task = await this.repo.insert({
-      title,
-      task_type: normalizeEnum(data.task_type, TASK_TYPE_VALUES, 'task'),
+      ...values,
       start_date: startDate,
       end_date: endDate,
-      progress: clampProgress(parseIntOr(data.progress, 0)),
-      assignee: strOrNull(data.assignee),
-      priority: normalizeEnum(data.priority, PRIORITY_VALUES, 'medium'),
-      status: normalizeEnum(data.status, STATUS_VALUES, 'not_started'),
-      color: colorOrDefault(data.color),
-      sort_order: parseIntOr(data.sort_order, 0),
+      progress: clampProgress(values.progress),
+      color: values.color ?? DEFAULT_COLOR,
     })
     return ganttTaskToDict(task)
   }
 
-  async updateTask(task: GanttTask, data: Data) {
-    if (hasKey(data, 'title') && !strOrEmpty(data.title)) throw new ServiceError('任务标题不能为空')
+  async updateTask(task: GanttTask, values: Partial<TaskInput>) {
+    if (values.start_date === null) throw new ServiceError('开始日期不能为空')
+    if (values.end_date === null) throw new ServiceError('结束日期不能为空')
+    const { start_date: startDate, end_date: endDate, ...rest } = values
+    const patch: GanttTaskPatch = { ...rest }
+    if (startDate) patch.start_date = startDate
+    if (endDate) patch.end_date = endDate
+    if (values.progress !== undefined) patch.progress = clampProgress(values.progress)
+    if (values.color === null) patch.color = DEFAULT_COLOR
+    if ((values.start_date ?? task.start_date) > (values.end_date ?? task.end_date)) throw new ServiceError('开始日期不能晚于结束日期')
 
-    const patch: GanttTaskPatch = {}
-    if (hasKey(data, 'title')) patch.title = strOrEmpty(data.title)
-    if (hasKey(data, 'assignee')) patch.assignee = strOrNull(data.assignee)
-    if (hasKey(data, 'color')) patch.color = colorOrDefault(data.color)
-    if (hasKey(data, 'sort_order')) patch.sort_order = parseIntOr(data.sort_order, task.sort_order || 0)
-    if (hasKey(data, 'task_type')) patch.task_type = normalizeEnum(data.task_type, TASK_TYPE_VALUES, 'task')
-    if (hasKey(data, 'priority')) patch.priority = normalizeEnum(data.priority, PRIORITY_VALUES, 'medium')
-    if (hasKey(data, 'status')) patch.status = normalizeEnum(data.status, STATUS_VALUES, 'not_started')
-    if (hasKey(data, 'progress')) patch.progress = clampProgress(parseIntOr(data.progress, task.progress || 0))
-    if (hasKey(data, 'start_date')) {
-      const start = parseLooseDate(data.start_date)
-      if (!start) throw new ServiceError('开始日期不能为空')
-      patch.start_date = start
-    }
-    if (hasKey(data, 'end_date')) {
-      const end = parseLooseDate(data.end_date)
-      if (!end) throw new ServiceError('结束日期不能为空')
-      patch.end_date = end
-    }
-    if ((patch.start_date ?? task.start_date) > (patch.end_date ?? task.end_date)) throw new ServiceError('开始日期不能晚于结束日期')
-
-    const changed = changedFields(task as unknown as Record<string, unknown>, patch)
+    const changed = changedFields(task, patch as Partial<GanttTask>)
     if (Object.keys(changed).length > 0) await this.repo.update(task.id, changed)
     return ganttTaskToDict((await this.repo.getTask(task.id))!)
   }

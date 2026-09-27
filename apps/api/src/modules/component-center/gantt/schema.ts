@@ -1,57 +1,25 @@
 /**
- * Gantt page schema layer
+ * Gantt page schema layer: request body
  */
 
-import { pyInt, pyStr, pyTruthy } from '@/common/py'
+import { z } from 'zod'
+import { field } from '@/common/validation'
 
-export const TASK_TYPE_VALUES = new Set(['phase', 'task', 'milestone'])
-export const PRIORITY_VALUES = new Set(['low', 'medium', 'high', 'critical'])
-export const STATUS_VALUES = new Set(['not_started', 'in_progress', 'completed', 'delayed'])
+export const TASK_TYPES = ['phase', 'task', 'milestone'] as const
+export const PRIORITIES = ['low', 'medium', 'high', 'critical'] as const
+export const STATUSES = ['not_started', 'in_progress', 'completed', 'delayed'] as const
 
-/** `parse_int(value, default=0)` */
-export function parseIntOr<T>(value: unknown, fallback: T): number | T {
-  try {
-    return pyInt(value)
-  } catch {
-    return fallback
-  }
-}
+export const taskBody = z.object({
+  title: field.requiredText('任务标题', '任务标题不能为空'),
+  task_type: field.choice('任务类型', TASK_TYPES, 'task'),
+  start_date: field.date('开始日期'),
+  end_date: field.date('结束日期'),
+  progress: field.int('进度', 0),
+  assignee: field.text('负责人'),
+  priority: field.choice('优先级', PRIORITIES, 'medium'),
+  status: field.choice('状态', STATUSES, 'not_started'),
+  color: field.text('颜色'),
+  sort_order: field.int('排序', 0),
+})
 
-/** `str(v or '').strip()` */
-export function strOrEmpty(value: unknown): string {
-  return pyTruthy(value) ? pyStr(value).trim() : ''
-}
-
-/** `str(v or '').strip() or None` */
-export function strOrNull(value: unknown): string | null {
-  return strOrEmpty(value) || null
-}
-
-/** `str(v or '#4080FF').strip() or '#4080FF'` */
-export function colorOrDefault(value: unknown): string {
-  return (pyTruthy(value) ? pyStr(value) : '#4080FF').trim() || '#4080FF'
-}
-
-/** `str(v or fallback).strip()`; falls back to fallback when not in the enum */
-export function normalizeEnum(value: unknown, allowed: Set<string>, fallback: string): string {
-  const s = (pyTruthy(value) ? pyStr(value) : fallback).trim()
-  return allowed.has(s) ? s : fallback
-}
-
-/** `max(0, min(100, progress))` */
-export function clampProgress(progress: number): number {
-  return Math.max(0, Math.min(100, progress))
-}
-
-export function hasKey(data: Record<string, unknown>, key: string): boolean {
-  return Object.hasOwn(data, key)
-}
-
-/** Keep only fields that differ from the current row (UPDATE only fields whose value actually changed) */
-export function changedFields<R extends Record<string, unknown>, P extends Partial<R>>(row: R, patch: P): P {
-  const out: Partial<R> = {}
-  for (const [k, v] of Object.entries(patch)) {
-    if (row[k] !== v) (out as Record<string, unknown>)[k] = v
-  }
-  return out as P
-}
+export type TaskInput = z.output<typeof taskBody>

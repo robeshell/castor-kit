@@ -45,18 +45,17 @@ afterAll(async () => {
 })
 
 describe('detail-tabs', () => {
-  it('新建：201 + 归一化；缺姓名 400', async () => {
+  it('新建：201 + 归一化；缺姓名 / 类型不符 400', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/members`,
       payload: {
         name: ` ${P}甲 `,
         department: `${P}部门`,
-        status: 'retired',
         join_date: '2023-07-08',
         avatar_color: '  ',
         sort_order: 9000,
-        is_active: '0',
+        is_active: false,
         email: '',
       },
     })
@@ -83,6 +82,14 @@ describe('detail-tabs', () => {
     const bad = await s.inject({ method: 'POST', url: `${B}/members`, payload: { name: '  ' } })
     expect(bad.statusCode).toBe(400)
     expect(bad.json()).toEqual({ error: '姓名不能为空' })
+    for (const [extra, error] of [
+      [{ status: 'retired' }, '状态的值无效'],
+      [{ join_date: '2023/07/08' }, '入职日期的值无效'],
+      [{ is_active: '0' }, '启用的值无效'],
+    ] as const) {
+      const r = await s.inject({ method: 'POST', url: `${B}/members`, payload: { name: `${P}x`, ...extra } })
+      expect([r.statusCode, r.json()], JSON.stringify(extra)).toEqual([400, { error }])
+    }
   })
 
   it('列表：search 覆盖姓名/部门/职位；空白 search 等于不筛选', async () => {
@@ -106,13 +113,15 @@ describe('detail-tabs', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/members/abc`, payload: {} })).statusCode).toBe(405)
   })
 
-  it('编辑：部分字段、枚举回落、日期清空；姓名清空 400', async () => {
+  it('编辑：部分字段、null 取默认、日期清空；姓名清空 / 类型不符 400', async () => {
     const res = await s.inject({
       method: 'PUT',
       url: `${B}/members/${memberId}`,
-      payload: { status: 'probation', join_date: 'bad', bio: ' 简介 ', sort_order: 'x', is_active: 'YES' },
+      payload: { status: 'probation', join_date: '', bio: ' 简介 ', is_active: true },
     })
     expect(res.json()).toMatchObject({ status: 'probation', join_date: null, bio: '简介', sort_order: 9000, is_active: true })
+    expect((await s.inject({ method: 'PUT', url: `${B}/members/${memberId}`, payload: { join_date: 'bad' } })).json()).toEqual({ error: '入职日期的值无效' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/members/${memberId}`, payload: { sort_order: 'x' } })).json()).toEqual({ error: '排序的值无效' })
     const res2 = await s.inject({ method: 'PUT', url: `${B}/members/${memberId}`, payload: { status: null, avatar_color: '#000' } })
     expect(res2.json()).toMatchObject({ status: 'active', avatar_color: '#000' })
     const bad = await s.inject({ method: 'PUT', url: `${B}/members/${memberId}`, payload: { name: '' } })

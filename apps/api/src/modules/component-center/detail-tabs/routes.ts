@@ -6,7 +6,9 @@
 
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { intParam, parseIntParam, queryString } from '@/common/http'
+import { parseBody, parsePatch } from '@/common/validation'
+import { memberBody } from './schema'
 import { DetailTabsService } from './service'
 
 const BASE = '/api/admin/component-center/detail-tabs'
@@ -28,7 +30,7 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
     if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_add'))) {
       return reply.status(403).send({ error: '无权限新建成员' })
     }
-    return reply.status(201).send(await service.createMember(jsonBody(request)))
+    return reply.status(201).send(await service.createMember(parseBody(memberBody, request.body)))
   })
 
   app.get(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
@@ -44,7 +46,7 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
       return reply.status(403).send({ error: '无权限编辑成员' })
     }
     const member = await service.getMemberOr404(memberId(request))
-    return service.updateMember(member, jsonBody(request))
+    return service.updateMember(member, parsePatch(memberBody, request.body))
   })
 
   app.delete(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {

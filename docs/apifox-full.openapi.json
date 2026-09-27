@@ -2025,7 +2025,7 @@
           }
         ],
         "summary": "新增高级表格记录",
-        "description": "需要 cc_admin_advanced_table_add。名称和编码必填，编码重复返回 400；状态非法或排序值超出范围返回 400，其余可选字段无法解析时取默认值",
+        "description": "需要 cc_admin_advanced_table_add。名称和编码必填，编码重复返回 400；字段类型或取值不对返回 400「<字段>的值无效」（状态非法时为「状态仅支持 draft/published/archived」），缺省字段取默认值",
         "requestBody": {
           "required": true,
           "content": {
@@ -2063,21 +2063,18 @@
                     "description": "负责人；空串视为 null"
                   },
                   "status": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "draft",
                       "published",
                       "archived",
                       null
                     ],
-                    "description": "状态（不区分大小写）；其他值返回 400；缺省 draft"
+                    "description": "状态：draft / published / archived，缺省为 draft；其他值返回 400"
                   },
                   "priority": {
                     "type": "integer",
-                    "description": "优先级；无法解析为整数时按 0"
+                    "description": "优先级，缺省为 0"
                   },
                   "progress": {
                     "type": "integer",
@@ -2097,11 +2094,11 @@
                   },
                   "is_active": {
                     "type": "boolean",
-                    "description": "布尔值；也接受 true/false、1/0、yes/no、on/off、启用/停用、是/否 字符串，无法识别时按默认处理（缺省 true）"
+                    "description": "是否启用（true / false），缺省为 true"
                   },
                   "is_pinned": {
                     "type": "boolean",
-                    "description": "布尔值；也接受 true/false、1/0、yes/no、on/off、启用/停用、是/否 字符串，无法识别时按默认处理（缺省 false）"
+                    "description": "是否置顶（true / false），缺省为 false"
                   },
                   "due_date": {
                     "type": [
@@ -2109,7 +2106,7 @@
                       "null"
                     ],
                     "format": "date",
-                    "description": "截止日期 YYYY-MM-DD；无法解析时存为 null"
+                    "description": "截止日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「截止日期的值无效」"
                   },
                   "sort_order": {
                     "type": "integer",
@@ -2371,17 +2368,14 @@
                     "description": "要更新的记录 ID"
                   },
                   "status": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "draft",
                       "published",
                       "archived",
                       null
                     ],
-                    "description": "状态（不区分大小写）；null 或空串保持原值"
+                    "description": "状态：draft / published / archived；其他值返回 400"
                   },
                   "owner": {
                     "type": [
@@ -2393,15 +2387,15 @@
                   },
                   "is_active": {
                     "type": "boolean",
-                    "description": "布尔值；也接受 true/false、1/0、yes/no、on/off、启用/停用、是/否 字符串，无法识别时按默认处理（无法识别时保持原值）"
+                    "description": "是否启用（true / false）"
                   },
                   "is_pinned": {
                     "type": "boolean",
-                    "description": "布尔值；也接受 true/false、1/0、yes/no、on/off、启用/停用、是/否 字符串，无法识别时按默认处理（无法识别时保持原值）"
+                    "description": "是否置顶（true / false）"
                   },
                   "priority": {
                     "type": "integer",
-                    "description": "优先级；无法解析为整数时保持原值"
+                    "description": "优先级"
                   }
                 },
                 "required": [
@@ -2458,7 +2452,7 @@
           }
         ],
         "summary": "保存高级表格排序",
-        "description": "需要 cc_admin_advanced_table_edit。请求体是数组，在一个事务里更新各记录的 sort_order；id 无效或不存在的元素会被跳过，同一 id 多次出现以最后一次为准。请求体不是数组返回 400；元素不是对象或排序值超出范围会整体回滚并返回 400",
+        "description": "需要 cc_admin_advanced_table_edit。请求体是数组，在一个事务里更新各记录的 sort_order；缺少 id 或 id 不存在的元素会被跳过，同一 id 多次出现以最后一次为准。请求体不是数组返回 400；元素不是对象、id 不是整数或排序值超出范围返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -2476,7 +2470,7 @@
                       "type": "integer",
                       "minimum": -2147483648,
                       "maximum": 2147483647,
-                      "description": "新排序值；缺省或无法解析时为 0"
+                      "description": "排序值，缺省为 0"
                     }
                   }
                 }
@@ -2580,21 +2574,18 @@
                     "description": "负责人；空串视为 null"
                   },
                   "status": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "draft",
                       "published",
                       "archived",
                       null
                     ],
-                    "description": "状态（不区分大小写）；其他值返回 400"
+                    "description": "状态：draft / published / archived；其他值返回 400"
                   },
                   "priority": {
                     "type": "integer",
-                    "description": "优先级；无法解析为整数时保持原值"
+                    "description": "优先级"
                   },
                   "progress": {
                     "type": "integer",
@@ -2614,11 +2605,11 @@
                   },
                   "is_active": {
                     "type": "boolean",
-                    "description": "布尔值；也接受 true/false、1/0、yes/no、on/off、启用/停用、是/否 字符串，无法识别时按默认处理"
+                    "description": "是否启用（true / false）"
                   },
                   "is_pinned": {
                     "type": "boolean",
-                    "description": "布尔值；也接受 true/false、1/0、yes/no、on/off、启用/停用、是/否 字符串，无法识别时按默认处理"
+                    "description": "是否置顶（true / false）"
                   },
                   "due_date": {
                     "type": [
@@ -2626,7 +2617,7 @@
                       "null"
                     ],
                     "format": "date",
-                    "description": "截止日期 YYYY-MM-DD；无法解析时存为 null"
+                    "description": "截止日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「截止日期的值无效」"
                   },
                   "sort_order": {
                     "type": "integer",
@@ -5502,7 +5493,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "入职日期，取前 10 个字符按 YYYY-MM-DD / YYYYMMDD / ISO 周日期解析，解析失败存为 null"
+                    "description": "入职日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「入职日期的值无效」"
                   },
                   "avatar_color": {
                     "type": "string",
@@ -5517,18 +5508,12 @@
                     "description": "个人简介；空串存为 null"
                   },
                   "sort_order": {
-                    "type": [
-                      "integer",
-                      "string"
-                    ],
-                    "description": "排序，可传数字字符串；无法转成整数时新增用 0、编辑保留原值"
+                    "type": "integer",
+                    "description": "排序值，缺省为 0"
                   },
                   "is_active": {
-                    "type": [
-                      "boolean",
-                      "string"
-                    ],
-                    "description": "是否启用；字符串 true / 1 / yes / 启用 视为 true，其余字符串为 false；新增时省略或 null 为 true，编辑时 null 保留原值"
+                    "type": "boolean",
+                    "description": "是否启用（true / false），缺省为 true"
                   }
                 },
                 "required": [
@@ -5873,7 +5858,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "入职日期，取前 10 个字符按 YYYY-MM-DD / YYYYMMDD / ISO 周日期解析，解析失败存为 null"
+                    "description": "入职日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「入职日期的值无效」"
                   },
                   "avatar_color": {
                     "type": "string",
@@ -5888,18 +5873,12 @@
                     "description": "个人简介；空串存为 null"
                   },
                   "sort_order": {
-                    "type": [
-                      "integer",
-                      "string"
-                    ],
-                    "description": "排序，可传数字字符串；无法转成整数时新增用 0、编辑保留原值"
+                    "type": "integer",
+                    "description": "排序值"
                   },
                   "is_active": {
-                    "type": [
-                      "boolean",
-                      "string"
-                    ],
-                    "description": "是否启用；字符串 true / 1 / yes / 启用 视为 true，其余字符串为 false；新增时省略或 null 为 true，编辑时 null 保留原值"
+                    "type": "boolean",
+                    "description": "是否启用（true / false）"
                   }
                 }
               }
@@ -7758,7 +7737,7 @@
           }
         ],
         "summary": "新增甘特图任务",
-        "description": "需要 cc_admin_gantt_add。标题、开始日期、结束日期必填（缺省或日期无法解析返回 400）；不校验开始日期是否早于结束日期，枚举字段取值非法时回落到默认值",
+        "description": "需要 cc_admin_gantt_add。标题、开始日期、结束日期必填；日期须为 YYYY-MM-DD，开始日期不能晚于结束日期；字段类型或枚举取值不对返回 400「<字段>的值无效」",
         "requestBody": {
           "required": true,
           "content": {
@@ -7781,14 +7760,18 @@
                     "description": "类型；不在枚举内时按 task"
                   },
                   "start_date": {
-                    "type": "string",
+                    "type": [
+                      "string"
+                    ],
                     "format": "date",
-                    "description": "开始日期 YYYY-MM-DD；缺省或无法解析返回 400"
+                    "description": "开始日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「开始日期不能为空」，格式不对返回 400「开始日期的值无效」"
                   },
                   "end_date": {
-                    "type": "string",
+                    "type": [
+                      "string"
+                    ],
                     "format": "date",
-                    "description": "结束日期 YYYY-MM-DD；缺省或无法解析返回 400"
+                    "description": "结束日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「结束日期不能为空」，格式不对返回 400「结束日期的值无效」"
                   },
                   "progress": {
                     "type": "integer",
@@ -7829,7 +7812,7 @@
                   },
                   "sort_order": {
                     "type": "integer",
-                    "description": "排序值；无法解析时为 0"
+                    "description": "排序值，缺省为 0"
                   }
                 },
                 "required": [
@@ -7967,7 +7950,7 @@
           }
         ],
         "summary": "编辑甘特图任务",
-        "description": "需要 cc_admin_gantt_edit（先校验权限，再查任务，不存在返回 404）。只更新请求中出现的字段，值未变化的字段不写库；传入空标题返回 400。开始 / 结束日期传 null 或无法解析返回 400，开始日期晚于结束日期也返回 400",
+        "description": "需要 cc_admin_gantt_edit（先校验权限，再查任务，不存在返回 404）。只更新请求中出现的字段，值未变化的字段不写库；传入空标题返回 400。开始 / 结束日期传 null 或格式不对返回 400，开始日期晚于结束日期也返回 400",
         "parameters": [
           {
             "name": "task_id",
@@ -8001,14 +7984,20 @@
                     "description": "类型；不在枚举内时按 task"
                   },
                   "start_date": {
-                    "type": "string",
+                    "type": [
+                      "string",
+                      "null"
+                    ],
                     "format": "date",
-                    "description": "开始日期 YYYY-MM-DD；无法解析时会写入 null 并触发数据库非空约束返回 500"
+                    "description": "开始日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「开始日期不能为空」，格式不对返回 400「开始日期的值无效」"
                   },
                   "end_date": {
-                    "type": "string",
+                    "type": [
+                      "string",
+                      "null"
+                    ],
                     "format": "date",
-                    "description": "结束日期 YYYY-MM-DD；无法解析时会写入 null 并触发数据库非空约束返回 500"
+                    "description": "结束日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「结束日期不能为空」，格式不对返回 400「结束日期的值无效」"
                   },
                   "progress": {
                     "type": "integer",
@@ -8049,7 +8038,7 @@
                   },
                   "sort_order": {
                     "type": "integer",
-                    "description": "排序值；无法解析时保持原值"
+                    "description": "排序值"
                   }
                 }
               }
@@ -8437,11 +8426,11 @@
                   },
                   "sort_order": {
                     "type": "integer",
-                    "description": "排序值；缺省或无法解析时为 0"
+                    "description": "排序值，缺省为 0"
                   },
                   "wip_limit": {
                     "type": "integer",
-                    "description": "在制品上限；缺省或无法解析时为 0"
+                    "description": "在制品上限（0 表示不限制），缺省为 0"
                   },
                   "is_active": {
                     "type": "boolean",
@@ -8658,11 +8647,11 @@
                   },
                   "sort_order": {
                     "type": "integer",
-                    "description": "排序值；无法解析时保持原值"
+                    "description": "排序值"
                   },
                   "wip_limit": {
                     "type": "integer",
-                    "description": "在制品上限；无法解析时保持原值"
+                    "description": "在制品上限（0 表示不限制）"
                   },
                   "is_active": {
                     "type": "boolean",
@@ -8957,7 +8946,7 @@
                       "null"
                     ],
                     "format": "date",
-                    "description": "截止日期 YYYY-MM-DD；无法解析时存为 null"
+                    "description": "截止日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「截止日期的值无效」"
                   },
                   "tags": {
                     "type": [
@@ -8969,7 +8958,7 @@
                   },
                   "sort_order": {
                     "type": "integer",
-                    "description": "列内排序值；缺省或无法解析时为 0"
+                    "description": "排序值，缺省为 0"
                   },
                   "is_active": {
                     "type": "boolean",
@@ -9123,7 +9112,7 @@
                     },
                     "sort_order": {
                       "type": "integer",
-                      "description": "新排序值；缺省或无法解析时为 0"
+                      "description": "排序值，缺省为 0"
                     }
                   }
                 }
@@ -9178,7 +9167,7 @@
           }
         ],
         "summary": "编辑看板卡片",
-        "description": "需要 cc_admin_kanban_edit（先校验权限，再查卡片，不存在返回 404）。只更新请求中出现的字段，卡片编码不可修改；传入空标题返回 400；board_id 指向不存在的列返回 404，为 0 或无法解析时忽略",
+        "description": "需要 cc_admin_kanban_edit（先校验权限，再查卡片，不存在返回 404）。只更新请求中出现的字段，卡片编码不可修改；传入空标题返回 400；board_id 指向不存在的列返回 404，为 null 时不移动",
         "parameters": [
           {
             "name": "card_id",
@@ -9237,7 +9226,7 @@
                       "null"
                     ],
                     "format": "date",
-                    "description": "截止日期 YYYY-MM-DD；无法解析时置为 null"
+                    "description": "截止日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「截止日期的值无效」"
                   },
                   "tags": {
                     "type": [
@@ -9249,7 +9238,7 @@
                   },
                   "sort_order": {
                     "type": "integer",
-                    "description": "列内排序值；无法解析时保持原值"
+                    "description": "排序值"
                   },
                   "is_active": {
                     "type": "boolean",

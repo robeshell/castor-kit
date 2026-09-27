@@ -82,7 +82,7 @@ export class AdvancedTableRepository {
     const pinnedCount = await this.countWhere(eq(t.is_pinned, true))
     const publishedCount = await this.countWhere(eq(t.status, 'published'))
     const [avgRow] = await this.db
-      .select({ progress: sql<string | null>`avg(${t.progress})`, score: sql<string | null>`avg(${t.score})` })
+      .select({ progress: sql<string | null>`round(avg(${t.progress}), 2)`, score: sql<string | null>`round(avg(${t.score}), 2)` })
       .from(t)
     const categoryRows = await this.db
       .select({ category: t.category, n: sql<number>`count(${t.id})`.mapWith(Number) })

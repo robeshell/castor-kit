@@ -2,81 +2,35 @@
  * Advanced table page service layer
  */
 
+import type { z } from 'zod'
 import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
-import { invalidInput } from '@/common/py-values'
 import { notFound } from '@/common/http'
-import { isPlainObject, pyStr, pyTruthy } from '@/common/py'
+import { changedFields } from '@/common/validation'
 import type { Db, Executor } from '@/db/client'
 import { advancedTableRowToDict, type AdvancedTableRow } from '@/db/schema'
-import { parseLooseDate } from '@/common/py-date'
 import { AdvancedTableRepository, type AdvancedTableRowPatch, type ListFilters } from './repository'
-import {
-  CATEGORY_VALUES,
-  STATUS_VALUES,
-  floatToNumericParam,
-  hasKey,
-  numericEqualsFloat,
-  parseBool,
-  parseFloatOr,
-  parseIntOr,
-  pyRound2,
-  strOrEmpty,
-  strOrNull,
-} from './schema'
+import type { batchDeleteBody, batchUpdateBody, reorderItem, RowInput } from './schema'
 
-type Data = Record<string, unknown>
+/** Progress is a percentage: out-of-range values are clamped to 0–100 */
+const clampProgress = (progress: number) => Math.max(0, Math.min(100, progress))
 
-const INT32_MIN = -2147483648
-const INT32_MAX = 2147483647
-
-export function normalizeStatus(value: unknown, fallback: string): string {
-  if (value === null || value === undefined) return fallback
-  const raw = pyStr(value).trim().toLowerCase()
-  if (!raw) return fallback
-  if (!STATUS_VALUES.has(raw)) throw new ServiceError('状态仅支持 draft/published/archived', 400)
-  return raw
-}
-
-export function normalizeCategory(value: unknown, fallback = 'general'): string {
-  const raw = (pyTruthy(value) ? pyStr(value) : '').trim().toLowerCase() || fallback
-  return CATEGORY_VALUES.has(raw) ? raw : fallback
-}
-
-export function normalizeProgress(value: unknown, fallback = 0): number {
-  const progress = parseIntOr(value, fallback)
-  if (progress < 0) return 0
-  if (progress > 100) return 100
-  return progress
-}
-
-export function normalizeSortOrder(value: unknown, fallback = 0): number {
-  const sortOrder = parseIntOr(value, fallback)
-  if (sortOrder < INT32_MIN || sortOrder > INT32_MAX) throw new ServiceError('排序值超出范围', 400)
-  return sortOrder
-}
-
-/** Keep only fields that differ from the current row (UPDATE only fields whose value actually changed; score compares numeric and float by exact value) */
-function changedFields(row: AdvancedTableRow, patch: AdvancedTableRowPatch, newScore?: number): AdvancedTableRowPatch {
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(patch)) {
-    if (k === 'score') {
-      if (newScore === undefined || !numericEqualsFloat(row.score, newScore)) out[k] = v
-    } else if ((row as Record<string, unknown>)[k] !== v) {
-      out[k] = v
-    }
+/** Column values from parsed input: progress clamped, score written as numeric text */
+function columns(values: Partial<RowInput>): AdvancedTableRowPatch {
+  const { score, progress, ...rest } = values
+  return {
+    ...rest,
+    ...(progress !== undefined ? { progress: clampProgress(progress) } : {}),
+    ...(score !== undefined ? { score: String(score) } : {}),
   }
-  return out as AdvancedTableRowPatch
 }
 
-/**
- * Record ids from a request body: integers, digit strings and nulls pass (nulls and unknown ids simply match
- * nothing); booleans, objects and other strings are the caller's error
- */
-function idList(ids: unknown[]): unknown[] {
-  const ok = (id: unknown) => id === null || Number.isInteger(id) || (typeof id === 'string' && /^\s*[+-]?\d+\s*$/.test(id))
-  if (!ids.every(ok)) throw invalidInput()
-  return ids
+/** Changed columns; score compares by value (the column holds numeric text such as '4.50') */
+function changes(row: AdvancedTableRow, patch: AdvancedTableRowPatch): AdvancedTableRowPatch {
+  const { score, ...rest } = patch
+  const changed: AdvancedTableRowPatch = changedFields(row, rest as Partial<AdvancedTableRow>)
+  if (score !== undefined && Number(score) !== Number(row.score)) changed.score = score
+  return changed
 }
 
 export class AdvancedTableService {
@@ -105,69 +59,22 @@ export class AdvancedTableService {
       inactive_count: s.total - s.activeCount,
       pinned_count: s.pinnedCount,
       published_count: s.publishedCount,
-      avg_progress: pyRound2(Number(s.avgRow.progress ?? 0)),
-      avg_score: pyRound2(Number(s.avgRow.score ?? 0)),
+      avg_progress: Number(s.avgRow.progress ?? 0),
+      avg_score: Number(s.avgRow.score ?? 0),
       category_stats: s.categoryRows.map((r) => ({ category: r.category || 'general', count: r.n })),
     }
   }
 
-  async createItem(data: Data) {
-    const name = strOrEmpty(data.name)
-    const rowCode = strOrEmpty(data.row_code)
-    if (!name) throw new ServiceError('名称不能为空')
-    if (!rowCode) throw new ServiceError('编码不能为空')
-    if (await this.repo.getByCode(rowCode)) throw new ServiceError('编码已存在')
-
-    // Fields are validated in this order: status before sort_order (if both are invalid, the status error is reported first)
-    const values = {
-      name,
-      row_code: rowCode,
-      category: normalizeCategory(data.category),
-      owner: strOrNull(data.owner),
-      status: normalizeStatus(data.status, 'draft'),
-      priority: parseIntOr(data.priority, 0),
-      progress: normalizeProgress(data.progress, 0),
-      score: floatToNumericParam(parseFloatOr(data.score, 0.0)),
-      tags: strOrNull(data.tags),
-      is_active: parseBool(data.is_active, true),
-      is_pinned: parseBool(data.is_pinned, false),
-      due_date: parseLooseDate(data.due_date),
-      sort_order: normalizeSortOrder(data.sort_order, 0),
-      remark: strOrNull(data.remark),
-    }
-    return advancedTableRowToDict(await this.repo.insert(values))
+  async createItem(values: RowInput) {
+    if (await this.repo.getByCode(values.row_code)) throw new ServiceError('编码已存在')
+    return advancedTableRowToDict(await this.repo.insert({ ...columns(values), name: values.name, row_code: values.row_code }))
   }
 
-  async updateItem(item: AdvancedTableRow, data: Data) {
-    if (hasKey(data, 'name') && !strOrEmpty(data.name)) throw new ServiceError('名称不能为空')
-
-    if (hasKey(data, 'row_code')) {
-      const nextCode = strOrEmpty(data.row_code)
-      if (!nextCode) throw new ServiceError('编码不能为空')
-      if (await this.repo.getDuplicateCode(nextCode, item.id)) throw new ServiceError('编码已存在')
+  async updateItem(item: AdvancedTableRow, values: Partial<RowInput>) {
+    if (values.row_code !== undefined && (await this.repo.getDuplicateCode(values.row_code, item.id))) {
+      throw new ServiceError('编码已存在')
     }
-
-    const patch: AdvancedTableRowPatch = {}
-    let newScore: number | undefined
-    if (hasKey(data, 'name')) patch.name = strOrEmpty(data.name)
-    if (hasKey(data, 'row_code')) patch.row_code = strOrEmpty(data.row_code)
-    if (hasKey(data, 'category')) patch.category = normalizeCategory(data.category, item.category || 'general')
-    if (hasKey(data, 'owner')) patch.owner = strOrNull(data.owner)
-    if (hasKey(data, 'priority')) patch.priority = parseIntOr(data.priority, item.priority || 0)
-    if (hasKey(data, 'progress')) patch.progress = normalizeProgress(data.progress, item.progress || 0)
-    if (hasKey(data, 'score')) {
-      newScore = parseFloatOr(data.score, item.score !== null ? Number(item.score) : 0.0)
-      patch.score = floatToNumericParam(newScore)
-    }
-    if (hasKey(data, 'tags')) patch.tags = strOrNull(data.tags)
-    if (hasKey(data, 'is_active')) patch.is_active = parseBool(data.is_active, item.is_active)
-    if (hasKey(data, 'is_pinned')) patch.is_pinned = parseBool(data.is_pinned, item.is_pinned)
-    if (hasKey(data, 'sort_order')) patch.sort_order = normalizeSortOrder(data.sort_order, item.sort_order || 0)
-    if (hasKey(data, 'remark')) patch.remark = strOrNull(data.remark)
-    if (hasKey(data, 'status')) patch.status = normalizeStatus(data.status, item.status || 'draft')
-    if (hasKey(data, 'due_date')) patch.due_date = parseLooseDate(data.due_date)
-
-    const changed = changedFields(item, patch, newScore)
+    const changed = changes(item, columns(values))
     if (Object.keys(changed).length > 0) await this.repo.update(item.id, changed)
     return advancedTableRowToDict((await this.repo.get(item.id))!)
   }
@@ -185,54 +92,36 @@ export class AdvancedTableService {
     }
   }
 
-  async reorderRows(items: unknown) {
-    if (!Array.isArray(items)) throw new ServiceError('参数格式错误，需要数组')
+  /** Save the rows' positions; a row listed more than once keeps its last entry, unknown ids are skipped */
+  async reorderRows(items: z.output<typeof reorderItem>[]) {
     return this.inTx(async (repo) => {
-      // identity map: when the same row appears multiple times the last one wins; compared with the original value on commit
-      const loaded = new Map<number, AdvancedTableRow | null>()
       const finalSort = new Map<number, number>()
-      for (const item of items) {
-        if (!isPlainObject(item)) throw invalidInput()
-        const rowId = parseIntOr(item.id, 0)
-        const sortOrder = normalizeSortOrder(item.sort_order, 0)
-        if (!rowId) continue
-        if (!loaded.has(rowId)) loaded.set(rowId, await repo.get(rowId))
-        if (loaded.get(rowId)) finalSort.set(rowId, sortOrder)
-      }
+      for (const item of items) if (item.id !== null) finalSort.set(item.id, item.sort_order)
       for (const [id, sortOrder] of finalSort) {
-        if (loaded.get(id)!.sort_order !== sortOrder) await repo.update(id, { sort_order: sortOrder })
+        const row = await repo.get(id)
+        if (row && row.sort_order !== sortOrder) await repo.update(id, { sort_order: sortOrder })
       }
       return { message: '排序已保存' }
     })
   }
 
-  async batchUpdate(data: Data) {
-    const ids = pyTruthy(data.ids) ? data.ids : []
-    if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先选择要操作的数据')
-
-    const items = await this.repo.listByIds(idList(ids))
+  async batchUpdate({ ids = [], ...values }: Partial<z.output<typeof batchUpdateBody>>) {
+    if (ids.length === 0) throw new ServiceError('请先选择要操作的数据')
+    const items = await this.repo.listByIds(ids)
     if (items.length === 0) throw new ServiceError('未找到可更新的数据')
 
     await this.inTx(async (repo) => {
       for (const item of items) {
-        const patch: AdvancedTableRowPatch = {}
-        if (hasKey(data, 'status')) patch.status = normalizeStatus(data.status, item.status)
-        if (hasKey(data, 'owner')) patch.owner = strOrNull(data.owner)
-        if (hasKey(data, 'is_active')) patch.is_active = parseBool(data.is_active, item.is_active)
-        if (hasKey(data, 'is_pinned')) patch.is_pinned = parseBool(data.is_pinned, item.is_pinned)
-        if (hasKey(data, 'priority')) patch.priority = parseIntOr(data.priority, item.priority || 0)
-        const changed = changedFields(item, patch)
+        const changed = changes(item, columns(values))
         if (Object.keys(changed).length > 0) await repo.update(item.id, changed)
       }
     })
     return { message: `已更新 ${items.length} 条记录` }
   }
 
-  async batchDelete(data: Data) {
-    const ids = pyTruthy(data.ids) ? data.ids : []
-    if (!Array.isArray(ids) || ids.length === 0) throw new ServiceError('请先选择要删除的数据')
-
-    const items = await this.repo.listByIds(idList(ids))
+  async batchDelete({ ids }: z.output<typeof batchDeleteBody>) {
+    if (ids.length === 0) throw new ServiceError('请先选择要删除的数据')
+    const items = await this.repo.listByIds(ids)
     if (items.length === 0) throw new ServiceError('未找到可删除的数据')
 
     await this.inTx(async (repo) => {

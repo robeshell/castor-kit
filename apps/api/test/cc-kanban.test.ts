@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { kanban_boards, kanban_cards } from '@/db/schema'
-import { pyDateFromIsoformat, parseLooseDate } from '@/common/py-date'
 import {
   buildTestApp,
   cleanupFixture,
@@ -41,45 +40,6 @@ afterAll(async () => {
   await handle.pool.end()
 })
 
-describe('py-date：date.fromisoformat(str(v)[:10])', () => {
-  it.each([
-    ['2024-01-01', '2024-01-01'],
-    ['20240101', '2024-01-01'],
-    ['20240101ab', '2024-01-01'],
-    ['2024-W01', '2024-01-01'],
-    ['2024W01', '2024-01-01'],
-    ['2024W011', '2024-01-01'],
-    ['2024-W01-1', '2024-01-01'],
-    ['2024-W011x', null],
-    ['2024W53', null],
-    ['2020W53', '2020-12-28'],
-    ['2024-01', null],
-    ['2024-1-01', null],
-    ['2024-13-01', null],
-    ['0000-01-01', null],
-    ['2024-02-30', null],
-    ['20240101T1', '2024-01-01'],
-    ['2024/01/01', null],
-    ['2024-01-0１', null],
-    ['１２３４-01-01', null],
-    ['2024W011ab', '2024-01-01'],
-    ['2024-W0', null],
-    ['2024-W01-', null],
-  ])('%s → %s', (input, expected) => {
-    expect(pyDateFromIsoformat(input)).toBe(expected)
-  })
-
-  it('parseLooseDate：假值 → null；str() 后截取前 10 个字符；UTF-8 字节长度', () => {
-    expect(parseLooseDate(null)).toBeNull()
-    expect(parseLooseDate('')).toBeNull()
-    expect(parseLooseDate(0)).toBeNull()
-    expect(parseLooseDate(20240315)).toBe('2024-03-15')
-    expect(parseLooseDate('2024-05-06T12:00:00Z')).toBe('2024-05-06')
-    expect(parseLooseDate('20240101é')).toBe('2024-01-01') // 9 chars = 10 bytes
-    expect(parseLooseDate(true)).toBeNull()
-  })
-})
-
 describe('kanban', () => {
   let boardA: number
   let boardB: number
@@ -88,7 +48,7 @@ describe('kanban', () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/boards`,
-      payload: { title: ' 列A ', board_code: ` ${P}a `, color: '', sort_order: '9000', wip_limit: 'x', is_active: 'no' },
+      payload: { title: ' 列A ', board_code: ` ${P}a `, color: '', sort_order: 9000, is_active: false },
     })
     expect(res.statusCode).toBe(201)
     const body = res.json()
@@ -113,6 +73,8 @@ describe('kanban', () => {
       [{}, '列标题不能为空'],
       [{ title: 'x' }, '列编码不能为空'],
       [{ title: 'x', board_code: `${P}a` }, '列编码已存在'],
+      [{ title: 'x', board_code: `${P}z`, wip_limit: 'x' }, 'WIP 上限的值无效'],
+      [{ title: 'x', board_code: `${P}z`, sort_order: '9000' }, '排序的值无效'],
     ]
     for (const [payload, error] of cases) {
       const r = await s.inject({ method: 'POST', url: `${B}/boards`, payload: payload as object })
@@ -121,16 +83,25 @@ describe('kanban', () => {
     }
   })
 
-  it('新建卡片：自动编码、日期/优先级归一化；列不存在 404；缺列 400', async () => {
+  it('新建卡片：自动编码；日期 / 优先级校验；列不存在 404；缺列 400', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/cards`,
-      payload: { title: '卡1', board_id: String(boardA), priority: 'nope', due_date: '2024-03-05xx', tags: ' ', sort_order: 5 },
+      payload: { title: '卡1', board_id: boardA, due_date: '2024-03-05', tags: ' ', sort_order: 5 },
     })
     expect(res.statusCode).toBe(201)
     const card = res.json()
     expect(card.card_code).toMatch(/^card_[0-9a-f]{8}$/)
     expect(card).toMatchObject({ board_id: boardA, priority: 'medium', due_date: '2024-03-05', tags: '', description: null, is_active: true })
+    for (const [extra, error] of [
+      [{ priority: 'nope' }, '优先级的值无效'],
+      [{ due_date: '2024-03-05xx' }, '截止日期的值无效'],
+      [{ due_date: '20240305' }, '截止日期的值无效'],
+      [{ board_id: String(boardA) }, '所属列的值无效'],
+    ] as const) {
+      const r = await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: 'x', board_id: boardA, ...extra } })
+      expect([r.statusCode, r.json()], JSON.stringify(extra)).toEqual([400, { error }])
+    }
     // Change to a prefixed code for easier cleanup
     await handle.db.update(kanban_cards).set({ card_code: `${P}c1` }).where(eq(kanban_cards.id, card.id))
 
@@ -142,8 +113,8 @@ describe('kanban', () => {
     await handle.db.update(kanban_cards).set({ card_code: `${P}c3` }).where(eq(kanban_cards.id, c3.json().id))
 
     expect((await s.inject({ method: 'POST', url: `${B}/cards`, payload: { board_id: boardA } })).json()).toEqual({ error: '卡片标题不能为空' })
-    expect((await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: 'x', board_id: 'abc' } })).json()).toEqual({ error: '所属列不存在' })
-    const nf = await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: 'x', board_id: 99999999999 } })
+    expect((await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: 'x' } })).json()).toEqual({ error: '所属列不存在' })
+    const nf = await s.inject({ method: 'POST', url: `${B}/cards`, payload: { title: 'x', board_id: 99999999 } })
     expect(nf.statusCode).toBe(404)
     expect(nf.json()).toEqual({ error: '资源不存在' })
   })
@@ -164,7 +135,7 @@ describe('kanban', () => {
     const same = await s.inject({ method: 'PUT', url: `${B}/boards/${boardA}`, payload: { title: '列A', is_active: false } })
     expect(same.json().updated_at).toBe(before.updated_at!.replace(' ', 'T').replace(/\.(\d+)$/, (_, f: string) => `.${f.padEnd(6, '0')}`))
 
-    const upd = await s.inject({ method: 'PUT', url: `${B}/boards/${boardA}`, payload: { title: '列A2', wip_limit: '3', color: null } })
+    const upd = await s.inject({ method: 'PUT', url: `${B}/boards/${boardA}`, payload: { title: '列A2', wip_limit: 3, color: null } })
     expect(upd.json()).toMatchObject({ title: '列A2', wip_limit: 3, color: '#4080FF' })
     expect(upd.json().updated_at).not.toBe(same.json().updated_at)
     expect((await s.inject({ method: 'PUT', url: `${B}/boards/${boardA}`, payload: { title: ' ' } })).json()).toEqual({ error: '列标题不能为空' })
@@ -175,11 +146,12 @@ describe('kanban', () => {
     const moved = await s.inject({
       method: 'PUT',
       url: `${B}/cards/${card!.id}`,
-      payload: { board_id: boardB, priority: 'HIGH', due_date: '', description: ' d ', is_active: '启用' },
+      payload: { board_id: boardB, priority: 'high', due_date: '', description: ' d ', is_active: true },
     })
-    expect(moved.json()).toMatchObject({ board_id: boardB, priority: 'medium', due_date: null, description: 'd', is_active: true })
-    const noBoard = await s.inject({ method: 'PUT', url: `${B}/cards/${card!.id}`, payload: { board_id: 0 } })
+    expect(moved.json()).toMatchObject({ board_id: boardB, priority: 'high', due_date: null, description: 'd', is_active: true })
+    const noBoard = await s.inject({ method: 'PUT', url: `${B}/cards/${card!.id}`, payload: { board_id: null } })
     expect(noBoard.json().board_id).toBe(boardB)
+    expect((await s.inject({ method: 'PUT', url: `${B}/cards/${card!.id}`, payload: { priority: 'HIGH' } })).json()).toEqual({ error: '优先级的值无效' })
     expect((await s.inject({ method: 'PUT', url: `${B}/cards/${card!.id}`, payload: { board_id: 99999999 } })).statusCode).toBe(404)
     expect((await s.inject({ method: 'PUT', url: `${B}/cards/${card!.id}`, payload: { title: '' } })).json()).toEqual({ error: '卡片标题不能为空' })
     expect((await s.inject({ method: 'DELETE', url: `${B}/cards/99999999` })).statusCode).toBe(404)
@@ -194,7 +166,7 @@ describe('kanban', () => {
     const ok = await s.inject({
       method: 'PUT',
       url: `${B}/cards/reorder`,
-      payload: [{ id: c2.id, board_id: boardB, sort_order: 5 }, { id: c3.id, sort_order: '7' }, { id: 99999999, board_id: boardA }],
+      payload: [{ id: c2.id, board_id: boardB, sort_order: 5 }, { id: c3.id, sort_order: 7 }, { id: 99999999, board_id: boardA }],
     })
     expect(ok.json()).toEqual({ message: '排序已保存' })
     const after = await handle.db.select().from(kanban_cards).where(inArray(kanban_cards.id, [c2.id, c3.id]))
@@ -202,21 +174,21 @@ describe('kanban', () => {
     expect([m[c2.id]!.board_id, m[c2.id]!.sort_order]).toEqual([boardB, 5])
     expect([m[c3.id]!.board_id, m[c3.id]!.sort_order]).toEqual([boardA, 7])
 
-    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: {} })).json()).toEqual({ message: '排序已保存' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [] })).json()).toEqual({ message: '排序已保存' })
     expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: { a: 1 } })).json()).toEqual({ error: '参数格式错误，需要数组' })
     const missing = await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [{ id: c2.id, board_id: 99999999 }] })
     expect(missing.statusCode).toBe(400)
     expect(missing.json()).toEqual({ error: '目标列不存在' })
-    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [1] })).statusCode).toBe(400)
+    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [1] })).json()).toEqual({ error: '请求参数格式不正确' })
+    expect((await s.inject({ method: 'PUT', url: `${B}/cards/reorder`, payload: [{ id: c2.id, sort_order: '7' }] })).json()).toEqual({ error: '排序的值无效' })
 
-    // Second write is out of range → everything rolls back, the first one doesn't take effect either
+    // The second write is out of range → everything rolls back, the first one doesn't take effect either
     const bad = await s.inject({
       method: 'PUT',
       url: `${B}/cards/reorder`,
       payload: [{ id: c2.id, sort_order: 42 }, { id: c3.id, sort_order: 99999999999 }],
     })
-    expect(bad.statusCode).toBe(400)
-    expect(bad.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    expect(bad.json()).toEqual({ error: '数值超出范围' })
     const [c2After] = await handle.db.select().from(kanban_cards).where(eq(kanban_cards.id, c2.id))
     expect(c2After!.sort_order).toBe(5)
   })

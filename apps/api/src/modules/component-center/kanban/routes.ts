@@ -6,8 +6,9 @@
 
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody, parseIntParam, rawJsonBody } from '@/common/http'
-import { pyTruthy } from '@/common/py'
+import { intParam, parseIntParam } from '@/common/http'
+import { parseArrayBody, parseBody, parsePatch } from '@/common/validation'
+import { boardBody, boardUpdateBody, cardBody, cardUpdateBody, reorderItem } from './schema'
 import { KanbanService } from './service'
 
 const BASE = '/api/admin/component-center/kanban'
@@ -29,7 +30,7 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_add'))) {
       return reply.status(403).send({ error: '无权限新建列' })
     }
-    return reply.status(201).send(await service.createBoard(jsonBody(request)))
+    return reply.status(201).send(await service.createBoard(parseBody(boardBody, request.body)))
   })
 
   app.put(`${BASE}/boards/${intParam('board_id')}`, opts, async (request, reply) => {
@@ -37,7 +38,7 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
       return reply.status(403).send({ error: '无权限编辑列' })
     }
     const board = await service.getBoardOr404(parseIntParam((request.params as { board_id: string }).board_id))
-    return service.updateBoard(board, jsonBody(request))
+    return service.updateBoard(board, parsePatch(boardUpdateBody, request.body))
   })
 
   app.delete(`${BASE}/boards/${intParam('board_id')}`, opts, async (request, reply) => {
@@ -55,15 +56,14 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
       return reply.status(403).send({ error: '无权限' })
     }
     // request.get_json() or []
-    const body = rawJsonBody(request)
-    return service.reorderCards(pyTruthy(body) ? body : [])
+    return service.reorderCards(parseArrayBody(reorderItem, request.body, '参数格式错误，需要数组'))
   })
 
   app.post(`${BASE}/cards`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_add'))) {
       return reply.status(403).send({ error: '无权限新建卡片' })
     }
-    return reply.status(201).send(await service.createCard(jsonBody(request)))
+    return reply.status(201).send(await service.createCard(parseBody(cardBody, request.body)))
   })
 
   app.put(`${BASE}/cards/${intParam('card_id')}`, opts, async (request, reply) => {
@@ -71,7 +71,7 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
       return reply.status(403).send({ error: '无权限编辑卡片' })
     }
     const card = await service.getCardOr404(parseIntParam((request.params as { card_id: string }).card_id))
-    return service.updateCard(card, jsonBody(request))
+    return service.updateCard(card, parsePatch(cardUpdateBody, request.body))
   })
 
   app.delete(`${BASE}/cards/${intParam('card_id')}`, opts, async (request, reply) => {

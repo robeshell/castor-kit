@@ -233,6 +233,16 @@ export function parsePatch<S extends BodySchema>(schema: S, body: unknown): Part
   return parse(schema.pick(picked) as BodySchema, data) as Partial<z.output<S>>
 }
 
+/**
+ * A JSON array body (e.g. a reorder list): each element parsed with `itemSchema`. A missing / null body is [];
+ * anything else that isn't an array → 400 `notArrayMessage`.
+ */
+export function parseArrayBody<S extends BodySchema>(itemSchema: S, body: unknown, notArrayMessage?: string): z.output<S>[] {
+  if (body === null || body === undefined) return []
+  if (!Array.isArray(body)) throw notArrayMessage ? new ServiceError(notArrayMessage, 400) : invalidInput()
+  return body.map((item) => parse(itemSchema, objectBody(item)))
+}
+
 /** The fields of `values` that differ from `current`, so an update that changes nothing leaves updated_at alone */
 export function changedFields<T extends object>(current: T, values: Partial<T>): Partial<T> {
   return Object.fromEntries(

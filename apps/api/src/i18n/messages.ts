@@ -346,7 +346,6 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '无权限批量更新': { 'en-US': "You don't have permission to bulk update records", 'ja-JP': '一括更新する権限がありません' },
   '无权限批量删除': { 'en-US': "You don't have permission to bulk delete records", 'ja-JP': '一括削除する権限がありません' },
   '状态仅支持 draft/published/archived': { 'en-US': 'Status must be draft, published or archived', 'ja-JP': 'ステータスには draft/published/archived のいずれかを指定してください' },
-  '排序值超出范围': { 'en-US': 'Sort order is out of range', 'ja-JP': '並び順の値が範囲外です' },
   '请先选择要操作的数据': { 'en-US': 'Select the records first', 'ja-JP': '操作するデータを選択してください' },
   '未找到可更新的数据': { 'en-US': 'No records found to update', 'ja-JP': '更新対象のデータが見つかりません' },
   '请先选择要删除的数据': { 'en-US': 'Select the records to delete first', 'ja-JP': '削除するデータを選択してください' },
