@@ -18,9 +18,9 @@ coverage/
 .vscode/
 .idea/
 
-# Runtime
-instance/
-**/instance/
+# Runtime data (DATA_DIR)
+data/
+apps/*/data/
 *.log
 /logs/
 

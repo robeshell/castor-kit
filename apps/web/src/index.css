@@ -6,7 +6,7 @@
 @source "../node_modules/streamdown/dist/*.js";
 
 /*
- * castor-kit design system (docs/frontend-redesign-plan.md §3)
+ * castor-kit design system (docs/frontend-design-system.md)
  * Neutral gray base plus one accent (default Ocean: blue → sky → cyan); gradients are for accents only.
  * The accent is switchable: presets at the bottom of this file only set --brand-from / --brand-via / --brand-to,
  * and every accent-colored token (primary, ring, charts, soft / glow / shadow) derives from those three.

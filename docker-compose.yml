@@ -1,5 +1,5 @@
-# Volume names can be overridden via env vars; to reuse existing volumes (database and uploads), point these at them:
-#   COMPOSE_DB_VOLUME=<existing db volume> COMPOSE_INSTANCE_VOLUME=<existing uploads volume>
+# Volume names can be overridden via env vars (database and uploaded files):
+#   COMPOSE_DB_VOLUME=<db volume name> COMPOSE_DATA_VOLUME=<data volume name>
 services:
   db:
     image: postgres:alpine
@@ -38,7 +38,7 @@ services:
       ENABLE_TASK_SCHEDULER: ${ENABLE_TASK_SCHEDULER:-true}
       RUN_SCHEDULER_IN_WEB: ${RUN_SCHEDULER_IN_WEB:-true}
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-8}
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       # Mail, file storage, uploads and the AI model are configured on the System settings page. Adding a variable here
@@ -52,10 +52,10 @@ services:
         condition: service_healthy
     volumes:
       # Persist uploaded files
-      - app_instance:/app/instance
+      - app_data:/app/data
 
 volumes:
   postgres_data:
     name: ${COMPOSE_DB_VOLUME:-castor-kit_postgres_data}
-  app_instance:
-    name: ${COMPOSE_INSTANCE_VOLUME:-castor-kit_app_instance}
+  app_data:
+    name: ${COMPOSE_DATA_VOLUME:-castor-kit_app_data}

@@ -25,7 +25,7 @@ describe('scrypt 密码哈希', () => {
       expect(await checkPasswordHash(bad, 'x'), String(bad)).toBe(false)
     }
     expect(isPasswordHash(hash)).toBe(true)
-    expect(isPasswordHash('pbkdf2:sha256:1000$abc$00')).toBe(false)
+    expect(isPasswordHash('not-a-phc-hash')).toBe(false)
     expect(await checkPasswordHash(hash, undefined)).toBe(false)
     expect(await checkPasswordHash(hash, 123)).toBe(false)
   })

@@ -74,7 +74,7 @@ const submit = async (values) => {
 </FormDialog>
 ```
 
-- 校验文案写进 `rules`（required / minLength / maxLength / pattern / validate），与后端 / 旧页面文案一致
+- 校验文案写进 `rules`（required / minLength / maxLength / pattern / validate），与后端文案一致
 - 字段多用 `FormSheet`；两列用 `FormGrid`；自定义控件（上传、树选择）用 `FormCustom`
 - 独立表单页（非弹窗）：`<Form {...form}><form onSubmit={form.handleSubmit(save)}>…</form></Form>`（`@/components/ui/form`），参考 profile 页
 
@@ -94,7 +94,7 @@ const submit = async (values) => {
 }
 ```
 
-`remove` 里 `catch → toast.apiError → throw`，确认框在失败时不关闭。按钮权限沿用页面已有的 `hasPermission` 判断（旧页面没有就不要新加）。
+`remove` 里 `catch → toast.apiError → throw`，确认框在失败时不关闭。按钮权限沿用页面已有的 `hasPermission` 判断。
 
 ## 4. 导入导出
 

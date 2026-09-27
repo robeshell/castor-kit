@@ -47,7 +47,7 @@ export function isAllowed(method: string, path: string): boolean {
   return path.startsWith('/api/admin/') && !denied(API_TOKEN_DENIED) && !denied(ASSISTANT_DENIED)
 }
 
-/** Route URL (:id(^\d+$)) or OpenAPI path ({id}, {int:id}) → a key with the parameters blanked */
+/** Route URL (:id(^\d+$)) or OpenAPI path ({id}) → a key with the parameters blanked */
 const shapeOf = (path: string) => path.replace(/:[^/]+/g, '{}').replace(/\{[^}]+\}/g, '{}')
 
 function describe(op: OpenApiOperation | undefined) {

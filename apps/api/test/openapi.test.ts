@@ -2,7 +2,7 @@
  * scripts/generate-openapi.ts + scripts/import-apifox.ts
  *
  * - Stub detection
- * - The generator adds stubs per missing route + method (compared by path shape; `{int:x}` is equivalent to `{x}`)
+ * - The generator adds stubs per missing route + method (compared by path shape; parameter names are ignored)
  * - Write-back format: JSON.stringify with 2-space indent and a trailing newline, byte-for-byte stable
  * - Apifox push: uses a local fake server to check URL / headers / body and exit code, sends no real requests to Apifox
  */
@@ -72,16 +72,15 @@ describe('路径转换', () => {
     expect(fastifyPathToOpenApi('/api/list-page/file/*')).toBe('/api/list-page/file/{path}')
   })
 
-  it('按形状判断已存在：历史的 {int:x} / {path:x} 条目算已覆盖', () => {
-    expect(pathShape('/api/a/{int:item_id}/x')).toBe(pathShape('/api/a/{item_id}/x'))
-    expect(pathShape('/api/f/{path:filename}')).toBe(pathShape(fastifyPathToOpenApi('/api/f/*')))
+  it('按路径形状 + 方法判断缺失：参数名不同也算同一路径', () => {
+    expect(pathShape('/api/a/{id}/x')).toBe(pathShape('/api/a/{item_id}/x'))
     const routes = new Map([
       ['/api/a/{item_id}', ['DELETE', 'PUT']],
       ['/api/b', ['GET', 'POST']],
     ])
     // Compared per method: a documented path can still miss a method; it joins the existing key
-    expect(findMissingRoutes({ '/api/a/{int:item_id}': { put: {} } }, routes)).toEqual([
-      ['/api/a/{int:item_id}', ['DELETE']],
+    expect(findMissingRoutes({ '/api/a/{id}': { put: {} } }, routes)).toEqual([
+      ['/api/a/{id}', ['DELETE']],
       ['/api/b', ['GET', 'POST']],
     ])
     expect(findMissingRoutes({ '/api/a/{item_id}': { delete: {}, PUT: {} }, '/api/b': { get: {}, post: {} } }, routes)).toEqual([])
@@ -155,7 +154,6 @@ describe('generateOpenApi', () => {
     const file = join(workDir, 'missing.json')
     const doc = JSON.parse(readFileSync(DOC_PATH, 'utf8')) as { paths: Record<string, unknown> }
     delete doc.paths['/api/admin/users']
-    delete doc.paths['/api/admin/users/{int:user_id}']
     delete doc.paths['/api/admin/users/{user_id}']
     writeFileSync(file, JSON.stringify(doc, null, 2))
 

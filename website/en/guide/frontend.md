@@ -201,9 +201,7 @@ Always use Tailwind semantic color classes for color. They adapt automatically t
 
 | Don't | Why / use instead |
 |---|---|
-| Import `@douyinfe/*` | Semi Design is retired; the `frontend_no_legacy_ui` check of `pnpm verify` catches it |
-| antd, material-ui or other UI libraries | Use shadcn/ui and the shared components |
-| `var(--semi-*)` | Retired variables |
+| antd, MUI or other UI component libraries | Use only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes |
 | Hard-coded hex colors in pages | Use semantic color classes. Exceptions: shading inside canvas / WebGL and chart data colors; for charts, prefer `useChartColors` |
 | Large inline styles for layout | Use Tailwind utilities |
 | Emoji as icons | Use `lucide-react` |
@@ -212,7 +210,7 @@ Always use Tailwind semantic color classes for color. They adapt automatically t
 
 ## Menu icons
 
-The `menus.icon` field stores an icon name (e.g. `IconUser`), which `apps/web/src/lib/menu-icons.js` maps to a lucide icon. When adding a menu, reuse a name that already exists in the map; if you need a new icon, add an entry to the map.
+The `menus.icon` field stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.js` resolves to a lucide icon component. When adding a menu, reuse a name that already exists in the map; if you need a new icon, add an entry to the map.
 
 ## i18n and side effects
 

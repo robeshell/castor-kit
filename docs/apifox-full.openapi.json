@@ -645,7 +645,7 @@
           }
         ],
         "summary": "导入公告",
-        "description": "需要 system_announcements_import。支持 csv（UTF-8）/ xlsx，最大 5MB；表头可用中文列名或字段名。逐行写入，失败行不影响其他行并在 error_rows 返回；标题为空的行跳过，公告类型、状态取值不合法时分别按 system、draft 处理，不写发布时间。",
+        "description": "需要 system_announcements_import。支持 csv（UTF-8）/ xlsx，最大 5MB；表头可用中文列名或字段名。整批在一个事务里写入：有任何错误行（如标题为空）时整批回滚，返回 400 与 error_rows；公告类型、状态取值不合法时分别按 system、draft 处理，不写发布时间。",
         "requestBody": {
           "required": true,
           "content": {
@@ -668,12 +668,15 @@
         },
         "responses": {
           "200": {
-            "description": "导入结果",
+            "description": "导入成功",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "message": {
+                      "type": "string"
+                    },
                     "created": {
                       "type": "integer",
                       "description": "新增条数"
@@ -684,29 +687,6 @@
                         0
                       ],
                       "description": "始终为 0（只新增不更新）"
-                    },
-                    "error_rows": {
-                      "type": "array",
-                      "description": "失败行，全部成功时不返回该字段",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "line": {
-                            "type": "integer",
-                            "description": "文件中的行号"
-                          },
-                          "reason": {
-                            "type": "string"
-                          },
-                          "row": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "string"
-                            },
-                            "description": "原始行数据"
-                          }
-                        }
-                      }
                     }
                   }
                 }
@@ -714,7 +694,7 @@
             }
           },
           "400": {
-            "description": "未上传文件、格式不支持（含 .xls）、文件为空、超过 5MB 或解析失败"
+            "description": "未上传文件、格式不支持（含 .xls）、文件为空、超过 5MB、解析失败，或存在错误数据（响应含 error_rows、error_count）"
           },
           "401": {
             "description": "未授权"
@@ -723,7 +703,7 @@
             "description": "无权限"
           },
           "413": {
-            "description": "文件超过 MAX_CONTENT_LENGTH"
+            "description": "文件超过 BODY_LIMIT"
           },
           "500": {
             "description": "服务器错误"
@@ -1501,7 +1481,7 @@
                       "properties": {
                         "max_size": {
                           "type": "integer",
-                          "description": "单个文件上限（字节），取系统设置 upload.max_size 与 MAX_CONTENT_LENGTH 的较小值"
+                          "description": "单个文件上限（字节），取系统设置 upload.max_size 与 BODY_LIMIT 的较小值"
                         },
                         "allowed_types": {
                           "type": "array",
@@ -4748,7 +4728,7 @@
             "description": "无权限"
           },
           "413": {
-            "description": "上传文件超过 MAX_CONTENT_LENGTH"
+            "description": "上传文件超过 BODY_LIMIT"
           },
           "500": {
             "description": "服务器错误"
@@ -7040,7 +7020,7 @@
             "description": "无权限"
           },
           "413": {
-            "description": "上传文件超过 MAX_CONTENT_LENGTH"
+            "description": "上传文件超过 BODY_LIMIT"
           },
           "500": {
             "description": "服务器错误"
@@ -13928,7 +13908,7 @@
             "description": "无权限"
           },
           "413": {
-            "description": "上传文件超过 MAX_CONTENT_LENGTH"
+            "description": "上传文件超过 BODY_LIMIT"
           },
           "500": {
             "description": "服务器错误"
@@ -17020,7 +17000,7 @@
             "description": "字典不存在"
           },
           "413": {
-            "description": "文件超过 MAX_CONTENT_LENGTH"
+            "description": "文件超过 BODY_LIMIT"
           },
           "500": {
             "description": "服务器错误"
@@ -17273,7 +17253,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "只需登录。校验大小（系统设置的上传上限与 MAX_CONTENT_LENGTH 取小，超限 413）、扩展名白名单（系统设置的允许类型）以及文件头与扩展名是否一致；相同内容共用存储对象",
+        "description": "只需登录。校验大小（系统设置的上传上限与 BODY_LIMIT 取小，超限 413）、扩展名白名单（系统设置的允许类型）以及文件头与扩展名是否一致；相同内容共用存储对象",
         "requestBody": {
           "required": true,
           "content": {

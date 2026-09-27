@@ -132,7 +132,7 @@ export default function Menus() {
       .then((res) => {
         const list = Array.isArray(res) ? res : []
         setData(list)
-        // Same as the old page's expandAllRows: expand everything after each load
+        // Expand every row after each load
         setExpanded(new Set(collectParentIds(list)))
       })
       .catch(() => toast.error('加载失败'))

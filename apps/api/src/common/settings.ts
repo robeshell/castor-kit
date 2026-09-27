@@ -254,7 +254,7 @@ export interface Settings {
       forcePathStyle: boolean
     }
   }
-  /** Effective upload limit: the setting capped by MAX_CONTENT_LENGTH */
+  /** Effective upload limit: the setting capped by BODY_LIMIT */
   upload: { maxSize: number; allowedTypes: string[] }
   ai: { provider: AiProvider; apiBase: string; apiKey: string; model: string }
 }
@@ -302,7 +302,7 @@ function toSettings(values: Map<string, SettingValue>, config: AppConfig): Setti
       },
     },
     upload: {
-      maxSize: Math.max(1, Math.min(get<number>('upload.max_size'), config.maxContentLength)),
+      maxSize: Math.max(1, Math.min(get<number>('upload.max_size'), config.bodyLimit)),
       allowedTypes: get<string[]>('upload.allowed_types'),
     },
     ai: {

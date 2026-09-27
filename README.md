@@ -43,7 +43,7 @@ castor-kit is an open-source admin panel you can run today and extend with AI to
   <tr>
     <td width="33%"><b>Permissions</b><br>Users, roles and menus, down to each button.</td>
     <td width="33%"><b>AI-ready</b><br>One sentence becomes a table, API, page and permissions.</td>
-    <td width="33%"><b>Automated checks</b><br>15 checks: types, migrations, routes, RBAC, tests, build.</td>
+    <td width="33%"><b>Automated checks</b><br>16 checks: types, migrations, routes, RBAC, tests, build.</td>
   </tr>
   <tr>
     <td><b>Themes & layouts</b><br>Six accent colors, three layouts, light and dark, tabs bar.</td>

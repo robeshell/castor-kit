@@ -45,27 +45,27 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `SECRET_KEY` | Session encryption key; the cookie key is derived from it via HKDF | Built-in insecure default in development / test; **required in production** |
 | `ADMIN_PASSWORD` | Initial password of the `admin` account, used only when the account doesn't exist | `admin123` in development / test; **required in production** |
 | `SESSION_TTL_HOURS` | Initial session lifetime (hours); can be changed later in System settings | `8` |
-| `SESSION_COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
+| `COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |
 | `RATE_LIMIT_ENABLED` | Per-IP rate limits; the limits themselves are set in System settings, see [Account security & settings](/en/guide/security#rate-limits) | `true` |
 | `SETTINGS_ALLOW_PRIVATE_NETWORK` | Whether the SMTP server, S3 endpoint and AI API URL in System settings, and webhook endpoints, may point at internal networks (`127.0.0.1`, `10.x`, `192.168.x` …); reserved addresses such as cloud metadata are never allowed. Addresses pinned by environment variables aren't restricted | `true` in development / test, `false` in production |
-| `MAX_CONTENT_LENGTH` | Maximum request body size (bytes); larger requests get 413 | `16777216` (16MB) |
+| `BODY_LIMIT` | Maximum request body size (bytes); larger requests get 413 | `16777216` (16MB) |
 
 ### Paths
 
 | Variable | Purpose | Default |
 |---|---|---|
 | `WEB_DIST_DIR` | Frontend build directory; the backend serves static files and the SPA from here | `apps/web/dist` |
-| `INSTANCE_DIR` | Runtime data directory; the `local` driver stores uploads in its `uploads/files/` by default | `apps/api/instance` |
+| `DATA_DIR` | Runtime data directory; the `local` driver stores uploads in its `uploads/files/` by default | `apps/api/data` |
 
 ### File storage directory and mail development mode
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `STORAGE_LOCAL_DIR` | Directory of the "local disk" storage | `<INSTANCE_DIR>/uploads/files` |
+| `STORAGE_LOCAL_DIR` | Directory of the "local disk" storage | `<DATA_DIR>/uploads/files` |
 | `MAIL_DRIVER` | Empty = send through the SMTP server in System settings; `log` prints mails to the backend log instead of sending (local development); `none` never sends | Empty |
 
-Local-disk storage needs a persistent disk: Docker Compose mounts `INSTANCE_DIR` as a volume; on platforms like Render that wipe the disk on redeploy, switch to S3-compatible storage (e.g. Cloudflare R2) in System settings. Files that nothing references are removed by the scheduler process 24 hours after upload, so with `ENABLE_TASK_SCHEDULER=false` they aren't cleaned up either.
+Local-disk storage needs a persistent disk: Docker Compose mounts `DATA_DIR` as a volume; on platforms like Render that wipe the disk on redeploy, switch to S3-compatible storage (e.g. Cloudflare R2) in System settings. Files that nothing references are removed by the scheduler process 24 hours after upload, so with `ENABLE_TASK_SCHEDULER=false` they aren't cleaned up either.
 
 ### Public demo
 
@@ -150,7 +150,7 @@ Password reset by email can only be turned on once the SMTP server and the site 
 | Bucket / access key / secret key (required for S3) | `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Empty |
 | Public URL (downloads redirect there; otherwise to a signed URL valid for about 10 minutes) | `S3_PUBLIC_URL` | Empty |
 | Addressing: auto / path style / virtual-hosted (auto = path style when an endpoint is set) | `S3_FORCE_PATH_STYLE` (`true` / `false`) | Auto |
-| Max file size, also capped by `MAX_CONTENT_LENGTH` | `UPLOAD_MAX_SIZE` (bytes) | 10MB |
+| Max file size, also capped by `BODY_LIMIT` | `UPLOAD_MAX_SIZE` (bytes) | 10MB |
 | Allowed file types; uploads are also checked for a file signature matching the extension | `UPLOAD_ALLOWED_TYPES` (comma-separated) | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
 
 Switching the storage only affects new uploads; existing files record where they live (including the bucket) and are still read from there. If new S3 endpoint or keys can't reach the original bucket, files stored there can no longer be read; the page says how many files are affected.
@@ -207,12 +207,12 @@ Put these in `.env.production` and pass them in with `docker compose --env-file 
 | `ENABLE_TASK_SCHEDULER` | See above | `true` |
 | `RUN_SCHEDULER_IN_WEB` | See above. Defaults to `true` in compose, unlike the backend's own default | `true` |
 | `SESSION_TTL_HOURS` | See above | `8` |
-| `SESSION_COOKIE_SECURE` | See above | Empty (auto) |
+| `COOKIE_SECURE` | See above | Empty (auto) |
 | `CORS_ORIGINS` | See above | Empty |
 | `RATE_LIMIT_ENABLED` | See above | `true` |
 | `AI_PROVIDER` / `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | Optional: pin the AI model settings (see [AI model](#ai-model)); leave empty to configure them in System settings | Empty |
 | `COMPOSE_DB_VOLUME` | Name of the database volume; can point to an existing volume | `castor-kit_postgres_data` |
-| `COMPOSE_INSTANCE_VOLUME` | Name of the uploads volume; can point to an existing volume | `castor-kit_app_instance` |
+| `COMPOSE_DATA_VOLUME` | Name of the runtime data volume (mounted at `DATA_DIR`, holds uploads); can point to an existing volume | `castor-kit_app_data` |
 
 Based on these, compose sets the following automatically:
 
@@ -233,7 +233,7 @@ Set in the `Dockerfile`; you normally don't need to change them. The `NPM_REGIST
 | `NODE_ENV` | `production` |
 | `PORT` | `5000` |
 | `WEB_DIST_DIR` | `/app/web` |
-| `INSTANCE_DIR` | `/app/instance` |
+| `DATA_DIR` | `/app/data` |
 | `MIGRATIONS_DIR` | `/app/drizzle` |
 
 ## Toolchain

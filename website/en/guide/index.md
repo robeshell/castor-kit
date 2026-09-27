@@ -39,7 +39,7 @@ Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form
 Most admin scaffolds give you "a codebase to copy and modify". castor-kit does two more things on top of that:
 
 1. **The conventions are written for AI.** Layering rules, naming, the field-type inference table, permission code rules, menu ID allocation and a list of anti-patterns all live in `AGENTS.md`. Once an AI has read it, it can make technical decisions on its own instead of repeatedly asking you about routes or field types.
-2. **A gate decides when work is delivered.** AI-generated code must pass `pnpm verify`. The gate goes beyond static checks: it confirms that migrations have actually been applied to the database, that pages don't pull in retired UI libraries, and it runs the frontend build and the backend and frontend tests.
+2. **A gate decides when work is delivered.** AI-generated code must pass `pnpm verify`. The gate goes beyond static checks: it confirms that migrations have actually been applied to the database and that routes and menu permissions are registered, and it runs the frontend build and the backend and frontend tests.
 
 The result is an automated check between "the AI says it's done" and "the feature actually works".
 

@@ -206,21 +206,17 @@ describe('announcement', () => {
     expect(c.body).toBe('\uFEFF标题,公告类型,状态,是否置顶,排序权重,内容\r\n系统维护公告,system,draft,否,0,系统将于今晚进行维护，请提前保存工作。\r\n')
   })
 
-  it('导入：逐行提交，错误行不影响成功行，返回 200 + error_rows', async () => {
+  it('导入：存在错误行时整批回滚，返回 400 + error_rows；全部合法时写入', async () => {
     const long = `${P}${'x'.repeat(100)}`
-    const file = multipartFile(
-      'a.csv',
-      '标题,公告类型,状态,是否置顶,排序权重,内容\n' +
-        `${P}导入1,activity,published,是,5,c1\n` +
-        ',system,draft,,,\n' +
-        `${P}导入2,bogus,bogus,true,x,\n` +
-        `${long},,,,,\n`,
-    )
+    const header = '标题,公告类型,状态,是否置顶,排序权重,内容\n'
+    const row1 = `${P}导入1,activity,published,是,5,c1\n`
+    const row2 = `${P}导入2,bogus,bogus,true,x,\n`
+    const file = multipartFile('a.csv', `${header}${row1},system,draft,,,\n${row2}${long},,,,,\n`)
     const res = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...file })
-    expect(res.statusCode).toBe(200)
+    expect(res.statusCode).toBe(400)
     const body = res.json()
-    expect(body.created).toBe(2)
-    expect(body.updated).toBe(0)
+    expect(body.error).toBe('导入失败，存在错误数据')
+    expect(body.error_count).toBe(2)
     expect(body.error_rows.map((r: { line: number }) => r.line)).toEqual([3, 5])
     expect(body.error_rows[0]).toEqual({
       line: 3,
@@ -228,18 +224,22 @@ describe('announcement', () => {
       row: { 标题: '', 公告类型: 'system', 状态: 'draft', 是否置顶: '', 排序权重: '', 内容: '' },
     })
     expect(body.error_rows[1].reason).toBe('字段长度超出限制')
+    expect(await handle.db.select().from(announcements).where(like(announcements.title, `${P}导入%`))).toEqual([])
+
+    const ok = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', `${header}${row1}${row2}`) })
+    expect(ok.json()).toEqual({ message: '导入成功', created: 2, updated: 0 })
     const [one] = await handle.db.select().from(announcements).where(eq(announcements.title, `${P}导入1`))
     expect(one).toMatchObject({ announce_type: 'activity', status: 'published', is_top: true, sort_order: 5, content: 'c1', publish_at: null })
     const [two] = await handle.db.select().from(announcements).where(eq(announcements.title, `${P}导入2`))
     expect(two).toMatchObject({ announce_type: 'system', status: 'draft', is_top: true, sort_order: 0, content: '' })
 
-    const ok = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', `title\n${P}导入3\n`) })
-    expect(ok.json()).toEqual({ created: 1, updated: 0 })
+    const ok2 = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', `title\n${P}导入3\n`) })
+    expect(ok2.json()).toEqual({ message: '导入成功', created: 1, updated: 0 })
   })
 
   it('导入：表头去空白后映射；空文件/无文件/格式', async () => {
     const res = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', ` 标题 \n${P}空白表头\n`) })
-    expect(res.json()).toEqual({ created: 1, updated: 0 })
+    expect(res.json()).toEqual({ message: '导入成功', created: 1, updated: 0 })
 
     const imp = (f: ReturnType<typeof multipartFile>) => s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...f })
     const wb = new ExcelJS.Workbook()

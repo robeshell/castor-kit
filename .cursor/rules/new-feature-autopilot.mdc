@@ -58,7 +58,7 @@ pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<fiel
 按 `db/schema → schema → repository → service → routes` 顺序填充实际字段、中文表头和业务规则。
 若之后改了表结构：`pnpm db:generate --name <描述>`（不能写 `--`）。
 
-前端：把页面标题、字段标签改成中文，按业务补 `rules` 必填校验与枚举（`FormSelect` + `StatusBadge`）；只用 `@/components/ui/*`、`@/shared/components/*` 与 Tailwind 语义色类，禁止 `@douyinfe/*`。
+前端：把页面标题、字段标签改成中文，按业务补 `rules` 必填校验与枚举（`FormSelect` + `StatusBadge`）；只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类，不引入其他 UI 组件库（antd、MUI 等）。
 
 **4c. RBAC**
 在 `apps/api/scripts/seed-rbac.ts` 中添加菜单 + 按钮权限（含 `_export`/`_import`，按钮 ID = 菜单 ID × 10 + 序号），然后：

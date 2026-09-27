@@ -12,7 +12,7 @@
  * Conventions:
  * - Permission checks are always imported from common/auth (never define a custom hasPermission here)
  * - No raw SQL here (go through service → repository)
- * - Routes with an id check permissions (403) first, then get_or_404 (404): a caller without permission can't probe ids
+ * - Routes with an id check permissions (403) first, then getOr404 (404): a caller without permission can't probe ids
  * - Business errors are thrown by the service as ServiceError; the global error handler turns them into { error, ...payload }
  */
 

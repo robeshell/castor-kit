@@ -36,9 +36,7 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 
 域前缀：`admin` 域为 `system_`，`component_center` 域为 `cc_`。标准列表页应当具备以上五个按钮权限。
 
-::: info 编码例外
-组件示例中心的 31、33–37 号菜单使用 `system_*` 编码（如 `system_list_page`），另有部分页面使用 `cc_admin_*` 形式。这些编码已经入库，不要修改；新模块一律使用 `cc_<name>`，与 `pnpm scaffold` 输出的权限前缀一致。
-:::
+组件示例中心的页面编码为 `cc_<分组>_<页面>`（如 `cc_admin_kanban_page`），系统管理的页面为 `system_<页面>`；`pnpm scaffold` 生成的模块使用它输出的权限前缀（`<域前缀>_<name>`）。
 
 ## 权限在哪里生效
 
@@ -80,13 +78,13 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 
 ```ts
 // Page menu
-{ id: 38, name: "客户管理", code: "system_customer", icon: "IconUser", path: "/system/customers", component: "admin/customer", parent_id: 201, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
+{ id: 2001, name: "客户管理", code: "system_customer", icon: "Users", path: "/system/customers", component: "admin/customer", parent_id: 201, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
 // Button permissions: id = menu id × 10 + index
-{ id: 381, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 38, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
-{ id: 382, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 38, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
-{ id: 383, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 38, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
-{ id: 384, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 38, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
-{ id: 385, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 38, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20011, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 2001, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20012, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 2001, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20013, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 2001, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20014, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 2001, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20015, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 2001, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
 ```
 
 - `component` 使用 `pnpm scaffold` 输出的 Menu component 值。
@@ -124,7 +122,7 @@ Docker 部署时，容器每次启动都会执行 `setup-once`，其中包含增
 | 范围 | ID 区间 |
 |---|---|
 | 系统管理的分组（`parent_id=2`） | 201–209 |
-| 系统管理的页面（`parent_id` 为所在分组，如 201） | 21–39 |
+| 系统管理的页面（`parent_id` 为所在分组，如 201） | 21–39；新页面从 2001 开始 |
 | 组件示例中心（`parent_id=3`） | 40–499 |
 | 　管理系统（`parent_id=40`） | 401–409 |
 | 　数据可视化（`parent_id=41`） | 411–419 |
@@ -135,7 +133,7 @@ Docker 部署时，容器每次启动都会执行 `setup-once`，其中包含增
 | 新业务域 | 从 1000 开始 |
 | 按钮权限 | 菜单 ID × 10 + 序号（如 21 → 211…215） |
 
-区间里夹着几个例外 ID：31、33–37 属于组件示例中心，32 是定时任务，消息通知和公告是 100002、100003。取 ID 前先查实际占用：
+取 ID 前先查实际占用，不要按“区间里的下一个数”推算：
 
 ```bash
 grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq

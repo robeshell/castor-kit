@@ -16,14 +16,13 @@
  *   7. Backend routes/repository/service files exist
  *      + Data scope: a module whose schema.ts exports DATA_SCOPE must filter with dataScopeWhere in repository.ts
  *   8. Frontend page file exists
- *   9. Frontend page uses only the new shadcn/ui system (no @douyinfe/*, var(--semi-*) or retired legacy shared components in the page directory)
- *  10. Frontend API file exists
- *  11. Route registration (src/router.ts / modules/<domain>/router.ts)
- *  12. Table definition registration (db/schema/index.ts)
- *  13. RBAC seed (scripts/seed-rbac.ts) contains the menu component or permission code
- *  14. Frontend build passes (optional, skip with --skip-build)
- *  15. Frontend Vitest passes (optional, skip with --skip-frontend-tests)
- *  16. Backend Vitest passes (optional, skip with --skip-api-tests; ~45s, needs the test DB)
+ *   9. Frontend API file exists
+ *  10. Route registration (src/router.ts / modules/<domain>/router.ts)
+ *  11. Table definition registration (db/schema/index.ts)
+ *  12. RBAC seed (scripts/seed-rbac.ts) contains the menu component or permission code
+ *  13. Frontend build passes (optional, skip with --skip-build)
+ *  14. Frontend Vitest passes (optional, skip with --skip-frontend-tests)
+ *  15. Backend Vitest passes (optional, skip with --skip-api-tests; ~45s, needs the test DB)
  *
  * JSON output shape: { passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
  */
@@ -427,46 +426,6 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
   }
 }
 
-/**
- * Leftover patterns from the old UI system (the frontend moved from Semi Design to shadcn/ui + Tailwind v4 per docs/frontend-redesign-plan.md).
- * These dependencies / files are deleted when the migration wraps up; a hit means a build failure or broken styles, so it's treated as a failure rather than a warning.
- */
-export const LEGACY_UI_PATTERNS: { re: RegExp; hint: string }[] = [
-  { re: /(?:from|import|require)\s*\(?\s*['"]@douyinfe\//, hint: '导入 @douyinfe/*（改用 @/components/ui/* 与 @/shared/components/*，图标用 lucide-react）' },
-  { re: /var\(--semi-/, hint: '使用 var(--semi-*)（改用 Tailwind 语义色类，如 bg-card / text-muted-foreground / border）' },
-  {
-    re: /['"]@\/shared\/(components\/import-export\/|components\/upload\/(File|Image)UploadField|styles(\.js)?['"])/,
-    hint: '引用已下线的旧公共组件（改用 data-transfer/ImportDialog、ExportDialog 与 upload/FileUpload、ImageUpload）',
-  },
-]
-
-/** The frontend page directory (index.jsx plus co-located local components / styles) must not use the old UI system; skipped when the page doesn't exist (frontend_page already reported it) */
-export function checkFrontendNoLegacyUi(ctx: VerifyContext, module: string): CheckResult {
-  const name = 'frontend_no_legacy_ui'
-  const page = checkFrontendPage(ctx, module)
-  if (!page.passed || typeof page.path !== 'string') return { name, passed: true, skipped: true }
-  const dir = dirname(join(ctx.root, page.path))
-  const offenders: string[] = []
-  for (const file of walk(dir, (p) => /\.(jsx?|tsx?|css)$/.test(p))) {
-    const lines = readFileSync(file, 'utf8').split('\n')
-    lines.forEach((line, i) => {
-      for (const { re, hint } of LEGACY_UI_PATTERNS) {
-        if (re.test(line)) offenders.push(`${rel(ctx, file)}:${i + 1} ${hint}`)
-      }
-    })
-  }
-  if (offenders.length > 0) {
-    return {
-      name,
-      passed: false,
-      error:
-        `前端页面仍在使用旧 UI 体系（Semi Design 已下线，见 docs/frontend-redesign-plan.md）：` +
-        `${offenders.slice(0, 10).join('；')}${offenders.length > 10 ? `；…共 ${offenders.length} 处` : ''}`,
-    }
-  }
-  return { name, passed: true, path: rel(ctx, dir) }
-}
-
 /** Frontend API file exists */
 export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResult {
   const singular = singularOf(module)
@@ -575,7 +534,7 @@ export function checkFrontendBuild(ctx: VerifyContext, skip: boolean): CheckResu
   return { name: 'frontend_build', passed: true }
 }
 
-/** Frontend Vitest tests (including the @ alias import integrity regression) */
+/** Frontend Vitest tests */
 export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResult {
   if (skip) return { name: 'frontend_tests', passed: true, skipped: true }
   const { code, output } = run([...bin(ctx.webDir, 'vitest'), 'run'], ctx.webDir)
@@ -686,7 +645,6 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
     step('backend_file', () => checkBackendFile(ctx, m))
     step('data_scope_filter', () => checkDataScopeFilter(ctx, m))
     step('frontend_page', () => checkFrontendPage(ctx, m))
-    step('frontend_no_legacy_ui', () => checkFrontendNoLegacyUi(ctx, m))
     step('frontend_api', () => checkFrontendApi(ctx, m))
     step('router_registration', () => checkRouterRegistration(ctx, m))
     step('schema_registration', () => checkSchemaRegistration(ctx, m))

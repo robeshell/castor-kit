@@ -52,7 +52,7 @@ describe('perf-stats', () => {
   it('未登录 401；无权限 403', async () => {
     const res = await app.inject({ url: PERF })
     expect(res.statusCode).toBe(401)
-    expect(res.json()).toEqual({ error: '未授权访问', redirect: '/admin/login' })
+    expect(res.json()).toEqual({ error: '未授权访问', redirect: '/login' })
     const denied = await plain.inject({ url: PERF })
     expect(denied.statusCode).toBe(403)
     expect(denied.json()).toEqual({ error: '无权限' })

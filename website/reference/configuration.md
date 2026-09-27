@@ -45,10 +45,10 @@ castor-kit 的配置分两类：
 | `SECRET_KEY` | 会话加密密钥，cookie 密钥由它通过 HKDF 派生 | 开发 / 测试有内置不安全默认值；**生产必填** |
 | `ADMIN_PASSWORD` | `admin` 账号的初始密码，仅在账号不存在时使用 | 开发 / 测试为 `admin123`；**生产必填** |
 | `SESSION_TTL_HOURS` | 会话有效期（小时）的初始值；之后可以在「系统设置」里修改 | `8` |
-| `SESSION_COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
+| `COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
 | `RATE_LIMIT_ENABLED` | 按 IP 限流；具体额度在「系统设置」里调整，见 [账号安全与系统设置](/guide/security#接口限流) | `true` |
-| `MAX_CONTENT_LENGTH` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
+| `BODY_LIMIT` | 请求体大小上限（字节），超出返回 413 | `16777216`（16MB） |
 | `SETTINGS_ALLOW_PRIVATE_NETWORK` | 是否允许系统设置里的 SMTP 服务器、S3 接口地址、AI 接口地址以及 Webhook 推送地址指向内网（`127.0.0.1`、`10.x`、`192.168.x` 等）；云服务器元数据等保留地址始终不允许。用环境变量锁定的地址不受限制 | 开发 / 测试 `true`，生产 `false` |
 
 ### 路径
@@ -56,16 +56,16 @@ castor-kit 的配置分两类：
 | 变量 | 作用 | 默认值 |
 |---|---|---|
 | `WEB_DIST_DIR` | 前端构建产物目录，后端从这里提供静态文件和 SPA | `apps/web/dist` |
-| `INSTANCE_DIR` | 运行时数据目录；`local` 驱动的上传文件默认存在其下的 `uploads/files/` | `apps/api/instance` |
+| `DATA_DIR` | 运行时数据目录；`local` 驱动的上传文件默认存在其下的 `uploads/files/` | `apps/api/data` |
 
 ### 文件存储目录与邮件开发模式
 
 | 变量 | 作用 | 默认值 |
 |---|---|---|
-| `STORAGE_LOCAL_DIR` | 「本机磁盘」存储的目录 | `<INSTANCE_DIR>/uploads/files` |
+| `STORAGE_LOCAL_DIR` | 「本机磁盘」存储的目录 | `<DATA_DIR>/uploads/files` |
 | `MAIL_DRIVER` | 留空时按系统设置里的 SMTP 发送；`log` 表示不发送，把邮件打印到后端日志（本地开发用）；`none` 表示永远不发送 | 空 |
 
-「本机磁盘」存储需要持久化磁盘：Docker Compose 已把 `INSTANCE_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请在系统设置里改用 S3 兼容存储（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
+「本机磁盘」存储需要持久化磁盘：Docker Compose 已把 `DATA_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请在系统设置里改用 S3 兼容存储（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
 
 ### 公开演示
 
@@ -151,7 +151,7 @@ AI 模型（接口地址、API Key、模型名）在系统设置里配置，见�
 | Bucket / Access Key / Secret Key（选 S3 时必填） | `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | 空 |
 | 公开访问地址（设置后下载直接跳到这里，否则跳到约 10 分钟有效的签名地址） | `S3_PUBLIC_URL` | 空 |
 | 访问方式：自动 / 路径风格 / 虚拟主机风格（自动 = 填了接口地址时用路径风格） | `S3_FORCE_PATH_STYLE`（`true` / `false`） | 自动 |
-| 单个文件上限，同时受 `MAX_CONTENT_LENGTH` 限制 | `UPLOAD_MAX_SIZE`（字节） | 10MB |
+| 单个文件上限，同时受 `BODY_LIMIT` 限制 | `UPLOAD_MAX_SIZE`（字节） | 10MB |
 | 允许的文件类型；上传时还会检查文件头与扩展名是否一致 | `UPLOAD_ALLOWED_TYPES`（逗号分隔） | `jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip` |
 
 切换存储位置只影响之后上传的文件；已有文件记录了自己存在哪里（包括 Bucket），仍从原处读取。修改 S3 的接口地址或密钥后，如果新配置访问不到原来的桶，那里的文件就读不到了，页面会提示有多少个文件受影响。
@@ -208,12 +208,12 @@ AI 对话、AI 提示词工坊、AI 数据查询和 AI 小助手共用这组设�
 | `ENABLE_TASK_SCHEDULER` | 同上文 | `true` |
 | `RUN_SCHEDULER_IN_WEB` | 同上文。compose 中默认为 `true`，与后端自身的默认值不同 | `true` |
 | `SESSION_TTL_HOURS` | 同上文 | `8` |
-| `SESSION_COOKIE_SECURE` | 同上文 | 空（自动） |
+| `COOKIE_SECURE` | 同上文 | 空（自动） |
 | `CORS_ORIGINS` | 同上文 | 空 |
 | `RATE_LIMIT_ENABLED` | 同上文 | `true` |
 | `AI_PROVIDER` / `AI_API_KEY` / `AI_API_BASE` / `AI_MODEL` | 可选，锁定 AI 模型设置（见 [AI 模型](#ai-模型)）；留空则在系统设置里配置 | 空 |
 | `COMPOSE_DB_VOLUME` | 数据库数据卷名，可指向已有的卷 | `castor-kit_postgres_data` |
-| `COMPOSE_INSTANCE_VOLUME` | 上传文件数据卷名，可指向已有的卷 | `castor-kit_app_instance` |
+| `COMPOSE_DATA_VOLUME` | 运行时数据卷名（挂载 `DATA_DIR`，含上传文件），可指向已有的卷 | `castor-kit_app_data` |
 
 compose 会根据以上变量自动设置：
 
@@ -234,7 +234,7 @@ compose 会根据以上变量自动设置：
 | `NODE_ENV` | `production` |
 | `PORT` | `5000` |
 | `WEB_DIST_DIR` | `/app/web` |
-| `INSTANCE_DIR` | `/app/instance` |
+| `DATA_DIR` | `/app/data` |
 | `MIGRATIONS_DIR` | `/app/drizzle` |
 
 ## 工具链

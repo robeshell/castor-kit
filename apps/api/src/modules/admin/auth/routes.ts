@@ -9,7 +9,7 @@ import { ensureCsrfToken } from '@/common/csrf'
 import { passwordPolicyOf } from '@/common/password-policy'
 import { authRateLimit } from '@/common/rate-limit'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
-import { attachSession, clearSession, createSession, isSignedIn, revokeSessions } from '@/common/session'
+import { attachSession, clearSession, createSession, revokeSessions } from '@/common/session'
 import { parseBody } from '@/common/validation'
 import { changePasswordBody, loginBodySchema } from './schema'
 import { AuthService } from './service'
@@ -17,10 +17,6 @@ import { AuthService } from './service'
 export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void> {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
   const service = new AuthService(app.db, app.config, app.log, app.settings)
-
-  app.get('/admin/login', async (request, reply) => {
-    return reply.redirect(isSignedIn(request) ? '/admin' : '/')
-  })
 
   app.post('/api/admin/login', { schema: { body: loginBodySchema }, onRequest: authRateLimit(app) }, async (request) => {
     const data = request.body ?? {}

@@ -1,5 +1,5 @@
 /**
- * Static demo records for the detail tabs page (same as the original page).
+ * Static demo records for the detail tabs page.
  * i18n-ignore-file: sample work history and operation logs are demo content, not UI copy.
  */
 

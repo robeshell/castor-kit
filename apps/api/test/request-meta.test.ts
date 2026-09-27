@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { safePayload } from '@/common/request-meta'
 
 describe('safePayload', () => {
-  it('None → null', () => {
+  it('缺省 → null', () => {
     expect(safePayload(null)).toBeNull()
     expect(safePayload(undefined)).toBeNull()
   })

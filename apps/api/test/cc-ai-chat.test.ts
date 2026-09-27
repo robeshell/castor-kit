@@ -71,7 +71,7 @@ describe('ai chat 错误分支（非流式 JSON）', () => {
   it('未登录 401；无权限 403', async () => {
     const res = await app.inject({ method: 'POST', url: URL_PATH, payload: say('x') })
     expect(res.statusCode).toBe(401)
-    expect(res.json()).toEqual({ error: '未授权访问', redirect: '/admin/login' })
+    expect(res.json()).toEqual({ error: '未授权访问', redirect: '/login' })
     const plain = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD)
     const denied = await plain.inject({ method: 'POST', url: URL_PATH, payload: say('x') })
     expect(denied.statusCode).toBe(403)
@@ -99,7 +99,7 @@ describe('ai chat 错误分支（非流式 JSON）', () => {
       const res = await s.inject({ method: 'POST', url: URL_PATH, payload })
       expect([res.statusCode, res.json()]).toEqual([400, { error: '消息的值无效' }])
     }
-    for (const messages of [[{ role: 'user', content: 'old format' }], [{ id: '1', role: 'robot', parts: [] }], [5]]) {
+    for (const messages of [[{ role: 'user', content: 'plain content' }], [{ id: '1', role: 'robot', parts: [] }], [5]]) {
       const res = await s.inject({ method: 'POST', url: URL_PATH, payload: { messages } })
       expect([res.statusCode, res.json()]).toEqual([400, { error: '消息格式不正确' }])
     }

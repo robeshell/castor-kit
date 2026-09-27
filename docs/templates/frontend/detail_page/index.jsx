@@ -7,7 +7,7 @@
  *   - Add or remove tabs as needed (SegmentedTabs items)
  *
  * Reference implementation: apps/web/src/modules/component_center/pages/admin/detail_tabs_page/index.jsx
- * Design and conventions: docs/frontend-redesign-plan.md
+ * Design and conventions: docs/frontend-design-system.md
  */
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'

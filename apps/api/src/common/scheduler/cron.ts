@@ -1,8 +1,10 @@
 /**
  * Hand-written 5-field cron matcher (minute hour day month weekday): expression parsing + next-run computation.
  *
- * Deviations from standard (Vixie) cron are intentional and must be kept (stored tasks' schedules depend on them):
- * - Day-of-month and day-of-week are ANDed (`0 0 1 * 1` = the 1st AND a Monday); standard cron ORs them when both are restricted
+ * Behavior:
+ * - Day-of-month and day-of-week follow standard (Vixie) cron: when neither field starts with `*`, a day matches if EITHER
+ *   matches (`0 0 1 * 1` = the 1st, or any Monday); otherwise both must match. A field starting with `*` counts as
+ *   unrestricted for this choice even with a step, so a day-of-month step of 2 plus weekday 1 = odd-numbered days that are Mondays
  * - Weekday field has Sunday=0 and 7 as an alias of 0 (the alias applies to each range end separately, so `5-7` is an invalid range)
  * - No support for L / W / # or month/weekday names
  * - Scans forward minute by minute in UTC, up to 366 days, and throws if nothing matches
@@ -20,6 +22,10 @@ export interface CronSpec {
   days: Set<number>
   months: Set<number>
   weekdays: Set<number>
+  /** Day-of-month field starts with `*` (unrestricted for the day-of-month / day-of-week rule) */
+  daysStar: boolean
+  /** Day-of-week field starts with `*` */
+  weekdaysStar: boolean
 }
 
 export function parseCronExpression(expression: string | null | undefined): CronSpec {
@@ -36,6 +42,8 @@ export function parseCronExpression(expression: string | null | undefined): Cron
     days: parseCronField(fields[2]!, 1, 31),
     months: parseCronField(fields[3]!, 1, 12),
     weekdays: parseCronField(fields[4]!, 0, 6, new Map([[7, 0]])),
+    daysStar: fields[2]!.startsWith('*'),
+    weekdaysStar: fields[4]!.startsWith('*'),
   }
 }
 
@@ -206,15 +214,13 @@ export function computeNextRunAt(expression: string | null | undefined, baseTime
     monthDays = daysInMonth(year, month)
   }
 
+  // Neither day field starts with `*` → either may match; otherwise both must match
+  const dayMatches = () =>
+    cron.daysStar || cron.weekdaysStar ? cron.days.has(day) && cron.weekdays.has(weekday) : cron.days.has(day) || cron.weekdays.has(weekday)
+
   advance()
   for (let i = 0; i < lookaheadMinutes; i += 1) {
-    if (
-      cron.minutes.has(minute) &&
-      cron.hours.has(hour) &&
-      cron.days.has(day) &&
-      cron.months.has(month) &&
-      cron.weekdays.has(weekday)
-    ) {
+    if (cron.minutes.has(minute) && cron.hours.has(hour) && cron.months.has(month) && dayMatches()) {
       return formatMinute(year, month, day, hour, minute)
     }
     advance()

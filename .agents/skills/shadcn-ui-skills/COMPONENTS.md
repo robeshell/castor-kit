@@ -172,7 +172,7 @@ import EmptyState from '@/shared/components/EmptyState'
 | `@/lib/format` | `formatDateTime(v)`、`formatDate(v)`、`formatNumber(v)`、`formatRelative(v)`（第二个参数是空值占位，默认 `'-'`） |
 | `@/lib/motion` | `fadeUp`、`stagger.container / stagger.item`、`pageTransition`、`layoutSpring`、`EASE_OUT`、`EASE_SPRING` |
 | `@/lib/chart-theme` | `useChartColors()`、`chartBase(c)`、`brandArea(c, opacity)`、`brandLine(c)`、`hexToRgba(hex, alpha)`——ECharts 取色必须走它，亮暗自动切换 |
-| `@/lib/menu-icons` | `resolveMenuIcon(menu)`：菜单 icon 字段（历史 Semi 图标名如 `IconUser`）→ lucide 组件 |
+| `@/lib/menu-icons` | `resolveMenuIcon(menu)`：菜单 icon 字段（lucide 图标名，如 `Users`）→ lucide 组件 |
 | `@/shared/hooks/useCrudList` | `{ data, total, page, perPage, loading, filters, fetchData, handleSearch, handleReset, handlePageChange }` |
 | `@/shared/hooks/useIsMobile` / `@/shared/hooks/useDebouncedValue` | 断点判断（默认 768）/ 防抖值 |
 | `@/shared/api/request` | Axios 实例（CSRF、401 跳登录、响应已 unwrap） |

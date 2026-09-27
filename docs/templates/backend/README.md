@@ -39,15 +39,15 @@
      ```
 5. 迁移：`pnpm db:generate --name add_<resource>_table` → 审查 SQL → `pnpm db:migrate` → `psql -d <db> -c '\d <resource>s'` 确认落库
 6. RBAC：在 `apps/api/scripts/seed-rbac.ts` 添加菜单 + 按钮权限，运行 `pnpm seed:rbac -- --incremental`
-7. 前端：临摹 `docs/templates/frontend/`（`list_page` 列表页 + `api.js`，shadcn/ui 体系，约定见 `docs/frontend-redesign-plan.md`），
+7. 前端：临摹 `docs/templates/frontend/`（`list_page` 列表页 + `api.js`，shadcn/ui 体系，约定见 `docs/frontend-design-system.md`），
    页面放 `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx`；scaffold 会直接生成同结构的页面
-8. 门禁：`pnpm verify -- --module <resource>`（含 `frontend_no_legacy_ui`：页面目录不得导入 `@douyinfe/*`）
+8. 门禁：`pnpm verify -- --module <resource>` 全部通过
 
 ## 约定
 
 - 权限判断一律 `import { hasMenuPermission, loginRequired } from '@/common/auth'`，禁止在 routes 里自定义 `hasPermission`
 - routes 不直接写 SQL；service 不碰 `reply` / `session`
-- 带 id 的路由先做权限检查（403）再 get_or_404（404），没有权限时无法试探 id 是否存在
+- 带 id 的路由先做权限检查（403）再 `getOr404`（404），没有权限时无法试探 id 是否存在
 - 时间输出一律 `toIso()`，禁止 `Date#toISOString()`；numeric 保持字符串
 - 导入整批一个事务，有错误行时抛 `ServiceError(400, { error_rows, error_count })` 整体回滚
 

@@ -28,18 +28,18 @@ export interface AppConfig {
   secretKey: string
   adminUsername: string
   adminPassword: string
-  /** Request body limit (bytes), MAX_CONTENT_LENGTH */
-  maxContentLength: number
+  /** Request body limit (bytes), BODY_LIMIT */
+  bodyLimit: number
   sessionTtlHours: number
-  /** SESSION_COOKIE_SECURE: true/false forces it; empty = auto (by request protocol, Secure only over TLS) */
+  /** COOKIE_SECURE: true/false forces it; empty = auto (by request protocol, Secure only over TLS) */
   sessionCookieSecure: boolean | 'auto'
   corsOrigins: string[]
   /** RATE_LIMIT_ENABLED (default true): per-IP request limits; the limits themselves are in system settings */
   rateLimitEnabled: boolean
   /** Frontend build output dir (apps/web/dist); if missing, the SPA fallback returns a JSON hint */
   webDistDir: string
-  /** Runtime data dir (instance/; uploads live in instance/uploads/...) */
-  instanceDir: string
+  /** DATA_DIR: runtime data dir (default apps/api/data; uploads live in <dataDir>/uploads/...) */
+  dataDir: string
 
   // ---- System settings pinned by environment variables ----
   /**
@@ -47,7 +47,7 @@ export interface AppConfig {
    * site URL, login lockout). SettingsStore validates them and lets them override the settings page.
    */
   settingsEnv: Partial<Record<SettingEnvName, string>>
-  /** STORAGE_LOCAL_DIR: directory of the `local` file storage driver, default <instanceDir>/uploads/files */
+  /** STORAGE_LOCAL_DIR: directory of the `local` file storage driver, default <dataDir>/uploads/files */
   storageLocalDir: string
   /**
    * MAIL_DRIVER: '' = SMTP when configured in system settings; 'log' = print mails to the server log instead of
@@ -109,13 +109,13 @@ const envSchema = z.object({
   TEST_DATABASE_URL: z.string().optional(),
   SECRET_KEY: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
-  MAX_CONTENT_LENGTH: intFromEnv(16 * 1024 * 1024),
+  BODY_LIMIT: intFromEnv(16 * 1024 * 1024),
   SESSION_TTL_HOURS: intFromEnv(8),
-  SESSION_COOKIE_SECURE: z.string().optional().default(''),
+  COOKIE_SECURE: z.string().optional().default(''),
   CORS_ORIGINS: z.string().optional().default(''),
   RATE_LIMIT_ENABLED: z.string().optional().default('true'),
   WEB_DIST_DIR: z.string().optional(),
-  INSTANCE_DIR: z.string().optional(),
+  DATA_DIR: z.string().optional(),
   DEMO_MODE: z.string().optional().default('false'),
   DEMO_RESET_HOURS: intFromEnv(24),
   DEMO_AI_HOURLY_PER_IP: intFromEnv(20),
@@ -203,7 +203,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
         : parsed.DEV_DATABASE_URL || 'postgresql://localhost/castor_kit'
 
   const defaultPort = env === 'production' ? 5000 : env === 'test' ? 5002 : 5001
-  const instanceDir = parsed.INSTANCE_DIR ? resolve(parsed.INSTANCE_DIR) : resolve(API_ROOT, 'instance')
+  const dataDir = parsed.DATA_DIR ? resolve(parsed.DATA_DIR) : resolve(API_ROOT, 'data')
 
   return {
     env,
@@ -213,17 +213,17 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     secretKey: required('SECRET_KEY', parsed.SECRET_KEY, env, 'dev-insecure-secret-key'),
     adminUsername: 'admin',
     adminPassword: required('ADMIN_PASSWORD', parsed.ADMIN_PASSWORD, env, 'admin123'),
-    maxContentLength: parsed.MAX_CONTENT_LENGTH,
+    bodyLimit: parsed.BODY_LIMIT,
     sessionTtlHours: parsed.SESSION_TTL_HOURS,
-    sessionCookieSecure: parsed.SESSION_COOKIE_SECURE.trim() === '' ? 'auto' : isTruthy(parsed.SESSION_COOKIE_SECURE),
+    sessionCookieSecure: parsed.COOKIE_SECURE.trim() === '' ? 'auto' : isTruthy(parsed.COOKIE_SECURE),
     corsOrigins: parsed.CORS_ORIGINS.split(',')
       .map((o) => o.trim())
       .filter(Boolean),
     rateLimitEnabled: isTruthy(parsed.RATE_LIMIT_ENABLED),
     webDistDir: parsed.WEB_DIST_DIR ? resolve(parsed.WEB_DIST_DIR) : resolve(REPO_ROOT, 'apps/web/dist'),
-    instanceDir,
+    dataDir,
     settingsEnv: collectSettingsEnv(source),
-    storageLocalDir: parsed.STORAGE_LOCAL_DIR ? resolve(parsed.STORAGE_LOCAL_DIR) : resolve(instanceDir, 'uploads', 'files'),
+    storageLocalDir: parsed.STORAGE_LOCAL_DIR ? resolve(parsed.STORAGE_LOCAL_DIR) : resolve(dataDir, 'uploads', 'files'),
     mailDriver: resolveMailDriver(parsed.MAIL_DRIVER),
     settingsAllowPrivateNetwork:
       parsed.SETTINGS_ALLOW_PRIVATE_NETWORK.trim() === '' ? env !== 'production' : isTruthy(parsed.SETTINGS_ALLOW_PRIVATE_NETWORK),

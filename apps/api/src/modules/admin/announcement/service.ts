@@ -5,11 +5,11 @@
 import type { SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { dbConstraintError, writeError } from '@/common/db-errors'
-import { internalError, ServiceError } from '@/common/errors'
+import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import { changedFields } from '@/common/validation'
-import type { Db } from '@/db/client'
+import type { Db, Tx } from '@/db/client'
 import { utcNow } from '@/db/schema/columns'
 import { announcementToDict, type Announcement } from '@/db/schema'
 import { AnnouncementRepository, type AnnouncementFilters, type AnnouncementUpdate } from './repository'
@@ -126,7 +126,7 @@ export class AnnouncementService {
     return buildTable(TEMPLATE_HEADERS, TEMPLATE_ROWS, 'announcements_import_template', normalizeTableFileType(fileTypeRaw, 'xlsx'))
   }
 
-  /** Commit row by row: successful rows are kept, failed rows go to error_rows (no overall rollback) */
+  /** Import in one transaction: any error row rolls back the whole batch (400 with error_rows / error_count) */
   async importItems(file: UploadedFile | null) {
     if (!file) throw new ServiceError('请上传导入文件', 400)
     let table
@@ -144,44 +144,60 @@ export class AnnouncementService {
       if (Object.hasOwn(IMPORT_HEADER_MAP, key)) colMap.set(col, IMPORT_HEADER_MAP[key]!)
     }
 
-    let created = 0
-    const errorRows: { line: number; reason: string; row: Record<string, string> }[] = []
-    for (const [line, row] of table.rows) {
-      const mapped: Record<string, string> = {}
-      for (const [k, v] of Object.entries(row)) {
-        const field = colMap.get(k)
-        if (field) mapped[field] = v
+    return this.inTx(async (tx) => {
+      let created = 0
+      const errorRows: { line: number; reason: string; row: Record<string, string> }[] = []
+      for (const [line, row] of table.rows) {
+        const mapped: Record<string, string> = {}
+        for (const [k, v] of Object.entries(row)) {
+          const field = colMap.get(k)
+          if (field) mapped[field] = v
+        }
+        const title = (mapped.title || '').trim()
+        if (!title) {
+          errorRows.push({ line, reason: '标题不能为空', row })
+          continue
+        }
+        const isTop = ['是', 'true', '1'].includes((mapped.is_top || '').trim().toLowerCase())
+        const sortText = (mapped.sort_order || '').trim()
+        const sortOrder = /^[+-]?\d+$/.test(sortText) ? Number.parseInt(sortText, 10) : 0
+        let announceType = (mapped.announce_type || 'system').trim()
+        if (!(ANNOUNCE_TYPES as readonly string[]).includes(announceType)) announceType = 'system'
+        let status = (mapped.status || 'draft').trim()
+        if (!(STATUSES as readonly string[]).includes(status)) status = 'draft'
+        try {
+          // A savepoint per row: a rejected row is reported and the scan continues with the transaction still usable
+          await tx.transaction((sp) =>
+            new AnnouncementRepository(sp).insert({
+              title,
+              content: mapped.content || '',
+              announce_type: announceType,
+              status,
+              is_top: isTop,
+              sort_order: sortOrder,
+            }),
+          )
+          created += 1
+        } catch (err) {
+          const rejected = dbConstraintError(err)
+          if (!rejected) throw err
+          errorRows.push({ line, reason: rejected.message, row })
+        }
       }
-      const title = (mapped.title || '').trim()
-      if (!title) {
-        errorRows.push({ line, reason: '标题不能为空', row })
-        continue
-      }
-      const isTop = ['是', 'true', '1'].includes((mapped.is_top || '').trim().toLowerCase())
-      const sortText = (mapped.sort_order || '').trim()
-      const sortOrder = /^[+-]?\d+$/.test(sortText) ? Number.parseInt(sortText, 10) : 0
-      let announceType = (mapped.announce_type || 'system').trim()
-      if (!(ANNOUNCE_TYPES as readonly string[]).includes(announceType)) announceType = 'system'
-      let status = (mapped.status || 'draft').trim()
-      if (!(STATUSES as readonly string[]).includes(status)) status = 'draft'
-      try {
-        await this.repo.insert({
-          title,
-          content: mapped.content || '',
-          announce_type: announceType,
-          status,
-          is_top: isTop,
-          sort_order: sortOrder,
-        })
-        created += 1
-      } catch (err) {
-        const rejected = dbConstraintError(err)
-        if (!rejected) throw internalError(err)
-        errorRows.push({ line, reason: rejected.message, row })
-      }
-    }
 
-    if (errorRows.length > 0) return { created, updated: 0, error_rows: errorRows }
-    return { created, updated: 0 }
+      if (errorRows.length > 0) {
+        // Throw so the whole transaction rolls back
+        throw new ServiceError('导入失败，存在错误数据', 400, { error_rows: errorRows.slice(0, 500), error_count: errorRows.length })
+      }
+      return { message: '导入成功', created, updated: 0 }
+    })
+  }
+
+  private async inTx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+    try {
+      return await this.db.transaction(fn)
+    } catch (err) {
+      throw writeError(err)
+    }
   }
 }

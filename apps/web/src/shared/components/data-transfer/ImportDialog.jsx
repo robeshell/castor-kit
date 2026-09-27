@@ -19,7 +19,7 @@ const DEFAULT_TEMPLATE_OPTIONS = [
 ]
 
 /**
- * Import dialog (replaces ImportCsvModal, same props, visible → open):
+ * Import dialog:
  *   <ImportDialog open={open} onOpenChange={setOpen} title="导入用户"
  *     onDownloadTemplate={(fileType) => …} onImport={(file) => api(file)} onImported={() => reload()} />
  * If onImport returns { created, updated }, the result is shown; if it throws { error, error_rows }, the failure details are shown and can be downloaded.

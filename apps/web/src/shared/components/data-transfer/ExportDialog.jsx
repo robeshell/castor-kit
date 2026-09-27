@@ -13,7 +13,7 @@ const DEFAULT_FILE_TYPES = [
 ]
 
 /**
- * Export dialog (replaces ExportFieldsModal with matching props, visible → open):
+ * Export dialog:
  *   <ExportDialog open={open} onOpenChange={setOpen} fieldOptions={FIELDS} defaultFields={[…]}
  *     ruleHint="已勾选 3 条" onConfirm={async ({ fields, fileType }) => …} />
  * onConfirm may return a Promise; the caller closes the dialog on success.

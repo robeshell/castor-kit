@@ -57,7 +57,7 @@ export function fastifyPathToOpenApi(url: string): string {
     .replace(/\*$/, '{path}')
 }
 
-/** Path shape: param names/converters are ignored in comparison (`{int:item_id}` and `{item_id}` are treated as the same path) */
+/** Path shape: parameter names are ignored in comparison (`/a/{id}` and `/a/{item_id}` are the same path) */
 export function pathShape(path: string): string {
   return path.replace(/\{[^}]*\}/g, '{}')
 }

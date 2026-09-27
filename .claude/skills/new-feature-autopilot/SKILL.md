@@ -28,12 +28,12 @@ description: PM gives feature intent in natural language; execute end-to-end imp
 1. AGENTS.md（项目约定、命名规则、字段类型推断规则、反模式）
 2. docs/templates/backend/（含 README.md 替换规则）和 docs/templates/frontend/（代码骨架模板）
 3. 现有相似模块（后端参考 apps/api/src/modules/admin/users/，前端参考 apps/web/src/modules/admin/pages/users/index.jsx）
-   + 前端约定：AGENTS.md「前端架构约定」、docs/frontend-redesign-plan.md、.claude/skills/shadcn-ui-skills/
+   + 前端约定：AGENTS.md「前端架构约定」、docs/frontend-design-system.md、.claude/skills/shadcn-ui-skills/
 4. apps/api/scripts/seed-rbac.ts（MENUS_DATA：查询当前菜单树，确定 parent_id 与下一个可用 ID）
 5. 先扫一遍现有模块：需求能通过扩展已有模块实现的，优先扩展，不要新建重复模块
 ```
 
-菜单 ID 以 `MENUS_DATA` 实际占用为准，AGENTS.md 的区间表只是指引（区间里夹着历史遗留 ID）：
+菜单 ID 按 AGENTS.md 的区间表分配，取号前以 `MENUS_DATA` 实际占用为准：
 
 ```bash
 grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
@@ -48,7 +48,7 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 - 资源名（snake_case，如 customer_order）与所属域（admin | component_center）
 - API 路径（/api/admin/<resource>s，多词用连字符，如 /api/admin/customer-orders）
 - 字段名 + scaffold 类型（str/str20/str50/str500/text/int/float/bool/date/datetime/file/image，参考 AGENTS.md 字段类型推断规则；图片、附件用 image / file，存文件中心的文件 ID）
-- 权限编码（admin 域 system_<name>，component_center 域 cc_<name>，与 scaffold 输出的 Perm prefix 一致；按钮 _add/_edit/_delete/_export/_import。同级的 `cc_admin_*_page`、`system_list_page` 等是历史编码，新模块不要模仿）
+- 权限编码（admin 域 system_<name>，component_center 域 cc_<name>，与 scaffold 输出的 Perm prefix 一致；按钮 _add/_edit/_delete/_export/_import）
 - 前端文件路径（admin 域 modules/admin/pages/<name>/index.jsx；
                component_center 域 modules/component_center/pages/admin/<name>_page/index.jsx）
 - 菜单 ID（在 AGENTS.md 的 ID 分配区间里取 `MENUS_DATA` 未占用的 ID；按钮 ID = 菜单 ID × 10 + 序号）
@@ -135,7 +135,7 @@ scaffold 生成的页面已可用，按业务打磨：
 - **多语言**：界面文字写中文原文，按 AGENTS.md「多语言（i18n）与代码注释」接入翻译——传给公共组件的字符串自动翻译；JSX 里直接写的中文、原生元素属性、带变量的文案用 `t()`；在页面目录建 `locales/en-US.json`、`locales/ja-JP.json` 写译文；`node apps/web/scripts/i18n-scan.mjs <页面目录>` 必须 0 问题
 - 后端新增的报错 / 提示文案在 `apps/api/src/i18n/messages.ts` 登记英日译文（带变量的放 `PATTERNS`）
 - 代码注释一律英文
-- 只用 `@/components/ui/*`、`@/shared/components/*`、`lucide-react` 与 Tailwind 语义色类；禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色（verify 的 `frontend_no_legacy_ui` 会拦截）
+- 只用 `@/components/ui/*`、`@/shared/components/*`、`lucide-react` 与 Tailwind 语义色类；不引入其他 UI 组件库（antd、MUI 等），不写死十六进制颜色
 - 组件用法查 `.claude/skills/shadcn-ui-skills/SKILL.md`；shadcn 组件 API 查官方文档（有 shadcn MCP 时优先用）；缺原子组件时 `apps/web/scripts/shadcn-add.sh <组件>`
 - 自检：`cd apps/web && npx eslint <页面文件>` 零错误
 

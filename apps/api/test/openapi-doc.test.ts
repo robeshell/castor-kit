@@ -28,7 +28,7 @@ describe('OpenAPI rules', () => {
     expect(lintOpenApi(docWith({ '/api/admin/departments/{dept_id}': { put: good } }), routes)).toEqual([])
   })
 
-  it('structure: missing operation, legacy key, uppercase method, stale entry', () => {
+  it('structure: missing operation, typed path key, uppercase method, stale entry', () => {
     expect(rulesOf({})).toEqual(['missing'])
     expect(rulesOf({ '/api/admin/departments/{int:dept_id}': { put: good } })).toEqual(['path-key', 'missing'])
     expect(rulesOf({ '/api/admin/departments/{dept_id}': { PUT: good } })).toEqual(['method-case', 'missing'])

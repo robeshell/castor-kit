@@ -1,12 +1,9 @@
-// -*- coding: utf-8 -*-
 /**
- * Import integrity test: scan all JS/JSX under frontend/src and verify every module import path resolves.
+ * Import integrity test: scan all JS/JSX under apps/web/src and verify every module import path resolves.
  *
  * Covers two forms:
- *  - @/ alias (should point to a real file under the src root)
- *  - ./ or ../ relative paths (asset imports like CSS/images stay relative; JS modules should no longer use relative imports)
- *
- * This test is the regression guard for the "unified @ alias" change: any broken import or regression to relative JS imports fails here.
+ *  - @/ alias (must point to a real file under the src root)
+ *  - ./ or ../ relative paths (allowed for assets like CSS/images only; JS modules import through the @/ alias)
  */
 import { readdirSync, statSync, existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -17,12 +14,12 @@ const SRC = resolve(process.cwd(), 'src')
 const SPECIFIER_RE = /(?:from\s*|import\s*)['"]([^'"]+)['"]/g
 const RESOURCE_RE = /\.(css|scss|sass|less|svg|png|jpe?g|gif|webp|woff2?|ttf|otf|eot|json)$/i
 
-function collectFiles(dir, out = [], ext = /\.(js|jsx)$/) {
+function collectFiles(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
     if (statSync(full).isDirectory()) {
-      collectFiles(full, out, ext)
-    } else if (ext.test(name)) {
+      collectFiles(full, out)
+    } else if (/\.(js|jsx)$/.test(name)) {
       out.push(full)
     }
   }
@@ -63,33 +60,15 @@ describe('导入完整性', () => {
         } else if (spec.startsWith('./') || spec.startsWith('../')) {
           // Keeping asset imports (CSS/images) relative is fine
           if (RESOURCE_RE.test(spec)) continue
-          // JS modules should no longer use relative imports (unified @ alias)
+          // JS modules import through the @/ alias
           relativeJsCount++
           broken.push(`${file}:${line} → ${spec}（JS 模块应使用 @/ 别名）`)
         }
       }
     }
 
-    expect(aliasCount).toBeGreaterThan(150) // Alias unification already covers the vast majority
+    expect(aliasCount).toBeGreaterThan(150) // Sanity check that the scan actually found alias imports
     expect(relativeJsCount).toBe(0) // JS relative imports must be zero
     expect(broken).toEqual([])
-  })
-
-  it('已下线的 Semi Design / 旧富文本依赖不得再出现（防回退）', () => {
-    const LEGACY = [
-      [/from\s*['"]@douyinfe\//, '@douyinfe/semi-*'],
-      [/var\(--semi-/, 'var(--semi-*)'],
-      [/from\s*['"]react-quill['"]/, 'react-quill（改用 react-quill-new）'],
-      [/['"]@\/shared\/styles['"]/, '@/shared/styles（改用 Tailwind 工具类）'],
-    ]
-    const problems = []
-    for (const file of collectFiles(SRC, [], /\.(js|jsx|css)$/)) {
-      const t = readFileSync(file, 'utf-8')
-      for (const [re, label] of LEGACY) if (re.test(t)) problems.push(`${file} 使用了 ${label}`)
-    }
-    for (const dir of ['src/components/Layout', 'src/shared/components/import-export']) {
-      if (existsSync(resolve(process.cwd(), dir))) problems.push(`${dir} 应已删除`)
-    }
-    expect(problems).toEqual([])
   })
 })

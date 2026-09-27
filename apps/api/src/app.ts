@@ -54,7 +54,7 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
     logger,
     // Trust only the nearest reverse-proxy hop (X-Forwarded-For / X-Forwarded-Proto) so request.ip / protocol are the real values
     trustProxy: (_address: string, hop: number) => hop < 1,
-    bodyLimit: config.maxContentLength,
+    bodyLimit: config.bodyLimit,
   })
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
@@ -102,8 +102,8 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   await registerRateLimit(app)
 
   await app.register(compress, { threshold: 500 })
-  // Upload limit is MAX_CONTENT_LENGTH (413 when exceeded); see common/http.getUploadedFile for per-field file access
-  await app.register(multipart, { limits: { fileSize: config.maxContentLength } })
+  // Upload limit is BODY_LIMIT (413 when exceeded); see common/http.getUploadedFile for per-field file access
+  await app.register(multipart, { limits: { fileSize: config.bodyLimit } })
   // Used by /ws/devtools (component-center/devtools); the session cookie is parsed as usual in the upgrade request's onRequest phase
   await app.register(websocket)
   if (config.corsOrigins.length > 0) {
@@ -132,11 +132,11 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   const spaIndex = join(config.webDistDir, 'index.html')
   const hasSpa = existsSync(spaIndex)
   // The runtime data dir is not in git: create it so a fresh clone starts without a missing-root warning
-  if (!hasSpa) mkdirSync(config.instanceDir, { recursive: true })
+  if (!hasSpa) mkdirSync(config.dataDir, { recursive: true })
   // Always registered (provides reply.sendFile, also used to serve uploaded files back); static routes are skipped when there is no frontend build
   await app.register(
     fastifyStatic,
-    hasSpa ? { root: config.webDistDir, wildcard: true } : { root: config.instanceDir, serve: false },
+    hasSpa ? { root: config.webDistDir, wildcard: true } : { root: config.dataDir, serve: false },
   )
 
   // 404 / 405 semantics: the SPA catch-all accepts GET on any path,

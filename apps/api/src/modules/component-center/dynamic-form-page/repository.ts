@@ -101,7 +101,7 @@ export class DynamicFormPageRepository {
     await this.db.update(dynamic_form_records).set(values).where(eq(dynamic_form_records.id, id))
   }
 
-  /** Delete a record; its fields are removed via the FK's ON DELETE CASCADE (equivalent of cascade='all, delete-orphan') */
+  /** Delete a record; its fields are removed via the FK's ON DELETE CASCADE */
   async delete(id: number): Promise<void> {
     await this.db.delete(dynamic_form_records).where(eq(dynamic_form_records.id, id))
   }
@@ -113,16 +113,13 @@ export class DynamicFormPageRepository {
     return row?.n ?? 0
   }
 
-  /**
-   * A record's dynamic fields, `ORDER BY sort_order, sort_order` (id is not used as a tiebreaker;
-   * PostgreSQL decides the order of fields with equal sort_order. The existing query shape is kept so field order of existing data doesn't change).
-   */
+  /** A record's dynamic fields, ordered by sort_order then id */
   async listFields(recordId: number): Promise<DynamicFormField[]> {
     return this.db
       .select()
       .from(dynamic_form_fields)
       .where(eq(dynamic_form_fields.record_id, recordId))
-      .orderBy(asc(dynamic_form_fields.sort_order), asc(dynamic_form_fields.sort_order))
+      .orderBy(asc(dynamic_form_fields.sort_order), asc(dynamic_form_fields.id))
   }
 
   async deleteFieldsByRecord(recordId: number): Promise<void> {

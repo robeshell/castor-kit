@@ -201,9 +201,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # registry の内容を表示�
 
 | 禁止 | 理由 / 代替手段 |
 |---|---|
-| `@douyinfe/*` のインポート | Semi Design は廃止済み。`pnpm verify` の `frontend_no_legacy_ui` でブロックされる |
-| antd、material-ui などのほかの UI ライブラリ | shadcn/ui と共通コンポーネントを使う |
-| `var(--semi-*)` | 廃止済みの変数 |
+| antd、MUI などのほかの UI コンポーネントライブラリ | `@/components/ui/*`、`@/shared/components/*`、lucide-react と Tailwind のセマンティックカラークラスだけを使う |
 | ページ内での 16 進カラーコードの直書き | セマンティックカラークラスを使う。canvas / WebGL 内部の着色、グラフのデータ色は例外で、グラフでは `useChartColors` を優先する |
 | 大量のインラインスタイルによるレイアウト | Tailwind のユーティリティクラスを使う |
 | 絵文字をアイコンとして使う | `lucide-react` を使う |
@@ -212,7 +210,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # registry の内容を表示�
 
 ## メニューアイコン
 
-`menus.icon` フィールドにはアイコン名（例：`IconUser`）が保存されており、`apps/web/src/lib/menu-icons.js` で lucide アイコンにマッピングされます。メニューを追加するときはマッピング表にある既存の名前を使い、新しいアイコンが必要な場合はマッピング表に 1 行追加してください。
+`menus.icon` フィールドには lucide のアイコン名（例：`Users`、`Settings`）が保存されており、`apps/web/src/lib/menu-icons.js` で lucide のアイコンコンポーネントに解決されます。メニューを追加するときはマッピング表にある既存の名前を使い、新しいアイコンが必要な場合はマッピング表に 1 行追加してください。
 
 ## 多言語対応と副作用
 

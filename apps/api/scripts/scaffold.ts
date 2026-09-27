@@ -1127,7 +1127,7 @@ ${lines.join('\n')}
 
 // ─── Frontend code generation (shadcn/ui, same structure as apps/web/src/modules/admin/pages/users/index.jsx) ──
 //
-// The api file comes from a fixed template; the page follows docs/frontend-redesign-plan.md:
+// The api file comes from a fixed template; the page follows docs/frontend-design-system.md:
 // PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
 // + ConfirmAction + toast + useCrudList. Field → form component / table column rendering: see FRONTEND_FIELD_MAP.
 //

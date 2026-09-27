@@ -277,7 +277,7 @@ describe('dicts：字典项', () => {
     expect(tpl.body).toBe('\uFEFF字典标签,字典值,标签颜色,排序,是否默认,是否启用,备注\r\n示例标签,sample_value,#1677ff,0,否,是,可选\r\n')
   })
 
-  it('导入：新增 + 更新（空排序沿用原值）+ 默认项互斥；旧英文表头与 xlsx', async () => {
+  it('导入：新增 + 更新（空排序沿用原值）+ 默认项互斥；xlsx', async () => {
     const file = multipartFile(
       'd.csv',
       '字典标签,字典值,标签颜色,排序,是否默认,是否启用,备注\n' +
@@ -363,7 +363,7 @@ describe('dicts：权限', () => {
     }
     // Not logged in
     const anon = await app.inject({ url: '/api/admin/dicts/options?codes=a' })
-    expect([anon.statusCode, anon.json()]).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
+    expect([anon.statusCode, anon.json()]).toEqual([401, { error: '未授权访问', redirect: '/login' }])
     await handle.db.delete(dict_items).where(inArray(dict_items.id, [item!.id]))
   })
 })

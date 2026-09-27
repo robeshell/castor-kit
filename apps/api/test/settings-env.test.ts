@@ -3,7 +3,7 @@ import { SettingsStore } from '@/common/settings'
 import { loadConfig } from '@/config'
 import type { Executor } from '@/db/client'
 
-const base = { NODE_ENV: 'test', INSTANCE_DIR: '/tmp/ck-instance' }
+const base = { NODE_ENV: 'test', DATA_DIR: '/tmp/ck-data' }
 
 /** Effective settings from the environment alone (defaults + pinned values; no database needed for peek()) */
 function fromEnv(env: Record<string, string>) {
@@ -12,14 +12,14 @@ function fromEnv(env: Record<string, string>) {
 }
 
 describe('settings pinned by environment variables', () => {
-  it('只收集设置了且非空的变量；本地存储目录默认在 instance/uploads/files', () => {
+  it('只收集设置了且非空的变量；本地存储目录默认在 data/uploads/files', () => {
     const { config } = fromEnv({ SMTP_HOST: 'smtp.example.com', SMTP_USER: '  ', AI_MODEL: '' })
     expect(config.settingsEnv).toEqual({ SMTP_HOST: 'smtp.example.com' })
-    expect(config.storageLocalDir).toBe('/tmp/ck-instance/uploads/files')
+    expect(config.storageLocalDir).toBe('/tmp/ck-data/uploads/files')
   })
 
-  it('上传限制：取设置值与 MAX_CONTENT_LENGTH 的较小值；类型归一化（小写、去点、去空格）', () => {
-    const { settings } = fromEnv({ UPLOAD_MAX_SIZE: String(50 * 1024 * 1024), MAX_CONTENT_LENGTH: String(16 * 1024 * 1024) })
+  it('上传限制：取设置值与 BODY_LIMIT 的较小值；类型归一化（小写、去点、去空格）', () => {
+    const { settings } = fromEnv({ UPLOAD_MAX_SIZE: String(50 * 1024 * 1024), BODY_LIMIT: String(16 * 1024 * 1024) })
     expect(settings.upload.maxSize).toBe(16 * 1024 * 1024)
     expect(fromEnv({}).settings.upload.allowedTypes).toContain('png')
     expect(fromEnv({}).settings.upload.allowedTypes).not.toContain('svg')

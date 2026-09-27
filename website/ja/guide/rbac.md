@@ -36,9 +36,7 @@ castor-kit はロールベースのアクセス制御を採用しています。
 
 ドメインのプレフィックスは、`admin` ドメインが `system_`、`component_center` ドメインが `cc_` です。標準的な一覧ページには、上記の 5 つのボタン権限をすべて用意します。
 
-::: info コードの例外
-コンポーネント例の 31、33〜37 番のメニューは `system_*` コード（例：`system_list_page`）を使っており、ほかにも一部のページが `cc_admin_*` 形式を使っています。これらのコードはすでにデータベースに登録済みなので変更しないでください。新しいモジュールはすべて `cc_<name>` を使い、`pnpm scaffold` が出力する権限プレフィックスと揃えてください。
-:::
+コンポーネント例のページのコードは `cc_<グループ>_<ページ>`（例：`cc_admin_kanban_page`）、システム管理のページは `system_<ページ>` です。`pnpm scaffold` で生成したモジュールは、scaffold が出力する権限プレフィックス（`<ドメインのプレフィックス>_<name>`）を使います。
 
 ## 権限が適用される場所
 
@@ -80,13 +78,13 @@ castor-kit はロールベースのアクセス制御を採用しています。
 
 ```ts
 // Page menu
-{ id: 38, name: "客户管理", code: "system_customer", icon: "IconUser", path: "/system/customers", component: "admin/customer", parent_id: 201, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
+{ id: 2001, name: "客户管理", code: "system_customer", icon: "Users", path: "/system/customers", component: "admin/customer", parent_id: 201, sort_order: 10, menu_type: "menu", is_visible: true, is_active: true },
 // Button permissions: id = menu id × 10 + index
-{ id: 381, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 38, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
-{ id: 382, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 38, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
-{ id: 383, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 38, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
-{ id: 384, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 38, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
-{ id: 385, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 38, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20011, name: "新增客户", code: "system_customer_add", icon: null, path: null, component: null, parent_id: 2001, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20012, name: "编辑客户", code: "system_customer_edit", icon: null, path: null, component: null, parent_id: 2001, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20013, name: "删除客户", code: "system_customer_delete", icon: null, path: null, component: null, parent_id: 2001, sort_order: 3, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20014, name: "导出客户", code: "system_customer_export", icon: null, path: null, component: null, parent_id: 2001, sort_order: 4, menu_type: "button", is_visible: false, is_active: true },
+{ id: 20015, name: "导入客户", code: "system_customer_import", icon: null, path: null, component: null, parent_id: 2001, sort_order: 5, menu_type: "button", is_visible: false, is_active: true },
 ```
 
 - `component` には `pnpm scaffold` が出力する Menu component の値を使います。
@@ -124,7 +122,7 @@ Docker でデプロイした場合、コンテナは起動のたびに `setup-on
 | 範囲 | ID の区間 |
 |---|---|
 | システム管理のグループ（`parent_id=2`） | 201–209 |
-| システム管理のページ（`parent_id` は所属グループ、例：201） | 21–39 |
+| システム管理のページ（`parent_id` は所属グループ、例：201） | 21–39。新しいページは 2001 から |
 | コンポーネント例（`parent_id=3`） | 40–499 |
 | 　管理画面（`parent_id=40`） | 401–409 |
 | 　データ可視化（`parent_id=41`） | 411–419 |
@@ -135,7 +133,7 @@ Docker でデプロイした場合、コンテナは起動のたびに `setup-on
 | 新しい業務ドメイン | 1000 から |
 | ボタン権限 | メニュー ID × 10 + 連番（例：21 → 211〜215） |
 
-区間の中には例外の ID があります。31、33〜37 はコンポーネント例に属し、32 は定期タスク、通知とお知らせは 100002、100003 です。ID を決める前に、実際に使われている ID を確認してください。
+区間の「次の番号」が空いているとは限りません。ID を決める前に、実際に使われている ID を確認してください。
 
 ```bash
 grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq

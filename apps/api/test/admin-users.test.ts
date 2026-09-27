@@ -270,7 +270,7 @@ describe('users: enable / disable', () => {
     await s.inject({ method: 'PUT', url: `/api/admin/users/${u.id}/status`, payload: { status: 'disabled' } })
 
     const me = await session.inject({ url: '/api/admin/me' })
-    expect([me.statusCode, me.json()]).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
+    expect([me.statusCode, me.json()]).toEqual([401, { error: '未授权访问', redirect: '/login' }])
     expect(sessionCookie(me)).toBe('')
     const menusRes = await session.inject({ url: '/api/admin/my-menus' })
     expect(menusRes.statusCode).toBe(401)

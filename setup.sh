@@ -138,18 +138,22 @@ configure_mirrors() {
     local mirrors='["https://docker.xuanyuan.me"]'
     mkdir -p "$(dirname "$cfg")"
 
-    if [[ -f "$cfg" ]]; then
-        # Merge into the existing config
-        python3 -c "
-import json, sys
-with open('$cfg') as f:
-    c = json.load(f)
-c['registry-mirrors'] = $mirrors
-with open('$cfg', 'w') as f:
-    json.dump(c, f, indent=2)
-" 2>/dev/null || echo "{\"registry-mirrors\": $mirrors}" > "$cfg"
-    else
+    local compact
+    compact="$(tr -d ' \t\r\n' 2>/dev/null < "$cfg" || true)"
+    if [[ -z "$compact" || "$compact" == "{}" ]]; then
         echo "{\"registry-mirrors\": $mirrors}" > "$cfg"
+    elif command -v node &>/dev/null; then
+        # Merge into the existing config
+        CFG="$cfg" MIRRORS="$mirrors" node -e '
+const fs = require("fs")
+const file = process.env.CFG
+const config = JSON.parse(fs.readFileSync(file, "utf8"))
+config["registry-mirrors"] = JSON.parse(process.env.MIRRORS)
+fs.writeFileSync(file, JSON.stringify(config, null, 2) + "\n")
+' 2>/dev/null || echo "{\"registry-mirrors\": $mirrors}" > "$cfg"
+    else
+        # No node: add the key right after the opening brace of the existing object
+        awk -v entry="\"registry-mirrors\": $mirrors," '!done && sub(/\{/, "{" entry) { done = 1 } { print }' "$cfg" > "$cfg.tmp" && mv "$cfg.tmp" "$cfg"
     fi
 
     # Restart Docker to apply the config

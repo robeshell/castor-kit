@@ -201,9 +201,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # 只查看 registry 内容，�
 
 | 禁止 | 原因 / 替代 |
 |---|---|
-| 导入 `@douyinfe/*` | Semi Design 已下线，`pnpm verify` 的 `frontend_no_legacy_ui` 会拦截 |
-| antd、material-ui 等其他 UI 库 | 使用 shadcn/ui 与公共组件 |
-| `var(--semi-*)` | 已下线的变量 |
+| antd、MUI 等其他 UI 组件库 | 只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类 |
 | 页面里写死十六进制颜色 | 使用语义色类；canvas / WebGL 内部着色、图表数据色除外，图表优先用 `useChartColors` |
 | 大段 inline style 做布局 | 使用 Tailwind 工具类 |
 | 用 emoji 当图标 | 使用 `lucide-react` |
@@ -212,7 +210,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # 只查看 registry 内容，�
 
 ## 菜单图标
 
-`menus.icon` 字段存的是图标名（如 `IconUser`），由 `apps/web/src/lib/menu-icons.js` 映射到 lucide 图标。新增菜单时沿用映射表中已有的名字，需要新图标时在映射表里补一条。
+`menus.icon` 字段存的是 lucide 图标名（如 `Users`、`Settings`），由 `apps/web/src/lib/menu-icons.js` 解析成 lucide 图标组件。新增菜单时沿用映射表中已有的名字，需要新图标时在映射表里补一条。
 
 ## 多语言与副作用
 

@@ -13,7 +13,7 @@ The docs site is the exception: `.github/workflows/docs.yml` builds it and publi
 | Component | Description |
 |---|---|
 | `db` | Image `postgres:alpine`; the database name and user are both `castor_kit`; data lives in the `postgres_data` volume |
-| `app` | Built from the `Dockerfile` in the repo root; listens on port 5000 inside the container; uploaded files live in the `app_instance` volume (mounted at `/app/instance`) |
+| `app` | Built from the `Dockerfile` in the repo root; listens on port 5000 inside the container; uploaded files live in the `app_data` volume (mounted at `/app/data`) |
 
 The image is built in two stages, both based on `node:22-bookworm-slim` (glibc: native modules such as `sodium-native` only ship prebuilt binaries for glibc, so Alpine can't be used). The first stage installs dependencies, builds the frontend (Vite) and backend (tsup), then prunes down to production dependencies. The second stage is the runtime image: it runs as a non-root user (uid 10001) and has a health check on `/health`.
 
@@ -175,9 +175,9 @@ We recommend backing up the database before updating; see below.
 | Volume | Default name | Contents |
 |---|---|---|
 | `postgres_data` | `castor-kit_postgres_data` | PostgreSQL data |
-| `app_instance` | `castor-kit_app_instance` | Uploaded files (`local` storage driver; with `s3` they live in object storage) |
+| `app_data` | `castor-kit_app_data` | Uploaded files (`local` storage driver; with `s3` they live in object storage) |
 
-To reuse existing volumes, set `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` in `.env.production` to the existing volume names.
+The volume names can be overridden with `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` in `.env.production`, for example to point at volumes that already exist.
 
 Example database backup:
 
@@ -193,9 +193,9 @@ In `docker-compose.yml`, the `db` service uses the image tag `postgres:alpine`, 
 
 In production, put a reverse proxy (such as Nginx) in front of the app to handle TLS. Keep in mind:
 
-- **Forward `Host` and the protocol headers**: the app trusts one proxy hop and reads the client IP and protocol from `X-Forwarded-For` / `X-Forwarded-Proto`. When `SESSION_COOKIE_SECURE` is empty, whether the cookie gets the `Secure` flag depends on the request protocol, so `X-Forwarded-Proto` must be passed through correctly.
+- **Forward `Host` and the protocol headers**: the app trusts one proxy hop and reads the client IP and protocol from `X-Forwarded-For` / `X-Forwarded-Proto`. When `COOKIE_SECURE` is empty, whether the cookie gets the `Secure` flag depends on the request protocol, so `X-Forwarded-Proto` must be passed through correctly.
 - **WebSocket**: the `/ws` path needs the `Upgrade` header forwarded. The WebSocket handshake checks that `Origin` matches `Host` (or is in the `CORS_ORIGINS` allowlist), so the proxy must preserve the original `Host`.
-- **Request body size**: the app allows request bodies up to 16MB by default (`MAX_CONTENT_LENGTH`), and import files up to 5MB. Nginx's `client_max_body_size` defaults to only 1MB, so raise it accordingly.
+- **Request body size**: the app allows request bodies up to 16MB by default (`BODY_LIMIT`), and import files up to 5MB. Nginx's `client_max_body_size` defaults to only 1MB, so raise it accordingly.
 - **Streaming responses**: AI Chat uses SSE, and the app already sets `X-Accel-Buffering: no` in the response headers to turn off Nginx buffering.
 
 Example Nginx config (assuming `APP_PORT=5000`):
@@ -227,7 +227,7 @@ server {
 }
 ```
 
-You can get an HTTPS certificate from Let's Encrypt (for example with Certbot's Nginx plugin). Once HTTPS is enabled, you can also set `SESSION_COOKIE_SECURE=true` explicitly in `.env.production`.
+You can get an HTTPS certificate from Let's Encrypt (for example with Certbot's Nginx plugin). Once HTTPS is enabled, you can also set `COOKIE_SECURE=true` explicitly in `.env.production`.
 
 ::: tip Allow access only through the proxy
 When using a reverse proxy, you can change the port mapping in `docker-compose.yml` to bind only to localhost (e.g. `"127.0.0.1:${APP_PORT:-8080}:5000"`), so nobody can bypass the proxy and reach the app directly.
