@@ -207,7 +207,8 @@ export default function <Resource>Page() {
         </StatusBadge>
       ),
     },
-    { key: 'remark', title: '备注', dataIndex: 'remark', ellipsis: true },
+    // An ellipsis column takes only the width left over, so give it a floor
+    { key: 'remark', title: '备注', dataIndex: 'remark', minWidth: 160, ellipsis: true },
     {
       key: 'created_at',
       title: '创建时间',

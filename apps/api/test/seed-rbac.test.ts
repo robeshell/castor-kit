@@ -156,11 +156,15 @@ describe('全量重建（空库）', () => {
 describe('增量同步', () => {
   it('无变化时连跑两次：不发 UPDATE（updated_at 不变），结果完全一致', async () => {
     const before = await snapshot(TEMP_URL)
-    const first = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })
+    const lines: string[] = []
+    const first = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: (l) => lines.push(l) })
     const second = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })
-    expect(first).toEqual({ menusAdded: 0, menusUpdated: MENU_COUNT, superAdminMenuCount: MENU_COUNT, adminCreated: false })
+    expect(first).toEqual({ menusAdded: 0, menusUpdated: 0, superAdminMenuCount: MENU_COUNT, adminCreated: false })
     expect(second).toEqual(first)
     expect(await snapshot(TEMP_URL)).toEqual(before)
+    // Only real changes are listed, so a new module's inserts aren't buried under every existing menu
+    expect(lines.filter((l) => l.includes('Updated menu'))).toEqual([])
+    expect(lines).toContain('Menus unchanged\n')
   })
 
   it('按 code 更新字段但不改 ID；固定 ID 被占用走序列；不删除自定义数据', async () => {
@@ -174,8 +178,11 @@ describe('增量同步', () => {
       INSERT INTO role_menus VALUES (50, 21);
       COMMIT;
     `)
-    const result = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })
+    const lines: string[] = []
+    const result = await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: (l) => lines.push(l) })
     expect(result.menusAdded).toBe(1)
+    expect(result.menusUpdated).toBe(1)
+    expect(lines.filter((l) => l.includes('Updated menu'))).toEqual(['  Updated menu: [system_users] 用户管理'])
 
     const rows = await query<{ id: number; code: string; name: string; sort_order: number; parent_id: number | null; is_active: boolean; is_visible: boolean }>(
       TEMP_URL,

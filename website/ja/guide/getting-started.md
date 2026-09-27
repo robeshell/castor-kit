@@ -119,7 +119,7 @@ pnpm dev
 
 ### 6. テストを実行する（任意）
 
-バックエンドのテストは実際の PostgreSQL テスト用データベース（デフォルトは `postgresql://localhost/castor_kit_test`。`TEST_DATABASE_URL` で上書き可能）に接続し、テスト開始前にマイグレーションを自動で実行します。
+バックエンドのテストは実際の PostgreSQL テスト用データベース（デフォルトは `postgresql://localhost/castor_kit_test`。シェルまたは `apps/api/.env.test` の `TEST_DATABASE_URL` で上書き可能。`.env.development` の値は使われません）に接続し、テスト開始前にマイグレーションを自動で実行します。
 
 ```bash
 createdb castor_kit_test      # または開発用データベースを複製：createdb -T castor_kit castor_kit_test

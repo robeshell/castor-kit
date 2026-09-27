@@ -151,7 +151,7 @@ scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `comp
 | `datetime` | `timestamp`（字符串模式） | `FormDateTime` | |
 | `file` | `varchar(36)`，存文件中心的文件 ID | `FormFileUpload` | 列表显示「查看」链接；保存时自动登记引用 |
 | `image` | `varchar(36)`，存文件中心的文件 ID | `FormImageUpload` | 列表显示缩略图；保存时自动登记引用 |
-| `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表与导出显示选项名称，导入时名称和值都接受 |
+| `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表以徽标显示选项名称（颜色取选项的 `tone`），导出显示名称，导入时名称和值都接受 |
 | `dict` | `varchar(100)`，存字典项的值 | `FormSelect` | 选项来自「数据字典」（`--spec` 写 `dict` 字典编码）；列表显示字典标签 |
 
 未知类型按 `str` 处理。`id`、`created_at`、`updated_at` 会自动添加。
@@ -187,7 +187,7 @@ AI 根据业务描述推断类型，你不需要指定：
     { "name": "code", "type": "str50", "label": "设备编号", "required": true, "unique": true },
     { "name": "name", "type": "str", "label": "设备名称", "required": true },
     { "name": "status", "type": "enum", "label": "状态", "required": true, "default": "idle",
-      "options": [{ "value": "idle", "label": "闲置" }, { "value": "in_use", "label": "使用中" }] },
+      "options": [{ "value": "idle", "label": "闲置" }, { "value": "in_use", "label": "使用中", "tone": "success" }] },
     { "name": "category", "type": "dict", "label": "分类", "dict": "device_category" },
     { "name": "price", "type": "float", "label": "采购价格" }
   ],
@@ -208,6 +208,7 @@ pnpm scaffold -- --spec device.spec.json
 - `default`：列默认值，新增时留空就用它，表单也预先填好
 - `label` / `title`：页面、表头、导入导出和报错里的中文；`i18n` 是它们的英文、日文，没写的用字段名代替
 - `menu`：同时把菜单和按钮权限（新增 / 编辑 / 删除 / 导出 / 导入）写进 `apps/api/scripts/seed-rbac.ts`，默认挂在顶级目录「业务管理」下（ID 1000，第一次生成时创建；模块 ID 从 1001 起），`parentId` 可以指定其他目录；菜单的英文、日文名写进 `apps/web/src/locales/menus/`
+- `options[].tone`：该选项在列表中的徽标颜色（默认 `neutral`；状态类字段用 `success` / `warning` / `danger` 等）
 - 生成的接口测试多一条「字段规则」用例，覆盖必填、选项、唯一和默认值
 
 ### 已知限制

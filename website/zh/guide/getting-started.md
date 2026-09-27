@@ -119,7 +119,7 @@ pnpm dev
 
 ### 6. 运行测试（可选）
 
-后端测试连接真实的 PostgreSQL 测试库（默认 `postgresql://localhost/castor_kit_test`，可用 `TEST_DATABASE_URL` 覆盖），测试开始前会自动执行迁移：
+后端测试连接真实的 PostgreSQL 测试库（默认 `postgresql://localhost/castor_kit_test`，可在 shell 或 `apps/api/.env.test` 里用 `TEST_DATABASE_URL` 覆盖，`.env.development` 里的不生效），测试开始前会自动执行迁移：
 
 ```bash
 createdb castor_kit_test      # 或者克隆开发库：createdb -T castor_kit castor_kit_test

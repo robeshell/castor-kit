@@ -34,7 +34,7 @@ With MCP the equivalent is: `get_spec_guide` → `validate_spec` → `scaffold_f
 Inference guidelines (field types: see "Field type inference" below):
 
 - `name`: English, singular, snake_case (`device`, `customer_order`); `title`: the module's Chinese name, required; every field needs a Chinese `label` (used by table headers, forms, import templates and the API docs). Chinese is the i18n source key for all of these
-- Options that are fixed and spelled out in the requirement (status, type, level) → `enum` + `options` (`value` in English, `label` in Chinese); options that grow or shrink and are maintained by admins (category, source, industry) → `dict` + a data dictionary code
+- Options that are fixed and spelled out in the requirement (status, type, level) → `enum` + `options` (`value` in English, `label` in Chinese; the list shows them as badges, and status-like options get a `tone`: in use / active → `success`, pending / under repair → `warning`, scrapped / failed → `danger`, the rest `neutral`); options that grow or shrink and are maintained by admins (category, source, industry) → `dict` + a data dictionary code
 - `required`: fields the requirement calls "required / must not be empty"; status fields with a default are also required (they can't be cleared when editing); file / image fields can't be required
 - `unique`: only when the requirement says "must not repeat / unique", and only for text and number fields; `default`: only when the requirement says "defaults to ...", and the value must match the type (for `enum`, use an option value)
 - `dataScope: true`: when the requirement says "users only see their own / their department's ..."; `menu: {}`: every new business module needs a menu (it goes under `业务管理` (Business))
@@ -73,9 +73,10 @@ Inference guidelines (field types: see "Field type inference" below):
 **Development environment:**
 - Ports: api 5001, web 5173 (the Vite proxy forwards `/api` and `/ws` to 5001); tests 5002; production 5000
 - Database: `postgresql://localhost/castor_kit` (set as `DEV_DATABASE_URL` in `apps/api/.env.development`; also the default when unset)
-- Local config: `apps/api/.env.development` (see `apps/api/.env.example`; gitignored; `.env.<NODE_ENV>` in the repo root is read too)
+- Local config: `apps/api/.env.development` (see `apps/api/.env.example`; gitignored; `.env.<NODE_ENV>` in the repo root is read too). A fresh checkout or git worktree has none, so it silently uses the default `castor_kit` database
 - Default account: `admin` / `admin123`
-- Test database: `createdb -T castor_kit castor_kit_test` (clone) or `createdb castor_kit_test` (empty; the tests run the migrations automatically); `pnpm test`
+- Test database: `createdb -T castor_kit castor_kit_test` (clone) or `createdb castor_kit_test` (empty; the tests run the migrations automatically); `pnpm test`. The tests read `TEST_DATABASE_URL` from the shell or `apps/api/.env.test`, never from `.env.development`
+- A second checkout (e.g. a git worktree) beside a running one: its own databases (`createdb castor_kit_wt && pg_dump castor_kit | psql -q -d castor_kit_wt`, `createdb castor_kit_wt_test`), `DEV_DATABASE_URL` + `PORT=5011` in its `apps/api/.env.development`, `TEST_DATABASE_URL` in its `apps/api/.env.test`, and the web dev server started with `API_PORT=5011 pnpm --filter @castor-kit/web dev --port 5183` (the Vite proxy's target port)
 
 ---
 
@@ -339,7 +340,7 @@ Details: docs/architecture.md "Cross-cutting conventions".
 
 - **Times**: columns are `timestamp` (without time zone) storing UTC; pg `timestamp`/`date` values stay as text and never go through JS `Date`; output always uses `toIso()` (ISO 8601 UTC: `YYYY-MM-DDTHH:mm:ss.ffffffZ`, 6 fractional digits + `Z`). Times in requests use `field.dateTime`: values with a zone (`Z` / `±HH:MM`) are converted to UTC, values without one are taken as UTC. The frontend displays times in the browser's time zone via `@/lib/format`. Times meant for people follow the caller's time zone: the frontend sends `X-Time-Zone` (the browser's IANA zone) with every request; time columns in exports use `formatDateTime()` (`common/serialize.ts`, which outputs wall-clock time in the current request's zone); times in import files go through `withZoneOffset()` (`common/time-zone.ts`) before `field.dateTime`; "today" in the home page statistics is also computed in this zone. **Never** use `Date#toISOString()` (milliseconds only)
 - **Numbers**: `numeric` columns stay strings (e.g. `"12.50"`); don't `parseFloat` them in `toDict()`
-- **Request validation**: request schemas are always lenient (`.passthrough()` / `z.record(...)` + everything optional); normalization happens in the service; tightening validation is a separate task
+- **Request validation**: JSON bodies are declared field by field with Zod (`field.*` + `routeBody`, see "API route rules"): native JSON types only, text trimmed, defaults applied on create, unknown fields ignored, a wrong type is a 400 naming the field; uniqueness and cross-field rules live in the service
 - **Errors**: services throw `ServiceError`; the global error handler turns it into `{ error, ...payload }`; 404/405/500 under `/api/*` all return JSON
 - **Operation log**: written centrally to `operation_logs` by a global `onResponse` hook registered by the logs module; don't write log entries from services
 - **Files**: uploads and storage all go through the file center (`modules/admin/files` + `common/storage/`, drivers `local` / `s3`, see the `STORAGE_*` env vars). The frontend uses `uploadFile` from `@/shared/api/files` and the `upload/*` components (in forms, `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload`). Business tables store the file ID (or, for things like avatars, the `/api/admin/files/<id>` URL). When writing, call `syncFileRefs(tx, tableName, rowId, { field: value })` from `common/file-refs.ts` in the same transaction, and `clearFileRefs` when deleting; otherwise the file is treated as an orphan and cleaned up 24 hours after upload. The scaffold's `file` / `image` types handle this automatically
@@ -679,7 +680,8 @@ Step 1  Read the context
         → Check the current menu tree (MENUS_DATA in apps/api/scripts/seed-rbac.ts) to pick the parent_id and the next free ID
 
 Step 2  Write the internal spec (an AI-internal document; the PM doesn't read it)
-        → Infer: API paths, field types and lengths, permission codes, file paths, menu IDs, migration name
+        → Write it as a spec JSON (docs/spec.schema.json, examples in docs/examples/specs/) and check it with
+          pnpm scaffold -- --spec <file> --validate-only: it prints the API paths, permission codes, table and menu (ID, path) it implies
 
 Step 3  Show the business preview (for the PM to confirm)
         Show business-level information only:
@@ -689,13 +691,15 @@ Step 3  Show the business preview (for the PM to confirm)
         · Wait for confirmation or changes; on changes, go back to Step 2
 
 Step 4  Implement
-        → pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."
+        → pnpm scaffold -- --spec <file>   (the spec from Step 2; see "From a one-line requirement to a spec". Without a spec:
+          pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "...", which leaves English placeholder labels)
           (generates db/schema + the four module files + the frontend api/<name>.ts and pages/.../index.tsx, registers router.ts and
             db/schema/index.ts automatically, writes the module's OpenAPI entries and regenerates the frontend API types,
-            and runs drizzle-kit generate --name <name> to create the migration)
+            with a spec menu also the menu + buttons in seed-rbac.ts, and runs drizzle-kit generate --name <name> to create the migration)
         → Fill in the business logic and Chinese headers in the order db/schema → schema → repository → service → routes
         → If you change the table structure afterwards: pnpm db:generate --name <description> (note: no -- here)
-        → Add the menu + button permissions (_add/_edit/_delete/_export/_import) to seed-rbac.ts and run pnpm seed:rbac -- --incremental
+        → Menu + button permissions (_add/_edit/_delete/_export/_import): already in seed-rbac.ts with a spec `menu`, otherwise add them by hand;
+          then run pnpm seed:rbac -- --incremental
         → Review the newly generated SQL under apps/api/drizzle/ and run pnpm db:migrate
         → Add the new menu to "Current menu tree" in this file
         → API docs: scaffold has already written the module's 8 endpoints; if you hand-edited the generated routes / fields / validation or added routes, update the docs from the code (for new routes, run pnpm openapi:generate first to add skeletons),
@@ -784,6 +788,9 @@ pnpm verify -- --module <name> --json          # structured JSON (stdout is JSON
 #   other flags: --skip-frontend-tests --skip-api-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
 
 # Code skeleton generation
+pnpm scaffold -- --spec <file> --validate-only   # check a spec and preview the API / permissions / table / menu (ID and path)
+pnpm scaffold -- --spec <file> --dry-run         # list every file it would write or update, write nothing
+pnpm scaffold -- --spec <file>                   # generate (preferred: Chinese labels, rules, options, menu, translations)
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
 pnpm scaffold -- --name <name> --domain component_center --fields "..." --dry-run   # print only, write no files
 pnpm scaffold -- --name <name> --domain admin --fields "..." --data-scope         # add data scope (dept_id / created_by)
@@ -898,7 +905,7 @@ ID=3   组件示例中心 [Component Gallery] (component_center)
 - Configuration has two tiers: whatever is needed before the server starts (database URL, `SECRET_KEY`, ports, scheduler switch, etc.) goes in environment variables; everything else goes in system settings (the `common/settings.ts` registry + the `system_settings` table): feature switches, security parameters, email, file storage, upload limits, AI models, site URL. Secrets (`type: 'secret'`) are stored encrypted with `secret-box` and never echoed back; a registry entry can declare `env`, and when that environment variable is non-empty it locks the value (read-only in the UI); the variable names are also registered in `common/settings-env.ts`. When a new feature needs configuration, add a registry entry; don't add more env-only settings. Read settings with `app.settings.get()` (`peek()` on hot paths); clients such as email / storage are rebuilt from the current settings through `MailerProvider` / `StorageProvider`. Endpoints that change settings (save and test) must first pass `requireRecentAuth(request)` (signed in, or verified via `/api/admin/reauth`, within the last 10 minutes), and saving notifies every super admin; address-type settings that make the server connect out must pass the `common/outbound.ts` check on save and test (reserved addresses are always refused; private networks depend on `SETTINGS_ALLOW_PRIVATE_NETWORK`)
 - Time fields never go through JS `Date`: pg types 1114/1082 stay as text; `toIso()` replaces the space with `T`, right-pads fractional seconds with 0 to 6 digits (pg's text output drops trailing zeros) and appends `Z`; database writes use `utcNow()` (`timezone('utc', now())`), and the current time generated in the app uses `utcNowIso()` (API) / `utcNowText()` (database writes)
 - The cron matcher is our own, with standard 5-field semantics: when both day-of-month and day-of-week are restricted, they are ORed (as in Vixie cron)
-- Request schemas are `.passthrough()` + all optional; normalization happens in the service
+- Request bodies are declared with Zod field by field (`field.*` + `routeBody`, parsed after the permission check); only native JSON types, no implicit conversions; business rules stay in the service
 - The operation log is written centrally by the global `onResponse` hook, not scattered across services
 - The AI assistant's tools (`modules/admin/assistant`) always call our own API via `app.inject` with the current user's cookie / CSRF, so permissions, data scope, demo-mode restrictions and the operation log are all handled by the original endpoints; don't give it tools that access the database directly or bypass the routes. Write operations must use `needsApproval` (approval requests are signed with a key derived from `SECRET_KEY`); endpoints it can't use, such as account security, system settings and import / export, are listed in `ASSISTANT_DENIED` in `catalog.ts`
 - The runtime environment is set by `NODE_ENV`; in production, a missing `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` refuses to start

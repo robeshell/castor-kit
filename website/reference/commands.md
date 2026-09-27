@@ -66,6 +66,8 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 | `pnpm verify -- --module <name> --strict-docs` | Make docs path check failures blocking |
 | `pnpm verify -- --module <name> --database-url <url>` | Database used to check migration status |
 
+The `--skip-*` flags are for debugging: a run that skipped checks with them lists them as skipped and doesn't report the feature as ready to deliver (`complete: false` in `--json`); run the gate without them before delivering.
+
 Both `scaffold` and `verify` print their usage with `-h` / `--help`. For the options, see [AI-driven workflow](/guide/ai-workflow).
 
 ## OpenAPI

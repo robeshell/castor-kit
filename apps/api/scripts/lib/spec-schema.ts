@@ -7,7 +7,7 @@
  * validateSpec (`pnpm scaffold -- --spec <file> --validate-only`), which also knows cross-field rules.
  */
 
-import { FIELD_TYPE_MAP, NAME_RE, RESERVED_FIELDS, SPEC_KEYS, UNIQUE_TYPES, UNSAFE_TEXT } from '../scaffold'
+import { FIELD_TYPE_MAP, NAME_RE, OPTION_TONES, RESERVED_FIELDS, SPEC_KEYS, UNIQUE_TYPES, UNSAFE_TEXT } from '../scaffold'
 
 /** What each field type is for (shown by editors; AGENTS.md "Field type inference" has the full table) */
 export const FIELD_TYPE_NOTES: Record<string, string> = {
@@ -111,6 +111,10 @@ export function specJsonSchema(): Record<string, unknown> {
         properties: {
           value: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,50}$', description: 'The value stored in the database (English, e.g. in_use)' },
           label: text(50, 'Chinese label shown to users, e.g. 使用中'),
+          tone: {
+            enum: [...OPTION_TONES],
+            description: 'Badge colour of this option in the list (default neutral), for status-like fields: e.g. in use → success, under repair → warning, scrapped → danger',
+          },
         },
       },
     },

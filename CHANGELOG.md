@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Fixed
+
+Found by building a module end to end with `/new-feature-autopilot` (friction log in the PR):
+
+- `pnpm scaffold`: enum columns are `StatusBadge`s, coloured by an optional `tone` per spec option; list columns keep short values on one line and give free text a minimum width, so narrow screens scroll the table instead of squeezing a column to one character (and ellipsis columns no longer collapse); webhook events are described with the module title ("设备台账已新增") and translated in the module's page locales; downloads are saved under the names the server gives them. `--validate-only` and `--dry-run` name the menu ID and path, `--dry-run` reports the same writes as a real run and ends with "nothing was written", the field list is printed in the `--fields` syntax, and a spec translation that loses to an existing one gets a `[note]`.
+- `pnpm verify` prints each check's detail (the `migrated to <tag>` line for the delivery report), counts skipped checks as skipped, and no longer says "ready to deliver" when `--skip-*` flags skipped checks (`complete` in `--json`).
+- `pnpm db:migrate` prints in English how many migrations it applied and which one the database is at; `pnpm seed:rbac -- --incremental` lists only menus that changed.
+- The tests read `TEST_DATABASE_URL` from `apps/api/.env.test` as well as the shell, and the Vite dev proxy takes `API_PORT`, so a second checkout can run beside the first with its own databases and ports.
+- AGENTS.md, CLAUDE.md and the autopilot skill lead with the spec flow (`--spec` → `--validate-only` → generate), no longer describe request schemas as `.passthrough()`, and explain a checkout without `apps/api/.env.development`.
+
 ### Changed
 
 - The frontend is TypeScript (migrated layer by layer; plan and follow-ups in `docs/roadmap.md` "TypeScript frontend"):

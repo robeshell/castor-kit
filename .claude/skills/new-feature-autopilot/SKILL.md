@@ -15,7 +15,7 @@ When to use: triggered when the user expresses an intent such as "build feature 
 - Never ask the PM about technical details
 - Show a business preview for confirmation first, then implement
 - Run every command from the repo root (Node 22 + pnpm)
-- Dev environment config is in `apps/api/.env.development` (there is no `.env` at the repo root); the database connection comes from its `DEV_DATABASE_URL`, and the default local database name is `castor_kit`
+- Dev environment config is in `apps/api/.env.development` (there is no `.env` at the repo root); the database connection comes from its `DEV_DATABASE_URL`, and the default local database name is `castor_kit`. A fresh checkout or git worktree has no such file and silently uses `castor_kit`, the same database as the main checkout: check with `cat apps/api/.env.development` first, and when another checkout is in use, give this one its own databases and ports (AGENTS.md "Development environment")
 
 ---
 
@@ -41,22 +41,34 @@ grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n
 
 ### Step 2 — Produce the internal spec (not shown to the PM)
 
-From the PM's business description, infer and produce the technical spec automatically:
+From the PM's business description, infer the technical spec and write it as a spec JSON file (format `docs/spec.schema.json`, inference rules in AGENTS.md "From a one-line requirement to a spec", 4 worked examples in `docs/examples/specs/`; read one first). Put the file anywhere outside the repo (a scratch directory) or next to your notes; it isn't committed. Then check it:
+
+```bash
+pnpm scaffold -- --spec <dir>/<name>.spec.json --validate-only
+# ✅ Spec is valid: device (设备台账), 8 fields
+#    API: /api/admin/devices (list / create / detail / update / delete / export / import template / import)
+#    Permissions: system_device / _add / _edit / _delete / _export / _import
+#    Table: devices; search field: name
+#    Menu: 设备台账 (ID 1001, /biz/devices, buttons 10011–10015), in the new 业务管理 directory (ID 1000); written to scripts/seed-rbac.ts
+```
+
+With `"menu": {}` in the spec, scaffold allocates the menu ID, path (`/biz/<name-kebab>s`) and buttons itself under 业务管理 (Business); the manual menu rules below (ID ranges, `/system/...` paths) only apply when you generate with `--fields` and register the menu by hand.
+
+What to infer (the spec and `--validate-only` settle all of it):
 
 ```
-What to infer:
 - Resource name (snake_case, e.g. customer_order) and domain (admin | component_center)
 - API path (/api/admin/<resource>s, hyphens for multiple words, e.g. /api/admin/customer-orders)
 - Field names + scaffold types (str/str20/str50/str500/text/int/float/bool/date/datetime/file/image, following AGENTS.md "Field type inference"; images and attachments use image / file, which store a file ID from the file center)
 - Permission codes (admin domain system_<name>, component_center domain cc_<name>, matching the Perm prefix scaffold prints; buttons _add/_edit/_delete/_export/_import)
 - Frontend file path (admin domain modules/admin/pages/<name>/index.tsx;
                      component_center domain modules/component_center/pages/admin/<name>_page/index.tsx; API file api/<name>.ts)
-- Menu ID (an ID not used in `MENUS_DATA`, from the ID allocation ranges in AGENTS.md; button ID = menu ID × 10 + sequence number)
-- Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/admin/<name-kebab>` (consistent with the sibling pages under `管理系统` (Admin system))
+- (--fields only) Menu ID (an ID not used in `MENUS_DATA`, from the ID allocation ranges in AGENTS.md; button ID = menu ID × 10 + sequence number)
+- (--fields only) Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/admin/<name-kebab>` (consistent with the sibling pages under `管理系统` (Admin system))
 - Menu order: last among its siblings; icon: reuse a name already in the mapping table in `apps/web/src/lib/menu-icons.ts`
 - Resource name: scaffold always appends `s` to the table name / API path, so think about the plural when choosing the name (`equipment` becomes `equipments`; use a countable noun such as `device` instead)
-- Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English
-- parent_id (inferred from the menu tree based on where the PM describes the feature)
+- Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English; the list shows each option as a badge, so give status-like options a `tone` (`success` / `warning` / `danger`, default `neutral`)
+- parent_id: the 业务管理 (Business) directory by default; spec `menu.parentId` when the PM names another place
 - Migration name (scaffold uses <name> by default)
 ```
 
@@ -67,7 +79,7 @@ Show the PM business-level information only, in this format:
 ```
 📋 <feature name>
 
-Location: <parent menu> → <feature name>
+Location: <parent menu> → <feature name>   (as --validate-only reports it)
 Features: list, create, edit, delete (adjust as needed)
 Fields:
   · <field label> (required)
@@ -82,14 +94,14 @@ Shall I go ahead with this, or is there anything to adjust?
 
 ### Step 4 — Implement
 
-**4a. Generate the skeleton (prefer scaffold)**
+**4a. Generate the skeleton from the spec**
 
 ```bash
-# Dry-run first to see which files will be generated
-pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..." --dry-run
-# Generate for real once confirmed
-pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..."
+pnpm scaffold -- --spec <dir>/<name>.spec.json --dry-run   # lists every file it would write or update; writes nothing
+pnpm scaffold -- --spec <dir>/<name>.spec.json             # generate
 ```
+
+(Without a spec: `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<field>:<type>,..."`; see the `--fields` notes below.)
 
 scaffold will:
 - Generate `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` (Drizzle table definition + toDict)
@@ -102,18 +114,13 @@ scaffold will:
 
 (`<domain-dir>` is `admin` or `component-center`; `<name-kebab>` is the name with underscores replaced by hyphens.)
 
-**Prefer `--spec`**: write the inferred spec as a JSON file and generate from it, so the Chinese title / labels, required, unique, defaults, fixed options, data dictionaries, the menu and the OpenAPI docs are all right in one go. The format is in `docs/spec.schema.json`, the inference method in AGENTS.md "From a one-line requirement to a spec (start here for new modules)", and 4 examples with per-field reasoning are in `docs/examples/specs/` (read one before writing):
-
-```bash
-pnpm scaffold -- --spec /tmp/<name>.spec.json --validate-only   # validate first: lists each problem, or describes the endpoints / permissions / table / menu that will be generated
-pnpm scaffold -- --spec /tmp/<name>.spec.json                   # with "menu": {} it also writes the menu and its translations into seed-rbac.ts under the 业务管理 (Business) directory
-```
+The spec gets the Chinese title / labels, required, unique, defaults, fixed options (with badge tones), data dictionaries, the menu (and its translations) and the OpenAPI docs right in one go:
 
 - `title` and every field's `label` are required (in Chinese); a misspelled property name (e.g. `requried`) is an error
 
 - `required` → `NOT NULL` + the service reports `<label>不能为空` ("<label> must not be empty") + the form field is required; `unique` → `UNIQUE` (text / numbers only); `default` → column default, used when the field is left empty on create
 - Fixed values such as status, type or level use `enum` + `options` (English snake_case values, Chinese names); values that come from a data dictionary use `dict` + the dictionary code
-- `i18n` holds English / Japanese for the title, labels and option names; missing ones fall back to the field name
+- `i18n` holds English / Japanese for the title, labels and option names; missing ones fall back to the field name. All locales files are one namespace, so a text already translated elsewhere in the app (备注, 状态 …) keeps that translation; scaffold prints a `[note]` for each spec translation that isn't used
 - The generated API tests get one extra "field rules" case; when you add business rules later, keep the tests up to date
 - With `--fields` only, none of the above is available: labels are English placeholders and must be edited by hand (table columns, form, `EXPORT_FIELD_MAP`, `IMPORT_HEADER_MAP`); constraint violations are turned into 400 by the service (`apps/api/src/common/db-errors.ts`)
 - The permission prefix is singular, `system_<name>` / `cc_<name>`; it only has to match the routes and verify, so don't change it to plural
@@ -132,7 +139,7 @@ Fill in the actual fields, the Chinese column headers (`EXPORT_FIELD_MAP` / `IMP
 
 The page scaffold generates already works; polish it for the business:
 
-- Change the title and field labels to Chinese (**no description** under the page title; see the "Copy" item in the design doc); add required and format validation to `rules` (messages matching the backend); change enum fields to `FormSelect` + a `StatusBadge` table column
+- With a spec, the title, labels, required rules, enum `FormSelect`s and `StatusBadge` columns are already generated (**no description** under the page title; see the "Copy" item in the design doc); with `--fields` only, change the title and labels to Chinese and add `rules` (messages matching the backend) by hand
 - **Types**: keep the page typed as generated (`docs/templates/frontend/list_page/` shows the pattern): a new or changed field goes into `FormValues`, `EMPTY_VALUES` / `toFormValues` and the columns; the row and body types come from the OpenAPI doc, so when you change the backend's fields update the doc and run `pnpm openapi:generate`, and `tsc` points at the page code to follow. No `any`, no casts at call sites
 - **Languages**: write UI text as Chinese source text and wire up translation per AGENTS.md "Internationalization (i18n) and code comments": strings passed to shared components are translated automatically; Chinese written directly in JSX, native element attributes and text with variables use `t()`; create `locales/en-US.json` and `locales/ja-JP.json` in the page directory for the translations; `node apps/web/scripts/i18n-scan.mjs <page directory>` must report 0 issues
 - Register English and Japanese translations for new backend error / notice messages in `apps/api/src/i18n/messages.ts` (messages with variables go in `PATTERNS`)
@@ -181,7 +188,8 @@ pnpm verify -- --module <name>
 ```
 
 - If anything fails → fix it automatically → run verification again
-- The detail of the `migration_applied` item looks like `migrated to 0001_<name> (castor_kit)`; put it in the delivery report
+- The `migration applied` line shows the detail `migrated to 0001_<name> (castor_kit)`; put it in the delivery report
+- Only a run without `--skip-*` flags counts: with them verify ends "The checks that ran passed, but N were skipped …" instead of "ready to deliver"
 - Once everything passes, output the delivery report
 
 ---

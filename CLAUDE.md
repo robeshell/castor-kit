@@ -18,9 +18,9 @@
 
 - `/new-feature-autopilot` (`.claude/skills/new-feature-autopilot/SKILL.md`): use when a PM says "build feature XX / add an XX page". Flow:
   1. Read AGENTS.md + docs/templates/
-  2. Infer the technical spec automatically (don't ask the user about technical details)
+  2. Infer the technical spec automatically as a spec JSON (don't ask the user about technical details) and check it with `pnpm scaffold -- --spec <file> --validate-only`
   3. Show a **business preview** for confirmation
-  4. `pnpm scaffold` → fill in the business logic → incremental `seed-rbac` → `pnpm db:migrate` → prove it with `psql \d`
+  4. `pnpm scaffold -- --spec <file>` → fill in the business logic → incremental `seed-rbac` → `pnpm db:migrate` → prove it with `psql \d`
   5. Once the `pnpm verify -- --module <name>` gate is all green (including frontend and backend unit tests), output the delivery report (stating "migrated to <tag>")
 - `shadcn-ui-skills` (`.claude/skills/shadcn-ui-skills/SKILL.md`): shadcn/ui component list, how to use castor-kit's shared components, design tokens, motion rules, common patterns and things not to do
 
@@ -69,7 +69,8 @@ pnpm db:generate --name <description>      # generate a migration (note: no -- h
 pnpm db:migrate                            # apply migrations
 psql -d castor_kit -c '\d <table>'          # prove it hit the DB (DB name from DEV_DATABASE_URL in apps/api/.env.development)
 pnpm seed:rbac -- --incremental            # incremental RBAC sync
-pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
+pnpm scaffold -- --spec <file> --validate-only   # check a spec, preview API / permissions / table / menu
+pnpm scaffold -- --spec <file>             # generate a module from a spec (--fields "name:str,…" without one)
 pnpm verify -- --module <name>             # feature verification gate (--skip-build skips the frontend build, --json for structured output)
 pnpm typecheck && pnpm test
 pnpm openapi:generate && pnpm openapi:apifox
@@ -80,10 +81,10 @@ pnpm openapi:generate && pnpm openapi:apifox
 ## New feature checklist
 
 1. [ ] Read the related existing modules (see `apps/api/src/modules/admin/users/`, `apps/web/src/modules/admin/pages/users/index.tsx`)
-2. [ ] `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."`
+2. [ ] Spec JSON (`docs/spec.schema.json`, examples in `docs/examples/specs/`) → `pnpm scaffold -- --spec <file> --validate-only` → `pnpm scaffold -- --spec <file>` (without a spec: `--name <name> --domain <admin|component_center> --fields "..."`)
 3. [ ] Backend: fill in the business logic in `db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts`
 4. [ ] Frontend: `pages/<subdir>/<page>/index.tsx` + `api/<page>.ts` (what scaffold generates; frontend-only pages need no api file): row type from the API file, `interface FormValues` + `useForm<FormValues>`, `DataTableColumn<Row>[]`, no `any` / casts (see AGENTS.md "TypeScript")
-5. [ ] RBAC: add the menu + button permission entries in `seed-rbac.ts`, run `pnpm seed:rbac -- --incremental`
+5. [ ] RBAC: with a spec `menu` the menu + buttons are already in `seed-rbac.ts` (otherwise add them), run `pnpm seed:rbac -- --incremental`
 6. [ ] Migration: review the new SQL in `apps/api/drizzle/` → `pnpm db:migrate` → confirm with `psql \d`
 7. [ ] OpenAPI: scaffold has already written the module's endpoints; if you changed the generated routes / fields or added routes, update the doc following AGENTS.md "OpenAPI writing rules" until `pnpm openapi:generate -- --strict` passes
 8. [ ] Gate: `pnpm verify -- --module <name>` passes completely (including frontend and backend unit tests)

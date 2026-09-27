@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
+// Port of the api dev server the proxy forwards to (API_PORT, like the api's PORT, lets a second checkout run beside the first)
+const apiPort = process.env.API_PORT || '5001'
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -14,14 +17,14 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: `http://localhost:${apiPort}`,
         changeOrigin: true,
         xfwd: true,
       },
       '/ws': {
-        target: 'ws://localhost:5001',
+        target: `ws://localhost:${apiPort}`,
         ws: true,
-        // Don't rewrite Host: the backend /ws/devtools handshake checks that Origin and Host are same-origin (changeOrigin would make Host 5001 and get rejected)
+        // Don't rewrite Host: the backend /ws/devtools handshake checks that Origin and Host are same-origin (changeOrigin would make Host the api port and get rejected)
       },
     },
   },

@@ -34,7 +34,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `NODE_ENV` | Runtime environment: `development` / `test` / `production`; any other value is treated as `development` | `development` |
 | `PORT` | Listening port | `5001` in development, `5002` in test, `5000` in production |
 | `DEV_DATABASE_URL` | Development database connection | `postgresql://localhost/castor_kit` |
-| `TEST_DATABASE_URL` | Test database connection | `postgresql://localhost/castor_kit_test` |
+| `TEST_DATABASE_URL` | Test database connection; the tests read it from the shell or `apps/api/.env.test` | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | Production database connection | `postgresql://localhost/castor_kit` |
 | `MIGRATIONS_DIR` | Migrations directory | Found automatically by searching upward for a `drizzle/` directory |
 
@@ -183,7 +183,7 @@ The frontend has no runtime environment variables. Dev server behavior is define
 | Setting | Value |
 |---|---|
 | Dev port | `5173` |
-| Proxy | `/api` → `http://localhost:5001`, `/ws` → `ws://localhost:5001` |
+| Proxy | `/api` → `http://localhost:5001`, `/ws` → `ws://localhost:5001` (the port is `API_PORT` when set, e.g. `API_PORT=5011` for a second checkout whose backend runs with `PORT=5011`) |
 | Path alias | `@` → `apps/web/src` |
 
 In production, the backend serves the frontend build directly and requests go to same-origin `/api`, so no extra configuration is needed.
