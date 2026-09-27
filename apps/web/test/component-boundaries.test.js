@@ -29,8 +29,8 @@ const ALLOWED = new Map([
   ['components/ui/form.tsx', /@\/i18n/],
   ['components/ui/sonner.tsx', /@\/context\/ThemeContext/],
   // Upload components still call the files API and read upload limits from the app info
-  ['shared/components/upload/FileIdUpload.jsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],
-  ['shared/components/upload/AvatarUpload.jsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],
+  ['shared/components/upload/FileIdUpload.tsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],
+  ['shared/components/upload/AvatarUpload.tsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],
 ])
 
 function walk(dir, out = []) {

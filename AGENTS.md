@@ -359,46 +359,55 @@ component_center/dataviz/dashboard_page  → modules/component_center/pages/data
 
 ```
 apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.jsx   ← page component
-apps/web/src/modules/<module>/api/<page_name>.js                      ← API call layer
+apps/web/src/modules/<module>/api/<page_name>.ts                      ← API call layer (scaffold still writes .js until step 4)
 ```
 
 Where scaffold puts pages: admin domain → `pages/<name>/index.jsx`; component_center domain → `pages/admin/<name>_page/index.jsx`.
 
 ### TypeScript (migration in progress)
 
-The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`. `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. Still JSX: `components/app` and the pages (and scaffold generates JSX pages / `.js` API files until step 4). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
 
 - New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
-- New component files use their layer's current extension until that layer is converted (`components/ui` and `components/ai-elements` are TSX, and the shadcn CLI now writes TSX). A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
+- New component files use their layer's current extension until that layer is converted: shared components and primitives are TSX (the shadcn CLI writes TSX), pages stay JSX until step 5.
+- Shared components are typed for the pages that will use them: `DataTable<Row>` with `DataTableColumn<Row>[]` (render values typed from `dataIndex`), FormFields generic over the react-hook-form values (`name` must be a real field), `FormDialog` / `FormSheet` over `UseFormReturn`, `TreeView` / `CheckableTree` over a `TreeNode` subtype, `MultiSelect<V>`, `SegmentedTabs<V>`. Row types come from the API files (`export type User = ApiItem<'/api/admin/users'>`). A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
 - Converting a file: rename with `git mv`, give props an exported `interface XxxProps`, keep imports extensionless (importers need no change); don't enable `checkJs`.
 
 ### Calling the API
 
-```javascript
+```typescript
+// modules/<module>/api/<page>.ts
 // ✅ Always use the shared request instance (vite has the @ → src/ alias configured)
 import request from '@/shared/api/request'
+import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types'
 
 const BASE = '/admin/<resource>s'
 
-export const getItems = (params) => request.get(BASE, { params })
-export const createItem = (data) => request.post(BASE, data)
-export const updateItem = (id, data) => request.put(`${BASE}/${id}`, data)
-export const deleteItem = (id) => request.delete(`${BASE}/${id}`)
+/** Row and body types come from the OpenAPI doc (paths as documented: /api prefix, {param} placeholders) */
+export type Item = ApiItem<'/api/admin/<resource>s'>
+type ItemBody = ApiBody<'/api/admin/<resource>s', 'post'>
+
+export const getItems = (params?: ApiQuery<'/api/admin/<resource>s'>) =>
+  request.get<unknown, ApiResponse<'/api/admin/<resource>s'>>(BASE, { params })
+export const createItem = (data: ItemBody) => request.post<unknown, Item>(BASE, data)
+export const updateItem = (id: number, data: Partial<ItemBody>) => request.put<unknown, Item>(`${BASE}/${id}`, data)
+export const deleteItem = (id: number) => request.delete<unknown, void>(`${BASE}/${id}`)
 
 // Export (responseType: 'blob')
-export const exportItems = (data) => request.post(`${BASE}/export`, data, { responseType: 'blob' })
+export const exportItems = (data: unknown) => request.post<unknown, Blob>(`${BASE}/export`, data, { responseType: 'blob' })
 // Download the import template
 export const downloadTemplate = (fileType = 'xlsx') =>
-  request.get(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
+  request.get<unknown, Blob>(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
 // Import (multipart/form-data)
-export const importItems = (file) => {
+export const importItems = (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
   return request.post(`${BASE}/import`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
 ```
 
-- The response interceptor already unwraps: use `res.items` / `res.total` directly, **not** `res.data.items`
+- The response interceptor already unwraps: use `res.items` / `res.total` directly, **not** `res.data.items` (that's why the second type argument of `request.get<unknown, T>` is the body type)
+- API types: `src/shared/api/openapi.d.ts` is generated from `docs/apifox-full.openapi.json` by `apps/web/scripts/api-types.mjs`; `pnpm openapi:generate` regenerates it (so a doc fix reaches the frontend types), and `apps/web/test/api-types.test.js` fails when it is stale. Never edit it by hand; if a type is wrong, fix the OpenAPI doc
 - 401 redirects to the login page automatically; write requests carry the CSRF header automatically
 
 ### UI components
@@ -760,7 +769,7 @@ pnpm scaffold -- --name <name> --domain admin --fields "..." --data-scope       
 #   --domain must be admin or component_center; --skip-migration skips drizzle-kit
 
 # OpenAPI
-pnpm openapi:generate                    # add skeletons for undocumented route + method pairs (written back to docs/apifox-full.openapi.json) and check the rules
+pnpm openapi:generate                    # add skeletons for undocumented route + method pairs (written back to docs/apifox-full.openapi.json), check the rules, regenerate the frontend API types
 pnpm openapi:generate -- --strict        # list every endpoint that breaks "OpenAPI writing rules"; non-zero exit if any (--dry-run: don't write back)
 pnpm openapi:apifox                      # push to Apifox (APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN, or --project-id / --access-token)
 

@@ -35,7 +35,8 @@ function walk(dir, out = []) {
     if (SKIP.has(name)) continue
     const path = join(dir, name)
     if (statSync(path).isDirectory()) walk(path, out)
-    else if (/\.(m?[jt]sx?)$/.test(name)) out.push(path)
+    // openapi.d.ts is generated from the OpenAPI doc, whose descriptions are Chinese
+    else if (/\.(m?[jt]sx?)$/.test(name) && name !== 'openapi.d.ts') out.push(path)
   }
   return out
 }

@@ -1139,7 +1139,7 @@ ${lines.join('\n')}
 type FrontendKind = 'str' | 'text' | 'int' | 'float' | 'bool' | 'date' | 'datetime' | 'file' | 'image' | 'enum' | 'dict'
 
 export interface FrontendFieldSpec {
-  /** Form component from FormFields.jsx */
+  /** Form component from FormFields.tsx */
   component:
     | 'FormInput'
     | 'FormTextarea'

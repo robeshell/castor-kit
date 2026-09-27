@@ -69,9 +69,8 @@ export interface AuthContextValue {
   hasPermission: (code: string) => boolean
 }
 
-// auth.js is untyped JS: its axios calls resolve to the response body (request.ts unwraps it)
-const fetchMe = getMe as unknown as () => Promise<{ user: CurrentUser }>
-const fetchMyMenus = getMyMenus as unknown as () => Promise<MenuNode[] | { menus?: MenuNode[] }>
+const fetchMe: () => Promise<{ user: CurrentUser }> = getMe
+const fetchMyMenus: () => Promise<MenuNode[] | { menus?: MenuNode[] }> = getMyMenus
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 

@@ -54,7 +54,7 @@ describe('导入完整性', () => {
         if (spec.startsWith('@/')) {
           aliasCount++
           const target = join(SRC, spec.slice(2))
-          if (!existsSync(target) && !['.tsx', '.ts', '.jsx', '.js'].some((ext) => existsSync(`${target}${ext}`))) {
+          if (!existsSync(target) && !['.tsx', '.ts', '.d.ts', '.jsx', '.js'].some((ext) => existsSync(`${target}${ext}`))) {
             broken.push(`${file}:${line} → ${spec}（无法解析）`)
           }
         } else if (spec.startsWith('./') || spec.startsWith('../')) {

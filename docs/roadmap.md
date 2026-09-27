@@ -45,11 +45,24 @@ Each item ships as its own PR and meets these requirements:
 |---|---|---|
 | 1 | Toolchain: `tsconfig.json` (strict, `allowJs`), web typecheck in `pnpm typecheck` / `verify`, web lint in `pnpm lint`, typescript-eslint; page routing, i18n scanner, import check and `shadcn-add.sh` accept `.ts` / `.tsx`; component layer boundaries test; first files (`lib/utils`, `PageHeader`, `StatusBadge`, `shared/api/types`, the sessions API) | Done |
 | 2 | `components/ui` and AI Elements as TSX (`components.json` `tsx: true`), keeping the project's changes; `lib`, `i18n`, hooks, context | Done: typed in place against the upstream TSX (type-stripped output identical to the old JSX); changes from upstream listed in `docs/shadcn-changes.md` |
-| 3 | `shared/components` and the request layer; API response types generated from `docs/apifox-full.openapi.json` | Not started |
+| 3 | `shared/components` and the module API files; API types generated from `docs/apifox-full.openapi.json` (`src/shared/api/openapi.d.ts`, helpers `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody`); fixed the doc where the types showed it disagreed with the backend | Done |
 | 4 | Scaffold: generated pages and API files, `docs/templates/frontend`, skills and AGENTS.md describe TSX | Not started |
 | 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | Not started |
+| 6 | Idiomatic TypeScript cleanup (changes behavior, so its own PRs): context hooks (`useAuth`, `useTagsView`) throw outside their provider and return non-null values; drop defensive checks the types now guarantee (`x \|\| {}`, `typeof x === 'function'`) and dead branches; remove avoidable type assertions; one export / file-naming style (default vs named exports, `useXxx.ts` vs `use-xxx.ts`) | Not started |
 
 **Acceptance per step**: `pnpm verify` green including the web typecheck; pages behave the same; no new `.jsx` in a converted layer.
+
+**Found during the migration, left for step 6** (existing behavior, kept as-is so each step stays a pure typing change):
+
+- `ImageUpload` shows `promptText` untranslated, while `FileUpload` passes it through `tx()`
+- `RowActions`' doc comment shows a `confirm: {...}` option the component never reads (left out of the `RowAction` type)
+- `DataTable` keys a column by `key || dataIndex`, so a column with neither gets `undefined`; `DataPagination` divides by `perPage` without a guard
+- `code-highlighter` checks `name in GRAMMARS` on a plain object, so inherited keys like `constructor` count as languages (the failure is caught)
+- `useFormField` (shadcn upstream) checks `if (!fieldContext)`, which never fires because the context default is `{}`
+- `AuthContext` has a `data.menus` branch that the typed `my-menus` API shows is dead
+- The OpenAPI doc types `user` in the `POST /api/admin/two-factor/enable` response as a free-form object, and tree `children` can't be recursive inline (the API files keep local node types)
+
+**Why steps 1-5 don't change behavior**: each converted file is checked by stripping its types and comparing with the old JS, so a regression can only come from the types themselves. Code that is correct but not idiomatic TypeScript is kept as it was and cleaned up in step 6, where behavior changes are reviewed on their own.
 
 ---
 

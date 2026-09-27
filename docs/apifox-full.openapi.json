@@ -20729,7 +20729,6 @@
                     },
                     "user": {
                       "type": "object",
-                      "additionalProperties": true,
                       "properties": {
                         "id": {
                           "type": "integer"
@@ -20759,8 +20758,7 @@
                           "type": [
                             "string",
                             "null"
-                          ],
-                          "description": "头像 URL"
+                          ]
                         },
                         "status": {
                           "type": "string",
@@ -20772,6 +20770,12 @@
                         "dept_id": {
                           "type": [
                             "integer",
+                            "null"
+                          ]
+                        },
+                        "dept_name": {
+                          "type": [
+                            "string",
                             "null"
                           ]
                         },
@@ -20787,6 +20791,10 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "totp_enabled": {
+                          "type": "boolean",
+                          "description": "是否已开启两步验证"
                         },
                         "created_at": {
                           "type": [
@@ -20806,14 +20814,38 @@
                           "type": "array",
                           "items": {
                             "type": "object",
-                            "additionalProperties": true
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "created_at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              }
+                            }
                           }
                         },
                         "menu_codes": {
                           "type": "array",
                           "items": {
                             "type": "string"
-                          }
+                          },
+                          "description": "所有角色授权菜单编码（去重）"
                         }
                       }
                     }
@@ -23588,10 +23620,7 @@
                   "properties": {
                     "message": {
                       "type": "string",
-                      "enum": [
-                        "执行成功",
-                        "执行失败"
-                      ]
+                      "description": "执行成功 / 执行失败（按 Accept-Language 翻译）"
                     },
                     "task": {
                       "type": "object",
@@ -23825,7 +23854,12 @@
                       "type": "string",
                       "description": "失败原因，仅失败时返回"
                     }
-                  }
+                  },
+                  "required": [
+                    "message",
+                    "task",
+                    "run"
+                  ]
                 }
               }
             }
@@ -25031,7 +25065,11 @@
                       "type": "string",
                       "description": "仅登录流程中返回"
                     }
-                  }
+                  },
+                  "required": [
+                    "message",
+                    "recovery_codes"
+                  ]
                 }
               }
             }
@@ -26236,7 +26274,6 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true,
                   "properties": {
                     "id": {
                       "type": "integer"
@@ -26266,8 +26303,7 @@
                       "type": [
                         "string",
                         "null"
-                      ],
-                      "description": "头像 URL"
+                      ]
                     },
                     "status": {
                       "type": "string",
@@ -26279,6 +26315,12 @@
                     "dept_id": {
                       "type": [
                         "integer",
+                        "null"
+                      ]
+                    },
+                    "dept_name": {
+                      "type": [
+                        "string",
                         "null"
                       ]
                     },
@@ -26294,6 +26336,10 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "totp_enabled": {
+                      "type": "boolean",
+                      "description": "是否已开启两步验证"
                     },
                     "created_at": {
                       "type": [
@@ -26313,14 +26359,38 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "additionalProperties": true
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
                       }
                     },
                     "menu_codes": {
                       "type": "array",
                       "items": {
                         "type": "string"
-                      }
+                      },
+                      "description": "所有角色授权菜单编码（去重）"
                     }
                   }
                 }

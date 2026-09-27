@@ -20,9 +20,10 @@
  * - Write-back keeps paths sorted, in the repository's JSON format (scripts/lib/json-doc.ts), so a re-run changes nothing.
  */
 
+import { spawnSync } from 'node:child_process'
 import diagnostics from 'node:diagnostics_channel'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { dirname, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import type { FastifyInstance } from 'fastify'
@@ -256,7 +257,14 @@ if (isMain) {
   // Only collect routes; no DB connection, no scheduler
   const config = { ...loadConfig(), enableTaskScheduler: false, runSchedulerInWeb: false }
   generateOpenApi({ config, dryRun: values['dry-run'], strict: values.strict })
-    .then((result) => process.exit(result.exitCode))
+    .then((result) => {
+      // The frontend's API types are generated from the doc just written (apps/web/scripts/api-types.mjs)
+      if (!values['dry-run']) {
+        const types = spawnSync(process.execPath, [join(REPO_ROOT, 'apps/web/scripts/api-types.mjs')], { stdio: 'inherit' })
+        if (types.status !== 0) process.exit(types.status ?? 1)
+      }
+      process.exit(result.exitCode)
+    })
     .catch((err: unknown) => {
       console.error(err)
       process.exit(1)

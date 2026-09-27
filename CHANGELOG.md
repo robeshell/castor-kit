@@ -11,6 +11,8 @@ All notable changes to this project are documented here. The format is based on 
   - Page routing, the i18n scanner, the import check and `shadcn-add.sh` accept `.ts` / `.tsx`.
   - First files converted: `lib/utils`, `PageHeader`, `StatusBadge`, the sessions API; shared response shapes in `@/shared/api/types`.
   - Converted to TSX: the shadcn primitives (`components/ui`, 46 files) and AI Elements, `lib`, `i18n`, the contexts (`AuthContextValue`, `TagsViewContextValue`, `ThemeContextValue`), `shared/hooks` (`useCrudList<Row>` is generic), `shared/api` and `shared/utils`. Markup and behavior are unchanged; the shadcn CLI now writes TSX (`components.json` `tsx: true`).
+  - Converted to TSX: the shared components (`DataTable<Row>` with typed columns, FormFields / FormDialog typed against react-hook-form, generic trees and selects, import / export, uploads) and every module API file.
+  - API types are generated from the OpenAPI doc (`src/shared/api/openapi.d.ts`; `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody` in `@/shared/api/types`); `pnpm openapi:generate` regenerates them and a test fails when they are stale. The doc was corrected where the types showed it disagreed with the backend (user status / profile responses, two-factor enable, task run result).
   - `docs/shadcn-changes.md` lists every project change to an upstream shadcn / AI Elements component, to re-apply after re-adding one.
   - Component layers are enforced by a test: shadcn primitives import only primitives, and shared components get data through props instead of calling the API or reading app context.
 - English first, for a global audience:
