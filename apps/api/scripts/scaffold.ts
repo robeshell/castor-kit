@@ -43,7 +43,7 @@
  *   drizzle-kit generate --name <name>
  *
  * Backend directory / file names use lowercase hyphens per repo convention (ck_demo → ck-demo, component_center → component-center);
- * the table name is `<name>s`; the frontend path is admin/pages/<name> or component_center/pages/admin/<name>_page.
+ * the table name is `<name>s`; the frontend page is admin/pages/<name> or component_center/pages/patterns/<name>_page.
  *
  * i18n: generated pages follow apps/web/src/modules/admin/pages/users/index.tsx (Chinese source text is the key,
  * see apps/web/src/i18n/index.ts); backend error messages stay Chinese and are translated by apps/api/src/i18n/messages.ts.
@@ -214,6 +214,8 @@ export interface ScaffoldSpec {
   domainDir: string
   /** Frontend module directory: admin / component_center */
   webModule: string
+  /** Page directory under the module's pages/: <name> (admin) / patterns/<name>_page (component_center, next to the gallery's page patterns) */
+  pageDir: string
   permPrefix: string
   menuComponent: string
   apiBase: string
@@ -256,6 +258,8 @@ export function buildSpec(
   options: { dataScope?: boolean; title?: string; meta?: Record<string, FieldMeta>; i18n?: SpecI18n } = {},
 ): ScaffoldSpec {
   const domainPrefix = domain === 'admin' ? 'system' : 'cc'
+  const webModule = domain === 'admin' ? 'admin' : 'component_center'
+  const pageDir = domain === 'admin' ? name : `patterns/${name}_page`
   // Name field (search, required import column): a text field called name / title, else the first str field, else the
   // first str50 field (codes such as `code: str50` often come first and would make search code-only); str20 (codes,
   // phones, statuses) and str500 (links) don't count
@@ -278,9 +282,10 @@ export function buildSpec(
     kebab: toKebab(name),
     table: `${name}s`,
     domainDir: domain === 'admin' ? 'admin' : 'component-center',
-    webModule: domain === 'admin' ? 'admin' : 'component_center',
+    webModule,
+    pageDir,
     permPrefix: `${domainPrefix}_${name}`,
-    menuComponent: domain === 'admin' ? `admin/${name}` : `component_center/admin/${name}_page`,
+    menuComponent: `${webModule}/${pageDir}`,
     apiBase: `/api/admin/${toKebab(name)}s`,
     nameField,
     exportFields: fields,
@@ -2234,9 +2239,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   const srcDir = join(apiDir, 'src')
   const moduleDir = join(srcDir, 'modules', s.domainDir, s.kebab)
   const feBase = join(root, 'apps', 'web', 'src', 'modules', s.webModule)
-  // admin domain: pages/<name>/index.tsx; component_center domain: pages/admin/<name>_page/index.tsx
-  const fePagePath =
-    domain === 'admin' ? join(feBase, 'pages', name, 'index.tsx') : join(feBase, 'pages', 'admin', `${name}_page`, 'index.tsx')
+  const fePagePath = join(feBase, 'pages', ...s.pageDir.split('/'), 'index.tsx')
 
   log(`\n🔧 Scaffolding: ${name} (domain=${domain})`)
   log(`   Fields: ${fields.map(([f, t]) => `${f}:${t}`).join(', ')}`)

@@ -62,7 +62,7 @@ What to infer (the spec and `--validate-only` settle all of it):
 - Field names + scaffold types (str/str20/str50/str500/text/int/float/bool/date/datetime/file/image, following AGENTS.md "Field type inference"; images and attachments use image / file, which store a file ID from the file center)
 - Permission codes (admin domain system_<name>, component_center domain cc_<name>, matching the Perm prefix scaffold prints; buttons _add/_edit/_delete/_export/_import)
 - Frontend file path (admin domain modules/admin/pages/<name>/index.tsx;
-                     component_center domain modules/component_center/pages/admin/<name>_page/index.tsx; API file api/<name>.ts)
+                     component_center domain modules/component_center/pages/patterns/<name>_page/index.tsx; API file api/<name>.ts)
 - (--fields only) Menu ID (an ID not used in `MENUS_DATA`, from the ID allocation ranges in AGENTS.md; button ID = menu ID × 10 + sequence number)
 - (--fields only) Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/<group>/<name-kebab>` (like the sibling pages of the gallery group it goes under, e.g. `/component-center/patterns/kanban`)
 - Menu order: last among its siblings; icon: reuse a name already in the mapping table in `apps/web/src/lib/menu-icons.ts`

@@ -29,6 +29,7 @@ Found by building a module end to end with `/new-feature-autopilot` (friction lo
 - `pnpm db:migrate` prints in English how many migrations it applied and which one the database is at; `pnpm seed:rbac -- --incremental` lists only menus that changed.
 - The tests read `TEST_DATABASE_URL` from `apps/api/.env.test` as well as the shell, and the Vite dev proxy takes `API_PORT`, so a second checkout can run beside the first with its own databases and ports.
 - AGENTS.md, CLAUDE.md and the autopilot skill lead with the spec flow (`--spec` → `--validate-only` → generate), no longer describe request schemas as `.passthrough()`, and explain a checkout without `apps/api/.env.development`.
+- `pnpm scaffold --domain component_center` writes the page to `pages/patterns/<name>_page/` (menu component `component_center/patterns/<name>_page`), next to the gallery's page patterns, instead of the removed `pages/admin/` group.
 
 ## [0.2.0] - 2026-09-27
 

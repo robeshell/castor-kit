@@ -130,7 +130,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts` | バックエンドの 4 層 |
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | API の基本テスト（CRUD、検索、404、エクスポート、インポートテンプレート、インポート） |
 | `apps/web/src/modules/<module>/api/<name>.ts` | フロントエンドの API 呼び出し。型はモジュールの OpenAPI エントリから（行の型は `ApiItem<'/api/admin/<name-kebab>s'>`） |
-| フロントエンドの一覧ページ `index.tsx` | `admin` ドメインは `pages/<name>/`、`component_center` ドメインは `pages/admin/<name>_page/`。共通コンポーネントの型に沿って書かれます（`FormValues`、`DataTableColumn<Row>[]`） |
+| フロントエンドの一覧ページ `index.tsx` | `admin` ドメインは `pages/<name>/`、`component_center` ドメインは `pages/patterns/<name>_page/`。共通コンポーネントの型に沿って書かれます（`FormValues`、`DataTableColumn<Row>[]`） |
 | ページの `locales/{en-US,ja-JP}.json` | 共通の翻訳でカバーされない中国語がページにある場合のみ生成 |
 
 `<domain-dir>` は `admin` または `component-center`、`<name-kebab>` はリソース名のアンダースコアをハイフンに置き換えたものです。
