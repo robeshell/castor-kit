@@ -41,51 +41,50 @@ import {
 } from 'lucide-react'
 
 /**
- * Menu icons: the menus.icon field stores icon names in IconXxx form (e.g. IconHome), mapped here to lucide.
- * To add an icon: add a "name → lucide component" entry to SEMI_TO_LUCIDE (import on demand to avoid bundling the whole icon library);
+ * Menu icons: menus.icon stores a lucide icon name (e.g. Home, Users), resolved here to the component.
+ * To offer another icon, import it above and add it to MENU_ICONS (named imports keep the bundle small);
  * unknown names fall back to List.
  */
-const SEMI_TO_LUCIDE = {
-  IconActivity: Activity,
-  IconApps: AppWindow,
-  IconArticle: Newspaper,
-  IconBarChart: BarChart3,
-  IconBell: Bell,
-  IconBox: Box,
-  IconBrackets: Braces,
-  IconBranch: GitBranch,
-  IconCalendar: Calendar,
-  IconCode: Code2,
-  IconComment: MessageSquare,
-  IconCreditCard: CreditCard,
-  IconDesktop: Monitor,
-  IconEdit2: PenLine,
-  IconFile: FileText,
-  IconFolder: FolderOpen,
-  IconFont: Type,
-  IconGlobe: Globe,
-  IconGridSquare: LayoutGrid,
-  IconHexagon: Hexagon,
-  IconHistogram: BarChart3,
-  IconHome: Home,
-  IconIdCard: IdCard,
-  IconInbox: Inbox,
-  IconKanban: Kanban,
-  IconKey: KeyRound,
-  IconLayers: Layers,
-  IconList: List,
-  IconMapPin: MapPin,
-  IconOrg: Network,
-  IconPieChartStroked: PieChart,
-  IconSend: Send,
-  IconSetting: Settings,
-  IconShield: ShieldCheck,
-  IconSliders: SlidersHorizontal,
-  IconStar: Star,
-  IconTeam: Users,
-  IconTerminal: Terminal,
-  IconUser: User,
-  IconWebhook: Webhook,
+export const MENU_ICONS = {
+  Activity,
+  AppWindow,
+  BarChart3,
+  Bell,
+  Box,
+  Braces,
+  Calendar,
+  Code2,
+  CreditCard,
+  FileText,
+  FolderOpen,
+  Globe,
+  GitBranch,
+  Hexagon,
+  Home,
+  IdCard,
+  Inbox,
+  Kanban,
+  KeyRound,
+  LayoutGrid,
+  Layers,
+  List,
+  MapPin,
+  Network,
+  MessageSquare,
+  Monitor,
+  Newspaper,
+  PenLine,
+  PieChart,
+  Send,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  Star,
+  Terminal,
+  Type,
+  User,
+  Users,
+  Webhook,
 }
 
 const BY_CODE = {
@@ -95,5 +94,5 @@ const BY_CODE = {
 
 export function resolveMenuIcon(menu) {
   if (!menu) return List
-  return SEMI_TO_LUCIDE[menu.icon] || BY_CODE[menu.code] || List
+  return MENU_ICONS[menu.icon] || BY_CODE[menu.code] || List
 }

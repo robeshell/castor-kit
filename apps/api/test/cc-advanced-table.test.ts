@@ -2,7 +2,7 @@ import { eq, inArray, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { cc_advanced_table_rows } from '@/db/schema'
+import { advanced_table_rows } from '@/db/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -23,7 +23,7 @@ let s: AuthedSession
 const ids: Record<string, number> = {}
 
 async function cleanup() {
-  await handle.db.delete(cc_advanced_table_rows).where(like(cc_advanced_table_rows.row_code, `${P}%`))
+  await handle.db.delete(advanced_table_rows).where(like(advanced_table_rows.row_code, `${P}%`))
 }
 
 beforeAll(async () => {
@@ -33,7 +33,7 @@ beforeAll(async () => {
   await cleanup()
   // Primary-key sequences in the cloned test database may lag behind MAX(id), so sync them first
   await handle.pool.query(
-    "SELECT setval(pg_get_serial_sequence('cc_advanced_table_rows', 'id'), COALESCE((SELECT MAX(id) FROM cc_advanced_table_rows), 0) + 1, false)",
+    "SELECT setval(pg_get_serial_sequence('advanced_table_rows', 'id'), COALESCE((SELECT MAX(id) FROM advanced_table_rows), 0) + 1, false)",
   )
 })
 
@@ -146,7 +146,7 @@ describe('advanced-table', () => {
     const { rows } = await handle.pool.query(
       `SELECT count(*)::int AS total, count(*) FILTER (WHERE is_active)::int AS active, count(*) FILTER (WHERE is_pinned)::int AS pinned,
               count(*) FILTER (WHERE status='published')::int AS published, round(avg(progress), 2) AS ap, round(avg(score), 2) AS asc_
-       FROM cc_advanced_table_rows`,
+       FROM advanced_table_rows`,
     )
     const r = rows[0]
     expect(st).toMatchObject({
@@ -197,7 +197,7 @@ describe('advanced-table', () => {
       payload: [{ id: ids.b, sort_order: 20 }, { id: ids.c, sort_order: 10 }, { id: 99999999, sort_order: 1 }, { sort_order: 5 }],
     })
     expect(ok.json()).toEqual({ message: '排序已保存' })
-    const rows = await handle.db.select().from(cc_advanced_table_rows).where(inArray(cc_advanced_table_rows.id, [ids.b!, ids.c!]))
+    const rows = await handle.db.select().from(advanced_table_rows).where(inArray(advanced_table_rows.id, [ids.b!, ids.c!]))
     expect(Object.fromEntries(rows.map((r) => [r.id, r.sort_order]))).toEqual({ [ids.b!]: 20, [ids.c!]: 10 })
 
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [] })).json()).toEqual({ message: '排序已保存' })
@@ -206,7 +206,7 @@ describe('advanced-table', () => {
     const bad = await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, { id: ids.c, sort_order: 2147483648 }] })
     expect(bad.json()).toEqual({ error: '排序的值无效' })
     expect((await s.inject({ method: 'PUT', url: `${B}/rows/reorder`, payload: [{ id: ids.b, sort_order: 1 }, 'x'] })).json()).toEqual({ error: '请求参数格式不正确' })
-    const [b] = await handle.db.select().from(cc_advanced_table_rows).where(eq(cc_advanced_table_rows.id, ids.b!))
+    const [b] = await handle.db.select().from(advanced_table_rows).where(eq(advanced_table_rows.id, ids.b!))
     expect(b!.sort_order).toBe(20)
   })
 
@@ -217,7 +217,7 @@ describe('advanced-table', () => {
       payload: { ids: [ids.b, ids.c, ids.b, 99999999], status: 'archived', owner: ` ${P}o `, is_active: false, priority: 9 },
     })
     expect(res.json()).toEqual({ message: '已更新 2 条记录' })
-    const rows = await handle.db.select().from(cc_advanced_table_rows).where(inArray(cc_advanced_table_rows.id, [ids.b!, ids.c!]))
+    const rows = await handle.db.select().from(advanced_table_rows).where(inArray(advanced_table_rows.id, [ids.b!, ids.c!]))
     for (const r of rows) expect([r.status, r.owner, r.is_active, r.priority]).toEqual(['archived', `${P}o`, false, 9])
 
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: {} })).json()).toEqual({ error: '请先选择要操作的数据' })
@@ -226,7 +226,7 @@ describe('advanced-table', () => {
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: ['abc'] } })).json()).toEqual({ error: '记录的值无效' })
     const bad = await s.inject({ method: 'POST', url: `${B}/rows/batch-update`, payload: { ids: [ids.b, ids.c], status: 'nope', priority: 1 } })
     expect(bad.json()).toEqual({ error: '状态仅支持 draft/published/archived' })
-    const [b] = await handle.db.select().from(cc_advanced_table_rows).where(eq(cc_advanced_table_rows.id, ids.b!))
+    const [b] = await handle.db.select().from(advanced_table_rows).where(eq(advanced_table_rows.id, ids.b!))
     expect(b!.priority).toBe(9)
   })
 
@@ -257,6 +257,6 @@ describe('advanced-table', () => {
     expect((await s.inject({ method: 'POST', url: `${B}/rows/batch-delete`, payload: { ids: [ids.a] } })).json()).toEqual({ error: '未找到可删除的数据' })
     const res = await s.inject({ method: 'POST', url: `${B}/rows/batch-delete`, payload: { ids: [ids.b, ids.c, ids.a] } })
     expect(res.json()).toEqual({ message: '已删除 2 条记录' })
-    expect(await handle.db.select().from(cc_advanced_table_rows).where(like(cc_advanced_table_rows.row_code, `${P}%`))).toHaveLength(0)
+    expect(await handle.db.select().from(advanced_table_rows).where(like(advanced_table_rows.row_code, `${P}%`))).toHaveLength(0)
   })
 })

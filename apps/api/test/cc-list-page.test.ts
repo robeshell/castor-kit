@@ -6,7 +6,7 @@ import { eq, inArray, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { file_references, files, query_management_versions, query_managements } from '@/db/schema'
+import { file_references, files, saved_query_versions, saved_queries } from '@/db/schema'
 import { parseUrlCell, titleCase } from '@/modules/component-center/list-page/schema'
 import {
   buildTestApp,
@@ -30,7 +30,7 @@ let noPerm: AuthedSession
 let instanceDir: string
 
 async function cleanupRows() {
-  await handle.db.delete(query_managements).where(like(query_managements.query_code, `${P}%`))
+  await handle.db.delete(saved_queries).where(like(saved_queries.query_code, `${P}%`))
 }
 
 async function create(body: Record<string, unknown>) {
@@ -106,14 +106,14 @@ describe('list-page CRUD', () => {
     })
     expect(body.published_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/)
 
-    const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.id, body.id))
+    const [row] = await handle.db.select().from(saved_queries).where(eq(saved_queries.id, body.id))
     expect(row!.conditions_json).toBe(
       '{"groups":[{"name":"分组1","logic":"AND"}],"items":[{"field":"f","operator":"eq","value":"","logic":"OR"}]}',
     )
     expect(row!.display_config).toBe('{"a":{"中":1}}')
     expect(row!.image_urls).toBe('["a.png","b.png"]')
 
-    const versions = await handle.db.select().from(query_management_versions).where(eq(query_management_versions.query_management_id, body.id))
+    const versions = await handle.db.select().from(saved_query_versions).where(eq(saved_query_versions.query_id, body.id))
     expect(versions).toHaveLength(1)
     expect(versions[0]).toMatchObject({ version_no: 1, action: 'create', operator: 'tester' })
     const snapshot = JSON.parse(versions[0]!.snapshot_json)
@@ -160,7 +160,7 @@ describe('list-page CRUD', () => {
   })
 
   it('详情 / 403 先于 404 / 非数字 id', async () => {
-    const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}a`))
+    const [row] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}a`))
     expect((await s.inject({ url: `${B}/${row!.id}` })).json().query_code).toBe(`${P}a`)
     expect((await s.inject({ url: `${B}/99999999` })).json()).toEqual({ error: '资源不存在' })
     expect((await noPerm.inject({ url: `${B}/99999999` })).statusCode).toBe(403)
@@ -194,7 +194,7 @@ describe('list-page CRUD', () => {
   })
 
   it('编辑：部分字段、version+1、published_at、快照；校验分支', async () => {
-    const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}b`))
+    const [row] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}b`))
     expect(row!.published_at).toBeNull()
     const res = await s.inject({
       method: 'PUT',
@@ -221,13 +221,13 @@ describe('list-page CRUD', () => {
       const r = await s.inject({ method: 'PUT', url: `${B}/${row!.id}`, payload })
       expect(r.json()).toEqual({ error })
     }
-    const [after] = await handle.db.select().from(query_managements).where(eq(query_managements.id, row!.id))
+    const [after] = await handle.db.select().from(saved_queries).where(eq(saved_queries.id, row!.id))
     expect(after!.version).toBe(2)
   })
 
   it('版本列表 + 回滚成功 / 版本不属于当前记录 / 编码冲突 / 404', async () => {
-    const [b] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}b`))
-    const [a] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}a`))
+    const [b] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}b`))
+    const [a] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}a`))
     const versions = (await s.inject({ url: `${B}/${b!.id}/versions?per_page=1` })).json()
     expect(versions).toMatchObject({ total: 2, page: 1, per_page: 1 })
     expect(versions.items[0]).toMatchObject({ version_no: 2, action: 'update', operator: 'system' })
@@ -256,10 +256,10 @@ describe('list-page CRUD', () => {
   })
 
   it('删除：级联删除版本', async () => {
-    const [c] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}b`))
+    const [c] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}b`))
     const del = await s.inject({ method: 'DELETE', url: `${B}/${c!.id}` })
     expect(del.json()).toEqual({ message: '删除成功' })
-    const left = await handle.db.select().from(query_management_versions).where(eq(query_management_versions.query_management_id, c!.id))
+    const left = await handle.db.select().from(saved_query_versions).where(eq(saved_query_versions.query_id, c!.id))
     expect(left).toHaveLength(0)
   })
 })
@@ -367,18 +367,18 @@ describe('list-page 导入导出', () => {
     const file = multipartFile('import.csv', csv)
     const res = await s.inject({ method: 'POST', url: `${B}/import`, payload: file.payload, headers: file.headers })
     expect(res.json()).toEqual({ message: '导入成功', created: 1, updated: 1 })
-    const [i1] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}i1`))
+    const [i1] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}i1`))
     expect(i1).toMatchObject({ priority: 7, is_active: false, status: 'published', image_urls: '["a.png","b.png"]', schema_config: '', conditions_json: '{"groups":[],"items":[]}' })
     expect(i1!.published_at).not.toBeNull()
-    const [e1] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}e1`))
+    const [e1] = await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}e1`))
     expect(e1).toMatchObject({ name: '改名', version: 2, priority: 0, image_urls: null, keyword: null })
     // The update path leaves the condition config untouched
     expect(e1!.conditions_json).toContain('"v,1"')
     const [v] = await handle.db
       .select()
-      .from(query_management_versions)
-      .where(inArray(query_management_versions.query_management_id, [e1!.id]))
-      .orderBy(query_management_versions.id)
+      .from(saved_query_versions)
+      .where(inArray(saved_query_versions.query_id, [e1!.id]))
+      .orderBy(saved_query_versions.id)
       .then((rows) => rows.slice(-1))
     expect(v).toMatchObject({ action: 'import_update', operator: 'import', version_no: 2 })
   })
@@ -393,7 +393,7 @@ describe('list-page 导入导出', () => {
       error_rows: [{ line: 3, reason: '查询名称和查询编码不能为空', row: { 查询名称: '', 查询编码: `${P}i3` } }],
       error_count: 1,
     })
-    expect(await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}i2`))).toHaveLength(0)
+    expect(await handle.db.select().from(saved_queries).where(eq(saved_queries.query_code, `${P}i2`))).toHaveLength(0)
 
     const badStatus = multipartFile('b.csv', `查询名称,查询编码,发布状态\r\nA,${P}i4,bad\r\n`)
     const r2 = await s.inject({ method: 'POST', url: `${B}/import`, payload: badStatus.payload, headers: badStatus.headers })
@@ -419,7 +419,7 @@ describe('list-page 图片 / 附件（文件中心）与旧文件回读', () => 
     const image = await up('cover.png', png)
     const doc = await up('spec.pdf', '%PDF-1.4 spec')
     const refs = async (id: number) =>
-      (await handle.db.select().from(file_references).where(eq(file_references.ref_table, 'query_managements')))
+      (await handle.db.select().from(file_references).where(eq(file_references.ref_table, 'saved_queries')))
         .filter((r) => r.ref_id === String(id))
         .map((r) => [r.ref_field, r.file_id])
         .sort()

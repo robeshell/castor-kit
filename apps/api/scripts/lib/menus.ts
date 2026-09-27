@@ -7,7 +7,7 @@
  * - Menu names in other languages go to apps/web/src/locales/menus/<lang>.json
  */
 
-export const BIZ_GROUP = { id: 1000, code: 'biz', name: '业务管理', icon: 'IconBox', names: { 'en-US': 'Business', 'ja-JP': '業務管理' } }
+export const BIZ_GROUP = { id: 1000, code: 'biz', name: '业务管理', icon: 'Box', names: { 'en-US': 'Business', 'ja-JP': '業務管理' } }
 
 export interface MenuRequest {
   /** Menu / page title (Chinese) */
@@ -114,7 +114,7 @@ export function planMenus(content: string, request: MenuRequest): MenuEntry[] | 
     id,
     name: request.title,
     code: request.permPrefix,
-    icon: request.icon ?? 'IconList',
+    icon: request.icon ?? 'List',
     path: request.path,
     component: request.component,
     parent_id: parentId,

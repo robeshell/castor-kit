@@ -39,7 +39,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 }
 
 export const TEMPLATE_HEADERS = ['菜单名称', '菜单编码', '类型', '路径', '组件', '图标', '父级编码', '排序', '是否显示', '是否启用', '描述']
-export const TEMPLATE_ROWS = [['示例菜单', 'demo_menu', 'menu', '/demo/menu', 'DemoMenu', 'IconApps', '', 99, '是', '是', '示例描述']]
+export const TEMPLATE_ROWS = [['示例菜单', 'demo_menu', 'menu', '/demo/menu', 'DemoMenu', 'AppWindow', '', 99, '是', '是', '示例描述']]
 
 export const MENU_TYPES = ['directory', 'menu', 'button'] as const
 

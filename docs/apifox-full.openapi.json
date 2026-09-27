@@ -1727,7 +1727,7 @@
           }
         ],
         "summary": "高级表格记录列表",
-        "description": "需要 cc_admin_advanced_table_page。分页返回记录，置顶记录总在最前，其次按 sort_field / sort_order 排序，最后按 id 升序",
+        "description": "需要 cc_admin_advanced_table。分页返回记录，置顶记录总在最前，其次按 sort_field / sort_order 排序，最后按 id 升序",
         "parameters": [
           {
             "name": "page",
@@ -2852,7 +2852,7 @@
           }
         ],
         "summary": "高级表格统计",
-        "description": "需要 cc_admin_advanced_table_page。返回全表汇总：总数、启用 / 停用 / 置顶 / 已发布数量、平均进度与评分（保留两位小数）以及按分类计数",
+        "description": "需要 cc_admin_advanced_table。返回全表汇总：总数、启用 / 停用 / 置顶 / 已发布数量、平均进度与评分（保留两位小数）以及按分类计数",
         "responses": {
           "200": {
             "description": "成功",
@@ -3916,7 +3916,7 @@
           }
         ],
         "summary": "卡片列表",
-        "description": "需要 system_card_list_page。分页列表，按优先级、ID 倒序",
+        "description": "需要 cc_admin_card_list。分页列表，按优先级、ID 倒序",
         "parameters": [
           {
             "name": "page",
@@ -4139,7 +4139,7 @@
           }
         ],
         "summary": "新增卡片",
-        "description": "需要 system_card_list_page_add。title、card_code 必填，card_code 已存在返回 400「编码已存在」；status 只能是 draft / published / archived",
+        "description": "需要 cc_admin_card_list_add。title、card_code 必填，card_code 已存在返回 400「编码已存在」；status 只能是 draft / published / archived",
         "requestBody": {
           "required": true,
           "content": {
@@ -4369,7 +4369,7 @@
           }
         ],
         "summary": "导出卡片",
-        "description": "需要 system_card_list_page_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
+        "description": "需要 cc_admin_card_list_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
         "parameters": [
           {
             "name": "fields",
@@ -4491,7 +4491,7 @@
           }
         ],
         "summary": "导出卡片（勾选 / 按条件）",
-        "description": "需要 system_card_list_page_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
+        "description": "需要 cc_admin_card_list_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -4633,7 +4633,7 @@
           }
         ],
         "summary": "导入卡片",
-        "description": "需要 system_card_list_page_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「标题」「编码」；按编码存在则更新、不存在则新增（不导入封面图）。标题或编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
+        "description": "需要 cc_admin_card_list_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「标题」「编码」；按编码存在则更新、不存在则新增（不导入封面图）。标题或编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -4751,7 +4751,7 @@
           }
         ],
         "summary": "下载导入模板",
-        "description": "需要 system_card_list_page_import（与导入相同；只有查看权限不能下载）。模板表头：标题、编码、副标题、分类、标签、发布状态、负责人、优先级、状态、描述（「状态」列填 启用 / 停用），含一行示例数据",
+        "description": "需要 cc_admin_card_list_import（与导入相同；只有查看权限不能下载）。模板表头：标题、编码、副标题、分类、标签、发布状态、负责人、优先级、状态、描述（「状态」列填 启用 / 停用），含一行示例数据",
         "parameters": [
           {
             "name": "file_type",
@@ -4812,7 +4812,7 @@
           }
         ],
         "summary": "卡片详情",
-        "description": "需要 system_card_list_page。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_card_list。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -4954,7 +4954,7 @@
           }
         ],
         "summary": "编辑卡片",
-        "description": "需要 system_card_list_page_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）；可修改 card_code，但不能与其他卡片重复。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_card_list_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）；可修改 card_code，但不能与其他卡片重复。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -5192,7 +5192,7 @@
           }
         ],
         "summary": "删除卡片",
-        "description": "需要 system_card_list_page_delete。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_card_list_delete。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -5320,7 +5320,7 @@
           }
         ],
         "summary": "成员列表",
-        "description": "需要 cc_admin_detail_tabs_page。不分页，返回全部成员数组（不是 { items, total } 结构），按 sort_order 升序",
+        "description": "需要 cc_admin_detail_tabs。不分页，返回全部成员数组（不是 { items, total } 结构），按 sort_order 升序",
         "parameters": [
           {
             "name": "search",
@@ -5677,7 +5677,7 @@
           }
         ],
         "summary": "成员详情",
-        "description": "需要 cc_admin_detail_tabs_page。先校验权限再查成员：没有权限时返回 403，有权限但成员不存在返回 404",
+        "description": "需要 cc_admin_detail_tabs。先校验权限再查成员：没有权限时返回 403，有权限但成员不存在返回 404",
         "parameters": [
           {
             "name": "member_id",
@@ -6178,7 +6178,7 @@
           }
         ],
         "summary": "表单记录列表",
-        "description": "需要 system_dynamic_form_page。分页列表，按优先级、ID 倒序；列表项只带 fields_count，不含动态字段明细",
+        "description": "需要 cc_admin_dynamic_form。分页列表，按优先级、ID 倒序；列表项只带 fields_count，不含动态字段明细",
         "parameters": [
           {
             "name": "page",
@@ -6381,7 +6381,7 @@
           }
         ],
         "summary": "新增表单记录",
-        "description": "需要 system_dynamic_form_page_add。title、record_code 必填，record_code 已存在返回 400；动态字段超过 20 条返回 400；status 只能是 draft / published / archived。记录与动态字段在同一事务中写入，返回含 fields 的详情",
+        "description": "需要 cc_admin_dynamic_form_add。title、record_code 必填，record_code 已存在返回 400；动态字段超过 20 条返回 400；status 只能是 draft / published / archived。记录与动态字段在同一事务中写入，返回含 fields 的详情",
         "requestBody": {
           "required": true,
           "content": {
@@ -6662,7 +6662,7 @@
           }
         ],
         "summary": "导出表单记录",
-        "description": "需要 system_dynamic_form_page_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
+        "description": "需要 cc_admin_dynamic_form_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
         "parameters": [
           {
             "name": "fields",
@@ -6784,7 +6784,7 @@
           }
         ],
         "summary": "导出表单记录（勾选 / 按条件）",
-        "description": "需要 system_dynamic_form_page_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
+        "description": "需要 cc_admin_dynamic_form_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -6925,7 +6925,7 @@
           }
         ],
         "summary": "导入表单记录",
-        "description": "需要 system_dynamic_form_page_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「标题」「记录编码」；按记录编码存在则更新、不存在则新增，只导入记录本身、不含动态字段。标题或记录编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
+        "description": "需要 cc_admin_dynamic_form_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「标题」「记录编码」；按记录编码存在则更新、不存在则新增，只导入记录本身、不含动态字段。标题或记录编码为空的行记为错误行，有任何错误则整批回滚返回 400；发布状态值不合法直接返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -7043,7 +7043,7 @@
           }
         ],
         "summary": "下载导入模板",
-        "description": "需要 system_dynamic_form_page_import（与导入相同；只有查看权限不能下载）。模板表头：标题、记录编码、分类、发布状态、负责人、优先级、启用、描述，含一行示例数据",
+        "description": "需要 cc_admin_dynamic_form_import（与导入相同；只有查看权限不能下载）。模板表头：标题、记录编码、分类、发布状态、负责人、优先级、启用、描述，含一行示例数据",
         "parameters": [
           {
             "name": "file_type",
@@ -7104,7 +7104,7 @@
           }
         ],
         "summary": "表单记录详情",
-        "description": "需要 system_dynamic_form_page。返回记录及其动态字段明细（fields）。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_dynamic_form。返回记录及其动态字段明细（fields）。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -7276,7 +7276,7 @@
           }
         ],
         "summary": "编辑表单记录",
-        "description": "需要 system_dynamic_form_page_edit。部分更新，只写入实际变化的字段；record_code 不可修改（传了也忽略）；传 fields 时整体替换动态字段（仅替换字段不会刷新 updated_at）。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_dynamic_form_edit。部分更新，只写入实际变化的字段；record_code 不可修改（传了也忽略）；传 fields 时整体替换动态字段（仅替换字段不会刷新 updated_at）。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -7563,7 +7563,7 @@
           }
         ],
         "summary": "删除表单记录",
-        "description": "需要 system_dynamic_form_page_delete。同时级联删除其全部动态字段。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_dynamic_form_delete。同时级联删除其全部动态字段。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -7622,7 +7622,7 @@
           }
         ],
         "summary": "甘特图任务列表",
-        "description": "需要 cc_admin_gantt_page。返回全部任务（按 sort_order 升序，不分页），可按状态、优先级精确筛选",
+        "description": "需要 cc_admin_gantt。返回全部任务（按 sort_order 升序，不分页），可按状态、优先级精确筛选",
         "parameters": [
           {
             "name": "status",
@@ -8277,7 +8277,7 @@
           }
         ],
         "summary": "看板列表",
-        "description": "需要 cc_admin_kanban_page。返回全部列（按 sort_order 升序），每列带上本列所有卡片（按 sort_order 升序）；不分页",
+        "description": "需要 cc_admin_kanban。返回全部列（按 sort_order 升序），每列带上本列所有卡片（按 sort_order 升序）；不分页",
         "responses": {
           "200": {
             "description": "成功",
@@ -9487,7 +9487,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。按优先级、ID 倒序分页返回查询配置记录",
+        "description": "需要 cc_admin_list。按优先级、ID 倒序分页返回查询配置记录",
         "parameters": [
           {
             "name": "page",
@@ -9788,7 +9788,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_add。查询名称、查询编码必填且编码唯一；创建后版本号为 1 并写入一条 create 版本快照；上传到文件中心的图片 / 附件会登记为本记录的引用",
+        "description": "需要 cc_admin_list_add。查询名称、查询编码必填且编码唯一；创建后版本号为 1 并写入一条 create 版本快照；上传到文件中心的图片 / 附件会登记为本记录的引用",
         "requestBody": {
           "required": true,
           "content": {
@@ -10219,7 +10219,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_export（只有查看权限不能导出）。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
+        "description": "需要 cc_admin_list_export（只有查看权限不能导出）。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
         "parameters": [
           {
             "name": "fields",
@@ -10326,7 +10326,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_export（只有查看权限不能导出）。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
+        "description": "需要 cc_admin_list_export（只有查看权限不能导出）。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
         "requestBody": {
           "required": true,
           "content": {
@@ -10448,7 +10448,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_import（_add / _edit 不能代替）。表头须包含查询名称（或 名称 / name）与查询编码（或 编码 / query_code）；按查询编码存在则更新（版本号 +1）、否则新增，并写入 import_update / import_create 版本快照；任一行名称或编码为空则整批回滚；发布状态不是 draft/published 时整批直接返回 400（不计入错误行）",
+        "description": "需要 cc_admin_list_import（_add / _edit 不能代替）。表头须包含查询名称（或 名称 / name）与查询编码（或 编码 / query_code）；按查询编码存在则更新（版本号 +1）、否则新增，并写入 import_update / import_create 版本快照；任一行名称或编码为空则整批回滚；发布状态不是 draft/published 时整批直接返回 400（不计入错误行）",
         "requestBody": {
           "required": true,
           "content": {
@@ -10527,7 +10527,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。不访问数据库，按展示配置的字段生成模拟数据行，用于前端预览效果；elapsed_ms 为按列数与条件数算出的模拟耗时",
+        "description": "需要 cc_admin_list。不访问数据库，按展示配置的字段生成模拟数据行，用于前端预览效果；elapsed_ms 为按列数与条件数算出的模拟耗时",
         "requestBody": {
           "required": false,
           "content": {
@@ -10653,7 +10653,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_import（与导入相同；只有查看权限不能下载）。返回带一行示例数据的导入模板（列：查询名称、查询编码、查询分类、关键字、数据源、负责人、图片URL列表、文件URL列表、优先级、状态、发布状态、描述）",
+        "description": "需要 cc_admin_list_import（与导入相同；只有查看权限不能下载）。返回带一行示例数据的导入模板（列：查询名称、查询编码、查询分类、关键字、数据源、负责人、图片URL列表、文件URL列表、优先级、状态、发布状态、描述）",
         "parameters": [
           {
             "name": "file_type",
@@ -10714,7 +10714,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。先检查权限，再查记录（不存在返回 404）",
+        "description": "需要 cc_admin_list。先检查权限，再查记录（不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -10948,7 +10948,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_edit。先检查权限，再查记录（不存在返回 404）；只更新请求中出现的字段，传了 name / query_code 就不能为空且编码不能与其他记录重复；每次保存版本号 +1 并写入 update 版本快照（即使没有字段变化）",
+        "description": "需要 cc_admin_list_edit。先检查权限，再查记录（不存在返回 404）；只更新请求中出现的字段，传了 name / query_code 就不能为空且编码不能与其他记录重复；每次保存版本号 +1 并写入 update 版本快照（即使没有字段变化）",
         "parameters": [
           {
             "name": "item_id",
@@ -11387,7 +11387,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_delete。先检查权限，再查记录（不存在返回 404）；同时删除其版本历史并解除文件中心引用",
+        "description": "需要 cc_admin_list_delete。先检查权限，再查记录（不存在返回 404）；同时删除其版本历史并解除文件中心引用",
         "parameters": [
           {
             "name": "item_id",
@@ -11446,7 +11446,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page。先检查权限，再查记录（不存在返回 404）；按版本 ID 倒序分页返回",
+        "description": "需要 cc_admin_list。先检查权限，再查记录（不存在返回 404）；按版本 ID 倒序分页返回",
         "parameters": [
           {
             "name": "item_id",
@@ -11496,7 +11496,7 @@
                             "type": "integer",
                             "description": "版本 ID"
                           },
-                          "query_management_id": {
+                          "query_id": {
                             "type": "integer",
                             "description": "所属记录 ID"
                           },
@@ -11578,7 +11578,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_list_page_edit。先检查权限，再查记录与版本（任一不存在返回 404）；用版本快照覆盖记录，版本号 +1 并写入 rollback 版本快照，操作人为当前用户；快照状态为 published 时发布时间重置为当前时间",
+        "description": "需要 cc_admin_list_edit。先检查权限，再查记录与版本（任一不存在返回 404）；用版本快照覆盖记录，版本号 +1 并写入 rollback 版本快照，操作人为当前用户；快照状态为 published 时发布时间重置为当前时间",
         "parameters": [
           {
             "name": "item_id",
@@ -11827,7 +11827,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。按优先级、ID 倒序分页返回记录",
+        "description": "需要 cc_admin_stats_list。按优先级、ID 倒序分页返回记录",
         "parameters": [
           {
             "name": "page",
@@ -12021,7 +12021,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_add。名称、编码必填且编码唯一",
+        "description": "需要 cc_admin_stats_list_add。名称、编码必填且编码唯一",
         "requestBody": {
           "required": true,
           "content": {
@@ -12229,7 +12229,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_export（只有查看权限不能导出）。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
+        "description": "需要 cc_admin_stats_list_export（只有查看权限不能导出）。按筛选条件导出全部匹配记录（按 ID 升序），返回 csv 或 xlsx 附件",
         "parameters": [
           {
             "name": "fields",
@@ -12336,7 +12336,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_export（只有查看权限不能导出）。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
+        "description": "需要 cc_admin_stats_list_export（只有查看权限不能导出）。export_mode=selected（默认）按勾选的 ids 导出，ids 为空返回 400；export_mode=filtered 按 filters 导出全部匹配记录；结果按 ID 升序，返回 csv 或 xlsx 附件",
         "requestBody": {
           "required": true,
           "content": {
@@ -12458,7 +12458,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_import（_add / _edit 不能代替）。表头只认中文列名，须包含名称与编码；按编码存在则更新、否则新增；任一行名称或编码为空则整批回滚；发布状态不是 draft/published/archived 时整批直接返回 400（不计入错误行）",
+        "description": "需要 cc_admin_stats_list_import（_add / _edit 不能代替）。表头只认中文列名，须包含名称与编码；按编码存在则更新、否则新增；任一行名称或编码为空则整批回滚；发布状态不是 draft/published/archived 时整批直接返回 400（不计入错误行）",
         "requestBody": {
           "required": true,
           "content": {
@@ -12537,7 +12537,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。对全部记录（不受列表筛选影响）统计数量、状态分布、金额合计 / 均值及按分类汇总",
+        "description": "需要 cc_admin_stats_list。对全部记录（不受列表筛选影响）统计数量、状态分布、金额合计 / 均值及按分类汇总",
         "responses": {
           "200": {
             "description": "成功",
@@ -12631,7 +12631,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_import（与导入相同；只有查看权限不能下载）。返回带一行示例数据的导入模板（列：名称、编码、分类、发布状态、金额、数量、负责人、优先级、状态、描述）",
+        "description": "需要 cc_admin_stats_list_import（与导入相同；只有查看权限不能下载）。返回带一行示例数据的导入模板（列：名称、编码、分类、发布状态、金额、数量、负责人、优先级、状态、描述）",
         "parameters": [
           {
             "name": "file_type",
@@ -12692,7 +12692,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page。先检查权限，再查记录（不存在返回 404）",
+        "description": "需要 cc_admin_stats_list。先检查权限，再查记录（不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -12819,7 +12819,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_edit。先检查权限，再查记录（不存在返回 404）；只更新请求中出现的字段，传了 name / item_code 就不能为空且编码不能与其他记录重复；没有实际变化时不写库，updated_at 不变",
+        "description": "需要 cc_admin_stats_list_edit。先检查权限，再查记录（不存在返回 404）；只更新请求中出现的字段，传了 name / item_code 就不能为空且编码不能与其他记录重复；没有实际变化时不写库，updated_at 不变",
         "parameters": [
           {
             "name": "item_id",
@@ -13035,7 +13035,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "需要 system_stats_list_page_delete。先检查权限，再查记录（不存在返回 404）",
+        "description": "需要 cc_admin_stats_list_delete。先检查权限，再查记录（不存在返回 404）",
         "parameters": [
           {
             "name": "item_id",
@@ -13094,7 +13094,7 @@
           }
         ],
         "summary": "树节点列表",
-        "description": "需要 system_tree_list_page。右侧表格的平铺分页列表，按 sort_order、id 升序；parent_id 传 root 只看根节点，传数字只看该节点的直接子节点，不传则不限层级",
+        "description": "需要 cc_admin_tree_list。右侧表格的平铺分页列表，按 sort_order、id 升序；parent_id 传 root 只看根节点，传数字只看该节点的直接子节点，不传则不限层级",
         "parameters": [
           {
             "name": "page",
@@ -13325,7 +13325,7 @@
           }
         ],
         "summary": "新增树节点",
-        "description": "需要 system_tree_list_page_add。name、node_code 必填，node_code 已存在返回 400；parent_id 指向不存在的节点返回 400「父节点不存在」；status 只能是 active / inactive / archived",
+        "description": "需要 cc_admin_tree_list_add。name、node_code 必填，node_code 已存在返回 400；parent_id 指向不存在的节点返回 400「父节点不存在」；status 只能是 active / inactive / archived",
         "requestBody": {
           "required": true,
           "content": {
@@ -13539,7 +13539,7 @@
           }
         ],
         "summary": "导出树节点",
-        "description": "需要 system_tree_list_page_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
+        "description": "需要 cc_admin_tree_list_export（只有查看权限不能导出）。按查询条件导出全部匹配数据（按 ID 升序），不分页；fields 为空或全部无效时导出所有列",
         "parameters": [
           {
             "name": "fields",
@@ -13666,7 +13666,7 @@
           }
         ],
         "summary": "导出树节点（勾选 / 按条件）",
-        "description": "需要 system_tree_list_page_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
+        "description": "需要 cc_admin_tree_list_export（只有查看权限不能导出）。export_mode 为 filtered 时按 filters 导出全部匹配数据，否则（默认 selected）只导出 ids 中的记录，ids 为空返回 400「请先勾选要导出的数据」；结果按 ID 升序",
         "requestBody": {
           "required": true,
           "content": {
@@ -13813,7 +13813,7 @@
           }
         ],
         "summary": "导入树节点",
-        "description": "需要 system_tree_list_page_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「节点名称」「节点编码」；父节点ID 不校验存在性（指向不存在的节点会触发外键错误）；按节点编码存在则更新、不存在则新增（节点编码本身不改）。节点名称或编码为空、父节点ID 会导致成环的行记为错误行，有任何错误则整批回滚返回 400；状态值不合法直接返回 400",
+        "description": "需要 cc_admin_tree_list_import（_add / _edit 不能代替）。支持 csv / xlsx（最大 5MB），表头须含「节点名称」「节点编码」；父节点ID 不校验存在性（指向不存在的节点会触发外键错误）；按节点编码存在则更新、不存在则新增（节点编码本身不改）。节点名称或编码为空、父节点ID 会导致成环的行记为错误行，有任何错误则整批回滚返回 400；状态值不合法直接返回 400",
         "requestBody": {
           "required": true,
           "content": {
@@ -13931,7 +13931,7 @@
           }
         ],
         "summary": "下载导入模板",
-        "description": "需要 system_tree_list_page_import（与导入相同；只有查看权限不能下载）。模板表头：节点名称、节点编码、父节点ID、节点类型、图标、状态、负责人、排序、启用、描述，含一行示例数据",
+        "description": "需要 cc_admin_tree_list_import（与导入相同；只有查看权限不能下载）。模板表头：节点名称、节点编码、父节点ID、节点类型、图标、状态、负责人、排序、启用、描述，含一行示例数据",
         "parameters": [
           {
             "name": "file_type",
@@ -13992,7 +13992,7 @@
           }
         ],
         "summary": "树形结构",
-        "description": "需要 system_tree_list_page。左侧树组件用：按筛选条件取出全部节点并组装为嵌套树（同级按 sort_order、id 升序），父节点不在结果中的节点作为根节点返回；不分页",
+        "description": "需要 cc_admin_tree_list。左侧树组件用：按筛选条件取出全部节点并组装为嵌套树（同级按 sort_order、id 升序），父节点不在结果中的节点作为根节点返回；不分页",
         "parameters": [
           {
             "name": "search",
@@ -14193,7 +14193,7 @@
           }
         ],
         "summary": "树节点详情",
-        "description": "需要 system_tree_list_page。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_tree_list。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -14330,7 +14330,7 @@
           }
         ],
         "summary": "编辑树节点",
-        "description": "需要 system_tree_list_page_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）。node_code 只校验不修改；修改父节点时校验父节点存在且不会成环（移到自身或子孙节点下返回 400）。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_tree_list_edit。部分更新，只写入实际变化的字段（无变化时 updated_at 不变）。node_code 只校验不修改；修改父节点时校验父节点存在且不会成环（移到自身或子孙节点下返回 400）。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",
@@ -14552,7 +14552,7 @@
           }
         ],
         "summary": "删除树节点",
-        "description": "需要 system_tree_list_page_delete。只删除该节点：其直接子节点的 parent_id 先被清空（变为根节点），不会级联删除。先校验权限，再按 ID 查找，不存在返回 404",
+        "description": "需要 cc_admin_tree_list_delete。只删除该节点：其直接子节点的 parent_id 先被清空（变为根节点），不会级联删除。先校验权限，再按 ID 查找，不存在返回 404",
         "parameters": [
           {
             "name": "item_id",

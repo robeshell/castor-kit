@@ -19,7 +19,7 @@ export async function registerGanttRoutes(app: FastifyInstance): Promise<void> {
   const taskId = (request: { params: unknown }) => parseIntParam((request.params as { task_id: string }).task_id)
 
   app.get(`${BASE}/tasks`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'cc_admin_gantt_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_gantt'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     const status = queryString(request, 'status', '').trim() || null

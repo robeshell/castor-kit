@@ -203,8 +203,8 @@ describe('menus 编辑 / 删除 / 排序', () => {
     expect(same.json().updated_at).toBe((await s.inject({ url: `/api/admin/menus/${before.id}` })).json().updated_at)
     expect((await menuByCode(`${P}c2`))!.updated_at).toBe(before.updated_at)
 
-    const changed = await put(`/api/admin/menus/${before.id}`, { name: 'c2', sort_order: -2, icon: 'IconX', unknown: 1 })
-    expect(changed.json()).toMatchObject({ name: 'c2', sort_order: -2, icon: 'IconX' })
+    const changed = await put(`/api/admin/menus/${before.id}`, { name: 'c2', sort_order: -2, icon: 'X', unknown: 1 })
+    expect(changed.json()).toMatchObject({ name: 'c2', sort_order: -2, icon: 'X' })
     expect((await menuByCode(`${P}c2`))!.updated_at).not.toBe(before.updated_at)
   })
 
@@ -303,7 +303,7 @@ describe('menus 导出 / 模板 / 导入', () => {
     const res = await s.inject({ url: '/api/admin/menus/template' })
     expect(res.headers['content-disposition']).toBe('attachment; filename=menus_import_template.csv')
     expect(res.body).toBe(
-      '\uFEFF菜单名称,菜单编码,类型,路径,组件,图标,父级编码,排序,是否显示,是否启用,描述\r\n示例菜单,demo_menu,menu,/demo/menu,DemoMenu,IconApps,,99,是,是,示例描述\r\n',
+      '\uFEFF菜单名称,菜单编码,类型,路径,组件,图标,父级编码,排序,是否显示,是否启用,描述\r\n示例菜单,demo_menu,menu,/demo/menu,DemoMenu,AppWindow,,99,是,是,示例描述\r\n',
     )
   })
 

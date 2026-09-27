@@ -2,7 +2,7 @@ import { like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { cc_gantt_tasks } from '@/db/schema'
+import { gantt_tasks } from '@/db/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -23,7 +23,7 @@ let s: AuthedSession
 let taskId: number
 
 async function cleanup() {
-  await handle.db.delete(cc_gantt_tasks).where(like(cc_gantt_tasks.title, `${P}%`))
+  await handle.db.delete(gantt_tasks).where(like(gantt_tasks.title, `${P}%`))
 }
 
 beforeAll(async () => {
@@ -33,7 +33,7 @@ beforeAll(async () => {
   await cleanup()
   // Primary-key sequences in the cloned test database may lag behind MAX(id), so sync them first
   await handle.pool.query(
-    "SELECT setval(pg_get_serial_sequence('cc_gantt_tasks', 'id'), COALESCE((SELECT MAX(id) FROM cc_gantt_tasks), 0) + 1, false)",
+    "SELECT setval(pg_get_serial_sequence('gantt_tasks', 'id'), COALESCE((SELECT MAX(id) FROM gantt_tasks), 0) + 1, false)",
   )
 })
 

@@ -31,14 +31,14 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
   const opts = { preHandler: loginRequired }
 
   app.get(`${BASE}/stats`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list'))) {
       return reply.status(403).send({ error: '无权限查看统计数据' })
     }
     return service.getStats()
   })
 
   app.get(BASE, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list'))) {
       return reply.status(403).send({ error: '无权限查看数据' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
@@ -52,7 +52,7 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
   })
 
   app.post(BASE, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page_add'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
     const [payload, status] = await service.createItem(parseBody(statsItemBody, request.body))
@@ -64,7 +64,7 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
     service.getItemOr404(parseIntParam((request.params as { item_id: string }).item_id))
 
   app.get(detailPath, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list'))) {
       return reply.status(403).send({ error: '无权限查看详情' })
     }
     const item = await loadItem(request)
@@ -72,7 +72,7 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
   })
 
   app.put(detailPath, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page_edit'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await loadItem(request)
@@ -80,7 +80,7 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page_delete'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list_delete'))) {
       return reply.status(403).send({ error: '无权限删除记录' })
     }
     const item = await loadItem(request)
@@ -88,7 +88,7 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
   })
 
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page_export'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
     const body = request.method === 'GET' ? exportQuery(request) : request.body
@@ -98,14 +98,14 @@ export async function registerStatsListPageRoutes(app: FastifyInstance): Promise
   app.post(`${BASE}/export`, opts, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page_import'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list_import'))) {
       return reply.status(403).send({ error: '无权限下载模板' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type', '') || null))
   })
 
   app.post(`${BASE}/import`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_stats_list_page_import'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_stats_list_import'))) {
       return reply.status(403).send({ error: '无权限导入数据' })
     }
     return service.importItems(await getUploadedFile(request))

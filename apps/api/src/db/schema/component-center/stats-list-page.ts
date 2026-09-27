@@ -22,7 +22,7 @@ export const stats_items = pgTable('stats_items', {
   created_at: createdAt(),
   updated_at: updatedAt(),
 }, (table) => [
-  unique('stats_items_item_code_key').on(table.item_code),
+  unique('stats_items_item_code_unique').on(table.item_code),
 ])
 
 export type StatsItem = typeof stats_items.$inferSelect

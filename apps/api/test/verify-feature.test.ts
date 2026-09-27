@@ -55,14 +55,14 @@ function writeJournal(entries: { idx: number; when: number; tag: string }[]): vo
   )
 }
 
-/** Keep only the baseline migration: tests don't change as feature migrations are added to the repo */
-function trimDrizzleToBaseline(dir: string): void {
+/** Keep only the initial migration: tests don't change as feature migrations are added to the repo */
+function trimDrizzleToInitial(dir: string): void {
   const journalPath = join(dir, 'meta', '_journal.json')
   const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
-  const [baseline] = journal.entries
-  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  const [initial] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${initial!.tag}.sql`) rmSync(join(dir, f))
   for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
-  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [initial] }, null, 2))
 }
 
 function baseFixture(): void {
@@ -81,9 +81,9 @@ function baseFixture(): void {
     'apps/api/scripts/seed-rbac.ts',
     `export const MENUS_DATA = [\n  { id: 39, name: "部件", code: "system_ck_widget", component: "admin/ck_widget" },\n]\n`,
   )
-  // drizzle: reuse the real baseline (hash matches the one recorded in the test database)
+  // drizzle: reuse the real initial migration (hash matches the one recorded in the test database)
   cpSync(join(API_DIR, 'drizzle'), join(root, 'apps/api/drizzle'), { recursive: true })
-  trimDrizzleToBaseline(join(root, 'apps/api/drizzle'))
+  trimDrizzleToInitial(join(root, 'apps/api/drizzle'))
   // Frontend
   put('apps/web/src/modules/admin/api/ck_widget.js', '')
   put('apps/web/src/modules/admin/pages/ck_widget/index.jsx', '')
@@ -221,19 +221,19 @@ describe('verify-feature 全局检查', () => {
   it('migration_chain：线性通过；缺 SQL / 分叉 / 游离 SQL / idx 断号 报错', () => {
     const journalPath = join(root, 'apps/api/drizzle/meta/_journal.json')
     const original = readFileSync(journalPath, 'utf8')
-    expect(checkMigrationChain(ctx)).toEqual({ name: 'migration_chain', passed: true, head: '0000_baseline' })
+    expect(checkMigrationChain(ctx)).toEqual({ name: 'migration_chain', passed: true, head: '0000_init' })
 
-    const baselineId = (JSON.parse(readFileSync(join(root, 'apps/api/drizzle/meta/0000_snapshot.json'), 'utf8')) as { id: string }).id
+    const initialId = (JSON.parse(readFileSync(join(root, 'apps/api/drizzle/meta/0000_snapshot.json'), 'utf8')) as { id: string }).id
     const base = (JSON.parse(original) as { entries: { idx: number; when: number; tag: string }[] }).entries[0]!
     writeJournal([base, { idx: 1, when: base.when + 1, tag: '0001_a' }])
     put('apps/api/drizzle/0001_a.sql', 'SELECT 1;')
-    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', baselineId))
+    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', initialId))
     expect(checkMigrationChain(ctx)).toMatchObject({ passed: true, head: '0001_a' })
 
-    // Fork: 0001's prevId doesn't point to the baseline
+    // Fork: 0001's prevId doesn't point to the initial migration
     put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', 'someone-else'))
     expect(checkMigrationChain(ctx).error).toContain('0001_a 的 snapshot.prevId 不指向上一条')
-    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', baselineId))
+    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', initialId))
 
     // Missing SQL + orphan SQL + timestamps out of order + gap in idx
     rmSync(join(root, 'apps/api/drizzle/0001_a.sql'))
@@ -254,8 +254,8 @@ describe('verify-feature 全局检查', () => {
 
   it('migration_applied：journal 全部落库通过；未执行的迁移 / 缺表 报错；连不上库报错', async () => {
     const ok = await checkMigrationApplied(ctx, undefined, TEST_DATABASE_URL)
-    expect(ok).toMatchObject({ name: 'migration_applied', passed: true, head: '0000_baseline' })
-    expect(ok.detail).toMatch(/^已迁移至 0000_baseline（/)
+    expect(ok).toMatchObject({ name: 'migration_applied', passed: true, head: '0000_init' })
+    expect(ok.detail).toMatch(/^已迁移至 0000_init（/)
 
     // Module table missing (schema defines ck_widgets, database doesn't have it)
     const noTable = await checkMigrationApplied(ctx, 'ck_widget', TEST_DATABASE_URL)

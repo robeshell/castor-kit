@@ -28,7 +28,7 @@ export const api_tokens = pgTable(
     revoked_at: timestamp({ mode: 'string' }),
   },
   (table) => [
-    foreignKey({ columns: [table.created_by], foreignColumns: [admin_users.id], name: 'api_tokens_created_by_fkey' }).onDelete('cascade'),
+    foreignKey({ columns: [table.created_by], foreignColumns: [admin_users.id], name: 'api_tokens_created_by_fk' }).onDelete('cascade'),
     index('api_tokens_token_hash_idx').on(table.token_hash),
     index('api_tokens_created_by_idx').on(table.created_by),
   ],
@@ -69,7 +69,7 @@ export const webhooks = pgTable(
     updated_at: updatedAt(),
   },
   (table) => [
-    foreignKey({ columns: [table.created_by], foreignColumns: [admin_users.id], name: 'webhooks_created_by_fkey' }).onDelete('set null'),
+    foreignKey({ columns: [table.created_by], foreignColumns: [admin_users.id], name: 'webhooks_created_by_fk' }).onDelete('set null'),
   ],
 )
 
@@ -112,7 +112,7 @@ export const webhook_deliveries = pgTable(
     updated_at: updatedAt(),
   },
   (table) => [
-    foreignKey({ columns: [table.webhook_id], foreignColumns: [webhooks.id], name: 'webhook_deliveries_webhook_id_fkey' }).onDelete('cascade'),
+    foreignKey({ columns: [table.webhook_id], foreignColumns: [webhooks.id], name: 'webhook_deliveries_webhook_id_fk' }).onDelete('cascade'),
     index('webhook_deliveries_webhook_id_idx').on(table.webhook_id),
     index('webhook_deliveries_due_idx').on(table.status, table.next_retry_at),
   ],

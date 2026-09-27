@@ -17,7 +17,7 @@ const DEMO_LOCK_KEY = 0x434b444d
 const LAST_RESET_KEY = 'demo_last_reset_at'
 
 /** Tables without fixtures that are emptied on reset (child rows and logs that grow on a public demo) */
-const CLEARED_TABLES = ['notification_reads', 'scheduled_task_runs', 'query_management_versions', 'login_logs', 'operation_logs']
+const CLEARED_TABLES = ['notification_reads', 'scheduled_task_runs', 'saved_query_versions', 'login_logs', 'operation_logs']
 
 /** Fixture dates are written relative to this day and shifted by (today - DATE_BASE) at reset time */
 const DATE_BASE = Date.UTC(2026, 2, 21)

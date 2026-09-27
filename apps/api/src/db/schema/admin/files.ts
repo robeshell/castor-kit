@@ -28,7 +28,7 @@ export const files = pgTable(
     created_at: createdAt(),
   },
   (table) => [
-    foreignKey({ columns: [table.uploader_id], foreignColumns: [admin_users.id], name: 'files_uploader_id_fkey' }).onDelete('set null'),
+    foreignKey({ columns: [table.uploader_id], foreignColumns: [admin_users.id], name: 'files_uploader_id_fk' }).onDelete('set null'),
     index('files_sha256_idx').on(table.sha256),
     index('files_created_at_idx').on(table.created_at),
   ],
@@ -45,7 +45,7 @@ export const file_references = pgTable(
     created_at: createdAt(),
   },
   (table) => [
-    foreignKey({ columns: [table.file_id], foreignColumns: [files.id], name: 'file_references_file_id_fkey' }).onDelete('cascade'),
+    foreignKey({ columns: [table.file_id], foreignColumns: [files.id], name: 'file_references_file_id_fk' }).onDelete('cascade'),
     primaryKey({ columns: [table.file_id, table.ref_table, table.ref_id, table.ref_field], name: 'file_references_pkey' }),
     index('file_references_ref_idx').on(table.ref_table, table.ref_id),
   ],

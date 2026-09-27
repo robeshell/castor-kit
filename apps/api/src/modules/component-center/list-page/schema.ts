@@ -5,7 +5,7 @@
 import { z } from 'zod'
 import { formatDateTime } from '@/common/serialize'
 import { exportBody, field, invalidMessage } from '@/common/validation'
-import type { QueryManagement } from '@/db/schema'
+import type { SavedQuery } from '@/db/schema'
 
 export const LIST_STATUSES = ['draft', 'published'] as const
 export const STATUS_ERROR = '状态仅支持 draft/published'
@@ -100,15 +100,15 @@ function exportUrlList(raw: string | null): string {
   return urls.join(',')
 }
 
-export function exportImageUrls(item: QueryManagement): string {
+export function exportImageUrls(item: SavedQuery): string {
   return exportUrlList(item.image_urls)
 }
 
-export function exportFileUrls(item: QueryManagement): string {
+export function exportFileUrls(item: SavedQuery): string {
   return exportUrlList(item.file_urls)
 }
 
-export const EXPORT_FIELD_MAP: Record<string, [string, (item: QueryManagement) => unknown]> = {
+export const EXPORT_FIELD_MAP: Record<string, [string, (item: SavedQuery) => unknown]> = {
   id: ['ID', (item) => item.id],
   name: ['名称', (item) => item.name],
   query_code: ['编码', (item) => item.query_code],
