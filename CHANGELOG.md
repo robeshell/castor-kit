@@ -36,6 +36,10 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Removing the old Python backend's shadow, step 7 (last) — the tooling scripts and the last helpers. `scripts/lib/ordered-json.ts` and `src/common/py.ts` are deleted; no Python emulation is left.
+  - **OpenAPI document**: written by `openapi:generate` and the scaffold with standard `JSON.stringify(…, 2)` plus a trailing newline (`scripts/lib/json-doc.ts`), instead of an order-preserving parser that replayed Python's `json.dump` output. The document's content and key order are unchanged; only the trailing newline is new.
+  - **Apifox import**: the request body is plain JSON, no longer `requests`' `json=` encoding (ensure_ascii, `", "` separators). The locale is encoded by `URLSearchParams`, argument errors no longer imitate argparse, and the response is read with `JSON.parse`.
+  - **Guard**: `test/conventions.test.ts` now fails on any mention of the Python stack (Python / Flask / SQLAlchemy / werkzeug / psycopg / urllib / `json.dumps` / `py*` helpers) in src/, scripts/, the backend template and scaffold output. It replaces the shrinking "not yet migrated" lists; AGENTS.md states the rule.
 - Removing the old Python backend's shadow, step 6 — AI data query and AI prompts. `ai-sql/pg-values.ts` (787 lines) and `common/py-values.ts` are deleted.
   - **AI data query results are JSON values**:
     - ints, floats and booleans are JSON numbers and booleans; bigints beyond ±2^53 are digit strings; NaN / Infinity are null;

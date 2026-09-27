@@ -8,15 +8,12 @@
  * Environment variables: APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN / APIFOX_API_VERSION (default 2024-03-28)
  *
  * Exit codes: 2 for argument errors; 1 for input/request failures or HTTP >= 400; 2 when errors or any *Failed count > 0 is returned; 0 on success.
- * The request body is encoded like Python requests' `json=` (ensure_ascii + ', '/': ' separators).
  */
 
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { pyStr } from '../src/common/py'
-import { dumpIndented, dumpPythonDefault, parseOrderedJson, toOrdered, type OrderedJson } from './lib/ordered-json'
 
 export const API_BASE_URL = 'https://api.apifox.com'
 export const DEFAULT_API_VERSION = '2024-03-28'
@@ -48,12 +45,10 @@ export interface ImportArgs {
 /** Argument error: print usage and the error, then exit with 2 */
 export class ArgumentError extends Error {}
 
-/** Python int(): allows leading/trailing whitespace, a sign, and underscores between digits */
-function parsePyInt(option: string, raw: string): number {
-  if (!/^\s*[+-]?\d+(?:_\d+)*\s*$/.test(raw)) {
-    throw new ArgumentError(`argument --${option}: invalid int value: '${raw}'`)
-  }
-  return Number(raw.trim().replace(/_/g, ''))
+/** An integer option value */
+function parseIntArg(option: string, raw: string): number {
+  if (!/^\s*-?\d+\s*$/.test(raw)) throw new ArgumentError(`--${option} must be an integer: '${raw}'`)
+  return Number(raw.trim())
 }
 
 export function parseImportArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): ImportArgs {
@@ -89,13 +84,13 @@ export function parseImportArgs(argv: string[], env: NodeJS.ProcessEnv = process
   const str = (key: string): string | undefined => values[key] as string | undefined
   const optInt = (key: string): number | null => {
     const raw = str(key)
-    return raw === undefined ? null : parsePyInt(key, raw)
+    return raw === undefined ? null : parseIntArg(key, raw)
   }
   const choice = (key: string): string => {
     const raw = str(key) ?? 'OVERWRITE_EXISTING'
     if (!(OVERWRITE_BEHAVIORS as readonly string[]).includes(raw)) {
       throw new ArgumentError(
-        `argument --${key}: invalid choice: '${raw}' (choose from ${OVERWRITE_BEHAVIORS.join(', ')})`,
+        `--${key} must be one of ${OVERWRITE_BEHAVIORS.join(', ')}: '${raw}'`,
       )
     }
     return raw
@@ -104,7 +99,6 @@ export function parseImportArgs(argv: string[], env: NodeJS.ProcessEnv = process
   return {
     projectId: str('project-id') ?? env.APIFOX_PROJECT_ID,
     accessToken: str('access-token') ?? env.APIFOX_ACCESS_TOKEN,
-    // os.getenv('APIFOX_API_VERSION', DEFAULT): if the variable exists but is empty, the result is an empty string
     apiVersion: str('api-version') ?? env.APIFOX_API_VERSION ?? DEFAULT_API_VERSION,
     locale: str('locale') ?? 'zh-CN',
     specFile: str('spec-file') ?? resolve(REPO_ROOT, 'docs/apifox-full.openapi.json'),
@@ -120,7 +114,7 @@ export function parseImportArgs(argv: string[], env: NodeJS.ProcessEnv = process
     updateFolderOfChangedEndpoint: Boolean(values['update-folder-of-changed-endpoint']),
     prependBasePath: Boolean(values['prepend-base-path']),
     deleteUnmatchedResources: Boolean(values['delete-unmatched-resources']),
-    timeout: str('timeout') === undefined ? 120 : parsePyInt('timeout', str('timeout')!),
+    timeout: str('timeout') === undefined ? 120 : parseIntArg('timeout', str('timeout')!),
   }
 }
 
@@ -161,13 +155,6 @@ export function buildOptions(args: ImportArgs): Record<string, unknown> {
   return options
 }
 
-/** Python urllib.parse.quote_plus */
-function quotePlus(value: string): string {
-  return encodeURIComponent(value)
-    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
-    .replace(/%20/g, '+')
-}
-
 export interface ImportRequest {
   url: string
   headers: Record<string, string>
@@ -175,7 +162,7 @@ export interface ImportRequest {
 }
 
 export function buildImportRequest(args: ImportArgs, input: string | Record<string, unknown>, baseUrl = API_BASE_URL): ImportRequest {
-  const url = `${baseUrl}/v1/projects/${args.projectId}/import-openapi?locale=${quotePlus(args.locale)}`
+  const url = `${baseUrl}/v1/projects/${args.projectId}/import-openapi?${new URLSearchParams({ locale: args.locale })}`
   return {
     url,
     headers: {
@@ -183,32 +170,18 @@ export function buildImportRequest(args: ImportArgs, input: string | Record<stri
       'X-Apifox-Api-Version': args.apiVersion,
       'Content-Type': 'application/json',
     },
-    body: dumpPythonDefault(toOrdered({ input, options: buildOptions(args) })),
+    body: JSON.stringify({ input, options: buildOptions(args) }),
   }
 }
 
-function asMap(value: OrderedJson | undefined): Map<string, OrderedJson> | null {
-  return value instanceof Map ? value : null
-}
+type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
 
-/** Convert an order-preserving JSON value to the result of Python str() (for printing counts / error messages) */
-function pyStrOf(value: OrderedJson | undefined): string {
-  if (value === undefined) return ''
-  if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Map)) {
-    return value.raw
-  }
-  return pyStr(JSON.parse(JSON.stringify(value, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v))))
-}
+const isRecord = (value: unknown): value is Record<string, Json> => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** OrderedJson number/string → Python int(x or 0); throws when it can't convert (exits with 1) */
-function pyIntOf(value: OrderedJson | undefined): number {
-  if (value === undefined || value === null || value === false || value === '') return 0
-  if (value === true) return 1
-  if (typeof value === 'string') return parsePyInt('counter', value)
-  if (typeof value === 'object' && 'raw' in value) return Math.trunc(Number(value.raw))
-  if (Array.isArray(value) && value.length === 0) return 0
-  if (value instanceof Map && value.size === 0) return 0
-  throw new TypeError(`int() argument must be a string or a number: ${pyStrOf(value)}`)
+/** A response value as printed text */
+function textOf(value: Json | undefined): string {
+  if (value === undefined || value === null) return ''
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }
 
 const COUNTER_KEYS = [
@@ -230,14 +203,6 @@ const COUNTER_KEYS = [
   'schemaFolderIgnored',
 ]
 
-function isTruthyJson(value: OrderedJson | undefined): boolean {
-  if (value === undefined || value === null || value === false || value === '') return false
-  if (Array.isArray(value)) return value.length > 0
-  if (value instanceof Map) return value.size > 0
-  if (typeof value === 'object') return Number(value.raw) !== 0
-  return true
-}
-
 export interface RunImportOptions {
   env?: NodeJS.ProcessEnv
   /** Test only: override the Apifox base URL */
@@ -249,7 +214,7 @@ export interface RunImportOptions {
 export async function runImport(argv: string[], options: RunImportOptions = {}): Promise<number> {
   const out = options.out ?? ((line: string) => process.stdout.write(`${line}\n`))
   const err = options.err ?? ((line: string) => process.stderr.write(`${line}\n`))
-  const usage = `usage: ${PROG} [-h] [--project-id PROJECT_ID] [--access-token ACCESS_TOKEN] ...`
+  const usage = `usage: ${PROG} [--project-id PROJECT_ID] [--access-token ACCESS_TOKEN] ...`
 
   let args: ImportArgs
   try {
@@ -273,7 +238,7 @@ export async function runImport(argv: string[], options: RunImportOptions = {}):
 
   const request = buildImportRequest(args, input, options.baseUrl)
   let statusCode: number
-  let body: OrderedJson
+  let body: Json
   try {
     const resp = await fetch(request.url, {
       method: 'POST',
@@ -284,9 +249,9 @@ export async function runImport(argv: string[], options: RunImportOptions = {}):
     statusCode = resp.status
     const text = await resp.text()
     try {
-      body = parseOrderedJson(text)
+      body = JSON.parse(text) as Json
     } catch {
-      body = new Map([['raw', text]])
+      body = { raw: text }
     }
   } catch (e) {
     err(`Request failed: ${e instanceof Error ? e.message : String(e)}`)
@@ -295,51 +260,41 @@ export async function runImport(argv: string[], options: RunImportOptions = {}):
 
   if (statusCode >= 400) {
     err(`Import failed. HTTP ${statusCode}`)
-    err(dumpIndented(body))
+    err(JSON.stringify(body, null, 2))
     return 1
   }
 
   out('Import request accepted.')
-  out(dumpIndented(body))
+  out(JSON.stringify(body, null, 2))
 
-  const bodyMap = asMap(body)
-  const data = bodyMap ? (bodyMap.has('data') ? bodyMap.get('data') : new Map()) : new Map()
-  const dataMap = asMap(data)
-  const counters = dataMap ? dataMap.get('counters') : undefined
-  const errors = dataMap ? dataMap.get('errors') : undefined
+  const data = isRecord(body) && isRecord(body.data) ? body.data : {}
+  const counters = isRecord(data.counters) ? data.counters : {}
+  const errors = Array.isArray(data.errors) ? data.errors : []
 
-  if (!isTruthyJson(counters)) {
+  if (Object.keys(counters).length === 0) {
     out('No counters returned.')
   } else {
     out('Import counters:')
-    const counterMap = asMap(counters)
-    if (counterMap) {
-      for (const key of COUNTER_KEYS) {
-        if (counterMap.has(key)) out(`  - ${key}: ${pyStrOf(counterMap.get(key))}`)
-      }
+    for (const key of COUNTER_KEYS) {
+      if (Object.hasOwn(counters, key)) out(`  - ${key}: ${textOf(counters[key])}`)
     }
   }
 
-  if (Array.isArray(errors) && errors.length > 0) {
+  if (errors.length > 0) {
     err('Import returned errors:')
     for (const item of errors) {
-      const itemMap = asMap(item)
-      const message = itemMap ? (itemMap.has('message') ? pyStrOf(itemMap.get('message')) : '') : pyStrOf(item)
-      const code = itemMap ? (itemMap.has('code') ? pyStrOf(itemMap.get('code')) : '') : ''
+      const message = isRecord(item) ? textOf(item.message) : textOf(item)
+      const code = isRecord(item) ? textOf(item.code) : ''
       err(`  - code=${code} message=${message}`)
     }
     return 2
   }
 
-  let failedCount = 0
-  const counterMap = asMap(counters)
-  if (counterMap) {
-    for (const key of ['endpointFailed', 'schemaFailed', 'endpointFolderFailed', 'schemaFolderFailed']) {
-      failedCount += pyIntOf(counterMap.get(key))
-    }
-  }
-  if (failedCount > 0) return 2
-  return 0
+  const failedCount = ['endpointFailed', 'schemaFailed', 'endpointFolderFailed', 'schemaFolderFailed'].reduce(
+    (sum, key) => sum + (Number(counters[key] ?? 0) || 0),
+    0,
+  )
+  return failedCount > 0 ? 2 : 0
 }
 
 const isMain = /[\\/]import-apifox\.(?:ts|js|mjs)$/.test(process.argv[1] ?? '')

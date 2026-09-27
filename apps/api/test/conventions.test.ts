@@ -6,9 +6,10 @@
  *    permission which ids exist. Reading the caller's own context first (the signed-in user, their data scope) is fine.
  * 2. No hand-written `new ServiceError(…, 500)`: input problems are 4xx, and real server failures go through
  *    internalError() / writeError() (common/errors.ts, common/db-errors.ts), so every 500 is recognisably one.
- * 3. No emulation of the old Python backend: request bodies are declared with common/validation.ts, not coerced by the
- *    Python-semantics helpers (common/py*.ts, sqla-bind.ts, scheduler/py-*.ts, ai-sql/pg-values.ts), and code doesn't
- *    describe itself in Python terms. The files not yet migrated are listed below; the lists only shrink.
+ * 3. No emulation of the old Python backend. The code was ported from a Python (Flask / SQLAlchemy) service and used to
+ *    replay its semantics (truthiness, `str()`, `json.dumps` formatting, `date.fromisoformat`, `urlsplit` …); all of
+ *    that was removed in 2026-09. Request bodies are declared with common/validation.ts, and neither the code nor its
+ *    comments describe themselves in terms of the Python stack.
  *
  * The first two run over the repository's modules, the backend template and what `pnpm scaffold` generates.
  */
@@ -58,21 +59,8 @@ export function handWritten500s(source: string): string[] {
   return [...source.matchAll(/new ServiceError\((?:[^()]|\([^()]*\))*?,\s*500\s*,?\s*\)/g)].map((m) => m[0].replace(/\s+/g, ' ').slice(0, 120))
 }
 
-/** Imports of the Python-semantics helpers */
-const PY_COMPAT_IMPORT = /from '(@\/common\/(py|py-values|py-date|sqla-bind|scheduler\/py-compat|scheduler\/py-json)|\.\/(py-compat|py-json|pg-values|py|py-values|py-date|sqla-bind)|\.\.\/src\/common\/py[\w-]*)'/
-
-/** Files (src/ and scripts/) still importing them, until their module is migrated (remove a file here once it no longer does) */
-const PY_COMPAT_PENDING = [
-  'scripts/import-apifox.ts',
-]
-
-/** Files still mentioning Python / Flask / SQLAlchemy */
-const PY_MENTION_PENDING = [
-  'scripts/generate-openapi.ts',
-  'scripts/import-apifox.ts',
-  'scripts/lib/ordered-json.ts',
-  'src/common/py.ts',
-]
+/** The Python stack by name: the language, its web framework and ORM, and the libraries whose behavior used to be replayed */
+const PYTHON_TERMS = /\b(python|flask|sqlalchemy|werkzeug|psycopg2?|urllib|json\.(dumps|loads)|py[A-Z]\w*)\b/i
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]
 
@@ -101,13 +89,9 @@ describe('conventions', () => {
     expect(problems, 'input problems are 4xx; server failures use internalError() / writeError()').toEqual([])
   })
 
-  it('no Python emulation: helper imports and Python / Flask / SQLAlchemy mentions only in files not yet migrated', () => {
-    const files = [...walk(SRC), ...walk(join(API_DIR, 'scripts'))].map((f) => ({ path: relative(API_DIR, f), source: readFileSync(f, 'utf8') }))
-    expect(files.filter((f) => PY_COMPAT_IMPORT.test(f.source)).map((f) => f.path).sort(), 'declare the body with common/validation.ts').toEqual(
-      PY_COMPAT_PENDING,
-    )
-    expect(files.filter((f) => /python|flask|sqlalchemy/i.test(f.source)).map((f) => f.path).sort()).toEqual(PY_MENTION_PENDING)
-    const outside: Array<[string, string]> = [
+  it('no emulation of the old Python backend (src/, scripts/, the backend template, scaffold output)', () => {
+    const sources: Array<[string, string]> = [
+      ...[...walk(SRC), ...walk(join(API_DIR, 'scripts'))].map((f): [string, string] => [relative(API_DIR, f), readFileSync(f, 'utf8')]),
       ['docs/templates/backend/schema.ts', readFileSync(join(REPO, 'docs/templates/backend/schema.ts'), 'utf8')],
       ['docs/templates/backend/service.ts', readFileSync(join(REPO, 'docs/templates/backend/service.ts'), 'utf8')],
       ...specs.flatMap((s): Array<[string, string]> => [
@@ -116,7 +100,11 @@ describe('conventions', () => {
         ['scaffold genRoutes', genRoutes(s)],
       ]),
     ]
-    expect(outside.filter(([, source]) => PY_COMPAT_IMPORT.test(source) || /python/i.test(source)).map(([name]) => name)).toEqual([])
+    const hits = sources.flatMap(([name, source]) => {
+      const m = PYTHON_TERMS.exec(source)
+      return m ? [`${name}: ${m[0]}`] : []
+    })
+    expect(hits, 'describe the behavior itself, and declare request bodies with common/validation.ts').toEqual([])
   })
 
   it('the checks themselves catch what they are for', () => {
@@ -128,5 +116,8 @@ describe('conventions', () => {
     expect(handWritten500s("throw new ServiceError('失败', 500)")).toHaveLength(1)
     expect(handWritten500s('throw new ServiceError(\n  err instanceof Error ? err.message : String(err),\n  500,\n)')).toHaveLength(1)
     expect(handWritten500s("throw new ServiceError('无权限', 403)")).toEqual([])
+    expect(PYTHON_TERMS.test('/** Python `str(x or \'\')` */')).toBe(true)
+    expect(PYTHON_TERMS.test('const v = pyTruthy(x)')).toBe(true)
+    expect(PYTHON_TERMS.test('const copy = happyPath(x)')).toBe(false)
   })
 })

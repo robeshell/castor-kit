@@ -10,7 +10,7 @@ import { ai_prompt_templates, type AiPromptTemplate } from '@/db/schema'
 export type AiPromptTemplateInsert = PgInsertValue<typeof ai_prompt_templates>
 export type AiPromptTemplateUpdate = PgUpdateSetSource<typeof ai_prompt_templates>
 
-/** json columns are written in `json.dumps` text format (`["a", "b"]`, separators include a space) */
+/** The variables list as a json column value */
 export function variablesValue(variables: string[]) {
   return sql`${JSON.stringify(variables)}::json`
 }
