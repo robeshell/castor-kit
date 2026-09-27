@@ -261,7 +261,7 @@ describe('dicts：字典项', () => {
     expect(csv.headers['content-disposition']).toBe(`attachment; filename=dict_${P}a_items.csv`)
     expect(csv.headers['content-type']).toBe('text/csv; charset=utf-8')
     expect(csv.body).toBe(
-      '﻿字典标签,字典值,标签颜色,排序,是否默认,是否启用,备注\r\n' +
+      '\uFEFF字典标签,字典值,标签颜色,排序,是否默认,是否启用,备注\r\n' +
         '乙,b,,0,否,是,\r\n' +
         '甲,a,red,2,是,是,\r\n' +
         "'=SUM(1),'-x,,9,否,否,\"备注,逗号\"\r\n",
@@ -274,7 +274,7 @@ describe('dicts：字典项', () => {
 
     const tpl = await s.inject({ url: `/api/admin/dicts/${typeId}/items/template?file_type=xls` })
     expect(tpl.headers['content-disposition']).toBe(`attachment; filename=dict_${P}a_import_template.csv`)
-    expect(tpl.body).toBe('﻿字典标签,字典值,标签颜色,排序,是否默认,是否启用,备注\r\n示例标签,sample_value,#1677ff,0,否,是,可选\r\n')
+    expect(tpl.body).toBe('\uFEFF字典标签,字典值,标签颜色,排序,是否默认,是否启用,备注\r\n示例标签,sample_value,#1677ff,0,否,是,可选\r\n')
   })
 
   it('导入：新增 + 更新（空排序沿用原值）+ 默认项互斥；旧英文表头与 xlsx', async () => {

@@ -45,7 +45,7 @@ export function extensionOf(filename: string): string {
 
 /** Display name: last path segment, no control characters, at most 255 characters (keeping the extension) */
 export function sanitizeFilename(raw: string): string {
-  const name = basename(raw.replace(/\\/g, '/')).replace(/[\x00-\x1f\x7f]/g, '').trim() || 'file'
+  const name = basename(raw.replace(/\\/g, '/')).replace(/\p{Cc}/gu, '').trim() || 'file'
   if (name.length <= 255) return name
   const ext = extensionOf(name)
   return ext && ext.length < 20 ? `${name.slice(0, 254 - ext.length)}.${ext}` : name.slice(0, 255)

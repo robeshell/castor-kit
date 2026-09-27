@@ -23,7 +23,7 @@ import {
   type Fixture,
 } from './helpers'
 
-/** Python isoformat(): no Z, and no fractional part when microseconds are 0 */
+/** API time format: UTC without an offset; the fraction has 6 digits, or is left out when it is 0 */
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/
 
 let app: FastifyInstance

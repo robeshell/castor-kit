@@ -179,7 +179,7 @@ describe('announcement', () => {
       payload: { export_mode: 'selected', ids: [b, a], fields: ['title', 'is_top', 'content', 'publish_at', 'bogus'], file_type: 'csv' },
     })
     expect(csv.headers['content-disposition']).toBe('attachment; filename=announcements_export.csv')
-    expect(csv.body).toBe(`﻿标题,是否置顶,内容,发布时间\r\n"${P}甲,""q""",是,'=cmd,2026-01-02 03:04:05\r\n${P}乙,否,,\r\n`)
+    expect(csv.body).toBe(`\uFEFF标题,是否置顶,内容,发布时间\r\n"${P}甲,""q""",是,'=cmd,2026-01-02 03:04:05\r\n${P}乙,否,,\r\n`)
 
     const xlsx = await s.inject({ method: 'POST', url: '/api/admin/announcements/export', payload: { ids: [a] } })
     expect(xlsx.headers['content-disposition']).toBe('attachment; filename=announcements_export.xlsx')
@@ -208,7 +208,7 @@ describe('announcement', () => {
     expect(x.headers['content-disposition']).toBe('attachment; filename=announcements_import_template.xlsx')
     expect((await readXlsx(x.rawPayload))[1]).toEqual(['系统维护公告', 'system', 'draft', '否', '0', '系统将于今晚进行维护，请提前保存工作。'])
     const c = await s.inject({ url: '/api/admin/announcements/template?file_type=csv' })
-    expect(c.body).toBe('﻿标题,公告类型,状态,是否置顶,排序权重,内容\r\n系统维护公告,system,draft,否,0,系统将于今晚进行维护，请提前保存工作。\r\n')
+    expect(c.body).toBe('\uFEFF标题,公告类型,状态,是否置顶,排序权重,内容\r\n系统维护公告,system,draft,否,0,系统将于今晚进行维护，请提前保存工作。\r\n')
   })
 
   it('导入：逐行提交，错误行不影响成功行，返回 200 + error_rows', async () => {

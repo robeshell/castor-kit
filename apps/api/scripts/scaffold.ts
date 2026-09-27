@@ -168,16 +168,13 @@ export function toKebab(name: string): string {
   return name.replace(/_/g, '-')
 }
 
-/** snake_case → Title Case: `_` becomes a space; a letter following a non-letter is upper-cased, the rest lower-cased */
+/** snake_case → Title Case: words split on `_`, each starting with a capital (`phone_number` → `Phone Number`) */
 export function toLabel(name: string): string {
-  let prevIsLetter = false
-  let out = ''
-  for (const ch of name.replace(/_/g, ' ')) {
-    const isLetter = ch.toLowerCase() !== ch.toUpperCase()
-    out += isLetter ? (prevIsLetter ? ch.toLowerCase() : ch.toUpperCase()) : ch
-    prevIsLetter = isLetter
-  }
-  return out
+  return name
+    .split('_')
+    .filter(Boolean)
+    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }
 
 /** Emit as a single-quoted TS string literal */

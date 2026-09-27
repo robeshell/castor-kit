@@ -112,7 +112,7 @@ describe('scaffold 纯函数', () => {
     expect(toPascal('ck_demo_customer')).toBe('CkDemoCustomer')
     expect(toKebab('customer_order')).toBe('customer-order')
     expect(toLabel('phone_number')).toBe('Phone Number')
-    expect(toLabel('name2x')).toBe('Name2X') // Python str.title()
+    expect(toLabel('name2x')).toBe('Name2x')
   })
 
   it('Webhook 事件：生成的 service 在写入后发出事件，routes 登记事件名', () => {

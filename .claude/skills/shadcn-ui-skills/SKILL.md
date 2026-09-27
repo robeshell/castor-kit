@@ -34,7 +34,7 @@ castor-kit 的前端已从 Semi Design 整体迁移到 **shadcn/ui（new-york，
    apps/web/scripts/shadcn-add.sh badge -o -y       # 覆盖已有文件（会丢掉本地改动，例如 button 的 brand 变体，先确认）
    ```
 
-   脚本起一个 python 本地中转（curl 走系统代理拉 https://ui.shadcn.com/r/…），清掉 `HTTP(S)_PROXY` 后用 `REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add …` 执行，
+   脚本起一个 Node 本地中转（curl 走系统代理拉 https://ui.shadcn.com/r/…），清掉 `HTTP(S)_PROXY` 后用 `REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add …` 执行，
    结束后关闭中转；还会把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils` 并撤掉误装的 `cn` 包。新增后 `git diff apps/web/package.json` 确认依赖变化，组件里的颜色改成语义类。
 5. **自检**：`cd apps/web && npx eslint <文件>` 零错误；`npx vite build` 通过；亮 / 暗两种主题、<768px 宽度都看一遍；`pnpm verify -- --module <name>` 的 `frontend_no_legacy_ui` 通过。
 

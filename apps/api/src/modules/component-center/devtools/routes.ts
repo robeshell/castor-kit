@@ -23,17 +23,19 @@ const NORMAL_CLOSURE = 1000
 /** Push interval (1 s) and receive timeout (30 s); exported only so tests can shorten them */
 export const WS_TIMINGS = { pushIntervalMs: 1000, receiveTimeoutMs: 30_000 }
 
-/** Get a URL's netloc (host[:port], including userinfo): after the scheme, the part between `//` and the first `/?#`; empty string when there is no `//` */
-export function urlNetloc(url: string): string {
-  // urlsplit first strips leading C0 control chars and spaces, and removes \t \r \n
-  const cleaned = url.replace(/^[\x00-\x20]+/, '').replace(/[\t\r\n]/g, '')
-  let rest = cleaned
-  const colon = cleaned.indexOf(':')
-  if (colon > 0 && /^[A-Za-z][A-Za-z0-9+.-]*$/.test(cleaned.slice(0, colon))) rest = cleaned.slice(colon + 1)
-  if (!rest.startsWith('//')) return ''
-  const body = rest.slice(2)
-  const end = body.search(/[/?#]/)
-  return end === -1 ? body : body.slice(0, end)
+/**
+ * Whether an Origin (`scheme://host[:port]`) names the same host as the Host header. Both go through the WHATWG URL
+ * parser with the Origin's scheme, so case and default ports compare equal; an Origin that isn't a URL never matches.
+ */
+export function sameHost(origin: string, host: string): boolean {
+  // A Host header is host[:port] only; anything else (path, userinfo, spaces) would be dropped by the parser
+  if (!/^[^\s/?#@\\]+$/.test(host)) return false
+  try {
+    const parsed = new URL(origin)
+    return parsed.host !== '' && parsed.host === new URL(`${parsed.protocol}//${host}`).host
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -42,7 +44,7 @@ export function urlNetloc(url: string): string {
  */
 export function originAllowed(origin: string | undefined, host: string | undefined, whitelist: string[]): boolean {
   if (!origin) return true
-  if (host && urlNetloc(origin) === host) return true
+  if (host && sameHost(origin, host)) return true
   return whitelist.includes(origin.replace(/\/+$/, ''))
 }
 

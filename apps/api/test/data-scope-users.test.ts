@@ -138,13 +138,13 @@ describe('users data scope', () => {
       url: '/api/admin/users/export',
       payload: { export_mode: 'filtered', filters: { search: P }, fields: ['username', 'dept_name'] },
     })
-    expect(filtered.body).toBe(`﻿用户名,部门\r\n${P}m_b,B\r\n`)
+    expect(filtered.body).toBe(`\uFEFF用户名,部门\r\n${P}m_b,B\r\n`)
     const selected = await s.inject({
       method: 'POST',
       url: '/api/admin/users/export',
       payload: { ids: [member.m_a, member.m_b], fields: ['username'] },
     })
-    expect(selected.body).toBe(`﻿用户名\r\n${P}m_b\r\n`)
+    expect(selected.body).toBe(`\uFEFF用户名\r\n${P}m_b\r\n`)
   })
 
   it('按部门筛选包含下级部门；超级管理员不受数据权限限制', async () => {

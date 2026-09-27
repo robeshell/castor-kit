@@ -210,7 +210,7 @@ export async function buildTable(
   let payload: Buffer
   if (fileType === 'csv') {
     const text = [safeHeaders, ...safeRows].map(csvRow).join('')
-    payload = Buffer.from(`﻿${text}`, 'utf8')
+    payload = Buffer.from(`\uFEFF${text}`, 'utf8')
   } else {
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Sheet')
