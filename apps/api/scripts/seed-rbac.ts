@@ -4,6 +4,7 @@
  * Usage:
  *   pnpm seed:rbac                    # full rebuild: truncate user_roles / role_menus / admin_users / roles / menus, then rewrite
  *   pnpm seed:rbac -- --incremental   # incremental sync: upsert menus by code + refresh super admin permissions, deletes nothing
+ *   pnpm seed:rbac -- --incremental --reset-admin-password   # also set the admin password to ADMIN_PASSWORD
  *
  * The menu tree (MENUS_DATA) is the single source of truth: add new menu/button permission entries here, then run `--incremental`.
  * IDs are fixed and must not be changed.
@@ -12,7 +13,8 @@
  * - Menus are matched by code: existing ones only get their 9 fields updated (id unchanged); missing ones are inserted with the fixed id, falling back to the sequence if that id is taken
  * - No UPDATE is issued when field values are unchanged, so updated_at stays as is
  * - After inserting, only the menus sequence is synced: setval(pg_get_serial_sequence('menus','id'), max(id)+1, false)
- * - The super admin role (super_admin) is granted all menus; the admin account is created only if missing (password from ADMIN_PASSWORD, pbkdf2:sha256 format)
+ * - The super admin role (super_admin) is granted all menus; the admin account is created only if missing (password from
+ *   ADMIN_PASSWORD, hashed by common/password.ts); --reset-admin-password also sets an existing admin's password
  * - Commit boundaries: truncate / menus / roles / account each run in their own transaction
  */
 
@@ -245,6 +247,8 @@ export interface SeedRbacOptions {
   adminPassword: string
   /** true: upsert only, never delete (--incremental) */
   incremental?: boolean
+  /** true: an existing admin account also gets adminPassword (--reset-admin-password) */
+  resetAdminPassword?: boolean
   log?: (msg: string) => void
 }
 
@@ -422,6 +426,7 @@ async function initAdminUser(
   client: Queryable,
   roleId: number,
   adminPassword: string,
+  resetPassword: boolean,
   log: (msg: string) => void,
 ): Promise<boolean> {
   log('初始化管理员账号...')
@@ -439,6 +444,12 @@ async function initAdminUser(
       created = true
       log('  创建用户: admin')
       log(`  初始密码: ${adminPassword}`)
+    } else if (resetPassword) {
+      await client.query(`UPDATE admin_users SET password_hash = $2, updated_at = ${UTC_NOW} WHERE id = $1`, [
+        userId,
+        await generatePasswordHash(adminPassword),
+      ])
+      log('  用户已存在: admin，已重置密码')
     } else {
       log('  用户已存在: admin')
     }
@@ -478,7 +489,7 @@ export async function seedRbac(options: SeedRbacOptions): Promise<SeedRbacResult
       role = await refreshSuperAdminPermissions(client, log)
       log('角色初始化完成\n')
     }
-    const adminCreated = await initAdminUser(client, role.roleId, options.adminPassword, log)
+    const adminCreated = await initAdminUser(client, role.roleId, options.adminPassword, options.resetAdminPassword ?? false, log)
 
     log('='.repeat(60))
     log('同步完成！')
@@ -502,22 +513,24 @@ export async function seedRbac(options: SeedRbacOptions): Promise<SeedRbacResult
 const isMain = /[\\/]seed-rbac\.(?:ts|js|mjs)$/.test(process.argv[1] ?? '')
 if (isMain) {
   let incremental = false
+  let resetAdminPassword = false
   try {
     const { values } = parseArgs({
       args: process.argv.slice(2).filter((arg) => arg !== '--'),
-      options: { incremental: { type: 'boolean', default: false } },
+      options: { incremental: { type: 'boolean', default: false }, 'reset-admin-password': { type: 'boolean', default: false } },
     })
     incremental = values.incremental
+    resetAdminPassword = values['reset-admin-password']
   } catch (err) {
     // Exit code 2 for argument errors
-    console.error('usage: seed-rbac [--incremental]')
+    console.error('usage: seed-rbac [--incremental] [--reset-admin-password]')
     console.error(`seed-rbac: error: ${err instanceof Error ? err.message : String(err)}`)
     process.exit(2)
   }
   const env = (process.env.NODE_ENV ?? 'development') as AppEnv
   loadEnvFiles(env)
   const config = loadConfig()
-  seedRbac({ databaseUrl: config.databaseUrl, adminPassword: config.adminPassword, incremental }).catch(
+  seedRbac({ databaseUrl: config.databaseUrl, adminPassword: config.adminPassword, incremental, resetAdminPassword }).catch(
     (err: unknown) => {
       console.error(`\n初始化失败: ${err instanceof Error ? err.message : String(err)}`)
       if (err instanceof Error && err.stack) console.error(err.stack)

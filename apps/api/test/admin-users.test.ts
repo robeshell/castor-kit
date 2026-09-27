@@ -4,16 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { checkPasswordHash } from '@/common/password'
 import type { DbHandle } from '@/db/client'
 import { admin_users, login_logs, menus, role_menus, roles, user_roles } from '@/db/schema'
-import {
-  buildTestApp,
-  cleanupFixture,
-  loginSession,
-  multipartFile,
-  openTestDb,
-  sessionCookie,
-  superAdminSession,
-  type AuthedSession,
-} from './helpers'
+import { type AuthedSession, buildTestApp, cleanupFixture, FAST_HASH, loginSession, multipartFile, openTestDb, sessionCookie, superAdminSession } from './helpers'
 
 const P = 'ck_test_u_'
 let app: FastifyInstance
@@ -175,7 +166,7 @@ async function operatorSession(name: string, codes: string[]): Promise<AuthedSes
   await handle.db.insert(role_menus).values(menuIds.map((menu_id) => ({ role_id: role!.id, menu_id })))
   const [user] = await handle.db
     .insert(admin_users)
-    .values({ username: `${P}${name}`, password_hash: await generatePasswordHash('op-pass-1', 1000) })
+    .values({ username: `${P}${name}`, password_hash: await generatePasswordHash('op-pass-1', FAST_HASH) })
     .returning()
   await handle.db.insert(user_roles).values({ user_id: user!.id, role_id: role!.id })
   return loginSession(app, `${P}${name}`, 'op-pass-1', user!.id)

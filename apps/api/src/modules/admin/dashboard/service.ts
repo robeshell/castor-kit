@@ -12,13 +12,14 @@ export class DashboardService {
     this.repo = new DashboardRepository(db)
   }
 
-  async stats() {
-    const week = await this.repo.weekLogCounts()
+  /** Counts; "today" and the week's days are dates in the caller's time zone */
+  async stats(zone: string) {
+    const week = await this.repo.weekLogCounts(zone)
     return {
       user_count: await this.repo.countUsers(),
       role_count: await this.repo.countRoles(),
       menu_count: await this.repo.countMenus(),
-      today_log_count: await this.repo.countTodayLogs(),
+      today_log_count: await this.repo.countTodayLogs(zone),
       week_log_counts: week.map((d) => d.count),
       week_labels: week.map((d) => d.label),
     }

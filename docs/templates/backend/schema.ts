@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod'
+import { formatDateTime } from '@/common/serialize'
 import { field } from '@/common/validation'
 import type { <Resource> } from '@/db/schema'
 
@@ -31,7 +32,8 @@ export const <resource>ExportBody = z.object({
 })
 
 /**
- * Export columns: a header string (value taken from the same-named field of toDict), or [header, getter] (when a conversion is needed, e.g. showing enum labels in Chinese or booleans as yes/no).
+ * Export columns: a header string (value taken from the same-named field of toDict), or [header, getter] (when a conversion is needed:
+ * enum labels, booleans as yes / no text, times through formatDateTime, which writes the caller's wall time from X-Time-Zone).
  * Field validation errors also use these headers as field names.
  */
 export type ExportColumn = string | [header: string, value: (item: <Resource>) => unknown]
@@ -40,7 +42,7 @@ export const EXPORT_FIELD_MAP: Record<string, ExportColumn> = {
   id: 'ID',
   name: '名称',
   // TODO: add other fields, e.g. status: ['状态', (item) => STATUS_LABELS[item.status ?? ''] ?? item.status]
-  created_at: '创建时间',
+  created_at: ['创建时间', (item) => formatDateTime(item.created_at)],
 }
 
 /** Display (Chinese) name of a field (taken from the export header; falls back to the field name if there is no export column) */
@@ -58,7 +60,8 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 /**
  * An import row (text cells) → the request-body shape, checked by the same declaration.
  * TODO: convert non-text cells, e.g. `if (row.sort_order !== undefined) body.sort_order = /^[+-]?\d+$/.test(row.sort_order) ? Number(row.sort_order) : row.sort_order`
- * and `body.is_active = parseYesNo(row.is_active) ?? row.is_active` (parseYesNo from @/common/validation)
+ * and `body.is_active = parseYesNo(row.is_active) ?? row.is_active` (parseYesNo from @/common/validation); a date-time cell is the
+ * importer's wall time: `body.visited_at = withZoneOffset(row.visited_at)` (common/time-zone.ts) before field.dateTime
  */
 export function rowToBody(row: Record<string, string>): Record<string, unknown> {
   return { ...row }

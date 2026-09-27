@@ -194,7 +194,6 @@ export class AuthService {
     }
 
     try {
-      // New hashes keep the existing `pbkdf2:sha256:<iterations>$<salt>$<hex>` format, compatible with hashes already stored
       await this.repo.updatePasswordHash(admin.id, await generatePasswordHash(data.new_password!))
     } catch (err) {
       throw internalError(err)

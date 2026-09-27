@@ -30,6 +30,7 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 - 带 Bearer 的请求只按 Token 认证：不读 cookie、不需要 CSRF 头、不会创建登录会话
 - **实际权限 = Token 勾选的权限 ∩ 创建人当前的权限**。超级管理员创建的 Token 也只有它勾选的权限；创建人被降权后 Token 随之收紧
 - 数据权限按创建人计算（见 [数据权限](/guide/rbac#数据权限)）
+- 响应里的时间一律是 UTC 的 ISO 8601（如 `2026-09-27T00:46:08.836078Z`）；导出文件里的时间和首页统计的日期按请求头 `X-Time-Zone`（如 `Asia/Shanghai`）计算，不传时为 UTC
 - 接口列表与参数见仓库里的 `docs/apifox-full.openapi.json`：`security` 里列了 `bearerAuth` 的接口可以用 Token 调用，只列 `cookieAuth` 的（账号安全、系统设置等）不行
 
 | 情况 | 响应 |

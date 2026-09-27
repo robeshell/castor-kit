@@ -124,7 +124,7 @@ castor-kit/
 - 反代：`trustProxy` 取一跳，`request.ip` 即真实 IP，不手动读 `X-Forwarded-For`。
 
 ### 4.2 时间与数值输出
-- 时间字段格式为 ISO 8601 / RFC 3339 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`（固定 6 位小数 + `Z`），任何标准日期库都能直接解析。列是 `timestamp`（无时区）存 UTC；`pg` 的 `timestamp`（1114）/ `date`（1082）解析器设为原样返回文本，**不经过 JS `Date`**——`Date` 只有毫秒精度。`toIso()` 把空格换成 `T`、小数秒右补 0 到 6 位、加 `Z`（见 §9）。请求里的时间（`field.dateTime`）带时区的换算成 UTC 再存，不带时区的按 UTC。前端 `@/lib/format` 按浏览器时区显示；导出文件（CSV / XLSX）里的时间是 UTC。禁止 `Date#toISOString()`。
+- 时间字段格式为 ISO 8601 / RFC 3339 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`（固定 6 位小数 + `Z`），任何标准日期库都能直接解析。列是 `timestamp`（无时区）存 UTC；`pg` 的 `timestamp`（1114）/ `date`（1082）解析器设为原样返回文本，**不经过 JS `Date`**——`Date` 只有毫秒精度。`toIso()` 把空格换成 `T`、小数秒右补 0 到 6 位、加 `Z`（见 §9）。请求里的时间（`field.dateTime`）带时区的换算成 UTC 再存，不带时区的按 UTC。前端 `@/lib/format` 按浏览器时区显示。给人看的时间按调用方时区：前端每个请求都带 `X-Time-Zone`（浏览器的 IANA 时区名，不传或无效时为 UTC），`common/time-zone.ts` 用 AsyncLocalStorage 把它带到整个请求里——导出文件（CSV / XLSX）里的时间由 `formatDateTime()` 按它输出，导入文件里不带时区的时间由 `withZoneOffset()` 按它补上偏移，首页统计的「今天」和近 7 天也按它的日期计算。禁止 `Date#toISOString()`。
 - `created_at` / `updated_at` 在库里没有 DB DEFAULT，由应用侧默认值写入：`db/schema/columns.ts` 的 `createdAt()` / `updatedAt()`（`timezone('utc', now())`）。
 - `numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里**不要** `parseFloat`；`NaN` → `null`。
 
@@ -137,7 +137,7 @@ castor-kit/
 - `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/admin/login'}`。除了会话标记，它还会加载当前用户（按请求缓存，后续权限检查不再查库）：账号已删除或 `status = 'disabled'` 时清掉会话并同样返回 401，停用因此在下一次请求就生效。停用账号在 `getCurrentAdminUser` 里视为未登录，所有权限检查都失败。
 - 当前用户每请求缓存在 `request` 上，一次查询 join `user_roles → roles → role_menus → menus`，避免 N+1。
 - 登录防爆破：基于 `login_logs` 的窗口计数（IP 维度 + 用户名维度，阈值与窗口来自系统设置 `security.login_max_failures` / `login_lockout_minutes`，可由 `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES` 锁定），成功后清零窗口内失败记录。
-- 密码哈希格式 `pbkdf2:sha256:<iterations>$<salt>$<hex_digest>`（默认 100 万次迭代，16 位字母数字 salt），`common/password.ts` 负责生成与校验；一律用**异步** `crypto.pbkdf2` + `timingSafeEqual`，同步执行会阻塞事件循环约 0.3–0.5s。
+- 密码哈希用 scrypt（`node:crypto`），存成 PHC 字符串 `$scrypt$ln=<log2 N>,r=<r>,p=<p>$<盐>$<哈希>`（盐 16 字节、哈希 32 字节，均为不带填充的 base64）。默认参数按 OWASP 建议取 N = 2^15、r = 8、p = 3（每次约 32 MiB 内存、0.1 秒）；参数写在字符串里，以后调高也不影响已有哈希的校验。`common/password.ts` 负责生成与校验，一律**异步**执行（在 libuv 线程池里跑，不阻塞事件循环），比较用 `timingSafeEqual`。忘记 admin 密码时用 `pnpm seed:rbac -- --incremental --reset-admin-password` 按 `ADMIN_PASSWORD` 重置。
 - 会话：`sessions` 表是唯一事实源（`common/session.ts`）。cookie `castor_session`（`@fastify/secure-session` 加密）只装 `{ sid, csrf_token }`；`onRequest` 钩子按 sid 加载未撤销、未过期的行到 `request.authSession`，无效则清 cookie。有效期来自系统设置 `security.session_ttl_hours`（初值 `SESSION_TTL_HOURS`），`last_seen_at` / `expires_at` 每分钟最多写一次实现滑动续期。cookie 密钥用 `hkdfSync('sha256', SECRET_KEY, '', 'castor-kit-session', 32)` 派生；属性 `HttpOnly`、`SameSite=Lax`、`Secure` 走 auto 策略。
 - 撤销：退出（当前会话）、改密码（本人其他会话）、管理员改密码 / 停用 / 删除、邮件重置密码（该用户全部会话）、强制下线（指定会话）；调度器维护任务每小时删除过期或撤销超过一天的会话与重置令牌。
 - 两步验证（`modules/admin/two-factor`）：登录密码正确后，已绑定或所在角色被要求的用户得到 `mfa_state = 'verify' | 'setup'` 的待定会话（5 分钟），`isSignedIn` 不认它；`POST /api/admin/login/two-factor` 通过后撤销待定会话、换发新会话，才记录登录成功。TOTP 密钥用 `common/secret-box.ts`（HKDF 派生、独立 info 的 AES-256-GCM）加密；`totp_last_step` 防重放；恢复码存 sha256；错误验证码写入 `login_logs` 失败记录，与密码错误共用锁定。

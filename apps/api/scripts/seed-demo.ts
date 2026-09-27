@@ -5,9 +5,10 @@
  *   pnpm seed:demo                          # password defaults to demo123456 (or DEMO_USER_PASSWORD)
  *   pnpm seed:demo -- --password <pwd>
  *   pnpm seed:demo -- --force               # allow NODE_ENV=production (e.g. a public demo site)
+ *   pnpm seed:demo -- --reset-passwords     # existing sample users also get the password
  *
  * Run after `pnpm seed:rbac` (roles are granted menus by code). Idempotent: departments / roles / users are matched by
- * code / username and updated in place; nothing is deleted, and existing users keep their passwords.
+ * code / username and updated in place; nothing is deleted, and existing users keep their passwords unless --reset-passwords.
  */
 
 import { parseArgs } from 'node:util'
@@ -68,6 +69,8 @@ export const DEMO_USERS: [string, string, string, string, boolean][] = [
 export interface SeedDemoOptions {
   databaseUrl: string
   password?: string
+  /** true: existing sample users also get the password (--reset-passwords) */
+  resetPasswords?: boolean
   log?: (line: string) => void
 }
 
@@ -122,6 +125,7 @@ async function upsertUsers(
   depts: Map<string, number>,
   roles: Map<string, number>,
   password: string,
+  resetPasswords: boolean,
 ): Promise<{ created: number; updated: number }> {
   let created = 0
   let updated = 0
@@ -140,13 +144,14 @@ async function upsertUsers(
       userId = inserted.rows[0]!.id
       created += 1
     } else {
-      // Keep the password; the email is only filled in when free (it's unique)
+      // The password is kept unless resetPasswords; the email is only filled in when free (it's unique)
       await client.query(
         `UPDATE admin_users SET nickname = $2, dept_id = $3,
            email = COALESCE(email, CASE WHEN EXISTS (SELECT 1 FROM admin_users WHERE email = $4) THEN NULL ELSE $4 END)
          WHERE id = $1`,
         [userId, nickname, deptId, email],
       )
+      if (resetPasswords) await client.query('UPDATE admin_users SET password_hash = $2 WHERE id = $1', [userId, passwordHash])
       updated += 1
     }
     await client.query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, roles.get(roleCode)!])
@@ -166,12 +171,12 @@ export async function seedDemo(options: SeedDemoOptions): Promise<SeedDemoResult
     const missing = new Set<string>()
     const depts = await upsertDepartments(client)
     const roles = await upsertRoles(client, missing)
-    const users = await upsertUsers(client, depts, roles, password)
+    const users = await upsertUsers(client, depts, roles, password, options.resetPasswords ?? false)
     await client.query('COMMIT')
 
     log(`部门 ${depts.size} 个、角色 ${roles.size} 个；新建用户 ${users.created} 个，更新 ${users.updated} 个`)
     if (missing.size > 0) log(`⚠️  以下菜单编码不存在，先运行 pnpm seed:rbac -- --incremental：${[...missing].join(', ')}`)
-    log('\n示例账号（新建账号的密码：' + password + '；已存在的账号保留原密码）：')
+    log(options.resetPasswords ? `\n示例账号（密码均为：${password}）：` : `\n示例账号（新建账号的密码：${password}；已存在的账号保留原密码）：`)
     for (const [username, nickname, deptCode, roleCode] of DEMO_USERS) {
       const dept = DEMO_DEPARTMENTS.find(([c]) => c === deptCode)![1]
       const role = DEMO_ROLES.find((r) => r.code === roleCode)!.name
@@ -195,14 +200,14 @@ export async function seedDemo(options: SeedDemoOptions): Promise<SeedDemoResult
 
 const isMain = /[\\/]seed-demo\.(?:ts|js|mjs)$/.test(process.argv[1] ?? '')
 if (isMain) {
-  let values: { password?: string; force: boolean }
+  let values: { password?: string; force: boolean; 'reset-passwords': boolean }
   try {
     ;({ values } = parseArgs({
       args: process.argv.slice(2).filter((arg) => arg !== '--'),
-      options: { password: { type: 'string' }, force: { type: 'boolean', default: false } },
+      options: { password: { type: 'string' }, force: { type: 'boolean', default: false }, 'reset-passwords': { type: 'boolean', default: false } },
     }))
   } catch (err) {
-    console.error('usage: seed-demo [--password <pwd>] [--force]')
+    console.error('usage: seed-demo [--password <pwd>] [--force] [--reset-passwords]')
     console.error(`seed-demo: error: ${err instanceof Error ? err.message : String(err)}`)
     process.exit(2)
   }
@@ -213,7 +218,11 @@ if (isMain) {
   }
   loadEnvFiles(env)
   const config = loadConfig()
-  seedDemo({ databaseUrl: config.databaseUrl, password: values.password || process.env.DEMO_USER_PASSWORD }).catch((err: unknown) => {
+  seedDemo({
+    databaseUrl: config.databaseUrl,
+    password: values.password || process.env.DEMO_USER_PASSWORD,
+    resetPasswords: values['reset-passwords'],
+  }).catch((err: unknown) => {
     console.error(`\n示例数据写入失败: ${err instanceof Error ? err.message : String(err)}`)
     process.exit(1)
   })

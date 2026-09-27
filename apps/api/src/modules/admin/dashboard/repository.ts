@@ -1,14 +1,20 @@
 /**
  * Home dashboard repository layer (read-only)
  *
- * "Today" is the UTC date, computed entirely in SQL (never via JS Date).
+ * Days are the caller's (common/time-zone.ts): "today" and the week's buckets are dates in that zone, computed in SQL.
+ * Timestamps are stored as UTC without a zone, so a row's local day is timezone(zone, timezone('utc', created_at)).
  */
 
-import { count, sql } from 'drizzle-orm'
+import { count, sql, type SQL } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
 import { admin_users, menus, operation_logs, roles } from '@/db/schema'
 
-const TODAY = sql`(timezone('utc', now()))::date`
+/** Today's date in the zone */
+const today = (zone: string) => sql`(timezone(${zone}, now()))::date`
+/** The UTC timestamp at which a local date (in the zone) starts */
+const dayStart = (zone: string, day: SQL) => sql`timezone('utc', timezone(${zone}, (${day})::timestamp))`
+/** The local date (in the zone) of a UTC timestamp column */
+const localDay = (zone: string, column: SQL | typeof operation_logs.created_at) => sql`(timezone(${zone}, timezone('utc', ${column})))::date`
 
 export class DashboardRepository {
   constructor(private readonly db: Executor) {}
@@ -28,24 +34,28 @@ export class DashboardRepository {
     return row?.n ?? 0
   }
 
-  async countTodayLogs(): Promise<number> {
+  async countTodayLogs(zone: string): Promise<number> {
     const [row] = await this.db
       .select({ n: count() })
       .from(operation_logs)
-      .where(sql`${operation_logs.created_at} >= ${TODAY}::timestamp`)
+      .where(
+        sql`${operation_logs.created_at} >= ${dayStart(zone, today(zone))} AND ${operation_logs.created_at} < ${dayStart(zone, sql`${today(zone)} + 1`)}`,
+      )
     return row?.n ?? 0
   }
 
   /** Daily operation log counts and `MM/DD` labels for the last 7 days (including today, ascending by date) */
-  async weekLogCounts(): Promise<{ label: string; count: number }[]> {
+  async weekLogCounts(zone: string): Promise<{ label: string; count: number }[]> {
+    const day = localDay(zone, operation_logs.created_at)
     const result = await this.db.execute<{ label: string; cnt: number }>(sql`
       SELECT to_char(d.day, 'MM/DD') AS label, COALESCE(c.cnt, 0)::int AS cnt
-      FROM generate_series(${TODAY} - 6, ${TODAY}, interval '1 day') AS d(day)
+      FROM generate_series(${today(zone)} - 6, ${today(zone)}, interval '1 day') AS d(day)
       LEFT JOIN (
-        SELECT date(${operation_logs.created_at}) AS day, count(*) AS cnt
+        SELECT ${day} AS day, count(*) AS cnt
         FROM ${operation_logs}
-        WHERE ${operation_logs.created_at} >= (${TODAY} - 6)::timestamp
-        GROUP BY date(${operation_logs.created_at})
+        WHERE ${operation_logs.created_at} >= ${dayStart(zone, sql`${today(zone)} - 6`)}
+          AND ${operation_logs.created_at} < ${dayStart(zone, sql`${today(zone)} + 1`)}
+        GROUP BY 1
       ) AS c ON c.day = d.day::date
       ORDER BY d.day
     `)

@@ -92,7 +92,7 @@ export function customerToDict(item: Customer) {
 
 ### 横切约定
 
-- **时间**：`timestamp` / `date` 列以文本读取，不经过 JS `Date`；输出一律用 `toIso()`，格式为 ISO 8601 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`。请求里的时间带时区的会换算成 UTC，不带时区的按 UTC 处理；前端按浏览器时区显示。禁止使用 `Date#toISOString()`（只有毫秒精度）。
+- **时间**：`timestamp` / `date` 列以文本读取，不经过 JS `Date`；输出一律用 `toIso()`，格式为 ISO 8601 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`。请求里的时间带时区的会换算成 UTC，不带时区的按 UTC 处理；前端按浏览器时区显示。导出文件、导入文件里的时间和首页统计的日期按请求头 `X-Time-Zone`（前端自动带上浏览器时区）计算：导出列用 `formatDateTime()`，导入的时间单元格先 `withZoneOffset()`。禁止使用 `Date#toISOString()`（只有毫秒精度）。
 - **数值**：`numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里不要转成数字。
 - **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由在权限检查之后 `parseBody` / `parsePatch`。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块同样如此，导入行经 `rowToBody` 转成请求体形状后走同一份声明。
 - **操作日志**：由 logs 模块注册的全局 `onResponse` 钩子统一写入 `operation_logs`，不要在 service 里手写。

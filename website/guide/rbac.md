@@ -68,7 +68,7 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 - 不能移除自己的超级管理员角色，也不能停用或删除自己
 - 最后一个启用中的超级管理员不能被停用、删除或移除角色；导入用户时同样检查
 
-真遇到超级管理员角色或 `admin` 账号出问题，运行 `pnpm seed:rbac -- --incremental`（Docker 部署时重启容器即可）：它会重建 `super_admin` 角色、重新授予全部菜单，并把 `admin` 账号重新挂到超级管理员角色上。它不会恢复其他账号的角色，也不会重置密码或启用状态。
+真遇到超级管理员角色或 `admin` 账号出问题，运行 `pnpm seed:rbac -- --incremental`（Docker 部署时重启容器即可）：它会重建 `super_admin` 角色、重新授予全部菜单，并把 `admin` 账号重新挂到超级管理员角色上。它不会恢复其他账号的角色，也不会重置密码或启用状态；需要把 `admin` 的密码重置为 `ADMIN_PASSWORD` 时加上 `--reset-admin-password`。
 
 ## 菜单的唯一事实源：seed-rbac.ts
 
