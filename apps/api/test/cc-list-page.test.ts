@@ -27,7 +27,7 @@ let app: FastifyInstance
 let handle: DbHandle
 let s: AuthedSession
 let noPerm: AuthedSession
-let instanceDir: string
+let dataDir: string
 
 async function cleanupRows() {
   await handle.db.delete(saved_queries).where(like(saved_queries.query_code, `${P}%`))
@@ -41,8 +41,8 @@ async function create(body: Record<string, unknown>) {
 
 beforeAll(async () => {
   handle = openTestDb()
-  instanceDir = mkdtempSync(join(tmpdir(), 'ck-r3-instance-'))
-  app = await buildTestApp({ instanceDir, storageLocalDir: join(instanceDir, 'uploads', 'files') })
+  dataDir = mkdtempSync(join(tmpdir(), 'ck-list-page-data-'))
+  app = await buildTestApp({ dataDir, storageLocalDir: join(dataDir, 'uploads', 'files') })
   // createFixture first cleans up all ck_test_ users, so it must run before superAdminSession
   await createFixture(handle)
   s = await superAdminSession(app, handle)
@@ -55,7 +55,7 @@ afterAll(async () => {
   await cleanupFixture(handle)
   await app.close()
   await handle.pool.end()
-  rmSync(instanceDir, { recursive: true, force: true })
+  rmSync(dataDir, { recursive: true, force: true })
 })
 
 describe('list-page 纯函数', () => {
