@@ -39,8 +39,9 @@ table names and frontend paths keep underscores.
      ```
 5. Migration: `pnpm db:generate --name add_<resource>_table` → review the SQL → `pnpm db:migrate` → confirm it hit the database with `psql -d <db> -c '\d <resource>s'`
 6. RBAC: add the menu + button permissions in `apps/api/scripts/seed-rbac.ts`, run `pnpm seed:rbac -- --incremental`
-7. Frontend: copy `docs/templates/frontend/` (`list_page` list page + `api.js`, shadcn/ui system, conventions in `docs/frontend-design-system.md`);
-   pages go in `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx`; scaffold generates a page with the same structure directly
+7. Frontend: copy `docs/templates/frontend/` (`list_page` list page `index.tsx` + `api.ts`, shadcn/ui system, conventions in `docs/frontend-design-system.md`);
+   pages go in `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`, the API file in `api/<page>.ts` (its types need the endpoints
+   documented in `docs/apifox-full.openapi.json`, then `pnpm openapi:generate`); scaffold generates a page with the same structure directly
 8. Gate: `pnpm verify -- --module <resource>` passes completely
 
 ## Conventions

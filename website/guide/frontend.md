@@ -27,7 +27,7 @@ There is no hand-written route table. `apps/web/src/App.jsx` scans every page wi
 Only menus that are active, visible and of type `menu` produce routes. Page components are lazy-loaded. If a menu exists but its file can't be found, the page area shows a "Page not configured" notice.
 
 ::: warning Page location
-Pages must live at `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx`, otherwise dynamic routing won't find them. The matching API file goes in `apps/web/src/modules/<module>/api/<page>.js`.
+Pages must live at `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx` (pages not yet converted are `index.jsx`), otherwise dynamic routing won't find them. The matching API file goes in `apps/web/src/modules/<module>/api/<page>.ts`.
 :::
 
 After adding a page, you also need to add its menu in `seed-rbac.ts`; see [Permissions (RBAC)](/guide/rbac).

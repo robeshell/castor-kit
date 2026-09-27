@@ -51,11 +51,11 @@ apps/web/src/
 │   │                       #            data-transfer/ (ImportDialog, ExportDialog), upload/, StatusBadge, EmptyState,
 │   │                       #            TreeView, CheckableTree, TreeSelect, StatCard, Panel, SegmentedTabs ...
 │   ├── hooks/              # useCrudList, useIsMobile, useDebouncedValue, useDictOptions ...
-│   └── api/request.js      # axios wrapper (CSRF, 401 redirect, response unwrap)
+│   └── api/request.ts      # axios wrapper (CSRF, 401 redirect, response unwrap); types.ts + openapi.d.ts: API types
 ├── lib/                    # utils(cn), toast, menu-icons, motion presets, format (dates / numbers), appearance, chart-theme
 ├── context/                # AuthContext, ThemeContext (html.dark), TagsViewContext
 ├── i18n/                   # i18next setup and date locales
-└── modules/**/pages/**/index.jsx   # pages (dynamically routed by import.meta.glob in App.jsx)
+└── modules/**/pages/**/index.tsx   # pages (index.jsx until converted; routed by import.meta.glob in lib/page-modules.ts)
 ```
 
 ## 4. Shared component conventions (pages must reuse them, not build their own)

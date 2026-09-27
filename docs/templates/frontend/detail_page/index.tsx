@@ -1,10 +1,14 @@
 /**
- * Detail page template (shadcn/ui: list on the left + details on the right, stacked vertically on mobile)
+ * Detail page template (shadcn/ui, TSX: list on the left + details on the right, stacked vertically on mobile)
  *
  * Replacements:
  *   - <Resource> → PascalCase resource name; <resource> → snake_case; <module> → admin or component_center
- *   - Fill in actual fields: SideItem content, DescriptionList items, EMPTY_VALUES / toFormValues, form fields
- *   - Add or remove tabs as needed (SegmentedTabs items)
+ *   - The page title placeholder (PageHeader title) → the Chinese page title (add its translations to ./locales/<lang>.json)
+ *   - Fill in actual fields: SideItem content, DescriptionList items, FormValues / EMPTY_VALUES / toFormValues, form fields
+ *   - Add or remove tabs as needed (TABS / Tab)
+ *
+ * Types: Row is the record the API returns (ApiItem, see ../list_page/api.ts for the API file); FormValues is what the
+ * form holds and submits, checked against the create / edit body.
  *
  * Reference implementation: apps/web/src/modules/component_center/pages/admin/detail_tabs_page/index.jsx
  * Design and conventions: docs/frontend-design-system.md
@@ -12,6 +16,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,26 +24,39 @@ import { formatDateTime } from '@/lib/format'
 import { stagger } from '@/lib/motion'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { createItem, deleteItem, getItems, updateItem } from '@/modules/<module>/api/<resource>'
+import { createItem, deleteItem, getItems, updateItem, type <Resource> as Row } from '@/modules/<module>/api/<resource>'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import EmptyState from '@/shared/components/EmptyState'
 import { DescriptionList, FormDialog } from '@/shared/components/FormDialog'
 import { FormInput, FormTextarea } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
-import SegmentedTabs from '@/shared/components/SegmentedTabs'
+import SegmentedTabs, { type SegmentedTabItem } from '@/shared/components/SegmentedTabs'
 import StatusBadge from '@/shared/components/StatusBadge'
 
-const TABS = [
+type Tab = 'info' | 'activity'
+const TABS: SegmentedTabItem<Tab>[] = [
   { value: 'info', label: '基本信息' },
   { value: 'activity', label: '动态' },
 ]
 
-const EMPTY_VALUES = { name: '', remark: '' }
-const toFormValues = (record) => ({ name: record.name ?? '', remark: record.remark ?? '' })
+/** What the form holds and submits (the create / edit body) */
+interface FormValues {
+  name: string
+  remark: string
+}
+
+const EMPTY_VALUES: FormValues = { name: '', remark: '' }
+const toFormValues = (record: Row): FormValues => ({ name: record.name ?? '', remark: record.remark ?? '' })
 
 // ─── Left list item ─────────────────────────────────────────────────────────
-function SideItem({ item, selected, onClick }) {
+interface SideItemProps {
+  item: Row
+  selected: boolean
+  onClick: () => void
+}
+
+function SideItem({ item, selected, onClick }: SideItemProps) {
   return (
     <motion.button
       type="button"
@@ -59,24 +77,25 @@ function SideItem({ item, selected, onClick }) {
 }
 
 export default function <Resource>Page() {
-  const [list, setList] = useState([])
-  const [selected, setSelected] = useState(null)
+  const { t } = useTranslation()
+  const [list, setList] = useState<Row[]>([])
+  const [selected, setSelected] = useState<Row | null>(null)
   const [loading, setLoading] = useState(true) // Only means the first load; on refresh keep the old list and don't flash the skeleton
-  const [tab, setTab] = useState('info')
-  const [editing, setEditing] = useState(null)
+  const [tab, setTab] = useState<Tab>('info')
+  const [editing, setEditing] = useState<Row | null>(null)
   const [formOpen, setFormOpen] = useState(false)
 
-  const form = useForm({ defaultValues: EMPTY_VALUES })
+  const form = useForm<FormValues>({ defaultValues: EMPTY_VALUES })
 
   // Use a promise chain and only setState inside callbacks (react-hooks/set-state-in-effect forbids synchronous setState in an effect)
-  const fetchList = (keepId) =>
+  const fetchList = (keepId?: number) =>
     getItems({ page: 1, per_page: 100 })
       .then((res) => {
         const items = res.items || [] // request.ts already unwraps the response; don't write res.data.items
         setList(items)
         setSelected((prev) => items.find((i) => i.id === (keepId ?? prev?.id)) ?? items[0] ?? null)
       })
-      .catch((err) => toast.apiError(err, '加载失败'))
+      .catch((err: unknown) => toast.apiError(err, '加载失败'))
       .finally(() => setLoading(false))
 
   useEffect(() => {
@@ -90,12 +109,13 @@ export default function <Resource>Page() {
   }
 
   const openEdit = () => {
+    if (!selected) return
     setEditing(selected)
     form.reset(toFormValues(selected))
     setFormOpen(true)
   }
 
-  const submit = async (values) => {
+  const submit = async (values: FormValues) => {
     try {
       if (editing) {
         await updateItem(editing.id, values)
@@ -106,7 +126,7 @@ export default function <Resource>Page() {
         const created = await createItem(values)
         toast.success('创建成功')
         setFormOpen(false)
-        fetchList(created?.id)
+        fetchList(created.id)
       }
     } catch (err) {
       toast.apiError(err, '操作失败')
@@ -115,6 +135,7 @@ export default function <Resource>Page() {
   }
 
   const remove = async () => {
+    if (!selected) return
     try {
       await deleteItem(selected.id)
       toast.success('删除成功')
@@ -133,7 +154,7 @@ export default function <Resource>Page() {
         actions={
           <Button size="sm" variant="brand" onClick={openCreate}>
             <Plus />
-            新增
+            {t('新增')}
           </Button>
         }
       />
@@ -172,18 +193,20 @@ export default function <Resource>Page() {
                   </span>
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold">{selected.name}</h2>
-                    <p className="text-muted-foreground text-xs tabular-nums">创建于 {formatDateTime(selected.created_at)}</p>
+                    <p className="text-muted-foreground text-xs tabular-nums">
+                      {t('创建于 {{time}}', { time: formatDateTime(selected.created_at) })}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={openEdit}>
                     <Pencil />
-                    编辑
+                    {t('编辑')}
                   </Button>
-                  <ConfirmAction title={`删除「${selected.name}」？`} description="删除后不可恢复。" confirmText="删除" onConfirm={remove}>
+                  <ConfirmAction title="确认删除该记录？" description="删除后不可恢复。" confirmText="删除" onConfirm={remove}>
                     <Button variant="outline" size="sm" className="text-danger hover:text-danger">
                       <Trash2 />
-                      删除
+                      {t('删除')}
                     </Button>
                   </ConfirmAction>
                 </div>

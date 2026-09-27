@@ -121,8 +121,8 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` | 表定义 + `toDict` |
 | `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts` | 后端四层 |
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | 接口基础测试（增删改查、搜索、404、导出、导入模板、导入） |
-| `apps/web/src/modules/<module>/api/<name>.js` | 前端 API 调用 |
-| 前端列表页 `index.jsx` | `admin` 域在 `pages/<name>/`，`component_center` 域在 `pages/admin/<name>_page/` |
+| `apps/web/src/modules/<module>/api/<name>.ts` | 前端 API 调用，类型来自模块的 OpenAPI 条目（行类型 `ApiItem<'/api/admin/<name-kebab>s'>`） |
+| 前端列表页 `index.tsx` | `admin` 域在 `pages/<name>/`，`component_center` 域在 `pages/admin/<name>_page/`；用公共组件的类型写成（`FormValues`、`DataTableColumn<Row>[]`） |
 | 页面 `locales/{en-US,ja-JP}.json` | 仅当页面有公共译文没覆盖的中文时生成 |
 
 `<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 是把下划线换成连字符后的资源名。
@@ -130,6 +130,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 同时自动完成：
 
 - 在 `apps/api/src/db/schema/index.ts` 和 `apps/api/src/modules/<domain-dir>/router.ts` 注册
+- 把模块的接口写进 `docs/apifox-full.openapi.json`，并据此重新生成前端 API 类型（`apps/web/src/shared/api/openapi.d.ts`）
 - 执行 `drizzle-kit generate --name <name>` 生成迁移
 
 scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `component` 值和接口路径，添加菜单时直接使用。

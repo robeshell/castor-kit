@@ -156,8 +156,9 @@ castor-kit/
 │   │       │       ├── pages/{admin,dataviz,creative,ai,editor,devtools}/
 │   │       │       └── api/
 │   │       └── shared/
-│   │           ├── api/request.js     # Axios instance (baseURL='/api', withCredentials, CSRF header)
-│   │           ├── utils/file.js      # downloadBlobFile
+│   │           ├── api/request.ts     # Axios instance (baseURL='/api', withCredentials, CSRF header)
+│   │           ├── api/openapi.d.ts   # API types generated from docs/apifox-full.openapi.json (helpers in api/types.ts)
+│   │           ├── utils/file.ts      # downloadBlobFile
 │   │           ├── hooks/             # useCrudList / useIsMobile / useDebouncedValue
 │   │           └── components/        # shared business components: PageHeader / DataTable / Filters / FormDialog / FormFields /
 │   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ ...
@@ -345,7 +346,7 @@ The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api
 
 ### Dynamic routing
 
-`apps/web/src/App.jsx` scans pages with `import.meta.glob('./modules/**/pages/**/index.jsx')`.
+`apps/web/src/App.jsx` resolves pages through `lib/page-modules.ts`, which scans them with `import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`.
 
 **Menu `component` field format:** `<module>/<subdir>/<page_name>`
 
@@ -358,20 +359,21 @@ component_center/dataviz/dashboard_page  → modules/component_center/pages/data
 ### File locations
 
 ```
-apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.jsx   ← page component
-apps/web/src/modules/<module>/api/<page_name>.ts                      ← API call layer (scaffold still writes .js until step 4)
+apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.tsx   ← page component (existing pages are index.jsx until step 5)
+apps/web/src/modules/<module>/api/<page_name>.ts                      ← API call layer
 ```
 
-Where scaffold puts pages: admin domain → `pages/<name>/index.jsx`; component_center domain → `pages/admin/<name>_page/index.jsx`.
+Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_center domain → `pages/admin/<name>_page/index.tsx`; the API file is `api/<name>.ts`.
 
 ### TypeScript (migration in progress)
 
-The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. Still JSX: `components/app` and the pages (and scaffold generates JSX pages / `.js` API files until step 4). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. Still JSX: `components/app` and the existing pages. `pnpm scaffold` generates TSX: `pages/.../index.tsx` and `api/<name>.ts`, typed like `docs/templates/frontend/` (see "Typed pages" below). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
 
 - New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
-- New component files use their layer's current extension until that layer is converted: shared components and primitives are TSX (the shadcn CLI writes TSX), pages stay JSX until step 5.
+- New component files are TSX: shared components and primitives (the shadcn CLI writes TSX) and new pages (scaffold writes `index.tsx`). Existing pages stay JSX until step 5; edit them in place.
 - Shared components are typed for the pages that will use them: `DataTable<Row>` with `DataTableColumn<Row>[]` (render values typed from `dataIndex`), FormFields generic over the react-hook-form values (`name` must be a real field), `FormDialog` / `FormSheet` over `UseFormReturn`, `TreeView` / `CheckableTree` over a `TreeNode` subtype, `MultiSelect<V>`, `SegmentedTabs<V>`. Row types come from the API files (`export type User = ApiItem<'/api/admin/users'>`). A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
 - Converting a file: rename with `git mv`, give props an exported `interface XxxProps`, keep imports extensionless (importers need no change); don't enable `checkJs`.
+- **Typed pages** (what scaffold generates, `docs/templates/frontend/list_page/`): the API file exports the row type (`export type Customer = ApiItem<'/api/admin/customers'>`, the path exactly as documented) and types every function with `ApiQuery` / `ApiBody` / `ApiResponse` (export / template return `Blob`). The page imports the row type (`type Customer as Row`) and declares `interface FormValues` field by field (str / text / date / datetime → `string`, int → `number | null`, float → `number | string | null` because decimals come back as strings, bool → `boolean`, enum → its option values `| null`, dict / file / image → `string | null`); then `useForm<FormValues>`, `const columns: DataTableColumn<Row>[]`, `useState<Row | null>` / `useState<number[]>`, and `useCrudList` infers Row from the API function. Submitting `FormValues` to `createItem` / `updateItem` is checked against the documented body, so a form that doesn't match the API fails `tsc`. No `any` and no casts at call sites: fix the OpenAPI doc (then `pnpm openapi:generate`) or the page instead. Scaffold writes the module's OpenAPI entries and regenerates `openapi.d.ts` itself, so the generated files type-check straight away.
 
 ### Calling the API
 
@@ -642,7 +644,8 @@ AI infers types from the business description; **the PM never specifies technica
 ❌ A migration generated but not applied, or declared done without confirming with psql \d
 ❌ Declaring done without passing the verify-feature gate
 ❌ New endpoints left with only the openapi:generate skeleton, or with an invented summary / fields (write them from the code per "OpenAPI writing rules")
-❌ Frontend pages not placed at modules/<module>/pages/<subdir>/<page>/index.jsx (dynamic routing won't find them)
+❌ Frontend pages not placed at modules/<module>/pages/<subdir>/<page>/index.tsx (index.jsx for pages not yet converted; dynamic routing won't find them elsewhere)
+❌ New frontend code in .jsx / .js, or `any` / type casts at call sites in a new page (type it from the API file; fix the OpenAPI doc when a type is wrong)
 ❌ Re-adding .xls support to import / export (decided: csv / xlsx only)
 ❌ Asking the PM about technical details such as route paths, permission codes or field types (AI infers them)
 ```
@@ -670,7 +673,8 @@ Step 3  Show the business preview (for the PM to confirm)
 
 Step 4  Implement
         → pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."
-          (generates db/schema + the four module files + the frontend api/page, registers router.ts and db/schema/index.ts automatically,
+          (generates db/schema + the four module files + the frontend api/<name>.ts and pages/.../index.tsx, registers router.ts and
+            db/schema/index.ts automatically, writes the module's OpenAPI entries and regenerates the frontend API types,
             and runs drizzle-kit generate --name <name> to create the migration)
         → Fill in the business logic and Chinese headers in the order db/schema → schema → repository → service → routes
         → If you change the table structure afterwards: pnpm db:generate --name <description> (note: no -- here)
@@ -703,8 +707,8 @@ Changed files:
             apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
             apps/api/src/db/schema/index.ts, apps/api/src/modules/<domain>/router.ts (registration)
             apps/api/test/<admin|cc>-<name>.test.ts (API tests, updated for the business rules)
-  Frontend: apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
-            apps/web/src/modules/<module>/api/<name>.js
+  Frontend: apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx
+            apps/web/src/modules/<module>/api/<name>.ts
   RBAC:     apps/api/scripts/seed-rbac.ts (--incremental has been run)
   Migration: apps/api/drizzle/<tag>.sql — migrated to <tag> (confirmed with psql \d <table>)
   Gate:     pnpm verify -- --module <name> all passed (including frontend + backend unit tests)

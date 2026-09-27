@@ -27,7 +27,7 @@
 ルートが生成されるのは、有効かつ表示状態で、種類が `menu` のメニューだけです。ページコンポーネントは必要に応じて遅延読み込みされます。メニューは存在するのに対応するファイルが見つからない場合、ページ領域に「ページが設定されていません」と表示されます。
 
 ::: warning ページの配置場所
-ページは必ず `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx` に置いてください。そうしないと動的ルーティングがページを見つけられません。対応する API ファイルは `apps/web/src/modules/<module>/api/<page>.js` に置きます。
+ページは必ず `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`（まだ移行していないページは `index.jsx`）に置いてください。そうしないと動的ルーティングがページを見つけられません。対応する API ファイルは `apps/web/src/modules/<module>/api/<page>.ts` に置きます。
 :::
 
 ページを追加したら、`seed-rbac.ts` にメニューも追加する必要があります。[権限（RBAC）](/ja/guide/rbac) を参照してください。

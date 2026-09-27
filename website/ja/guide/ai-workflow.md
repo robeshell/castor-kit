@@ -121,8 +121,8 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` | テーブル定義 + `toDict` |
 | `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts` | バックエンドの 4 層 |
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | API の基本テスト（CRUD、検索、404、エクスポート、インポートテンプレート、インポート） |
-| `apps/web/src/modules/<module>/api/<name>.js` | フロントエンドの API 呼び出し |
-| フロントエンドの一覧ページ `index.jsx` | `admin` ドメインは `pages/<name>/`、`component_center` ドメインは `pages/admin/<name>_page/` |
+| `apps/web/src/modules/<module>/api/<name>.ts` | フロントエンドの API 呼び出し。型はモジュールの OpenAPI エントリから（行の型は `ApiItem<'/api/admin/<name-kebab>s'>`） |
+| フロントエンドの一覧ページ `index.tsx` | `admin` ドメインは `pages/<name>/`、`component_center` ドメインは `pages/admin/<name>_page/`。共通コンポーネントの型に沿って書かれます（`FormValues`、`DataTableColumn<Row>[]`） |
 | ページの `locales/{en-US,ja-JP}.json` | 共通の翻訳でカバーされない中国語がページにある場合のみ生成 |
 
 `<domain-dir>` は `admin` または `component-center`、`<name-kebab>` はリソース名のアンダースコアをハイフンに置き換えたものです。
@@ -130,6 +130,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 あわせて次の処理も自動で行われます。
 
 - `apps/api/src/db/schema/index.ts` と `apps/api/src/modules/<domain-dir>/router.ts` への登録
+- モジュールのエンドポイントを `docs/apifox-full.openapi.json` に書き込み、そこからフロントエンドの API 型（`apps/web/src/shared/api/openapi.d.ts`）を再生成
 - `drizzle-kit generate --name <name>` の実行によるマイグレーションの生成
 
 scaffold は出力に権限コードのプレフィックス（Perm prefix）、メニューの `component` 値、API パスを表示するので、メニューを追加するときはそのまま使ってください。

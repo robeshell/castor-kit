@@ -49,8 +49,8 @@ What to infer:
 - API path (/api/admin/<resource>s, hyphens for multiple words, e.g. /api/admin/customer-orders)
 - Field names + scaffold types (str/str20/str50/str500/text/int/float/bool/date/datetime/file/image, following AGENTS.md "Field type inference"; images and attachments use image / file, which store a file ID from the file center)
 - Permission codes (admin domain system_<name>, component_center domain cc_<name>, matching the Perm prefix scaffold prints; buttons _add/_edit/_delete/_export/_import)
-- Frontend file path (admin domain modules/admin/pages/<name>/index.jsx;
-                     component_center domain modules/component_center/pages/admin/<name>_page/index.jsx)
+- Frontend file path (admin domain modules/admin/pages/<name>/index.tsx;
+                     component_center domain modules/component_center/pages/admin/<name>_page/index.tsx; API file api/<name>.ts)
 - Menu ID (an ID not used in `MENUS_DATA`, from the ID allocation ranges in AGENTS.md; button ID = menu ID × 10 + sequence number)
 - Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/admin/<name-kebab>` (consistent with the sibling pages under `管理系统` (Admin system))
 - Menu order: last among its siblings; icon: reuse a name already in the mapping table in `apps/web/src/lib/menu-icons.ts`
@@ -94,7 +94,8 @@ pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<fiel
 scaffold will:
 - Generate `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` (Drizzle table definition + toDict)
 - Generate `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts`
-- Generate the frontend `apps/web/src/modules/<module>/api/<name>.js` + page `index.jsx` (shadcn/ui system, same structure as the users page: PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog)
+- Generate the frontend `apps/web/src/modules/<module>/api/<name>.ts` + page `index.tsx` (shadcn/ui system, same structure as the users page: PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog), typed from the module's OpenAPI entries: the API file exports the row type `ApiItem<'/api/admin/<name-kebab>s'>`, the page has `interface FormValues` + `useForm<FormValues>` and `DataTableColumn<Row>[]` (AGENTS.md "TypeScript (migration in progress)")
+- Write the module's endpoints into `docs/apifox-full.openapi.json` and regenerate `apps/web/src/shared/api/openapi.d.ts` from it, so the generated frontend files type-check straight away
 - Generate basic API tests `apps/api/test/<admin|cc>-<name-kebab>.test.ts` (CRUD, list search, 404, export, import template, successful import / rollback when a required column is empty)
 - Register in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts` automatically
 - Run `drizzle-kit generate --name <name>` automatically to generate the migration SQL
@@ -132,12 +133,13 @@ Fill in the actual fields, the Chinese column headers (`EXPORT_FIELD_MAP` / `IMP
 The page scaffold generates already works; polish it for the business:
 
 - Change the title and field labels to Chinese (**no description** under the page title; see the "Copy" item in the design doc); add required and format validation to `rules` (messages matching the backend); change enum fields to `FormSelect` + a `StatusBadge` table column
+- **Types**: keep the page typed as generated (`docs/templates/frontend/list_page/` shows the pattern): a new or changed field goes into `FormValues`, `EMPTY_VALUES` / `toFormValues` and the columns; the row and body types come from the OpenAPI doc, so when you change the backend's fields update the doc and run `pnpm openapi:generate`, and `tsc` points at the page code to follow. No `any`, no casts at call sites
 - **Languages**: write UI text as Chinese source text and wire up translation per AGENTS.md "Internationalization (i18n) and code comments": strings passed to shared components are translated automatically; Chinese written directly in JSX, native element attributes and text with variables use `t()`; create `locales/en-US.json` and `locales/ja-JP.json` in the page directory for the translations; `node apps/web/scripts/i18n-scan.mjs <page directory>` must report 0 issues
 - Register English and Japanese translations for new backend error / notice messages in `apps/api/src/i18n/messages.ts` (messages with variables go in `PATTERNS`)
 - Code comments are always in English
 - Use only `@/components/ui/*`, `@/shared/components/*`, `lucide-react` and Tailwind semantic color classes; don't add other UI component libraries (antd, MUI, etc.), don't hard-code hex colors
 - Look up component usage in `.claude/skills/shadcn-ui-skills/SKILL.md`; look up the shadcn component API in the official docs (prefer the shadcn MCP when available); when a primitive is missing, run `apps/web/scripts/shadcn-add.sh <component>`
-- Self-check: `cd apps/web && npx eslint <page file>` with zero errors
+- Self-check: `cd apps/web && npx eslint <page file> && npx tsc --noEmit` with zero errors
 
 **4c. RBAC**
 
@@ -192,8 +194,8 @@ Changed files:
             apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts
             apps/api/src/db/schema/index.ts, apps/api/src/modules/<domain-dir>/router.ts (registration)
             apps/api/test/<admin|cc>-<name-kebab>.test.ts (API tests)
-  Frontend: apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
-            apps/web/src/modules/<module>/api/<name>.js
+  Frontend: apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx
+            apps/web/src/modules/<module>/api/<name>.ts
   RBAC:     apps/api/scripts/seed-rbac.ts (--incremental has been run)
   Migration: migrated to <tag> (confirmed with psql \d <name>s)
   Gate:     pnpm verify -- --module <name> all passed (including frontend and backend unit tests)

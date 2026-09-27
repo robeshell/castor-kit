@@ -30,13 +30,15 @@
  *   apps/api/src/db/schema/<domain>/<name>.ts                         table definition + toDict
  *   apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
  *   apps/api/test/<admin|cc>-<name>.test.ts                           basic API tests
- *   apps/web/src/modules/<module>/api/<name>.js
- *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.jsx   shadcn/ui list page (same structure as the users page)
+ *   apps/web/src/modules/<module>/api/<name>.ts                     typed from the module's OpenAPI entries
+ *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.tsx   shadcn/ui list page (same structure as the users page)
  *   apps/web/src/modules/<module>/pages/<subdir>/<name>/locales/{en-US,ja-JP}.json
  *                     only when the page uses fixed Chinese text that apps/web/src/locales doesn't translate
  * Auto-registration:
  *   apps/api/src/db/schema/index.ts          export * from './<domain>/<name>'
  *   apps/api/src/modules/<domain>/router.ts  import + await register<Name>Routes(app)
+ *   docs/apifox-full.openapi.json            the module's endpoints (scripts/lib/scaffold-openapi.ts), then
+ *   apps/web/src/shared/api/openapi.d.ts     regenerated from it (apps/web/scripts/api-types.mjs), so the API file's types resolve
  * Migration:
  *   drizzle-kit generate --name <name>
  *
@@ -49,7 +51,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -1154,21 +1156,26 @@ export interface FrontendFieldSpec {
   props: string
   /** useForm default value (JS literal) */
   empty: string
+  /**
+   * Type of the value in FormValues: what the form component holds (FormNumber: a number or null; the API's decimal
+   * strings stay strings until edited), which the create / edit body must accept (enum fields: their option values)
+   */
+  formType: string
 }
 
 export const FRONTEND_FIELD_MAP: Record<FrontendKind, FrontendFieldSpec> = {
-  str: { component: 'FormInput', props: '', empty: "''" },
-  text: { component: 'FormTextarea', props: '', empty: "''" },
-  int: { component: 'FormNumber', props: ' step={1}', empty: 'null' },
-  float: { component: 'FormNumber', props: ' step={0.01}', empty: 'null' },
-  bool: { component: 'FormSwitch', props: '', empty: 'false' },
-  date: { component: 'FormDate', props: '', empty: "''" },
-  datetime: { component: 'FormDateTime', props: '', empty: "''" },
-  file: { component: 'FormFileUpload', props: '', empty: 'null' },
-  image: { component: 'FormImageUpload', props: '', empty: 'null' },
+  str: { component: 'FormInput', props: '', empty: "''", formType: 'string' },
+  text: { component: 'FormTextarea', props: '', empty: "''", formType: 'string' },
+  int: { component: 'FormNumber', props: ' step={1}', empty: 'null', formType: 'number | null' },
+  float: { component: 'FormNumber', props: ' step={0.01}', empty: 'null', formType: 'number | string | null' },
+  bool: { component: 'FormSwitch', props: '', empty: 'false', formType: 'boolean' },
+  date: { component: 'FormDate', props: '', empty: "''", formType: 'string' },
+  datetime: { component: 'FormDateTime', props: '', empty: "''", formType: 'string' },
+  file: { component: 'FormFileUpload', props: '', empty: 'null', formType: 'string | null' },
+  image: { component: 'FormImageUpload', props: '', empty: 'null', formType: 'string | null' },
   // options props are added per field (fixed choices / dictionary items)
-  enum: { component: 'FormSelect', props: '', empty: 'null' },
-  dict: { component: 'FormSelect', props: '', empty: 'null' },
+  enum: { component: 'FormSelect', props: '', empty: 'null', formType: 'string | null' },
+  dict: { component: 'FormSelect', props: '', empty: 'null', formType: 'string | null' },
 }
 
 /** scaffold type → frontend field kind (str20 / str50 / str500 / unknown types all map to str) */
@@ -1238,26 +1245,45 @@ export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
   },
 }
 
+/**
+ * Frontend API file (TypeScript, in the style of apps/web/src/modules/admin/api/users.ts): parameter, body and result
+ * types come from the module's OpenAPI entries (scripts/lib/scaffold-openapi.ts, same paths), which scaffold writes into
+ * docs/apifox-full.openapi.json and turns into apps/web/src/shared/api/openapi.d.ts
+ */
 export function genFrontendApi(s: ScaffoldSpec): string {
+  const list = q(s.apiBase)
+  const item = q(`${s.apiBase}/{item_id}`)
+  const sub = (path: string) => q(`${s.apiBase}/${path}`)
   return `import request from '@/shared/api/request'
+import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types'
+
+/** A record as the API returns it (times are ISO 8601 UTC, decimals are strings) */
+export type ${s.pascal} = ApiItem<${list}>
+/** Create body (edit takes any subset of the same fields) */
+export type ${s.pascal}Body = ApiBody<${list}, 'post'>
+/** Export request: ids (none = every row), fields (none = every column), file_type */
+export type ${s.pascal}ExportBody = ApiBody<${sub('export')}, 'post'>
+/** File type of exports and the import template */
+export type ${s.pascal}FileType = NonNullable<ApiQuery<${sub('template')}>['file_type']>
 
 const BASE = '/admin/${s.kebab}s'
 
-export const getItems = (params) => request.get(BASE, { params })
-export const createItem = (data) => request.post(BASE, data)
-export const updateItem = (id, data) => request.put(\`\${BASE}/\${id}\`, data)
-export const deleteItem = (id) => request.delete(\`\${BASE}/\${id}\`)
+export const getItems = (params?: ApiQuery<${list}>) => request.get<unknown, ApiResponse<${list}>>(BASE, { params })
+export const createItem = (data: ${s.pascal}Body) => request.post<unknown, ApiResponse<${list}, 'post'>>(BASE, data)
+export const updateItem = (id: number, data: ApiBody<${item}, 'put'>) =>
+  request.put<unknown, ApiResponse<${item}, 'put'>>(\`\${BASE}/\${id}\`, data)
+export const deleteItem = (id: number) => request.delete<unknown, ApiResponse<${item}, 'delete'>>(\`\${BASE}/\${id}\`)
 
-export const exportItems = (data) =>
-  request.post(\`\${BASE}/export\`, data, { responseType: 'blob' })
+export const exportItems = (data: ${s.pascal}ExportBody) =>
+  request.post<unknown, Blob>(\`\${BASE}/export\`, data, { responseType: 'blob' })
 
-export const downloadTemplate = (fileType = 'xlsx') =>
-  request.get(\`\${BASE}/template\`, { params: { file_type: fileType }, responseType: 'blob' })
+export const downloadTemplate = (fileType: ${s.pascal}FileType = 'xlsx') =>
+  request.get<unknown, Blob>(\`\${BASE}/template\`, { params: { file_type: fileType }, responseType: 'blob' })
 
-export const importItems = (file) => {
+export const importItems = (file: Blob) => {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post(\`\${BASE}/import\`, formData, {
+  return request.post<unknown, ApiResponse<${sub('import')}, 'post'>>(\`\${BASE}/import\`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
@@ -1348,6 +1374,11 @@ export function genFrontendPage(s: ScaffoldSpec): string {
     if (fallback === null) return FRONTEND_FIELD_MAP[kind].empty
     return fieldSpec(type).kind === 'decimal' ? String(Number(s.meta[f]?.default)) : fallback
   }
+  /** FormValues type of a field: an enum with options holds one of their values */
+  const formTypeOf = (f: string, kind: FrontendKind) => {
+    const options = s.meta[f]?.options ?? []
+    return kind === 'enum' && options.length ? `${options.map((o) => q(o.value)).join(' | ')} | null` : FRONTEND_FIELD_MAP[kind].formType
+  }
 
   // Import only the components in use (apps/web's eslint enables no-unused-vars)
   const formComponents = [...new Set(fields.map(([, kind]) => FRONTEND_FIELD_MAP[kind].component))].sort()
@@ -1360,6 +1391,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
     ...s.exportFields.map(([f]) => `  { label: ${q(labelOf(s, f))}, value: ${q(f)} },`),
     "  { label: '创建时间', value: 'created_at' },",
   ]
+  const formTypeLines = fields.map(([f, kind]) => `  ${key(f)}: ${formTypeOf(f, kind)}`)
   const emptyLines = fields.map(([f, kind]) => `  ${key(f)}: ${emptyOf(f, kind)},`)
   const toFormLines = fields.map(([f, kind]) => `  ${key(f)}: ${formValueExpr(f, kind)},`)
   const formLines = fields.map(([f, kind]) => {
@@ -1412,6 +1444,10 @@ export function genFrontendPage(s: ScaffoldSpec): string {
  * -> ImportDialog / ExportDialog. Without a --spec file the title and field labels are English placeholders: replace
  * them with Chinese for the business and add required checks in rules.
  *
+ * Types: Row is the record the API returns (ApiItem of the module's OpenAPI entry, see ./api); FormValues is what the
+ * form holds and submits, checked against the create / edit body. Change a field in the OpenAPI doc
+ * (docs/apifox-full.openapi.json, then \`pnpm openapi:generate\`) and tsc points at the page code to update.
+ *
  * i18n: Chinese source text is the key. Strings passed to shared components (PageHeader, DataTable columns,
  * FormDialog, FormFields, ExportDialog, toast, ...) are translated inside them; text written in JSX, native
  * attributes and interpolated strings go through t() / <Trans>. Shared CRUD strings are translated in
@@ -1433,10 +1469,13 @@ import {
   getItems,
   importItems,
   updateItem,
+  type ${s.pascal} as Row,
+  type ${s.pascal}ExportBody,
+  type ${s.pascal}FileType,
 } from '@/modules/${s.webModule}/api/${s.name}'
 import ConfirmAction from '@/shared/components/ConfirmAction'
-import DataTable from '@/shared/components/DataTable'
-import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
+import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
+import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
 import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
 import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
@@ -1447,27 +1486,35 @@ ${dictCodes.length ? "import { dictLabel, useDictOptions } from '@/shared/hooks/
 
 const EXPORT_FIELDS = [
 ${exportFields.join('\n')}
-]
-const normalizeFileType = (raw) => (['csv', 'xlsx'].includes(raw) ? raw : 'xlsx')
+] as const satisfies readonly ExportFieldOption[]
+/** Export column names (the values the export body accepts) */
+type ExportField = (typeof EXPORT_FIELDS)[number]['value']
+const isExportField = (value: string): value is ExportField => EXPORT_FIELDS.some((o) => o.value === value)
+const normalizeFileType = (raw: string): ${s.pascal}FileType => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
 ${
   enumFields.length
     ? `
 /** Choices of the enum fields: the value is stored, the label is shown */
-const FIELD_OPTIONS = {
+const FIELD_OPTIONS: Record<${enumFields.map(q).join(' | ')}, { value: string; label: string }[]> = {
 ${enumFields
   .map((f) => `  ${key(f)}: [${(s.meta[f]?.options ?? []).map((o) => `{ value: ${q(o.value)}, label: ${q(o.label)} }`).join(', ')}],`)
   .join('\n')}
 }
-const optionLabel = (field, value) => FIELD_OPTIONS[field]?.find((o) => o.value === value)?.label
+const optionLabel = (field: keyof typeof FIELD_OPTIONS, value: string | null) => FIELD_OPTIONS[field].find((o) => o.value === value)?.label
 `
     : ''
 }${dictCodes.length ? `\n/** Dictionaries used by dict fields (System → Configuration → Data dictionary) */\nconst DICT_CODES = [${dictCodes.map(q).join(', ')}]\n` : ''}
-const EMPTY_VALUES = {
+/** What the form holds and submits (the create / edit body) */
+interface FormValues {
+${formTypeLines.join('\n')}
+}
+
+const EMPTY_VALUES: FormValues = {
 ${emptyLines.join('\n')}
 }
 
 /** Edit: take only the form fields (id / created_at are not sent back); dates converted to the picker format */
-const toFormValues = (record) => ({
+const toFormValues = (record: Row): FormValues => ({
 ${toFormLines.join('\n')}
 })
 
@@ -1475,7 +1522,7 @@ export default function ${s.pascal}Page() {
   const { t } = useTranslation()
   const list = useCrudList(
     (params) =>
-      getItems(params).catch((err) => {
+      getItems(params).catch((err: unknown) => {
         toast.apiError(err, '加载失败')
         return { items: [], total: 0 }
       }),
@@ -1483,13 +1530,13 @@ export default function ${s.pascal}Page() {
   )
   const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
   const [search, setSearch] = useState('')
-  const [selectedKeys, setSelectedKeys] = useState([])
-  const [editing, setEditing] = useState(null)
+  const [selectedKeys, setSelectedKeys] = useState<number[]>([])
+  const [editing, setEditing] = useState<Row | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
 
-  const form = useForm({ defaultValues: EMPTY_VALUES })
+  const form = useForm<FormValues>({ defaultValues: EMPTY_VALUES })
 ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
   useEffect(() => {
     fetchData()
@@ -1502,13 +1549,13 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     setFormOpen(true)
   }
 
-  const openEdit = (record) => {
+  const openEdit = (record: Row) => {
     setEditing(record)
     form.reset(toFormValues(record))
     setFormOpen(true)
   }
 
-  const submit = async (values) => {
+  const submit = async (values: FormValues) => {
     try {
       if (editing) {
         await updateItem(editing.id, values)
@@ -1525,7 +1572,7 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     }
   }
 
-  const remove = async (record) => {
+  const remove = async (record: Row) => {
     try {
       await deleteItem(record.id)
       toast.success('删除成功')
@@ -1547,9 +1594,9 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     list.handleReset()
   }
 
-  const handleExport = async ({ fields, fileType }) => {
+  const handleExport = async ({ fields, fileType }: ExportParams) => {
     const type = normalizeFileType(fileType)
-    const payload = { fields, file_type: type }
+    const payload: ${s.pascal}ExportBody = { fields: fields.filter(isExportField), file_type: type }
     if (selectedKeys.length) payload.ids = selectedKeys
     try {
       const blob = await exportItems(payload)
@@ -1561,7 +1608,7 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     }
   }
 
-  const columns = [
+  const columns: DataTableColumn<Row>[] = [
 ${columns.join('\n')}
   ]
 
@@ -1662,7 +1709,7 @@ ${formLines.join('\n')}
               downloadBlobFile(blob, \`${k}s_import_template.\${normalizeFileType(fileType)}\`)
               toast.success('模板已下载')
             })
-            .catch((err) => toast.apiError(err, '模板下载失败'))
+            .catch((err: unknown) => toast.apiError(err, '模板下载失败'))
         }
         onImport={(file) => importItems(file)}
         onImported={(res) => {
@@ -1848,22 +1895,24 @@ function writeFile(ctx: WriteContext, path: string, content: string): void {
   ctx.log(`  [create] ${rel}`)
 }
 
-function updateFile(ctx: WriteContext, path: string, transform: (content: string) => string | null): void {
+/** Rewrite a registration file; returns whether it changed (in a dry run: whether it would be looked at) */
+function updateFile(ctx: WriteContext, path: string, transform: (content: string) => string | null): boolean {
   const rel = relative(ctx.root, path)
   if (!existsSync(path)) throw new Error(`Registration file not found: ${rel}`)
   if (ctx.dryRun) {
     ctx.log(`  [dry-run] would update: ${rel}`)
-    return
+    return true
   }
   const before = readFileSync(path, 'utf8')
   const next = transform(before)
   if (next === null) {
     ctx.log(`  [skip] already registered: ${rel}`)
-    return
+    return false
   }
   ctx.onChange?.({ path, before })
   writeFileSync(path, next, 'utf8')
   ctx.log(`  [update] ${rel}`)
+  return true
 }
 
 function sortKeys(obj: Record<string, string>): Record<string, string> {
@@ -2045,9 +2094,9 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   const srcDir = join(apiDir, 'src')
   const moduleDir = join(srcDir, 'modules', s.domainDir, s.kebab)
   const feBase = join(root, 'apps', 'web', 'src', 'modules', s.webModule)
-  // admin domain: pages/<name>/index.jsx; component_center domain: pages/admin/<name>_page/index.jsx
+  // admin domain: pages/<name>/index.tsx; component_center domain: pages/admin/<name>_page/index.tsx
   const fePagePath =
-    domain === 'admin' ? join(feBase, 'pages', name, 'index.jsx') : join(feBase, 'pages', 'admin', `${name}_page`, 'index.jsx')
+    domain === 'admin' ? join(feBase, 'pages', name, 'index.tsx') : join(feBase, 'pages', 'admin', `${name}_page`, 'index.tsx')
 
   log(`\n🔧 Scaffolding: ${name} (domain=${domain})`)
   log(`   Fields: [${fields.map(([f, t]) => `('${f}', '${t}')`).join(', ')}]`)
@@ -2065,7 +2114,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   writeFile(ctx, join(apiDir, 'test', testFilePath(s)), genApiTest(s))
 
   // Frontend files
-  writeFile(ctx, join(feBase, 'api', `${name}.js`), genFrontendApi(s))
+  writeFile(ctx, join(feBase, 'api', `${name}.ts`), genFrontendApi(s))
   writeFile(ctx, fePagePath, genFrontendPage(s))
   const locales = genFrontendLocales(s, readAllCatalogs(root))
   if (locales) {
@@ -2082,7 +2131,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
     updateFile(ctx, join(srcDir, 'db', 'schema', 'index.ts'), (c) => registerSchemaExport(c, s.domainDir, s.kebab))
     updateFile(ctx, join(srcDir, 'modules', s.domainDir, 'router.ts'), (c) => registerRoute(c, s.pascal, s.kebab))
     if (menu) registerModuleMenu(ctx, s, menu)
-    registerOpenApi(ctx, s)
+    if (registerOpenApi(ctx, s)) regenerateApiTypes(ctx)
   } catch (err) {
     log(`❌ ${err instanceof Error ? err.message : String(err)}`)
     return 1
@@ -2130,18 +2179,45 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
 
 /**
  * Write the module's OpenAPI entries into docs/apifox-full.openapi.json (scripts/lib/scaffold-openapi.ts), so the new
- * routes pass the document check right away; skipped when the document isn't there
+ * routes pass the document check right away; skipped when the document isn't there. Returns whether the doc changed.
  */
-function registerOpenApi(ctx: WriteContext, s: ScaffoldSpec): void {
+function registerOpenApi(ctx: WriteContext, s: ScaffoldSpec): boolean {
   const docPath = join(ctx.root, 'docs', 'apifox-full.openapi.json')
   if (!existsSync(docPath)) {
     ctx.log('  [skip] docs/apifox-full.openapi.json not found; no API docs written')
-    return
+    return false
   }
-  updateFile(ctx, docPath, (content) => {
+  return updateFile(ctx, docPath, (content) => {
     const next = applyScaffoldOpenApi(content, s, (field) => labelOf(s, field))
     return next === content ? null : next
   })
+}
+
+/**
+ * Regenerate the frontend's API types (apps/web/src/shared/api/openapi.d.ts) from the doc just written, so the
+ * generated API file's ApiItem<'/api/admin/<name>s'> resolves. Runs this repository's apps/web/scripts/api-types.mjs
+ * with --root, like `pnpm openapi:generate` does; skipped when the target has no apps/web.
+ */
+function regenerateApiTypes(ctx: WriteContext): void {
+  const out = join(ctx.root, 'apps', 'web', 'src', 'shared', 'api', 'openapi.d.ts')
+  const rel = relative(ctx.root, out)
+  if (!existsSync(join(ctx.root, 'apps', 'web'))) {
+    ctx.log(`  [skip] apps/web not found; ${rel} not regenerated`)
+    return
+  }
+  if (ctx.dryRun) {
+    ctx.log(`  [dry-run] would update: ${rel}`)
+    return
+  }
+  // realpath: the script runs as a CLI only when argv[1] is its own resolved path (macOS tmpdir is a symlink)
+  const script = realpathSync(join(DEFAULT_ROOT, 'apps', 'web', 'scripts', 'api-types.mjs'))
+  const before = existsSync(out) ? readFileSync(out, 'utf8') : null
+  ctx.onChange?.({ path: out, before })
+  const res = spawnSync(process.execPath, [script, '--root', ctx.root], { encoding: 'utf8' })
+  if (res.status !== 0) {
+    throw new Error(`Regenerating ${rel} failed (run pnpm openapi:generate):\n${`${res.stdout ?? ''}${res.stderr ?? ''}`.trim()}`)
+  }
+  ctx.log(`  [update] ${rel}`)
 }
 
 /** Append the module's menu + button permissions to seed-rbac.ts and its names to the menu locales */

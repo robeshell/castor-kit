@@ -8,17 +8,26 @@
  * An `{ type: 'object' }` without properties means "any keys" in JSON Schema; openapi-typescript would type it as
  * Record<string, never>, so it gets `additionalProperties: true` (→ Record<string, unknown>).
  *
- *   node scripts/api-types.mjs           write the file (also run by `pnpm openapi:generate`)
- *   node scripts/api-types.mjs --check   exit 1 if the file is out of date
+ *   node scripts/api-types.mjs                write the file (also run by `pnpm openapi:generate`)
+ *   node scripts/api-types.mjs --check        exit 1 if the file is out of date
+ *   node scripts/api-types.mjs --root <dir>   use another checkout's doc and output (`pnpm scaffold` passes its --root,
+ *                                             so a module scaffolded into a temp copy gets its types there)
  */
-import { readFileSync, writeFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import openapiTS, { astToString } from 'openapi-typescript'
 
-const WEB_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const DOC = resolve(WEB_DIR, '../../docs/apifox-full.openapi.json')
-export const OUT = resolve(WEB_DIR, 'src/shared/api/openapi.d.ts')
+/** The repository this script belongs to */
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
+
+/** The doc read and the file written for a repository root */
+export function pathsFor(root = REPO_ROOT) {
+  return { doc: resolve(root, 'docs/apifox-full.openapi.json'), out: resolve(root, 'apps/web/src/shared/api/openapi.d.ts') }
+}
+
+export const OUT = pathsFor().out
 
 function requireAll(schema) {
   if (!schema || typeof schema !== 'object') return
@@ -38,9 +47,9 @@ function openObjects(node) {
   Object.values(node).forEach(openObjects)
 }
 
-/** The generated file's content */
-export async function generate() {
-  const doc = JSON.parse(readFileSync(DOC, 'utf8'))
+/** The generated file's content (from the doc of `root`, default: this repository) */
+export async function generate(root = REPO_ROOT) {
+  const doc = JSON.parse(readFileSync(pathsFor(root).doc, 'utf8'))
   for (const operations of Object.values(doc.paths)) {
     for (const operation of Object.values(operations)) {
       for (const response of Object.values(operation?.responses ?? {})) {
@@ -54,11 +63,14 @@ export async function generate() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const content = await generate()
-  if (process.argv.includes('--check')) {
+  const { values } = parseArgs({ options: { check: { type: 'boolean', default: false }, root: { type: 'string' } } })
+  const root = values.root === undefined ? REPO_ROOT : resolve(values.root)
+  const { out } = pathsFor(root)
+  const content = await generate(root)
+  if (values.check) {
     const current = (() => {
       try {
-        return readFileSync(OUT, 'utf8')
+        return readFileSync(out, 'utf8')
       } catch {
         return ''
       }
@@ -69,7 +81,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
     console.log('✅ src/shared/api/openapi.d.ts is up to date')
   } else {
-    writeFileSync(OUT, content)
-    console.log(`✅ Wrote ${OUT.slice(WEB_DIR.length + 1)}`)
+    mkdirSync(dirname(out), { recursive: true })
+    writeFileSync(out, content)
+    console.log(`✅ Wrote ${relative(root, out)}`)
   }
 }
