@@ -9,7 +9,7 @@ import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { listPageBody, listPageExportBody, previewBody } from './schema'
 import { listFilters, ListPageService } from './service'
 
@@ -35,11 +35,12 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     return service.listItems(page, per_page, listFilters(queryFilters(request)))
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const listPageInput = routeBody(listPageBody, 'create')
+  app.post(BASE, { ...opts, ...listPageInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_list_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(listPageBody, request.body)))
+    return reply.status(201).send(await service.createItem(listPageInput.parse(request)))
   })
 
   const detailPath = `${BASE}/${intParam('item_id')}`
@@ -52,12 +53,13 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     return service.toDict(item)
   })
 
-  app.put(detailPath, opts, async (request, reply) => {
+  const listPagePatch = routeBody(listPageBody, 'patch')
+  app.put(detailPath, { ...opts, ...listPagePatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_list_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
-    return service.updateItem(item, parsePatch(listPageBody, request.body))
+    return service.updateItem(item, listPagePatch.parse(request))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -68,6 +70,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     return service.deleteItem(item)
   })
 
+  const listPageExportInput = routeBody(listPageExportBody, 'create')
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_list_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
@@ -82,10 +85,10 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
             file_type: queryString(request, 'file_type'),
           }
         : request.body
-    return sendTable(reply, await service.exportItems(parseBody(listPageExportBody, body)))
+    return sendTable(reply, await service.exportItems(listPageExportInput.parse({ body })))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
-  app.post(`${BASE}/export`, opts, exportHandler)
+  app.post(`${BASE}/export`, { ...opts, ...listPageExportInput.route }, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_list_import'))) {
@@ -101,11 +104,12 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     return service.importItems(await getUploadedFile(request))
   })
 
-  app.post(`${BASE}/run-preview`, opts, async (request, reply) => {
+  const previewInput = routeBody(previewBody, 'create')
+  app.post(`${BASE}/run-preview`, { ...opts, ...previewInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_list'))) {
       return reply.status(403).send({ error: '无权限执行数据预览' })
     }
-    return service.runPreview(parseBody(previewBody, request.body))
+    return service.runPreview(previewInput.parse(request))
   })
 
   app.get(`${BASE}/${intParam('item_id')}/versions`, opts, async (request, reply) => {

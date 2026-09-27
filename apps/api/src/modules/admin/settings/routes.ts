@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
 import { authRateLimit } from '@/common/rate-limit'
 import { requireRecentAuth } from '@/common/session'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { testBody, testMailBody, updateBody } from './schema'
 import { SettingsService } from './service'
 
@@ -25,37 +25,40 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return service.list()
   })
 
-  app.put('/api/admin/settings', opts, async (request, reply) => {
+  const updateInput = routeBody(updateBody, 'create')
+  app.put('/api/admin/settings', { ...opts, ...updateInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_settings_edit'))) {
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
     const user = await getCurrentAdminUser(request)
-    return service.update(parseBody(updateBody, request.body).values, user?.id ?? null, user?.nickname || user?.username)
+    return service.update(updateInput.parse(request).values, user?.id ?? null, user?.nickname || user?.username)
   })
 
-  app.post('/api/admin/settings/test/mail', testOpts, async (request, reply) => {
+  const testMailInput = routeBody(testMailBody, 'create')
+  app.post('/api/admin/settings/test/mail', { ...testOpts, ...testMailInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_settings_edit'))) {
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
-    const { values, to } = parseBody(testMailBody, request.body)
+    const { values, to } = testMailInput.parse(request)
     return service.testMail(values, to)
   })
 
-  app.post('/api/admin/settings/test/storage', testOpts, async (request, reply) => {
+  const testInput = routeBody(testBody, 'create')
+  app.post('/api/admin/settings/test/storage', { ...testOpts, ...testInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_settings_edit'))) {
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
-    return service.testStorage(parseBody(testBody, request.body).values)
+    return service.testStorage(testInput.parse(request).values)
   })
 
-  app.post('/api/admin/settings/test/ai', testOpts, async (request, reply) => {
+  app.post('/api/admin/settings/test/ai', { ...testOpts, ...testInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_settings_edit'))) {
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
-    return service.testAi(parseBody(testBody, request.body).values)
+    return service.testAi(testInput.parse(request).values)
   })
 }

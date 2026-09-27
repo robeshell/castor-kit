@@ -7,7 +7,7 @@
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam } from '@/common/http'
-import { parseArrayBody, parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { boardBody, boardUpdateBody, cardBody, cardUpdateBody, reorderItem } from './schema'
 import { KanbanService } from './service'
 
@@ -26,19 +26,21 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
     return service.getAllBoards()
   })
 
-  app.post(`${BASE}/boards`, opts, async (request, reply) => {
+  const boardInput = routeBody(boardBody, 'create')
+  app.post(`${BASE}/boards`, { ...opts, ...boardInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_add'))) {
       return reply.status(403).send({ error: '无权限新建列' })
     }
-    return reply.status(201).send(await service.createBoard(parseBody(boardBody, request.body)))
+    return reply.status(201).send(await service.createBoard(boardInput.parse(request)))
   })
 
-  app.put(`${BASE}/boards/${intParam('board_id')}`, opts, async (request, reply) => {
+  const boardPatch = routeBody(boardUpdateBody, 'patch')
+  app.put(`${BASE}/boards/${intParam('board_id')}`, { ...opts, ...boardPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_edit'))) {
       return reply.status(403).send({ error: '无权限编辑列' })
     }
     const board = await service.getBoardOr404(parseIntParam((request.params as { board_id: string }).board_id))
-    return service.updateBoard(board, parsePatch(boardUpdateBody, request.body))
+    return service.updateBoard(board, boardPatch.parse(request))
   })
 
   app.delete(`${BASE}/boards/${intParam('board_id')}`, opts, async (request, reply) => {
@@ -51,27 +53,30 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
 
   // ── Cards ────────────────────────────────────────────────────────────
 
-  app.put(`${BASE}/cards/reorder`, opts, async (request, reply) => {
+  const reorderItems = routeBody(reorderItem, 'array', '参数格式错误，需要数组')
+  app.put(`${BASE}/cards/reorder`, { ...opts, ...reorderItems.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_edit'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     // request.get_json() or []
-    return service.reorderCards(parseArrayBody(reorderItem, request.body, '参数格式错误，需要数组'))
+    return service.reorderCards(reorderItems.parse(request))
   })
 
-  app.post(`${BASE}/cards`, opts, async (request, reply) => {
+  const cardInput = routeBody(cardBody, 'create')
+  app.post(`${BASE}/cards`, { ...opts, ...cardInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_add'))) {
       return reply.status(403).send({ error: '无权限新建卡片' })
     }
-    return reply.status(201).send(await service.createCard(parseBody(cardBody, request.body)))
+    return reply.status(201).send(await service.createCard(cardInput.parse(request)))
   })
 
-  app.put(`${BASE}/cards/${intParam('card_id')}`, opts, async (request, reply) => {
+  const cardPatch = routeBody(cardUpdateBody, 'patch')
+  app.put(`${BASE}/cards/${intParam('card_id')}`, { ...opts, ...cardPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_kanban_edit'))) {
       return reply.status(403).send({ error: '无权限编辑卡片' })
     }
     const card = await service.getCardOr404(parseIntParam((request.params as { card_id: string }).card_id))
-    return service.updateCard(card, parsePatch(cardUpdateBody, request.body))
+    return service.updateCard(card, cardPatch.parse(request))
   })
 
   app.delete(`${BASE}/cards/${intParam('card_id')}`, opts, async (request, reply) => {

@@ -8,7 +8,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
-import { parseArrayBody, parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { parseYesNo, routeBody } from '@/common/validation'
 import { batchDeleteBody, batchUpdateBody, reorderItem, rowBody } from './schema'
 import { AdvancedTableService } from './service'
 
@@ -48,19 +48,21 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
     )
   })
 
-  app.post(`${BASE}/rows`, opts, async (request, reply) => {
+  const rowInput = routeBody(rowBody, 'create')
+  app.post(`${BASE}/rows`, { ...opts, ...rowInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(rowBody, request.body)))
+    return reply.status(201).send(await service.createItem(rowInput.parse(request)))
   })
 
-  app.put(`${BASE}/rows/${intParam('item_id')}`, opts, async (request, reply) => {
+  const rowPatch = routeBody(rowBody, 'patch')
+  app.put(`${BASE}/rows/${intParam('item_id')}`, { ...opts, ...rowPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await service.getOr404(itemId(request))
-    return service.updateItem(item, parsePatch(rowBody, request.body))
+    return service.updateItem(item, rowPatch.parse(request))
   })
 
   app.delete(`${BASE}/rows/${intParam('item_id')}`, opts, async (request, reply) => {
@@ -71,25 +73,28 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
     return service.deleteItem(item)
   })
 
-  app.put(`${BASE}/rows/reorder`, opts, async (request, reply) => {
+  const reorderItems = routeBody(reorderItem, 'array', '参数格式错误，需要数组')
+  app.put(`${BASE}/rows/reorder`, { ...opts, ...reorderItems.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_edit'))) {
       return reply.status(403).send({ error: '无权限排序' })
     }
     // request.get_json() or []
-    return service.reorderRows(parseArrayBody(reorderItem, request.body, '参数格式错误，需要数组'))
+    return service.reorderRows(reorderItems.parse(request))
   })
 
-  app.post(`${BASE}/rows/batch-update`, opts, async (request, reply) => {
+  const batchPatch = routeBody(batchUpdateBody, 'patch')
+  app.post(`${BASE}/rows/batch-update`, { ...opts, ...batchPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_edit'))) {
       return reply.status(403).send({ error: '无权限批量更新' })
     }
-    return service.batchUpdate(parsePatch(batchUpdateBody, request.body))
+    return service.batchUpdate(batchPatch.parse(request))
   })
 
-  app.post(`${BASE}/rows/batch-delete`, opts, async (request, reply) => {
+  const batchDeleteInput = routeBody(batchDeleteBody, 'create')
+  app.post(`${BASE}/rows/batch-delete`, { ...opts, ...batchDeleteInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_delete'))) {
       return reply.status(403).send({ error: '无权限批量删除' })
     }
-    return service.batchDelete(parseBody(batchDeleteBody, request.body))
+    return service.batchDelete(batchDeleteInput.parse(request))
   })
 }

@@ -12,6 +12,7 @@
  *
  * Route source: subscribe to Fastify's `fastify.initialization` diagnostics channel, attach an onRoute hook after the
  * instance is created and before any route is registered, then run buildApp() once to collect all routes (no listening, no DB connection).
+ * The hook also records each route's body declaration (routeBody puts it in the route `config`), for the body-sync rule.
  *
  * Path and merge rules:
  * - Path params are converted to standard OpenAPI form: `:user_id(^\d+$)` → `{user_id}`, wildcard `*` → `{path}`.
@@ -29,7 +30,8 @@ import { parseArgs } from 'node:util'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from '../src/app'
 import { loadConfig, loadEnvFiles, type AppConfig, type AppEnv } from '../src/config'
-import { formatLintIssues, lintOpenApi, type LintIssue } from './lib/openapi-lint'
+import type { RouteBodyDeclaration } from './lib/openapi-body-sync'
+import { formatLintIssues, lintOpenApi, type ApiRoutes, type LintIssue } from './lib/openapi-lint'
 import { formatJsonDoc, sortKeys } from './lib/json-doc'
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
@@ -63,9 +65,13 @@ export function pathShape(path: string): string {
   return path.replace(/\{[^}]*\}/g, '{}')
 }
 
-/** Collect all /api routes: OpenAPI path → sorted method list (HEAD/OPTIONS/TRACE removed) */
-export async function collectApiRoutes(config: AppConfig): Promise<Map<string, string[]>> {
+/**
+ * Collect all /api routes: OpenAPI path → sorted method list (HEAD/OPTIONS/TRACE removed), plus `bodies`: each route's
+ * body declaration ("METHOD /path" → schema and mode, from the route `config` routeBody sets)
+ */
+export async function collectApiRoutes(config: AppConfig): Promise<ApiRoutes & { bodies: Map<string, RouteBodyDeclaration> }> {
   const collected = new Map<string, Set<string>>()
+  const bodies = new Map<string, RouteBodyDeclaration>()
   const channel = diagnostics.channel('fastify.initialization')
   const onInit = (message: unknown) => {
     const { fastify } = message as { fastify: FastifyInstance }
@@ -76,7 +82,10 @@ export async function collectApiRoutes(config: AppConfig): Promise<Map<string, s
       const methods = collected.get(path) ?? new Set<string>()
       for (const method of Array.isArray(route.method) ? route.method : [route.method]) {
         const upper = String(method).toUpperCase()
-        if (!SKIP_METHODS.has(upper)) methods.add(upper)
+        if (SKIP_METHODS.has(upper)) continue
+        methods.add(upper)
+        const { body, bodyMode } = route.config ?? {}
+        if (body && bodyMode) bodies.set(`${upper} ${path}`, { schema: body, mode: bodyMode })
       }
       collected.set(path, methods)
     })
@@ -96,7 +105,7 @@ export async function collectApiRoutes(config: AppConfig): Promise<Map<string, s
     const methods = [...collected.get(path)!].sort()
     if (methods.length > 0) result.set(path, methods)
   }
-  return result
+  return Object.assign(result, { bodies })
 }
 
 // ---------------------------------------------------------------------------

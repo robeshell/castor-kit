@@ -789,7 +789,8 @@ export function genRoutes(s: ScaffoldSpec): string {
  *
  * Permission codes: ${p} (view), ${p}_add, ${p}_edit, ${p}_delete, ${p}_export, ${p}_import (import and its template)
  * Routes with an id check permissions first (403), then load the record (404), so a caller without permission can't
- * tell whether an id exists.${
+ * tell whether an id exists. JSON bodies are declared with routeBody (common/validation.ts): the schema goes on the route
+ * for the OpenAPI body check, and is parsed after the permission check.${
     ds ? '\n * Data scope: records outside the caller\'s scope are a 404, like missing ones; new records are stamped with the creator.' : ''
   }
  */
@@ -799,7 +800,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 ${ds ? `import { currentActor, resolveDataScope } from '@/common/data-scope'\n` : ''}import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { declareEvents } from '@/common/webhooks'
 import { ${s.camel}Body, ${s.camel}ExportBody } from './schema'
 import { ${s.pascal}Service } from './service'
@@ -827,11 +828,12 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
     return service.listItems(page, per_page, queryString(request, 'search').trim()${scope})
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const create = routeBody(${s.camel}Body, 'create')
+  app.post(BASE, { ...opts, ...create.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, ${q(`${p}_add`)}))) {
       return reply.status(403).send({ error: '无权限新增' })
     }
-    return reply.status(201).send(await service.createItem(parseBody(${s.camel}Body, request.body)${actor}))
+    return reply.status(201).send(await service.createItem(create.parse(request)${actor}))
   })
 
   app.get(itemPath, opts, async (request, reply) => {
@@ -842,12 +844,13 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
     return service.getItem(item)
   })
 
-  app.put(itemPath, opts, async (request, reply) => {
+  const update = routeBody(${s.camel}Body, 'patch')
+  app.put(itemPath, { ...opts, ...update.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, ${q(`${p}_edit`)}))) {
       return reply.status(403).send({ error: '无权限编辑' })
     }
     const item = await service.getOr404(itemId(request.params)${scope})
-    return service.updateItem(item, parsePatch(${s.camel}Body, request.body))
+    return service.updateItem(item, update.parse(request))
   })
 
   app.delete(itemPath, opts, async (request, reply) => {
@@ -858,11 +861,12 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
     return service.deleteItem(item)
   })
 
-  app.post(\`\${BASE}/export\`, opts, async (request, reply) => {
+  const exportRequest = routeBody(${s.camel}ExportBody, 'create')
+  app.post(\`\${BASE}/export\`, { ...opts, ...exportRequest.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, ${q(`${p}_export`)}))) {
       return reply.status(403).send({ error: '无权限导出' })
     }
-    return sendTable(reply, await service.exportItems(parseBody(${s.camel}ExportBody, request.body)${scope}))
+    return sendTable(reply, await service.exportItems(exportRequest.parse(request)${scope}))
   })
 
   app.get(\`\${BASE}/template\`, opts, async (request, reply) => {

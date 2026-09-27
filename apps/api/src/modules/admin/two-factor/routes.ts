@@ -17,7 +17,7 @@ import { authRateLimit } from '@/common/rate-limit'
 import { isSuperAdmin } from '@/common/rbac'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { attachSession, createSession, isSignedIn, markVerified, revokeSessions, type MfaState } from '@/common/session'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import type { AdminUserWithRoles } from '@/db/schema'
 import { AuthService } from '../auth/service'
 import { UserService } from '../users/service'
@@ -58,11 +58,12 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
     return { ...payload, csrf_token: ensureCsrfToken(request.session) }
   }
 
-  app.post('/api/admin/login/two-factor', { onRequest: authRateLimit(app) }, async (request) => {
+  const codeInput = routeBody(codeBody, 'create')
+  app.post('/api/admin/login/two-factor', { onRequest: authRateLimit(app), ...codeInput.route }, async (request) => {
     const user = await pendingUser(request, 'verify')
     const client = clientOf(request)
     await auth.assertNotBlocked(user.username, client.ip)
-    if (!(await service.verify(user.id, parseBody(codeBody, request.body)))) {
+    if (!(await service.verify(user.id, codeInput.parse(request)))) {
       await auth.recordSecondFactorFailure(user, client)
       throw new ServiceError('验证码错误', 400)
     }
@@ -73,11 +74,12 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
    * Re-verification before sensitive changes (common/session.ts requireRecentAuth): the password, plus a 2FA code or
    * recovery code for enrolled users. Failures count toward the sign-in lockout.
    */
-  app.post('/api/admin/reauth', { preHandler: loginRequired, onRequest: authRateLimit(app) }, async (request) => {
+  const reauthInput = routeBody(reauthBody, 'create')
+  app.post('/api/admin/reauth', { preHandler: loginRequired, onRequest: authRateLimit(app), ...reauthInput.route }, async (request) => {
     const user = (await getCurrentAdminUser(request))!
     const client = clientOf(request)
     await auth.assertNotBlocked(user.username, client.ip)
-    const body = parseBody(reauthBody, request.body)
+    const body = reauthInput.parse(request)
     if (!(await service.passwordMatches(user.id, body.password))) {
       await auth.recordSecondFactorFailure(user, client, '身份验证密码错误')
       throw new ServiceError('密码错误', 400)
@@ -101,19 +103,21 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
     return service.startSetup((await enrollingUser(request)).id)
   })
 
-  app.post('/api/admin/two-factor/enable', { preHandler: enrollGuard, onRequest: authRateLimit(app) }, async (request) => {
+  const enableInput = routeBody(enableBody, 'create')
+  app.post('/api/admin/two-factor/enable', { preHandler: enrollGuard, onRequest: authRateLimit(app), ...enableInput.route }, async (request) => {
     const user = await enrollingUser(request)
-    const { recovery_codes } = await service.enable(user.id, parseBody(enableBody, request.body))
+    const { recovery_codes } = await service.enable(user.id, enableInput.parse(request))
     if (isSignedIn(request)) return { message: '两步验证已开启', recovery_codes }
     return { ...(await completeSignIn(request, user)), recovery_codes }
   })
 
-  app.post('/api/admin/two-factor/disable', { preHandler: loginRequired }, async (request) => {
-    return service.disable((await getCurrentAdminUser(request))!, parseBody(passwordBody, request.body))
+  const passwordInput = routeBody(passwordBody, 'create')
+  app.post('/api/admin/two-factor/disable', { preHandler: loginRequired, ...passwordInput.route }, async (request) => {
+    return service.disable((await getCurrentAdminUser(request))!, passwordInput.parse(request))
   })
 
-  app.post('/api/admin/two-factor/recovery-codes', { preHandler: loginRequired }, async (request) => {
-    return service.regenerateRecoveryCodes((await getCurrentAdminUser(request))!.id, parseBody(passwordBody, request.body))
+  app.post('/api/admin/two-factor/recovery-codes', { preHandler: loginRequired, ...passwordInput.route }, async (request) => {
+    return service.regenerateRecoveryCodes((await getCurrentAdminUser(request))!.id, passwordInput.parse(request))
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}/two-factor`, { preHandler: loginRequired }, async (request, reply) => {

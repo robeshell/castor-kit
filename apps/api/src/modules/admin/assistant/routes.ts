@@ -11,7 +11,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import type { FastifyInstance } from 'fastify'
 import { loginRequired } from '@/common/auth'
 import { requestLanguage } from '@/common/i18n'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { parseChatMessages } from '@/modules/component-center/ai-chat/service'
 import { assistantChatBody } from './schema'
 import { AssistantService } from './service'
@@ -20,12 +20,13 @@ export async function registerAssistantRoutes(app: FastifyInstance): Promise<voi
   const service = new AssistantService(app)
   app.addHook('onClose', async () => service.close())
 
-  app.post('/api/admin/assistant/chat', { preHandler: loginRequired, compress: false }, async (request, reply) => {
+  const assistantChatInput = routeBody(assistantChatBody, 'create')
+  app.post('/api/admin/assistant/chat', { preHandler: loginRequired, compress: false, ...assistantChatInput.route }, async (request, reply) => {
     const settings = await app.settings.get()
     if (!app.settings.isAvailable('ai.assistant_enabled', settings)) {
       return reply.status(403).send({ error: 'AI 小助手未开启' })
     }
-    const { messages: raw, context } = parseBody(assistantChatBody, request.body)
+    const { messages: raw, context } = assistantChatInput.parse(request)
     const messages = await parseChatMessages(raw)
 
     const abort = new AbortController()

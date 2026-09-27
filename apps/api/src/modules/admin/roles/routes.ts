@@ -9,7 +9,7 @@ import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { roleBody, roleExportBody } from './schema'
 import { RoleService } from './service'
 
@@ -26,19 +26,21 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
     return service.listRoles()
   })
 
-  app.post('/api/admin/roles', opts, async (request, reply) => {
+  const roleInput = routeBody(roleBody, 'create')
+  app.post('/api/admin/roles', { ...opts, ...roleInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_roles_add'))) {
       return reply.status(403).send({ error: '无权限新增角色' })
     }
-    return reply.status(201).send(await service.createRole(parseBody(roleBody, request.body)))
+    return reply.status(201).send(await service.createRole(roleInput.parse(request)))
   })
 
-  app.put(`/api/admin/roles/${intParam('role_id')}`, opts, async (request, reply) => {
+  const rolePatch = routeBody(roleBody, 'patch')
+  app.put(`/api/admin/roles/${intParam('role_id')}`, { ...opts, ...rolePatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_roles_edit'))) {
       return reply.status(403).send({ error: '无权限编辑角色' })
     }
     const role = await service.getRoleOr404(parseIntParam((request.params as { role_id: string }).role_id))
-    return service.updateRole(role, parsePatch(roleBody, request.body))
+    return service.updateRole(role, rolePatch.parse(request))
   })
 
   app.delete(`/api/admin/roles/${intParam('role_id')}`, opts, async (request, reply) => {
@@ -49,11 +51,12 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
     return service.deleteRole(role)
   })
 
-  app.post('/api/admin/roles/export', opts, async (request, reply) => {
+  const roleExportInput = routeBody(roleExportBody, 'create')
+  app.post('/api/admin/roles/export', { ...opts, ...roleExportInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_roles_export'))) {
       return reply.status(403).send({ error: '无权限导出角色' })
     }
-    return sendTable(reply, await service.exportRoles(parseBody(roleExportBody, request.body)))
+    return sendTable(reply, await service.exportRoles(roleExportInput.parse(request)))
   })
 
   app.get('/api/admin/roles/template', opts, async (request, reply) => {

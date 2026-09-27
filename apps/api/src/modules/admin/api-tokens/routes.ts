@@ -13,7 +13,7 @@ import { resolveDataScope } from '@/common/data-scope'
 import { intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { requireRecentAuth } from '@/common/session'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { apiTokenBody } from './schema'
 import { ApiTokenService } from './service'
 
@@ -29,10 +29,11 @@ export async function registerApiTokenRoutes(app: FastifyInstance): Promise<void
 
   app.get('/api/admin/profile/api-tokens/scopes', opts, async (request) => service.scopeOptions(await me(request)))
 
-  app.post('/api/admin/profile/api-tokens', opts, async (request) => {
+  const apiTokenInput = routeBody(apiTokenBody, 'create')
+  app.post('/api/admin/profile/api-tokens', { ...opts, ...apiTokenInput.route }, async (request) => {
     // A token is a long-lived credential: minting one needs the password (and 2FA code) again
     requireRecentAuth(request)
-    return service.create(await me(request), parseBody(apiTokenBody, request.body))
+    return service.create(await me(request), apiTokenInput.parse(request))
   })
 
   app.delete(`/api/admin/profile/api-tokens/${intParam('token_id')}`, opts, async (request) => {

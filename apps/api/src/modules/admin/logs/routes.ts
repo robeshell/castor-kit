@@ -14,7 +14,7 @@ import { queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { sendTable } from '@/common/tabular'
-import { parseBody } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { loginLogExportBody, operationLogExportBody } from './schema'
 import { LogsService } from './service'
 
@@ -65,17 +65,19 @@ export async function registerLogsRoutes(app: FastifyInstance): Promise<void> {
     })
   })
 
-  app.post('/api/admin/logs/login/export', opts, async (request, reply) => {
+  const loginLogExportInput = routeBody(loginLogExportBody, 'create')
+  app.post('/api/admin/logs/login/export', { ...opts, ...loginLogExportInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_logs_export'))) {
       return reply.status(403).send({ error: '无权限导出日志' })
     }
-    return sendTable(reply, await service.exportLoginLogs(parseBody(loginLogExportBody, request.body)))
+    return sendTable(reply, await service.exportLoginLogs(loginLogExportInput.parse(request)))
   })
 
-  app.post('/api/admin/logs/operation/export', opts, async (request, reply) => {
+  const operationLogExportInput = routeBody(operationLogExportBody, 'create')
+  app.post('/api/admin/logs/operation/export', { ...opts, ...operationLogExportInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_logs_export'))) {
       return reply.status(403).send({ error: '无权限导出日志' })
     }
-    return sendTable(reply, await service.exportOperationLogs(parseBody(operationLogExportBody, request.body)))
+    return sendTable(reply, await service.exportOperationLogs(operationLogExportInput.parse(request)))
   })
 }

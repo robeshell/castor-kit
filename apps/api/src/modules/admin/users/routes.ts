@@ -10,7 +10,7 @@ import { currentUsername, getCurrentAdminUser, hasMenuPermission, loginRequired 
 import { isSuperAdmin } from '@/common/rbac'
 import { resolveDataScope } from '@/common/data-scope'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
 import { isUserStatus, profileBody, userBody, userExportBody, userStatusBody, userUpdateBody } from './schema'
@@ -48,27 +48,30 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     )
   })
 
-  app.post('/api/admin/users', opts, async (request, reply) => {
+  const userInput = routeBody(userBody, 'create')
+  app.post('/api/admin/users', { ...opts, ...userInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_users_add'))) {
       return reply.status(403).send({ error: '无权限新增用户' })
     }
-    return reply.status(201).send(await service.createUser(parseBody(userBody, request.body), await resolveDataScope(request), await callerOf(request)))
+    return reply.status(201).send(await service.createUser(userInput.parse(request), await resolveDataScope(request), await callerOf(request)))
   })
 
-  app.put(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
+  const userPatch = routeBody(userUpdateBody, 'patch')
+  app.put(`/api/admin/users/${intParam('user_id')}`, { ...opts, ...userPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_users_edit'))) {
       return reply.status(403).send({ error: '无权限编辑用户' })
     }
     const user = await scopedUserOr404(request)
-    return service.updateUser(user, parsePatch(userUpdateBody, request.body), await resolveDataScope(request), await callerOf(request))
+    return service.updateUser(user, userPatch.parse(request), await resolveDataScope(request), await callerOf(request))
   })
 
-  app.put(`/api/admin/users/${intParam('user_id')}/status`, opts, async (request, reply) => {
+  const userStatusInput = routeBody(userStatusBody, 'create')
+  app.put(`/api/admin/users/${intParam('user_id')}/status`, { ...opts, ...userStatusInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_users_status'))) {
       return reply.status(403).send({ error: '无权限启用或停用用户' })
     }
     const user = await scopedUserOr404(request)
-    return service.setUserStatus(user, parseBody(userStatusBody, request.body).status, await callerOf(request))
+    return service.setUserStatus(user, userStatusInput.parse(request).status, await callerOf(request))
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}`, opts, async (request, reply) => {
@@ -79,11 +82,12 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     return service.deleteUser(user, await callerOf(request))
   })
 
-  app.post('/api/admin/users/export', opts, async (request, reply) => {
+  const userExportInput = routeBody(userExportBody, 'create')
+  app.post('/api/admin/users/export', { ...opts, ...userExportInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_users_export'))) {
       return reply.status(403).send({ error: '无权限导出用户' })
     }
-    return sendTable(reply, await service.exportUsers(parseBody(userExportBody, request.body), await resolveDataScope(request)))
+    return sendTable(reply, await service.exportUsers(userExportInput.parse(request), await resolveDataScope(request)))
   })
 
   app.get('/api/admin/users/template', opts, async (request, reply) => {
@@ -94,9 +98,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Self-service profile: any signed-in user, own nickname / email / phone / avatar only
-  app.put('/api/admin/profile', opts, async (request) => {
+  const profilePatch = routeBody(profileBody, 'patch')
+  app.put('/api/admin/profile', { ...opts, ...profilePatch.route }, async (request) => {
     const user = await getCurrentAdminUser(request)
-    return service.updateOwnProfile(user!, parsePatch(profileBody, request.body))
+    return service.updateOwnProfile(user!, profilePatch.parse(request))
   })
 
   app.post('/api/admin/users/import', opts, async (request, reply) => {

@@ -9,7 +9,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { parseYesNo, routeBody } from '@/common/validation'
 import { cardExportBody, cardItemBody } from './schema'
 import { CardListPageService } from './service'
 
@@ -44,11 +44,12 @@ export async function registerCardListPageRoutes(app: FastifyInstance): Promise<
     })
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const cardItemInput = routeBody(cardItemBody, 'create')
+  app.post(BASE, { ...opts, ...cardItemInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_card_list_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    const [payload, status] = await service.createItem(parseBody(cardItemBody, request.body))
+    const [payload, status] = await service.createItem(cardItemInput.parse(request))
     return reply.status(status).send(payload)
   })
 
@@ -64,12 +65,13 @@ export async function registerCardListPageRoutes(app: FastifyInstance): Promise<
     return service.toDict(item)
   })
 
-  app.put(detailPath, opts, async (request, reply) => {
+  const cardItemPatch = routeBody(cardItemBody, 'patch')
+  app.put(detailPath, { ...opts, ...cardItemPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_card_list_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await loadItem(request)
-    return service.updateItem(item, parsePatch(cardItemBody, request.body))
+    return service.updateItem(item, cardItemPatch.parse(request))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -80,15 +82,16 @@ export async function registerCardListPageRoutes(app: FastifyInstance): Promise<
     return service.deleteItem(item)
   })
 
+  const cardExportInput = routeBody(cardExportBody, 'create')
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_card_list_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
     const body = request.method === 'GET' ? exportQuery(request) : request.body
-    return sendTable(reply, await service.exportItems(parseBody(cardExportBody, body)))
+    return sendTable(reply, await service.exportItems(cardExportInput.parse({ body })))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
-  app.post(`${BASE}/export`, opts, exportHandler)
+  app.post(`${BASE}/export`, { ...opts, ...cardExportInput.route }, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_card_list_import'))) {

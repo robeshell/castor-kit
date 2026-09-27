@@ -3,9 +3,13 @@
  * for a person, an external client or the AI assistant to call it without reading the code.
  *
  * Used by test/openapi-doc.test.ts (the gate), `pnpm openapi:generate -- --strict` and `pnpm verify`.
+ *
+ * When the routes come from the app (collectApiRoutes), they carry each route's body declaration (routeBody), and the
+ * documented request bodies are also checked against them (scripts/lib/openapi-body-sync.ts, rule "body-sync").
  */
 
 import { apiTokenDenied } from '../../src/common/api-token'
+import { lintBodySync, type RouteBodyDeclaration } from './openapi-body-sync'
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
 const BODY_METHODS = new Set(['post', 'put', 'patch'])
@@ -20,6 +24,12 @@ export interface LintIssue {
 }
 
 type Json = Record<string, unknown>
+
+/**
+ * Registered routes: OpenAPI path → methods. `bodies` ("METHOD /path" → the route's routeBody declaration) is there
+ * when the routes were collected from the app; a hand-made map without it skips the body-sync rule.
+ */
+export type ApiRoutes = Map<string, string[]> & { bodies?: Map<string, RouteBodyDeclaration> }
 const isObject = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v)
 const nonEmpty = (v: unknown) => isObject(v) && Object.keys(v).length > 0
 
@@ -110,7 +120,7 @@ export function lintOperation(path: string, method: string, op: Json, tagNames: 
  * Check the document against the registered routes (OpenAPI path → methods, as collectApiRoutes returns them).
  * Only /api paths are checked.
  */
-export function lintOpenApi(doc: unknown, routes: Map<string, string[]>): LintIssue[] {
+export function lintOpenApi(doc: unknown, routes: ApiRoutes): LintIssue[] {
   const issues: LintIssue[] = []
   const root = isObject(doc) ? doc : {}
   const paths = isObject(root.paths) ? root.paths : {}
@@ -156,6 +166,15 @@ export function lintOpenApi(doc: unknown, routes: Map<string, string[]>): LintIs
         issues.push({ rule: 'stale', operation: `${key.toUpperCase()} ${path}`, message: 'documented but no such route: remove it or change it to the actual path' })
       }
     }
+  }
+
+  if (routes.bodies) {
+    const operationOf = (method: string, path: string) => {
+      const entry = paths[path]
+      const op = isObject(entry) ? entry[method.toLowerCase()] : undefined
+      return isObject(op) ? op : undefined
+    }
+    for (const issue of lintBodySync(operationOf, routes.bodies)) issues.push({ rule: 'body-sync', ...issue })
   }
   return issues
 }

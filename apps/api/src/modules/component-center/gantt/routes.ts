@@ -7,7 +7,7 @@
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam, queryString } from '@/common/http'
-import { parseBody, parsePatch } from '@/common/validation'
+import { routeBody } from '@/common/validation'
 import { taskBody } from './schema'
 import { GanttService } from './service'
 
@@ -27,19 +27,21 @@ export async function registerGanttRoutes(app: FastifyInstance): Promise<void> {
     return service.getAllTasks(status, priority)
   })
 
-  app.post(`${BASE}/tasks`, opts, async (request, reply) => {
+  const taskInput = routeBody(taskBody, 'create')
+  app.post(`${BASE}/tasks`, { ...opts, ...taskInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_gantt_add'))) {
       return reply.status(403).send({ error: '无权限新建任务' })
     }
-    return reply.status(201).send(await service.createTask(parseBody(taskBody, request.body)))
+    return reply.status(201).send(await service.createTask(taskInput.parse(request)))
   })
 
-  app.put(`${BASE}/tasks/${intParam('task_id')}`, opts, async (request, reply) => {
+  const taskPatch = routeBody(taskBody, 'patch')
+  app.put(`${BASE}/tasks/${intParam('task_id')}`, { ...opts, ...taskPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_gantt_edit'))) {
       return reply.status(403).send({ error: '无权限编辑任务' })
     }
     const task = await service.getTaskOr404(taskId(request))
-    return service.updateTask(task, parsePatch(taskBody, request.body))
+    return service.updateTask(task, taskPatch.parse(request))
   })
 
   app.delete(`${BASE}/tasks/${intParam('task_id')}`, opts, async (request, reply) => {

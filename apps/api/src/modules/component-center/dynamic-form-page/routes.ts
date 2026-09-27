@@ -9,7 +9,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { parseYesNo, routeBody } from '@/common/validation'
 import { dynamicFormBody, dynamicFormExportBody, dynamicFormUpdateBody } from './schema'
 import { DynamicFormPageService } from './service'
 
@@ -44,11 +44,12 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
     })
   })
 
-  app.post(BASE, opts, async (request, reply) => {
+  const dynamicFormInput = routeBody(dynamicFormBody, 'create')
+  app.post(BASE, { ...opts, ...dynamicFormInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_dynamic_form_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    const [payload, status] = await service.createItem(parseBody(dynamicFormBody, request.body))
+    const [payload, status] = await service.createItem(dynamicFormInput.parse(request))
     return reply.status(status).send(payload)
   })
 
@@ -64,12 +65,13 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
     return service.toDictWithFields(record)
   })
 
-  app.put(detailPath, opts, async (request, reply) => {
+  const dynamicFormPatch = routeBody(dynamicFormUpdateBody, 'patch')
+  app.put(detailPath, { ...opts, ...dynamicFormPatch.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_dynamic_form_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await loadItem(request)
-    return service.updateItem(item, parsePatch(dynamicFormUpdateBody, request.body))
+    return service.updateItem(item, dynamicFormPatch.parse(request))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -80,15 +82,16 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
     return service.deleteItem(item)
   })
 
+  const dynamicFormExportInput = routeBody(dynamicFormExportBody, 'create')
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_dynamic_form_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
     const body = request.method === 'GET' ? exportQuery(request) : request.body
-    return sendTable(reply, await service.exportItems(parseBody(dynamicFormExportBody, body)))
+    return sendTable(reply, await service.exportItems(dynamicFormExportInput.parse({ body })))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
-  app.post(`${BASE}/export`, opts, exportHandler)
+  app.post(`${BASE}/export`, { ...opts, ...dynamicFormExportInput.route }, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_admin_dynamic_form_import'))) {
