@@ -21,20 +21,22 @@
 import { z } from 'zod'
 import { invalidInput, ServiceError } from './errors'
 
-const invalid = (label: string) => `${label}的值无效`
+/** 「<label>的值无效」: the message for a value of the wrong type */
+export const invalidMessage = (label: string) => `${label}的值无效`
+const invalid = invalidMessage
 
 export const field = {
   /** Required text, trimmed; missing / null / blank → `emptyMessage` */
   requiredText: (label: string, emptyMessage: string) =>
     z.preprocess((v) => v ?? '', z.string({ error: invalid(label) }).trim().min(1, { error: emptyMessage })),
 
-  /** Optional text, trimmed; missing / null → null */
+  /** Optional text, trimmed; missing / null / blank → null */
   text: (label: string) =>
     z
       .string({ error: invalid(label) })
       .trim()
       .nullish()
-      .transform((v) => v ?? null),
+      .transform((v) => v || null),
 
   /** A password or other secret: a string kept exactly as sent (no trimming); missing / null → null */
   secret: (label: string) =>
@@ -55,6 +57,14 @@ export const field = {
       .nullish()
       .transform((v) => v ?? null),
 
+  /** A number (decimals allowed, finite); missing / null → `fallback` */
+  number: (label: string, fallback: number) =>
+    z
+      .number({ error: invalid(label) })
+      .refine(Number.isFinite, { error: invalid(label) })
+      .nullish()
+      .transform((v) => v ?? fallback),
+
   /** Boolean (true / false only); missing / null → `fallback` */
   bool: (label: string, fallback: boolean) =>
     z
@@ -62,12 +72,15 @@ export const field = {
       .nullish()
       .transform((v) => v ?? fallback),
 
-  /** One of `values`; missing / null → `fallback` */
+  /** One of `values`; missing / null / '' → `fallback` */
   choice: <const T extends readonly [string, ...string[]]>(label: string, values: T, fallback: T[number], message = invalid(label)) =>
-    z
-      .enum(values, { error: message })
-      .nullish()
-      .transform((v): T[number] => v ?? fallback),
+    z.preprocess(
+      (v) => (v === '' ? null : v),
+      z
+        .enum(values, { error: message })
+        .nullish()
+        .transform((v): T[number] => v ?? fallback),
+    ),
 
   /** A calendar date `YYYY-MM-DD`; missing / null / '' → null */
   date: (label: string) =>
@@ -96,12 +109,12 @@ export const field = {
         .transform((v) => (v ? v.replace('T', ' ').replace(/Z$/, '+00:00') : null)),
     ),
 
-  /** List of strings; missing / null → [] */
+  /** List of strings, each trimmed, blanks dropped; missing / null → [] */
   textList: (label: string) =>
     z
-      .array(z.string({ error: invalid(label) }), { error: invalid(label) })
+      .array(z.string({ error: invalid(label) }).trim(), { error: invalid(label) })
       .nullish()
-      .transform((v) => v ?? []),
+      .transform((v) => (v ?? []).filter(Boolean)),
 
   /** Record id (a positive int4, the id column type); missing / null → null */
   id: (label: string) => field.optionalInt(label, { min: 1, max: INT4_MAX }),
@@ -177,6 +190,12 @@ export function parseYesNo(text: string | null | undefined, fallback: boolean | 
   if (YES.has(value)) return true
   if (NO.has(value)) return false
   return fallback
+}
+
+/** A number written as text; empty or not a number → fallback */
+export function parseNumberText(text: string | null | undefined, fallback: number): number {
+  const value = (text ?? '').trim()
+  return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(value) ? Number(value) : fallback
 }
 
 /** An integer written as text; empty or not an integer → fallback */

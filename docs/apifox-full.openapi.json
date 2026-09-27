@@ -4189,7 +4189,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "description": "发布状态（不区分大小写），缺省为 draft",
+                    "description": "发布状态，缺省为 draft",
                     "enum": [
                       "draft",
                       "published",
@@ -4211,9 +4211,9 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string"
+                      "null"
                     ],
-                    "description": "是否启用：true / false，或 \"1\" / \"0\" / \"yes\" / \"no\" / \"启用\" / \"停用\"；缺省为 true"
+                    "description": "是否启用：true / false，缺省为 true"
                   },
                   "description": {
                     "type": [
@@ -4546,11 +4546,10 @@
                       },
                       "is_active": {
                         "type": [
-                          "boolean",
                           "string",
                           "null"
                         ],
-                        "description": "启用状态：true / false，或 \"1\" / \"0\" / \"启用\" / \"停用\" 等"
+                        "description": "启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选"
                       },
                       "status": {
                         "type": "string",
@@ -5012,7 +5011,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "description": "发布状态（不区分大小写），缺省为 原值",
+                    "description": "发布状态，缺省为 原值",
                     "enum": [
                       "draft",
                       "published",
@@ -5034,9 +5033,9 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string"
+                      "null"
                     ],
-                    "description": "是否启用：true / false，或 \"1\" / \"0\" / \"yes\" / \"no\" / \"启用\" / \"停用\"；无法识别时保持原值"
+                    "description": "是否启用：true / false"
                   },
                   "description": {
                     "type": [
@@ -6403,7 +6402,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "description": "发布状态（不区分大小写），缺省为 draft",
+                    "description": "发布状态，缺省为 draft",
                     "enum": [
                       "draft",
                       "published",
@@ -6425,9 +6424,9 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string"
+                      "null"
                     ],
-                    "description": "是否启用：true / false，或 \"1\" / \"0\" / \"yes\" / \"no\" / \"启用\" / \"停用\"；缺省为 true"
+                    "description": "是否启用：true / false，缺省为 true"
                   },
                   "description": {
                     "type": [
@@ -6843,11 +6842,10 @@
                       },
                       "is_active": {
                         "type": [
-                          "boolean",
                           "string",
                           "null"
                         ],
-                        "description": "启用状态：true / false，或 \"1\" / \"0\" / \"启用\" / \"停用\" 等"
+                        "description": "启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选"
                       }
                     },
                     "description": "filtered 模式下的筛选条件"
@@ -7299,7 +7297,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "description": "发布状态（不区分大小写），缺省为 原值",
+                    "description": "发布状态，缺省为 原值",
                     "enum": [
                       "draft",
                       "published",
@@ -7321,9 +7319,9 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string"
+                      "null"
                     ],
-                    "description": "是否启用：true / false，或 \"1\" / \"0\" / \"yes\" / \"no\" / \"启用\" / \"停用\"；无法识别时保持原值"
+                    "description": "是否启用：true / false"
                   },
                   "description": {
                     "type": [
@@ -9803,13 +9801,12 @@
                   "image_urls": {
                     "type": [
                       "array",
-                      "string",
                       "null"
                     ],
                     "items": {
                       "type": "string"
                     },
-                    "description": "图片 URL 列表：数组，或 JSON 数组字符串，或用逗号 / 分号 / 换行分隔的字符串"
+                    "description": "图片 URL 列表（字符串数组，去首尾空白、丢弃空项）；为空时取 image_url"
                   },
                   "image_url": {
                     "type": [
@@ -9821,13 +9818,12 @@
                   "file_urls": {
                     "type": [
                       "array",
-                      "string",
                       "null"
                     ],
                     "items": {
                       "type": "string"
                     },
-                    "description": "附件 URL 列表，格式同 image_urls"
+                    "description": "附件 URL 列表，格式同 image_urls；为空时取 file_url"
                   },
                   "file_url": {
                     "type": [
@@ -9839,18 +9835,16 @@
                   "priority": {
                     "type": [
                       "integer",
-                      "string"
+                      "null"
                     ],
-                    "description": "优先级，无法解析为整数时取默认值（新增为 0）"
+                    "description": "优先级，缺省为 0"
                   },
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string",
-                      "integer",
                       "null"
                     ],
-                    "description": "是否启用：true/1/yes/on/是/启用 或 false/0/no/off/否/停用，其他值取默认（新增为 true）"
+                    "description": "是否启用：true / false，缺省为 true"
                   },
                   "status": {
                     "type": [
@@ -9879,10 +9873,9 @@
                   "conditions": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "条件配置 { groups: [{ name, logic }], items: [{ field, operator, value, logic }] }，也可传 JSON 字符串；缺 field / operator 的条目会被丢弃",
+                    "description": "条件配置 { groups: [{ name, logic }], items: [{ field, operator, value, logic }] }；logic 为 AND / OR；缺 field / operator 的条目会被丢弃",
                     "properties": {
                       "groups": {
                         "type": "array",
@@ -9934,18 +9927,16 @@
                   "display_config": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "展示配置（对象或 JSON 字符串，无法解析时按 {}）"
+                    "description": "展示配置（JSON 对象），缺省为 {}"
                   },
                   "permission_config": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "权限配置（对象或 JSON 字符串，无法解析时按 {}）"
+                    "description": "权限配置（JSON 对象），缺省为 {}"
                   },
                   "schema_config": {
                     "type": [
@@ -9953,7 +9944,7 @@
                       "object",
                       "null"
                     ],
-                    "description": "Schema 配置：字符串原样保存（去首尾空白），对象转成缩进 JSON 文本"
+                    "description": "Schema 配置：字符串去首尾空白后保存，对象转成缩进 JSON 文本"
                   },
                   "description": {
                     "type": [
@@ -10369,11 +10360,10 @@
                       },
                       "is_active": {
                         "type": [
-                          "boolean",
                           "string",
                           "null"
                         ],
-                        "description": "是否启用"
+                        "description": "启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选"
                       },
                       "status": {
                         "type": "string",
@@ -10414,7 +10404,7 @@
             }
           },
           "400": {
-            "description": "请求参数错误：按勾选导出但未勾选任何记录；filters 不是对象、fields 不是数组或 ids 含非数字字符串（请求参数格式不正确）"
+            "description": "请求参数错误：按勾选导出但未勾选任何记录，或参数类型不对（ids 须为整数数组、fields 须为字符串数组、filters 须为对象，返回「<字段>的值无效」）"
           },
           "401": {
             "description": "未授权"
@@ -10641,10 +10631,9 @@
                   "display_config": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "展示配置（对象或 JSON 字符串）",
+                    "description": "展示配置（JSON 对象），缺省为 {}",
                     "properties": {
                       "selected_fields": {
                         "type": "array",
@@ -10665,10 +10654,9 @@
                   "conditions": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "条件配置 { groups, items }，只用于统计条件数；格式错误返回 400"
+                    "description": "条件配置 { groups, items }，只用于统计条件数"
                   }
                 }
               }
@@ -11128,13 +11116,12 @@
                   "image_urls": {
                     "type": [
                       "array",
-                      "string",
                       "null"
                     ],
                     "items": {
                       "type": "string"
                     },
-                    "description": "图片 URL 列表：数组，或 JSON 数组字符串，或用逗号 / 分号 / 换行分隔的字符串"
+                    "description": "图片 URL 列表（字符串数组，去首尾空白、丢弃空项）；为空时取 image_url"
                   },
                   "image_url": {
                     "type": [
@@ -11146,13 +11133,12 @@
                   "file_urls": {
                     "type": [
                       "array",
-                      "string",
                       "null"
                     ],
                     "items": {
                       "type": "string"
                     },
-                    "description": "附件 URL 列表，格式同 image_urls"
+                    "description": "附件 URL 列表，格式同 image_urls；为空时取 file_url"
                   },
                   "file_url": {
                     "type": [
@@ -11164,18 +11150,16 @@
                   "priority": {
                     "type": [
                       "integer",
-                      "string"
+                      "null"
                     ],
-                    "description": "优先级，无法解析为整数时取默认值（新增为 0）"
+                    "description": "优先级，缺省为 0"
                   },
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string",
-                      "integer",
                       "null"
                     ],
-                    "description": "是否启用：true/1/yes/on/是/启用 或 false/0/no/off/否/停用，其他值取默认（新增为 true）"
+                    "description": "是否启用：true / false"
                   },
                   "status": {
                     "type": [
@@ -11204,10 +11188,9 @@
                   "conditions": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "条件配置 { groups: [{ name, logic }], items: [{ field, operator, value, logic }] }，也可传 JSON 字符串；缺 field / operator 的条目会被丢弃",
+                    "description": "条件配置 { groups: [{ name, logic }], items: [{ field, operator, value, logic }] }；logic 为 AND / OR；缺 field / operator 的条目会被丢弃",
                     "properties": {
                       "groups": {
                         "type": "array",
@@ -11259,18 +11242,16 @@
                   "display_config": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "展示配置（对象或 JSON 字符串，无法解析时按 {}）"
+                    "description": "展示配置（JSON 对象），缺省为 {}"
                   },
                   "permission_config": {
                     "type": [
                       "object",
-                      "string",
                       "null"
                     ],
-                    "description": "权限配置（对象或 JSON 字符串，无法解析时按 {}）"
+                    "description": "权限配置（JSON 对象），缺省为 {}"
                   },
                   "schema_config": {
                     "type": [
@@ -11278,7 +11259,7 @@
                       "object",
                       "null"
                     ],
-                    "description": "Schema 配置：字符串原样保存（去首尾空白），对象转成缩进 JSON 文本"
+                    "description": "Schema 配置：字符串去首尾空白后保存，对象转成缩进 JSON 文本"
                   },
                   "description": {
                     "type": [
@@ -12219,16 +12200,16 @@
                   "amount": {
                     "type": [
                       "number",
-                      "string"
+                      "null"
                     ],
-                    "description": "金额（保留两位小数），无法解析时取默认（新增为 0）"
+                    "description": "金额（按两位小数存储），缺省为 0"
                   },
                   "quantity": {
                     "type": [
                       "integer",
-                      "string"
+                      "null"
                     ],
-                    "description": "数量，无法解析为整数时取默认（新增为 0）"
+                    "description": "数量，缺省为 0"
                   },
                   "owner": {
                     "type": [
@@ -12241,18 +12222,16 @@
                   "priority": {
                     "type": [
                       "integer",
-                      "string"
+                      "null"
                     ],
-                    "description": "优先级，无法解析为整数时取默认（新增为 0）"
+                    "description": "优先级，缺省为 0"
                   },
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string",
-                      "integer",
                       "null"
                     ],
-                    "description": "是否启用：true/1/yes/启用 或 false/0/no/停用，其他值取默认（新增为 true）"
+                    "description": "是否启用：true / false，缺省为 true"
                   },
                   "description": {
                     "type": [
@@ -12541,11 +12520,10 @@
                       },
                       "is_active": {
                         "type": [
-                          "boolean",
                           "string",
                           "null"
                         ],
-                        "description": "是否启用"
+                        "description": "启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选"
                       },
                       "status": {
                         "type": "string",
@@ -12586,7 +12564,7 @@
             }
           },
           "400": {
-            "description": "请求参数错误：按勾选导出但未勾选任何记录；filters 不是对象、fields 不是数组或 ids 含非数字字符串（请求参数格式不正确）"
+            "description": "请求参数错误：按勾选导出但未勾选任何记录，或参数类型不对（ids 须为整数数组、fields 须为字符串数组、filters 须为对象，返回「<字段>的值无效」）"
           },
           "401": {
             "description": "未授权"
@@ -13027,16 +13005,16 @@
                   "amount": {
                     "type": [
                       "number",
-                      "string"
+                      "null"
                     ],
-                    "description": "金额（保留两位小数），无法解析时取默认（新增为 0）"
+                    "description": "金额（按两位小数存储），缺省为 0"
                   },
                   "quantity": {
                     "type": [
                       "integer",
-                      "string"
+                      "null"
                     ],
-                    "description": "数量，无法解析为整数时取默认（新增为 0）"
+                    "description": "数量，缺省为 0"
                   },
                   "owner": {
                     "type": [
@@ -13049,18 +13027,16 @@
                   "priority": {
                     "type": [
                       "integer",
-                      "string"
+                      "null"
                     ],
-                    "description": "优先级，无法解析为整数时取默认（新增为 0）"
+                    "description": "优先级，缺省为 0"
                   },
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string",
-                      "integer",
                       "null"
                     ],
-                    "description": "是否启用：true/1/yes/启用 或 false/0/no/停用，其他值取默认（新增为 true）"
+                    "description": "是否启用：true / false"
                   },
                   "description": {
                     "type": [
@@ -13535,13 +13511,13 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string"
+                      "null"
                     ],
-                    "description": "是否启用：true / false，或 \"1\" / \"0\" / \"yes\" / \"no\" / \"启用\" / \"停用\"；缺省为 true"
+                    "description": "是否启用：true / false，缺省为 true"
                   },
                   "status": {
                     "type": "string",
-                    "description": "状态（不区分大小写），缺省为 active",
+                    "description": "状态，缺省为 active",
                     "enum": [
                       "active",
                       "inactive",
@@ -13894,11 +13870,10 @@
                       },
                       "is_active": {
                         "type": [
-                          "boolean",
                           "string",
                           "null"
                         ],
-                        "description": "启用状态：true / false，或 \"1\" / \"0\" / \"启用\" / \"停用\" 等"
+                        "description": "启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选"
                       }
                     },
                     "description": "filtered 模式下的筛选条件"
@@ -14512,7 +14487,7 @@
                       "integer",
                       "null"
                     ],
-                    "description": "父节点 ID；null / \"\" / 0 表示移到根；等于自身时忽略；必须存在且不能是自身的子孙节点"
+                    "description": "父节点 ID；null 表示移到根；必须存在，且不能是自身或自身的子孙节点"
                   },
                   "node_type": {
                     "type": "string",
@@ -14546,13 +14521,13 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "string"
+                      "null"
                     ],
-                    "description": "是否启用：true / false，或 \"1\" / \"0\" / \"yes\" / \"no\" / \"启用\" / \"停用\"；无法识别时保持原值"
+                    "description": "是否启用：true / false"
                   },
                   "status": {
                     "type": "string",
-                    "description": "状态（不区分大小写），缺省为 原值",
+                    "description": "状态，缺省为 原值",
                     "enum": [
                       "active",
                       "inactive",

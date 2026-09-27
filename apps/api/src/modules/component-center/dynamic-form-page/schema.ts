@@ -1,17 +1,58 @@
 /**
- * Dynamic form page schema layer
+ * Dynamic form page schema layer: request bodies and import / export field mapping
  */
 
 import { z } from 'zod'
-import { invalidInput } from '@/common/py-values'
-import { isPlainObject, pyInt, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
+import { exportBody, field, invalidMessage } from '@/common/validation'
 import type { DynamicFormRecord } from '@/db/schema'
 
-/** Loose request-body validation: any keys, all optional; normalization happens in the service */
-export const dynamicFormBodySchema = z.record(z.string(), z.unknown()).nullish()
+export const FORM_STATUSES = ['draft', 'published', 'archived'] as const
+export const STATUS_ERROR = '状态仅支持 draft/published/archived'
 
-/** Export row: record + field count (equivalent of `item.fields.count()`) */
+/** Max number of dynamic fields on a single record */
+export const MAX_FIELDS = 20
+
+/** One dynamic field; rows without a key are dropped */
+const formField = z.object({
+  field_key: field.text('字段名'),
+  field_value: field.text('字段值'),
+  field_type: field.text('字段类型'),
+  sort_order: field.optionalInt('字段排序'),
+  remark: field.text('字段备注'),
+})
+
+export const dynamicFormBody = z.object({
+  title: field.requiredText('标题', '标题不能为空'),
+  record_code: field.requiredText('记录编码', '记录编码不能为空'),
+  category: field.text('分类'),
+  status: field.choice('发布状态', FORM_STATUSES, 'draft', STATUS_ERROR),
+  owner: field.text('负责人'),
+  priority: field.int('优先级', 0),
+  is_active: field.bool('启用', true),
+  description: field.text('描述'),
+  fields: z
+    .array(formField, { error: invalidMessage('动态字段') })
+    .max(MAX_FIELDS, { error: '动态字段最多支持 20 条' })
+    .nullish()
+    .transform((v) => v ?? []),
+})
+
+export type DynamicFormInput = z.output<typeof dynamicFormBody>
+
+/** Edit: the record code can't change, so it isn't read */
+export const dynamicFormUpdateBody = dynamicFormBody.omit({ record_code: true })
+
+/** The filters mirror the list's query parameters (text) */
+export const dynamicFormExportBody = exportBody({
+  search: field.text('搜索'),
+  category: field.text('分类'),
+  status: field.text('发布状态'),
+  owner: field.text('负责人'),
+  is_active: field.text('启用'),
+})
+
+/** Export row: record + its field count */
 export type DynamicFormExportRow = DynamicFormRecord & { fields_count: number }
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: DynamicFormExportRow) => unknown]> = {
@@ -42,32 +83,11 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 }
 
 export const VALID_FIELD_TYPES = new Set(['text', 'number', 'boolean', 'date'])
-export const STATUS_VALUES = new Set(['draft', 'published', 'archived'])
 export const CATEGORY_VALUES = new Set(['general', 'config', 'profile', 'spec'])
 
-/** Max number of dynamic fields on a single record */
-export const MAX_FIELDS = 20
 
 export const TEMPLATE_HEADERS = ['标题', '记录编码', '分类', '发布状态', '负责人', '优先级', '启用', '描述']
 export const TEMPLATE_ROWS = [['示例表单A', 'form_001', 'general', 'draft', 'admin', 0, '启用', '示例描述']]
-
-export function parseBool<D>(value: unknown, fallback: D): boolean | D {
-  if (value === null || value === undefined) return fallback
-  if (typeof value === 'boolean') return value
-  const raw = pyStr(value).trim().toLowerCase()
-  if (['true', '1', 'yes', '启用'].includes(raw)) return true
-  if (['false', '0', 'no', '停用'].includes(raw)) return false
-  return fallback
-}
-
-export function parseInt(value: unknown, fallback = 0): number {
-  if (value === null || value === undefined) return fallback
-  try {
-    return pyInt(value)
-  } catch {
-    return fallback
-  }
-}
 
 export interface ErrorRow {
   line: number
@@ -77,60 +97,4 @@ export interface ErrorRow {
 
 export function buildErrorRow(line: number, reason: string, row: Record<string, string>): ErrorRow {
   return { line, reason, row }
-}
-
-// ---------------------------------------------------------------- Value helpers
-
-/** Length: list / str (in characters) / dict (key count); anything else (numbers, bool) → 500 */
-export function pyLen(value: unknown): number {
-  if (Array.isArray(value)) return value.length
-  if (typeof value === 'string') return Array.from(value).length
-  if (isPlainObject(value)) return Object.keys(value).length
-  throw invalidInput(`object of type '${typeof value}' has no len()`)
-}
-
-/**
- * Expand x with iterable semantics: list → elements, str → characters, dict → keys;
- * other truthy values (numbers / true) are not iterable → 500.
- */
-export function pyIterate(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string') return Array.from(value)
-  if (isPlainObject(value)) return Object.keys(value)
-  throw invalidInput(`'${typeof value}' object is not iterable`)
-}
-
-/** Whether f is an exportable field; returns 500 when f is a list/dict (not usable as a field name) */
-export function isExportField(field: unknown): field is string {
-  if (field !== null && typeof field === 'object') throw invalidInput('unhashable type')
-  return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
-}
-
-const PG_INT_MIN = -2_147_483_648
-const PG_INT_MAX = 2_147_483_647
-
-/**
- * How each element of ids behaves on PostgreSQL once inlined into `id IN (...)`:
- * - integer → matches; non-integer / out-of-int4 numbers → never match against integer (no error); None → no match
- * - string → parsed as int4 input ('2' can match; 'abc' / out of range → DB error → 500)
- * - bool / list / dict → type error → 500
- */
-export function resolveIdList(ids: unknown[]): number[] {
-  const result: number[] = []
-  for (const raw of ids) {
-    if (raw === null || raw === undefined) continue
-    if (typeof raw === 'number') {
-      if (Number.isInteger(raw) && raw >= PG_INT_MIN && raw <= PG_INT_MAX) result.push(raw)
-      continue
-    }
-    if (typeof raw === 'string' && /^\s*[+-]?\d+\s*$/.test(raw)) {
-      const n = Number(raw.trim())
-      if (n >= PG_INT_MIN && n <= PG_INT_MAX) {
-        result.push(n)
-        continue
-      }
-    }
-    throw invalidInput(`invalid id: ${pyStr(raw)}`)
-  }
-  return result
 }

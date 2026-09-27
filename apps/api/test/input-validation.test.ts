@@ -49,9 +49,6 @@ describe('bad input → 400', () => {
       ['POST', `${CC}/ai/prompt/preview`, { content: 5 }],
       ['POST', `${CC}/ai/sql/generate`, { question: 5 }],
       ['POST', `${CC}/ai/sql/execute`, { sql: 5 }],
-      ['POST', `${CC}/list-page/export`, { export_mode: 'filtered', filters: 'x' }],
-      ['POST', `${CC}/card-list-page/export`, { export_mode: 'filtered', filters: 'x' }],
-      ['POST', `${CC}/stats-list-page/export`, { export_mode: 'selected', ids: ['a'] }],
     ]
     for (const [method, url, payload] of cases) {
       expect(await send(method, url, payload), `${method} ${url} ${JSON.stringify(payload)}`).toEqual(bad('请求参数格式不正确'))
@@ -64,6 +61,9 @@ describe('bad input → 400', () => {
     expect(await send('POST', '/api/admin/dicts', [1])).toEqual(bad('请求参数格式不正确'))
     expect(await send('POST', '/api/admin/announcements', { title: `${P}a`, content: 'c', sort_order: 'abc' })).toEqual(bad('排序权重的值无效'))
     expect(await send('POST', '/api/admin/menus', { name: 'x', code: 5 })).toEqual(bad('菜单编码的值无效'))
+    expect(await send('POST', `${CC}/list-page/export`, { export_mode: 'filtered', filters: 'x' })).toEqual(bad('筛选条件的值无效'))
+    expect(await send('POST', `${CC}/card-list-page/export`, { export_mode: 'filtered', filters: 'x' })).toEqual(bad('筛选条件的值无效'))
+    expect(await send('POST', `${CC}/stats-list-page/export`, { export_mode: 'selected', ids: ['a'] })).toEqual(bad('导出记录的值无效'))
   })
 
   it('body checks run after authentication: a signed-out caller gets 401, not 400', async () => {

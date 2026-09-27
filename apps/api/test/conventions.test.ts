@@ -68,7 +68,6 @@ const PY_COMPAT_PENDING = [
   'src/common/py-values.ts',
   'src/common/scheduler/cron.ts',
   'src/common/scheduler/ssrf.ts',
-  'src/db/schema/component-center/list-page.ts',
   'src/modules/admin/scheduled-task/routes.ts',
   'src/modules/admin/scheduled-task/schema.ts',
   'src/modules/admin/scheduled-task/service.ts',
@@ -79,24 +78,13 @@ const PY_COMPAT_PENDING = [
   'src/modules/component-center/ai-prompt/service.ts',
   'src/modules/component-center/ai-sql/routes.ts',
   'src/modules/component-center/ai-sql/service.ts',
-  'src/modules/component-center/card-list-page/schema.ts',
-  'src/modules/component-center/card-list-page/service.ts',
   'src/modules/component-center/detail-tabs/schema.ts',
   'src/modules/component-center/detail-tabs/service.ts',
-  'src/modules/component-center/devtools/routes.ts',
-  'src/modules/component-center/dynamic-form-page/schema.ts',
-  'src/modules/component-center/dynamic-form-page/service.ts',
   'src/modules/component-center/gantt/schema.ts',
   'src/modules/component-center/gantt/service.ts',
   'src/modules/component-center/kanban/routes.ts',
   'src/modules/component-center/kanban/schema.ts',
   'src/modules/component-center/kanban/service.ts',
-  'src/modules/component-center/list-page/schema.ts',
-  'src/modules/component-center/list-page/service.ts',
-  'src/modules/component-center/stats-list-page/schema.ts',
-  'src/modules/component-center/stats-list-page/service.ts',
-  'src/modules/component-center/tree-list-page/schema.ts',
-  'src/modules/component-center/tree-list-page/service.ts',
 ]
 
 /** Files still mentioning Python / Flask / SQLAlchemy */
@@ -107,7 +95,6 @@ const PY_MENTION_PENDING = [
   'src/common/py-date.ts',
   'src/common/py-values.ts',
   'src/common/py.ts',
-  'src/common/request-meta.ts',
   'src/common/scheduler/http.ts',
   'src/common/scheduler/py-compat.ts',
   'src/common/scheduler/py-json.ts',
@@ -115,8 +102,6 @@ const PY_MENTION_PENDING = [
   'src/common/sqla-bind.ts',
   'src/modules/component-center/advanced-table/schema.ts',
   'src/modules/component-center/ai-sql/pg-values.ts',
-  'src/modules/component-center/list-page/schema.ts',
-  'src/modules/component-center/stats-list-page/schema.ts',
 ]
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]

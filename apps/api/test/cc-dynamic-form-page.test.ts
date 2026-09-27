@@ -63,13 +63,13 @@ describe('dynamic-form-page', () => {
         title: ' 表单A ',
         record_code: `${P}a`,
         category: '',
-        status: 'Published',
-        priority: '4',
-        is_active: 'false',
+        status: 'published',
+        priority: 4,
+        is_active: false,
         fields: [
           { field_key: ' color ', field_value: ' red ', field_type: '', remark: '' },
           { field_key: '' },
-          { field_key: 'size', field_value: 0, sort_order: 'x' },
+          { field_key: 'size', field_value: '' },
           { field_key: 'first', sort_order: -1, field_type: 'number', remark: ' r ' },
         ],
       },
@@ -90,21 +90,27 @@ describe('dynamic-form-page', () => {
     expect(b.json()).toMatchObject({ fields_count: 0, fields: [] })
   })
 
-  it('新增：校验分支（顺序：标题 → 编码 → 重复 → 字段数 → 状态），fields 类型异常 400 且不落库', async () => {
+  it('新增：校验分支（请求体格式先于编码重复），fields 类型异常 400 且不落库', async () => {
     const post = (payload: object) => s.inject({ method: 'POST', url: B, payload })
     const many = Array.from({ length: 21 }, (_, i) => ({ field_key: `k${i}` }))
     expect((await post({ record_code: 'x', fields: many })).json()).toEqual({ error: '标题不能为空' })
     expect((await post({ title: 'x' })).json()).toEqual({ error: '记录编码不能为空' })
-    expect((await post({ title: 'x', record_code: `${P}a`, fields: many })).json()).toEqual({ error: '记录编码已存在' })
-    expect((await post({ title: 'x', record_code: `${P}z`, fields: many, status: 'bad' })).json()).toEqual({ error: '动态字段最多支持 20 条' })
-    expect((await post({ title: 'x', record_code: `${P}z`, fields: 'x'.repeat(21) })).json()).toEqual({ error: '动态字段最多支持 20 条' })
+    expect((await post({ title: 'x', record_code: `${P}a` })).json()).toEqual({ error: '记录编码已存在' })
+    expect((await post({ title: 'x', record_code: `${P}a`, fields: many })).json()).toEqual({ error: '动态字段最多支持 20 条' })
     expect((await post({ title: 'x', record_code: `${P}z`, status: 'bad' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
-    expect((await post({ title: 'x', record_code: `${P}z`, fields: 3 })).statusCode).toBe(400)
-    const partial = await post({ title: 'x', record_code: `${P}z`, fields: [{ field_key: 'ok' }, 'bad'] })
-    expect(partial.statusCode).toBe(400)
+    for (const [fields, error] of [
+      ['x'.repeat(21), '动态字段的值无效'],
+      [3, '动态字段的值无效'],
+      [{}, '动态字段的值无效'],
+      [[{ field_key: 'ok' }, 'bad'], '请求参数格式不正确'],
+      [[{ field_key: 'size', field_value: 0 }], '字段值的值无效'],
+      [[{ field_key: 'size', sort_order: 'x' }], '字段排序的值无效'],
+    ] as const) {
+      const res = await post({ title: 'x', record_code: `${P}z`, fields })
+      expect([res.statusCode, res.json()], JSON.stringify(fields)).toEqual([400, { error }])
+    }
     expect(await rowByCode(`${P}z`)).toBeUndefined()
-    // Empty values ('' / {} / false) are treated as []
-    const empty = await post({ title: 'x', record_code: `${P}e`, fields: {} })
+    const empty = await post({ title: 'x', record_code: `${P}e`, fields: null })
     expect(empty.json().fields).toEqual([])
   })
 
@@ -147,20 +153,20 @@ describe('dynamic-form-page', () => {
     expect(replaced.json()).toMatchObject({ fields_count: 1, fields: [{ field_key: 'only', field_value: 'v', sort_order: 0 }] })
     expect((await rowByCode(`${P}a`))!.updated_at).toBe(a.updated_at)
 
-    const same = await put({ title: '表单A', category: 'general', status: 'PUBLISHED', priority: 4.2, is_active: 'no', record_code: 'ignored' })
+    const same = await put({ title: '表单A', category: 'general', status: 'published', priority: 4, is_active: false, record_code: 'ignored' })
     expect(same.json().fields_count).toBe(1)
     expect((await rowByCode(`${P}a`))!).toMatchObject({ updated_at: a.updated_at, record_code: `${P}a` })
 
     expect((await put({ title: ' ' })).json()).toEqual({ error: '标题不能为空' })
     expect((await put({ fields: Array.from({ length: 21 }, () => ({})) })).json()).toEqual({ error: '动态字段最多支持 20 条' })
     expect((await put({ title: '改', status: 'x' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
-    expect((await put({ fields: false })).statusCode).toBe(400)
+    expect((await put({ fields: false })).json()).toEqual({ error: '动态字段的值无效' })
     const rolled = await put({ title: '改', fields: [null] })
     expect(rolled.statusCode).toBe(400)
     expect((await rowByCode(`${P}a`))!.title).toBe('表单A')
     expect(await fieldRows(a.id)).toHaveLength(1)
 
-    const changed = await put({ title: '表单A2', description: ' d ', fields: null })
+    const changed = await put({ title: '表单A2', description: ' d ' })
     expect(changed.json()).toMatchObject({ title: '表单A2', description: 'd', fields_count: 1 })
     expect((await rowByCode(`${P}a`))!.updated_at).not.toBe(a.updated_at)
 
@@ -187,7 +193,8 @@ describe('dynamic-form-page', () => {
     expect(rows).toEqual([['标题', '字段数量'], ['表单B', '0']])
     const g = await s.inject({ url: `${B}/export?search=${P}&status=published&fields=record_code` })
     expect(g.body).toBe(`﻿记录编码\r\n${P}a\r\n`)
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 'x' } })).json()).toEqual({ error: '请先勾选要导出的数据' })
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的数据' })
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 'x' } })).json()).toEqual({ error: '导出记录的值无效' })
   })
 
   it('模板 csv 字节精确', async () => {
@@ -209,7 +216,7 @@ describe('dynamic-form-page', () => {
     expect(bad.json()).toEqual({ error: '导入失败，存在错误数据', error_count: 1, error_rows: [{ line: 3, reason: '标题和记录编码不能为空', row: { 标题: '', 记录编码: 'x' } }] })
     expect(await rowByCode(`${P}i2`)).toBeUndefined()
     const st = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('f.csv', `标题,记录编码,发布状态\n好,${P}i3,\n坏,${P}i4,x\n`) })
-    expect(st.json()).toEqual({ error: '状态仅支持 draft/published/archived' })
+    expect(st.json()).toMatchObject({ error: '导入失败，存在错误数据', error_rows: [{ line: 3, reason: '状态仅支持 draft/published/archived' }] })
     expect(await rowByCode(`${P}i3`)).toBeUndefined()
     const missing = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('f.csv', `标题\nx\n`) })
     expect(missing.json()).toEqual({ error: '导入文件缺少"标题/记录编码"列' })

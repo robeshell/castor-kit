@@ -1,13 +1,13 @@
 /**
  * System metrics snapshot (collected via systeminformation)
  *
- * Fields and units (measured the same way as psutil):
- * - cpu: overall CPU usage (%, 1 decimal; like psutil.cpu_percent(interval=None), the value over the interval since the previous call)
+ * Fields and units:
+ * - cpu: overall CPU usage (%, 1 decimal), over the interval since the previous call
  * - mem_used / mem_total: MB (1 decimal); mem_pct: % (1 decimal)
- *     psutil definition: Linux used = total - free - buffers - (Cached + SReclaimable),
+ *     used: Linux total - free - buffers - (Cached + SReclaimable),
  *     macOS used = active + wired；percent = (total - available) / total
  * - disk_used / disk_total: GB (2 decimals), disk_pct: % (1 decimal), root partition '/';
- *     percent = used / (used + avail) (psutil definition, matches df)
+ *     percent = used / (used + avail) (same as df)
  * - net_sent / net_recv: MB (2 decimals), cumulative bytes sent/received on all NICs (incl. loopback) since boot
  * - ts: millisecond timestamp
  */
@@ -47,7 +47,7 @@ interface MemUsage {
 }
 
 /**
- * macOS: psutil uses host_statistics64: used = active + wired, available = inactive + free_count;
+ * macOS (host_statistics64): used = active + wired, available = inactive + free_count;
  * vm_stat's "Pages free" already excludes speculative (free_count - speculative_count), so add it back
  */
 async function darwinMemory(total: number): Promise<MemUsage> {
@@ -121,17 +121,7 @@ export function warmUp(): Promise<void> {
   return warmedUp
 }
 
-/** Text form of a metric value (non-negative, at most 2 decimals): integral values get `.0` */
-function pyFloatText(n: number): string {
-  return Number.isInteger(n) ? `${n}.0` : String(n)
-}
-
-/** Verbatim text of `json.dumps({**snapshot, 'type': 'metric'}, ensure_ascii=False)` */
+/** The WebSocket message for a snapshot */
 export function metricMessage(snapshot: SystemSnapshot): string {
-  const parts = (Object.keys(snapshot) as (keyof SystemSnapshot)[]).map((key) => {
-    const value = snapshot[key]
-    return `"${key}": ${key === 'ts' ? String(value) : pyFloatText(value)}`
-  })
-  parts.push('"type": "metric"')
-  return `{${parts.join(', ')}}`
+  return JSON.stringify({ ...snapshot, type: 'metric' })
 }

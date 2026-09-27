@@ -20,7 +20,7 @@ export type StatsItemUpdate = Partial<Omit<StatsItemInsert, 'id' | 'created_at' 
 export class StatsListPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** Equivalent of service._build_list_query */
+  /** WHERE clause of the list filters */
   private listWhere(f: StatsListFilters): SQL | undefined {
     const conds: (SQL | undefined)[] = []
     if (f.search) {
@@ -104,7 +104,7 @@ export class StatsListPageRepository {
         draft: sql<number>`count(*) filter (where ${stats_items.status} = 'draft')`.mapWith(Number),
         archived: sql<number>`count(*) filter (where ${stats_items.status} = 'archived')`.mapWith(Number),
         sum: sql<string | null>`sum(${stats_items.amount})`,
-        avg: sql<string | null>`avg(${stats_items.amount})`,
+        avg: sql<string | null>`round(avg(${stats_items.amount}), 2)`,
       })
       .from(stats_items)
     // GROUP BY without ORDER BY (row order is decided by PostgreSQL)

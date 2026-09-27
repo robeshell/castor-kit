@@ -20,7 +20,7 @@ export type CardItemUpdate = Partial<Omit<CardItemInsert, 'id' | 'created_at' | 
 export class CardListPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** Equivalent of service._build_list_query */
+  /** WHERE clause of the list filters */
   private listWhere(f: CardListFilters): SQL | undefined {
     const conds: (SQL | undefined)[] = []
     if (f.search) {

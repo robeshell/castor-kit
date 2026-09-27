@@ -4,7 +4,6 @@
 
 import { asc, eq, sql } from 'drizzle-orm'
 import type { PgInsertValue, PgUpdateSetSource } from 'drizzle-orm/pg-core'
-import { pyJsonDumps } from '@/common/request-meta'
 import type { Executor } from '@/db/client'
 import { ai_prompt_templates, type AiPromptTemplate } from '@/db/schema'
 
@@ -13,7 +12,7 @@ export type AiPromptTemplateUpdate = PgUpdateSetSource<typeof ai_prompt_template
 
 /** json columns are written in `json.dumps` text format (`["a", "b"]`, separators include a space) */
 export function variablesValue(variables: string[]) {
-  return sql`${pyJsonDumps(variables)}::json`
+  return sql`${JSON.stringify(variables)}::json`
 }
 
 export class AiPromptRepository {

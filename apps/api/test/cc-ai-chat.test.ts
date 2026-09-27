@@ -219,7 +219,7 @@ describe('ai chat 流', () => {
     }
     expect(log!.method).toBe('POST')
     expect(log!.status_code).toBe(200)
-    expect(log!.payload).toContain('"text": "cutoff"')
+    expect(log!.payload).toContain('"text":"cutoff"')
   })
 })
 describe('ai chat 真实连接', () => {

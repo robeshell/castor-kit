@@ -14,8 +14,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { WebSocket } from 'ws'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { isPlainObject } from '@/common/py'
-import { pyJsonDumps } from '@/common/request-meta'
 import { isSignedIn } from '@/common/session'
 import { metricMessage, systemSnapshot, warmUp } from './service'
 
@@ -152,15 +150,13 @@ function runSession(
       }
       payload = { text }
     }
-    if (!isPlainObject(payload)) {
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
       // Close the connection when the payload is not an object (list/str/number)
       stop()
       socket.terminate()
       return
     }
-    payload.type = 'echo'
-    payload.server_ts = Date.now()
-    send(pyJsonDumps(payload))
+    send(JSON.stringify({ ...payload, type: 'echo', server_ts: Date.now() }))
   }
 
   resetIdle()

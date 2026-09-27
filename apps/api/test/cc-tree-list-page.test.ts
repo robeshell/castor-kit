@@ -67,7 +67,7 @@ afterAll(async () => {
 describe('tree-list-page', () => {
   it('新增：根 / 子节点 / 归一化；各校验分支', async () => {
     const post = (payload: object) => s.inject({ method: 'POST', url: B, payload })
-    const root = await post({ name: ' 根 ', node_code: `${P}root`, sort_order: '2', node_type: '', icon: ' ', status: 'Inactive' })
+    const root = await post({ name: ' 根 ', node_code: `${P}root`, sort_order: 2, node_type: '', icon: ' ', status: 'inactive' })
     expect(root.statusCode).toBe(201)
     expect(root.json()).toMatchObject({ name: '根', parent_id: null, node_type: 'category', icon: null, sort_order: 2, status: 'inactive', is_active: true })
     ids.root = root.json().id
@@ -76,26 +76,24 @@ describe('tree-list-page', () => {
       ['c2', { sort_order: 1, is_active: false, owner: 'ow' }],
       ['c3', { sort_order: 1, node_type: 'item' }],
     ] as const) {
-      const res = await post({ name: code, node_code: `${P}${code}`, parent_id: String(ids.root), ...extra })
+      const res = await post({ name: code, node_code: `${P}${code}`, parent_id: ids.root, ...extra })
       expect(res.json().parent_id).toBe(ids.root)
       ids[code] = res.json().id
     }
-    const gc = await post({ name: 'gc', node_code: `${P}gc`, parent_id: ids.c2, is_active: 'no' })
+    const gc = await post({ name: 'gc', node_code: `${P}gc`, parent_id: ids.c2, is_active: false })
     ids.gc = gc.json().id
-    // Invalid parent_id string → None
-    ids.solo = (await post({ name: 'solo', node_code: `${P}solo`, parent_id: 'abc', sort_order: 1 })).json().id
+    ids.solo = (await post({ name: 'solo', node_code: `${P}solo`, parent_id: null, sort_order: 1 })).json().id
     expect((await rowByCode(`${P}solo`))!.parent_id).toBeNull()
 
     expect((await post({ node_code: 'x' })).json()).toEqual({ error: '节点名称不能为空' })
     expect((await post({ name: 'x' })).json()).toEqual({ error: '节点编码不能为空' })
     expect((await post({ name: 'x', node_code: `${P}root` })).json()).toEqual({ error: '节点编码已存在' })
     expect((await post({ name: 'x', node_code: `${P}zz`, parent_id: 99999999 })).json()).toEqual({ error: '父节点不存在' })
-    expect((await post({ name: 'x', node_code: `${P}zz`, parent_id: '99999999999' })).json()).toEqual({ error: '父节点不存在' })
     expect((await post({ name: 'x', node_code: `${P}zz`, status: 'draft' })).json()).toEqual({ error: '状态仅支持 active/inactive/archived' })
-    // parent_id=0 skips the existence check; FK failure → 500 generic message
-    const zero = await post({ name: 'x', node_code: `${P}zz`, parent_id: 0 })
-    expect(zero.statusCode).toBe(400)
-    expect(zero.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    for (const parent of ['abc', String(ids.root), 0, 99999999999]) {
+      expect((await post({ name: 'x', node_code: `${P}zz`, parent_id: parent })).json(), String(parent)).toEqual({ error: '父节点的值无效' })
+    }
+    expect((await post({ name: 'x', node_code: `${P}zz`, sort_order: '2' })).json()).toEqual({ error: '排序的值无效' })
     expect(await rowByCode(`${P}zz`)).toBeUndefined()
   })
 
@@ -150,22 +148,21 @@ describe('tree-list-page', () => {
     expect((await u.inject({ method: 'POST', url: `${B}/import` })).json()).toEqual({ error: '无权限导入数据' })
   })
 
-  it('编辑：parent_id 语义、node_code 只校验不修改、同值不写库、失败回滚', async () => {
+  it('编辑：parent_id 语义、node_code 可改、同值不写库、失败回滚', async () => {
     const put = (id: number, payload: object) => s.inject({ method: 'PUT', url: `${B}/${id}`, payload })
     const c1 = (await rowByCode(`${P}c1`))!
-    // Same values (including parent_id as a string, sort_order float truncation) → no write
-    const same = await put(c1.id, { name: 'c1', parent_id: String(ids.root), sort_order: 5.7, status: 'ACTIVE', icon: '' })
+    // Same values → no write
+    const same = await put(c1.id, { name: 'c1', parent_id: ids.root, sort_order: 5, status: 'active', icon: '' })
     expect(same.statusCode).toBe(200)
     expect((await rowByCode(`${P}c1`))!.updated_at).toBe(c1.updated_at)
-    // Self / invalid values are ignored
-    expect((await put(c1.id, { parent_id: c1.id })).json().parent_id).toBe(ids.root)
-    expect((await put(c1.id, { parent_id: [1] })).json().parent_id).toBe(ids.root)
-    // '0' → int 0 → doesn't exist
-    expect((await put(c1.id, { parent_id: '0' })).json()).toEqual({ error: '父节点不存在' })
+    expect((await put(c1.id, { parent_id: c1.id })).json()).toEqual({ error: '不能将节点移动到自身或其子节点下' })
+    expect((await put(c1.id, { parent_id: [1] })).json()).toEqual({ error: '父节点的值无效' })
+    expect((await put(c1.id, { parent_id: '0' })).json()).toEqual({ error: '父节点的值无效' })
     expect((await put(c1.id, { name: '改名', parent_id: 99999999 })).json()).toEqual({ error: '父节点不存在' })
     expect((await rowByCode(`${P}c1`))!.name).toBe('c1')
-    // Changing node_code to a new value: validated only, not modified
-    expect((await put(c1.id, { node_code: `${P}renamed` })).json().node_code).toBe(`${P}c1`)
+    // node_code can change (and back)
+    expect((await put(c1.id, { node_code: `${P}renamed` })).json().node_code).toBe(`${P}renamed`)
+    expect((await put(c1.id, { node_code: `${P}c1` })).json().node_code).toBe(`${P}c1`)
     expect((await put(c1.id, { node_code: `${P}c2` })).json()).toEqual({ error: '节点编码已存在' })
     expect((await put(c1.id, { node_code: ' ' })).json()).toEqual({ error: '节点编码不能为空' })
     expect((await put(c1.id, { name: null })).json()).toEqual({ error: '节点名称不能为空' })
@@ -175,11 +172,9 @@ describe('tree-list-page', () => {
     expect([cycle.statusCode, cycle.json()]).toEqual([400, { error: '不能将节点移动到自身或其子节点下' }])
     expect((await put(ids.root!, { parent_id: ids.c2 })).json()).toEqual({ error: '不能将节点移动到自身或其子节点下' })
     expect(await rowByCode(`${P}root`)).toMatchObject({ name: '根', parent_id: null })
-    // Move to another parent, then clear it with false / 0 / ''
+    // Move to another parent, then clear it with null
     expect((await put(c1.id, { parent_id: ids.c2, name: 'c1x' })).json()).toMatchObject({ parent_id: ids.c2, name: 'c1x' })
-    expect((await put(c1.id, { parent_id: false })).json().parent_id).toBeNull()
-    expect((await put(c1.id, { parent_id: ids.root })).json().parent_id).toBe(ids.root)
-    expect((await put(c1.id, { parent_id: '' })).json().parent_id).toBeNull()
+    expect((await put(c1.id, { parent_id: null })).json().parent_id).toBeNull()
     expect((await put(c1.id, { parent_id: ids.root, name: 'c1' })).json().parent_id).toBe(ids.root)
     expect((await rowByCode(`${P}c1`))!.updated_at).not.toBe(c1.updated_at)
   })
@@ -198,10 +193,11 @@ describe('tree-list-page', () => {
     expect(g.body).toBe(`\ufeff节点编码\r\n${P}c3\r\n`)
     const t = await s.inject({ url: `${B}/template` })
     expect(t.body).toBe('\ufeff节点名称,节点编码,父节点ID,节点类型,图标,状态,负责人,排序,启用,描述\r\n根节点示例,root_001,,category,,active,admin,0,启用,示例描述\r\n')
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 1 } })).json()).toEqual({ error: '请先勾选要导出的数据' })
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的数据' })
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 1 } })).json()).toEqual({ error: '导出记录的值无效' })
   })
 
-  it('导入：成功（父节点 ID、已存在更新）/ 父节点不存在 400 回滚 / 错误行 / 缺列', async () => {
+  it('导入：成功（父节点 ID、已存在更新）/ 父节点不存在的错误行回滚 / 缺列', async () => {
     const csv = `节点名称,节点编码,父节点ID,节点类型,图标,状态,负责人,排序,启用,描述\n导入,${P}i1,${ids.root},item,ic,ARCHIVED,me,3,停用,d\nsolo,${P}solo,${ids.root},,,,,,,\n`
     const ok = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', csv) })
     expect(ok.json()).toEqual({ message: '导入成功', created: 1, updated: 1 })
@@ -209,7 +205,7 @@ describe('tree-list-page', () => {
     expect((await rowByCode(`${P}solo`))!.parent_id).toBe(ids.root)
 
     const fk = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称,节点编码,父节点ID\na,${P}i2,\nb,${P}i3,0\n`) })
-    expect(fk.statusCode).toBe(400)
+    expect(fk.json()).toMatchObject({ error: '导入失败，存在错误数据', error_rows: [{ line: 3, reason: '父节点不存在' }] })
     expect(await rowByCode(`${P}i2`)).toBeUndefined()
 
     const bad = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('t.csv', `节点名称,节点编码\na,\n`) })
