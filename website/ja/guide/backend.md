@@ -94,7 +94,7 @@ export function customerToDict(item: Customer) {
 
 - **日時**：`timestamp` / `date` 列はテキストとして読み取り、JS の `Date` を経由しません。出力には必ず `toIso()` を使います。形式は `YYYY-MM-DDTHH:mm:ss[.ffffff]` で、`Z` サフィックスは付きませんが、値は UTC です。`Date#toISOString()` の使用は禁止です。
 - **数値**：`numeric` 列は文字列のまま出力します（例：`"12.50"`）。`toDict()` の中で数値に変換しないでください。
-- **リクエスト検証は緩やかに**：リクエストスキーマはすべてのフィールドを任意とし、余分なフィールドも許可します。正規化と必須チェックは service で行います。
+- **リクエストボディの検証**：`schema.ts` で `@/common/validation` の `field.*` を使ってボディを宣言し、ルートは権限チェックの後に `parseBody` / `parsePatch` を呼びます。JSON の型のみ受け付け（テキストは前後の空白を除いた文字列、整数は number、真偽値は true / false）、余分なフィールドは無視し、型が違えば 400 を返します。`pnpm scaffold` で生成したモジュールは `schema.ts` の `buildValues` を使い、ボディとインポート行で同じ型変換を共有します。
 - **操作ログ**：logs モジュールが登録するグローバルな `onResponse` フックが `operation_logs` にまとめて書き込むので、service の中で手書きしないでください。
 - **CSRF**：`/api/*` 配下の書き込みリクエストには `X-CSRF-Token` ヘッダーが必要です。フロントエンドの `request.js` が自動で処理し、ログイン API は対象外です。
 
@@ -105,7 +105,9 @@ export function customerToDict(item: Customer) {
 ```ts
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody, parseIntParam } from '@/common/http'
+import { intParam, parseIntParam } from '@/common/http'
+import { parseBody, parsePatch } from '@/common/validation'
+import { customerBody } from './schema'
 
 export async function registerCustomerRoutes(app: FastifyInstance): Promise<void> {
   const service = new CustomerService(app.db)
@@ -115,7 +117,7 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
     if (!(await hasMenuPermission(request, 'system_customer_add'))) {
       return reply.status(403).send({ error: '无权限' })
     }
-    return reply.status(201).send(await service.createItem(jsonBody(request)))
+    return reply.status(201).send(await service.createItem(parseBody(customerBody, request.body)))
   })
 
   app.put(`/api/admin/customers/${intParam('item_id')}`, opts, async (request, reply) => {
@@ -124,7 +126,7 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限' })
     }
     const item = await service.getOr404(parseIntParam((request.params as { item_id: string }).item_id))
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(customerBody, request.body))
   })
 }
 ```
