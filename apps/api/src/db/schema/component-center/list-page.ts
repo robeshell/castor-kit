@@ -6,7 +6,6 @@
 
 import { relations } from 'drizzle-orm'
 import { boolean, foreignKey, index, integer, pgTable, serial, text, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
-import { pyStr } from '@/common/py'
 import { toIso } from '@/common/serialize'
 import { createdAt, updatedAt } from '../columns'
 
@@ -79,19 +78,19 @@ export type QueryManagementVersion = typeof query_management_versions.$inferSele
 
 // ---- toDict (API output keys and values) ----
 
-/** The model's parse_json_url_list: empty → []; JSON array → str().strip() each item, dropping empties; anything else → [] */
+/** A stored JSON URL list: empty or not an array → []; each string item trimmed, blanks dropped */
 function parseJsonUrlList(raw: string | null): string[] {
   if (!raw) return []
   try {
     const parsed: unknown = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed.map((v) => pyStr(v).trim()).filter(Boolean)
+    if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string').map((v) => v.trim()).filter(Boolean)
   } catch {
     return []
   }
   return []
 }
 
-/** The model's parse_json_object: empty → default; JSON object → the object; anything else → default */
+/** A stored JSON object: empty → default; JSON object → the object; anything else → default */
 function parseJsonObject<T>(raw: string | null, defaultValue: T): Record<string, unknown> | T {
   if (!raw) return defaultValue
   try {

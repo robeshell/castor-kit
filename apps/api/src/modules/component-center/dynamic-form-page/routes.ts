@@ -6,18 +6,24 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBool } from './schema'
+import { parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { dynamicFormBody, dynamicFormExportBody, dynamicFormUpdateBody } from './schema'
 import { DynamicFormPageService } from './service'
 
 const BASE = '/api/admin/component-center/dynamic-form-page'
 
-/** request.args: take the first value of each key */
-function queryArgs(request: FastifyRequest): Record<string, unknown> {
-  const query = (request.query ?? {}) as Record<string, unknown>
-  return Object.fromEntries(Object.entries(query).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]))
+/** GET export: the list's query parameters as an export body (every filtered row; `fields` comma-separated) */
+function exportQuery(request: FastifyRequest) {
+  const q = (key: string) => queryString(request, key)
+  return {
+    fields: q('fields').split(',').map((f) => f.trim()).filter(Boolean),
+    export_mode: 'filtered',
+    filters: { search: q('search'), category: q('category'), status: q('status'), owner: q('owner'), is_active: q('is_active') },
+    file_type: q('file_type'),
+  }
 }
 
 export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promise<void> {
@@ -34,7 +40,7 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
       category: queryString(request, 'category').trim(),
       status: queryString(request, 'status').trim(),
       owner: queryString(request, 'owner').trim(),
-      isActive: parseBool(queryString(request, 'is_active'), null),
+      isActive: parseYesNo(queryString(request, 'is_active')),
     })
   })
 
@@ -42,7 +48,7 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
     if (!(await hasMenuPermission(request, 'system_dynamic_form_page_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    const [payload, status] = await service.createItem(jsonBody(request))
+    const [payload, status] = await service.createItem(parseBody(dynamicFormBody, request.body))
     return reply.status(status).send(payload)
   })
 
@@ -63,7 +69,7 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await loadItem(request)
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(dynamicFormUpdateBody, request.body))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -78,8 +84,8 @@ export async function registerDynamicFormPageRoutes(app: FastifyInstance): Promi
     if (!(await hasMenuPermission(request, 'system_dynamic_form_page_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
-    const payload = request.method === 'GET' ? queryArgs(request) : jsonBody(request)
-    return sendTable(reply, await service.exportItems(payload, request.method))
+    const body = request.method === 'GET' ? exportQuery(request) : request.body
+    return sendTable(reply, await service.exportItems(parseBody(dynamicFormExportBody, body)))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
   app.post(`${BASE}/export`, opts, exportHandler)

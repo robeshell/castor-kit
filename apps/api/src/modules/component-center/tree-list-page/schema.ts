@@ -1,18 +1,38 @@
 /**
- * Tree list page schema layer
+ * Tree list page schema layer: request bodies and import / export field mapping
  */
 
 import { z } from 'zod'
-import { invalidInput } from '@/common/py-values'
-import { isPlainObject, pyInt, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
+import { exportBody, field } from '@/common/validation'
 import type { TreeNode } from '@/db/schema'
 
-/** Loose request-body validation: any keys, all optional; normalization happens in the service */
-export const treeNodeBodySchema = z.record(z.string(), z.unknown()).nullish()
+export const TREE_STATUSES = ['active', 'inactive', 'archived'] as const
+export const STATUS_ERROR = '状态仅支持 active/inactive/archived'
 
-export const STATUS_VALUES = new Set(['active', 'inactive', 'archived'])
-export const NODE_TYPE_VALUES = new Set(['category', 'item', 'group'])
+export const treeNodeBody = z.object({
+  name: field.requiredText('节点名称', '节点名称不能为空'),
+  node_code: field.requiredText('节点编码', '节点编码不能为空'),
+  parent_id: field.id('父节点'),
+  node_type: field.text('节点类型'),
+  icon: field.text('图标'),
+  description: field.text('描述'),
+  sort_order: field.int('排序', 0),
+  is_active: field.bool('启用', true),
+  status: field.choice('状态', TREE_STATUSES, 'active', STATUS_ERROR),
+  owner: field.text('负责人'),
+})
+
+export type TreeNodeInput = z.output<typeof treeNodeBody>
+
+/** The filters mirror the list's query parameters (text) */
+export const treeExportBody = exportBody({
+  search: field.text('搜索'),
+  node_type: field.text('节点类型'),
+  status: field.text('状态'),
+  owner: field.text('负责人'),
+  is_active: field.text('启用'),
+})
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: TreeNode) => unknown]> = {
   id: ['ID', (item) => item.id],
@@ -47,33 +67,6 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
 export const TEMPLATE_HEADERS = ['节点名称', '节点编码', '父节点ID', '节点类型', '图标', '状态', '负责人', '排序', '启用', '描述']
 export const TEMPLATE_ROWS = [['根节点示例', 'root_001', '', 'category', '', 'active', 'admin', 0, '启用', '示例描述']]
 
-export function parseBool<D>(value: unknown, fallback: D): boolean | D {
-  if (value === null || value === undefined) return fallback
-  if (typeof value === 'boolean') return value
-  const raw = pyStr(value).trim().toLowerCase()
-  if (['true', '1', 'yes', '启用'].includes(raw)) return true
-  if (['false', '0', 'no', '停用'].includes(raw)) return false
-  return fallback
-}
-
-export function parseInt(value: unknown, fallback = 0): number {
-  if (value === null || value === undefined) return fallback
-  try {
-    return pyInt(value)
-  } catch {
-    return fallback
-  }
-}
-
-/** Convert to an integer using pyInt rules; returns null on failure */
-export function tryInt(value: unknown): number | null {
-  try {
-    return pyInt(value)
-  } catch {
-    return null
-  }
-}
-
 export interface ErrorRow {
   line: number
   reason: string
@@ -82,57 +75,4 @@ export interface ErrorRow {
 
 export function buildErrorRow(line: number, reason: string, row: Record<string, string>): ErrorRow {
   return { line, reason, row }
-}
-
-// ---------------------------------------------------------------- Value helpers
-
-/**
- * Iterate fields (fields in a POST export may not be a list): list → elements, str → characters, dict → keys;
- * other truthy values (numbers / true) are not iterable → 500.
- */
-export function pyIterate(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string') return Array.from(value)
-  if (isPlainObject(value)) return Object.keys(value)
-  throw invalidInput(`'${typeof value}' object is not iterable`)
-}
-
-/** Whether f is an exportable field; returns 500 when f is a list/dict (not usable as a field name) */
-export function isExportField(field: unknown): field is string {
-  if (field !== null && typeof field === 'object') throw invalidInput('unhashable type')
-  return typeof field === 'string' && Object.hasOwn(EXPORT_FIELD_MAP, field)
-}
-
-const PG_INT_MIN = -2_147_483_648
-const PG_INT_MAX = 2_147_483_647
-
-/** Whether the value can be compared with an int4 column as an integer param (out-of-range integers simply don't match in PostgreSQL rather than erroring) */
-export function isPgInt(n: number): boolean {
-  return Number.isInteger(n) && n >= PG_INT_MIN && n <= PG_INT_MAX
-}
-
-/**
- * How each element of ids behaves on PostgreSQL once inlined into `id IN (...)`:
- * - integer → matches; non-integer / out-of-int4 numbers → never match against integer (no error); None → no match
- * - string → parsed as int4 input ('2' can match; 'abc' / out of range → DB error → 500)
- * - bool / list / dict → type error → 500
- */
-export function resolveIdList(ids: unknown[]): number[] {
-  const result: number[] = []
-  for (const raw of ids) {
-    if (raw === null || raw === undefined) continue
-    if (typeof raw === 'number') {
-      if (isPgInt(raw)) result.push(raw)
-      continue
-    }
-    if (typeof raw === 'string' && /^\s*[+-]?\d+\s*$/.test(raw)) {
-      const n = Number(raw.trim())
-      if (isPgInt(n)) {
-        result.push(n)
-        continue
-      }
-    }
-    throw invalidInput(`invalid id: ${pyStr(raw)}`)
-  }
-  return result
 }

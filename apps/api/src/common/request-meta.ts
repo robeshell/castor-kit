@@ -52,31 +52,10 @@ function maskSensitive(data: unknown): unknown {
   return data
 }
 
-/**
- * Equivalent to Python `json.dumps(value, ensure_ascii=False)`: default separators are `", "` and `": "`,
- * so the text written to operation_logs.payload matches the format of existing logs.
- */
-export function pyJsonDumps(value: unknown): string {
-  if (value === null || value === undefined) return 'null'
-  if (typeof value === 'boolean') return value ? 'true' : 'false'
-  if (typeof value === 'number') {
-    if (Number.isNaN(value)) return 'NaN'
-    if (!Number.isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity'
-    return String(value)
-  }
-  if (typeof value === 'string') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(pyJsonDumps).join(', ')}]`
-  if (typeof value === 'object') {
-    const parts = Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${pyJsonDumps(v)}`)
-    return `{${parts.join(', ')}}`
-  }
-  return JSON.stringify(String(value))
-}
-
 /** Serialize the request body with a length limit (sensitive fields are masked first) */
 export function safePayload(payload: unknown): string | null {
   if (payload === null || payload === undefined) return null
-  const text = pyJsonDumps(maskSensitive(payload))
+  const text = JSON.stringify(maskSensitive(payload))
   const chars = [...text]
   if (chars.length > 2000) return `${chars.slice(0, 2000).join('')}...(truncated)`
   return text

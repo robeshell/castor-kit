@@ -8,21 +8,21 @@ import { stat } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { currentUsername, hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, jsonBody, notFound, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, notFound, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
-import { parseBool } from './schema'
-import { ListPageService } from './service'
+import { parseBody, parsePatch } from '@/common/validation'
+import { listPageBody, listPageExportBody, previewBody } from './schema'
+import { listFilters, ListPageService } from './service'
 
 const BASE = '/api/admin/component-center/list-page'
 
 type IdParams = { item_id: string }
 
-/** `request.args.get(key)`: missing → undefined (i.e. None) */
-function queryArg(request: FastifyRequest, key: string): string | undefined {
-  const value = (request.query as Record<string, unknown> | undefined)?.[key]
-  const first = Array.isArray(value) ? value[0] : value
-  return typeof first === 'string' ? first : undefined
+/** The list's filters from the query string */
+function queryFilters(request: FastifyRequest) {
+  const q = (key: string) => queryString(request, key)
+  return { search: q('search'), category: q('category'), owner: q('owner'), is_active: q('is_active'), status: q('status') }
 }
 
 export async function registerListPageRoutes(app: FastifyInstance): Promise<void> {
@@ -34,20 +34,14 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限查看列表页数据' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
-    return service.listItems(page, per_page, {
-      search: queryString(request, 'search'),
-      category: queryString(request, 'category'),
-      owner: queryString(request, 'owner'),
-      is_active: parseBool(queryArg(request, 'is_active'), null),
-      status: queryString(request, 'status'),
-    })
+    return service.listItems(page, per_page, listFilters(queryFilters(request)))
   })
 
   app.post(BASE, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_list_page_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
-    return reply.status(201).send(await service.createItem(jsonBody(request)))
+    return reply.status(201).send(await service.createItem(parseBody(listPageBody, request.body)))
   })
 
   const detailPath = `${BASE}/${intParam('item_id')}`
@@ -65,7 +59,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(listPageBody, request.body))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -80,14 +74,17 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     if (!(await hasMenuPermission(request, 'system_list_page_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
-    if (request.method === 'GET') {
-      const args: Record<string, unknown> = {}
-      for (const key of ['fields', 'search', 'category', 'owner', 'is_active', 'status', 'file_type']) {
-        args[key] = queryArg(request, key)
-      }
-      return sendTable(reply, await service.exportItems(args, 'GET'))
-    }
-    return sendTable(reply, await service.exportItems(jsonBody(request), 'POST'))
+    // GET exports every row matching the list's query parameters (`fields` comma-separated)
+    const body =
+      request.method === 'GET'
+        ? {
+            fields: queryString(request, 'fields').split(',').map((f) => f.trim()).filter(Boolean),
+            export_mode: 'filtered',
+            filters: queryFilters(request),
+            file_type: queryString(request, 'file_type'),
+          }
+        : request.body
+    return sendTable(reply, await service.exportItems(parseBody(listPageExportBody, body)))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
   app.post(`${BASE}/export`, opts, exportHandler)
@@ -96,7 +93,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     if (!(await hasMenuPermission(request, 'system_list_page_import'))) {
       return reply.status(403).send({ error: '无权限下载导入模板' })
     }
-    return sendTable(reply, await service.downloadTemplate(queryArg(request, 'file_type')))
+    return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type')))
   })
 
   app.post(`${BASE}/import`, opts, async (request, reply) => {
@@ -155,7 +152,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     if (!(await hasMenuPermission(request, 'system_list_page'))) {
       return reply.status(403).send({ error: '无权限执行数据预览' })
     }
-    return service.runPreview(jsonBody(request))
+    return service.runPreview(parseBody(previewBody, request.body))
   })
 
   app.get(`${BASE}/${intParam('item_id')}/versions`, opts, async (request, reply) => {

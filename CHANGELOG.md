@@ -36,6 +36,15 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Removing the old Python backend's shadow, step 3 — the five component-gallery list pages (list page / query management, card list, stats list, tree list, dynamic form) declare their bodies with `common/validation.ts`:
+  - **Strict bodies**: JSON types only. Statuses must be the exact lowercase value, and list-page settings (`conditions`, `display_config`, `permission_config`) must be objects, not JSON strings. URL lists must be string arrays. A tree node's `parent_id` must be a number (`null` moves it to the root; `0` / `''` / `'abc'` are 400). Dynamic-form field values are text.
+  - **Import status rows**: an invalid status in an import file is an error row, where it used to abort the whole import with a bare 400.
+  - **Import writes**: rows are written directly in the transaction, replacing a replica of SQLAlchemy's deferred autoflush.
+  - **Tree node code**: a tree node's code can now be changed on edit; before, it was validated and then silently ignored.
+  - **Stats average**: `/stats` `avg_amount` is rounded in SQL (`round(avg, 2)`) instead of by a port of Python's banker's `round`.
+  - **Legacy file names**: legacy upload file names are checked (plain names only) instead of rewritten by a port of werkzeug's `secure_filename`. Path traversal is a 400.
+  - **JSON text**: JSON written to text columns, operation-log payloads and devtools WebSocket messages is compact standard JSON (`JSON.stringify`), no longer Python `json.dumps` with `", "` / `": "` separators. Rows written earlier read the same, since both are JSON.
+  - **Shared parsers and fields**: new `field.number` / `field.date` / `field.dateTime` / `field.textList` / `parseNumberText`. Blank text is `null` and a blank choice takes its default.
 - Removing the old Python backend's shadow, step 2 — the system modules (announcements, menus, users, roles, notifications, logs, change password) declare their bodies with `common/validation.ts`:
   - **List exports share one body** (`exportBody` + `exportColumns`): ids, fields, mode, filters and file type.
   - **Stricter values**: wrong types are 400「<field>的值无效」. Announcement `publish_at` takes `YYYY-MM-DD HH:MM[:SS]` with an optional offset, replacing the port of Python's `datetime.fromisoformat`. An invalid notification type is a 400 instead of silently becoming `info`.

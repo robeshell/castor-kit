@@ -121,7 +121,7 @@ describe('ai-prompt', () => {
     })
     expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
     const raw = await handle.pool.query('select variables::text as v from ai_prompt_templates where id = $1', [body.id])
-    expect(raw.rows[0].v).toBe('["who", "when"]')
+    expect(raw.rows[0].v).toBe('["who","when"]')
 
     const off = await s.inject({ method: 'POST', url: `${B}/templates`, payload: { name: `${P}b`, content: 'c', is_active: 0, category: 'dev', description: ' d ' } })
     expect(off.json()).toMatchObject({ is_active: false, category: 'dev', description: 'd', variables: [], tags: [] })

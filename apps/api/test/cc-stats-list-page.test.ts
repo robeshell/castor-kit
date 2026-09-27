@@ -4,7 +4,6 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { stats_items } from '@/db/schema'
-import { pyRound2 } from '@/modules/component-center/stats-list-page/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -58,18 +57,17 @@ afterAll(async () => {
 })
 
 describe('stats-list-page', () => {
-  it('新增：201 + 归一化（金额四舍五入到 2 位、非法数字回落、布尔/状态解析、空串 → null）', async () => {
+  it('新增：201 + 归一化（金额按 numeric(14,2) 四舍五入、空串 → null / 默认值）', async () => {
     const body = await create({
       name: ' 甲 ',
       item_code: `${P}a`,
       category: '',
-      status: ' Published ',
-      amount: '12.345',
-      quantity: '3',
-      priority: 'x',
-      is_active: 'no',
+      status: 'published',
+      amount: 12.345,
+      quantity: 3,
+      is_active: false,
       owner: '  ',
-      description: 0,
+      description: '',
     })
     expect(body).toMatchObject({
       name: '甲',
@@ -85,7 +83,7 @@ describe('stats-list-page', () => {
     })
     expect(body.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?$/)
     await create({ name: '乙', item_code: `${P}b`, category: 'order', amount: 7, priority: 5, owner: '王五' })
-    await create({ name: '丙', item_code: `${P}c`, category: 'risk', status: 'archived', amount: -1.5, priority: 9, is_active: '启用' })
+    await create({ name: '丙', item_code: `${P}c`, category: 'risk', status: 'archived', amount: -1.5, priority: 9, is_active: true })
   })
 
   it('新增：各校验分支', async () => {
@@ -93,9 +91,19 @@ describe('stats-list-page', () => {
     expect((await post({ item_code: 'x' })).json()).toEqual({ error: '名称不能为空' })
     expect((await post({ name: 'x', item_code: '  ' })).json()).toEqual({ error: '编码不能为空' })
     expect((await post({ name: 'x', item_code: `${P}a` })).json()).toEqual({ error: '编码已存在' })
-    const bad = await post({ name: 'x', item_code: `${P}zz`, status: 'nope' })
-    expect(bad.statusCode).toBe(400)
-    expect(bad.json()).toEqual({ error: '状态仅支持 draft/published/archived' })
+    const cases: Array<[object, string]> = [
+      [{ status: 'nope' }, '状态仅支持 draft/published/archived'],
+      [{ status: 'Published' }, '状态仅支持 draft/published/archived'],
+      [{ amount: '12.3' }, '金额的值无效'],
+      [{ quantity: 1.5 }, '数量的值无效'],
+      [{ priority: 'x' }, '优先级的值无效'],
+      [{ is_active: 'no' }, '状态的值无效'],
+      [{ description: 0 }, '描述的值无效'],
+    ]
+    for (const [extra, error] of cases) {
+      const res = await post({ name: 'x', item_code: `${P}zz`, ...extra })
+      expect([res.statusCode, res.json()], JSON.stringify(extra)).toEqual([400, { error }])
+    }
     expect(await rowByCode(`${P}zz`)).toBeUndefined()
   })
 
@@ -137,12 +145,12 @@ describe('stats-list-page', () => {
     expect((await u.inject({ url: `${B}/stats` })).statusCode).toBe(403)
   })
 
-  it('编辑：同值不写库（updated_at 不变）；float≠Decimal 视为变更；校验分支；失败不落库', async () => {
+  it('编辑：同值不写库（updated_at 不变，金额按数值比较）；校验分支；失败不落库', async () => {
     const before = (await rowByCode(`${P}b`))!
     const same = await s.inject({
       method: 'PUT',
       url: `${B}/${before.id}`,
-      payload: { name: '乙', category: 'order', amount: '7', priority: 5.9, owner: ' 王五 ', status: 'DRAFT', is_active: 'maybe' },
+      payload: { name: '乙', category: 'order', amount: 7, priority: 5, owner: ' 王五 ', status: 'draft', is_active: true },
     })
     expect(same.statusCode).toBe(200)
     expect((await rowByCode(`${P}b`))!.updated_at).toBe(before.updated_at)
@@ -152,10 +160,10 @@ describe('stats-list-page', () => {
 
     const a = (await rowByCode(`${P}a`))!
     expect(a.amount).toBe('12.35')
-    // 12.35 can't be represented exactly in binary floating point → treated as a value change, so an UPDATE is issued
-    const bumped = await s.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: { amount: 12.35 } })
-    expect(bumped.json().amount).toBe(12.35)
-    expect((await rowByCode(`${P}a`))!.updated_at).not.toBe(a.updated_at)
+    // The stored '12.35' equals 12.35: no UPDATE
+    const unchanged = await s.inject({ method: 'PUT', url: `${B}/${a.id}`, payload: { amount: 12.35 } })
+    expect(unchanged.json().amount).toBe(12.35)
+    expect((await rowByCode(`${P}a`))!.updated_at).toBe(a.updated_at)
 
     const put = (payload: object) => s.inject({ method: 'PUT', url: `${B}/${before.id}`, payload })
     expect((await put({ name: ' ' })).json()).toEqual({ error: '名称不能为空' })
@@ -164,18 +172,21 @@ describe('stats-list-page', () => {
     expect((await put({ name: '改了', status: 'x' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
     expect((await rowByCode(`${P}b`))!.name).toBe('乙')
 
-    const changed = await put({ name: '乙2', item_code: `${P}b`, amount: 'bad', quantity: [], is_active: false })
-    expect(changed.json()).toMatchObject({ name: '乙2', amount: 7, quantity: 0, is_active: false })
+    expect((await put({ amount: 'bad' })).json()).toEqual({ error: '金额的值无效' })
+    expect((await put({ quantity: [] })).json()).toEqual({ error: '数量的值无效' })
+    const changed = await put({ name: '乙2', item_code: `${P}b`, amount: null, quantity: null, is_active: false })
+    expect(changed.json()).toMatchObject({ name: '乙2', amount: 0, quantity: 0, is_active: false })
+    await put({ amount: 7 })
   })
 
-  it('/stats：与数据库聚合一致，avg 按 Python round（银行家舍入）', async () => {
+  it('/stats：与数据库聚合一致，avg 保留 2 位小数', async () => {
     const res = await s.inject({ url: `${B}/stats` })
     expect(res.statusCode).toBe(200)
     const body = res.json()
     const { rows } = await handle.pool.query(
       `select count(*)::int total, count(*) filter (where is_active)::int active,
               count(*) filter (where status='published')::int published, count(*) filter (where status='draft')::int draft,
-              count(*) filter (where status='archived')::int archived, sum(amount) s, avg(amount) a from stats_items`,
+              count(*) filter (where status='archived')::int archived, sum(amount) s, round(avg(amount), 2) a from stats_items`,
     )
     const e = rows[0]
     expect(body).toMatchObject({
@@ -186,7 +197,7 @@ describe('stats-list-page', () => {
       draft_count: e.draft,
       archived_count: e.archived,
       total_amount: Number(e.s),
-      avg_amount: pyRound2(Number(e.a)),
+      avg_amount: Number(e.a),
     })
     const cats = await handle.pool.query('select category, count(id)::int c, sum(amount) s from stats_items group by category')
     expect(body.category_stats).toHaveLength(cats.rows.length)
@@ -195,24 +206,13 @@ describe('stats-list-page', () => {
     }
   })
 
-  it('pyRound2 按 round(x, 2) 语义', () => {
-    expect(pyRound2(0.125)).toBe(0.12)
-    expect(pyRound2(0.375)).toBe(0.38)
-    expect(pyRound2(-0.125)).toBe(-0.12)
-    expect(pyRound2(615500.125)).toBe(615500.12)
-    expect(pyRound2(2.675)).toBe(2.67)
-    expect(pyRound2(1.005)).toBe(1)
-    expect(pyRound2(820667.1266666666)).toBe(820667.13)
-    expect(pyRound2(0)).toBe(0)
-  })
-
   it('导出 csv（字节精确）、xlsx 读回、GET 筛选、错误分支', async () => {
     const a = (await rowByCode(`${P}a`))!
     const b = (await rowByCode(`${P}b`))!
     const res = await s.inject({
       method: 'POST',
       url: `${B}/export`,
-      payload: { ids: [b.id, String(a.id), 1.5, null], fields: ['item_code', 'amount', 'is_active', 'owner', 'bogus'] },
+      payload: { ids: [b.id, a.id], fields: ['item_code', 'amount', 'is_active', 'owner', 'bogus'] },
     })
     expect(res.headers['content-disposition']).toBe('attachment; filename=stats_list_page_export.csv')
     expect(res.headers['content-type']).toBe('text/csv; charset=utf-8')
@@ -233,11 +233,15 @@ describe('stats-list-page', () => {
     expect(g.body).toBe(`\ufeff名称,编码\r\n丙,${P}c\r\n`)
 
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: { a: 1 } } })).statusCode).toBe(400)
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: ['abc'] } })).statusCode).toBe(400)
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [1], fields: 3 } })).statusCode).toBe(400)
-    const dictFields = await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [a.id], fields: { name: 1 } } })
-    expect(dictFields.body).toBe('\ufeff名称\r\n甲\r\n')
+    for (const [payload, error] of [
+      [{ ids: { a: 1 } }, '导出记录的值无效'],
+      [{ ids: ['abc'] }, '导出记录的值无效'],
+      [{ ids: [1.5] }, '导出记录的值无效'],
+      [{ ids: [1], fields: 3 }, '导出字段的值无效'],
+      [{ ids: [1], fields: { name: 1 } }, '导出字段的值无效'],
+    ] as const) {
+      expect((await s.inject({ method: 'POST', url: `${B}/export`, payload })).json(), JSON.stringify(payload)).toEqual({ error })
+    }
   })
 
   it('模板 csv 字节精确 / xlsx', async () => {
@@ -259,7 +263,7 @@ describe('stats-list-page', () => {
     expect(await rowByCode(`${P}a`)).toMatchObject({ name: '甲改', amount: '0.50' })
   })
 
-  it('导入：错误行整体回滚；状态非法直接 400 且回滚；缺列 / 无文件 / 空内容', async () => {
+  it('导入：错误行整体回滚（含状态非法）；缺列 / 无文件 / 空内容', async () => {
     const bad = `名称,编码\n好,${P}i2\n,${P}i3\n坏,\n`
     const res = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('s.csv', bad) })
     expect(res.statusCode).toBe(400)
@@ -275,7 +279,7 @@ describe('stats-list-page', () => {
 
     const badStatus = `名称,编码,发布状态\n好,${P}i4,draft\n坏,${P}i5,nope\n`
     const st = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('s.csv', badStatus) })
-    expect(st.json()).toEqual({ error: '状态仅支持 draft/published/archived' })
+    expect(st.json()).toMatchObject({ error: '导入失败，存在错误数据', error_count: 1, error_rows: [{ line: 3, reason: '状态仅支持 draft/published/archived' }] })
     expect(await rowByCode(`${P}i4`)).toBeUndefined()
 
     const missing = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('s.csv', '名称,金额\na,1\n') })

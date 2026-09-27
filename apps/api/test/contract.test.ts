@@ -292,7 +292,7 @@ describe('改密 / 登出', () => {
       method: 'POST',
       path: '/api/admin/change-password',
       target_id: null,
-      payload: '{"old_password": "***", "new_password": "***"}',
+      payload: '{"old_password":"***","new_password":"***"}',
     })
 
     // Restore the fixture password so later cases can keep using it

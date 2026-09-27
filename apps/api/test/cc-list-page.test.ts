@@ -7,8 +7,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { file_references, files, query_management_versions, query_managements } from '@/db/schema'
-import { pyTitle, secureFilename } from '@/modules/component-center/list-page/schema'
-import { normalizeImageUrls, parseSchemaConfig } from '@/modules/component-center/list-page/service'
+import { isSafeFilename, parseUrlCell, titleCase } from '@/modules/component-center/list-page/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -60,40 +59,33 @@ afterAll(async () => {
 })
 
 describe('list-page 纯函数', () => {
-  it('secure_filename / str.title / URL 列表 / schema_config', () => {
-    expect(secureFilename('My cool movie.mov')).toBe('My_cool_movie.mov')
-    expect(secureFilename('../../../etc/passwd')).toBe('etc_passwd')
-    expect(secureFilename('i contain cool \xfcml\xe4uts.txt')).toBe('i_contain_cool_umlauts.txt')
-    expect(secureFilename('报告.pdf')).toBe('pdf')
-    expect(secureFilename('._.')).toBe('')
-    expect(pyTitle('user2id')).toBe('User2Id')
-    expect(pyTitle('updated at')).toBe('Updated At')
-    expect(pyTitle('ÉCOLE x')).toBe('École X')
-    expect(normalizeImageUrls('a，b；c\nd')).toEqual(['a', 'b', 'c', 'd'])
-    expect(normalizeImageUrls('["x", 1, null, " "]')).toEqual(['x', '1', 'None'])
-    expect(normalizeImageUrls('123')).toEqual(['123'])
-    expect(normalizeImageUrls({ a: 1 })).toEqual([])
-    expect(parseSchemaConfig({ a: [1, {}], b: '中' })).toBe('{\n  "a": [\n    1,\n    {}\n  ],\n  "b": "中"\n}')
-    expect(parseSchemaConfig(['x', true, null])).toBe("['x', True, None]")
+  it('文件名检查 / 标题 / 导入单元格里的 URL 列表', () => {
+    expect(isSafeFilename('legacy_r3.pdf')).toBe(true)
+    for (const name of ['../x.png', 'a/b.png', '.env', '报告.pdf', '']) expect(isSafeFilename(name), name).toBe(false)
+    expect(titleCase('updated at')).toBe('Updated At')
+    expect(titleCase('userID')).toBe('Userid')
+    expect(parseUrlCell('a，b；c\nd')).toEqual(['a', 'b', 'c', 'd'])
+    expect(parseUrlCell('["x", 1, " "]')).toEqual(['x', '1'])
+    expect(parseUrlCell(' ')).toEqual([])
   })
 })
 
 describe('list-page CRUD', () => {
-  it('新增 201：归一化 + Python json.dumps 格式落库 + create 版本快照', async () => {
+  it('新增 201：归一化 + JSON 落库 + create 版本快照', async () => {
     const body = await create({
       name: ' 全字段 ',
       query_code: `${P}a`,
       category: ' ',
       owner: ' me ',
-      priority: '12',
-      is_active: '否',
+      priority: 12,
+      is_active: false,
       status: 'published',
-      condition_logic: 'or',
-      conditions: { groups: [{ logic: 'x' }], items: [{ field: 'f', operator: 'eq', value: null, logic: 'or' }, { field: '' }] },
-      display_config: '{"a": {"中": 1}}',
-      permission_config: [1],
+      condition_logic: 'OR',
+      conditions: { groups: [{}], items: [{ field: 'f', operator: 'eq', value: null, logic: 'OR' }, { field: '' }] },
+      display_config: { a: { 中: 1 } },
+      permission_config: null,
       schema_config: { v: 1 },
-      image_urls: 'a.png，b.png',
+      image_urls: ['a.png', ' b.png '],
       file_url: 'x.pdf',
       operator: 'tester',
     })
@@ -120,10 +112,10 @@ describe('list-page CRUD', () => {
 
     const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.id, body.id))
     expect(row!.conditions_json).toBe(
-      '{"groups": [{"name": "分组1", "logic": "AND"}], "items": [{"field": "f", "operator": "eq", "value": "", "logic": "OR"}]}',
+      '{"groups":[{"name":"分组1","logic":"AND"}],"items":[{"field":"f","operator":"eq","value":"","logic":"OR"}]}',
     )
-    expect(row!.display_config).toBe('{"a": {"中": 1}}')
-    expect(row!.image_urls).toBe('["a.png", "b.png"]')
+    expect(row!.display_config).toBe('{"a":{"中":1}}')
+    expect(row!.image_urls).toBe('["a.png","b.png"]')
 
     const versions = await handle.db.select().from(query_management_versions).where(eq(query_management_versions.query_management_id, body.id))
     expect(versions).toHaveLength(1)
@@ -131,7 +123,7 @@ describe('list-page CRUD', () => {
     const snapshot = JSON.parse(versions[0]!.snapshot_json)
     expect(Object.keys(snapshot)).not.toContain('created_at')
     expect(snapshot.query_code).toBe(`${P}a`)
-    expect(versions[0]!.snapshot_json.startsWith(`{"id": ${body.id}, "name": "全字段", `)).toBe(true)
+    expect(versions[0]!.snapshot_json.startsWith(`{"id":${body.id},"name":"全字段",`)).toBe(true)
   })
 
   it('新增 校验分支', async () => {
@@ -140,8 +132,14 @@ describe('list-page CRUD', () => {
       [{ name: 'x' }, '查询编码不能为空'],
       [{ name: 'x', query_code: `${P}a` }, '查询编码已存在'],
       [{ name: 'x', query_code: `${P}z`, status: 0 }, '状态仅支持 draft/published'],
-      [{ name: 'x', query_code: `${P}z`, conditions: '{bad' }, '条件配置 JSON 格式错误'],
-      [{ name: 'x', query_code: `${P}z`, conditions: [] }, '条件配置必须是对象'],
+      [{ name: 'x', query_code: `${P}z`, status: 'Published' }, '状态仅支持 draft/published'],
+      [{ name: 'x', query_code: `${P}z`, conditions: '{"items": []}' }, '条件配置的值无效'],
+      [{ name: 'x', query_code: `${P}z`, conditions: [] }, '条件配置的值无效'],
+      [{ name: 'x', query_code: `${P}z`, condition_logic: 'or' }, '条件逻辑的值无效'],
+      [{ name: 'x', query_code: `${P}z`, display_config: '{}' }, '展示配置的值无效'],
+      [{ name: 'x', query_code: `${P}z`, image_urls: 'a.png' }, '图片URL列表的值无效'],
+      [{ name: 'x', query_code: `${P}z`, priority: '12' }, '优先级的值无效'],
+      [{ name: 'x', query_code: `${P}z`, schema_config: 5 }, 'Schema配置的值无效'],
     ]
     for (const [payload, error] of cases) {
       const res = await s.inject({ method: 'POST', url: B, payload })
@@ -149,8 +147,7 @@ describe('list-page CRUD', () => {
       expect(res.json()).toEqual({ error })
     }
     const long = await s.inject({ method: 'POST', url: B, payload: { name: 'n'.repeat(121), query_code: `${P}z` } })
-    expect(long.statusCode).toBe(400)
-    expect(long.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+    expect(long.json()).toEqual({ error: '字段长度超出限制' })
   })
 
   it('列表：形状、筛选、per_page 钳制、排序 priority desc', async () => {
@@ -208,11 +205,11 @@ describe('list-page CRUD', () => {
     const res = await s.inject({
       method: 'PUT',
       url: `${B}/${row!.id}`,
-      payload: { status: 'published', priority: 'bad', is_active: 'maybe', keyword: 5, image_url: 'one.png', file_urls: [' f ', null] },
+      payload: { status: 'published', keyword: ' 5 ', image_url: 'one.png', file_urls: [' f ', ''] },
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
-    expect(body).toMatchObject({ status: 'published', priority: 99, is_active: true, keyword: '5', version: 2, image_urls: ['one.png'], file_urls: ['f', 'None'] })
+    expect(body).toMatchObject({ status: 'published', priority: 99, is_active: true, keyword: '5', version: 2, image_urls: ['one.png'], file_urls: ['f'] })
     expect(body.published_at).not.toBeNull()
     expect(body.updated_at).not.toBe(body.created_at)
 
@@ -221,7 +218,10 @@ describe('list-page CRUD', () => {
       [{ query_code: '  ' }, '查询编码不能为空'],
       [{ query_code: `${P}a` }, '查询编码已存在'],
       [{ status: 'x' }, '状态仅支持 draft/published'],
-      [{ conditions: 'x' }, '条件配置 JSON 格式错误'],
+      [{ conditions: 'x' }, '条件配置的值无效'],
+      [{ priority: 'bad' }, '优先级的值无效'],
+      [{ is_active: 'maybe' }, '状态的值无效'],
+      [{ file_urls: [null] }, '文件URL列表的值无效'],
     ]
     for (const [payload, error] of errs) {
       const r = await s.inject({ method: 'PUT', url: `${B}/${row!.id}`, payload })
@@ -285,15 +285,15 @@ describe('list-page 预览', () => {
     expect(body.rows).toHaveLength(50)
     expect(body.condition_count).toBe(2)
     expect(body.elapsed_ms).toBe(35 + 5 * 6 + 2 * 11)
-    expect(body.columns.map((c: { title: string }) => c.title)).toEqual(['User2Id', 'Is Active', 'Priority', 'Status', 'Created At'])
+    expect(body.columns.map((c: { title: string }) => c.title)).toEqual(['User2id', 'Is Active', 'Priority', 'Status', 'Created At'])
     expect(body.rows[1]).toMatchObject({ user2id: 'user2id_sample_2', is_active: false, priority: 2, status: 'draft' })
     expect(body.rows[0].created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
 
     const empty = (await s.inject({ method: 'POST', url: `${B}/run-preview`, payload: { display_config: { selected_fields: [''], preview_rows: 0 } } })).json()
-    expect(empty.columns).toEqual([{ title: 'Id', dataIndex: 'id' }, { title: 'Name', dataIndex: 'name' }])
+    expect(empty.columns.map((c: { dataIndex: string }) => c.dataIndex)).toEqual(['id', 'name', 'status', 'owner', 'updated_at'])
     expect(empty.total).toBe(1)
     const bad = await s.inject({ method: 'POST', url: `${B}/run-preview`, payload: { conditions: 5 } })
-    expect(bad.json()).toEqual({ error: '条件配置必须是对象' })
+    expect(bad.json()).toEqual({ error: '条件配置的值无效' })
   })
 })
 
@@ -310,18 +310,18 @@ describe('list-page 导入导出', () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/export`,
-      payload: { ids: [ids[1], String(ids[0]), null], fields: ['query_code', 'keyword', 'image_urls', 'file_urls', 'is_active', 'conditions_json', 'priority', 'bad'] },
+      payload: { ids: [ids[1], ids[0]], fields: ['query_code', 'keyword', 'image_urls', 'file_urls', 'is_active', 'conditions_json', 'priority', 'bad'] },
     })
     expect(res.statusCode).toBe(200)
     expect(res.headers['content-disposition']).toBe('attachment; filename=list_page_export.csv')
     const expected =
       '﻿编码,关键字,图片URL列表,文件URL列表,状态,条件配置JSON,优先级\r\n' +
-      `${P}e1,'=cmd,"u1,u2",,启用,"{""groups"": [], ""items"": [{""field"": ""x"", ""operator"": ""eq"", ""value"": ""v,1"", ""logic"": ""AND""}]}",3\r\n` +
-      `${P}e2,,,f.pdf,停用,"{""groups"": [], ""items"": []}",0\r\n`
+      `${P}e1,'=cmd,"u1,u2",,启用,"{""groups"":[],""items"":[{""field"":""x"",""operator"":""eq"",""value"":""v,1"",""logic"":""AND""}]}",3\r\n` +
+      `${P}e2,,,f.pdf,停用,"{""groups"":[],""items"":[]}",0\r\n`
     expect(res.rawPayload.toString('utf8')).toBe(expected)
   })
 
-  it('导出 GET 筛选 + xlsx 读回；fields 字符串/对象语义', async () => {
+  it('导出 GET 筛选 + xlsx 读回', async () => {
     const res = await s.inject({ url: `${B}/export?file_type=xlsx&search=${P}e&is_active=1&fields=name,%20query_code` })
     expect(res.headers['content-disposition']).toBe('attachment; filename=list_page_export.xlsx')
     const wb = new ExcelJS.Workbook()
@@ -330,10 +330,6 @@ describe('list-page 导入导出', () => {
     wb.worksheets[0]!.eachRow((row) => rows.push((row.values as unknown[]).slice(1)))
     expect(rows).toEqual([['名称', '编码'], ['导出1', `${P}e1`]])
 
-    const strFields = await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [ids[0]], fields: 'name' } })
-    expect(strFields.rawPayload.toString('utf8').split('\r\n')[0]).toContain('ID,名称,编码')
-    const objFields = await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [ids[0]], fields: { name: 1 } } })
-    expect(objFields.rawPayload.toString('utf8')).toBe('﻿名称\r\n导出1\r\n')
     const filtered = await s.inject({
       method: 'POST',
       url: `${B}/export`,
@@ -344,17 +340,17 @@ describe('list-page 导入导出', () => {
 
   it('导出 错误分支（非法参数 → 400）', async () => {
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: {} })).json()).toEqual({ error: '请先勾选要导出的查询数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: 1 } })).statusCode).toBe(400)
-    for (const payload of [
-      { ids: ['abc'] },
-      { ids: [true] },
-      { ids: [1], fields: 5 },
-      { ids: [1], fields: [['name']] },
-      { export_mode: 'filtered', filters: [1] },
-    ]) {
+    for (const [payload, error] of [
+      [{ ids: 1 }, '导出记录的值无效'],
+      [{ ids: ['abc'] }, '导出记录的值无效'],
+      [{ ids: [true] }, '导出记录的值无效'],
+      [{ ids: [1], fields: 5 }, '导出字段的值无效'],
+      [{ ids: [1], fields: 'name' }, '导出字段的值无效'],
+      [{ ids: [1], fields: [['name']] }, '导出字段的值无效'],
+      [{ export_mode: 'filtered', filters: [1] }, '筛选条件的值无效'],
+    ] as const) {
       const res = await s.inject({ method: 'POST', url: `${B}/export`, payload })
-      expect(res.statusCode, JSON.stringify(payload)).toBe(400)
-      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+      expect([res.statusCode, res.json()], JSON.stringify(payload)).toEqual([400, { error }])
     }
   })
 
@@ -378,7 +374,7 @@ describe('list-page 导入导出', () => {
     const res = await s.inject({ method: 'POST', url: `${B}/import`, payload: file.payload, headers: file.headers })
     expect(res.json()).toEqual({ message: '导入成功', created: 1, updated: 1 })
     const [i1] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}i1`))
-    expect(i1).toMatchObject({ priority: 7, is_active: false, status: 'published', image_urls: '["a.png", "b.png"]', schema_config: '', conditions_json: '{"groups": [], "items": []}' })
+    expect(i1).toMatchObject({ priority: 7, is_active: false, status: 'published', image_urls: '["a.png","b.png"]', schema_config: '', conditions_json: '{"groups":[],"items":[]}' })
     expect(i1!.published_at).not.toBeNull()
     const [e1] = await handle.db.select().from(query_managements).where(eq(query_managements.query_code, `${P}e1`))
     expect(e1).toMatchObject({ name: '改名', version: 2, priority: 0, image_urls: null, keyword: null })
@@ -393,7 +389,7 @@ describe('list-page 导入导出', () => {
     expect(v).toMatchObject({ action: 'import_update', operator: 'import', version_no: 2 })
   })
 
-  it('导入失败：错误行整体回滚；非法发布状态直接 400；缺列；无文件；xls', async () => {
+  it('导入失败：错误行整体回滚（含非法发布状态）；缺列；无文件；xls', async () => {
     const csv = `查询名称,查询编码\r\n回滚我,${P}i2\r\n,${P}i3\r\n`
     const file = multipartFile('import.csv', csv)
     const res = await s.inject({ method: 'POST', url: `${B}/import`, payload: file.payload, headers: file.headers })
@@ -407,7 +403,7 @@ describe('list-page 导入导出', () => {
 
     const badStatus = multipartFile('b.csv', `查询名称,查询编码,发布状态\r\nA,${P}i4,bad\r\n`)
     const r2 = await s.inject({ method: 'POST', url: `${B}/import`, payload: badStatus.payload, headers: badStatus.headers })
-    expect(r2.json()).toEqual({ error: '状态仅支持 draft/published' })
+    expect(r2.json()).toMatchObject({ error: '导入失败，存在错误数据', error_rows: [{ line: 2, reason: '状态仅支持 draft/published' }] })
 
     const noCol = multipartFile('c.csv', '名称,x\r\nA,1\r\n')
     const r3 = await s.inject({ method: 'POST', url: `${B}/import`, payload: noCol.payload, headers: noCol.headers })
@@ -469,13 +465,13 @@ describe('list-page 图片 / 附件（文件中心）与旧文件回读', () => 
     expect(file.body).toBe('hello pdf')
   })
 
-  it('回读：不存在 404、空名 404、无效名 400、目录穿越被 secure_filename 化解', async () => {
+  it('回读：不存在 404、空名 404、无效名 / 目录穿越 400', async () => {
     expect((await s.inject({ url: `${B}/image/nope.png` })).json()).toEqual({ error: '资源不存在' })
     expect((await s.inject({ url: `${B}/image/` })).statusCode).toBe(404)
     expect((await s.inject({ url: `${B}/image/%E4%B8%AD` })).json()).toEqual({ error: '无效的图片文件名' })
-    // ../../ is normalized to a bare file name like "x.txt", so only files inside the upload directory can be read
+    // Only a plain file name inside the upload directory can be read
     const traversal = await s.inject({ url: `${B}/file/..%2F..%2Fpackage.json` })
-    expect(traversal.statusCode).toBe(404)
+    expect(traversal.json()).toEqual({ error: '无效的图片文件名' })
     expect((await s.inject({ method: 'POST', url: `${B}/image/a.png` })).statusCode).toBe(405)
   })
 })

@@ -78,14 +78,14 @@ describe('perf-stats', () => {
     for (const key of ['disk_used', 'disk_total', 'net_sent', 'net_recv']) expect(Math.round(body[key]! * 100) / 100).toBe(body[key])
   })
 
-  it('metric 消息文本逐字按 json.dumps 格式（浮点整数值带 .0，type 在最后）', async () => {
+  it('metric 消息：快照的 JSON，type 在最后', async () => {
     const text = metricMessage({
       cpu: 0, mem_used: 1024, mem_total: 2048.5, mem_pct: 50, disk_used: 1.25, disk_total: 10, disk_pct: 12.5,
       net_sent: 0.01, net_recv: 3, ts: 1700000000000,
     })
     expect(text).toBe(
-      '{"cpu": 0.0, "mem_used": 1024.0, "mem_total": 2048.5, "mem_pct": 50.0, "disk_used": 1.25, "disk_total": 10.0, ' +
-        '"disk_pct": 12.5, "net_sent": 0.01, "net_recv": 3.0, "ts": 1700000000000, "type": "metric"}',
+      '{"cpu":0,"mem_used":1024,"mem_total":2048.5,"mem_pct":50,"disk_used":1.25,"disk_total":10,' +
+        '"disk_pct":12.5,"net_sent":0.01,"net_recv":3,"ts":1700000000000,"type":"metric"}',
     )
     const snap = await systemSnapshot()
     expect(Object.keys(snap)).toEqual(METRIC_KEYS)
@@ -195,7 +195,7 @@ describe('/ws/devtools', () => {
       const first = JSON.parse(texts[0]!) as Record<string, unknown>
       expect(Object.keys(first)).toEqual([...METRIC_KEYS, 'type'])
       expect(first.type).toBe('metric')
-      expect(texts[0]).toMatch(/^\{"cpu": \d+(\.\d+)?, "mem_used": /)
+      expect(texts[0]).toMatch(/^\{"cpu":\d+(\.\d+)?,"mem_used":/)
       ws.terminate()
     }
   })
@@ -205,13 +205,13 @@ describe('/ws/devtools', () => {
     await opened(ws)
     ws.send(JSON.stringify({ hello: '世界', type: 'mine', n: 1.5, list: [1, null] }))
     const echo = await nextMessage(ws, (t) => t.includes('"echo"'))
-    const match = /^\{"hello": "世界", "type": "echo", "n": 1.5, "list": \[1, null\], "server_ts": (\d+)\}$/.exec(echo)
+    const match = /^\{"hello":"世界","type":"echo","n":1.5,"list":\[1,null\],"server_ts":(\d+)\}$/.exec(echo)
     expect(match).not.toBeNull()
     expect(Math.abs(Number(match![1]) - Date.now())).toBeLessThan(10_000)
 
     ws.send('plain text')
     const text = await nextMessage(ws, (t) => t.includes('"echo"'))
-    expect(text).toMatch(/^\{"text": "plain text", "type": "echo", "server_ts": \d+\}$/)
+    expect(text).toMatch(/^\{"text":"plain text","type":"echo","server_ts":\d+\}$/)
 
     // Send as soon as the connection opens, while the server is still doing the permission lookup
     const early = new WebSocket(`ws://127.0.0.1:${port}/ws/devtools`, {
@@ -220,7 +220,7 @@ describe('/ws/devtools', () => {
     track(early)
     early.on('open', () => early.send('{"early": true}'))
     const earlyEcho = await nextMessage(early, (t) => t.includes('"echo"'))
-    expect(earlyEcho).toMatch(/^\{"early": true, "type": "echo", "server_ts": \d+\}$/)
+    expect(earlyEcho).toMatch(/^\{"early":true,"type":"echo","server_ts":\d+\}$/)
   })
 
   it('JSON 但不是对象 → 连接异常中断', async () => {
@@ -247,7 +247,7 @@ describe('/ws/devtools', () => {
     const elapsed = Date.now() - started
     expect(result.code).toBe(1000)
     expect(elapsed).toBeGreaterThanOrEqual(600)
-    expect(result.messages.some((m) => m.startsWith('{"keep": 1, "type": "echo"'))).toBe(true)
+    expect(result.messages.some((m) => m.startsWith('{"keep":1,"type":"echo"'))).toBe(true)
   })
 
   it('非 WebSocket 的普通 GET → 404', async () => {

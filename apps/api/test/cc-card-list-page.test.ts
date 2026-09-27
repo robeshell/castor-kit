@@ -64,11 +64,11 @@ describe('card-list-page', () => {
       subtitle: '',
       category: null,
       cover_url: ' http://x/y.png ',
-      tag: 5,
-      status: 'ARCHIVED',
+      tag: ' 5 ',
+      status: 'archived',
       owner: 'me',
-      priority: '7',
-      is_active: '0',
+      priority: 7,
+      is_active: false,
       description: 'd',
     })
     expect(body).toMatchObject({
@@ -93,6 +93,10 @@ describe('card-list-page', () => {
     expect((await post({ title: 'x' })).json()).toEqual({ error: '编码不能为空' })
     expect((await post({ title: 'x', card_code: ` ${P}a ` })).json()).toEqual({ error: '编码已存在' })
     expect((await post({ title: 'x', card_code: `${P}z`, status: 'x' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
+    expect((await post({ title: 'x', card_code: `${P}z`, status: 'ARCHIVED' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
+    expect((await post({ title: 'x', card_code: `${P}z`, priority: '7' })).json()).toEqual({ error: '优先级的值无效' })
+    expect((await post({ title: 'x', card_code: `${P}z`, is_active: '0' })).json()).toEqual({ error: '状态的值无效' })
+    expect((await post({ title: 'x', card_code: `${P}z`, tag: 5 })).json()).toEqual({ error: '标签的值无效' })
   })
 
   it('列表：排序、分页、筛选', async () => {
@@ -123,7 +127,7 @@ describe('card-list-page', () => {
     const same = await s.inject({
       method: 'PUT',
       url: `${B}/${a.id}`,
-      payload: { title: '卡A', subtitle: null, tag: '5', status: 'archived', priority: 'bad', is_active: 'maybe', cover_url: 'http://x/y.png' },
+      payload: { title: '卡A', subtitle: null, tag: '5', status: 'archived', priority: 7, is_active: false, cover_url: 'http://x/y.png' },
     })
     expect(same.statusCode).toBe(200)
     expect((await rowByCode(`${P}a`))!.updated_at).toBe(a.updated_at)
@@ -135,7 +139,7 @@ describe('card-list-page', () => {
     expect((await put({ tag: 'new', status: 'bad' })).json()).toEqual({ error: '状态仅支持 draft/published/archived' })
     expect((await rowByCode(`${P}a`))!.tag).toBe('5')
 
-    const changed = await put({ tag: '', cover_url: '', category: '', is_active: '启用', card_code: `${P}a` })
+    const changed = await put({ tag: '', cover_url: '', category: '', is_active: true, card_code: `${P}a` })
     expect(changed.json()).toMatchObject({ tag: null, cover_url: null, category: 'general', is_active: true })
     expect((await rowByCode(`${P}a`))!.updated_at).not.toBe(a.updated_at)
   })
@@ -159,7 +163,7 @@ describe('card-list-page', () => {
     const g = await s.inject({ url: `${B}/export?search=${P}&category=product&fields=card_code` })
     expect(g.body).toBe(`\ufeff编码\r\n${P}b\r\n`)
     expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [] } })).json()).toEqual({ error: '请先勾选要导出的数据' })
-    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [true] } })).statusCode).toBe(400)
+    expect((await s.inject({ method: 'POST', url: `${B}/export`, payload: { ids: [true] } })).json()).toEqual({ error: '导出记录的值无效' })
   })
 
   it('模板 csv 字节精确', async () => {
@@ -181,7 +185,7 @@ describe('card-list-page', () => {
     expect(await rowByCode(`${P}i2`)).toBeUndefined()
 
     const st = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('c.csv', `标题,编码,发布状态\n好,${P}i3,\n坏,${P}i4,x\n`) })
-    expect(st.json()).toEqual({ error: '状态仅支持 draft/published/archived' })
+    expect(st.json()).toMatchObject({ error: '导入失败，存在错误数据', error_count: 1, error_rows: [{ line: 3, reason: '状态仅支持 draft/published/archived' }] })
     expect(await rowByCode(`${P}i3`)).toBeUndefined()
 
     const missing = await s.inject({ method: 'POST', url: `${B}/import`, ...multipartFile('c.csv', '编码\nx\n') })

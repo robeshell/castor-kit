@@ -6,7 +6,9 @@ import { and, asc, count, eq, ilike, inArray, isNull, ne, or, sql, type SQL } fr
 import type { Executor } from '@/db/client'
 import { utcNow } from '@/db/schema/columns'
 import { tree_nodes, type TreeNode } from '@/db/schema'
-import { isPgInt } from './schema'
+
+/** Ids beyond int4 (e.g. from a query string) can't exist: compare them as no match instead of failing the query */
+const isPgInt = (n: number) => Number.isInteger(n) && n >= -2_147_483_648 && n <= 2_147_483_647
 
 export interface TreeListFilters {
   search: string
@@ -19,7 +21,7 @@ export interface TreeListFilters {
 export type TreeNodeInsert = typeof tree_nodes.$inferInsert
 export type TreeNodeUpdate = Partial<Omit<TreeNodeInsert, 'id' | 'created_at' | 'updated_at'>>
 
-/** `parent_id == n`: integers outside int4 never match */
+/** parent_id = n; integers outside int4 never match */
 function parentEquals(parentId: number): SQL {
   return isPgInt(parentId) ? eq(tree_nodes.parent_id, parentId) : sql`false`
 }
@@ -27,7 +29,7 @@ function parentEquals(parentId: number): SQL {
 export class TreeListPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** Equivalent of service._build_flat_query */
+  /** WHERE clause of the flat list's filters */
   private flatWhere(f: TreeListFilters): SQL[] {
     const conds: SQL[] = []
     if (f.search) {

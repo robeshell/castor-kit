@@ -6,19 +6,25 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { getUploadedFile, intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { getUploadedFile, intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { sendTable } from '@/common/tabular'
 import type { TreeListFilters } from './repository'
-import { parseBool, tryInt } from './schema'
+import { parseBody, parsePatch, parseYesNo } from '@/common/validation'
+import { treeExportBody, treeNodeBody } from './schema'
 import { TreeListPageService } from './service'
 
 const BASE = '/api/admin/component-center/tree-list-page'
 
-/** request.args: take the first value of each key */
-function queryArgs(request: FastifyRequest): Record<string, unknown> {
-  const query = (request.query ?? {}) as Record<string, unknown>
-  return Object.fromEntries(Object.entries(query).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]))
+/** GET export: the list's query parameters as an export body (every filtered row; `fields` comma-separated) */
+function exportQuery(request: FastifyRequest) {
+  const q = (key: string) => queryString(request, key)
+  return {
+    fields: q('fields').split(',').map((f) => f.trim()).filter(Boolean),
+    export_mode: 'filtered',
+    filters: { search: q('search'), node_type: q('node_type'), status: q('status'), owner: q('owner'), is_active: q('is_active') },
+    file_type: q('file_type'),
+  }
 }
 
 function listFilters(request: FastifyRequest): TreeListFilters {
@@ -27,7 +33,7 @@ function listFilters(request: FastifyRequest): TreeListFilters {
     nodeType: queryString(request, 'node_type').trim(),
     status: queryString(request, 'status').trim(),
     owner: queryString(request, 'owner').trim(),
-    isActive: parseBool(queryString(request, 'is_active'), null),
+    isActive: parseYesNo(queryString(request, 'is_active')),
   }
 }
 
@@ -49,10 +55,9 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
       return reply.status(403).send({ error: '无权限查看树形列表页数据' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
-    const parentIdRaw = queryArgs(request).parent_id
-    let parentId: 'root' | number | null = null
-    if (parentIdRaw === 'root') parentId = 'root'
-    else if (typeof parentIdRaw === 'string') parentId = tryInt(parentIdRaw)
+    // parent_id: 'root' for top-level nodes, an id for one node's children; anything else lists every node
+    const parentIdRaw = queryString(request, 'parent_id').trim()
+    const parentId = parentIdRaw === 'root' ? 'root' : /^\d+$/.test(parentIdRaw) ? Number(parentIdRaw) : null
     return service.listItems(page, per_page, listFilters(request), parentId)
   })
 
@@ -60,7 +65,7 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
     if (!(await hasMenuPermission(request, 'system_tree_list_page_add'))) {
       return reply.status(403).send({ error: '无权限新增节点' })
     }
-    const [payload, status] = await service.createItem(jsonBody(request))
+    const [payload, status] = await service.createItem(parseBody(treeNodeBody, request.body))
     return reply.status(status).send(payload)
   })
 
@@ -81,7 +86,7 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
       return reply.status(403).send({ error: '无权限编辑节点' })
     }
     const item = await loadItem(request)
-    return service.updateItem(item, jsonBody(request))
+    return service.updateItem(item, parsePatch(treeNodeBody, request.body))
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
@@ -96,8 +101,8 @@ export async function registerTreeListPageRoutes(app: FastifyInstance): Promise<
     if (!(await hasMenuPermission(request, 'system_tree_list_page_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
-    const payload = request.method === 'GET' ? queryArgs(request) : jsonBody(request)
-    return sendTable(reply, await service.exportItems(payload, request.method))
+    const body = request.method === 'GET' ? exportQuery(request) : request.body
+    return sendTable(reply, await service.exportItems(parseBody(treeExportBody, body)))
   }
   app.get(`${BASE}/export`, opts, exportHandler)
   app.post(`${BASE}/export`, opts, exportHandler)

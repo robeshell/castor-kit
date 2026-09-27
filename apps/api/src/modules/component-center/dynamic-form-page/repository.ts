@@ -20,13 +20,13 @@ export type DynamicFormFieldInsert = typeof dynamic_form_fields.$inferInsert
 
 export type DynamicFormRecordWithCount = DynamicFormRecord & { fields_count: number }
 
-/** `record.fields.count()` */
+/** Number of dynamic fields per record */
 const fieldsCountSql = sql<number>`(select count(*) from "dynamic_form_fields" as "f" where "f"."record_id" = "dynamic_form_records"."id")`.mapWith(Number)
 
 export class DynamicFormPageRepository {
   constructor(private readonly db: Executor) {}
 
-  /** Equivalent of service._build_list_query */
+  /** WHERE clause of the list filters */
   private listWhere(f: DynamicFormListFilters): SQL | undefined {
     const conds: (SQL | undefined)[] = []
     if (f.search) {

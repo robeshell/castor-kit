@@ -1,24 +1,100 @@
 /**
- * List page schema layer
- *
- * Also holds small string helpers used by the service (equivalents of secure_filename / str.title /
- * json.dumps(indent=2)). They serve this module only; do not merge them into common.
+ * List page (query management) schema layer: request bodies, import / export field mapping and import-cell parsing
  */
 
 import { z } from 'zod'
-import { pyInt, PyValueError, pyStr } from '@/common/py'
 import { formatDateTime } from '@/common/serialize'
+import { exportBody, field, invalidMessage } from '@/common/validation'
 import type { QueryManagement } from '@/db/schema'
 
-/** Loose request-body validation: any keys, all optional; normalization happens in the service */
-export const listPageBodySchema = z.record(z.string(), z.unknown()).nullish()
+export const LIST_STATUSES = ['draft', 'published'] as const
+export const STATUS_ERROR = '状态仅支持 draft/published'
+const LOGICS = ['AND', 'OR'] as const
+
+/** A JSON object setting (display / permission config); missing / null → {} */
+const jsonObject = (label: string) =>
+  z
+    .record(z.string(), z.unknown(), { error: invalidMessage(label) })
+    .nullish()
+    .transform((v) => v ?? {})
+
+/** Query conditions: items without a field or an operator are dropped */
+const conditions = z
+  .object(
+    {
+      groups: z
+        .array(z.object({ name: field.text('分组名称'), logic: field.choice('分组逻辑', LOGICS, 'AND') }), { error: invalidMessage('条件配置') })
+        .nullish(),
+      items: z
+        .array(
+          z.object({
+            field: field.text('条件字段'),
+            operator: field.text('条件运算符'),
+            value: z.unknown().optional(),
+            logic: field.choice('条件逻辑', LOGICS, 'AND'),
+          }),
+          { error: invalidMessage('条件配置') },
+        )
+        .nullish(),
+    },
+    { error: invalidMessage('条件配置') },
+  )
+  .nullish()
+  .transform((v) => ({
+    groups: (v?.groups ?? []).map((g, i) => ({ name: g.name ?? `分组${i + 1}`, logic: g.logic })),
+    items: (v?.items ?? [])
+      .filter((item) => item.field && item.operator)
+      .map((item) => ({ field: item.field!, operator: item.operator!, value: item.value ?? '', logic: item.logic })),
+  }))
+
+/** Schema config: text, or an object stored as indented JSON; missing / null → '' */
+const schemaConfig = z
+  .union([z.string(), z.record(z.string(), z.unknown())], { error: invalidMessage('Schema配置') })
+  .nullish()
+  .transform((v) => (v === null || v === undefined ? '' : typeof v === 'string' ? v.trim() : JSON.stringify(v, null, 2)))
+
+export const listPageBody = z.object({
+  name: field.requiredText('查询名称', '查询名称不能为空'),
+  query_code: field.requiredText('查询编码', '查询编码不能为空'),
+  category: field.text('查询分类'),
+  keyword: field.text('关键字'),
+  data_source: field.text('数据源'),
+  owner: field.text('负责人'),
+  image_url: field.text('图片URL'),
+  image_urls: field.textList('图片URL列表'),
+  file_url: field.text('文件URL'),
+  file_urls: field.textList('文件URL列表'),
+  priority: field.int('优先级', 0),
+  is_active: field.bool('状态', true),
+  status: field.choice('发布状态', LIST_STATUSES, 'draft', STATUS_ERROR),
+  condition_logic: field.choice('条件逻辑', LOGICS, 'AND'),
+  conditions,
+  display_config: jsonObject('展示配置'),
+  permission_config: jsonObject('权限配置'),
+  schema_config: schemaConfig,
+  description: field.text('描述'),
+  operator: field.text('操作人'),
+})
+
+export type ListPageInput = z.output<typeof listPageBody>
+
+export const previewBody = z.object({ display_config: jsonObject('展示配置'), conditions })
+
+/** The filters mirror the list's query parameters (text) */
+export const listPageExportBody = exportBody({
+  search: field.text('搜索'),
+  category: field.text('查询分类'),
+  owner: field.text('负责人'),
+  is_active: field.text('状态'),
+  status: field.text('发布状态'),
+})
 
 function exportUrlList(raw: string | null, single: string | null): string {
   let urls: string[] = []
   if (raw) {
     try {
       const parsed: unknown = JSON.parse(raw)
-      if (Array.isArray(parsed)) urls = parsed.map((v) => pyStr(v).trim()).filter(Boolean)
+      if (Array.isArray(parsed)) urls = parsed.map((v) => String(v).trim()).filter(Boolean)
     } catch {
       urls = []
     }
@@ -98,27 +174,20 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   description: 'description',
 }
 
-const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', '是', '启用'])
-const FALSE_VALUES = new Set(['0', 'false', 'no', 'off', '否', '停用'])
-
-/** Parse a boolean: empty values return defaultValue; strings are matched against TRUE_VALUES / FALSE_VALUES, and unrecognized values also return defaultValue */
-export function parseBool<D>(value: unknown, defaultValue: D): boolean | D {
-  if (value === null || value === undefined || value === '') return defaultValue
-  if (typeof value === 'boolean') return value
-  const raw = pyStr(value).trim().toLowerCase()
-  if (TRUE_VALUES.has(raw)) return true
-  if (FALSE_VALUES.has(raw)) return false
-  return defaultValue
-}
-
-/** Parse an integer using pyInt rules; returns defaultValue when the value can't be parsed (PyValueError) */
-export function parseIntOr<D>(value: unknown, defaultValue: D): number | D {
+/** URLs from an import cell: a JSON array, or text separated by commas / semicolons / new lines */
+export function parseUrlCell(text: string | undefined): string[] {
+  const value = (text ?? '').trim()
+  if (!value) return []
   try {
-    return pyInt(value)
-  } catch (err) {
-    if (err instanceof PyValueError) return defaultValue
-    throw err
+    const parsed: unknown = JSON.parse(value)
+    if (Array.isArray(parsed)) return parsed.map((v) => String(v).trim()).filter(Boolean)
+  } catch {
+    // Not JSON: split on the separators
   }
+  return value
+    .split(/[,，;；\n]/)
+    .map((v) => v.trim())
+    .filter(Boolean)
 }
 
 export interface ErrorRow {
@@ -135,44 +204,15 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   }
 }
 
-// ---------------------------------------------------------------- String helpers
-
-/** Sanitize an uploaded filename (secure_filename rules): NFKD then drop non-ASCII, collapse path separators and whitespace into `_`, keep only [A-Za-z0-9_.-], strip leading/trailing `.`/`_` (POSIX semantics; no Windows device-name handling) */
-export function secureFilename(filename: string): string {
-  let name = filename.normalize('NFKD').replace(/[^\x00-\x7f]/g, '')
-  name = name.replace(/\//g, ' ')
-  // str.split(): split on ASCII whitespace (non-ASCII was already removed in the previous step)
-  name = name
-    .split(/[ \t\n\r\x0b\x0c\x1c\x1d\x1e\x1f]+/)
-    .filter(Boolean)
-    .join('_')
-  name = name.replace(/[^A-Za-z0-9_.-]/g, '')
-  return name.replace(/^[._]+/, '').replace(/[._]+$/, '')
+/** A stored file name from the legacy upload folders: letters, digits, `_`, `.` and `-`, not starting with a dot */
+export function isSafeFilename(name: string): boolean {
+  return /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(name)
 }
 
-/** Characters whose titlecase differs from uppercase (str.title semantics use the titlecase mapping) */
-const TITLECASE_MAP: Record<string, string> = {
-  Ǆ: 'ǅ', ǅ: 'ǅ', ǆ: 'ǅ', Ǉ: 'ǈ', ǈ: 'ǈ', ǉ: 'ǈ', Ǌ: 'ǋ', ǋ: 'ǋ', ǌ: 'ǋ', Ǳ: 'ǲ', ǲ: 'ǲ', ǳ: 'ǲ',
-  ß: 'Ss', ﬀ: 'Ff', ﬁ: 'Fi', ﬂ: 'Fl', ﬃ: 'Ffi', ﬄ: 'Ffl', ﬅ: 'St', ﬆ: 'St',
-}
-
-function isCased(ch: string): boolean {
-  return ch.toLowerCase() !== ch.toUpperCase()
-}
-
-/** Python `str.title()` semantics: uppercase when the previous character is not cased, otherwise lowercase (digits also count as separators) */
-export function pyTitle(text: string): string {
-  let out = ''
-  let previousCased = false
-  for (const ch of text) {
-    const converted = previousCased ? ch.toLowerCase() : (TITLECASE_MAP[ch] ?? ch.toUpperCase())
-    out += converted
-    previousCased = isCased(ch)
-  }
-  return out
-}
-
-/** `json.dumps(value, ensure_ascii=False, indent=2)` (only called with dicts; key separator ': ', item separator ',', same indented format as JSON.stringify) */
-export function pyJsonDumpsIndent2(value: Record<string, unknown>): string {
-  return JSON.stringify(value, null, 2)
+/** `updated_at` → `Updated At` (preview column titles) */
+export function titleCase(text: string): string {
+  return text
+    .split(' ')
+    .map((word) => (word ? word[0]!.toUpperCase() + word.slice(1).toLowerCase() : word))
+    .join(' ')
 }

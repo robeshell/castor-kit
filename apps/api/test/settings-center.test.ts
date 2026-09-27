@@ -114,9 +114,9 @@ describe('settings center', () => {
       if (!log) await new Promise((r) => setTimeout(r, 20))
     }
     expect(log!.payload).not.toContain('very-secret')
-    expect(log!.payload).toContain('"storage.s3_secret_key": "***"')
-    expect(log!.payload).toContain('"mail.smtp_password": "***"')
-    expect(log!.payload).toContain('"security.password_min_length": 8')
+    expect(log!.payload).toContain('"storage.s3_secret_key":"***"')
+    expect(log!.payload).toContain('"mail.smtp_password":"***"')
+    expect(log!.payload).toContain('"security.password_min_length":8')
   })
 
   it('测试按钮：用表单里未保存的值试发邮件 / 读写存储 / 调用 AI，不写入设置', async () => {
