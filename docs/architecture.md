@@ -24,7 +24,7 @@
 | System metrics | `systeminformation` | Performance monitor page / WebSocket push |
 | Testing | Vitest + real PostgreSQL | The AI SQL read-only engine, sequence sync and advisory locks are pg-specific, so no in-memory stand-in |
 | Code quality | ESLint + `tsc --noEmit` | Part of the verify gate |
-| Frontend | React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (JSX) | See `docs/frontend-design-system.md` |
+| Frontend | React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (moving from JSX to TSX) | See `docs/frontend-design-system.md` |
 | MCP | `@modelcontextprotocol/sdk` | Exposes the toolchain to MCP clients |
 
 Out of scope: no Next.js/SSR (an RBAC admin with dynamic menu routes gains nothing from SSR, only complexity); no GraphQL.
@@ -66,7 +66,7 @@ castor-kit/
 │   │   ├── scripts/                # toolchain (see §7)
 │   │   ├── test/                   # Vitest (real PostgreSQL)
 │   │   └── drizzle.config.ts
-│   ├── web/                        # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (JSX)
+│   ├── web/                        # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (moving from JSX to TSX)
 │   └── mcp/                        # @castor-kit/mcp — MCP server
 ├── docs/
 │   ├── architecture.md             # this document

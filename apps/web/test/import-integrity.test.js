@@ -1,5 +1,5 @@
 /**
- * Import integrity test: scan all JS/JSX under apps/web/src and verify every module import path resolves.
+ * Import integrity test: scan all JS/JSX/TS/TSX under apps/web/src and verify every module import path resolves.
  *
  * Covers two forms:
  *  - @/ alias (must point to a real file under the src root)
@@ -19,7 +19,7 @@ function collectFiles(dir, out = []) {
     const full = join(dir, name)
     if (statSync(full).isDirectory()) {
       collectFiles(full, out)
-    } else if (/\.(js|jsx)$/.test(name)) {
+    } else if (/\.[jt]sx?$/.test(name)) {
       out.push(full)
     }
   }
@@ -54,7 +54,7 @@ describe('导入完整性', () => {
         if (spec.startsWith('@/')) {
           aliasCount++
           const target = join(SRC, spec.slice(2))
-          if (!existsSync(target) && !existsSync(`${target}.jsx`) && !existsSync(`${target}.js`)) {
+          if (!existsSync(target) && !['.tsx', '.ts', '.jsx', '.js'].some((ext) => existsSync(`${target}${ext}`))) {
             broken.push(`${file}:${line} → ${spec}（无法解析）`)
           }
         } else if (spec.startsWith('./') || spec.startsWith('../')) {

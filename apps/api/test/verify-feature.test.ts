@@ -87,6 +87,8 @@ function baseFixture(): void {
   // Frontend
   put('apps/web/src/modules/admin/api/ck_widget.js', '')
   put('apps/web/src/modules/admin/pages/ck_widget/index.jsx', '')
+  put('apps/web/src/modules/component_center/api/ck_gizmo_page.ts', '')
+  put('apps/web/src/modules/component_center/pages/admin/ck_gizmo_page/index.tsx', '')
   // Docs
   put('AGENTS.md', '# t\n\n见 `apps/api/src/router.ts`、`db/schema/index.ts` 与 [plan](docs/plan.md)；外部 `/Users/x/y.md`、`<name>/routes.ts`\n')
   put('docs/plan.md', '')
@@ -136,8 +138,11 @@ describe('verify-feature 模块级检查', () => {
     })
     expect(checkFrontendApi(ctx, 'ck_widget')).toEqual({ name: 'frontend_api', passed: true, path: 'apps/web/src/modules/admin/api/ck_widget.js' })
     expect(checkFrontendApi(ctx, 'nope').error).toBe(
-      'No frontend API file found; looked in: apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/component_center/api/nope.js',
+      'No frontend API file found; looked in: apps/web/src/modules/admin/api/nope.{ts,js}, apps/web/src/modules/component_center/api/nope.{ts,js}, apps/web/src/modules/component_center/api/nope_page.{ts,js}',
     )
+    // TypeScript files count too
+    expect(checkFrontendApi(ctx, 'ck_gizmo')).toMatchObject({ passed: true, path: 'apps/web/src/modules/component_center/api/ck_gizmo_page.ts' })
+    expect(checkFrontendPage(ctx, 'ck_gizmo')).toMatchObject({ passed: true, path: 'apps/web/src/modules/component_center/pages/admin/ck_gizmo_page/index.tsx' })
   })
 
   it('router_registration：只认真实的 await registerXxxRoutes(...) 调用', () => {

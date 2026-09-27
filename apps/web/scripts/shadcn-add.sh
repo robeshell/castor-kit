@@ -120,7 +120,7 @@ while IFS= read -r file; do
     sed -i.bak -E "s#from ['\"]cn['\"]#from \"@/lib/utils\"#" "$file" && rm -f "$file.bak"
     echo "↺ $file: cn now imported from @/lib/utils" >&2
   fi
-done < <(find "${OUT_DIRS[@]}" -type f \( -name '*.js' -o -name '*.jsx' \) -newer "$TMP_DIR/marker" 2>/dev/null)
+done < <(find "${OUT_DIRS[@]}" -type f \( -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' \) -newer "$TMP_DIR/marker" 2>/dev/null)
 if [[ "$HAD_CN_DEP" == "0" ]] && grep -q '"cn":' package.json; then
   echo "↺ Removing the wrongly installed npm package cn" >&2
   pnpm remove cn >/dev/null

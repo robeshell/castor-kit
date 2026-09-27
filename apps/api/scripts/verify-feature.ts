@@ -7,7 +7,7 @@
  *   pnpm verify -- --module customer --json   # structured JSON output (for AI/MCP; stdout contains only JSON)
  *
  * Checks:
- *   1. TypeScript type check (tsc --noEmit: all of apps/api including scripts/test, plus apps/mcp)
+ *   1. TypeScript type check (tsc --noEmit: all of apps/api including scripts/test, apps/mcp and apps/web)
  *   2. routes layer must not define its own hasPermission (must use common/auth)
  *   3. Migration chain is intact (drizzle journal is linear, snapshot prevIds chain up, every entry has SQL, no stray SQL)
  *   4. Migrations are actually applied (journal compared against drizzle.__drizzle_migrations; module tables confirmed via to_regclass)
@@ -116,10 +116,10 @@ const WEB_MODULES = ['admin', 'component_center']
 
 // ─── Individual checks ─────────────────────────────────────────────────────────
 
-/** TypeScript type check (all of apps/api + apps/mcp) */
+/** TypeScript type check (all of apps/api + apps/mcp + apps/web; web's .js / .jsx files compile but aren't checked) */
 export function checkTypescript(ctx: VerifyContext): CheckResult {
   const errors: string[] = []
-  for (const pkg of [ctx.apiDir, join(ctx.root, 'apps', 'mcp')]) {
+  for (const pkg of [ctx.apiDir, join(ctx.root, 'apps', 'mcp'), ctx.webDir]) {
     if (!existsSync(join(pkg, 'tsconfig.json'))) continue
     const { code, output } = run([...bin(pkg, 'tsc'), '--noEmit', '-p', 'tsconfig.json'], pkg)
     if (code !== 0) errors.push(`[${rel(ctx, pkg)}]\n${output.trim()}`)
@@ -427,19 +427,19 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
 export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResult {
   const singular = singularOf(module)
   const api = (m: string, f: string) => join(ctx.webDir, 'src', 'modules', m, 'api', f)
-  const candidates = [
-    api('admin', `${module}.js`),
-    api('admin', `${singular}.js`),
-    api('component_center', `${module}.js`),
-    api('component_center', `${singular}.js`),
-    api('component_center', `${module}_page.js`),
+  const bases = [
+    api('admin', module),
+    api('admin', singular),
+    api('component_center', module),
+    api('component_center', singular),
+    api('component_center', `${module}_page`),
   ]
-  const found = candidates.find((p) => existsSync(p))
+  const found = bases.flatMap((base) => [`${base}.ts`, `${base}.js`]).find((p) => existsSync(p))
   if (found) return { name: 'frontend_api', passed: true, path: rel(ctx, found) }
   return {
     name: 'frontend_api',
     passed: false,
-    error: `No frontend API file found; looked in: ${candidates.slice(0, 3).map((p) => rel(ctx, p)).join(', ')}`,
+    error: `No frontend API file found; looked in: ${[...new Set(bases)].slice(0, 3).map((p) => `${rel(ctx, p)}.{ts,js}`).join(', ')}`,
   }
 }
 

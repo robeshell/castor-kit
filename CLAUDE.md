@@ -46,7 +46,7 @@
 - **New domain**: register it in `src/router.ts` + `db/schema/index.ts` (new modules inside an existing domain are registered by scaffold automatically)
 - **Import / export**: `common/tabular.ts` (`buildTable` / `sendTable` / `readTableFile`), csv / xlsx only
 
-### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react, JSX)
+### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react; moving from JSX to TSX, see AGENTS.md "TypeScript (migration in progress)")
 - **Dynamic routing**: `App.jsx` scans `import.meta.glob('./modules/**/pages/**/index.jsx')`; `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/admin/kanban_page`)
 - **API client**: `apps/web/src/shared/api/request.js` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
 - **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.jsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`

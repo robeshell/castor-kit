@@ -14,7 +14,7 @@ function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
     if (statSync(path).isDirectory()) walk(path, out)
-    else if (/\.(jsx?|css)$/.test(name)) out.push(path)
+    else if (/\.([jt]sx?|css)$/.test(name)) out.push(path)
   }
   return out
 }

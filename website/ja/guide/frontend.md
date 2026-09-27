@@ -1,6 +1,6 @@
 # フロントエンド
 
-フロントエンドは `apps/web` にあり、技術スタックは React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react、言語は JavaScript（JSX）です。このページでは、動的ルーティング、標準的なページ構成、API の呼び出し、共通コンポーネント、スタイル規約について説明します。
+フロントエンドは `apps/web` にあり、技術スタックは React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react、言語は TypeScript（TSX）です。コードは JSX から層ごとに移行中で、未移行の `.jsx` ファイルもそのまま動作します。このページでは、動的ルーティング、標準的なページ構成、API の呼び出し、共通コンポーネント、スタイル規約について説明します。
 
 参考実装：
 

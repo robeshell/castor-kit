@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend lives in `apps/web` and is built with React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react, written in JavaScript (JSX). This page covers dynamic routing, the standard page structure, API calls, shared components and styling rules.
+The frontend lives in `apps/web` and is built with React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react, written in TypeScript (TSX): the code is moving from JSX layer by layer, and the `.jsx` files that remain still work. This page covers dynamic routing, the standard page structure, API calls, shared components and styling rules.
 
 Reference implementations:
 

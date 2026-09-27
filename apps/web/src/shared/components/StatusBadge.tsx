@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react'
 import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 
-const TONES = {
+export type StatusTone = 'neutral' | 'brand' | 'info' | 'success' | 'warning' | 'danger'
+
+const TONES: Record<StatusTone, string> = {
   neutral: 'bg-muted text-muted-foreground',
   brand: 'bg-brand-soft text-primary',
   info: 'bg-info-soft text-info',
@@ -9,7 +12,7 @@ const TONES = {
   warning: 'bg-warning-soft text-warning',
   danger: 'bg-danger-soft text-danger',
 }
-const DOTS = {
+const DOTS: Record<StatusTone, string> = {
   neutral: 'bg-muted-foreground/60',
   brand: 'bg-primary',
   info: 'bg-info',
@@ -23,7 +26,17 @@ const DOTS = {
  *   <StatusBadge tone="success" dot>{t('启用')}</StatusBadge>
  *   <StatusBadge tone="neutral" variant="plain" dot>{t('草稿')}</StatusBadge>  // dot + text only
  */
-export default function StatusBadge({ tone = 'neutral', dot = false, variant = 'soft', className, children }) {
+export interface StatusBadgeProps {
+  tone?: StatusTone
+  dot?: boolean
+  /** soft: tinted pill; plain: dot + text only */
+  variant?: 'soft' | 'plain'
+  className?: string
+  /** Chinese source text (translated here) or a node */
+  children?: ReactNode
+}
+
+export default function StatusBadge({ tone = 'neutral', dot = false, variant = 'soft', className, children }: StatusBadgeProps) {
   const tx = useTx()
   if (variant === 'plain') {
     return (

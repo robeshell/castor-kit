@@ -65,7 +65,7 @@ export function loadCatalogs() {
 function sourceFiles(target) {
   const root = resolve(WEB_DIR, target || 'src')
   const files = statSync(root).isDirectory() ? walk(root) : [root]
-  return files.filter((f) => /\.(jsx?|mjs)$/.test(f) && !f.endsWith('.test.js') && !f.endsWith('.test.jsx'))
+  return files.filter((f) => /\.([jt]sx?|mjs)$/.test(f) && !/\.test\.[jt]sx?$/.test(f))
 }
 
 /** Walk the AST without @babel/traverse; calls visit(node, parent, parentKey) */
@@ -90,7 +90,9 @@ export function scanFile(path, catalogs) {
   })
   let ast
   try {
-    ast = parse(code, { sourceType: 'module', plugins: ['jsx'], errorRecovery: true })
+    // .ts gets no jsx plugin: it would misread generic arrows like <T>(x: T) => x as JSX
+    const plugins = path.endsWith('.ts') ? ['typescript'] : path.endsWith('.tsx') ? ['jsx', 'typescript'] : ['jsx']
+    ast = parse(code, { sourceType: 'module', plugins, errorRecovery: true })
   } catch (err) {
     return [{ file: relative(WEB_DIR, path), line: 0, kind: 'parse-error', text: String(err.message) }]
   }

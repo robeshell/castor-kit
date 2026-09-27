@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- The frontend is moving to TypeScript, layer by layer (plan in `docs/roadmap.md` "TypeScript frontend"):
+  - `apps/web/tsconfig.json` (strict, `allowJs`) replaces `jsconfig.json`; `pnpm typecheck` and the `verify` gate type-check the web app's `.ts` / `.tsx` files, and `pnpm lint` now lints the web app too (typescript-eslint for TS files).
+  - Page routing, the i18n scanner, the import check and `shadcn-add.sh` accept `.ts` / `.tsx`.
+  - First files converted: `lib/utils`, `PageHeader`, `StatusBadge`, the sessions API; shared response shapes in `@/shared/api/types`.
+  - Component layers are enforced by a test: shadcn primitives import only primitives, and shared components get data through props instead of calling the API or reading app context.
 - English first, for a global audience:
   - The developer specs are written in English: `AGENTS.md`, `CLAUDE.md`, `docs/`, the `new-feature-autopilot` and `shadcn-ui-skills` skills, and the MCP server's tool descriptions. UI copy is still written in Chinese as the i18n key (`t('中文原文')`), with English and Japanese translations.
   - English is the fallback language: the admin UI uses it when neither a saved choice nor the browser language matches, and the API answers in English when a request has no supported `Accept-Language` (curl, API-token clients). The page title and `<html lang>` are English.
