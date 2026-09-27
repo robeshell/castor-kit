@@ -333,14 +333,14 @@ describe('scaffold 纯函数', () => {
   })
 })
 
-/** Keep only the baseline migration: the test must not change as feature migrations are added to the repo */
-function trimDrizzleToBaseline(dir: string): void {
+/** Keep only the initial migration: the test must not change as feature migrations are added to the repo */
+function trimDrizzleToInitial(dir: string): void {
   const journalPath = join(dir, 'meta', '_journal.json')
   const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
-  const [baseline] = journal.entries
-  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  const [initial] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${initial!.tag}.sql`) rmSync(join(dir, f))
   for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
-  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [initial] }, null, 2))
 }
 
 /** A spec using every rule: labels, required, unique, defaults, fixed options, a dictionary, the menu */
@@ -584,7 +584,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     for (const entry of ['src', 'drizzle', 'drizzle.config.ts', 'tsconfig.json', 'package.json']) {
       cpSync(join(API_DIR, entry), join(api, entry), { recursive: true })
     }
-    trimDrizzleToBaseline(join(api, 'drizzle'))
+    trimDrizzleToInitial(join(api, 'drizzle'))
     symlinkSync(join(API_DIR, 'node_modules'), join(api, 'node_modules'), 'dir')
     mkdirSync(join(root, 'apps', 'web', 'src', 'modules'), { recursive: true })
     // Shared locales decide which page translations scaffold writes; the scanner locates src from its own path
@@ -629,7 +629,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(res.out).toContain('Perm prefix: cc_ck_scaffold_demo')
     expect(existsSync(join(root, 'apps/api/src/modules/component-center/ck-scaffold-demo'))).toBe(false)
     expect(readFileSync(join(root, 'apps/api/src/db/schema/index.ts'), 'utf8')).toBe(indexBefore)
-    expect(readdirSync(join(root, 'apps/api/drizzle')).filter((f) => f.endsWith('.sql'))).toEqual(['0000_baseline.sql'])
+    expect(readdirSync(join(root, 'apps/api/drizzle')).filter((f) => f.endsWith('.sql'))).toEqual(['0000_init.sql'])
     expect(res.out).toContain('[dry-run] would update: docs/apifox-full.openapi.json')
     expect(readFileSync(join(root, 'docs/apifox-full.openapi.json'), 'utf8')).toBe(readFileSync(DOC, 'utf8'))
   })
@@ -769,7 +769,7 @@ describe('scaffold CLI（临时目录副本）', () => {
       expect(sql).toContain(col)
     }
     const journal = JSON.parse(readFileSync(join(root, 'apps/api/drizzle/meta/_journal.json'), 'utf8'))
-    expect(journal.entries.map((e: { tag: string }) => e.tag)).toEqual(['0000_baseline', '0001_ck_scaffold_demo'])
+    expect(journal.entries.map((e: { tag: string }) => e.tag)).toEqual(['0000_init', '0001_ck_scaffold_demo'])
 
     // Generated TS code has zero type errors (only generated files are checked: other modules in the copy may be someone's work in progress)
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
@@ -942,8 +942,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(scanInCopy(root, 'src/modules/admin/pages/ck_spec_device')).toEqual({ problems: [], conflicts: [] })
 
     const seed = read('apps/api/scripts/seed-rbac.ts')
-    expect(seed).toContain('  { id: 1000, name: "业务管理", code: "biz", icon: "IconBox", path: null, component: null, parent_id: null,')
-    expect(seed).toContain('  { id: 1001, name: "设备台账", code: "system_ck_spec_device", icon: "IconList", path: "/biz/ck-spec-devices", component: "admin/ck_spec_device", parent_id: 1000,')
+    expect(seed).toContain('  { id: 1000, name: "业务管理", code: "biz", icon: "Box", path: null, component: null, parent_id: null,')
+    expect(seed).toContain('  { id: 1001, name: "设备台账", code: "system_ck_spec_device", icon: "List", path: "/biz/ck-spec-devices", component: "admin/ck_spec_device", parent_id: 1000,')
     expect(seed).toContain('  { id: 10015, name: "导入设备台账", code: "system_ck_spec_device_import",')
     const menuNames = JSON.parse(read('apps/web/src/locales/menus/ja-JP.json')) as Record<string, string>
     expect(menuNames).toMatchObject({ biz: '業務管理', system_ck_spec_device: '設備台帳', system_ck_spec_device_add: '設備台帳を追加' })

@@ -79,16 +79,14 @@ describe('MENUS_DATA', () => {
     expect(new Set(MENUS_DATA.map((m) => m.code)).size).toBe(ids.length)
     // Built-in IDs must not change
     for (const [id, code] of [
-      [31, 'system_list_page'],
-      [33, 'system_stats_list_page'],
-      [34, 'system_card_list_page'],
-      [35, 'system_tree_list_page'],
-      [36, 'system_dynamic_form_page'],
-      [37, 'system_dashboard_page'],
+      [30, 'system_notifications'],
+      [31, 'system_announcements'],
       [32, 'system_scheduled_tasks'],
-      [100002, 'system_notifications'],
-      [100003, 'system_announcements'],
-      [1000035, 'system_announcements_import'],
+      [315, 'system_announcements_import'],
+      [401, 'cc_admin_list'],
+      [405, 'cc_admin_dynamic_form'],
+      [409, 'cc_admin_advanced_table'],
+      [414, 'cc_dataviz_dashboard'],
       [4423, 'cc_ai_prompt_delete'],
     ] as const) {
       expect(MENUS_DATA.find((m) => m.id === id)?.code).toBe(code)
@@ -199,7 +197,7 @@ describe('增量同步', () => {
     )
     expect(counts!.granted).toBe(counts!.menus)
     const seq = await query(TEMP_URL, 'SELECT last_value::int AS last_value, is_called FROM menus_id_seq')
-    expect(seq[0]).toEqual({ last_value: 1000037, is_called: false })
+    expect(seq[0]).toEqual({ last_value: NEXT_MENU_ID + 1, is_called: false })
 
     const again = await snapshot(TEMP_URL)
     await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'other', incremental: true, log: quiet })

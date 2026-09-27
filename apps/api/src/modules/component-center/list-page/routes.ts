@@ -28,7 +28,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   const opts = { preHandler: loginRequired }
 
   app.get(BASE, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list'))) {
       return reply.status(403).send({ error: '无权限查看列表页数据' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
@@ -36,7 +36,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   })
 
   app.post(BASE, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page_add'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list_add'))) {
       return reply.status(403).send({ error: '无权限新增记录' })
     }
     return reply.status(201).send(await service.createItem(parseBody(listPageBody, request.body)))
@@ -45,7 +45,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   const detailPath = `${BASE}/${intParam('item_id')}`
 
   app.get(detailPath, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list'))) {
       return reply.status(403).send({ error: '无权限查看记录详情' })
     }
     const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
@@ -53,7 +53,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   })
 
   app.put(detailPath, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page_edit'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list_edit'))) {
       return reply.status(403).send({ error: '无权限编辑记录' })
     }
     const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
@@ -61,7 +61,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   })
 
   app.delete(detailPath, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page_delete'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list_delete'))) {
       return reply.status(403).send({ error: '无权限删除记录' })
     }
     const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
@@ -69,7 +69,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   })
 
   const exportHandler = async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page_export'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list_export'))) {
       return reply.status(403).send({ error: '无权限导出数据' })
     }
     // GET exports every row matching the list's query parameters (`fields` comma-separated)
@@ -88,28 +88,28 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
   app.post(`${BASE}/export`, opts, exportHandler)
 
   app.get(`${BASE}/template`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page_import'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list_import'))) {
       return reply.status(403).send({ error: '无权限下载导入模板' })
     }
     return sendTable(reply, await service.downloadTemplate(queryString(request, 'file_type')))
   })
 
   app.post(`${BASE}/import`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page_import'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list_import'))) {
       return reply.status(403).send({ error: '无权限导入数据' })
     }
     return service.importItems(await getUploadedFile(request))
   })
 
   app.post(`${BASE}/run-preview`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list'))) {
       return reply.status(403).send({ error: '无权限执行数据预览' })
     }
     return service.runPreview(parseBody(previewBody, request.body))
   })
 
   app.get(`${BASE}/${intParam('item_id')}/versions`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_list_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_list'))) {
       return reply.status(403).send({ error: '无权限查看版本历史' })
     }
     const item = await service.getOr404(parseIntParam((request.params as IdParams).item_id))
@@ -121,7 +121,7 @@ export async function registerListPageRoutes(app: FastifyInstance): Promise<void
     `${BASE}/${intParam('item_id')}/versions/${intParam('version_id')}/rollback`,
     opts,
     async (request, reply) => {
-      if (!(await hasMenuPermission(request, 'system_list_page_edit'))) {
+      if (!(await hasMenuPermission(request, 'cc_admin_list_edit'))) {
         return reply.status(403).send({ error: '无权限回滚版本' })
       }
       const params = request.params as IdParams & { version_id: string }

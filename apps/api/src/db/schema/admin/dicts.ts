@@ -20,7 +20,7 @@ export const dict_types = pgTable('dict_types', {
   created_at: createdAt(),
   updated_at: updatedAt(),
 }, (table) => [
-  unique('dict_types_code_key').on(table.code),
+  unique('dict_types_code_unique').on(table.code),
 ])
 
 export const dict_items = pgTable('dict_items', {
@@ -36,13 +36,13 @@ export const dict_items = pgTable('dict_items', {
   created_at: createdAt(),
   updated_at: updatedAt(),
 }, (table) => [
-  index('ix_dict_items_dict_type_id').using('btree', table.dict_type_id),
+  index('dict_items_dict_type_id_idx').using('btree', table.dict_type_id),
   foreignKey({
       columns: [table.dict_type_id],
       foreignColumns: [dict_types.id],
-      name: 'dict_items_dict_type_id_fkey'
+      name: 'dict_items_dict_type_id_fk'
     }).onDelete('cascade'),
-  unique('uq_dict_items_type_value').on(table.dict_type_id, table.value),
+  unique('dict_items_type_value_unique').on(table.dict_type_id, table.value),
 ])
 
 export const dict_types_relations = relations(dict_types, ({ many }) => ({

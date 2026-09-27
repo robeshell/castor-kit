@@ -20,7 +20,7 @@ export async function registerKanbanRoutes(app: FastifyInstance): Promise<void> 
   // ── Kanban columns ──────────────────────────────────────────────────────────
 
   app.get(`${BASE}/boards`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'cc_admin_kanban_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_kanban'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     return service.getAllBoards()

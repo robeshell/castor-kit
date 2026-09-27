@@ -4,7 +4,7 @@
 
 import { and, asc, count, desc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
-import { cc_advanced_table_rows as t, type AdvancedTableRow } from '@/db/schema'
+import { advanced_table_rows as t, type AdvancedTableRow } from '@/db/schema'
 
 const INT32_MIN = -2_147_483_648
 const INT32_MAX = 2_147_483_647

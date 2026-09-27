@@ -24,7 +24,7 @@ export const notifications = pgTable('notifications', {
   foreignKey({
       columns: [table.user_id],
       foreignColumns: [admin_users.id],
-      name: 'notifications_user_id_fkey'
+      name: 'notifications_user_id_fk'
     }).onDelete('cascade'),
 ])
 
@@ -38,14 +38,14 @@ export const notification_reads = pgTable('notification_reads', {
   foreignKey({
       columns: [table.notification_id],
       foreignColumns: [notifications.id],
-      name: 'notification_reads_notification_id_fkey'
+      name: 'notification_reads_notification_id_fk'
     }).onDelete('cascade'),
   foreignKey({
       columns: [table.user_id],
       foreignColumns: [admin_users.id],
-      name: 'notification_reads_user_id_fkey'
+      name: 'notification_reads_user_id_fk'
     }).onDelete('cascade'),
-  unique('notification_reads_notification_id_user_id_key').on(table.notification_id, table.user_id),
+  unique('notification_reads_notification_id_user_id_unique').on(table.notification_id, table.user_id),
 ])
 
 export const notifications_relations = relations(notifications, ({ one, many }) => ({
