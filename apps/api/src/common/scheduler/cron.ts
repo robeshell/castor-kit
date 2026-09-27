@@ -120,7 +120,7 @@ export interface WallTime {
 
 const TIMESTAMP_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?$/
 
-/** Parse DB timestamp text (`YYYY-MM-DD HH:mm:ss[.ffffff]` as returned by the driver, or isoformat with a `T` separator) */
+/** Parse DB timestamp text (`YYYY-MM-DD HH:mm:ss[.ffffff]` as returned by the driver; a `T` separator is also accepted) */
 export function parseTimestamp(text: string): WallTime {
   const m = TIMESTAMP_RE.exec(text.trim())
   if (!m) throw new Error(`无法解析时间：${text}`)

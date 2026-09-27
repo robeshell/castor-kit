@@ -34,8 +34,8 @@ export const FIELD_OPENAPI: Record<string, { request: Schema; response: Schema; 
   date: { request: { type: ['string', 'null'], format: 'date' }, response: { type: ['string', 'null'], format: 'date' }, note: 'YYYY-MM-DD' },
   datetime: {
     request: { type: ['string', 'null'] },
-    response: { type: ['string', 'null'] },
-    note: 'YYYY-MM-DD HH:mm:ss（UTC）；响应为 ISO 格式',
+    response: { type: ['string', 'null'], format: 'date-time' },
+    note: 'ISO 8601，如 2026-01-15T08:30:00Z；带时区时按时区换算，不带时区按 UTC；响应为 UTC（带 Z）',
   },
   file: { request: { type: ['string', 'null'] }, response: { type: ['string', 'null'] }, note: '文件中心的文件 ID（也可传 /api/admin/files/<id> 地址）' },
   image: { request: { type: ['string', 'null'] }, response: { type: ['string', 'null'] }, note: '文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）' },
@@ -75,8 +75,8 @@ function itemSchema(s: ScaffoldSpec, label: (field: string) => string): Schema {
     properties.dept_id = { type: ['integer', 'null'], description: '所属部门（数据权限）' }
     properties.created_by = { type: ['integer', 'null'], description: '创建人用户 ID（数据权限）' }
   }
-  properties.created_at = { type: ['string', 'null'], description: '创建时间（UTC，ISO 格式）' }
-  properties.updated_at = { type: ['string', 'null'], description: '更新时间（UTC，ISO 格式）' }
+  properties.created_at = { type: ['string', 'null'], format: 'date-time', description: '创建时间（ISO 8601，UTC）' }
+  properties.updated_at = { type: ['string', 'null'], format: 'date-time', description: '更新时间（ISO 8601，UTC）' }
   return { type: 'object', properties }
 }
 

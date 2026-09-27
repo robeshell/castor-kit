@@ -367,6 +367,7 @@ export default function ScheduledTasks() {
             name="cron_expression"
             label="Cron 表达式"
             placeholder="例如：*/5 * * * *"
+            description="按 UTC 时间计算；列表中的执行时间按本地时区显示"
             rules={{ required: '请输入 Cron 表达式' }}
             inputClassName="font-mono"
           />

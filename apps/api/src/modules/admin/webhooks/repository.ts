@@ -3,6 +3,7 @@
  */
 
 import { and, count, desc, eq, sql } from 'drizzle-orm'
+import { toIso } from '@/common/serialize'
 import type { Executor } from '@/db/client'
 import { webhook_deliveries, webhooks } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
@@ -25,7 +26,7 @@ export class WebhookRepository {
         (select count(*) from ${webhook_deliveries} d
           where d.webhook_id = w.id and d.status = 'failed' and d.created_at > ${utcNow()} - interval '24 hours') as failed_24h
       from ${webhooks} w`)
-    return new Map(rows.rows.map((r) => [r.webhook_id, { last_status: r.last_status, last_at: r.last_at, failed_24h: Number(r.failed_24h) }]))
+    return new Map(rows.rows.map((r) => [r.webhook_id, { last_status: r.last_status, last_at: toIso(r.last_at), failed_24h: Number(r.failed_24h) }]))
   }
 
   async getById(id: number) {

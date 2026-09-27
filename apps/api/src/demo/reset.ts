@@ -9,7 +9,7 @@
  */
 
 import pg from 'pg'
-import { utcNowIso } from '@/common/serialize'
+import { utcNowText, utcTextToMillis } from '@/common/serialize'
 import { DEMO_FIXTURES, type FixtureRow } from './fixtures'
 
 /** "CKDM" */
@@ -30,7 +30,7 @@ export function shiftDate(value: unknown, days: number): unknown {
   if (typeof value !== 'string' || days === 0) return value
   const m = /^(\d{4}-\d{2}-\d{2})(.*)$/.exec(value)
   if (!m) return value
-  const shifted = utcNowIso(new Date(Date.parse(`${m[1]}T00:00:00Z`) + days * DAY_MS)).slice(0, 10)
+  const shifted = utcNowText(new Date(Date.parse(`${m[1]}T00:00:00Z`) + days * DAY_MS)).slice(0, 10)
   return shifted + m[2]
 }
 
@@ -50,7 +50,7 @@ async function tableColumns(client: pg.ClientBase, table: string): Promise<Set<s
 /** Replace the demo tables' contents with DEMO_FIXTURES (single transaction) */
 export async function resetDemoData(client: pg.ClientBase, now = new Date()): Promise<void> {
   const days = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - DATE_BASE) / DAY_MS)
-  const stamp = utcNowIso(now)
+  const stamp = utcNowText(now)
   const tables = [...DEMO_FIXTURES.map(([table]) => table), ...CLEARED_TABLES]
 
   await client.query('BEGIN')
@@ -99,8 +99,9 @@ export async function resetDemoData(client: pg.ClientBase, now = new Date()): Pr
 async function lastResetAt(client: pg.ClientBase): Promise<Date | null> {
   const { rows } = await client.query<{ value: string | null }>('SELECT value FROM app_state WHERE key = $1', [LAST_RESET_KEY])
   const value = rows[0]?.value
-  // Stored by utcNowIso() without a zone suffix: parse as UTC
-  return value ? new Date(Date.parse(`${value}Z`)) : null
+  // Stored as DB timestamp text (utcNowText)
+  const at = value ? utcTextToMillis(value) : Number.NaN
+  return Number.isNaN(at) ? null : new Date(at)
 }
 
 export interface DemoResetOptions {

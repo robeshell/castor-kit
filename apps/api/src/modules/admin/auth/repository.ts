@@ -7,7 +7,7 @@ import type { Db } from '@/db/client'
 import { admin_users, departments, login_logs, operation_logs, type NewLoginLog, type NewOperationLog } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
 
-/** `datetime.utcnow() - timedelta(minutes=n)`, computed by the DB */
+/** UTC now minus n minutes, computed by the DB */
 const windowStart = (minutes: number) => sql`${utcNow()} - make_interval(mins => ${minutes})`
 
 export class AuthRepository {

@@ -149,18 +149,19 @@ export const field = {
     ),
 
   /**
-   * A date and time `YYYY-MM-DD HH:MM[:SS[.ffffff]]` (`T` also accepted as the separator), optionally with an offset
-   * (`Z` / `±HH:MM`); returned with a space separator and `Z` as `+00:00`. Missing / null / '' → null.
+   * A date and time `YYYY-MM-DD HH:MM[:SS[.ffffff]]` (`T` also accepted as the separator), with an offset (`Z` /
+   * `±HH:MM`, as the API writes times) or without one (then it is UTC). Returned as UTC timestamp text for the
+   * database: `YYYY-MM-DD HH:MM:SS[.ffffff]`. Missing / null / '' → null.
    */
-  dateTime: (label: string, { offset = true }: { offset?: boolean } = {}) =>
+  dateTime: (label: string) =>
     z.preprocess(
       (v) => (v === '' ? null : v),
       z
         .string({ error: invalid(label) })
         .trim()
-        .refine((v) => isDateTime(v) && (offset || !/(Z|[+-]\d{2}:\d{2})$/.test(v)), { error: invalid(label) })
+        .refine(isDateTime, { error: invalid(label) })
         .nullish()
-        .transform((v) => (v ? v.replace('T', ' ').replace(/Z$/, '+00:00') : null)),
+        .transform((v) => (v ? toUtcText(v) : null)),
     ),
 
   /** List of strings, each trimmed, blanks dropped; missing / null → [] */
@@ -192,7 +193,8 @@ export const field = {
 }
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
-const DATE_TIME_RE = /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d{1,6})?)?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)?$/
+const DATE_TIME_RE =
+  /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d)(?:\.(\d{1,6}))?)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?$/
 
 /** `YYYY-MM-DD` naming a real day (no 2026-02-30) */
 export function isDate(text: string): boolean {
@@ -207,6 +209,22 @@ export function isDate(text: string): boolean {
 function isDateTime(text: string): boolean {
   const m = DATE_TIME_RE.exec(text)
   return m !== null && isDate(m[1]!)
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+/** A valid date-time (isDateTime) → UTC `YYYY-MM-DD HH:MM:SS[.ffffff]`; the offset is applied on whole seconds, so the fraction is kept as written */
+function toUtcText(text: string): string {
+  const [, date, hour, minute, second = '00', fraction, zone] = DATE_TIME_RE.exec(text)!
+  let whole = `${date} ${hour}:${minute}:${second}`
+  if (zone && zone !== 'Z') {
+    const offsetMinutes = (zone[0] === '-' ? -1 : 1) * (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(4, 6)))
+    const at = new Date(Date.parse(`${date}T${hour}:${minute}:${second}Z`) - offsetMinutes * 60_000)
+    whole =
+      `${String(at.getUTCFullYear()).padStart(4, '0')}-${pad2(at.getUTCMonth() + 1)}-${pad2(at.getUTCDate())} ` +
+      `${pad2(at.getUTCHours())}:${pad2(at.getUTCMinutes())}:${pad2(at.getUTCSeconds())}`
+  }
+  return fraction ? `${whole}.${fraction}` : whole
 }
 
 const INT4_MAX = 2_147_483_647

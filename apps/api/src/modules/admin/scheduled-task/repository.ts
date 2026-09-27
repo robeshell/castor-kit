@@ -33,7 +33,7 @@ export type CrashNextRun = { at: string } | 'now' | 'now+5m'
 export class ScheduledTaskRepository {
   constructor(private readonly db: Executor) {}
 
-  /** Current DB UTC time as text (equivalent to datetime.utcnow(); clock_timestamp returns real time even inside a transaction) */
+  /** Current DB UTC time as text (clock_timestamp returns the real time even inside a transaction) */
   async utcNow(): Promise<string> {
     const res = await this.db.execute<{ now: string }>(sql`SELECT timezone('utc', clock_timestamp()) AS now`)
     return res.rows[0]!.now

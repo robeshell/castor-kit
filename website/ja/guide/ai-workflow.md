@@ -285,7 +285,7 @@ pnpm verify -- --module customer --json          # 構造化 JSON を出力（st
 | `get_menu_tree` | データベース上のメニューツリーを返す。`parent_id` と空いている ID の決定に使う |
 | `get_spec_guide` | spec の JSON Schema と「要件 → spec」の例を返す。spec を書く前に呼び出す |
 | `validate_spec` | spec（引数 `spec`）を検証し、何が生成されるかを返す。ファイルは書かない |
-| `scaffold_feature` | `pnpm scaffold` を呼び出す：`spec`（推奨）または従来の `name`、`domain`、`fields` を渡す。`dry_run` はプレビューのみ |
+| `scaffold_feature` | `pnpm scaffold` を呼び出す：`spec`（推奨）または `name`、`domain`、`fields` を渡す。`dry_run` はプレビューのみ |
 | `check_openapi` | API ドキュメントを OpenAPI の規約でチェックし、規約に合わない API を一覧表示 |
 | `run_verify` | `pnpm verify --json` を呼び出して結果を返す（引数 `module`、`skip_build`） |
 | `init_rbac` | `pnpm seed:rbac -- --incremental` を呼び出す |

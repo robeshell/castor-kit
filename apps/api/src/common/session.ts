@@ -16,6 +16,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { bearerToken } from '@/common/api-token'
 import { requestPath } from '@/common/csrf'
 import { ServiceError } from '@/common/errors'
+import { utcTextToMillis } from '@/common/serialize'
 import type { Executor } from '@/db/client'
 import { sessions, type SessionRow } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
@@ -97,7 +98,7 @@ export async function markVerified(db: Executor, id: string): Promise<void> {
  */
 export function requireRecentAuth(request: FastifyRequest): void {
   const verifiedAt = request.authSession?.verified_at
-  const at = verifiedAt ? Date.parse(`${verifiedAt.replace(' ', 'T').slice(0, 23)}Z`) : 0
+  const at = verifiedAt ? utcTextToMillis(verifiedAt) : 0
   if (Date.now() - at > REAUTH_WINDOW_MINUTES * 60_000) {
     throw new ServiceError('请先验证身份', 403, { reauth_required: true })
   }
@@ -168,7 +169,7 @@ export function registerSessionResolver(app: FastifyInstance): void {
     const ttlHours = app.settings.peek().sessionTtlHours
     request.session.options({ maxAge: ttlHours * 3600 })
     request.session.touch()
-    const lastSeen = row.last_seen_at ? Date.parse(`${row.last_seen_at.replace(' ', 'T').slice(0, 23)}Z`) : 0
+    const lastSeen = row.last_seen_at ? utcTextToMillis(row.last_seen_at) : 0
     if (Date.now() - lastSeen > TOUCH_INTERVAL_SECONDS * 1000) {
       await app.db
         .update(sessions)

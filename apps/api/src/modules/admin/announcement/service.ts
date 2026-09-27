@@ -2,7 +2,7 @@
  * Announcement management service layer
  */
 
-import { sql, type SQL } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { dbConstraintError, writeError } from '@/common/db-errors'
 import { internalError, ServiceError } from '@/common/errors'
@@ -27,11 +27,10 @@ import {
 /** Value to write for publish_at: a parsed date-time, the current time, or none */
 type PublishAt = string | 'now' | null
 
-/** A date-time with an offset is cast to timestamptz, which PostgreSQL converts to the session time zone on store */
+/** publish_at as written: none, the current time, or UTC text (field.dateTime has already applied any offset) */
 function publishAtSql(value: PublishAt): SQL | string | null {
   if (value === null) return null
-  if (value === 'now') return utcNow()
-  return /[+-]\d{2}:\d{2}$/.test(value) ? sql`${value}::timestamptz` : value
+  return value === 'now' ? utcNow() : value
 }
 
 export class AnnouncementService {

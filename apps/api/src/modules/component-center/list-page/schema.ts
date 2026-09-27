@@ -60,9 +60,7 @@ export const listPageBody = z.object({
   keyword: field.text('关键字'),
   data_source: field.text('数据源'),
   owner: field.text('负责人'),
-  image_url: field.text('图片URL'),
   image_urls: field.textList('图片URL列表'),
-  file_url: field.text('文件URL'),
   file_urls: field.textList('文件URL列表'),
   priority: field.int('优先级', 0),
   is_active: field.bool('状态', true),
@@ -89,7 +87,7 @@ export const listPageExportBody = exportBody({
   status: field.text('发布状态'),
 })
 
-function exportUrlList(raw: string | null, single: string | null): string {
+function exportUrlList(raw: string | null): string {
   let urls: string[] = []
   if (raw) {
     try {
@@ -99,16 +97,15 @@ function exportUrlList(raw: string | null, single: string | null): string {
       urls = []
     }
   }
-  if (urls.length === 0 && single) urls = [single]
   return urls.join(',')
 }
 
 export function exportImageUrls(item: QueryManagement): string {
-  return exportUrlList(item.image_urls, item.image_url)
+  return exportUrlList(item.image_urls)
 }
 
 export function exportFileUrls(item: QueryManagement): string {
-  return exportUrlList(item.file_urls, item.file_url)
+  return exportUrlList(item.file_urls)
 }
 
 export const EXPORT_FIELD_MAP: Record<string, [string, (item: QueryManagement) => unknown]> = {
@@ -119,9 +116,7 @@ export const EXPORT_FIELD_MAP: Record<string, [string, (item: QueryManagement) =
   keyword: ['关键字', (item) => item.keyword || ''],
   data_source: ['数据源', (item) => item.data_source || ''],
   owner: ['负责人', (item) => item.owner || ''],
-  image_url: ['图片URL', (item) => item.image_url || ''],
   image_urls: ['图片URL列表', exportImageUrls],
-  file_url: ['文件URL', (item) => item.file_url || ''],
   file_urls: ['文件URL列表', exportFileUrls],
   priority: ['优先级', (item) => (item.priority !== null ? item.priority : 0)],
   is_active: ['状态', (item) => (item.is_active ? '启用' : '停用')],
@@ -149,11 +144,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   数据源: 'data_source',
   负责人: 'owner',
   图片URL列表: 'image_urls',
-  图片URL: 'image_url',
-  图片: 'image_url',
   文件URL列表: 'file_urls',
-  文件URL: 'file_url',
-  文件: 'file_url',
   优先级: 'priority',
   状态: 'is_active',
   描述: 'description',
@@ -164,9 +155,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   data_source: 'data_source',
   owner: 'owner',
   image_urls: 'image_urls',
-  image_url: 'image_url',
   file_urls: 'file_urls',
-  file_url: 'file_url',
   priority: 'priority',
   is_active: 'is_active',
   发布状态: 'status',
@@ -204,10 +193,6 @@ export function buildErrorRow(line: number, reason: string, row: Record<string, 
   }
 }
 
-/** A stored file name from the legacy upload folders: letters, digits, `_`, `.` and `-`, not starting with a dot */
-export function isSafeFilename(name: string): boolean {
-  return /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(name)
-}
 
 /** `updated_at` → `Updated At` (preview column titles) */
 export function titleCase(text: string): string {

@@ -32,7 +32,7 @@ export const notification_reads = pgTable('notification_reads', {
   id: serial().primaryKey().notNull(),
   notification_id: integer().notNull(),
   user_id: integer().notNull(),
-  /** `default=datetime.utcnow` */
+  /** Current UTC time on insert */
   read_at: createdAt(),
 }, (table) => [
   foreignKey({

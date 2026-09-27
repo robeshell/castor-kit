@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import { eq, like, sql } from 'drizzle-orm'
+import { eq, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
@@ -32,12 +32,6 @@ async function row(id: number) {
   return r!
 }
 
-/** Computes the expected value in the database (session time-zone conversion), without going through JS Date */
-async function dbScalar(expr: ReturnType<typeof sql>): Promise<string> {
-  const res = await handle.db.execute<{ v: string }>(sql`SELECT (${expr})::text AS v`)
-  return res.rows[0]!.v
-}
-
 async function readXlsx(buf: Buffer): Promise<unknown[][]> {
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.load(buf as unknown as ArrayBuffer)
@@ -66,7 +60,7 @@ describe('announcement', () => {
   let a: number
   let b: number
 
-  it('新增：201，默认值与 publish_at（带时区按会话时区换算、不带时区原样）', async () => {
+  it('新增：201，默认值与 publish_at（带时区换算为 UTC、不带时区按 UTC）', async () => {
     const res = await s.inject({
       method: 'POST',
       url: '/api/admin/announcements',
@@ -79,9 +73,8 @@ describe('announcement', () => {
       ['announce_type', 'content', 'created_at', 'id', 'is_top', 'publish_at', 'sort_order', 'status', 'title', 'updated_at'].sort(),
     )
     expect(body).toMatchObject({ title: `${P}甲`, content: '', announce_type: 'system', status: 'draft', is_top: true, sort_order: 3 })
-    const expected = await dbScalar(sql`('2026-09-23T10:00:00+00:00'::timestamptz)::timestamp`)
-    expect((await row(a)).publish_at).toBe(expected)
-    expect(body.publish_at).toBe(expected.replace(' ', 'T'))
+    expect((await row(a)).publish_at).toBe('2026-09-23 10:00:00')
+    expect(body.publish_at).toBe('2026-09-23T10:00:00.000000Z')
 
     const rb = await s.inject({
       method: 'POST',
@@ -137,7 +130,9 @@ describe('announcement', () => {
     expect((await row(b)).publish_at).toBe(afterPub.publish_at)
 
     const naive = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { publish_at: '2026-01-02 03:04:05.5' } })).json()
-    expect(naive.publish_at).toBe('2026-01-02T03:04:05.500000')
+    expect(naive.publish_at).toBe('2026-01-02T03:04:05.500000Z')
+    const zoned = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { publish_at: '2026-01-02T08:04:05.25+08:00' } })).json()
+    expect(zoned.publish_at).toBe('2026-01-02T00:04:05.250000Z')
     const cleared = (await s.inject({ method: 'PUT', url: `/api/admin/announcements/${b}`, payload: { publish_at: null, content: null } })).json()
     expect(cleared).toMatchObject({ publish_at: null, content: '' })
 
@@ -218,7 +213,7 @@ describe('announcement', () => {
       '标题,公告类型,状态,是否置顶,排序权重,内容\n' +
         `${P}导入1,activity,published,是,5,c1\n` +
         ',system,draft,,,\n' +
-        `${P}导入2,bogus,bogus,True,x,\n` +
+        `${P}导入2,bogus,bogus,true,x,\n` +
         `${long},,,,,\n`,
     )
     const res = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...file })

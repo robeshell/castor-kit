@@ -81,7 +81,7 @@ describe('stats-list-page', () => {
       owner: null,
       description: null,
     })
-    expect(body.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?$/)
+    expect(body.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/)
     await create({ name: '乙', item_code: `${P}b`, category: 'order', amount: 7, priority: 5, owner: '王五' })
     await create({ name: '丙', item_code: `${P}c`, category: 'risk', status: 'archived', amount: -1.5, priority: 9, is_active: true })
   })

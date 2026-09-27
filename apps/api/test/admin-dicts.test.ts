@@ -86,7 +86,7 @@ describe('dicts：字典类型', () => {
     expect(Object.keys(body).sort()).toEqual(
       ['code', 'created_at', 'description', 'id', 'is_active', 'item_count', 'name', 'sort_order', 'updated_at'].sort(),
     )
-    expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/)
+    expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/)
   })
 
   it('新增校验：名称/编码为空、编码重复、类型不符 → 400 且不落库', async () => {
@@ -294,7 +294,7 @@ describe('dicts：字典项', () => {
     expect(byValue.n2).toMatchObject({ is_default: false, is_active: true, sort_order: 0, description: null })
     expect(rows.filter((r) => r.is_default).map((r) => r.value)).toEqual(['n1'])
 
-    const xlsx = multipartFile('d.xlsx', await xlsxBuffer([[' label ', 'value', 'is_default'], ['X', 'n3', 'yes'], [null, null, null]]))
+    const xlsx = multipartFile('d.xlsx', await xlsxBuffer([[' 字典标签 ', '字典值', '是否默认'], ['X', 'n3', 'yes'], [null, null, null]]))
     const res2 = await s.inject({ method: 'POST', url: `/api/admin/dicts/${typeId}/items/import`, ...xlsx })
     expect(res2.json()).toEqual({ message: '导入成功', created: 1, updated: 0 })
     expect((await itemsOf(typeId)).filter((r) => r.is_default).map((r) => r.value)).toEqual(['n3'])

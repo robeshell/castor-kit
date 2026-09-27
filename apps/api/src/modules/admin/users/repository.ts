@@ -126,7 +126,7 @@ export class UserRepository {
     return row ?? null
   }
 
-  /** Case-insensitive lookup; emails are stored lowercased but older rows may not be */
+  /** Case-insensitive lookup */
   async getByEmail(email: string) {
     const [row] = await this.db.select().from(admin_users).where(ilike(admin_users.email, email)).limit(1)
     return row ?? null

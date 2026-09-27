@@ -58,15 +58,21 @@ describe('common/validation', () => {
     expect(errorOf(() => parseBody(body, [1]))).toEqual([400, '请求参数格式不正确'])
   })
 
-  it('dates: YYYY-MM-DD naming a real day; date-times with an optional offset', () => {
+  it('dates: YYYY-MM-DD naming a real day; date-times converted to UTC text (no offset = UTC)', () => {
     expect(isDate('2024-02-29')).toBe(true)
     for (const text of ['2023-02-29', '2024-13-01', '2024-1-01', '20240101', '2024-W01', '2024-01-01T00:00', '0000-01-01']) {
       expect(isDate(text), text).toBe(false)
     }
     expect(parseBody(body, { name: 'x', day: '2024-03-05', at: '2024-03-05T08:30:00Z' })).toMatchObject({
       day: '2024-03-05',
-      at: '2024-03-05 08:30:00+00:00',
+      at: '2024-03-05 08:30:00',
     })
+    const at = (value: string) => (parseBody(body, { name: 'x', at: value }) as { at: string | null }).at
+    expect(at('2024-03-05 08:30')).toBe('2024-03-05 08:30:00')
+    expect(at('2024-03-05T08:30:00.123456Z')).toBe('2024-03-05 08:30:00.123456')
+    expect(at('2024-03-05T08:30:00.5+08:00')).toBe('2024-03-05 00:30:00.5')
+    expect(at('2024-03-01T01:00:00+08:00')).toBe('2024-02-29 17:00:00')
+    expect(at('2024-12-31T20:15:00-05:30')).toBe('2025-01-01 01:45:00')
     expect(parseBody(body, { name: 'x', day: '', at: '' })).toMatchObject({ day: null, at: null })
     expect(errorOf(() => parseBody(body, { name: 'x', day: '2024-03-05xx' }))).toEqual([400, '日期的值无效'])
     expect(errorOf(() => parseBody(body, { name: 'x', at: '2024-02-30 10:00' }))).toEqual([400, '时间的值无效'])
@@ -78,15 +84,14 @@ describe('common/validation', () => {
       on: field.optionalBool('启用'),
       kind: field.optionalChoice('类型', ['a', 'b']),
       file: field.fileId('附件'),
-      at: field.dateTime('时间', { offset: false }),
       qty: required(field.optionalInt('数量'), '数量不能为空'),
       note: withDefault(field.text('备注'), '无'),
     })
     const id = '0f8fad5b-d9cb-469f-a165-70867728950e'
     expect(parseBody(generated, { price: 12.5, qty: 1, file: `/api/admin/files/${id}` })).toEqual({
-      price: '12.5', on: null, kind: null, file: id, at: null, qty: 1, note: '无',
+      price: '12.5', on: null, kind: null, file: id, qty: 1, note: '无',
     })
-    expect(parseBody(generated, { price: ' 12.50 ', qty: 1, kind: '', at: '2026-01-15 08:30' })).toMatchObject({ price: '12.50', kind: null, at: '2026-01-15 08:30' })
+    expect(parseBody(generated, { price: ' 12.50 ', qty: 1, kind: '' })).toMatchObject({ price: '12.50', kind: null })
     for (const [data, message] of [
       [{}, '数量不能为空'],
       [{ qty: '' }, '数量不能为空'],
@@ -94,7 +99,6 @@ describe('common/validation', () => {
       [{ qty: 1, on: 1 }, '启用的值无效'],
       [{ qty: 1, kind: 'c' }, '类型的值无效'],
       [{ qty: 1, file: 'not-a-file' }, '附件的值无效'],
-      [{ qty: 1, at: '2026-01-15T08:30:00Z' }, '时间的值无效'],
     ] as const) {
       expect(errorOf(() => parseBody(generated, data)), JSON.stringify(data)).toEqual([400, message])
     }

@@ -25,6 +25,7 @@
   "执行次数": "Runs",
   "执行状态": "Run status",
   "执行记录": "Run history",
+  "按 UTC 时间计算；列表中的执行时间按本地时区显示": "Evaluated in UTC; run times in the list are shown in your local time zone",
   "新建任务": "Add task",
   "新建定时任务": "Add scheduled task",
   "方法": "Method",

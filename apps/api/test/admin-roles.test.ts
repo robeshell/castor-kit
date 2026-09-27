@@ -74,7 +74,7 @@ describe('roles 列表 / 新增', () => {
       'code', 'created_at', 'data_scope', 'dept_ids', 'description', 'id', 'menu_ids', 'menus', 'name',
     ])
     expect(Object.keys(superRole.menus[0]).sort()).toEqual(['code', 'id', 'menu_type', 'name', 'parent_id'])
-    expect(superRole.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?$/)
+    expect(superRole.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/)
   })
 
   it('新增 → 201，文本去空白，不存在的菜单 id 忽略', async () => {

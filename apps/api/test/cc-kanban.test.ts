@@ -1,6 +1,7 @@
 import { eq, inArray, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { toIso } from '@/common/serialize'
 import type { DbHandle } from '@/db/client'
 import { kanban_boards, kanban_cards } from '@/db/schema'
 import {
@@ -63,7 +64,7 @@ describe('kanban', () => {
       cards_count: 0,
       cards: [],
     })
-    expect(body.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?$/)
+    expect(body.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/)
 
     const b2 = await s.inject({ method: 'POST', url: `${B}/boards`, payload: { title: '列B', board_code: `${P}b`, sort_order: 9001 } })
     boardB = b2.json().id
@@ -133,7 +134,7 @@ describe('kanban', () => {
   it('编辑列 / 卡片：部分字段；无变化不刷新 updated_at；404 / 405', async () => {
     const before = (await handle.db.select().from(kanban_boards).where(eq(kanban_boards.id, boardA)))[0]!
     const same = await s.inject({ method: 'PUT', url: `${B}/boards/${boardA}`, payload: { title: '列A', is_active: false } })
-    expect(same.json().updated_at).toBe(before.updated_at!.replace(' ', 'T').replace(/\.(\d+)$/, (_, f: string) => `.${f.padEnd(6, '0')}`))
+    expect(same.json().updated_at).toBe(toIso(before.updated_at))
 
     const upd = await s.inject({ method: 'PUT', url: `${B}/boards/${boardA}`, payload: { title: '列A2', wip_limit: 3, color: null } })
     expect(upd.json()).toMatchObject({ title: '列A2', wip_limit: 3, color: '#4080FF' })

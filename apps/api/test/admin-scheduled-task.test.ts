@@ -148,7 +148,7 @@ describe('新增', () => {
       last_run_at: null,
     })
     const created = res.json()
-    expect(created.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}$/)
+    expect(created.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/)
   })
 
   it('启用：next_run_at 为 cron 的下一个触发分钟；请求头文本存为紧凑 JSON', async () => {
@@ -164,7 +164,7 @@ describe('新增', () => {
     expect(body.is_active).toBe(true)
     expect(body.request_headers).toBe('{"b":1,"a":[1,"x"]}')
     // Day-of-month and day-of-week are ANDed: the next day that is both the 1st and a Monday
-    expect(body.next_run_at).toMatch(/^\d{4}-\d{2}-01T00:00:00$/)
+    expect(body.next_run_at).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000000Z$/)
     const [y, m] = body.next_run_at.split('-').map(Number)
     expect(new Date(Date.UTC(y, m - 1, 1)).getUTCDay()).toBe(1)
   })
@@ -243,7 +243,7 @@ describe('详情 / 编辑 / 删除', () => {
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body).toMatchObject({ name: '改名', is_active: true, cron_expression: '30 * * * *', timeout_seconds: 1, request_body: 'hi', remark: '备注' })
-    expect(body.next_run_at).toMatch(/T\d{2}:30:00$/)
+    expect(body.next_run_at).toMatch(/T\d{2}:30:00\.000000Z$/)
 
     const off = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { is_active: false } })
     expect(off.json().next_run_at).toBeNull()
@@ -255,9 +255,9 @@ describe('详情 / 编辑 / 删除', () => {
   it('编辑：值没变化时不发 UPDATE（updated_at 不变）', async () => {
     const task = await seedTask({ task_code: `${P}edit_noop`, remark: 'r', updated_at: '2026-01-01 00:00:00' })
     const res = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { remark: '  r  ', is_active: false, name: task.name } })
-    expect(res.json().updated_at).toBe('2026-01-01T00:00:00')
+    expect(res.json().updated_at).toBe('2026-01-01T00:00:00.000000Z')
     const changed = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { remark: 'r2' } })
-    expect(changed.json().updated_at).not.toBe('2026-01-01T00:00:00')
+    expect(changed.json().updated_at).not.toBe('2026-01-01T00:00:00.000000Z')
   })
 
   it('编辑：校验失败 400', async () => {
@@ -335,7 +335,7 @@ describe('手动执行 / 执行记录', () => {
       task: { id: task.id, last_status: 'failed', last_error: '不允许访问内网地址', run_count: 1 },
       run: { task_id: task.id, task_name: '种子任务', task_code: task.task_code, trigger_type: 'manual', status: 'failed', response_status: null, response_body: null },
     })
-    expect(body.task.next_run_at).toMatch(/:(00|15|30|45):00$/)
+    expect(body.task.next_run_at).toMatch(/:(00|15|30|45):00\.000000Z$/)
     expect(body.task.last_run_at).toBe(body.run.finished_at)
   })
 
@@ -353,7 +353,7 @@ describe('手动执行 / 执行记录', () => {
     expect(Object.keys(body.items[0]).sort()).toEqual(
       ['id', 'task_id', 'task_name', 'task_code', 'trigger_type', 'status', 'response_status', 'response_body', 'error_message', 'started_at', 'finished_at', 'duration_ms', 'created_at'].sort(),
     )
-    expect(body.items[1].started_at).toBe('2026-09-01T00:00:00.100000')
+    expect(body.items[1].started_at).toBe('2026-09-01T00:00:00.100000Z')
     expect((await s.inject({ url: `${T}/runs?task_id=${task.id}&status=success` })).json().total).toBe(1)
     // Invalid task_id → no filtering
     expect((await s.inject({ url: `${T}/runs?task_id=abc&per_page=1` })).json().per_page).toBe(1)

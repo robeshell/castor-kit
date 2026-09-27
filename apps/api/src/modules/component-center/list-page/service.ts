@@ -3,16 +3,14 @@
  *
  * - JSON settings are stored as JSON text in Text columns
  * - Each write (including the version snapshot) runs in one transaction
- * - Images / attachments are uploaded to the file center; files uploaded earlier under `${instanceDir}/uploads/list_page{,_files}` stay readable
+ * - Images / attachments are uploaded to the file center; the rows keep their URLs as JSON lists
  */
 
-import { mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
 import type { z } from 'zod'
 import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { formatDateTime, utcNowIso } from '@/common/serialize'
+import { utcNowIso } from '@/common/serialize'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import { exportColumns, parseIntText, parseYesNo } from '@/common/validation'
 import type { Db } from '@/db/client'
@@ -31,7 +29,6 @@ import {
   buildErrorRow,
   EXPORT_FIELD_MAP,
   IMPORT_HEADER_MAP,
-  isSafeFilename,
   LIST_STATUSES,
   listPageBody,
   parseUrlCell,
@@ -63,7 +60,7 @@ export function listFilters(source: { search?: string | null; category?: string 
   }
 }
 
-/** Column values for the fields present in `values` (a missing image_urls falls back to image_url, same for files) */
+/** Column values for the fields present in `values` */
 function columns(values: Partial<ListPageInput>): Partial<NewQueryManagement> {
   const set: Partial<NewQueryManagement> = {}
   for (const key of ['name', 'query_code', 'keyword', 'data_source', 'owner', 'priority', 'is_active', 'status', 'condition_logic', 'description'] as const) {
@@ -74,16 +71,8 @@ function columns(values: Partial<ListPageInput>): Partial<NewQueryManagement> {
   if (values.display_config !== undefined) set.display_config = JSON.stringify(values.display_config)
   if (values.permission_config !== undefined) set.permission_config = JSON.stringify(values.permission_config)
   if (values.schema_config !== undefined) set.schema_config = values.schema_config
-  if (values.image_urls !== undefined || values.image_url !== undefined) {
-    const urls = values.image_urls?.length ? values.image_urls : values.image_url ? [values.image_url] : []
-    set.image_urls = urlList(urls)
-    set.image_url = urls[0] ?? null
-  }
-  if (values.file_urls !== undefined || values.file_url !== undefined) {
-    const urls = values.file_urls?.length ? values.file_urls : values.file_url ? [values.file_url] : []
-    set.file_urls = urlList(urls)
-    set.file_url = urls[0] ?? null
-  }
+  if (values.image_urls !== undefined) set.image_urls = urlList(values.image_urls)
+  if (values.file_urls !== undefined) set.file_urls = urlList(values.file_urls)
   return set
 }
 
@@ -99,30 +88,8 @@ export class ListPageService {
 
   constructor(
     private readonly db: Db,
-    private readonly instanceDir: string,
   ) {
     this.repo = new ListPageRepository(db)
-  }
-
-  // ---- Legacy upload dirs (read-only: new uploads go to the file center)
-
-  async getImageUploadDir(): Promise<string> {
-    const dir = join(this.instanceDir, 'uploads', 'list_page')
-    await mkdir(dir, { recursive: true })
-    return dir
-  }
-
-  async getFileUploadDir(): Promise<string> {
-    const dir = join(this.instanceDir, 'uploads', 'list_page_files')
-    await mkdir(dir, { recursive: true })
-    return dir
-  }
-
-  /** A legacy upload's file name, rejected unless it is a plain file name (no path) */
-  static sanitizeImageFilename(filename: string): string {
-    const name = filename.trim()
-    if (!isSafeFilename(name)) throw new ServiceError('无效的图片文件名', 400)
-    return name
   }
 
   private async inTx<T>(fn: (repo: ListPageRepository) => Promise<T>): Promise<T> {
@@ -221,7 +188,7 @@ export class ListPageService {
         const key = col.dataIndex
         if (key === 'id' || key === 'priority') row[key] = index + 1
         else if (key === 'is_active') row[key] = index % 2 === 0
-        else if (key === 'updated_at' || key === 'created_at') row[key] = formatDateTime(utcNowIso())
+        else if (key === 'updated_at' || key === 'created_at') row[key] = utcNowIso()
         else if (key === 'status') row[key] = index % 2 === 0 ? 'published' : 'draft'
         else row[key] = `${key}_sample_${index + 1}`
       }
@@ -360,18 +327,14 @@ export class ListPageService {
         // Rows with errors are only collected: the transaction is rolled back below, so nothing written stays
         if (errors.length > 0) continue
 
-        const imageUrls = parseUrlCell(mapped.image_urls).length ? parseUrlCell(mapped.image_urls) : parseUrlCell(mapped.image_url)
-        const fileUrls = parseUrlCell(mapped.file_urls).length ? parseUrlCell(mapped.file_urls) : parseUrlCell(mapped.file_url)
         const values = {
           name,
           category: cell(mapped.category) ?? 'general',
           keyword: cell(mapped.keyword),
           data_source: cell(mapped.data_source),
           owner: cell(mapped.owner),
-          image_url: imageUrls[0] ?? null,
-          image_urls: urlList(imageUrls),
-          file_url: fileUrls[0] ?? null,
-          file_urls: urlList(fileUrls),
+          image_urls: urlList(parseUrlCell(mapped.image_urls)),
+          file_urls: urlList(parseUrlCell(mapped.file_urls)),
           priority: parseIntText(mapped.priority, 0),
           is_active: parseYesNo(mapped.is_active, true)!,
           status,
