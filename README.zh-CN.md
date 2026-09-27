@@ -51,7 +51,7 @@ castor-kit 是一个开源的管理后台：今天就能直接用，以后可以
     <td><b>导入导出</b><br>每个表格都能导入导出 Excel、CSV，逐行校验。</td>
   </tr>
   <tr>
-    <td><b>25+ 示例页面</b><br>数据大屏、图表、看板、3D、AI 对话、编辑器等。</td>
+    <td><b>25+ 示例页面</b><br>数据大屏、图表、看板、AI 对话、编辑器等。</td>
     <td><b>清晰的架构</b><br>分层明确、TypeScript 严格模式、可审查的 SQL 迁移。</td>
     <td><b>一条命令部署</b><br>Docker Compose 一键启动数据库和整个系统。</td>
   </tr>
@@ -114,7 +114,7 @@ AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发]
 |---|---|
 | **后端** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
 | **前端** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
-| **数据与图表** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
+| **数据与图表** | TanStack Table · react-hook-form · ECharts 6 |
 | **工具链** | pnpm workspaces · Vitest · ESLint · MCP Server · Docker Compose |
 
 <details>

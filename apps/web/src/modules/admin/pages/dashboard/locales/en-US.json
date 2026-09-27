@@ -1,5 +1,4 @@
 {
-  "3D 创意": "3D creative",
   "7 天": "7 days",
   "AI 应用": "AI apps",
   "{{greeting}}，{{name}}": "{{greeting}}, {{name}}",
@@ -11,7 +10,7 @@
   "内存": "Memory",
   "列表 · 表单 · 看板 · 甘特": "List · Form · Kanban · Gantt",
   "夜深了": "Working late",
-  "大屏 · 折线 · 热力 · 地图": "Dashboard · Line · Heatmap · Map",
+  "大屏 · 折线 · 热力 · 流量": "Dashboard · Line · Heatmap · Traffic",
   "审计日志": "Audit logs",
   "富文本 · 代码 · JSON · MD": "Rich text · Code · JSON · MD",
   "对话 · 提示词 · 数据查询": "Chat · Prompts · Data query",
@@ -29,7 +28,6 @@
   "注册用户": "Registered users",
   "磁盘": "Disk",
   "管理系统": "Admin pages",
-  "粒子 · CSS 3D · 地球": "Particles · CSS 3D · Globe",
   "系统活跃度": "System activity",
   "系统状态": "System status",
   "累计发送": "Total sent",

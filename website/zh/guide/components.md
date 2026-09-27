@@ -1,6 +1,6 @@
 # 组件示例
 
-登录后，“组件示例中心”菜单下有 28 个示例页面，按六个分组组织。它们都遵循项目的前端规范，可以直接作为新页面的参考或起点。
+登录后，“组件示例中心”菜单下有 24 个示例页面，按五个分组组织。它们都遵循项目的前端规范，可以直接作为新页面的参考或起点。
 
 页面源码位于 `apps/web/src/modules/component_center/pages/<分组目录>/<页面>/index.tsx`，带后端接口的示例对应 `apps/api/src/modules/component-center/` 下的模块。
 
@@ -30,17 +30,6 @@
 | 实时折线图 | `/component-center/dataviz/realtime-chart` | 持续滚动更新的传感器曲线（纯前端） |
 | 热力日历图 | `/component-center/dataviz/heatmap` | 年度日历热力图与小时 × 星期热力图（纯前端） |
 | 流量转化分析 | `/component-center/dataviz/traffic-flow` | 桑基图展示访问来源 → 落地页 → 结果的流向，旁边是从访问到支付的转化漏斗 |
-
-## 3D / 创意
-
-分组目录 `creative/`，纯前端页面。
-
-| 页面 | 路由 | 说明 |
-|---|---|---|
-| 粒子连线动画 | `/component-center/creative/particle` | Canvas 粒子连线效果，默认配色取自当前强调色 |
-| CSS 3D 卡片 | `/component-center/creative/css-3d` | 悬停翻转、自旋立方体、视差跟随等纯 CSS 3D 效果 |
-| Three.js 地球 | `/component-center/creative/globe` | Three.js 渲染的 3D 地球，场景配色跟随强调色 |
-| 粒子形态变换 | `/component-center/creative/morphing` | WebGL 粒子在多种形态之间变换 |
 
 ## AI 应用
 

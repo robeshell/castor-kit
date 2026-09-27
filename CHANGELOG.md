@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Removed
+
+- The component gallery's 3D / creative pages (particle network, CSS 3D cards, Three.js globe, particle morphing) and the `three` dependency: the gallery is being reshaped into reference implementations for developers and AI (`docs/roadmap.md` "Component gallery redesign"). Migration `0002_remove_creative_menus` deletes their menus and role grants on existing databases.
+
 ## [0.2.0] - 2026-09-27
 
 English first and TypeScript throughout: the specs, docs and tools speak English, the admin frontend is TypeScript end to end, and the OpenAPI doc is kept in sync with the backend by a check instead of by hand.

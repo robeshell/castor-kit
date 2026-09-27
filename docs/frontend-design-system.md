@@ -19,7 +19,7 @@
 | Command palette | `cmdk` (⌘K: jump to a menu, switch theme, sign out) |
 | Dates | `react-day-picker` + `date-fns` (Calendar + Popover) |
 | Fonts | Geist / Geist Mono (`@fontsource-variable`, bundled locally, no CDN) + Chinese fallbacks PingFang SC / Microsoft YaHei |
-| Other | echarts, three, monaco, dnd-kit, react-grid-layout, react-window, react-markdown, react-quill-new (rich text) |
+| Other | echarts, monaco, dnd-kit, react-grid-layout, react-window, react-markdown, react-quill-new (rich text) |
 
 ## 2. Design tokens
 

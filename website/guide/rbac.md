@@ -126,7 +126,7 @@ Menu IDs are hard-coded in `MENUS_DATA`, and `role_menus` references menus by ID
 | Component Gallery (`parent_id=3`) | 40–499 |
 | └ Admin Pages (`parent_id=40`) | 401–409 |
 | └ Data Visualization (`parent_id=41`) | 411–419 |
-| └ 3D / Creative (`parent_id=42`) | 421–429 |
+| └ Free (42 and its children; the 3D / Creative group was removed) | 421–429 |
 | └ AI Apps (`parent_id=44`) | 441–449 |
 | └ Editors / Low-code (`parent_id=45`) | 451–459 |
 | └ Engineering Tools (`parent_id=46`) | 461–469 |
