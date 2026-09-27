@@ -36,6 +36,18 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Removing the old Python backend's shadow, step 6 — AI data query and AI prompts. `ai-sql/pg-values.ts` (787 lines) and `common/py-values.ts` are deleted.
+  - **AI data query results are JSON values**:
+    - ints, floats and booleans are JSON numbers and booleans; bigints beyond ±2^53 are digit strings; NaN / Infinity are null;
+    - numeric is its exact text (`12.50`);
+    - json / jsonb are parsed objects and arrays;
+    - timestamps are ISO strings (with `±HH:MM` for timestamptz); arrays are JSON arrays;
+    - other types (date, time, interval, uuid, ranges …) are PostgreSQL's text.
+    Before, results were rendered as Python reprs (`{'a': 1}`, `[Decimal('1.5'), None]`, `datetime.datetime(2024, 1, 1, 12, 0)`, `1 day, 2:00:00`). The SQL page shows object and array cells as JSON text.
+  - **AI query bodies**: `question` / `sql` are declared bodies. The keyword check's whitespace set is JavaScript's plus the ASCII separators, no longer Python's `str.isspace`.
+  - **AI prompts**: declared template and preview bodies (tags as a list or comma-separated text; `is_active` boolean).
+    - Save and delete errors go through `writeError`. Input the database rejects (e.g. a name too long) is a 400 with the readable reason, instead of a 500「保存模板失败」.
+    - Preview fills `null` as empty and objects as JSON, where it used to write Python's `None` / `[1, 'a']`.
 - Removing the old Python backend's shadow, step 5 — scheduled tasks. `common/scheduler/py-json.ts`, `py-compat.ts` and the unused `common/sqla-bind.ts` are deleted:
   - **Request body**: the task body is declared with `common/validation.ts`. Request headers are a JSON object or its JSON text, stored as compact JSON. `timeout_seconds` / `is_active` take JSON types, and a blank method means GET.
   - **Cron**: expressions use ASCII digits; JavaScript whitespace separates fields. The ports of Python's `str.isspace` / `str.isdigit` and Unicode-digit `int()` are gone, so `٣ * * * *` is now an error.

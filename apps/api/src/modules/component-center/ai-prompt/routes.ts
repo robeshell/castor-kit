@@ -4,24 +4,16 @@
  * Check order (preserves existing API behavior): permission check first (403), then template lookup (404 `模板不存在`).
  */
 
-import type { FastifyInstance, FastifyReply } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody } from '@/common/http'
-import { AiPromptPersistError, AiPromptService } from './service'
+import { intParam } from '@/common/http'
+import { parseBody, parsePatch } from '@/common/validation'
+import { previewBody, templateBody } from './schema'
+import { AiPromptService } from './service'
 
 const BASE = '/api/admin/component-center/ai/prompt'
 
 type IdParams = { template_id: string }
-
-/** Save/delete failure: return the 500 with its specific message as-is */
-async function withPersistError<T>(reply: FastifyReply, fn: () => Promise<T>): Promise<T | FastifyReply> {
-  try {
-    return await fn()
-  } catch (err) {
-    if (err instanceof AiPromptPersistError) return reply.status(500).send({ error: err.message })
-    throw err
-  }
-}
 
 export async function registerAiPromptRoutes(app: FastifyInstance): Promise<void> {
   const service = new AiPromptService(app.db)
@@ -41,7 +33,7 @@ export async function registerAiPromptRoutes(app: FastifyInstance): Promise<void
     if (!(await hasMenuPermission(request, 'cc_ai_prompt_add'))) {
       return reply.status(403).send({ error: '无权限新建模板' })
     }
-    return withPersistError(reply, async () => reply.status(201).send(await service.createTemplate(jsonBody(request))))
+    return reply.status(201).send(await service.createTemplate(parseBody(templateBody, request.body)))
   })
 
   app.put(`${BASE}/templates/${intParam('template_id')}`, opts, async (request, reply) => {
@@ -50,7 +42,7 @@ export async function registerAiPromptRoutes(app: FastifyInstance): Promise<void
     }
     const template = await service.getTemplate((request.params as IdParams).template_id)
     if (!template) return reply.status(404).send({ error: '模板不存在' })
-    return withPersistError(reply, () => service.updateTemplate(template, jsonBody(request)))
+    return service.updateTemplate(template, parsePatch(templateBody, request.body))
   })
 
   app.delete(`${BASE}/templates/${intParam('template_id')}`, opts, async (request, reply) => {
@@ -59,13 +51,13 @@ export async function registerAiPromptRoutes(app: FastifyInstance): Promise<void
     }
     const template = await service.getTemplate((request.params as IdParams).template_id)
     if (!template) return reply.status(404).send({ error: '模板不存在' })
-    return withPersistError(reply, () => service.deleteTemplate(template))
+    return service.deleteTemplate(template)
   })
 
   app.post(`${BASE}/preview`, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'cc_ai_prompt'))) {
       return reply.status(403).send({ error: '无权限' })
     }
-    return service.preview(jsonBody(request))
+    return service.preview(parseBody(previewBody, request.body))
   })
 }

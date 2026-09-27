@@ -164,6 +164,8 @@ export default function AiSqlPage() {
   const columns = useMemo(() => result?.columns || [], [result])
   const pageRows = rows.length > PAGE_SIZE ? rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : rows
 
+  // Cells are JSON values: json / array columns come back as objects and arrays
+  const cellText = (val) => (typeof val === 'object' ? JSON.stringify(val) : String(val))
   const tableColumns = columns.map((col) => ({
     key: col,
     title: col,
@@ -174,7 +176,7 @@ export default function AiSqlPage() {
       val === null || val === undefined ? (
         <span className="text-muted-foreground font-mono text-xs">NULL</span>
       ) : (
-        <span title={String(val)}>{String(val)}</span>
+        <span title={cellText(val)}>{cellText(val)}</span>
       ),
   }))
 

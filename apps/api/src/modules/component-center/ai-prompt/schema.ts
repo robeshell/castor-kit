@@ -3,10 +3,7 @@
  */
 
 import { z } from 'zod'
-import { pyStr } from '@/common/py'
-
-/** Loose request-body validation: any keys, all optional; normalization happens in the service */
-export const aiPromptBodySchema = z.record(z.string(), z.unknown()).nullish()
+import { field, invalidMessage } from '@/common/validation'
 
 /** Matches `{{varName}}`: the name consists of Unicode letters, digits and underscores */
 export const VARIABLE_RE = /\{\{([\p{L}\p{N}_]+)\}\}/gu
@@ -22,21 +19,38 @@ export function extractVariables(content: string): string[] {
   return [...new Set(findVariables(content))]
 }
 
-/** tags accepts a list or a comma-separated string; always stored as a comma-separated string */
-export function normalizeTags(raw: unknown): string {
-  if (raw === null || raw === undefined) return ''
-  if (Array.isArray(raw)) {
-    return raw
-      .map((t) => pyStr(t).trim())
+/** Tags: a list or a comma-separated string; stored as a comma-separated string */
+const tags = z
+  .union([z.array(z.string()), z.string()], { error: invalidMessage('标签') })
+  .nullish()
+  .transform((raw) =>
+    (Array.isArray(raw) ? raw : (raw ?? '').split(','))
+      .map((t) => t.trim())
       .filter(Boolean)
-      .join(',')
-  }
-  return pyStr(raw)
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .join(',')
-}
+      .join(','),
+  )
+
+export const templateBody = z.object({
+  name: field.requiredText('模板名称', '模板名称不能为空'),
+  content: field.requiredText('模板内容', '模板内容不能为空'),
+  category: field.text('分类'),
+  description: field.text('描述'),
+  tags,
+  is_active: field.bool('启用', true),
+})
+
+export type TemplateInput = z.output<typeof templateBody>
+
+export const previewBody = z.object({
+  content: z
+    .string({ error: invalidMessage('模板内容') })
+    .nullish()
+    .transform((v) => v ?? ''),
+  variables: z
+    .record(z.string(), z.unknown(), { error: invalidMessage('变量') })
+    .nullish()
+    .transform((v) => v ?? {}),
+})
 
 /** Built-in template seeds (backfilled by name on every list API call) */
 export const SEED_TEMPLATES = [

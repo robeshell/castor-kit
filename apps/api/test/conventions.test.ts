@@ -64,11 +64,6 @@ const PY_COMPAT_IMPORT = /from '(@\/common\/(py|py-values|py-date|sqla-bind|sche
 /** Files (src/ and scripts/) still importing them, until their module is migrated (remove a file here once it no longer does) */
 const PY_COMPAT_PENDING = [
   'scripts/import-apifox.ts',
-  'src/common/py-values.ts',
-  'src/modules/component-center/ai-prompt/schema.ts',
-  'src/modules/component-center/ai-prompt/service.ts',
-  'src/modules/component-center/ai-sql/routes.ts',
-  'src/modules/component-center/ai-sql/service.ts',
 ]
 
 /** Files still mentioning Python / Flask / SQLAlchemy */
@@ -76,9 +71,7 @@ const PY_MENTION_PENDING = [
   'scripts/generate-openapi.ts',
   'scripts/import-apifox.ts',
   'scripts/lib/ordered-json.ts',
-  'src/common/py-values.ts',
   'src/common/py.ts',
-  'src/modules/component-center/ai-sql/pg-values.ts',
 ]
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]

@@ -16,7 +16,7 @@ import type { AppConfig } from '@/config'
 import type { Settings } from '@/common/settings'
 import { AiSqlRepository, type ColumnInfo } from './repository'
 import { MAX_SQL_ROWS, cleanSql, isVisibleTable, wrapReadonlySql } from './schema'
-import { pgToPy, toResponseValue } from './pg-values'
+import { columnValue } from './result-values'
 
 /** Model call failed in a way the operator can fix (config, quota, model name); upstreamStatus is the model API's HTTP status */
 export class LlmConfigError extends Error {
@@ -141,7 +141,7 @@ export class AiSqlService {
     const rows = rowsRaw.slice(0, MAX_SQL_ROWS).map((raw) => {
       const row: Record<string, unknown> = {}
       columns.forEach((col, i) => {
-        row[col] = toResponseValue(pgToPy(raw[i] ?? null, result.fields[i]!.dataTypeID))
+        row[col] = columnValue(raw[i] ?? null, result.fields[i]!.dataTypeID)
       })
       return row
     })

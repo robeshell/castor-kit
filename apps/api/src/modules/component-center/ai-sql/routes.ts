@@ -7,23 +7,13 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { jsonBody } from '@/common/http'
-import { pyTruthy } from '@/common/py'
 import { ReadonlyDb } from '@/db/readonly'
 import { AiSqlRepository } from './repository'
-import { isSafeSql, pyStrip } from './schema'
-import { invalidInput } from '@/common/py-values'
+import { parseBody } from '@/common/validation'
+import { executeBody, generateBody, isSafeSql } from './schema'
 import { AiSqlService, LlmConfigError } from './service'
 
 const PERMISSION = 'cc_ai_sql'
-
-/** Get a field trimmed of surrounding whitespace: falsy → empty string; truthy non-string → 400 */
-function strippedField(data: Record<string, unknown>, key: string): string {
-  const value = data[key]
-  if (!pyTruthy(value)) return ''
-  if (typeof value !== 'string') throw invalidInput()
-  return pyStrip(value)
-}
 
 export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
   let readonlyDb: ReadonlyDb | undefined
@@ -59,8 +49,7 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/admin/component-center/ai/sql/generate', opts, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
 
-    const question = strippedField(jsonBody(request), 'question')
-    if (!question) return reply.status(400).send({ error: '问题不能为空' })
+    const { question } = parseBody(generateBody, request.body)
 
     let sql: string
     try {
@@ -94,8 +83,7 @@ export async function registerAiSqlRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/admin/component-center/ai/sql/execute', opts, async (request, reply) => {
     if (await forbidden(request)) return reply.status(403).send({ error: '无权限' })
 
-    const sql = strippedField(jsonBody(request), 'sql')
-    if (!sql) return reply.status(400).send({ error: 'SQL 不能为空' })
+    const { sql } = parseBody(executeBody, request.body)
 
     const [safe, reason] = isSafeSql(sql)
     if (!safe) return reply.status(400).send({ error: reason })

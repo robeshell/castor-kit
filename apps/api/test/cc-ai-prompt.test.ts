@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
 import { ai_prompt_templates } from '@/db/schema'
-import { extractVariables, findVariables, normalizeTags, SEED_TEMPLATES } from '@/modules/component-center/ai-prompt/schema'
+import { extractVariables, findVariables, SEED_TEMPLATES } from '@/modules/component-center/ai-prompt/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -45,13 +45,9 @@ afterAll(async () => {
 })
 
 describe('ai-prompt 纯函数', () => {
-  it('变量提取（Unicode \\w、首次出现去重）/ tags 归一化', () => {
+  it('变量提取（Unicode \\w、首次出现去重）', () => {
     expect(findVariables('{{a}} {{中文}} {{a}} {{ b }} {{}} {{x-y}} {{Ⅻ}}')).toEqual(['a', '中文', 'a', 'Ⅻ'])
     expect(extractVariables('{{b}}{{a}}{{b}}')).toEqual(['b', 'a'])
-    expect(normalizeTags([' a ', '', 2, null, true])).toBe('a,2,None,True')
-    expect(normalizeTags(' x ,, y ')).toBe('x,y')
-    expect(normalizeTags(5)).toBe('5')
-    expect(normalizeTags(null)).toBe('')
   })
 })
 
@@ -123,35 +119,27 @@ describe('ai-prompt', () => {
     const raw = await handle.pool.query('select variables::text as v from ai_prompt_templates where id = $1', [body.id])
     expect(raw.rows[0].v).toBe('["who","when"]')
 
-    const off = await s.inject({ method: 'POST', url: `${B}/templates`, payload: { name: `${P}b`, content: 'c', is_active: 0, category: 'dev', description: ' d ' } })
-    expect(off.json()).toMatchObject({ is_active: false, category: 'dev', description: 'd', variables: [], tags: [] })
+    const off = await s.inject({ method: 'POST', url: `${B}/templates`, payload: { name: `${P}b`, content: 'c', is_active: false, category: 'dev', description: ' d ', tags: ' x ,, ' } })
+    expect(off.json()).toMatchObject({ is_active: false, category: 'dev', description: 'd', variables: [], tags: ['x'] })
   })
 
-  it('新增 失败分支：400 / 保存失败 500（具体文案）/ 类型错误 400', async () => {
-    for (const payload of [{}, { name: 'x' }, { name: ' ', content: 'y' }, { name: 'x', content: 0 }]) {
+  it('新增 失败分支：必填 / 类型不符 / 超长 → 400', async () => {
+    const cases: Array<[object, string]> = [
+      [{}, '模板名称不能为空'],
+      [{ name: 'x' }, '模板内容不能为空'],
+      [{ name: ' ', content: 'y' }, '模板名称不能为空'],
+      [{ name: 5, content: 'y' }, '模板名称的值无效'],
+      [{ name: 'x', content: ['y'] }, '模板内容的值无效'],
+      [{ name: `${P}x`, content: 'y', category: 5 }, '分类的值无效'],
+      [{ name: `${P}x`, content: 'y', description: true }, '描述的值无效'],
+      [{ name: `${P}x`, content: 'y', is_active: 'yes' }, '启用的值无效'],
+      [{ name: `${P}x`, content: 'y', is_active: 1 }, '启用的值无效'],
+      [{ name: `${P}x`, content: 'y', tags: [1] }, '标签的值无效'],
+      [{ name: `${P}x${'n'.repeat(120)}`, content: 'y' }, '字段长度超出限制'],
+    ]
+    for (const [payload, error] of cases) {
       const res = await s.inject({ method: 'POST', url: `${B}/templates`, payload })
-      expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: '模板名称和内容不能为空' })
-    }
-    for (const payload of [
-      { name: `${P}x`, content: 'y', is_active: 'yes' },
-      { name: `${P}x`, content: 'y', is_active: 2 },
-      { name: `${P}x`, content: 'y', is_active: [] },
-      { name: `${P}x${'n'.repeat(120)}`, content: 'y' },
-    ]) {
-      const res = await s.inject({ method: 'POST', url: `${B}/templates`, payload })
-      expect(res.statusCode).toBe(500)
-      expect(res.json()).toEqual({ error: '保存模板失败，请稍后重试' })
-    }
-    for (const payload of [
-      { name: 5, content: 'y' },
-      { name: 'x', content: ['y'] },
-      { name: `${P}x`, content: 'y', category: 5 },
-      { name: `${P}x`, content: 'y', description: true },
-    ]) {
-      const res = await s.inject({ method: 'POST', url: `${B}/templates`, payload })
-      expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+      expect([res.statusCode, res.json()], JSON.stringify(payload)).toEqual([400, { error }])
     }
     expect(await handle.db.select().from(ai_prompt_templates).where(eq(ai_prompt_templates.name, `${P}x`))).toHaveLength(0)
   })
@@ -161,7 +149,7 @@ describe('ai-prompt', () => {
     const res = await s.inject({
       method: 'PUT',
       url: `${B}/templates/${a!.id}`,
-      payload: { content: '{{x}} {{y}}', category: null, description: 5, tags: 'p, q', is_active: 'no' },
+      payload: { content: '{{x}} {{y}}', category: null, description: ' 5 ', tags: 'p, q' },
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
@@ -171,14 +159,14 @@ describe('ai-prompt', () => {
     const same = await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { name: ` ${P}a `, tags: ['p', 'q'] } })
     expect(same.json().updated_at).toBe(body.updated_at)
 
-    const off = await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { is_active: 0 } })
+    const off = await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { is_active: false } })
     expect(off.json().is_active).toBe(false)
 
     expect((await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { name: '' } })).json()).toEqual({ error: '模板名称不能为空' })
     expect((await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { content: null } })).json()).toEqual({ error: '模板内容不能为空' })
     const tooLong = await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { name: 'n'.repeat(121) } })
-    expect(tooLong.statusCode).toBe(500)
-    expect(tooLong.json()).toEqual({ error: '保存模板失败，请稍后重试' })
+    expect([tooLong.statusCode, tooLong.json()]).toEqual([400, { error: '字段长度超出限制' }])
+    expect((await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { is_active: 'no' } })).json()).toEqual({ error: '启用的值无效' })
 
     for (const id of ['99999999', '99999999999']) {
       const nf = await s.inject({ method: 'PUT', url: `${B}/templates/${id}`, payload: {} })
@@ -196,18 +184,21 @@ describe('ai-prompt', () => {
     expect(again.json()).toEqual({ error: '模板不存在' })
   })
 
-  it('预览：逐个替换、str() 语义、未定义变量；非对象 variables / 非字符串 content → 400', async () => {
+  it('预览：逐个替换（null → 空、对象 → JSON）、未定义变量；非对象 variables / 非字符串 content → 400', async () => {
     const res = await s.inject({
       method: 'POST',
       url: `${B}/preview`,
       payload: { content: 'a {{x}} {{y}} {{x}} {{中文}} {{z}} {{ w }} {{}}', variables: { x: 1, y: null, '': 'E', b: true, 中文: [1, 'a'] } },
     })
-    expect(res.json()).toEqual({ preview: "a 1 None 1 [1, 'a'] {{z}} {{ w }} E", undefined_vars: ['z'] })
+    expect(res.json()).toEqual({ preview: 'a 1  1 [1,"a"] {{z}} {{ w }} E', undefined_vars: ['z'] })
     expect((await s.inject({ method: 'POST', url: `${B}/preview`, payload: {} })).json()).toEqual({ preview: '', undefined_vars: [] })
-    for (const payload of [{ content: '{{a}}', variables: ['a'] }, { content: 5 }, { content: 'x', variables: 'a' }]) {
+    for (const [payload, error] of [
+      [{ content: '{{a}}', variables: ['a'] }, '变量的值无效'],
+      [{ content: 5 }, '模板内容的值无效'],
+      [{ content: 'x', variables: 'a' }, '变量的值无效'],
+    ] as const) {
       const r = await s.inject({ method: 'POST', url: `${B}/preview`, payload })
-      expect(r.statusCode).toBe(400)
-      expect(r.json()).toEqual({ error: expect.not.stringContaining('服务器内部错误') })
+      expect([r.statusCode, r.json()], JSON.stringify(payload)).toEqual([400, { error }])
     }
   })
 })

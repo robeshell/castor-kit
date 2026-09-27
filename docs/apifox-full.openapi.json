@@ -3303,7 +3303,6 @@
                   "is_active": {
                     "type": [
                       "boolean",
-                      "integer",
                       "null"
                     ],
                     "enum": [
@@ -3313,7 +3312,7 @@
                       1,
                       null
                     ],
-                    "description": "是否启用，省略或 null 时为 true"
+                    "description": "是否启用（true / false），缺省为 true"
                   }
                 },
                 "required": [
@@ -3398,7 +3397,7 @@
             "description": "无权限新建模板"
           },
           "500": {
-            "description": "保存模板失败，请稍后重试"
+            "description": "服务器内部错误（数据库拒绝的输入返回 400）"
           }
         }
       }
@@ -3474,8 +3473,11 @@
                     "description": "标签：字符串数组或逗号分隔的字符串，统一存为逗号分隔（去空白、去空项）"
                   },
                   "is_active": {
-                    "type": "boolean",
-                    "description": "是否启用（按真值判断：0、空串、null 为 false）"
+                    "type": [
+                      "boolean",
+                      "null"
+                    ],
+                    "description": "是否启用（true / false）"
                   }
                 }
               }
@@ -3559,7 +3561,7 @@
             "description": "模板不存在"
           },
           "500": {
-            "description": "保存模板失败，请稍后重试"
+            "description": "服务器内部错误（数据库拒绝的输入返回 400）"
           }
         }
       },
@@ -3616,7 +3618,7 @@
             "description": "模板不存在"
           },
           "500": {
-            "description": "删除模板失败，请稍后重试"
+            "description": "服务器内部错误（数据库拒绝的输入返回 400）"
           }
         }
       }
@@ -3681,7 +3683,7 @@
                         "type": "object",
                         "additionalProperties": true
                       },
-                      "description": "行数据，每行是 列名 → 值，最多 200 行"
+                      "description": "行数据，每行是 列名 → JSON 值，最多 200 行。整数、浮点数、布尔为 JSON 数字 / 布尔（超出 ±2^53 的 bigint 为数字字符串，NaN / Infinity 为 null）；numeric 保持字符串（如 \"12.50\"）；json / jsonb 为解析后的对象或数组；timestamp 为 YYYY-MM-DDTHH:mm:ss[.ffffff]（timestamptz 带 ±HH:MM）；数组为 JSON 数组；其余类型（text、date、time、interval、uuid、range 等）为 PostgreSQL 原文"
                     },
                     "row_count": {
                       "type": "integer",
@@ -3787,7 +3789,7 @@
                         "type": "object",
                         "additionalProperties": true
                       },
-                      "description": "行数据，每行是 列名 → 值，最多 200 行"
+                      "description": "行数据，每行是 列名 → JSON 值，最多 200 行。整数、浮点数、布尔为 JSON 数字 / 布尔（超出 ±2^53 的 bigint 为数字字符串，NaN / Infinity 为 null）；numeric 保持字符串（如 \"12.50\"）；json / jsonb 为解析后的对象或数组；timestamp 为 YYYY-MM-DDTHH:mm:ss[.ffffff]（timestamptz 带 ±HH:MM）；数组为 JSON 数组；其余类型（text、date、time、interval、uuid、range 等）为 PostgreSQL 原文"
                     },
                     "row_count": {
                       "type": "integer",

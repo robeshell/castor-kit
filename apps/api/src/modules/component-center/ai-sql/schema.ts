@@ -3,8 +3,14 @@
  *
  * Regexes follow Unicode semantics:
  * - `\b` word characters are Unicode letters/digits/underscore (JS `\b` without the u flag is ASCII-only, so lookarounds emulate it)
- * - whitespace set: see PY_WS_CLASS (Unicode whitespace, incl. \x1c-\x1f and \x85, excl. U+FEFF)
+ * - whitespace: see WS_CLASS (Unicode whitespace plus the ASCII separators \x1c-\x1f and NEL, so an unusual space can't hide a keyword)
  */
+
+import { z } from 'zod'
+import { field } from '@/common/validation'
+
+export const generateBody = z.object({ question: field.requiredText('问题', '问题不能为空') })
+export const executeBody = z.object({ sql: field.requiredText('SQL', 'SQL 不能为空') })
 
 /** Max rows returned per query */
 export const MAX_SQL_ROWS = 200
@@ -24,18 +30,18 @@ export function isVisibleTable(tableName: string | null | undefined): boolean {
 
 // ---- Whitespace / word characters ----
 
-const PY_WS_CLASS = '\\t\\n\\v\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000'
-const PY_WORD_CLASS = '\\p{L}\\p{N}_'
-const LEADING_WS = new RegExp(`^[${PY_WS_CLASS}]+`, 'u')
-const TRAILING_WS = new RegExp(`[${PY_WS_CLASS}]+$`, 'u')
+const WS_CLASS = '\\s\\x1c-\\x1f\\x85'
+const WORD_CLASS = '\\p{L}\\p{N}_'
+const LEADING_WS = new RegExp(`^[${WS_CLASS}]+`, 'u')
+const TRAILING_WS = new RegExp(`[${WS_CLASS}]+$`, 'u')
 
-/** Trim leading and trailing whitespace (whitespace set: see PY_WS_CLASS) */
-export function pyStrip(text: string): string {
-  return pyRstrip(text.replace(LEADING_WS, ''))
+/** Trim leading and trailing whitespace (whitespace set: see WS_CLASS) */
+export function trimSql(text: string): string {
+  return trimSqlEnd(text.replace(LEADING_WS, ''))
 }
 
 /** Trim trailing whitespace */
-export function pyRstrip(text: string): string {
+export function trimSqlEnd(text: string): string {
   return text.replace(TRAILING_WS, '')
 }
 
@@ -46,7 +52,7 @@ function rstripSemicolons(text: string): string {
 
 /** Match pattern at word boundaries (`\b` emulated with Unicode word-character lookarounds; pattern consists of word characters) */
 function wordRegex(pattern: string): RegExp {
-  return new RegExp(`(?<![${PY_WORD_CLASS}])${pattern}(?![${PY_WORD_CLASS}])`, 'u')
+  return new RegExp(`(?<![${WORD_CLASS}])${pattern}(?![${WORD_CLASS}])`, 'u')
 }
 
 // ---- SQL safety checks ----
@@ -69,7 +75,7 @@ const CONTROL_KEYWORDS = [
 ].map((kw) => [kw, wordRegex(kw)] as const)
 
 const FOR_LOCK_RE = new RegExp(
-  `(?<![${PY_WORD_CLASS}])FOR[${PY_WS_CLASS}]+(UPDATE|SHARE)(?![${PY_WORD_CLASS}])`,
+  `(?<![${WORD_CLASS}])FOR[${WS_CLASS}]+(UPDATE|SHARE)(?![${WORD_CLASS}])`,
   'u',
 )
 
@@ -83,7 +89,7 @@ const DANGEROUS_FUNCS = [
   'pg_rotate_logfile', 'pg_start_backup', 'pg_stop_backup', 'pg_switch_wal',
   'pg_create_restore_point', 'dblink',
 ].map(
-  (fn) => [fn, new RegExp(`(?<![${PY_WORD_CLASS}])${fn.toUpperCase()}[${PY_WS_CLASS}]*\\(`, 'u')] as const,
+  (fn) => [fn, new RegExp(`(?<![${WORD_CLASS}])${fn.toUpperCase()}[${WS_CLASS}]*\\(`, 'u')] as const,
 )
 
 export type SafeResult = [true, null] | [false, string]
@@ -94,8 +100,8 @@ export function isSafeSql(sql: string): SafeResult {
   let stripped = sql.replace(/--[^\n]*/g, ' ')
   stripped = stripped.replace(/\/\*.*?\*\//gs, ' ')
   // Strip trailing semicolons (the LLM may end with ;)
-  stripped = pyRstrip(rstripSemicolons(pyRstrip(stripped)))
-  const clean = pyStrip(stripped).toUpperCase()
+  stripped = trimSqlEnd(rstripSemicolons(trimSqlEnd(stripped)))
+  const clean = trimSql(stripped).toUpperCase()
 
   if (!(clean.startsWith('SELECT') || clean.startsWith('WITH'))) {
     return [false, '只允许 SELECT 查询语句']
@@ -119,22 +125,22 @@ export function isSafeSql(sql: string): SafeResult {
   return [true, null]
 }
 
-const PY_WS_RUN = `[${PY_WS_CLASS}]*`
-const FENCE_SQL_START = new RegExp(`^\`\`\`sql${PY_WS_RUN}`, 'iu')
-const FENCE_START = new RegExp(`^\`\`\`${PY_WS_RUN}`, 'u')
-const FENCE_END = new RegExp(`${PY_WS_RUN}\`\`\`$`, 'u')
+const WS_RUN = `[${WS_CLASS}]*`
+const FENCE_SQL_START = new RegExp(`^\`\`\`sql${WS_RUN}`, 'iu')
+const FENCE_START = new RegExp(`^\`\`\`${WS_RUN}`, 'u')
+const FENCE_END = new RegExp(`${WS_RUN}\`\`\`$`, 'u')
 
 /** Strip the markdown code-fence wrapper the LLM may output */
 export function cleanSql(raw: string): string {
-  let sql = pyStrip(raw)
+  let sql = trimSql(raw)
   sql = sql.replace(FENCE_SQL_START, '')
   sql = sql.replace(FENCE_START, '')
   sql = sql.replace(FENCE_END, '')
-  return pyStrip(sql)
+  return trimSql(sql)
 }
 
 /** Before read-only execution: strip trailing semicolons and whitespace, then wrap with LIMIT to enforce a server-side row cap (fetch 1 extra row to detect truncated) */
 export function wrapReadonlySql(sql: string): string {
-  const body = pyRstrip(rstripSemicolons(pyRstrip(sql)))
+  const body = trimSqlEnd(rstripSemicolons(trimSqlEnd(sql)))
   return 'SELECT * FROM (' + body + ') AS _q LIMIT ' + String(MAX_SQL_ROWS + 1)
 }
