@@ -66,7 +66,7 @@ describe('castor-kit MCP server (stdio)', () => {
 
   it('list_templates 列出 backend / frontend 模板', async () => {
     const out = textOf(await client.callTool({ name: 'list_templates', arguments: {} }))
-    assert.match(out, /^可用代码模板：/)
+    assert.match(out, /^Available code templates:/)
     assert.match(out, /📁 backend\//)
     for (const f of ['routes.ts', 'service.ts', 'repository.ts', 'schema.ts', 'README.md']) assert.ok(out.includes(`   ${f}`), f)
     assert.match(out, /📁 frontend\//)
@@ -76,7 +76,7 @@ describe('castor-kit MCP server (stdio)', () => {
   it('get_project_context 返回 AGENTS.md + 当前后端模块', async () => {
     const out = textOf(await client.callTool({ name: 'get_project_context', arguments: {} }))
     assert.match(out, /castor-kit/)
-    assert.match(out, /## 当前后端模块/)
+    assert.match(out, /## Current backend modules/)
     assert.match(out, /\n {2}admin\/: .*users/)
     assert.match(out, /\n {2}component-center\/: /)
   })
@@ -88,7 +88,7 @@ describe('castor-kit MCP server (stdio)', () => {
         arguments: { name: 'ck_mcp_smoke', domain: 'component_center', fields: 'title:str,qty:int', dry_run: true },
       }),
     )
-    assert.match(out, /^✅ 成功/)
+    assert.match(out, /^✅ Success/)
     assert.match(out, /\[dry-run\] would write: apps\/api\/src\/modules\/component-center\/ck-mcp-smoke\/routes\.ts/)
     assert.match(out, /Perm prefix: cc_ck_mcp_smoke/)
   })
@@ -97,7 +97,7 @@ describe('castor-kit MCP server (stdio)', () => {
     const out = textOf(await client.callTool({ name: 'get_spec_guide', arguments: {} }))
     assert.match(out, /## docs\/examples\/specs\/device\.json/)
     assert.match(out, /设备台账/)
-    assert.match(out, /为什么/)
+    assert.match(out, /\| Why \|/)
     assert.match(out, /## JSON Schema/)
     assert.match(out, /"additionalProperties": false/)
     // Everything an agent needs in one call, but not an unbounded dump
@@ -117,33 +117,33 @@ describe('castor-kit MCP server (stdio)', () => {
   it('scaffold_feature 传 spec + dry_run：只预览，也会写接口文档', async () => {
     const spec = { name: 'ck_mcp_spec', title: '烟测', fields: [{ name: 'title', type: 'str', label: '标题' }] }
     const out = textOf(await client.callTool({ name: 'scaffold_feature', arguments: { spec, dry_run: true } }))
-    assert.match(out, /^✅ 成功/)
+    assert.match(out, /^✅ Success/)
     assert.match(out, /\[dry-run\] would write: apps\/api\/src\/modules\/admin\/ck-mcp-spec\/routes\.ts/)
     assert.match(out, /\[dry-run\] would update: docs\/apifox-full\.openapi\.json/)
   })
 
   it('scaffold_feature 既没有 spec 也没有 name：失败', async () => {
-    assert.match(textOf(await client.callTool({ name: 'scaffold_feature', arguments: {} })), /^❌ 失败/)
+    assert.match(textOf(await client.callTool({ name: 'scaffold_feature', arguments: {} })), /^❌ Failed/)
   })
 
   it('check_openapi：当前文档符合规范', async () => {
     const out = textOf(await client.callTool({ name: 'check_openapi', arguments: {} }))
-    assert.match(out, /^✅ 文档符合规范/)
+    assert.match(out, /^✅ Docs follow the rules/)
     assert.match(out, /文档检查：全部符合规范/)
   })
 
   it('scaffold_feature 非法名称返回失败', async () => {
     const out = textOf(await client.callTool({ name: 'scaffold_feature', arguments: { name: 'BadName', dry_run: true } }))
-    assert.match(out, /^❌ 失败/)
+    assert.match(out, /^❌ Failed/)
     assert.match(out, /snake_case/)
   })
 
   it('get_menu_tree 按层级输出并给出下一个可用 ID', { skip: !process.env.TEST_DATABASE_URL }, async () => {
     const out = textOf(await client.callTool({ name: 'get_menu_tree', arguments: {} }))
-    assert.match(out, /^共 \d+ 个菜单项/)
+    assert.match(out, /^\d+ menu items/)
     assert.match(out, /ID=2 {2}系统管理 \(system\)/)
     // Nested under a group since the System menu was grouped: any indentation
     assert.match(out, /\n +ID=21 {2}用户管理 \(system_users\)/)
-    assert.match(out, /当前最大 ID：\d+，建议下一个 ID：\d+/)
+    assert.match(out, /Current max ID: \d+, suggested next ID: \d+/)
   })
 })

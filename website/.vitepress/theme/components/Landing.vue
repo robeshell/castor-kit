@@ -7,7 +7,7 @@ import { CONTENT, DEMO_URL, INSTALL, STACK } from './landing-content.js'
 
 /** Marketing landing page (the site root of each locale); copy lives in landing-content.js */
 const { lang } = useData()
-const c = computed(() => CONTENT[lang.value] ?? CONTENT['zh-CN'])
+const c = computed(() => CONTENT[lang.value] ?? CONTENT['en-US'])
 const href = (path) => withBase(`${c.value.prefix}${path}`)
 const logo = withBase('/castor-logo.png')
 

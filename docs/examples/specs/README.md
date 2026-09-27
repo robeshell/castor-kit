@@ -1,62 +1,72 @@
-# 需求 → spec 示例
+# Requirement → spec examples
 
-每个 JSON 文件对应下面一句需求，是 AI agent 应该推断出的 `pnpm scaffold -- --spec` 规格。写法与字段含义见 [`docs/spec.schema.json`](../../spec.schema.json)，推断规则见 `AGENTS.md`「从一句需求到 spec」。这些文件由 `apps/api/test/scaffold.test.ts` 校验：必须通过 `validateSpec`、符合 JSON Schema，生成的接口文档必须符合 OpenAPI 编写规范。
+Each JSON file corresponds to one of the requirement sentences below and is the `pnpm scaffold -- --spec` spec an AI agent should infer from it. The format and field meanings are in [`docs/spec.schema.json`](../../spec.schema.json), and the inference rules in `AGENTS.md` "From a one-line requirement to a spec (start here for new modules)". These files are checked by `apps/api/test/scaffold.test.ts`: they must pass `validateSpec`, conform to the JSON Schema, and the generated API docs must follow the OpenAPI writing rules.
 
-先校验、看清楚会生成什么，再生成：
+The requirements are quoted in Chinese, as a user would write them, followed by an English translation. The labels in the JSON files are Chinese too, because UI copy is written in Chinese as the i18n key.
+
+Validate first and see exactly what will be generated, then generate:
 
 ```bash
 pnpm scaffold -- --spec docs/examples/specs/device.json --validate-only
 pnpm scaffold -- --spec docs/examples/specs/device.json --dry-run
 ```
 
-## device.json — 设备台账
+## device.json — 设备台账 (equipment register)
 
 > 做一个设备台账：设备编号、名称、状态（闲置 / 使用中 / 维修中 / 已报废，新设备默认闲置）、分类（分类以后会增加，管理员自己维护）、采购价格、采购日期、设备照片、说明书、备注。编号不能重复。
+>
+> English: Build an equipment register: device number, name, status (idle / in use / under repair / scrapped; new devices default to idle), category (more categories will be added later, maintained by admins), purchase price, purchase date, device photo, manual, remarks. Numbers must not repeat.
 
-| 需求里的话 | 推断 | 为什么 |
+| In the requirement | Inferred | Why |
 |---|---|---|
-| 设备编号，不能重复 | `str50`，`required` + `unique` | 编号类用 `str50`；「不能重复」= 唯一，编号不能没有，所以也必填 |
-| 名称 | `str`，`required` | 名称类用 `str`；记录的主名称必填，也是列表的搜索字段 |
-| 状态（四个值），默认闲置 | `enum` + `options`，`default: "idle"`，`required` | 选项固定、写死在需求里 → `enum`；选项值用英文，显示中文。有默认值的状态同时设必填，编辑时不能清空 |
-| 分类，管理员自己维护 | `dict`，`dict: "device_category"` | 选项会增减、由管理员维护 → 数据字典；字典在「系统管理 → 系统配置 → 数据字典」里建 |
-| 采购价格 | `float` | 金额类 |
-| 采购日期 | `date` | 只有日期 |
-| 设备照片 / 说明书 | `image` / `file` | 图片 / 附件存文件中心的文件 ID；不能设必填 |
-| 备注 | `text` | 多行文本 |
-| （没提） | `menu: {}` | 新业务模块要菜单，放进「业务管理」 |
-| （没提） | `i18n` | 可选：标题、字段名、选项名的英文 / 日文；不写时页面用字段英文名兜底 |
+| Device number, must not repeat (设备编号，不能重复) | `str50`, `required` + `unique` | Codes / numbers use `str50`; "must not repeat" = unique, and a device can't be without a number, so it is also required |
+| Name (名称) | `str`, `required` | Names use `str`; the record's main name is required, and it is also the list's search field |
+| Status (four values), default idle (状态) | `enum` + `options`, `default: "idle"`, `required` | The options are fixed and spelled out in the requirement → `enum`; option values are English, display names Chinese. A status with a default is also required, so it can't be cleared when editing |
+| Category, maintained by admins (分类) | `dict`, `dict: "device_category"` | The options will grow or shrink and admins maintain them → data dictionary; the dictionary is created under `系统管理 → 系统配置 → 数据字典` (System → System config → Data dictionary) |
+| Purchase price (采购价格) | `float` | Money |
+| Purchase date (采购日期) | `date` | Date only |
+| Device photo / manual (设备照片 / 说明书) | `image` / `file` | Images / attachments store the file ID from the file center; they can't be required |
+| Remarks (备注) | `text` | Multi-line text |
+| (not mentioned) | `menu: {}` | A new business module needs a menu; it goes under `业务管理` (Business) |
+| (not mentioned) | `i18n` | Optional: English / Japanese for the title, field names and option names; without it the page falls back to the fields' English names |
 
-## customer.json — 客户管理
+## customer.json — 客户管理 (customer management)
 
 > 客户管理：客户名称、联系人、联系电话、邮箱、客户等级（普通 / 重要 / VIP，默认普通）、客户来源（来源渠道会变）、所在城市、备注。销售只能看到自己部门的客户。
+>
+> English: Customer management: customer name, contact person, phone, email, customer tier (normal / important / VIP, default normal), customer source (the source channels will change), city, remarks. Sales staff can only see their own department's customers.
 
-| 需求里的话 | 推断 | 为什么 |
+| In the requirement | Inferred | Why |
 |---|---|---|
-| 只能看到自己部门的客户 | `dataScope: true` | 数据按部门 / 创建人隔离；具体范围由角色的数据权限决定 |
-| 联系电话 | `str20` | 电话类 |
-| 客户等级（三个值） | `enum`，`default: "normal"` | 固定选项 |
-| 客户来源，渠道会变 | `dict` | 选项会增减 |
-| 联系人、城市 | `str50` | 短文本 |
+| Can only see their own department's customers (只能看到自己部门的客户) | `dataScope: true` | Data is isolated by department / creator; the exact scope is set by the role's data scope |
+| Phone (联系电话) | `str20` | Phone numbers |
+| Customer tier (three values) (客户等级) | `enum`, `default: "normal"` | Fixed options |
+| Customer source, channels will change (客户来源) | `dict` | The options will grow or shrink |
+| Contact person, city (联系人、城市) | `str50` | Short text |
 
-## contract.json — 合同管理
+## contract.json — 合同管理 (contract management)
 
 > 合同管理：合同编号（唯一）、合同名称、客户名称、合同金额、签订日期、到期日期、合同状态（草稿 / 执行中 / 已完成 / 已终止，默认草稿）、是否自动续约、合同附件。编号、名称、客户、金额必须填。
+>
+> English: Contract management: contract number (unique), contract name, customer name, contract amount, signing date, expiry date, contract status (draft / active / completed / terminated, default draft), auto-renew or not, contract attachment. Number, name, customer and amount are mandatory.
 
-| 需求里的话 | 推断 | 为什么 |
+| In the requirement | Inferred | Why |
 |---|---|---|
-| 必须填 | 对应字段 `required: true` | 需求点名的字段必填；合同状态有默认值，也设必填（编辑时不能清空）；其余不加 |
-| 是否自动续约 | `bool`，`default: false` | 「是否」类 |
-| 合同附件 | `file` | 附件类 |
-| 客户名称 | `str` | 需求只要名称；要关联客户表属于表间关联，scaffold 不生成，生成后手写 |
+| Mandatory (必须填) | `required: true` on those fields | Fields the requirement names are required; the contract status has a default, so it is required too (can't be cleared when editing); nothing else is |
+| Auto-renew or not (是否自动续约) | `bool`, `default: false` | "Whether / or not" wording |
+| Contract attachment (合同附件) | `file` | Attachments |
+| Customer name (客户名称) | `str` | The requirement only asks for the name; linking to a customer table is a relation between tables, which scaffold doesn't generate; write it by hand after generating |
 
-## expense.json — 报销单
+## expense.json — 报销单 (expense claim)
 
 > 报销单：报销事由、报销金额、发生日期、报销类别（差旅 / 餐饮 / 办公 / 其他）、票据照片、说明。事由、金额、日期、类别必填。员工只能看到自己的报销单。
+>
+> English: Expense claim: reason, amount, date incurred, category (travel / meals / office / other), receipt photo, notes. Reason, amount, date and category are required. Employees can only see their own claims.
 
-| 需求里的话 | 推断 | 为什么 |
+| In the requirement | Inferred | Why |
 |---|---|---|
-| 员工只能看到自己的 | `dataScope: true` | 「仅本人数据」是数据权限的一种，由角色配置 |
-| 报销类别（四个值） | `enum`，无默认 | 固定选项；需求没说默认值就不写 |
-| 票据照片 | `image` | 图片类 |
+| Employees can only see their own (员工只能看到自己的) | `dataScope: true` | "Own data only" is one kind of data scope, configured on the role |
+| Expense category (four values) (报销类别) | `enum`, no default | Fixed options; the requirement names no default, so don't set one |
+| Receipt photo (票据照片) | `image` | Images |
 
-需求里的审批流程（提交、审核、驳回）不在 scaffold 范围内：先生成单据本身，流程按业务另写。
+The approval process in the requirement (submit, review, reject) is outside scaffold's scope: generate the claim itself first, then write the process for the business separately.

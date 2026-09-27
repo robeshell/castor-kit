@@ -213,7 +213,7 @@ export async function generateOpenApi(options: GenerateOptions): Promise<Generat
   const stats = pathStats(paths)
   log(`收集到 /api 路由 ${routes.size} 条`)
   for (const [path, methods] of added) log(`  + ${methods.join(',')} ${path}`)
-  log(`补齐 ${added.reduce((n, [, methods]) => n + methods.length, 0)} 个接口（均为骨架，需按 AGENTS.md「OpenAPI 编写规范」补全）`)
+  log(`补齐 ${added.reduce((n, [, methods]) => n + methods.length, 0)} 个接口（均为骨架，需按 AGENTS.md "OpenAPI writing rules" 补全）`)
   const percent = stats.total ? Math.round((stats.detailed / stats.total) * 100) : 0
   log(`文档路径统计：总数 ${stats.total}，详细 ${stats.detailed}（${percent}%），骨架 ${stats.stubs}`)
 
@@ -230,7 +230,7 @@ export async function generateOpenApi(options: GenerateOptions): Promise<Generat
   let exitCode = 0
   if (options.strict && issues.length) {
     log(formatLintIssues(issues))
-    log(`❌ --strict：${failing} 个接口不符合 AGENTS.md「OpenAPI 编写规范」，请补全后再提交`)
+    log(`❌ --strict：${failing} 个接口不符合 AGENTS.md "OpenAPI writing rules"，请补全后再提交`)
     exitCode = 1
   }
   return { exitCode, routeCount: routes.size, added, stats, issues }

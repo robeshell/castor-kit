@@ -1,65 +1,65 @@
-# 组件清单
+# Component list
 
-## 1. shadcn 原子组件（`@/components/ui/*`）
+## 1. shadcn primitives (`@/components/ui/*`)
 
-源码在 `apps/web/src/components/ui/`（JSX，new-york 风格，Radix 原语，配置 `apps/web/components.json`）。官方文档：https://ui.shadcn.com/docs/components 。
+Source in `apps/web/src/components/ui/` (JSX, new-york style, Radix primitives, configured in `apps/web/components.json`). Official docs: https://ui.shadcn.com/docs/components .
 
-| 分类 | 组件（文件名即导入路径，如 `@/components/ui/button`） |
+| Category | Components (the file name is the import path, e.g. `@/components/ui/button`) |
 |---|---|
-| 操作 | `button-group`、`button`（variant：default / brand / outline / secondary / ghost / link / destructive；size：xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg）、`toggle`、`toggle-group`、`dropdown-menu`、`context-menu`、`command`（cmdk） |
-| 输入 | `input`、`textarea`、`select`、`checkbox`、`switch`、`radio-group`、`slider`、`calendar`、`input-group`、`label`、`field`、`form`（react-hook-form 绑定） |
-| 弹层 | `dialog`、`alert-dialog`、`sheet`、`drawer`（vaul）、`popover`、`tooltip`、`hover-card` |
-| 展示 | `card`、`badge`、`avatar`、`table`、`tabs`、`accordion`、`collapsible`、`separator`、`scroll-area`、`breadcrumb`、`pagination`、`kbd`、`alert`、`empty` |
-| 反馈 | `skeleton`、`spinner`、`progress`、`sonner`（全局 Toaster 已挂在应用外壳，页面用 `@/lib/toast`） |
-| 布局 | `sidebar`（应用外壳 `apps/web/src/components/app/` 在用，页面一般不直接用） |
+| Actions | `button-group`, `button` (variant: default / brand / outline / secondary / ghost / link / destructive; size: xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg), `toggle`, `toggle-group`, `dropdown-menu`, `context-menu`, `command` (cmdk) |
+| Inputs | `input`, `textarea`, `select`, `checkbox`, `switch`, `radio-group`, `slider`, `calendar`, `input-group`, `label`, `field`, `form` (react-hook-form binding) |
+| Overlays | `dialog`, `alert-dialog`, `sheet`, `drawer` (vaul), `popover`, `tooltip`, `hover-card` |
+| Display | `card`, `badge`, `avatar`, `table`, `tabs`, `accordion`, `collapsible`, `separator`, `scroll-area`, `breadcrumb`, `pagination`, `kbd`, `alert`, `empty` |
+| Feedback | `skeleton`, `spinner`, `progress`, `sonner` (the global Toaster is mounted in the app shell; pages use `@/lib/toast`) |
+| Layout | `sidebar` (used by the app shell in `apps/web/src/components/app/`; pages usually don't use it directly) |
 
-要点：
+Key points:
 
-- **主操作按钮**：`<Button size="sm" variant="brand">`（品牌渐变 + 柔和辉光），每页最多一个；次要操作 `outline`，行内操作 `ghost` + `size="sm"` + `className="h-7 px-2"`
-- 按钮里的图标直接放 lucide 组件：`<Button><Plus />新增</Button>`（尺寸由 button 统一处理）
-- `dialog` / `sheet` / `alert-dialog` 的进出场动画来自 `tw-animate-css`，不要再包 motion
-- 页面很少直接用 `table` / `dialog` / `alert-dialog`：优先用下面的 DataTable / FormDialog / ConfirmAction
+- **Primary action button**: `<Button size="sm" variant="brand">` (brand gradient + soft glow), at most one per page; secondary actions use `outline`, inline row actions use `ghost` + `size="sm"` + `className="h-7 px-2"`
+- Put lucide components directly inside buttons: `<Button><Plus />新增</Button>` (size is handled by button)
+- The enter / exit animations of `dialog` / `sheet` / `alert-dialog` come from `tw-animate-css`; don't wrap them in motion
+- Pages rarely use `table` / `dialog` / `alert-dialog` directly: prefer DataTable / FormDialog / ConfirmAction below
 
-### AI Elements（`@/components/ai-elements/*`）
+### AI Elements (`@/components/ai-elements/*`)
 
-Vercel 的 AI 组件（https://elements.ai-sdk.dev ，基于 shadcn），配合 AI SDK 的 `useChat` 用，参考实现 `apps/web/src/modules/component_center/pages/ai/ai_chat_page/`。已装：
+Vercel's AI components (https://elements.ai-sdk.dev , built on shadcn), used with the AI SDK's `useChat`; reference implementation in `apps/web/src/modules/component_center/pages/ai/ai_chat_page/`. Installed:
 
-| 文件 | 组件 |
+| File | Components |
 |---|---|
-| `conversation` | `Conversation` / `ConversationContent`（自动贴底，use-stick-to-bottom）/ `ConversationScrollButton` |
-| `message` | `Message` / `MessageContent` / `MessageResponse`（Streamdown 流式 Markdown）/ `MessageActions` / `MessageAction` |
-| `prompt-input` | `PromptInput` / `PromptInputTextarea` / `PromptInputFooter` / `PromptInputTools` / `PromptInputSubmit`（按 useChat 的 `status` 显示发送 / 停止） |
+| `conversation` | `Conversation` / `ConversationContent` (sticks to the bottom automatically, use-stick-to-bottom) / `ConversationScrollButton` |
+| `message` | `Message` / `MessageContent` / `MessageResponse` (Streamdown streaming Markdown) / `MessageActions` / `MessageAction` |
+| `prompt-input` | `PromptInput` / `PromptInputTextarea` / `PromptInputFooter` / `PromptInputTools` / `PromptInputSubmit` (shows send / stop based on useChat's `status`) |
 | `suggestion` | `Suggestions` / `Suggestion` |
-| `confirmation` | `Confirmation`（传工具调用的 `approval` 与 `state`）/ `ConfirmationTitle` / `ConfirmationRequest` / `ConfirmationAccepted` / `ConfirmationRejected` / `ConfirmationActions` / `ConfirmationAction`：需要用户批准的工具调用（`needsApproval`），参考 `components/app/assistant/ToolPart.jsx` |
-| `streamdown-translations.js` | `useStreamdownTranslations()`：Streamdown 按钮文案的三语译文，传给 `MessageResponse` 的 `translations` |
-| `code-highlighter.js` | castor-kit 自己的 Streamdown 代码高亮插件：只带常用语言、按需加载（官方 `@streamdown/code` 会打包 200 多种语法） |
+| `confirmation` | `Confirmation` (pass the tool call's `approval` and `state`) / `ConfirmationTitle` / `ConfirmationRequest` / `ConfirmationAccepted` / `ConfirmationRejected` / `ConfirmationActions` / `ConfirmationAction`: tool calls that need user approval (`needsApproval`); see `components/app/assistant/ToolPart.jsx` |
+| `streamdown-translations.js` | `useStreamdownTranslations()`: translations of Streamdown's button labels in all three languages, passed to `MessageResponse` as `translations` |
+| `code-highlighter.js` | castor-kit's own Streamdown code highlighting plugin: common languages only, loaded on demand (the official `@streamdown/code` bundles 200+ grammars) |
 
-要点：组件自带的英文文案要覆盖（`aria-label` / `tooltip` 传 `t('中文')`，`MessageResponse` 传 `useStreamdownTranslations()`）；`useChat` 的请求不走 axios，`DefaultChatTransport` 要自己带 `X-CSRF-Token` 和 `Accept-Language`；数学公式与 mermaid 插件没装（体积大）。新增 AI Elements 组件见 AGENTS.md「新增 AI Elements 组件」。
+Key points: override the components' built-in English copy (pass `t('中文')` to `aria-label` / `tooltip`, pass `useStreamdownTranslations()` to `MessageResponse`); `useChat` requests don't go through axios, so `DefaultChatTransport` has to send `X-CSRF-Token` and `Accept-Language` itself; the math and mermaid plugins are not installed (too large). To add AI Elements components, see AGENTS.md "Adding AI Elements components".
 
-## 2. castor-kit 业务公共组件（`@/shared/components/*`）
+## 2. castor-kit shared business components (`@/shared/components/*`)
 
-源码在 `apps/web/src/shared/components/`。
+Source in `apps/web/src/shared/components/`.
 
-### 页面骨架
+### Page skeleton
 
-> **加载态：** 用 `<Skeleton>`（200ms 后才淡入、带扫光），不要手写 `animate-pulse`；骨架形状对齐真实内容，指标卡传 `loading`，不要用 0 占位。
+> **Loading states:** use `<Skeleton>` (fades in only after 200ms, with a shimmer); don't hand-write `animate-pulse`; match the skeleton's shape to the real content, pass `loading` to stat cards, and don't use 0 as a placeholder.
 
-> **多语言：** 公共组件会把收到的字符串属性（title / label / placeholder / options[].label / 列 title / rules 文案 / StatusBadge 文字等）按当前语言自动翻译，页面里直接写中文原文并在页面目录 `locales/en-US.json`、`ja-JP.json` 补译文；JSX 里直接写的中文、原生元素属性、带变量文案用 `const { t } = useTranslation()` 的 `t('… {{x}} …', { x })`。菜单名用 `menuLabel(menu)`（`@/lib/menu-label`）。详见 AGENTS.md「多语言（i18n）与代码注释」。
+> **Languages:** shared components automatically translate the string props they receive (title / label / placeholder / options[].label / column title / rules messages / StatusBadge text, etc.) into the current language, so pages write the Chinese source text directly and add translations in the page directory's `locales/en-US.json` and `ja-JP.json`; Chinese written directly in JSX, native element attributes and text with variables use `t('... {{x}} ...', { x })` from `const { t } = useTranslation()`. Menu names use `menuLabel(menu)` (`@/lib/menu-label`). Details in AGENTS.md "Internationalization (i18n) and code comments".
 
-> **文案原则：不写没用的描述。** 页面标题下不放功能介绍；Panel / 弹窗 / 指标卡的描述只在带信息时才写——
-> 数据（「共 N 条」「最近 60 个采样点」）、当前对象（「正在编辑 X」）、约束与后果（「删除后不可恢复」「编码创建后不可修改」）、
-> 快捷键、空状态的下一步。复述标题、介绍功能或技术栈、宣传语一律不写。
+> **Copy principle: don't write useless descriptions.** No feature intro under the page title; descriptions on Panels / dialogs / stat cards are written only when they carry information:
+> data (`共 N 条` "N items", `最近 60 个采样点` "last 60 samples"), the current object (`正在编辑 X` "Editing X"), constraints and consequences (`删除后不可恢复` "cannot be undone once deleted", `编码创建后不可修改` "the code cannot be changed after creation"),
+> shortcuts, the next step in an empty state. Never restate the title, introduce the feature or tech stack, or write marketing lines.
 
 ```jsx
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 
-<PageHeader title="用户管理" actions={<>…按钮…</>} />
-<Panel title="系统活跃度" description={`近 7 天共 ${total} 条`} actions={…}>内容</Panel>
-<Panel padded={false}>贴边内容（表格 / 列表）</Panel>
+<PageHeader title="用户管理" actions={<>…buttons…</>} />
+<Panel title="系统活跃度" description={`近 7 天共 ${total} 条`} actions={…}>content</Panel>
+<Panel padded={false}>edge-to-edge content (table / list)</Panel>
 ```
 
-### 表格
+### Tables
 
 ```jsx
 import DataTable, { DataPagination } from '@/shared/components/DataTable'
@@ -72,28 +72,28 @@ const columns = [
 ]
 <DataTable
   columns={columns} data={data} loading={loading} rowKey="id"
-  pagination={{ page, perPage, total, onChange: handlePageChange }}   // 不传则不分页
+  pagination={{ page, perPage, total, onChange: handlePageChange }}   // omit to disable pagination
   selectable selectedKeys={keys} onSelectionChange={(keys, rows) => …}
   onRowClick={(row) => …} emptyTitle="没有找到数据" emptyDescription="…" emptyAction={…}
   bordered dense
 />
 ```
 
-### 筛选
+### Filters
 
 ```jsx
 import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
-import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue'   // 实时过滤时防抖
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue'   // debounce for live filtering
 
-<FilterBar onSearch={runSearch} onReset={reset} extra={…右侧附加…}>
+<FilterBar onSearch={runSearch} onReset={reset} extra={…extra items on the right…}>
   <SearchInput value={kw} onChange={setKw} onSubmit={runSearch} placeholder="搜索用户名" />
   <FilterSelect value={status} onChange={setStatus} options={[{ label: '启用', value: 'active' }]} placeholder="全部状态" />
 </FilterBar>
 ```
 
-`FilterSelect` 的 `''` / `undefined` 表示“全部”。
+For `FilterSelect`, `''` / `undefined` means "all".
 
-### 表单（react-hook-form）
+### Forms (react-hook-form)
 
 ```jsx
 import { useForm } from 'react-hook-form'
@@ -103,31 +103,31 @@ import { FormInput, FormSelect, FormSwitch, FormGrid } from '@/shared/components
 const form = useForm({ defaultValues: { name: '', status: 'active', enabled: true } })
 <FormDialog open={open} onOpenChange={setOpen} title="新建" description="…" form={form} onSubmit={save} size="sm|md|lg" submitText="保存">
   <FormInput control={form.control} name="name" label="名称" placeholder="…" rules={{ required: '请输入名称' }} />
-  <FormGrid columns={2}>…两列字段…</FormGrid>
+  <FormGrid columns={2}>…two-column fields…</FormGrid>
 </FormDialog>
 ```
 
-- `onSubmit(values)` 返回 Promise；**抛错时弹窗保持打开**，所以提交函数 `catch (err) { toast.apiError(err, '保存失败'); throw err }`
-- 字段多、需要保留列表上下文时用 `FormSheet`（右侧抽屉，`width` 默认 520）
-- 字段组件（都接收 `control / name / label / description / rules / required / className`）：
+- `onSubmit(values)` returns a Promise; **if it throws, the dialog stays open**, so the submit function does `catch (err) { toast.apiError(err, '保存失败'); throw err }`
+- For many fields, or when the list context should stay visible, use `FormSheet` (right-side drawer, `width` defaults to 520)
+- Field components (all accept `control / name / label / description / rules / required / className`):
 
-| 组件 | 额外 props | 值 |
+| Component | Extra props | Value |
 |---|---|---|
 | `FormInput` | `type` / `placeholder` / `autoComplete` / `disabled` | string |
-| `FormTextarea` | `rows`（默认 3）/ `placeholder` | string |
-| `FormNumber` | `min` / `max` / `step` / `placeholder` | number，空为 `null` |
-| `FormSelect` | `options=[{label,value}]` / `clearable` / `placeholder` | 保持 value 原始类型 |
+| `FormTextarea` | `rows` (default 3) / `placeholder` | string |
+| `FormNumber` | `min` / `max` / `step` / `placeholder` | number, `null` when empty |
+| `FormSelect` | `options=[{label,value}]` / `clearable` / `placeholder` | keeps the value's original type |
 | `FormMultiSelect` | `options` / `placeholder` | array |
-| `FormSwitch` | `layout`（默认 inline：label 左、开关右） | boolean |
+| `FormSwitch` | `layout` (default inline: label on the left, switch on the right) | boolean |
 | `FormRadioGroup` | `options` / `direction` | any |
 | `FormCheckboxGroup` | `options` / `columns` | array |
 | `FormDate` | `placeholder` | `'YYYY-MM-DD'` |
 | `FormDateTime` | - | `'YYYY-MM-DD HH:mm:ss'` |
 | `FormTags` | `placeholder` | string[] |
-| `FormCustom` | `render({ value, onChange, field, fieldState })` | 任意 |
-| `FormGrid` | `columns`（默认 2，移动端单列） | 布局容器 |
+| `FormCustom` | `render({ value, onChange, field, fieldState })` | anything |
+| `FormGrid` | `columns` (default 2, single column on mobile) | layout container |
 
-### 详情 / 确认 / 状态
+### Details / confirmation / status
 
 ```jsx
 import { DetailSheet, DescriptionList } from '@/shared/components/FormDialog'
@@ -142,7 +142,7 @@ import EmptyState from '@/shared/components/EmptyState'
 
 <ConfirmAction title="删除该用户？" description="删除后不可恢复。" confirmText="删除" onConfirm={() => remove(row)}>
   <Button variant="ghost" size="sm" className="text-danger hover:text-danger h-7 px-2">删除</Button>
-</ConfirmAction>   // onConfirm 返回 Promise 时按钮 loading、失败不关闭；destructive 默认 true
+</ConfirmAction>   // if onConfirm returns a Promise, the button shows loading and stays open on failure; destructive defaults to true
 
 <RowActions actions={[{ label: '编辑', onClick: () => edit(row) }, { label: '复制', onClick: … }]} inline={2} />
 <StatusBadge tone="success" dot>启用</StatusBadge>             // tone: neutral | brand | info | success | warning | danger
@@ -150,30 +150,30 @@ import EmptyState from '@/shared/components/EmptyState'
 <EmptyState icon={Inbox} title="暂无数据" description="…" action={<Button …/>} />
 ```
 
-### 其他
+### Other
 
-| 组件 | 用法 |
+| Component | Usage |
 |---|---|
-| `SegmentedTabs` | `<SegmentedTabs value={tab} onChange={setTab} items={[{ value: 'all', label: '全部', count: 12 }]} />`；`variant="pill"` 小切换（24h / 7d） |
-| `TreeView` | `nodes=[{ key, label, children }]`、`selectedKey` / `onSelect`、`renderLabel` / `renderActions`、`defaultExpandAll`、受控 `expandedKeys` / `onExpandedChange` |
-| `StatCard` / `Sparkline` / `CountUp` | `<StatCard label="用户数" value={128} delta="+12%" trend={[…]} icon={Users} />` |
-| `DatePicker` / `DateTimePicker` | 非表单场景的日期选择，值格式同上 |
-| `MultiSelect` / `TagInput` | 非表单场景的多选 / 标签输入 |
-| `data-transfer/ImportDialog` | `open` / `onOpenChange` / `title` / `targetLabel` / `onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)` / `errorExportFileName`；失败行自动展示并可下载 |
-| `data-transfer/ExportDialog` | `open` / `onOpenChange` / `title` / `fieldOptions` / `defaultFields` / `ruleHint` / `onConfirm({ fields, fileType })`（返回 Promise，成功后调用方关闭） |
-| `upload/FileUpload` / `upload/ImageUpload` | `fileList` / `onFileListChange` / `uploadApi` / `limit` / `accept` / `maxSizeMB`；条目 `{ uid, name, url, status: 'uploading' \| 'success' \| 'error', response }` |
+| `SegmentedTabs` | `<SegmentedTabs value={tab} onChange={setTab} items={[{ value: 'all', label: '全部', count: 12 }]} />`; `variant="pill"` for small toggles (24h / 7d) |
+| `TreeView` | `nodes=[{ key, label, children }]`, `selectedKey` / `onSelect`, `renderLabel` / `renderActions`, `defaultExpandAll`, controlled `expandedKeys` / `onExpandedChange` |
+| `StatCard` / `Sparkline` / `CountUp` | `<StatCard label="用户数" value={128} delta="+12%" trend={[...]} icon={Users} />` |
+| `DatePicker` / `DateTimePicker` | Date picking outside forms; value formats as above |
+| `MultiSelect` / `TagInput` | Multi-select / tag input outside forms |
+| `data-transfer/ImportDialog` | `open` / `onOpenChange` / `title` / `targetLabel` / `onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)` / `errorExportFileName`; failed rows are shown automatically and can be downloaded |
+| `data-transfer/ExportDialog` | `open` / `onOpenChange` / `title` / `fieldOptions` / `defaultFields` / `ruleHint` / `onConfirm({ fields, fileType })` (returns a Promise; the caller closes the dialog on success) |
+| `upload/FileUpload` / `upload/ImageUpload` | `fileList` / `onFileListChange` / `uploadApi` / `limit` / `accept` / `maxSizeMB`; entries are `{ uid, name, url, status: 'uploading' \| 'success' \| 'error', response }` |
 
-## 3. lib 与 hooks
+## 3. lib and hooks
 
-| 模块 | 导出 |
+| Module | Exports |
 |---|---|
-| `@/lib/utils` | `cn(...classes)`（clsx + tailwind-merge） |
-| `@/lib/toast` | `toast.success / error / warning / info`、`toast.apiError(err, fallback)`（后端 `{error}` 文案优先）、`errorMessage(err, fallback)` |
-| `@/lib/format` | `formatDateTime(v)`、`formatDate(v)`、`formatNumber(v)`、`formatRelative(v)`（第二个参数是空值占位，默认 `'-'`） |
-| `@/lib/motion` | `fadeUp`、`stagger.container / stagger.item`、`pageTransition`、`layoutSpring`、`EASE_OUT`、`EASE_SPRING` |
-| `@/lib/chart-theme` | `useChartColors()`、`chartBase(c)`、`brandArea(c, opacity)`、`brandLine(c)`、`hexToRgba(hex, alpha)`——ECharts 取色必须走它，亮暗自动切换 |
-| `@/lib/menu-icons` | `resolveMenuIcon(menu)`：菜单 icon 字段（lucide 图标名，如 `Users`）→ lucide 组件 |
+| `@/lib/utils` | `cn(...classes)` (clsx + tailwind-merge) |
+| `@/lib/toast` | `toast.success / error / warning / info`, `toast.apiError(err, fallback)` (the backend's `{error}` message takes precedence), `errorMessage(err, fallback)` |
+| `@/lib/format` | `formatDateTime(v)`, `formatDate(v)`, `formatNumber(v)`, `formatRelative(v)` (the second argument is the placeholder for empty values, default `'-'`) |
+| `@/lib/motion` | `fadeUp`, `stagger.container / stagger.item`, `pageTransition`, `layoutSpring`, `EASE_OUT`, `EASE_SPRING` |
+| `@/lib/chart-theme` | `useChartColors()`, `chartBase(c)`, `brandArea(c, opacity)`, `brandLine(c)`, `hexToRgba(hex, alpha)`: ECharts colors must come from here; switches automatically between light and dark |
+| `@/lib/menu-icons` | `resolveMenuIcon(menu)`: menu icon field (lucide icon name, e.g. `Users`) → lucide component |
 | `@/shared/hooks/useCrudList` | `{ data, total, page, perPage, loading, filters, fetchData, handleSearch, handleReset, handlePageChange }` |
-| `@/shared/hooks/useIsMobile` / `@/shared/hooks/useDebouncedValue` | 断点判断（默认 768）/ 防抖值 |
-| `@/shared/api/request` | Axios 实例（CSRF、401 跳登录、响应已 unwrap） |
-| `@/shared/utils/file` | `downloadBlobFile(blob, filename)`、`downloadErrorRowsCsv` |
+| `@/shared/hooks/useIsMobile` / `@/shared/hooks/useDebouncedValue` | Breakpoint check (default 768) / debounced value |
+| `@/shared/api/request` | Axios instance (CSRF, redirect to login on 401, responses already unwrapped) |
+| `@/shared/utils/file` | `downloadBlobFile(blob, filename)`, `downloadErrorRowsCsv` |

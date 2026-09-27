@@ -1,104 +1,104 @@
-# 组件示例
+# Component gallery
 
-登录后，“组件示例中心”菜单下有 28 个示例页面，按六个分组组织。它们都遵循项目的前端规范，可以直接作为新页面的参考或起点。
+After signing in, the Component Gallery menu holds 28 example pages in six groups. They all follow the project's frontend conventions, so you can use any of them as a reference or starting point for a new page.
 
-页面源码位于 `apps/web/src/modules/component_center/pages/<分组目录>/<页面>/index.jsx`，带后端接口的示例对应 `apps/api/src/modules/component-center/` 下的模块。
+Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.jsx`. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
 
-## 管理系统
+## Admin Pages
 
-分组目录 `admin/`，均带后端接口与数据表。
+Group directory `admin/`; every page has a backend API and a database table.
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| 列表页 | `/component-center/list-page` | 功能最完整的 CRUD 列表：筛选、分页、增删改、导入导出、图片与文件上传 |
-| 统计列表页 | `/component-center/stats-list-page` | 列表上方配指标卡和分类分布、发布状态图表，新建使用分步表单 |
-| 卡片列表页 | `/component-center/card-list-page` | 以卡片网格展示记录，支持增删改 |
-| 树形列表页 | `/component-center/tree-list-page` | 左侧树、右侧详情，支持调整父节点，带成环校验 |
-| 动态表单页 | `/component-center/dynamic-form-page` | 基础信息加可增减的动态字段子表 |
-| 拖拽看板页 | `/component-center/admin/kanban` | 看板列与卡片的拖拽排序，支持 WIP 限制 |
-| 详情标签页 | `/component-center/admin/detail-tabs` | 左侧成员列表，右侧分标签页展示详情 |
-| 甘特图页 | `/component-center/admin/gantt` | 项目任务的甘特图排期 |
-| 高级表格页 | `/component-center/admin/advanced-table` | 行内编辑、列设置、拖拽排序、批量操作、固定操作列 |
+| List Page | `/component-center/list-page` | The most complete CRUD list: filters, pagination, create/edit/delete, import/export, image and file upload |
+| Stats List Page | `/component-center/stats-list-page` | Stat cards plus category distribution and publish status charts above the list; creation uses a multi-step form |
+| Card List Page | `/component-center/card-list-page` | Records shown as a card grid, with create/edit/delete |
+| Tree List Page | `/component-center/tree-list-page` | Tree on the left, details on the right; supports changing the parent node, with cycle detection |
+| Dynamic Form Page | `/component-center/dynamic-form-page` | Basic info plus a sub-table of dynamic fields you can add and remove |
+| Kanban Board | `/component-center/admin/kanban` | Drag-and-drop ordering of Kanban columns and cards, with WIP limits |
+| Detail Tabs | `/component-center/admin/detail-tabs` | Member list on the left, details split into tabs on the right |
+| Gantt Chart | `/component-center/admin/gantt` | Gantt-chart scheduling of project tasks |
+| Advanced Table | `/component-center/admin/advanced-table` | Inline editing, column settings, drag-to-reorder, bulk actions, pinned action column |
 
-## 数据可视化
+## Data Visualization
 
-分组目录 `dataviz/`，基于 ECharts，图表颜色通过 `useChartColors()` 跟随主题与强调色。
+Group directory `dataviz/`. Built on ECharts; chart colors follow the theme and accent color through `useChartColors()`.
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| 数据大屏 | `/component-center/dashboard-page` | 多个图表与事件流组成的综合大屏 |
-| 实时折线图 | `/component-center/dataviz/realtime-chart` | 持续滚动更新的传感器曲线（纯前端） |
-| 热力日历图 | `/component-center/dataviz/heatmap` | 年度日历热力图与小时 × 星期热力图（纯前端） |
-| 流量转化分析 | `/component-center/dataviz/traffic-flow` | 桑基图展示访问来源 → 落地页 → 结果的流向，旁边是从访问到支付的转化漏斗 |
+| Data Dashboard | `/component-center/dashboard-page` | A full dashboard made of multiple charts and an event stream |
+| Real-time Line Chart | `/component-center/dataviz/realtime-chart` | Continuously scrolling sensor curves (frontend only) |
+| Calendar Heatmap | `/component-center/dataviz/heatmap` | Yearly calendar heatmap and an hour × weekday heatmap (frontend only) |
+| Traffic Flow | `/component-center/dataviz/traffic-flow` | A Sankey diagram of visits from source to landing page to outcome, next to a funnel from visit to payment |
 
-## 3D / 创意
+## 3D / Creative
 
-分组目录 `creative/`，纯前端页面。
+Group directory `creative/`; frontend-only pages.
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| 粒子连线动画 | `/component-center/creative/particle` | Canvas 粒子连线效果，默认配色取自当前强调色 |
-| CSS 3D 卡片 | `/component-center/creative/css-3d` | 悬停翻转、自旋立方体、视差跟随等纯 CSS 3D 效果 |
-| Three.js 地球 | `/component-center/creative/globe` | Three.js 渲染的 3D 地球，场景配色跟随强调色 |
-| 粒子形态变换 | `/component-center/creative/morphing` | WebGL 粒子在多种形态之间变换 |
+| Particle Network | `/component-center/creative/particle` | Canvas particles connected by lines; the default colors come from the current accent color |
+| CSS 3D Cards | `/component-center/creative/css-3d` | Pure-CSS 3D effects such as flip on hover, a spinning cube and parallax tracking |
+| Three.js Globe | `/component-center/creative/globe` | A 3D globe rendered with Three.js; scene colors follow the accent color |
+| Particle Morphing | `/component-center/creative/morphing` | WebGL particles morphing between several shapes |
 
-## AI 应用
+## AI Apps
 
-分组目录 `ai/`，需要在「系统设置」的「AI」页签配置模型服务，见 [配置项](/reference/configuration#ai-模型)。
+Group directory `ai/`. Requires a model service, configured on the AI tab of System settings; see [Configuration](/reference/configuration#ai-model).
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| AI 对话 | `/component-center/ai/chat` | 流式对话界面（Vercel AI SDK `useChat` + AI Elements） |
-| AI 提示词工坊 | `/component-center/ai/prompt` | 提示词模板库，提取模板变量并实时预览 |
-| AI 数据查询 | `/component-center/ai/sql` | 用自然语言生成 SQL，在只读连接上执行并展示结果与图表 |
+| AI Chat | `/component-center/ai/chat` | Streaming chat (Vercel AI SDK `useChat` + AI Elements) |
+| AI Prompt Studio | `/component-center/ai/prompt` | Prompt template library that extracts template variables and previews in real time |
+| AI Data Query | `/component-center/ai/sql` | Generates SQL from natural language, runs it on a read-only connection, and shows the results and a chart |
 
-::: tip AI 数据查询的安全边界
-查询在独立的只读连接上执行，结果行数有上限，并过滤权限、日志等敏感表。生产环境必须配置指向只读账号的 `AI_SQL_DATABASE_URL`，见 [部署指南](/deploy/)。
+::: tip Security boundaries of AI Data Query
+Queries run on a separate read-only connection, the number of result rows is capped, and sensitive tables such as permissions and logs are filtered out. In production you must set `AI_SQL_DATABASE_URL` to point at a read-only account; see the [Deployment guide](/deploy/).
 :::
 
-## 编辑器 / 低代码
+## Editors / Low-code
 
-分组目录 `editor/`。
+Group directory `editor/`.
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| 富文本编辑器 | `/component-center/editor/rich-text` | 基于 react-quill-new |
-| 代码编辑器 | `/component-center/editor/code` | 基于 Monaco，可切换语言，主题默认跟随应用 |
-| JSON 编辑器 | `/component-center/editor/json` | JSON 编辑与树形预览 |
-| Markdown 预览 | `/component-center/editor/markdown` | 左侧编辑、右侧实时预览 |
+| Rich Text Editor | `/component-center/editor/rich-text` | Built on react-quill-new |
+| Code Editor | `/component-center/editor/code` | Built on Monaco, with switchable languages; the theme follows the app by default |
+| JSON Editor | `/component-center/editor/json` | JSON editing with a tree preview |
+| Markdown Preview | `/component-center/editor/markdown` | Editor on the left, live preview on the right |
 
-## 工程 / 工具类
+## Engineering Tools
 
-分组目录 `devtools/`。
+Group directory `devtools/`.
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| 拖拽布局 | `/component-center/devtools/drag-layout` | 可拖拽、可缩放的网格布局，布局保存在浏览器本地 |
-| 虚拟滚动列表 | `/component-center/devtools/virtual-scroll` | 基于 react-window 渲染大量数据行 |
-| WebSocket 通信 | `/component-center/devtools/websocket` | 连接后端 `/ws/devtools`，演示消息收发与回显 |
-| 性能监控面板 | `/component-center/devtools/perf-monitor` | 通过 `/ws/devtools` 每秒接收服务器 CPU、内存、磁盘、网络指标 |
+| Drag Layout | `/component-center/devtools/drag-layout` | Draggable, resizable grid layout, saved locally in the browser |
+| Virtual Scroll List | `/component-center/devtools/virtual-scroll` | Renders a large number of rows with react-window |
+| WebSocket | `/component-center/devtools/websocket` | Connects to the backend's `/ws/devtools` and demonstrates sending, receiving and echoing messages |
+| Performance Monitor | `/component-center/devtools/perf-monitor` | Receives server CPU, memory, disk and network metrics every second via `/ws/devtools` |
 
-::: info WebSocket 与反向代理
-WebSocket 和性能监控页面依赖 `/ws/devtools`。部署在反向代理后面时，需要为 `/ws` 配置 WebSocket 转发，见 [部署指南](/deploy/#反向代理与-https)。
+::: info WebSocket and reverse proxies
+The WebSocket and Performance Monitor pages depend on `/ws/devtools`. Behind a reverse proxy, you need to configure WebSocket forwarding for `/ws`; see the [Deployment guide](/deploy/#reverse-proxy-and-https).
 :::
 
-## 系统管理
+## System
 
-除组件示例外，“系统管理”下是脚手架自带的业务功能，按“组织权限”（用户、角色、部门）、“安全审计”（在线用户、日志）、“系统配置”（系统设置、菜单、字典、定时任务）、“内容消息”（文件、通知、公告）四组排列：
+Besides the component examples, the System menu holds the business features that ship with the scaffold, in four groups: Organization (users, roles, departments), Security & Audit (online users, logs), Configuration (system settings, menus, dictionaries, scheduled tasks) and Content & Messages (files, notifications, announcements):
 
-| 页面 | 路由 | 说明 |
+| Page | Route | Description |
 |---|---|---|
-| 用户管理 | `/system/users` | 用户增删改、分配角色、启用 / 停用、导入导出（标准列表页的参考实现） |
-| 角色权限 | `/system/roles` | 角色管理、菜单 / 按钮授权与数据范围 |
-| 部门管理 | `/system/departments` | 部门树：新增下级、编辑、上下移动；用户归属与数据权限的基础 |
-| 文件管理 | `/system/files` | 文件中心里的全部文件：预览、下载、查看是否被使用、删除未使用的文件 |
-| 在线用户 | `/system/sessions` | 当前登录的会话，可强制下线（见 [账号安全与系统设置](/guide/security)） |
-| 系统设置 | `/system/settings` | 两步验证、找回密码等功能开关，密码规则、会话有效期与限流参数 |
-| 菜单管理 | `/system/menus` | 菜单树管理 |
-| 日志管理 | `/system/logs` | 操作日志与登录日志 |
-| 数据字典 | `/system/dicts` | 维护字典数据，并为下拉选项提供数据源 |
-| 定时任务 | `/system/scheduled-tasks` | 按 cron 定时调用 HTTP 地址，查看执行记录 |
-| 消息通知 | `/system/notifications` | 站内通知 |
-| 公告管理 | `/system/announcements` | 公告发布与管理 |
+| Users | `/system/users` | Create, edit and delete users, assign roles, enable / disable, import/export (the reference implementation of a standard list page) |
+| Roles | `/system/roles` | Role management, menu / button authorization and data scope |
+| Departments | `/system/departments` | Department tree: add children, edit, move up / down; the basis for user membership and data scope |
+| Files | `/system/files` | Everything in the file center: preview, download, see whether a file is in use, delete unused files |
+| Online users | `/system/sessions` | Signed-in sessions, with force sign-out (see [Account security & settings](/guide/security)) |
+| System settings | `/system/settings` | Switches for two-step verification and password reset; password rules, session lifetime and rate limits |
+| Menus | `/system/menus` | Menu tree management |
+| Logs | `/system/logs` | Operation logs and login logs |
+| Dictionaries | `/system/dicts` | Maintains dictionary data and serves as a data source for dropdown options |
+| Scheduled Tasks | `/system/scheduled-tasks` | Calls HTTP URLs on a cron schedule and shows execution history |
+| Notifications | `/system/notifications` | In-app notifications |
+| Announcements | `/system/announcements` | Publishing and managing announcements |
 
-另外还有首页（`/dashboard`）和个人设置页（`/profile`：查看账号与最后登录，修改昵称 / 邮箱 / 手机 / 头像和密码）。
+There is also the Home page (`/dashboard`) and the Profile page (`/profile`: account details and last sign-in, plus editing nickname / email / phone / avatar and the password).

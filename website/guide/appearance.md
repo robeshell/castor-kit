@@ -1,123 +1,123 @@
-# 主题与布局
+# Theme & layout
 
-用户可以在顶栏切换浅色 / 深色模式，并在“外观设置”面板中选择强调色、导航模式、侧边栏样式、内容宽度，以及是否开启标签栏。所有选择立即生效，并保存在当前浏览器中。
+Users can switch between light and dark mode from the top bar, and use the Appearance panel to choose the accent color, navigation mode, sidebar style and content width, and to turn the tabs bar on or off. Every choice takes effect immediately and is saved in the current browser.
 
-本页介绍这些选项的实现方式，以及它们对页面代码的要求。
+This page explains how these options are implemented and what they require of your page code.
 
-## 浅色 / 深色
+## Light / dark
 
-- 通过 `<html class="dark">` 切换，遵循 shadcn / Tailwind 的约定。
-- 选择保存在 `localStorage` 的 `theme` 键中；从未选择过时跟随系统设置。
-- 切换时会短暂开启全局颜色过渡，结束后移除，不影响平常的 hover 动效。
+- Toggled via `<html class="dark">`, following the shadcn / Tailwind convention.
+- The choice is saved under the `theme` key in `localStorage`; if the user has never chosen, it follows the system setting.
+- While switching, a global color transition is briefly enabled and then removed, so it doesn't affect normal hover animations.
 
-实现位于 `apps/web/src/context/ThemeContext.jsx`。页面只要使用语义色类（见 [前端开发](/guide/frontend#样式规范)），深色模式就自动正确。
+The implementation is in `apps/web/src/context/ThemeContext.jsx`. As long as a page uses semantic color classes (see [Frontend](/guide/frontend#styling-rules)), dark mode just works.
 
-## 强调色
+## Accent color
 
-外观设置提供 6 种强调色，默认为海洋蓝：
+Appearance offers 6 accent colors; the default is Ocean:
 
-| ID | 名称 |
+| ID | Name |
 |---|---|
-| `ocean` | 海洋蓝（默认） |
-| `violet` | 紫罗兰 |
-| `emerald` | 翡翠绿 |
-| `rose` | 玫瑰红 |
-| `amber` | 琥珀橙 |
-| `slate` | 石墨灰 |
+| `ocean` | Ocean (default) |
+| `violet` | Violet |
+| `emerald` | Emerald |
+| `rose` | Rose |
+| `amber` | Amber |
+| `slate` | Slate |
 
-### token 如何派生
+### How tokens are derived
 
-强调色以 `<html data-accent="<id>">` 的形式应用。`apps/web/src/index.css` 中每个预设只定义三个渐变色标，浅色和深色各一组：
+The accent color is applied as `<html data-accent="<id>">`. In `apps/web/src/index.css`, each preset defines only three gradient stops, one set for light and one for dark:
 
 ```css
 [data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
 .dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
 ```
 
-其他所有跟随强调色的 token 都由这三个变量派生：
+Every other token that follows the accent color is derived from these three variables:
 
-| token | 来源 |
+| Token | Source |
 |---|---|
-| `--primary`、`--ring`、`--sidebar-primary`、`--sidebar-ring` | `--brand-from` |
+| `--primary`, `--ring`, `--sidebar-primary`, `--sidebar-ring` | `--brand-from` |
 | `--chart-1` / `--chart-2` / `--chart-3` | `--brand-from` / `--brand-via` / `--brand-to` |
-| `--brand-gradient`、`--brand-gradient-strong` | 三个色标组成的线性渐变 |
-| `--brand-soft`、`--brand-glow`、`--brand-shadow` | 用 `color-mix()` 与透明色混合 |
+| `--brand-gradient`, `--brand-gradient-strong` | A linear gradient of the three stops |
+| `--brand-soft`, `--brand-glow`, `--brand-shadow` | Mixed with transparent via `color-mix()` |
 
-`--chart-4`、`--chart-5` 是固定颜色，不随强调色变化。
+`--chart-4` and `--chart-5` are fixed colors that don't change with the accent.
 
-因此，页面里只要使用 `primary`、`brand-*` 等语义类，切换强调色时就会自动跟随。**不要在页面中写死某个强调色的色值。**
+So as long as a page uses semantic classes such as `primary` and `brand-*`, it follows accent changes automatically. **Don't hard-code any accent color value in a page.**
 
-ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS 变量的实际值，主题或强调色切换时会重新计算。canvas / WebGL 场景（如粒子动画、Three.js 地球）也从 `--brand-from/via/to` 取色。
+ECharts charts read the actual values of the current CSS variables through `useChartColors()` from `@/lib/chart-theme`, and recompute when the theme or accent changes. Canvas / WebGL scenes (such as the particle animation and the Three.js globe) also take their colors from `--brand-from/via/to`.
 
-### 新增一个强调色
+### Adding an accent color
 
-1. 在 `apps/web/src/lib/appearance.js` 的 `ACCENTS` 中添加 `{ id, label }`，`label` 是中文原文，同时作为翻译 key。
-2. 在 `apps/web/src/index.css` 中添加对应的 `[data-accent='<id>']` 浅色和深色两组色标。色标保持十六进制写法，`chart-theme.js` 会把 `--brand-from` 转换为 rgba。
-3. 为 `label` 补充英文和日文译文。
+1. Add `{ id, label }` to `ACCENTS` in `apps/web/src/lib/appearance.js`. `label` is the Chinese source text and also serves as the translation key.
+2. Add the matching `[data-accent='<id>']` light and dark stop sets to `apps/web/src/index.css`. Keep the stops in hex; `chart-theme.js` converts `--brand-from` to rgba.
+3. Add English and Japanese translations for `label`.
 
-## 导航模式
+## Navigation mode
 
-| ID | 名称 | 说明 |
+| ID | Name | Description |
 |---|---|---|
-| `sidebar` | 侧边栏（默认） | 左侧显示完整菜单树 |
-| `top` | 顶部导航 | 菜单显示在顶栏，不显示侧边栏 |
-| `mixed` | 混合 | 顶栏显示一级分区，左侧显示当前分区下的菜单 |
+| `sidebar` | Sidebar (default) | Full menu tree on the left |
+| `top` | Top | Menus in the top bar, no sidebar |
+| `mixed` | Mixed | Top-level sections in the top bar, the current section's menus on the left |
 
-## 侧边栏样式
+## Sidebar style
 
-与 shadcn `<Sidebar variant>` 一一对应：
+Maps one-to-one to shadcn `<Sidebar variant>`:
 
-| ID | 名称 |
+| ID | Name |
 |---|---|
-| `sidebar` | 标准（默认） |
-| `floating` | 浮动 |
-| `inset` | 内嵌 |
+| `sidebar` | Standard (default) |
+| `floating` | Floating |
+| `inset` | Inset |
 
-导航模式为“顶部导航”时不显示侧边栏，该选项不可用。
+When the navigation mode is Top, there is no sidebar, so this option is disabled.
 
-## 内容宽度
+## Content width
 
-| ID | 名称 | 说明 |
+| ID | Name | Description |
 |---|---|---|
-| `boxed` | 定宽 | 内容区居中，最大宽度 1600px |
-| `fluid` | 流式（默认） | 内容区占满可用宽度 |
+| `boxed` | Fixed | Content area centered, max width 1600px |
+| `fluid` | Fluid (default) | Content area fills the available width |
 
-## 移动端
+## Mobile
 
-视口宽度小于 768px 时：
+When the viewport is narrower than 768px:
 
-- 所有导航模式都退化为抽屉式侧边栏，显示完整菜单
-- 不显示标签栏，也不做页面保活
+- Every navigation mode falls back to a drawer sidebar showing the full menu
+- The tabs bar is hidden and pages are not kept alive
 
-## 标签栏与页面保活
+## Tabs bar and page keep-alive
 
-标签栏默认开启，可在外观设置中关闭。开启后，打开过的页面以标签形式显示在顶栏下方：
+The tabs bar is on by default and can be turned off in Appearance. When it's on, every page you open appears as a tab below the top bar:
 
-- 顶级页面（如首页）固定在最前，不能关闭
-- 标签支持关闭、关闭其他、关闭右侧、关闭全部、刷新
-- 标签列表保存在 `sessionStorage` 的 `tags-view` 键中，仅对当前浏览器标签页有效
-- 切回某个标签时恢复它上次的查询参数和滚动位置
+- Top-level pages (such as Home) are pinned first and can't be closed
+- Tabs support Close, Close others, Close to the right, Close all and Refresh
+- The tab list is saved under the `tags-view` key in `sessionStorage`, so it only applies to the current browser tab
+- Switching back to a tab restores its last query parameters and scroll position
 
-状态管理在 `apps/web/src/context/TagsViewContext.jsx`，页面区域的渲染在 `apps/web/src/components/app/AppLayout.jsx`。
+State management is in `apps/web/src/context/TagsViewContext.jsx`; the page area is rendered in `apps/web/src/components/app/AppLayout.jsx`.
 
-### 保活机制
+### How keep-alive works
 
-标签栏开启时，每个打开的标签页都用 React `<Activity>` 包裹并保持挂载：
+When the tabs bar is on, each open tab is wrapped in React `<Activity>` and stays mounted:
 
-| 状态 | 切走（隐藏）时 | 切回（显示）时 |
+| State | When switched away (hidden) | When switched back (shown) |
 |---|---|---|
-| 组件 state（筛选条件、分页、表单输入） | 保留 | 原样恢复 |
-| `useEffect` 副作用 | 执行清理函数 | 重新执行 |
+| Component state (filters, pagination, form input) | Kept | Restored as it was |
+| `useEffect` side effects | Cleanup functions run | Effects run again |
 
-也就是说，切回页面时 `useEffect` 中的请求会重新拉取一次数据，隐藏期间定时器、轮询、WebSocket 会随清理函数自动停止。
+In other words, requests in `useEffect` refetch data once when you switch back to a page, and timers, polling and WebSockets stop automatically through their cleanup functions while the page is hidden.
 
-关闭标签会卸载对应页面；刷新标签会重新挂载页面，并从顶部开始显示。
+Closing a tab unmounts its page; refreshing a tab remounts the page and shows it from the top.
 
-### 对页面代码的要求
+### What this means for page code
 
-::: warning 副作用必须写在 effect 里并正确清理
-- 定时器、轮询、订阅、WebSocket 连接都放在 `useEffect` 中启动，并在清理函数中停止。
-- 不要在模块顶层或渲染过程中启动定时器，否则页面隐藏后仍会继续运行。
+::: warning Side effects must live in effects and be cleaned up
+- Start timers, polling, subscriptions and WebSocket connections inside `useEffect`, and stop them in the cleanup function.
+- Don't start timers at module top level or during render, or they will keep running after the page is hidden.
 :::
 
 ```jsx
@@ -127,13 +127,13 @@ useEffect(() => {
 }, [refresh])
 ```
 
-## 偏好存储位置
+## Where preferences are stored
 
-| 存储 | 键 | 内容 |
+| Storage | Key | Contents |
 |---|---|---|
 | `localStorage` | `theme` | `light` / `dark` |
 | `localStorage` | `appearance` | `{ accent, navMode, sidebarVariant, contentWidth, tagsView }` |
-| `localStorage` | `lang` | 界面语言，见 [多语言](/guide/i18n) |
-| `sessionStorage` | `tags-view` | 已打开的标签 |
+| `localStorage` | `lang` | UI language; see [Internationalization](/guide/i18n) |
+| `sessionStorage` | `tags-view` | Open tabs |
 
-`appearance` 中的未知键或非法值会被忽略并回退到默认值。外观设置面板提供“恢复默认”按钮。选项的唯一定义在 `apps/web/src/lib/appearance.js`。
+Unknown keys or invalid values in `appearance` are ignored and fall back to the defaults. The Appearance panel has a Reset button. The options are defined in one place: `apps/web/src/lib/appearance.js`.

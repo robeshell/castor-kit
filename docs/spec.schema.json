@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "castor-kit 模块规格（pnpm scaffold -- --spec <file>）",
-  "description": "从一句业务需求推断出的模块规格。这里只做结构检查；唯一只用于文本和数字、默认值要符合字段类型等规则以 `pnpm scaffold -- --spec <file> --validate-only` 为准。怎么推断见 AGENTS.md「从一句需求到 spec」，示例见 docs/examples/specs/。",
+  "description": "从一句业务需求推断出的模块规格。这里只做结构检查；唯一只用于文本和数字、默认值要符合字段类型等规则以 `pnpm scaffold -- --spec <file> --validate-only` 为准。怎么推断见 AGENTS.md \"From a one-line requirement to a spec\"，示例见 docs/examples/specs/。",
   "type": "object",
   "additionalProperties": false,
   "required": [

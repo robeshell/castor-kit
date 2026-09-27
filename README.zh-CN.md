@@ -19,7 +19,7 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md)
 
-**[在线演示](https://castor-kit-demo.onrender.com)** · [文档](https://robeshell.github.io/castor-kit/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
+**[在线演示](https://castor-kit-demo.onrender.com)** · [文档](https://robeshell.github.io/castor-kit/zh/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
@@ -73,7 +73,7 @@ bash scripts/setup.sh
 
 **在线体验**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)，登录页一键登录（免费实例闲置后首次访问需要约 30 秒唤醒）。
 
-**部署你自己的演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/deploy/index.md)。
+**部署你自己的演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/zh/deploy/index.md)。
 
 <details>
 <summary><b>本地开发</b>（Node.js 22+、pnpm、PostgreSQL 14+）</summary>
@@ -106,7 +106,7 @@ $ pnpm verify -- --module equipment
 ✅ 全部检查通过，功能可交付！
 ```
 
-AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发](website/guide/ai-workflow.md)。
+AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发](website/zh/guide/ai-workflow.md)。
 
 ## 技术栈
 
@@ -136,12 +136,12 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 
 | 分类 | 页面 |
 |---|---|
-| 入门 | [介绍](website/guide/index.md) · [快速开始](website/guide/getting-started.md) · [项目结构](website/guide/project-structure.md) |
-| 开发 | [AI 驱动开发](website/guide/ai-workflow.md) · [后端开发](website/guide/backend.md) · [前端开发](website/guide/frontend.md) |
-| 专题 | [权限 RBAC](website/guide/rbac.md) · [多语言](website/guide/i18n.md) · [主题与布局](website/guide/appearance.md) |
-| 参考 | [命令速查](website/reference/commands.md) · [配置项](website/reference/configuration.md) · [部署指南](website/deploy/index.md) |
+| 入门 | [介绍](website/zh/guide/index.md) · [快速开始](website/zh/guide/getting-started.md) · [项目结构](website/zh/guide/project-structure.md) |
+| 开发 | [AI 驱动开发](website/zh/guide/ai-workflow.md) · [后端开发](website/zh/guide/backend.md) · [前端开发](website/zh/guide/frontend.md) |
+| 专题 | [权限 RBAC](website/zh/guide/rbac.md) · [多语言](website/zh/guide/i18n.md) · [主题与布局](website/zh/guide/appearance.md) |
+| 参考 | [命令速查](website/zh/reference/commands.md) · [配置项](website/zh/reference/configuration.md) · [部署指南](website/zh/deploy/index.md) |
 
-在线阅读：**[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
+在线阅读：**[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/zh/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
 
 ## 参与贡献
 

@@ -1,50 +1,50 @@
-# 介绍
+# Introduction
 
-castor-kit 是一个 AI-First 的全栈管理后台脚手架。你用自然语言描述一个业务功能，AI 编程工具按照仓库里写好的约定，生成数据表、接口、页面、权限和数据库迁移，最后由验证门禁确认交付质量。
+castor-kit is an AI-first, full-stack admin scaffold. You describe a business feature in plain language; your AI coding tool follows the conventions written into the repository to generate the table, API, page, permissions and database migration; and a verification gate confirms the result is fit to ship.
 
-名字里的 Castor 是河狸的拉丁属名，河狸被称为“自然界的工程师”；Kit 指脚手架和工具套件。
+*Castor* is the Latin genus of the beaver, known as "nature's engineer". *Kit* stands for the scaffold and its toolkit.
 
-## 技术栈
+## Tech stack
 
-castor-kit 是一个 pnpm monorepo，包含三个应用：
+castor-kit is a pnpm monorepo with three apps:
 
-| 应用 | 包名 | 技术 |
+| App | Package | Tech |
 |---|---|---|
-| 后端 `apps/api` | `@castor-kit/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
-| 前端 `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（JavaScript / JSX） |
-| MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`，把脚手架、验证、RBAC 同步、迁移等工具暴露给 MCP 客户端 |
+| Backend `apps/api` | `@castor-kit/api` | Node 22, TypeScript (strict), Fastify 5, Zod, Drizzle ORM, PostgreSQL 14+, pino |
+| Frontend `apps/web` | `@castor-kit/web` | React 19, Vite, React Router, shadcn/ui (Radix), Tailwind CSS v4, motion, lucide-react, i18next (JavaScript / JSX) |
+| MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`; exposes scaffolding, verification, RBAC sync, migrations and other tools to MCP clients |
 
-其他常用依赖：表格 `@tanstack/react-table`、表单 `react-hook-form`、图表 ECharts、3D Three.js、代码编辑器 Monaco、富文本 react-quill-new、拖拽 dnd-kit。
+Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form` for forms, ECharts for charts, Three.js for 3D, Monaco for code editing, react-quill-new for rich text, and dnd-kit for drag and drop.
 
-## 适合谁
+## Who it's for
 
-- **想让 AI 真正交付功能的团队**：产品经理或开发者用一句话描述需求，AI 负责推断路由、字段类型、权限编码、菜单 ID 等技术细节。
-- **需要一个规范的管理后台起点的开发者**：开箱即有登录、用户、角色、菜单、日志、数据字典、定时任务、消息通知、公告等功能，以及 RBAC 权限体系。
-- **想参考常见后台页面写法的前端开发者**：组件示例中心内置 28 个示例页面，覆盖列表、看板、甘特图、数据大屏、3D、AI 对话、编辑器等场景。
+- **Teams that want AI to actually ship features**: a product manager or developer describes the requirement in one sentence, and the AI works out the technical details: routes, field types, permission codes, menu IDs.
+- **Developers who need a well-structured admin starting point**: login, users, roles, menus, logs, data dictionaries, scheduled tasks, notifications and announcements work out of the box, together with a full RBAC permission system.
+- **Frontend developers looking for reference implementations of common admin pages**: the Component Gallery ships 28 example pages covering lists, Kanban boards, Gantt charts, data dashboards, 3D, AI chat, editors and more.
 
-## 核心能力
+## Core features
 
-- **AI 驱动开发**：`AGENTS.md` 是所有 AI 工具共用的项目上下文，Claude Code、Codex CLI、Cursor、GitHub Copilot、Windsurf 以及 MCP 客户端都已预先配置。详见 [AI 驱动开发](/guide/ai-workflow)。
-- **代码骨架生成**：`pnpm scaffold` 一次生成表定义、后端四层文件、前端页面与 API、接口测试，并自动注册和生成迁移。
-- **验证门禁**：`pnpm verify` 检查类型、分层规则、迁移链与落库状态、文件与注册、RBAC 种子、前端构建和前后端测试，全部通过才算交付。
-- **完整的 RBAC**：用户、角色、菜单、按钮四级权限，菜单树由 `seed-rbac.ts` 统一维护。详见 [权限 RBAC](/guide/rbac)。
-- **多语言**：界面支持简体中文、English、日本語，中文原文即翻译 key，并有扫描工具和测试守卫。详见 [多语言](/guide/i18n)。
-- **主题与布局**：浅色 / 深色、6 种强调色、3 种导航模式、标签栏与页面保活。详见 [主题与布局](/guide/appearance)。
-- **导入导出**：列表页标配 CSV / XLSX 导入导出，带公式注入防护和整批事务回滚。
-- **定时任务**：基于数据库租约的调度器，支持多副本部署，并带管理页面。
-- **Docker 部署**：`bash scripts/setup.sh` 生成配置并启动 PostgreSQL 和应用，容器启动时自动完成迁移与 RBAC 同步。详见 [部署指南](/deploy/)。
+- **AI-driven development**: `AGENTS.md` is the shared project context for every AI tool. Claude Code, Codex CLI, Cursor, GitHub Copilot, Windsurf and MCP clients are all pre-configured. See [AI-driven workflow](/guide/ai-workflow).
+- **Scaffold generation**: `pnpm scaffold` generates the table definition, the four backend layers, the frontend page and API client, and API tests in one go, then registers everything and generates the migration.
+- **Verification gate**: `pnpm verify` checks types, layering rules, the migration chain and whether migrations are applied, files and registrations, the RBAC seed, the frontend build, and backend and frontend tests. A feature is done only when every check passes.
+- **Complete RBAC**: four levels of permissions (users, roles, menus, buttons), with the menu tree maintained in one place, `seed-rbac.ts`. See [Permissions (RBAC)](/guide/rbac).
+- **Internationalization**: the UI supports 简体中文, English and 日本語. The Chinese source text is the translation key, backed by a scanner and test guards. See [Internationalization](/guide/i18n).
+- **Theme and layout**: light / dark mode, 6 accent colors, 3 navigation modes, and a tabs bar with page keep-alive. See [Theme & layout](/guide/appearance).
+- **Import and export**: list pages come with CSV / XLSX import and export as standard, with formula-injection protection and all-or-nothing transactional imports.
+- **Scheduled tasks**: a scheduler built on database leases that is safe to run with multiple replicas, plus a management page.
+- **Docker deployment**: `bash scripts/setup.sh` generates the config and starts PostgreSQL and the app; migrations and RBAC sync run automatically on container start. See the [Deployment guide](/deploy/).
 
-## 和其他脚手架的区别
+## How it differs from other scaffolds
 
-大多数管理后台脚手架提供的是“一套可以复制修改的代码”。castor-kit 在此之上多做了两件事：
+Most admin scaffolds give you "a codebase to copy and modify". castor-kit does two more things on top of that:
 
-1. **约定写给 AI 看。** 分层规则、命名、字段类型推断表、权限编码规则、菜单 ID 分配、反模式清单都写在 `AGENTS.md` 里。AI 读完后可以自行做出技术决策，不需要反复向你确认路由或字段类型。
-2. **交付由门禁判定。** AI 生成的代码必须通过 `pnpm verify`。门禁不只做静态检查：它会确认迁移已经真实应用到数据库、路由与菜单权限已经登记，并运行前端构建与前后端测试。
+1. **The conventions are written for AI.** Layering rules, naming, the field-type inference table, permission code rules, menu ID allocation and a list of anti-patterns all live in `AGENTS.md`. Once an AI has read it, it can make technical decisions on its own instead of repeatedly asking you about routes or field types.
+2. **A gate decides when work is delivered.** AI-generated code must pass `pnpm verify`. The gate goes beyond static checks: it confirms that migrations have actually been applied to the database and that routes and menu permissions are registered, and it runs the frontend build and the backend and frontend tests.
 
-这样，“AI 说做完了”和“功能真的可用”之间有一道可以自动执行的检查。
+The result is an automated check between "the AI says it's done" and "the feature actually works".
 
-## 下一步
+## Next steps
 
-- [快速开始](/guide/getting-started)：用 Docker 或本地环境跑起来
-- [项目结构](/guide/project-structure)：了解目录和各部分职责
-- [AI 驱动开发](/guide/ai-workflow)：用 AI 交付第一个功能
+- [Quick start](/guide/getting-started): get it running with Docker or locally
+- [Project structure](/guide/project-structure): learn the layout and what each part does
+- [AI-driven workflow](/guide/ai-workflow): ship your first feature with AI

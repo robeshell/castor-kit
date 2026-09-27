@@ -99,7 +99,7 @@ export function runScript(script: string, args: string[] = []): Promise<RunResul
   const dash = script === 'db:generate' ? [] : ['--']
   if (hasPnpm()) return runCommand('pnpm', ['-s', script, ...(args.length > 0 ? [...dash, ...args] : [])], ROOT)
   const fallback = SCRIPT_FALLBACK[script]
-  if (!fallback) return Promise.resolve({ code: 1, stdout: '', stderr: `未知脚本：${script}`, output: `未知脚本：${script}` })
+  if (!fallback) return Promise.resolve({ code: 1, stdout: '', stderr: `Unknown script: ${script}`, output: `Unknown script: ${script}` })
   const bin = join(API_DIR, 'node_modules', '.bin', fallback.bin)
   return runCommand(bin, [...fallback.args, ...args], API_DIR)
 }
@@ -113,7 +113,7 @@ export function extractJson(text: string): unknown {
     const start = trimmed.indexOf('{')
     const end = trimmed.lastIndexOf('}')
     if (start >= 0 && end > start) return JSON.parse(trimmed.slice(start, end + 1))
-    throw new Error('输出中没有 JSON')
+    throw new Error('No JSON in the output')
   }
 }
 
@@ -147,21 +147,21 @@ async function withSpecFile(spec: unknown, args: string[]): Promise<RunResult> {
 export function specGuide(): string {
   const read = (rel: string) => {
     const path = join(ROOT, rel)
-    return existsSync(path) ? readFileSync(path, 'utf8').trim() : `（${rel} 不存在）`
+    return existsSync(path) ? readFileSync(path, 'utf8').trim() : `(${rel} does not exist)`
   }
   const examplesDir = join(ROOT, 'docs', 'examples', 'specs')
   const examples = existsSync(examplesDir) ? readdirSync(examplesDir).filter((f) => f.endsWith('.json')).sort() : []
   return [
-    '# 模块规格（spec）指南',
+    '# Module spec guide',
     '',
-    '先用 validate_spec 校验并确认会生成什么，再用 scaffold_feature 的 spec 参数生成。',
+    'Validate with validate_spec first and confirm what will be generated, then generate with the spec parameter of scaffold_feature.',
     '',
-    '## 需求 → spec 示例（docs/examples/specs/README.md）',
+    '## Requirement → spec examples (docs/examples/specs/README.md)',
     '',
     read('docs/examples/specs/README.md'),
     '',
     ...examples.flatMap((f) => [`## docs/examples/specs/${f}`, '', '```json', read(`docs/examples/specs/${f}`), '```', '']),
-    '## JSON Schema（docs/spec.schema.json）',
+    '## JSON Schema (docs/spec.schema.json)',
     '',
     '```json',
     read('docs/spec.schema.json'),
@@ -171,7 +171,7 @@ export function specGuide(): string {
 
 export function projectContext(): string {
   const agentsMd = join(ROOT, 'AGENTS.md')
-  const content = existsSync(agentsMd) ? readFileSync(agentsMd, 'utf8') : '（AGENTS.md 不存在）'
+  const content = existsSync(agentsMd) ? readFileSync(agentsMd, 'utf8') : '(AGENTS.md does not exist)'
 
   // Current module list: apps/api/src/modules/<domain>/<module>/
   const modulesDir = join(API_DIR, 'src', 'modules')
@@ -186,7 +186,7 @@ export function projectContext(): string {
       beDomains.push(`  ${domain.name}/: ${modules.join(', ')}`)
     }
   }
-  return `${content}\n\n---\n\n## 当前后端模块\n\n${beDomains.join('\n')}`
+  return `${content}\n\n---\n\n## Current backend modules\n\n${beDomains.join('\n')}`
 }
 
 interface MenuRow {
@@ -222,7 +222,7 @@ const MENU_QUERY_SCRIPT = `
 `
 
 export function formatMenuTree(menus: MenuRow[]): string {
-  const lines = [`共 ${menus.length} 个菜单项`, '']
+  const lines = [`${menus.length} menu items`, '']
   const byParent = new Map<number | null, MenuRow[]>()
   for (const m of menus) {
     const list = byParent.get(m.parent_id) ?? []
@@ -238,27 +238,27 @@ export function formatMenuTree(menus: MenuRow[]): string {
   }
   fmt(byParent.get(null) ?? [], 0)
   const maxId = menus.length > 0 ? Math.max(...menus.map((m) => m.id)) : 0
-  lines.push(`\n当前最大 ID：${maxId}，建议下一个 ID：${maxId + 1}`)
+  lines.push(`\nCurrent max ID: ${maxId}, suggested next ID: ${maxId + 1}`)
   return lines.join('\n')
 }
 
 export async function menuTree(): Promise<string> {
   const tsx = join(API_DIR, 'node_modules', '.bin', 'tsx')
   const res = await runCommand(existsSync(tsx) ? tsx : 'npx', [...(existsSync(tsx) ? [] : ['tsx']), '-e', MENU_QUERY_SCRIPT], API_DIR)
-  if (res.code !== 0) return `查询菜单失败：${res.output}`
+  if (res.code !== 0) return `Failed to query menus: ${res.output}`
   let menus: MenuRow[]
   try {
     menus = JSON.parse(res.stdout.trim()) as MenuRow[]
   } catch {
-    return `查询菜单失败：${res.output}`
+    return `Failed to query menus: ${res.output}`
   }
   return formatMenuTree(menus)
 }
 
 export function listTemplates(): string {
   const templatesDir = join(ROOT, 'docs', 'templates')
-  if (!existsSync(templatesDir)) return 'docs/templates/ 目录不存在，请先创建模板。'
-  const lines = ['可用代码模板：', '']
+  if (!existsSync(templatesDir)) return 'The docs/templates/ directory does not exist; create the templates first.'
+  const lines = ['Available code templates:', '']
   const walk = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true })
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -290,7 +290,7 @@ export function createServer(): McpServer {
   server.registerTool(
     'get_project_context',
     {
-      description: '返回 castor-kit 项目上下文，包含 AGENTS.md 全文和当前模块结构。实现新功能前必须先调用此工具。',
+      description: 'Returns the castor-kit project context: the full AGENTS.md and the current module structure. Call this before implementing a new feature.',
       inputSchema: {},
     },
     async () => text(projectContext()),
@@ -299,7 +299,7 @@ export function createServer(): McpServer {
   server.registerTool(
     'get_menu_tree',
     {
-      description: '返回当前数据库中的菜单树结构，用于确定新菜单的 parent_id 和下一个可用 ID。',
+      description: 'Returns the menu tree from the current database, for determining a new menu\'s parent_id and the next free ID.',
       inputSchema: {},
     },
     async () => text(await menuTree()),
@@ -309,8 +309,8 @@ export function createServer(): McpServer {
     'get_spec_guide',
     {
       description:
-        '返回写模块规格（spec）需要的全部参考：JSON Schema（字段类型、必填项、选项写法）和「一句需求 → spec」示例及每个字段的推断理由。' +
-        '把需求写成 spec 之前先调用。',
+        'Returns everything needed to write a module spec: the JSON Schema (field types, required properties, how to write options) and "one-line requirement → spec" examples with the reasoning for each field. ' +
+        'Call before turning a requirement into a spec.',
       inputSchema: {},
     },
     async () => text(specGuide()),
@@ -320,10 +320,10 @@ export function createServer(): McpServer {
     'validate_spec',
     {
       description:
-        '校验模块规格（spec），不生成任何文件：有问题逐条列出（拼错的属性、缺中文标题 / 字段名、类型与默认值不符等）；' +
-        '通过时说明会生成的接口、权限、表和菜单。生成前必须先通过。',
+        'Validates a module spec without generating any files: lists each problem (misspelled properties, missing Chinese title / field labels, defaults that don\'t match the type, etc.); ' +
+        'when valid, describes the endpoints, permissions, table and menu that will be generated. Must pass before generating.',
       inputSchema: {
-        spec: z.record(z.string(), z.unknown()).describe('模块规格对象，格式见 get_spec_guide'),
+        spec: z.record(z.string(), z.unknown()).describe('Module spec object; see get_spec_guide for the format'),
       },
     },
     async ({ spec }) => {
@@ -336,15 +336,15 @@ export function createServer(): McpServer {
     'scaffold_feature',
     {
       description:
-        '生成一个完整模块：db/schema 表定义 + schema/repository/service/routes + 接口测试 + 前端页面，' +
-        '自动注册到 db/schema/index.ts 与 router.ts、生成 drizzle 迁移、写好 OpenAPI 文档；spec 里写了 menu 时同时写入菜单和按钮权限。' +
-        '优先传 spec（先用 validate_spec 校验）；name / domain / fields 是简写用法（字段没有中文标签和选项）。生成后还需补充业务逻辑。',
+        'Generates a complete module: db/schema table definition + schema/repository/service/routes + API tests + frontend page, ' +
+        'registers it in db/schema/index.ts and router.ts, generates the drizzle migration and writes the OpenAPI docs; when the spec has menu, the menu and button permissions are written too. ' +
+        'Prefer passing spec (validate it with validate_spec first); name / domain / fields are the shorthand (fields get no Chinese labels or options). Business logic still has to be added after generating.',
       inputSchema: {
-        spec: z.record(z.string(), z.unknown()).optional().describe('模块规格对象（推荐），格式见 get_spec_guide；传了 spec 就不看 name / domain / fields'),
-        name: z.string().optional().describe('简写用法：资源名，snake_case，如 customer'),
-        domain: z.enum(['admin', 'component_center']).optional().describe('简写用法：所属域'),
-        fields: z.string().optional().describe('简写用法：字段列表，格式 "name:str,phone:str20,amount:float"'),
-        dry_run: z.boolean().optional().default(false).describe('只预览不写文件，默认 false'),
+        spec: z.record(z.string(), z.unknown()).optional().describe('Module spec object (recommended); see get_spec_guide for the format. When spec is given, name / domain / fields are ignored'),
+        name: z.string().optional().describe('Shorthand: resource name, snake_case, e.g. customer'),
+        domain: z.enum(['admin', 'component_center']).optional().describe('Shorthand: domain'),
+        fields: z.string().optional().describe('Shorthand: field list, format "name:str,phone:str20,amount:float"'),
+        dry_run: z.boolean().optional().default(false).describe('Preview only, write no files; default false'),
       },
     },
     async ({ spec, name, domain, fields, dry_run }) => {
@@ -355,9 +355,9 @@ export function createServer(): McpServer {
       } else if (name) {
         res = await runScript('scaffold', ['--name', name, '--domain', domain ?? 'admin', '--fields', fields ?? 'name:str', ...flags])
       } else {
-        return text('❌ 失败\n\n需要 spec（推荐）或 name')
+        return text('❌ Failed\n\nspec (recommended) or name is required')
       }
-      return text(`${res.code === 0 ? '✅ 成功' : '❌ 失败'}\n\n${cleanOutput(res.output)}`)
+      return text(`${res.code === 0 ? '✅ Success' : '❌ Failed'}\n\n${cleanOutput(res.output)}`)
     },
   )
 
@@ -365,23 +365,23 @@ export function createServer(): McpServer {
     'check_openapi',
     {
       description:
-        '按 AGENTS.md「OpenAPI 编写规范」检查 docs/apifox-full.openapi.json 是否覆盖并正确描述所有接口，逐个列出不合规的接口和原因；' +
-        '改了路由、字段或校验后调用。不修改文件。',
+        'Checks, per AGENTS.md "OpenAPI writing rules", that docs/apifox-full.openapi.json covers and correctly describes every endpoint, listing each non-conforming endpoint and why; ' +
+        'call after changing routes, fields or validation. Does not modify files.',
       inputSchema: {},
     },
     async () => {
       const res = await runScript('openapi:generate', ['--dry-run', '--strict'])
-      return text(`${res.code === 0 ? '✅ 文档符合规范' : '❌ 文档不符合规范'}\n\n${cleanOutput(res.output).slice(-6000)}`)
+      return text(`${res.code === 0 ? '✅ Docs follow the rules' : '❌ Docs do not follow the rules'}\n\n${cleanOutput(res.output).slice(-6000)}`)
     },
   )
 
   server.registerTool(
     'run_verify',
     {
-      description: '运行 verify-feature.ts 门禁检查，返回结构化 JSON 结果。功能实现完成后必须调用，全部通过才算交付。',
+      description: 'Runs the verify-feature.ts gate checks and returns structured JSON results. Must be called once a feature is implemented; it counts as delivered only when everything passes.',
       inputSchema: {
-        module: z.string().describe('模块名，snake_case，如 customer'),
-        skip_build: z.boolean().optional().default(false).describe('是否跳过前端构建（耗时），默认 false'),
+        module: z.string().describe('Module name, snake_case, e.g. customer'),
+        skip_build: z.boolean().optional().default(false).describe('Skip the frontend build (slow); default false'),
       },
     },
     async ({ module, skip_build }) => {
@@ -401,21 +401,21 @@ export function createServer(): McpServer {
   server.registerTool(
     'init_rbac',
     {
-      description: '运行 pnpm seed:rbac -- --incremental，同步菜单和权限到数据库。',
+      description: 'Runs pnpm seed:rbac -- --incremental to sync menus and permissions to the database.',
       inputSchema: {},
     },
     async () => {
       const res = await runScript('seed:rbac', ['--incremental'])
-      return text(`${res.code === 0 ? '✅ RBAC 同步成功' : '❌ RBAC 同步失败'}\n\n${res.output.slice(-2000)}`)
+      return text(`${res.code === 0 ? '✅ RBAC sync succeeded' : '❌ RBAC sync failed'}\n\n${res.output.slice(-2000)}`)
     },
   )
 
   server.registerTool(
     'run_migration',
     {
-      description: '执行 drizzle-kit generate + pnpm db:migrate，生成并应用数据库迁移。',
+      description: 'Runs drizzle-kit generate + pnpm db:migrate to generate and apply a database migration.',
       inputSchema: {
-        message: z.string().describe('迁移描述，如 "add customer table"（转换为 drizzle-kit --name）'),
+        message: z.string().describe('Migration description, e.g. "add customer table" (converted to drizzle-kit --name)'),
       },
     },
     async ({ message }) => {
@@ -423,7 +423,7 @@ export function createServer(): McpServer {
       const migrate = await runScript('db:migrate')
       const passed = generate.code === 0 && migrate.code === 0
       return text(
-        `${passed ? '✅ 迁移成功' : '❌ 迁移失败'}\n\ngenerate:\n${generate.output}\n\nmigrate:\n${migrate.output}`,
+        `${passed ? '✅ Migration succeeded' : '❌ Migration failed'}\n\ngenerate:\n${generate.output}\n\nmigrate:\n${migrate.output}`,
       )
     },
   )
@@ -431,7 +431,7 @@ export function createServer(): McpServer {
   server.registerTool(
     'list_templates',
     {
-      description: '返回 docs/templates/ 下可用的代码模板列表及说明。',
+      description: 'Returns the list of code templates available under docs/templates/.',
       inputSchema: {},
     },
     async () => text(listTemplates()),

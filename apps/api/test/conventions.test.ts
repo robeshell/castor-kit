@@ -1,6 +1,6 @@
 /**
  * Guards for two conventions that are easy to lose when a route or service is copied from an old one
- * (AGENTS.md「API 路由规范」):
+ * (AGENTS.md "API route rules"):
  *
  * 1. Routes check permissions before loading a record: loading first answers 404 vs 403, which tells a caller without
  *    permission which ids exist. Reading the caller's own context first (the signed-in user, their data scope) is fine.
@@ -68,7 +68,7 @@ describe('conventions', () => {
       problems.push(`docs/templates/backend/routes.ts: ${hit}`)
     }
     for (const s of specs) for (const hit of lookupsBeforePermission(genRoutes(s))) problems.push(`scaffold genRoutes: ${hit}`)
-    expect(problems, 'move the permission check above the lookup (AGENTS.md「API 路由规范」)').toEqual([])
+    expect(problems, 'move the permission check above the lookup (AGENTS.md "API route rules")').toEqual([])
   })
 
   it('no hand-written ServiceError 500: use internalError() / writeError()', () => {

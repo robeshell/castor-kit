@@ -1,66 +1,66 @@
-# castor-kit 功能路线图
+# castor-kit feature roadmap
 
-> 本文档是后续新功能的开发计划：每一项写清目标、范围、数据模型、接口、界面、权限与验收标准，开发时照此执行。
-> 状态随进度更新；方案有调整时先改本文档，再写代码。架构与约定以 `AGENTS.md`、`docs/architecture.md` 为准。
+> This document is the development plan for upcoming features: each item states its goal, scope, data model, API, UI, permissions and acceptance criteria, and development follows it.
+> Status is updated as work progresses; when a plan changes, update this document first, then write code. Architecture and conventions are defined by `AGENTS.md` and `docs/architecture.md`.
 
-## 总览
+## Overview
 
-| 阶段 | 功能 | 优先级 | 依赖 | 状态 |
+| Phase | Feature | Priority | Depends on | Status |
 |---|---|---|---|---|
-| 0 | 用户资料（昵称、邮箱、手机、头像、启用 / 停用、最近登录） | — | — | 已完成 |
-| 1 | 部门与数据权限（`all` / `dept_and_children` / `dept` / `self` / `custom`） | — | 0 | 已完成 |
-| 1 | 文件中心（`local` / S3 兼容存储、去重、引用、孤儿清理） | — | 0 | 已完成 |
-| 2 | 账号安全与系统设置（服务端会话、在线用户、两步验证、找回密码、限流、密码策略） | — | 0 | 已完成 |
-| 2 | 开放接口：API Token 与 Webhook | — | — | 已完成 |
-| — | 公开演示模式与 Render + Neon 部署 | — | — | 已完成 |
-| — | 全局 AI 小助手（见 [AI 小助手](../website/guide/assistant.md)） | — | — | 已完成 |
-| 3 | [审批流](#审批流) | 低 | 1 | 未开始 |
-| 3 | [多租户](#多租户) | 低 | 1、2 | 未开始 |
+| 0 | User profile (nickname, email, phone, avatar, enable / disable, last login) | — | — | Done |
+| 1 | Departments and data scopes (`all` / `dept_and_children` / `dept` / `self` / `custom`) | — | 0 | Done |
+| 1 | File center (`local` / S3-compatible storage, deduplication, references, orphan cleanup) | — | 0 | Done |
+| 2 | Account security and system settings (server-side sessions, online users, two-factor authentication, password recovery, rate limiting, password policy) | — | 0 | Done |
+| 2 | Open API: API tokens and webhooks | — | — | Done |
+| — | Public demo mode and Render + Neon deployment | — | — | Done |
+| — | Global AI assistant (see [AI assistant](../website/guide/assistant.md)) | — | — | Done |
+| 3 | [Approval workflow](#approval-workflow) | Low | 1 | Not started |
+| 3 | [Multi-tenancy](#multi-tenancy) | Low | 1, 2 | Not started |
 
-已完成功能的设计与约定见 `docs/architecture.md`（§4 横切约定）与文档站（`website/guide/`）。多租户改动面最大，放在最后。
+The design and conventions of finished features are in `docs/architecture.md` (section 4 "Cross-cutting conventions") and on the docs site (`website/guide/`). Multi-tenancy touches the most code, so it comes last.
 
-在线可视化建模（低代码平台）不在计划内：castor-kit 的方向是让 AI agent 生成功能代码，入口是 `pnpm scaffold -- --spec`（agent 把推断出的规格写成 JSON 再生成，中文标签、必填 / 唯一 / 默认值、固定选项、数据字典、菜单一次到位）。持续投入的方向是提升不同 AI agent 生成功能的准确度（spec 的 JSON Schema 与示例、OpenAPI 规范检查、MCP 工具）。
+Online visual modeling (a low-code platform) is not planned: castor-kit's direction is to have AI agents generate feature code, and the entry point is `pnpm scaffold -- --spec` (the agent writes the inferred spec as JSON and then generates from it, getting Chinese labels, required / unique / default values, fixed options, data dictionaries and the menu right in one go). Ongoing investment goes into making generated features more accurate across different AI agents (the spec's JSON Schema and examples, OpenAPI rule checks, MCP tools).
 
-## 通用交付要求
+## General delivery requirements
 
-每一项都作为独立的 PR 交付，并满足：
+Each item ships as its own PR and meets these requirements:
 
-- 后端按分层规则实现（`db/schema` → `schema` → `repository` → `service` → `routes`），迁移真实落库并用 `psql \d` 验证
-- 新菜单与按钮权限写入 `apps/api/scripts/seed-rbac.ts`（ID 按 `AGENTS.md`「菜单 ID 分配规则」取实际未占用的值），`pnpm seed:rbac -- --incremental` 同步
-- 界面文案 `t('中文原文')`，补齐 en-US / ja-JP 译文；后端新报错登记到 `apps/api/src/i18n/messages.ts`；代码注释用英文
-- 新增接口有 API 测试，前端公共组件有单元测试；`pnpm verify` 全绿
-- 同一个 PR 更新三语文档（`website/`）、`CHANGELOG.md` 的 `[Unreleased]`；如涉及新的环境变量，同步 `apps/api/.env.example` 与配置文档
-- 已有部署平滑升级：新增列给默认值或允许为空，不破坏现有数据
-
----
-
-## 审批流
-
-**范围（第一版）**
-
-- 流程定义：节点包括开始、审批（指定人 / 角色 / 部门负责人 / 发起人上级部门负责人）、条件分支（按表单字段）、结束；第一版不做并行会签
-- `workflow_definitions`（含版本）、`workflow_instances`、`workflow_tasks`、`workflow_histories`
-- 设计器：基于画布的节点编排（可用 React Flow 一类组件，引入前评估体积）
-- 「我的待办 / 我的已办 / 我发起的」页面；审批通过、驳回、转交、撤回
-- 业务模块接入：模块声明可发起审批，记录 `workflow_instance_id`，审批结果回写业务状态
-- 通知：复用消息通知模块，待办到达时通知审批人
-
-**验收**：一个示例业务（如请假或采购申请）走完发起 → 条件分支 → 审批 → 结果回写；历史可追溯。
+- The backend follows the layering rules (`db/schema` → `schema` → `repository` → `service` → `routes`); migrations are actually applied and checked with `psql \d`
+- New menus and button permissions go into `apps/api/scripts/seed-rbac.ts` (pick IDs that are actually free, following `AGENTS.md` "Menu ID allocation"), synced with `pnpm seed:rbac -- --incremental`
+- UI copy is written as `t('中文原文')` (the Chinese source text is the i18n key), with complete en-US / ja-JP translations; new backend errors are registered in `apps/api/src/i18n/messages.ts`; code comments are in English
+- New endpoints have API tests and shared frontend components have unit tests; `pnpm verify` is all green
+- The same PR updates the docs in all three languages (`website/`) and the `[Unreleased]` section of `CHANGELOG.md`; if new environment variables are involved, update `apps/api/.env.example` and the configuration docs too
+- Existing deployments upgrade smoothly: new columns get a default value or are nullable, and existing data is not broken
 
 ---
 
-## 多租户
+## Approval workflow
 
-**目标**：让 castor-kit 可以作为 SaaS 底座，一套部署服务多个租户，数据相互隔离。
+**Scope (first version)**
 
-**方案要点**
+- Workflow definition: nodes are start, approval (a named user / role / department head / head of the initiator's parent department), conditional branch (on form fields), and end; parallel countersigning is not in the first version
+- `workflow_definitions` (versioned), `workflow_instances`, `workflow_tasks`, `workflow_histories`
+- Designer: canvas-based node editing (a component like React Flow could be used; evaluate its bundle size before adding it)
+- "My to-dos / My completed / Started by me" pages; approve, reject, reassign, withdraw
+- Integrating business modules: a module declares that it can start an approval, stores `workflow_instance_id`, and the approval result is written back to the business status
+- Notifications: reuse the notification module and notify the approver when a to-do arrives
 
-- `tenants` 表；所有业务表与用户、角色、部门、文件等增加 `tenant_id`
-- 租户识别：子域名或请求头，登录时确定并写入会话
-- 隔离：优先使用 PostgreSQL 行级安全（RLS）作为兜底，应用层同时带 `tenant_id` 条件；超级管理员拆分为平台管理员与租户管理员
-- 菜单与功能按租户套餐开关；文件存储按租户分目录 / 前缀
-- 脚手架与 `verify`：新表默认带 `tenant_id`，门禁检查查询是否带租户条件
+**Acceptance**: one sample business process (e.g. a leave or purchase request) goes all the way through start → conditional branch → approval → result written back; the history is traceable.
 
-**风险**：几乎触及所有表与查询，数据迁移成本最高；需要单独的数据迁移与回滚方案，并在审批流等功能稳定后再开始。
+---
 
-**验收**：两个租户的数据、用户、文件完全隔离；跨租户访问一律 404；单租户部署不受影响（默认租户）。
+## Multi-tenancy
+
+**Goal**: make castor-kit usable as a SaaS foundation, with one deployment serving multiple tenants whose data is isolated from each other.
+
+**Key points of the design**
+
+- A `tenants` table; all business tables plus users, roles, departments, files, etc. get a `tenant_id`
+- Tenant resolution: subdomain or request header, determined at login and stored in the session
+- Isolation: PostgreSQL row-level security (RLS) as the safety net, while the application layer also adds a `tenant_id` condition; the super admin splits into a platform admin and tenant admins
+- Menus and features are switched per tenant plan; file storage uses a directory / prefix per tenant
+- Scaffold and `verify`: new tables get `tenant_id` by default, and the gate checks that queries include the tenant condition
+
+**Risk**: it touches almost every table and query, and has the highest data migration cost; it needs its own data migration and rollback plan, and should start only after features such as the approval workflow are stable.
+
+**Acceptance**: the data, users and files of two tenants are completely isolated; any cross-tenant access returns 404; single-tenant deployments are unaffected (default tenant).

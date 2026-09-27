@@ -1,32 +1,32 @@
-# 部署指南
+# Deployment guide
 
-推荐使用 Docker Compose 部署。一套 compose 包含两个服务：PostgreSQL（`db`）和 Node 应用（`app`）。应用进程同时提供后端接口和构建好的前端页面。
+The recommended way to deploy is Docker Compose. One compose stack contains two services: PostgreSQL (`db`) and the Node app (`app`). The app process serves both the backend API and the built frontend.
 
-::: info 应用不做自动部署
-应用不做 CI 自动部署。`.github/workflows/ci.yml` 只在推送和 Pull Request 时运行 lint、类型检查、测试、门禁和前端构建。部署在服务器上手动完成，更新流程见下文。
+::: info No automatic deployment
+The app has no CI-driven deployment. `.github/workflows/ci.yml` only runs lint, type checks, tests, the gate and the frontend build on pushes and pull requests. Deployment is done by hand on the server; see the update process below.
 
-文档站是例外：`.github/workflows/docs.yml` 在 `website/` 有改动合入 main 时自动构建并发布到 GitHub Pages（需在仓库 Settings → Pages 中把 Source 设为 GitHub Actions），Pull Request 只构建、检查死链。
+The docs site is the exception: `.github/workflows/docs.yml` builds it and publishes it to GitHub Pages whenever changes under `website/` land on main (set Settings → Pages → Source to GitHub Actions in the repository). Pull requests only build it and check for dead links.
 :::
 
-## 架构概览
+## Architecture overview
 
-| 组件 | 说明 |
+| Component | Description |
 |---|---|
-| `db` | 镜像 `postgres:alpine`，库名和用户名均为 `castor_kit`，数据存放在卷 `postgres_data` |
-| `app` | 由仓库根目录的 `Dockerfile` 构建，容器内监听 5000 端口，上传文件存放在卷 `app_data`（挂载到 `/app/data`） |
+| `db` | Image `postgres:alpine`; the database name and user are both `castor_kit`; data lives in the `postgres_data` volume |
+| `app` | Built from the `Dockerfile` in the repo root; listens on port 5000 inside the container; uploaded files live in the `app_data` volume (mounted at `/app/data`) |
 
-镜像构建分两个阶段：两个阶段都基于 `node:22-bookworm-slim`（glibc；`sodium-native` 等原生模块只提供 glibc 版预编译文件，不能用 Alpine）。第一阶段安装依赖并构建前端（Vite）和后端（tsup），再裁剪为生产依赖；第二阶段是运行镜像，以非 root 用户（uid 10001）运行，并配置了基于 `/health` 的健康检查。
+The image is built in two stages, both based on `node:22-bookworm-slim` (glibc: native modules such as `sodium-native` only ship prebuilt binaries for glibc, so Alpine can't be used). The first stage installs dependencies, builds the frontend (Vite) and backend (tsup), then prunes down to production dependencies. The second stage is the runtime image: it runs as a non-root user (uid 10001) and has a health check on `/health`.
 
-容器启动时，`docker-entrypoint.sh` 依次执行：
+On container start, `docker-entrypoint.sh` runs, in order:
 
-1. `node dist/setup-once.js`：在 PostgreSQL advisory lock 保护下执行数据库迁移、RBAC 增量同步、创建或更新 AI SQL 只读账号 `castor_kit_ro`。多个副本同时启动时也只会依次执行，结果幂等。
-2. `node dist/main.js`：启动服务。
+1. `node dist/setup-once.js`: under a PostgreSQL advisory lock, runs database migrations, the incremental RBAC sync, and creates or updates the AI SQL read-only account `castor_kit_ro`. Even when several replicas start at once, they run one after another and the result is idempotent.
+2. `node dist/main.js`: starts the server.
 
-::: warning 构建时使用的镜像源
-`Dockerfile` 中把 npm registry 设置为 `https://registry.npmmirror.com`。如果服务器访问该源较慢，可以在 `Dockerfile` 中修改。
+::: warning Registry used during the build
+The `Dockerfile` sets the npm registry to `https://registry.npmmirror.com`. If that registry is slow from your server, change it in the `Dockerfile`.
 :::
 
-## 方式一：安装向导
+## Option 1: setup wizard
 
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
@@ -34,171 +34,171 @@ cd castor-kit
 bash scripts/setup.sh
 ```
 
-向导会询问管理员密码、访问端口（默认 5000）以及可选的 AI 配置，随机生成 `SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD`，写入 `.env.production`，然后构建并启动服务，等待 `/health` 就绪。
+The wizard asks for the admin password, the port (default 5000) and optional AI settings; generates a random `SECRET_KEY`, `POSTGRES_PASSWORD` and `POSTGRES_RO_PASSWORD`; writes them to `.env.production`; then builds and starts the services and waits for `/health` to be ready.
 
-::: warning setup.sh 会修改 Docker 配置
-如果 Docker 的 `daemon.json`（macOS 为 `~/.docker/daemon.json`，Linux 为 `/etc/docker/daemon.json`）里没有 `registry-mirrors`，脚本会写入一个镜像加速地址并重启 Docker（Linux 上通过 `sudo systemctl restart docker`）。在已有其他容器运行的服务器上，建议使用方式二。
+::: warning setup.sh modifies your Docker configuration
+If Docker's `daemon.json` (`~/.docker/daemon.json` on macOS, `/etc/docker/daemon.json` on Linux) has no `registry-mirrors`, the script adds a registry mirror and restarts Docker (via `sudo systemctl restart docker` on Linux). On a server that is already running other containers, Option 2 is recommended.
 :::
 
-## 方式二：手动配置
+## Option 2: manual setup
 
-### 1. 创建 .env.production
+### 1. Create .env.production
 
-在仓库根目录创建 `.env.production`，至少包含以下变量（compose 缺少任何一项都会拒绝启动）：
-
-```bash
-SECRET_KEY=<足够长的随机字符串>
-ADMIN_PASSWORD=<admin 账号的初始密码>
-POSTGRES_PASSWORD=<数据库密码>
-POSTGRES_RO_PASSWORD=<AI SQL 只读账号密码>
-```
-
-可选变量：
+Create `.env.production` in the repo root with at least the following variables (compose refuses to start if any of them is missing):
 
 ```bash
-APP_PORT=5000          # 宿主机端口，不设置时为 8080
+SECRET_KEY=<a long random string>
+ADMIN_PASSWORD=<initial password for the admin account>
+POSTGRES_PASSWORD=<database password>
+POSTGRES_RO_PASSWORD=<AI SQL read-only account password>
 ```
 
-邮件、文件存储、上传限制、AI 模型不用写在这里：部署后登录，在「系统设置」页面里配置即可。想用环境变量锁定某一项时，见 [系统设置里的配置](/reference/configuration#系统设置里的配置)。全部可用变量见 [配置项](/reference/configuration#docker)。随机字符串可以用 `openssl rand -base64 48` 生成。
+Optional variables:
 
-### 2. 构建并启动
+```bash
+APP_PORT=5000          # Host port; 8080 if not set
+```
+
+Mail, file storage, upload limits and the AI model don't go here: sign in after deploying and configure them on the System settings page. To pin one with an environment variable instead, see [Configuration in System settings](/reference/configuration#configuration-in-system-settings). For every available variable, see [Configuration](/reference/configuration#docker). You can generate random strings with `openssl rand -base64 48`.
+
+### 2. Build and start
 
 ```bash
 docker compose --env-file .env.production up -d --build
 ```
 
-首次构建需要几分钟。之后访问 `http://<服务器地址>:<APP_PORT>`，使用 `admin` 和 `ADMIN_PASSWORD` 登录。
+The first build takes a few minutes. Then open `http://<server-address>:<APP_PORT>` and sign in with `admin` and your `ADMIN_PASSWORD`.
 
-::: tip 每条 compose 命令都要带 --env-file
-compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-file .env.production` 时，必填变量缺失，命令会直接报错。
+::: tip Every compose command needs --env-file
+By default compose only reads `.env`, not `.env.production`. Without `--env-file .env.production`, the required variables are missing and the command fails immediately.
 :::
 
-::: warning ADMIN_PASSWORD 只在首次生效
-`admin` 账号只在不存在时创建。首次启动后再修改 `ADMIN_PASSWORD` 不会改变已有账号的密码，请登录后在界面上修改。
+::: warning ADMIN_PASSWORD only applies the first time
+The `admin` account is only created if it doesn't exist. Changing `ADMIN_PASSWORD` after the first start won't change the existing account's password; sign in and change it in the UI.
 :::
 
-## 方式三：Render + Neon（免费演示）
+## Option 3: Render + Neon (free demo)
 
-用 [Render](https://render.com) 的免费 Web 服务运行应用、[Neon](https://neon.tech) 的免费 PostgreSQL 存数据，适合搭一个公开的在线演示。仓库根目录的 `render.yaml` 已写好配置，默认开启[演示模式](/reference/configuration#公开演示)：
+Run the app on a free [Render](https://render.com) web service and keep the data in a free [Neon](https://neon.tech) PostgreSQL database — a good fit for a public online demo. The `render.yaml` at the repository root has the configuration and turns on [demo mode](/reference/configuration#public-demo):
 
-- 登录页显示演示账号（`admin` / `castor-demo`），可以一键登录
-- 系统管理只读，不能改密码；组件示例可以随意增删改
-- 示例数据每 24 小时自动恢复
+- The login page shows the demo account (`admin` / `castor-demo`) with one-click sign-in
+- System management is read-only and passwords can't be changed; the component gallery is fully editable
+- Sample data is restored every 24 hours
 
-::: warning 免费套餐的限制
-以下是撰写时两家平台的免费额度，开通前请以官网为准：
-- Render 免费实例 15 分钟无人访问会休眠，再次访问需要等待几十秒启动；休眠期间定时任务不运行
-- Render 免费实例的磁盘在重启或休眠后会清空：默认的 `local` 存储驱动保存的上传文件（组件示例里上传的图片、附件）会随之丢失。演示数据本来就会定期恢复，所以 `render.yaml` 保持 `local`，并把单个文件上限设为 2MB；需要保留文件时，在 Render 的 **Environment** 中加上 `STORAGE_DRIVER=s3` 和一个 Cloudflare R2 桶的 `S3_*` 配置（演示模式下系统设置页只读，所以这里用环境变量，见[文件存储与上传](/reference/configuration#文件存储与上传)）
-- Neon 免费数据库空闲时会暂停计算，下次连接时自动唤醒
+::: warning Free-plan limits
+These were the free tiers at the time of writing; check each provider's site before you sign up:
+- A free Render instance sleeps after 15 minutes without traffic, and the next visit waits tens of seconds for it to start; scheduled tasks don't run while it sleeps
+- A free Render instance's disk is wiped when it restarts or sleeps, so files stored with the default `local` driver (images and attachments uploaded in the component gallery) are lost then. The demo data resets anyway, so `render.yaml` keeps `local` and caps single files at 2MB; to keep files, add `STORAGE_DRIVER=s3` and the `S3_*` settings of a Cloudflare R2 bucket under **Environment** in Render (demo mode makes the System settings page read-only, hence environment variables; see [File storage and uploads](/reference/configuration#file-storage-and-uploads))
+- A free Neon database suspends compute when idle and wakes up on the next connection
 :::
 
-### 1. 创建 Neon 数据库
+### 1. Create the Neon database
 
-1. 注册 Neon，新建一个项目。区域选 **AWS US East 2 (Ohio)**，与 `render.yaml` 里 Render 服务的 `region: ohio` 一致；若改用其他区域，两边保持一致
-2. 在项目首页点 **Connect**，**关闭「Connection pooling」**，复制直连的连接串，形如 `postgresql://<用户>:<密码>@ep-xxx.<区域>.aws.neon.tech/neondb?sslmode=require`。**主机名里不能带 `-pooler`**：带了的话 AI 数据查询会报错，把 `-pooler` 删掉即可
+1. Sign up for Neon and create a project. Pick **AWS US East 2 (Ohio)** to match `region: ohio` of the Render service in `render.yaml`; if you choose another region, keep both sides in the same one
+2. On the project dashboard click **Connect**, **turn off "Connection pooling"**, and copy the direct connection string, e.g. `postgresql://<user>:<password>@ep-xxx.<region>.aws.neon.tech/neondb?sslmode=require`. **The host must not contain `-pooler`**: with it, AI Data Query fails — just delete `-pooler` from the host
 
-::: tip 为什么要直连
-启动时的初始化（迁移、RBAC 同步、演示数据恢复）使用会话级的 advisory lock 防止并发，连接池模式下拿不到这把锁。连接串里的 `channel_binding=require` 可以保留，也可以去掉。
+::: tip Why a direct connection
+Startup initialization (migrations, RBAC sync, demo data restore) uses a session-level advisory lock to stay safe with concurrent instances, and a transaction pooler doesn't keep that lock. You can keep or remove `channel_binding=require` in the connection string.
 :::
 
-### 2. 在 Render 上部署
+### 2. Deploy on Render
 
-1. 用 GitHub 账号注册 Render。如果仓库不在你的账号下，先 Fork 一份
-2. 在 Render 控制台选择 **New → Blueprint**，选中仓库，Render 会读取 `render.yaml`
-3. 按提示填入 `DATABASE_URL`（上一步复制的连接串），其余变量已在 `render.yaml` 中设置或自动生成
-4. 点 **Apply**。首次构建大约需要 5–10 分钟，状态变成 **Live** 后打开服务地址（`https://<服务名>.onrender.com`），登录页就能看到演示账号
+1. Sign up for Render with your GitHub account. If the repository isn't under your account, fork it first
+2. In the Render dashboard choose **New → Blueprint** and select the repository; Render reads `render.yaml`
+3. When prompted, enter `DATABASE_URL` (the connection string from the previous step); every other variable is set in `render.yaml` or generated
+4. Click **Apply**. The first build takes about 5–10 minutes. Once the status is **Live**, open the service URL (`https://<service-name>.onrender.com`) and the login page shows the demo account
 
-也可以直接点击 README 中的 **Deploy to Render** 按钮，效果相同。
+The **Deploy to Render** button in the README does the same thing.
 
-### 3. 之后的维护
+### 3. Maintenance
 
-- `render.yaml` 没有关闭自动部署：推送到 main 后 Render 会自动重新构建，构建失败会发邮件通知。不需要时可以在服务的 **Settings → Build & Deploy** 里关闭 Auto-Deploy
-- 演示账号的密码是 `render.yaml` 里的 `ADMIN_PASSWORD`，只在首次初始化、账号还不存在时生效，要改请在第一次部署前修改
-- 手动立即恢复演示数据：在 Render 服务的 **Shell** 中执行 `node dist/demo-reset.js`，或在本地对同一个数据库执行 `pnpm demo:reset`
+- `render.yaml` leaves auto-deploy on: every push to main triggers a rebuild, and failed builds are emailed to you. Turn off Auto-Deploy under the service's **Settings → Build & Deploy** if you don't want that
+- The demo account's password is `ADMIN_PASSWORD` in `render.yaml`. It only applies when the account is first created, so change it before the first deploy
+- To restore the demo data right away, run `node dist/demo-reset.js` in the Render service's **Shell**, or run `pnpm demo:reset` locally against the same database
 
-### 4. 接入 AI（可选）
+### 4. Connect AI (optional)
 
-演示站可以接入 Google Gemini 的免费额度来演示 AI 对话和 AI 数据查询：
+The demo can use Google Gemini's free tier to show AI chat and AI Data Query:
 
-1. 在 [Google AI Studio](https://aistudio.google.com) 用 Google 账号创建 API Key
-2. 在 Render 服务的 **Environment** 中设置 `AI_API_KEY`（上一步的 key）和 `AI_MODEL`（推荐 `gemini-3.5-flash`）；`AI_API_BASE` 已在 `render.yaml` 中设为 Gemini 的 OpenAI 兼容地址。保存后服务会自动重启
+1. Create an API key with your Google account in [Google AI Studio](https://aistudio.google.com)
+2. In the Render service's **Environment**, set `AI_API_KEY` (that key) and `AI_MODEL` (we recommend `gemini-3.5-flash`); `AI_API_BASE` is already set to Gemini's OpenAI-compatible endpoint in `render.yaml`. Saving restarts the service
 
-::: tip 模型选择
-最新发布的 Flash 模型在免费档上经常因为负载过高返回 503（例如写作本文时的 `gemini-3.8-flash`）。演示环境建议用发布较早的稳定版，如 `gemini-3.5-flash` 或 `gemini-3.5-flash-lite`。遇到报错时，在 Render 的 **Logs** 中搜索「AI 上游返回错误」可以看到上游返回的原因。
+::: tip Choosing a model
+The newest Flash model is often overloaded on the free tier and returns 503 (for example `gemini-3.8-flash` at the time of writing). For the demo, use an earlier stable model such as `gemini-3.5-flash` or `gemini-3.5-flash-lite`. When something fails, search the Render **Logs** for "AI 上游返回错误" to see the upstream's reason.
 :::
 
-演示模式会限制 AI 调用：每个 IP 每小时 20 次、全站每天 300 次、单次输入最多 4000 字符，并限制回复长度，可用 `DEMO_AI_*` 变量调整（见[配置项](/reference/configuration#公开演示)）。免费档的请求数据可能被服务商用于改进产品，演示环境不要输入敏感信息。
+Demo mode rate-limits AI: 20 calls per IP per hour, 300 per day for the whole site, at most 4000 characters per request, and a capped reply length. Adjust with the `DEMO_AI_*` variables (see [Configuration](/reference/configuration#public-demo)). Free-tier requests may be used by the provider to improve its products, so don't enter sensitive data in the demo.
 
-::: details 启动时报错无法创建只读账号
-启动时会创建 AI 数据查询用的只读账号 `castor_kit_ro`。如果 Neon 拒绝创建，在 Neon 的 SQL Editor 中手动执行：
+::: details Startup fails to create the read-only account
+Startup creates the read-only account `castor_kit_ro` used by AI Data Query. If Neon refuses, run this in Neon's SQL Editor:
 
 ```sql
-CREATE ROLE castor_kit_ro LOGIN PASSWORD '<Render 中 POSTGRES_RO_PASSWORD 的值>';
+CREATE ROLE castor_kit_ro LOGIN PASSWORD '<value of POSTGRES_RO_PASSWORD in Render>';
 ```
 
-然后在 Render 中重新部署。初始化会为已存在的账号更新密码并授权。
+Then redeploy on Render. Initialization updates the password of the existing account and grants its permissions.
 :::
 
-::: tip 用 Render 部署正式环境
-把 `DEMO_MODE` 改为 `false`，并把 `ADMIN_PASSWORD` 换成强密码即可。但免费实例会休眠、定时任务不会按时运行、磁盘会被清空（上传文件必须改用 `s3` 驱动），正式使用建议选择付费实例，或用方式一、方式二部署到自己的服务器。
+::: tip Running production on Render
+Set `DEMO_MODE` to `false` and replace `ADMIN_PASSWORD` with a strong password. A free instance still sleeps and scheduled tasks won't run on time, so for real use pick a paid instance or deploy to your own server with option 1 or 2.
 :::
 
-## 常用运维命令
+## Common operations
 
 ```bash
-docker compose --env-file .env.production ps               # 查看服务状态
-docker compose --env-file .env.production logs -f app      # 查看应用日志
-docker compose --env-file .env.production restart app      # 重启应用
-docker compose --env-file .env.production down             # 停止服务，保留数据卷
-curl -f http://localhost:<APP_PORT>/health                 # 健康检查
+docker compose --env-file .env.production ps               # Show service status
+docker compose --env-file .env.production logs -f app      # Follow the app logs
+docker compose --env-file .env.production restart app      # Restart the app
+docker compose --env-file .env.production down             # Stop the services; volumes are kept
+curl -f http://localhost:<APP_PORT>/health                 # Health check
 ```
 
-`/health` 在数据库可用时返回 `{ status: 'healthy', ... }`，否则返回 500。
+`/health` returns `{ status: 'healthy', ... }` when the database is reachable, and 500 otherwise.
 
-::: danger 不要随意使用 down -v
-`docker compose down -v` 会删除数据卷，数据库和上传文件都会丢失。
+::: danger Don't use down -v casually
+`docker compose down -v` deletes the volumes, and with them the database and all uploaded files.
 :::
 
-## 更新流程
+## Updating
 
 ```bash
 git pull
 docker compose --env-file .env.production up -d --build
 ```
 
-compose 会用最新代码重新构建镜像并重建 `app` 容器。容器启动时自动执行新的数据库迁移和 RBAC 增量同步：新菜单自动出现并授予超级管理员，已有的用户、角色和自定义数据不会被清除。
+compose rebuilds the image from the latest code and recreates the `app` container. On start, the container automatically runs any new database migrations and the incremental RBAC sync: new menus appear and are granted to the super admin, while existing users, roles and custom data are left intact.
 
-建议在更新前备份数据库，见下文。
+We recommend backing up the database before updating; see below.
 
-## 数据持久化与备份
+## Data persistence and backups
 
-| 卷 | 默认名称 | 内容 |
+| Volume | Default name | Contents |
 |---|---|---|
-| `postgres_data` | `castor-kit_postgres_data` | PostgreSQL 数据 |
-| `app_data` | `castor-kit_app_data` | 上传文件（`local` 存储驱动；用 `s3` 驱动时文件在对象存储里） |
+| `postgres_data` | `castor-kit_postgres_data` | PostgreSQL data |
+| `app_data` | `castor-kit_app_data` | Uploaded files (`local` storage driver; with `s3` they live in object storage) |
 
-卷名可在 `.env.production` 中用 `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` 覆盖，例如指向已有的卷。
+The volume names can be overridden with `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` in `.env.production`, for example to point at volumes that already exist.
 
-备份数据库示例：
+Example database backup:
 
 ```bash
 docker compose --env-file .env.production exec db pg_dump -U castor_kit castor_kit > castor_kit_backup.sql
 ```
 
-::: tip 固定 PostgreSQL 版本
-`docker-compose.yml` 中 `db` 使用的镜像标签是 `postgres:alpine`，在新机器上拉取时会得到最新的主版本。PostgreSQL 的数据目录不能跨主版本直接使用，生产环境建议把标签改为固定的主版本。
+::: tip Pin the PostgreSQL version
+In `docker-compose.yml`, the `db` service uses the image tag `postgres:alpine`, which pulls the latest major version on a new machine. PostgreSQL data directories can't be used directly across major versions, so in production, pin the tag to a specific major version.
 :::
 
-## 反向代理与 HTTPS
+## Reverse proxy and HTTPS
 
-生产环境建议在应用前面放一层反向代理（如 Nginx）处理 TLS。需要注意：
+In production, put a reverse proxy (such as Nginx) in front of the app to handle TLS. Keep in mind:
 
-- **转发 `Host` 和协议头**：应用信任一跳代理，会从 `X-Forwarded-For` / `X-Forwarded-Proto` 获取客户端 IP 和协议。`COOKIE_SECURE` 留空时，按请求协议自动决定是否给 cookie 加 `Secure` 标志，所以要正确传递 `X-Forwarded-Proto`。
-- **WebSocket**：`/ws` 路径需要转发 `Upgrade` 头。WebSocket 握手会校验 `Origin` 与 `Host` 同源（或在 `CORS_ORIGINS` 白名单中），因此代理必须保留原始 `Host`。
-- **请求体大小**：应用允许的请求体上限默认为 16MB（`BODY_LIMIT`），导入文件上限为 5MB。Nginx 的 `client_max_body_size` 默认只有 1MB，需要相应调大。
-- **流式响应**：AI 对话使用 SSE，应用已在响应头中设置 `X-Accel-Buffering: no` 关闭 Nginx 缓冲。
+- **Forward `Host` and the protocol headers**: the app trusts one proxy hop and reads the client IP and protocol from `X-Forwarded-For` / `X-Forwarded-Proto`. When `COOKIE_SECURE` is empty, whether the cookie gets the `Secure` flag depends on the request protocol, so `X-Forwarded-Proto` must be passed through correctly.
+- **WebSocket**: the `/ws` path needs the `Upgrade` header forwarded. The WebSocket handshake checks that `Origin` matches `Host` (or is in the `CORS_ORIGINS` allowlist), so the proxy must preserve the original `Host`.
+- **Request body size**: the app allows request bodies up to 16MB by default (`BODY_LIMIT`), and import files up to 5MB. Nginx's `client_max_body_size` defaults to only 1MB, so raise it accordingly.
+- **Streaming responses**: AI Chat uses SSE, and the app already sets `X-Accel-Buffering: no` in the response headers to turn off Nginx buffering.
 
-Nginx 配置示例（假设 `APP_PORT=5000`）：
+Example Nginx config (assuming `APP_PORT=5000`):
 
 ```nginx
 server {
@@ -227,22 +227,22 @@ server {
 }
 ```
 
-HTTPS 证书可以使用 Let's Encrypt（例如 Certbot 的 Nginx 插件）申请。启用 HTTPS 后，也可以在 `.env.production` 中显式设置 `COOKIE_SECURE=true`。
+You can get an HTTPS certificate from Let's Encrypt (for example with Certbot's Nginx plugin). Once HTTPS is enabled, you can also set `COOKIE_SECURE=true` explicitly in `.env.production`.
 
-::: tip 只通过代理访问
-使用反向代理时，可以把 `docker-compose.yml` 中的端口映射改为只绑定本机（如 `"127.0.0.1:${APP_PORT:-8080}:5000"`），避免绕过代理直接访问。
+::: tip Allow access only through the proxy
+When using a reverse proxy, you can change the port mapping in `docker-compose.yml` to bind only to localhost (e.g. `"127.0.0.1:${APP_PORT:-8080}:5000"`), so nobody can bypass the proxy and reach the app directly.
 :::
 
-## 多副本与定时任务
+## Multiple replicas and scheduled tasks
 
-默认是单个 `app` 容器，定时任务调度器在 web 进程内运行（compose 中 `RUN_SCHEDULER_IN_WEB` 默认为 `true`）。
+By default there is a single `app` container, and the task scheduler runs inside the web process (`RUN_SCHEDULER_IN_WEB` defaults to `true` in compose).
 
-需要多个应用副本时：
+To run multiple app replicas:
 
-1. 给 web 副本设置 `RUN_SCHEDULER_IN_WEB=false`。
-2. 另外运行一个调度进程：使用同一镜像，**覆盖 entrypoint**（而不是 `command`）为 `node dist/worker.js`。
+1. Set `RUN_SCHEDULER_IN_WEB=false` on the web replicas.
+2. Run a separate scheduler process: use the same image and **override the entrypoint** (not `command`) with `node dist/worker.js`.
 
-镜像的 `ENTRYPOINT` 是 `docker-entrypoint.sh`，它总是执行 `setup-once` 后启动 `main.js`，不会读取 `command`。因此在 `docker-compose.yml` 中添加调度服务时写成：
+The image's `ENTRYPOINT` is `docker-entrypoint.sh`, which always runs `setup-once` and then starts `main.js`; it never reads `command`. So add the scheduler service to `docker-compose.yml` like this:
 
 ```yaml
   worker:
@@ -256,32 +256,32 @@ HTTPS 证书可以使用 Let's Encrypt（例如 Certbot 的 Nginx 插件）申�
         condition: service_healthy
 ```
 
-调度服务不执行 `setup-once`，数据库初始化仍由 `app` 容器完成。
+The scheduler service doesn't run `setup-once`; database initialization is still done by the `app` container.
 
-调度器基于数据库租约，同一个任务同一时间只会被一个进程领取，即使多个进程同时运行调度也不会重复执行。`setup-once` 使用 advisory lock，多个副本同时启动也是安全的。
+The scheduler is built on database leases: a given task is claimed by only one process at a time, so it never runs twice even when several processes run the scheduler at once. `setup-once` uses an advisory lock, so starting several replicas at the same time is also safe.
 
-## 不使用 Docker 部署
+## Deploying without Docker
 
-需要 Node 22+、pnpm 和 PostgreSQL 14+。
+You need Node 22+, pnpm and PostgreSQL 14+.
 
 ```bash
-# 1. 安装依赖并构建
+# 1. Install dependencies and build
 corepack enable
 pnpm install --frozen-lockfile
 pnpm build
 
-# 2. 在仓库根目录或 apps/api/ 下创建 .env.production，至少包含：
-#    DATABASE_URL、SECRET_KEY、ADMIN_PASSWORD、AI_SQL_DATABASE_URL、POSTGRES_RO_PASSWORD
+# 2. Create .env.production in the repo root or in apps/api/, containing at least:
+#    DATABASE_URL, SECRET_KEY, ADMIN_PASSWORD, AI_SQL_DATABASE_URL, POSTGRES_RO_PASSWORD
 
-# 3. 初始化数据库（迁移 + RBAC 增量同步 + 只读账号）
+# 3. Initialize the database (migrations + incremental RBAC sync + read-only account)
 NODE_ENV=production node apps/api/dist/setup-once.js
 
-# 4. 启动服务（默认监听 0.0.0.0:5000，可用 PORT 修改）
+# 4. Start the server (listens on 0.0.0.0:5000 by default; change it with PORT)
 NODE_ENV=production node apps/api/dist/main.js
 ```
 
-- `NODE_ENV` 必须在命令行（或进程管理工具）中设置，后端据此决定加载 `.env.production`。
-- `AI_SQL_DATABASE_URL` 应指向只读账号，例如 `postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<库名>`。只读账号由第 3 步按 `POSTGRES_RO_PASSWORD` 创建。
-- 前端构建产物在 `apps/web/dist/`，后端默认从这里提供页面。
-- 建议用 systemd、pm2 等进程管理工具托管 `main.js`；独立调度进程为 `apps/api/dist/worker.js`。
-- 更新时：`git pull` → `pnpm install --frozen-lockfile` → `pnpm build` → 再次执行第 3 步 → 重启服务。
+- `NODE_ENV` must be set on the command line (or in your process manager); the backend uses it to decide to load `.env.production`.
+- `AI_SQL_DATABASE_URL` should point at the read-only account, e.g. `postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<database>`. Step 3 creates the read-only account using `POSTGRES_RO_PASSWORD`.
+- The frontend build is in `apps/web/dist/`, and the backend serves pages from there by default.
+- Run `main.js` under a process manager such as systemd or pm2; the standalone scheduler process is `apps/api/dist/worker.js`.
+- To update: `git pull` → `pnpm install --frozen-lockfile` → `pnpm build` → run step 3 again → restart the server.

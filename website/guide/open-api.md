@@ -1,84 +1,84 @@
-# 开放接口：API Token 与 Webhook
+# Open API: API tokens and webhooks
 
-脚本、定时任务和其他系统可以用 **API Token** 调用 castor-kit 的接口；castor-kit 里的数据变化时，用 **Webhook** 主动推送给其他系统。
+Scripts, cron jobs and other systems call castor-kit's API with **API tokens**; when data changes in castor-kit, **webhooks** push it to other systems.
 
-## API Token
+## API tokens
 
-### 打开功能
+### Turning them on
 
-API Token 默认关闭。管理员在「系统管理 → 系统配置 → 系统设置 → 安全」里打开「允许使用 API Token」（`security.api_tokens_enabled`）。关闭后已有的 Token 全部暂停使用，重新打开后恢复；演示模式下不能打开。
+API tokens are off by default. An administrator turns on "Allow API tokens" (`security.api_tokens_enabled`) under System → Configuration → System settings → Security. Turning it off pauses every existing token until it's turned back on; it can't be turned on in demo mode.
 
-### 创建
+### Creating a token
 
-每个用户在「个人设置 → API Token」里创建自己的 Token：
+Each user creates their own tokens under Profile → API Token:
 
-- 填写名称，选择有效期（30 天、90 天、180 天、1 年或永不过期），勾选权限
-- 只能勾选自己拥有的菜单 / 按钮权限；勾选一个按钮时，它所在的页面权限会一并授予
-- 创建需要近期验证过身份（10 分钟内登录或验证过，否则会先弹出「验证身份」）
-- Token 形如 `ck_` 加 43 个字符，**只在创建时显示一次**；之后列表里只显示前 11 位
-- 每人最多 20 个有效 Token
+- Enter a name, pick an expiry (30 days, 90 days, 180 days, 1 year or never) and check permissions
+- Only menu / button permissions you have can be checked; checking a button also grants the page it belongs to
+- Creating a token needs a recent identity check (a sign-in or check within 10 minutes; otherwise the "Verify identity" dialog opens first)
+- A token looks like `ck_` plus 43 characters and is **shown only once**, at creation; the list shows its first 11 characters
+- At most 20 active tokens per user
 
-### 使用
+### Using a token
 
-在请求头里带上 Token：
+Send the token in the request header:
 
 ```bash
 curl -H "Authorization: Bearer ck_xxxxxxxx…" \
   https://admin.example.com/api/admin/users?per_page=50
 ```
 
-- 带 Bearer 的请求只按 Token 认证：不读 cookie、不需要 CSRF 头、不会创建登录会话
-- **实际权限 = Token 勾选的权限 ∩ 创建人当前的权限**。超级管理员创建的 Token 也只有它勾选的权限；创建人被降权后 Token 随之收紧
-- 数据权限按创建人计算（见 [数据权限](/guide/rbac#数据权限)）
-- 响应里的时间一律是 UTC 的 ISO 8601（如 `2026-09-27T00:46:08.836078Z`）；导出文件里的时间和首页统计的日期按请求头 `X-Time-Zone`（如 `Asia/Shanghai`）计算，不传时为 UTC
-- 接口列表与参数见仓库里的 `docs/apifox-full.openapi.json`：`security` 里列了 `bearerAuth` 的接口可以用 Token 调用，只列 `cookieAuth` 的（账号安全、系统设置等）不行
+- A request with a Bearer token is authenticated by the token only: no cookie is read, no CSRF header is needed and no session is created
+- **Effective permissions = the token's permissions ∩ the creator's current permissions.** A super admin's token also has only the permissions checked on it; when the creator loses a permission, the token loses it too
+- Data scope follows the creator (see [Data scope](/guide/rbac#data-scope))
+- Times in responses are ISO 8601 in UTC (e.g. `2026-09-27T00:46:08.836078Z`); times in exported files and the dashboard's days follow the `X-Time-Zone` request header (e.g. `Asia/Shanghai`), UTC when it's missing
+- Endpoints and parameters are in `docs/apifox-full.openapi.json` in the repository: operations whose `security` lists `bearerAuth` accept tokens; those listing only `cookieAuth` (account security, system settings and similar) don't
 
-| 情况 | 响应 |
+| Situation | Response |
 |---|---|
-| 系统设置里没有打开 API Token | 401 `API Token 未开启` |
-| Token 不存在、已吊销、已过期，或创建人被停用 / 删除 | 401 `API Token 无效或已过期` |
-| 调用了不接受 Token 的接口 | 403 `该接口不支持 API Token` |
-| Token 没有这个接口需要的权限 | 403（与普通用户无权限时相同） |
+| API tokens aren't turned on in System settings | 401 `API Token 未开启` (API tokens are turned off) |
+| The token doesn't exist, was revoked or expired, or its creator was disabled / deleted | 401 `API Token 无效或已过期` (invalid or expired) |
+| The endpoint doesn't accept tokens | 403 `该接口不支持 API Token` (not available to API tokens) |
+| The token lacks the permission the endpoint needs | 403 (as for a user without the permission) |
 
-错误信息和其他接口一样按 `Accept-Language` 翻译。
+Error messages follow the `Accept-Language` header like every other API error.
 
-下列账号与安全类接口一律不接受 Token，即使 Token 拥有全部权限：登录 / 退出、找回密码、修改密码、验证身份、两步验证（包括管理员重置别人的两步验证）、个人设置、在线用户与会话、API Token 管理本身、修改系统设置与测试按钮、Webhook 的所有写操作（新增、修改、删除、重新生成密钥、发送测试、重新投递）和查看密钥。读取系统设置、Webhook 列表这类只读接口可以用。
+These account and security endpoints never accept tokens, even a token with every permission: sign-in / sign-out, password reset, changing the password, identity checks, two-step verification (including an admin resetting someone else's), the profile, online users and sessions, API token management itself, changing System settings and its test buttons, and every webhook write (add, change, delete, regenerate the secret, send a test, redeliver) or viewing its secret. Read-only endpoints such as reading System settings or the webhook list do accept tokens.
 
-### 管理
+### Managing tokens
 
-- 本人在「个人设置 → API Token」里随时吊销，吊销后下一次请求即失效
-- 「系统管理 → 安全审计 → API Token」（菜单权限 `system_api_tokens`）列出数据权限范围内所有人的 Token，可以按名称、前缀、创建人搜索，按有效 / 已过期 / 已吊销筛选；有按钮权限 `system_api_tokens_revoke` 时可以吊销。非超级管理员不能吊销超级管理员的 Token
-- 每个 Token 记录最近使用时间和 IP；操作日志的 `api_token_id` 列注明请求来自哪个 Token
+- Owners revoke their tokens under Profile → API Token at any time; the next request with the token fails
+- System → Security → API Token (menu permission `system_api_tokens`) lists everyone's tokens within your data scope, searchable by name, prefix and creator and filterable by active / expired / revoked; with the button permission `system_api_tokens_revoke` you can revoke them. Only super admins can revoke a super admin's token
+- Each token records when and from which IP it was last used; the `api_token_id` column of the operation log shows which token made a request
 
-::: tip 后端开发
-新增账号或安全相关的接口（修改密码、密钥、会话等）时，把路径加进 `apps/api/src/common/api-token.ts` 的 `API_TOKEN_DENIED`。其他接口不用做任何处理：`hasMenuPermission` 已经按 Token 的权限判断。
+::: tip Backend development
+When you add an account or security endpoint (password, secrets, sessions …), add its path to `API_TOKEN_DENIED` in `apps/api/src/common/api-token.ts`. Other endpoints need nothing: `hasMenuPermission` already checks the token's permissions.
 :::
 
-## Webhook
+## Webhooks
 
-### 配置
+### Setting one up
 
-「系统管理 → 系统配置 → Webhook」（查看需要 `system_webhooks`，新增 / 编辑 / 删除分别需要 `system_webhooks_add` / `_edit` / `_delete`）：
+System → Configuration → Webhook (viewing needs `system_webhooks`; adding / editing / deleting need `system_webhooks_add` / `_edit` / `_delete`):
 
-- **推送地址**：http 或 https。不能指向云服务器元数据（`169.254.169.254`）等保留地址；生产环境默认也不能指向内网，需要时设置 `SETTINGS_ALLOW_PRIVATE_NETWORK=true`。发送时在连接层会再检查一次实际 IP
-- **订阅事件**：具体事件、某一类的全部事件（如 `user.*`）或全部事件（`*`）
-- **签名密钥**：新增后显示一次；之后在「签名密钥」里查看或重新生成，都需要近期验证身份
-- 新增 Webhook、修改推送地址时，所有超级管理员会收到站内通知
-- 「发送测试」立即发送一个 `ping` 事件并显示结果；「投递记录」列出每次投递的请求内容、响应和重试情况，可以重新投递
+- **Endpoint URL**: http or https. It can't point at reserved addresses such as cloud metadata (`169.254.169.254`), nor at internal networks in production unless `SETTINGS_ALLOW_PRIVATE_NETWORK=true`. The actual IP is checked again when connecting
+- **Events**: single events, every event of a kind (such as `user.*`) or everything (`*`)
+- **Signing secret**: shown once after adding; view or regenerate it later under "Signing secret", both behind an identity check
+- Adding a webhook or changing its URL sends a notification to every super admin
+- "Send test" sends a `ping` event right away and shows the result; "Deliveries" lists each delivery's request, response and retries, and can redeliver
 
-### 事件
+### Events
 
-| 事件 | 触发时机 | `data` |
+| Event | When | `data` |
 |---|---|---|
-| `user.created` / `user.updated` / `user.deleted` | 新增用户；修改资料、状态、角色（包括本人在个人设置里改资料）；删除 | 用户（不含密码）；删除时为 `{ id, username }` |
-| `role.created` / `role.updated` / `role.deleted` | 新增角色；修改名称、权限、数据范围；删除 | 角色；删除时为 `{ id, code }` |
-| `department.created` / `department.updated` / `department.deleted` | 新增部门；修改（包括更换上级部门）；删除 | 部门；删除时为 `{ id, code }` |
-| `<模块>.created` / `.updated` / `.deleted` | 用 `pnpm scaffold` 生成的模块 | 记录；删除时为 `{ id }` |
-| `ping` | 「发送测试」按钮 | `{ message, webhook }` |
+| `user.created` / `user.updated` / `user.deleted` | a user is added; profile, status or roles change (including users editing their own profile); deleted | the user (no password); `{ id, username }` on delete |
+| `role.created` / `role.updated` / `role.deleted` | a role is added; its name, permissions or data scope change; deleted | the role; `{ id, code }` on delete |
+| `department.created` / `department.updated` / `department.deleted` | a department is added; changed (including a new parent); deleted | the department; `{ id, code }` on delete |
+| `<module>.created` / `.updated` / `.deleted` | modules generated with `pnpm scaffold` | the record; `{ id }` on delete |
+| `ping` | the "Send test" button | `{ message, webhook }` |
 
-事件在业务数据**写入成功之后**发出；推送失败不会影响业务操作。导入和调整排序不发事件。
+Events are sent **after** the data was written; a failed push never fails the operation. Imports and reordering don't send events.
 
-### 请求格式
+### Request format
 
 ```http
 POST /your/endpoint HTTP/1.1
@@ -92,14 +92,14 @@ X-Castor-Signature: sha256=e6f82d49…
 {"id":"8939b329-…","event":"user.created","created_at":"2026-09-26T08:17:48.687000Z","data":{…}}
 ```
 
-- 返回任意 2xx 表示成功。重定向不会跟随，算作失败
-- 10 秒超时；响应体只保存前 2000 个字符
-- 失败后按 1 分钟、5 分钟、30 分钟、2 小时、6 小时重试，第 6 次仍失败记为「失败」。停用 Webhook 后排队中的重试也会停止
-- `X-Castor-Delivery` 是事件 ID，重试和手动重新投递都不变，接收方可以用它去重
+- Any 2xx answer is a success. Redirects aren't followed and count as failures
+- 10-second timeout; only the first 2000 characters of the response are kept
+- Failures are retried after 1 minute, 5 minutes, 30 minutes, 2 hours and 6 hours; if the 6th attempt fails the delivery is marked failed. Disabling a webhook also stops its queued retries
+- `X-Castor-Delivery` is the event id; it stays the same across retries and manual redeliveries, so receivers can de-duplicate on it
 
-### 校验签名
+### Verifying the signature
 
-签名是用密钥对「时间戳 + `.` + 原始请求体」计算的 HMAC-SHA256。接收方应该用**原始请求体**（不要先解析再序列化）计算并比较，同时拒绝时间戳太旧的请求防止重放：
+The signature is HMAC-SHA256 with the secret over "timestamp + `.` + raw request body". Compute it over the **raw body** (don't parse and re-serialize it) and reject old timestamps to prevent replays:
 
 ```js
 import { createHmac, timingSafeEqual } from 'node:crypto'
@@ -124,9 +124,9 @@ def verify(secret: str, headers, raw_body: bytes) -> bool:
     return hmac.compare_digest(headers.get("X-Castor-Signature", ""), f"sha256={digest}")
 ```
 
-### 在自己的模块里发事件
+### Sending events from your own module
 
-`pnpm scaffold` 生成的模块已经会发 `<模块>.created / updated / deleted`。手写的模块照这个方式接入：
+Modules generated by `pnpm scaffold` already send `<module>.created / updated / deleted`. For hand-written modules:
 
 ```ts
 // routes.ts
@@ -144,7 +144,7 @@ const item = deviceToDict(row)
 await this.events?.emit('device.created', item)
 ```
 
-- 在事务提交**之后**调用 `emit`，事务回滚时就不会发出事件
-- `emit` 写好投递记录就返回（发送在后台进行），从不抛错；不要用它决定业务逻辑
-- 推送的是 `xxxToDict()` 的输出，不要带密码哈希、密钥之类的字段
-- `declareEvents` 里的说明是 Webhook 页面上显示的中文原文，译文加到 `apps/web/src/modules/admin/pages/webhooks/locales/`
+- Call `emit` **after** the transaction committed, so a rolled-back write sends nothing
+- `emit` returns once the deliveries are stored (sending happens in the background) and never throws; don't base business logic on it
+- Send the `xxxToDict()` output, never password hashes, secrets and the like
+- The labels passed to `declareEvents` are the Chinese source text shown on the webhook page; add their translations to `apps/web/src/modules/admin/pages/webhooks/locales/`

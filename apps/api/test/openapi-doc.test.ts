@@ -90,7 +90,7 @@ describe('docs/apifox-full.openapi.json', () => {
     apiRoutes = await collectApiRoutes({ ...testConfig(), enableTaskScheduler: false })
   })
 
-  it('documents every registered /api route per the rules (fix the listed operations; see AGENTS.md「OpenAPI 编写规范」)', () => {
+  it('documents every registered /api route per the rules (fix the listed operations; see AGENTS.md "OpenAPI writing rules")', () => {
     const issues = lintOpenApi(JSON.parse(readFileSync(DOC_PATH, 'utf8')), apiRoutes)
     expect(issues.length, `\n${formatLintIssues(issues)}\n`).toBe(0)
   })

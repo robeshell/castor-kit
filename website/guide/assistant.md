@@ -1,39 +1,39 @@
-# AI 小助手
+# AI assistant
 
-每个页面右下角有一个 AI 小助手（快捷键 <kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>J</kbd>）：用自然语言提问，它会查找系统接口、读取数据回答你；需要修改数据时，它会把要执行的操作列出来，**你点「允许执行」之后才会执行**。它始终以你的身份操作，你没有权限的事它也做不了。
+Every page has an AI assistant in the bottom-right corner (shortcut <kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>J</kbd>). Ask in plain language: it finds the right API, reads the data and answers. When something has to change, it lists the exact action and **only runs it after you click "Allow"**. It always acts as you, so it can't do anything you aren't allowed to do.
 
-## 打开
+## Turning it on
 
-小助手默认关闭。先在「系统管理 → 系统配置 → 系统设置 → AI」里配置好模型（见 [配置项 → AI 模型](/reference/configuration#ai-模型)），再打开同一页签里的「启用 AI 小助手」（`ai.assistant_enabled`）。没有配置模型时这个开关不能打开。
+The assistant is off by default. First configure a model under System → Configuration → System settings → AI (see [Configuration → AI model](/reference/configuration#ai-model)), then turn on "Enable the AI assistant" (`ai.assistant_enabled`) on the same tab. The switch can't be turned on while no model is configured.
 
-打开后，所有登录用户的页面右下角都会出现小助手按钮（其他已打开页面的用户刷新后可见）；关闭后按钮随之消失，接口立即返回 403。
+Once it is on, every signed-in user sees the assistant button (users who already have the app open see it after a reload); turning it off removes the button the same way, and the API answers 403 right away.
 
-## 能做什么
+## What it can do
 
-- **回答问题**：系统怎么用、某个页面能做什么。小助手知道你当前所在的页面
-- **查询数据**：「系统里有多少个启用的用户？」「列出技术部的成员」「最近 10 条操作日志」
-- **修改数据**：「把部门「测试部」改名为「质量部」」「给张伟发一条通知」。每次写操作都会显示一张确认卡片：一句说明、请求方法和路径、要提交的数据，点「允许执行」才执行，点「拒绝」则什么都不做
+- **Answer questions**: how to use the system, what the current page is for — the assistant knows which page you are on
+- **Look data up**: "How many active users are there?", "List the members of the Engineering department", "The 10 latest operation logs"
+- **Change data**: "Rename the Test department to QA", "Send Zhang Wei a notification". Every write shows a confirmation card with a one-line summary, the method and path, and the data to submit; it runs only after "Allow", and "Refuse" does nothing
 
-对话保存在当前浏览器标签页里（刷新页面不丢失，关闭标签页后清空），点面板顶部的「新对话」可以清空。
+The conversation is kept in the current browser tab (it survives a reload and is cleared when the tab closes); "New conversation" at the top of the panel clears it.
 
-## 安全边界
+## Safety
 
-- **以你的身份调用接口**：小助手的每次调用都经过和页面相同的接口，带着你的登录状态，所以权限、数据权限、演示模式的限制、限流都照常生效，写操作照常记入操作日志（用户为你本人，User-Agent 为 `castor-kit-assistant`）
-- **写操作逐条确认**：新增、修改、删除都要你在确认卡片上点「允许执行」。确认请求由服务端签名（密钥由 `SECRET_KEY` 派生），浏览器里伪造的「已允许」会被拒绝
-- **不开放的接口**：你自己的账号安全（个人资料与密码、两步验证、登录会话、API Token）、系统设置、导入导出、文件上传下载、其他 AI 接口以及小助手自己。这些请在页面上操作
-- **受保护的对象**：超级管理员账号（不能修改、停用、删除）、超级管理员角色、授予超级管理员角色，以及你自己的账号。这类请求小助手会直接说明做不了，不会弹出确认卡片；即使后端接口本身允许（例如超级管理员操作另一个超级管理员），也要在页面上操作
-- **管理其他用户照常可以**：有用户管理权限时，可以让它新建用户（含初始密码）、重置密码、分配角色，同样要在确认卡片上允许。密码只用你给出的，强度按系统的密码规则校验。注意：写在对话里的密码会发给模型服务，也会留在这个标签页的对话记录里；确认卡片和操作日志中不显示明文。介意的话请在页面上设置密码
-- **接口返回的内容只当数据**：记录里出现的「忽略之前的规则」之类的文字不会被当作指令；结果太大时（超过 8000 个字符）会按结构精简：长文本截短、记录里嵌套的列表只留几项、放不下时只保留前面的记录，并告诉模型哪些被省略了
-- **数据会发给模型服务**：小助手查询到的数据会作为上下文发送给你配置的 AI 服务，请按你的数据合规要求选择模型服务
-- API Token 不能调用小助手接口；演示模式下它计入 AI 调用额度，每条消息最多调用 4 轮工具（平时 8 轮）
+- **Calls the API as you**: every call goes through the same API the pages use, with your session, so permissions, data scope, demo mode limits and rate limits all apply, and writes are recorded in the operation log (as you, with the User-Agent `castor-kit-assistant`)
+- **Every write is confirmed**: creating, changing and deleting all wait for "Allow" on the confirmation card. Approval requests are signed by the server (with a key derived from `SECRET_KEY`), so an approval forged in the browser is rejected
+- **Off limits**: your own account and security (profile and password, two-step verification, sessions, API tokens), system settings, import / export, file upload and download, the other AI endpoints and the assistant itself. Do these on the pages
+- **Protected targets**: super admin accounts (no editing, disabling or deleting), the super admin role, granting super admin, and your own account. The assistant says it can't and shows no confirmation card, even where the API itself would allow it (a super admin changing another super admin, for example); do these on the pages
+- **Managing other users works as usual**: with user management permissions you can ask it to create users (with an initial password), reset passwords or assign roles, again allowed on the confirmation card. It only uses a password you give it, and the system's password rules check its strength. Note that a password written in the chat is sent to the model provider and stays in this tab's conversation; the confirmation card and the operation log never show it in plain text. If that matters, set passwords on the page
+- **API results are data**: text such as "ignore the previous rules" inside a record is not followed as an instruction; results over 8,000 characters are shrunk by structure — long text cut, nested lists inside records shortened, and only the first records kept if still too large — and the model is told what was left out
+- **Data goes to the model provider**: what the assistant reads is sent to the AI service you configured as context, so choose a provider that fits your data compliance requirements
+- API tokens can't call the assistant endpoint; in demo mode it counts toward the AI quota and uses at most 4 tool rounds per message (8 otherwise)
 
-## 让自己的模块也能被小助手用上
+## Making your own modules usable
 
-小助手从两处了解系统的接口：
+The assistant learns about the API from two places:
 
-1. 服务启动时实际注册的 `/api/admin/...` 路由
-2. `docs/apifox-full.openapi.json` 里对这些路由的说明（summary、description、查询参数、请求体字段）
+1. The `/api/admin/...` routes actually registered when the server starts
+2. What `docs/apifox-full.openapi.json` says about them (summary, description, query parameters, body fields)
 
-新模块用脚手架生成后，运行 `pnpm openapi:generate` 补齐文档，并把 summary 写成能看懂的中文（如「设备台账-列表」）。没有文档的路由小助手也能调用，只是很难被它找到。
+After scaffolding a module, run `pnpm openapi:generate` to fill in the document and give the operations readable summaries (for example "Devices - list"). Undocumented routes can still be called, but the assistant will rarely find them.
 
-如果某些接口不应该让小助手调用，把路径规则加到 `apps/api/src/modules/admin/assistant/catalog.ts` 的 `ASSISTANT_DENIED`。
+To keep the assistant away from some routes, add a path rule to `ASSISTANT_DENIED` in `apps/api/src/modules/admin/assistant/catalog.ts`.

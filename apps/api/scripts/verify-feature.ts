@@ -317,7 +317,7 @@ export function checkOpenapiSync(ctx: VerifyContext, module?: string): CheckResu
     name,
     passed: false,
     error:
-      `${failing} 个接口的 OpenAPI 文档不符合 AGENTS.md「OpenAPI 编写规范」${mine.length ? `（其中本模块 ${mine.length} 个）` : ''}：` +
+      `${failing} 个接口的 OpenAPI 文档不符合 AGENTS.md "OpenAPI writing rules"${mine.length ? `（其中本模块 ${mine.length} 个）` : ''}：` +
       `${shown.join('；')}${ops.length > shown.length ? '…' : ''}。` +
       '运行 pnpm openapi:generate 补齐骨架，按规范补全后用 pnpm openapi:generate -- --strict 查看每个接口的具体问题',
   }
