@@ -14,13 +14,14 @@
  * - No UPDATE is issued when field values are unchanged, so updated_at stays as is
  * - After inserting, only the menus sequence is synced: setval(pg_get_serial_sequence('menus','id'), max(id)+1, false)
  * - The super admin role (super_admin) is granted all menus; the admin account is created only if missing (password from
- *   ADMIN_PASSWORD, hashed by common/password.ts); --reset-admin-password also sets an existing admin's password
+ *   ADMIN_PASSWORD, hashed by common/password.ts); --reset-admin-password also sets an existing admin's password; so does a stored hash in a format
+ *   common/password.ts can't verify (nobody could sign in with it)
  * - Commit boundaries: truncate / menus / roles / account each run in their own transaction
  */
 
 import { parseArgs } from 'node:util'
 import pg from 'pg'
-import { generatePasswordHash } from '../src/common/password'
+import { generatePasswordHash, isPasswordHash } from '../src/common/password'
 import { loadConfig, loadEnvFiles, type AppEnv } from '../src/config'
 
 export interface MenuSeed {
@@ -432,7 +433,9 @@ async function initAdminUser(
   log('初始化管理员账号...')
   let created = false
   await inTransaction(client, async () => {
-    const { rows } = await client.query<{ id: number }>("SELECT id FROM admin_users WHERE username = 'admin' LIMIT 1")
+    const { rows } = await client.query<{ id: number; password_hash: string }>(
+      "SELECT id, password_hash FROM admin_users WHERE username = 'admin' LIMIT 1",
+    )
     let userId = rows[0]?.id
     if (userId === undefined) {
       const passwordHash = await generatePasswordHash(adminPassword)
@@ -444,12 +447,13 @@ async function initAdminUser(
       created = true
       log('  创建用户: admin')
       log(`  初始密码: ${adminPassword}`)
-    } else if (resetPassword) {
+    } else if (resetPassword || !isPasswordHash(rows[0]!.password_hash)) {
+      // A hash in another format can never verify, so nobody could sign in as admin: restore ADMIN_PASSWORD
       await client.query(`UPDATE admin_users SET password_hash = $2, updated_at = ${UTC_NOW} WHERE id = $1`, [
         userId,
         await generatePasswordHash(adminPassword),
       ])
-      log('  用户已存在: admin，已重置密码')
+      log(resetPassword ? '  用户已存在: admin，已重置密码' : '  用户已存在: admin，密码哈希无法识别，已按 ADMIN_PASSWORD 重置')
     } else {
       log('  用户已存在: admin')
     }

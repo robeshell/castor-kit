@@ -135,6 +135,10 @@ describe('全量重建（空库）', () => {
     expect(await checkPasswordHash(await adminHash(), 'ck_test_r8_pw')).toBe(true)
     await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'ck_test_r8_other', incremental: true, resetAdminPassword: true, log: quiet })
     expect(await checkPasswordHash(await adminHash(), 'ck_test_r8_other')).toBe(true)
+    // A hash in a format that can't verify is restored from ADMIN_PASSWORD on the next sync (what every deploy runs)
+    await query(TEMP_URL, "UPDATE admin_users SET password_hash = 'pbkdf2:sha256:1000$abc$00' WHERE username = 'admin'")
+    await seedRbac({ databaseUrl: TEMP_URL, adminPassword: 'ck_test_r8_pw', incremental: true, log: quiet })
+    expect(await checkPasswordHash(await adminHash(), 'ck_test_r8_pw')).toBe(true)
   })
 
   it('再次全量：清空后重建（自定义角色与用户被删除，角色/用户走新序列号）', async () => {

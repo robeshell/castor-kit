@@ -39,6 +39,11 @@ export async function generatePasswordHash(password: string, params: ScryptParam
   return `$scrypt$ln=${params.ln},r=${params.r},p=${params.p}$${b64(salt)}$${b64(key)}`
 }
 
+/** Whether a stored value is a hash this module writes (anything else can never verify) */
+export function isPasswordHash(value: string | null | undefined): boolean {
+  return typeof value === 'string' && PHC_RE.test(value)
+}
+
 /** Any verification failure (an unrecognized format, parameters out of range, a non-string password) returns false; never throws. */
 export async function checkPasswordHash(pwhash: string | null | undefined, password: unknown): Promise<boolean> {
   if (typeof pwhash !== 'string' || typeof password !== 'string') return false
