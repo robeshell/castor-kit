@@ -23,6 +23,24 @@
 
 各页面共用的选项（分类、状态的名称与徽标色调）在 `patterns/demo-record-options.ts`。单个公共组件怎么用，见[组件](#components)。
 
+### 从页面模板开始做功能 {#from-a-pattern}
+
+`pnpm scaffold` 生成的页面总是标准列表。功能更适合别的展现方式时，照常生成模块（后端、菜单、迁移、带类型的 API 文件），再照着对应的模板页面重写页面，并补上该模板依赖的后端部分：
+
+| 功能需要 | 参照 | 需补的后端（见[共享的演示接口](#shared-demo-api)） |
+|---|---|---|
+| 用卡片代替表格行 | 卡片列表 | 脚手架接口之外无需新增 |
+| 按上级嵌套的记录 | 树形列表 | 树接口、`parent_id` 筛选、按 `sort_order` 排序、删除 / 移动校验 |
+| 列表上方的统计 | 统计列表 | 读取与列表相同筛选条件的统计接口 |
+| 每条记录一个带标签页的页面 | 详情页 | 脚手架接口之外无需新增 |
+| 分步填写的长表单 | 分步表单 | 脚手架接口之外无需新增 |
+| 用户自定义的扩展字段 | 动态表单 | 一个 jsonb 列 |
+| 在状态之间拖动卡片 | 看板 | 带独立排序列的排序接口 |
+| 时间轴上的日期区间 | 甘特图 | 日期区间与进度列 |
+| 排序、行内编辑、批量操作 | 高级表格 | 可排序字段、批量更新 / 删除接口 |
+
+[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) 的「Page patterns (which page to copy)」一节有同样的表，并列出要参照的 service 与 repository 函数，因此 AI 助手会自己选对页面：描述功能（「做一个工单看板」），它就会从看板页面开始。
+
 ### 共享的演示接口 {#shared-demo-api}
 
 十个页面模板没有各自的后端，而是共用一个模块 `apps/api/src/modules/component-center/demo-record` 和一张表 `demo_records`，接口前缀为 `/api/admin/component-center/demo-records`：
