@@ -9,7 +9,6 @@
   "system_dicts": "Dictionaries",
   "cc_admin": "Admin Pages",
   "cc_dataviz": "Data Visualization",
-  "cc_3d": "3D / Creative",
   "cc_ai": "AI Apps",
   "cc_editor": "Editors / Low-code",
   "cc_devtools": "Engineering Tools",
@@ -105,10 +104,6 @@
   "system_announcements_import": "Import announcements",
   "cc_dataviz_realtime_chart": "Real-time Line Chart",
   "cc_dataviz_heatmap": "Calendar Heatmap",
-  "cc_3d_particle": "Particle Network",
-  "cc_3d_css": "CSS 3D Cards",
-  "cc_3d_globe": "Three.js Globe",
-  "cc_3d_morphing": "Particle Morphing",
   "cc_ai_chat": "AI Chat",
   "cc_ai_prompt": "AI Prompt Studio",
   "cc_ai_sql": "AI Data Query",
@@ -138,5 +133,12 @@
   "system_webhooks_add": "Add webhooks",
   "system_webhooks_edit": "Edit webhooks",
   "system_webhooks_delete": "Delete webhooks",
-  "cc_dataviz_traffic_flow": "Traffic Flow"
+  "cc_dataviz_traffic_flow": "Traffic Flow",
+  "cc_patterns": "Page Patterns",
+  "cc_patterns_standard_list": "Standard List",
+  "cc_patterns_add": "Add record",
+  "cc_patterns_edit": "Edit record",
+  "cc_patterns_delete": "Delete record",
+  "cc_patterns_export": "Export records",
+  "cc_patterns_import": "Import records"
 }

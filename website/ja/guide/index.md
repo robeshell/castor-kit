@@ -14,13 +14,13 @@ castor-kit は pnpm monorepo で、3 つのアプリケーションで構成さ�
 | フロントエンド `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX） |
 | MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`。スキャフォールド、検証、RBAC 同期、マイグレーションなどのツールを MCP クライアントに公開 |
 
-その他の主な依存ライブラリ：テーブル `@tanstack/react-table`、フォーム `react-hook-form`、グラフ ECharts、3D Three.js、コードエディター Monaco、リッチテキスト react-quill-new、ドラッグ＆ドロップ dnd-kit。
+その他の主な依存ライブラリ：テーブル `@tanstack/react-table`、フォーム `react-hook-form`、グラフ ECharts、コードエディター Monaco、リッチテキスト react-quill-new、ドラッグ＆ドロップ dnd-kit。
 
 ## 対象ユーザー
 
 - **AI に本当に機能を納品させたいチーム**：プロダクトマネージャーや開発者が要件を一文で伝えるだけで、ルーティング、フィールド型、権限コード、メニュー ID などの技術的な詳細は AI が推測します。
 - **規約の整った管理画面の出発点が欲しい開発者**：ログイン、ユーザー、ロール、メニュー、ログ、データ辞書、定期タスク、通知、お知らせなどの機能と RBAC 権限体系が最初から揃っています。
-- **よくある管理画面ページの書き方を参考にしたいフロントエンド開発者**：コンポーネント例には 28 個のサンプルページが含まれ、一覧、カンバン、ガントチャート、データダッシュボード、3D、AI チャット、エディターなどのシナリオをカバーしています。
+- **よくある管理画面ページの書き方を参考にしたいフロントエンド開発者**：コンポーネント例には 24 個のサンプルページが含まれ、一覧、カンバン、ガントチャート、データダッシュボード、AI チャット、エディターなどのシナリオをカバーしています。
 
 ## 主な機能
 

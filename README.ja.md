@@ -51,7 +51,7 @@ castor-kit はオープンソースの管理画面です。今日そのまま使
     <td><b>インポート / エクスポート</b><br>すべての表で Excel と CSV に対応、行単位で検証。</td>
   </tr>
   <tr>
-    <td><b>25 以上のサンプル画面</b><br>ダッシュボード、チャート、カンバン、3D、AI チャット、エディターなど。</td>
+    <td><b>25 以上のサンプル画面</b><br>ダッシュボード、チャート、カンバン、AI チャット、エディターなど。</td>
     <td><b>きれいな構成</b><br>明確なレイヤー、strict な TypeScript、レビューできる SQL マイグレーション。</td>
     <td><b>コマンド 1 つでデプロイ</b><br>Docker Compose でデータベースからアプリまで起動。</td>
   </tr>
@@ -113,8 +113,8 @@ AI が従うルールは [`AGENTS.md`](AGENTS.md) にあります。詳しくは
 | レイヤー | 技術 |
 |---|---|
 | **バックエンド** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **フロントエンド** | React 19 · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
-| **データとチャート** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
+| **フロントエンド** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
+| **データとチャート** | TanStack Table · react-hook-form · ECharts 6 |
 | **ツール** | pnpm workspaces · Vitest · ESLint · MCP サーバー · Docker Compose |
 
 <details>

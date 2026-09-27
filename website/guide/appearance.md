@@ -47,7 +47,7 @@ Every other token that follows the accent color is derived from these three vari
 
 So as long as a page uses semantic classes such as `primary` and `brand-*`, it follows accent changes automatically. **Don't hard-code any accent color value in a page.**
 
-ECharts charts read the actual values of the current CSS variables through `useChartColors()` from `@/lib/chart-theme`, and recompute when the theme or accent changes. Canvas / WebGL scenes (such as the particle animation and the Three.js globe) also take their colors from `--brand-from/via/to`.
+ECharts charts read the actual values of the current CSS variables through `useChartColors()` from `@/lib/chart-theme`, and recompute when the theme or accent changes.
 
 ### Adding an accent color
 

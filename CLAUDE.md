@@ -52,7 +52,7 @@
 - **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.tsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`
 - **Import / export**: reuse `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
 - **Styling**: only Tailwind semantic color classes (`bg-card` / `text-muted-foreground` / `bg-brand-soft` ...); the Ocean gradient is only an accent; no hard-coded hex colors; only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes, no other UI component libraries (antd, MUI, etc.)
-- **Frontend-only pages** (no backend CRUD API): creative/, devtools/websocket_page, devtools/perf_monitor_page, dataviz/heatmap_page, dataviz/realtime_chart_page
+- **Frontend-only pages** (no backend CRUD API): devtools/websocket_page, devtools/perf_monitor_page, dataviz/heatmap_page, dataviz/realtime_chart_page
 
 ### RBAC
 - Menu structure: `menus` table, `menu_type = 'menu'|'button'`; `role_menus` / `user_roles` are many-to-many

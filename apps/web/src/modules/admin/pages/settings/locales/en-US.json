@@ -90,6 +90,7 @@
   "保存到": "Store in",
   "发信服务器": "Outgoing server",
   "存储方式": "Storage",
+  "自动": "Auto",
   "自动：465 端口用 SSL/TLS，其他端口用 STARTTLS": "Auto: SSL/TLS on port 465, STARTTLS on other ports",
   "自动：填了接口地址时用路径风格（MinIO 等自建服务需要）": "Auto: path style when an endpoint is set (needed by MinIO and other self-hosted services)",
   "路径风格": "Path style",

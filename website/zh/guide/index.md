@@ -14,13 +14,13 @@ castor-kit 是一个 pnpm monorepo，包含三个应用：
 | 前端 `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX） |
 | MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`，把脚手架、验证、RBAC 同步、迁移等工具暴露给 MCP 客户端 |
 
-其他常用依赖：表格 `@tanstack/react-table`、表单 `react-hook-form`、图表 ECharts、3D Three.js、代码编辑器 Monaco、富文本 react-quill-new、拖拽 dnd-kit。
+其他常用依赖：表格 `@tanstack/react-table`、表单 `react-hook-form`、图表 ECharts、代码编辑器 Monaco、富文本 react-quill-new、拖拽 dnd-kit。
 
 ## 适合谁
 
 - **想让 AI 真正交付功能的团队**：产品经理或开发者用一句话描述需求，AI 负责推断路由、字段类型、权限编码、菜单 ID 等技术细节。
 - **需要一个规范的管理后台起点的开发者**：开箱即有登录、用户、角色、菜单、日志、数据字典、定时任务、消息通知、公告等功能，以及 RBAC 权限体系。
-- **想参考常见后台页面写法的前端开发者**：组件示例中心内置 28 个示例页面，覆盖列表、看板、甘特图、数据大屏、3D、AI 对话、编辑器等场景。
+- **想参考常见后台页面写法的前端开发者**：组件示例中心内置 24 个示例页面，覆盖列表、看板、甘特图、数据大屏、AI 对话、编辑器等场景。
 
 ## 核心能力
 

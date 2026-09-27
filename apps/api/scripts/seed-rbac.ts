@@ -67,10 +67,10 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   // ── Component showcase center: category parent nodes ─────────────────
   { id: 40, name: "管理系统", code: "cc_admin", icon: "Monitor", path: null, component: null, parent_id: 3, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 41, name: "数据可视化", code: "cc_dataviz", icon: "PieChart", path: null, component: null, parent_id: 3, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
-  { id: 42, name: "3D / 创意", code: "cc_3d", icon: "Box", path: null, component: null, parent_id: 3, sort_order: 3, menu_type: "menu", is_visible: true, is_active: true },
   { id: 44, name: "AI 应用", code: "cc_ai", icon: "Send", path: null, component: null, parent_id: 3, sort_order: 4, menu_type: "menu", is_visible: true, is_active: true },
   { id: 45, name: "编辑器 / 低代码", code: "cc_editor", icon: "PenLine", path: null, component: null, parent_id: 3, sort_order: 5, menu_type: "menu", is_visible: true, is_active: true },
   { id: 46, name: "工程 / 工具类", code: "cc_devtools", icon: "Layers", path: null, component: null, parent_id: 3, sort_order: 6, menu_type: "menu", is_visible: true, is_active: true },
+  { id: 43, name: "页面模板", code: "cc_patterns", icon: "LayoutGrid", path: null, component: null, parent_id: 3, sort_order: 0, menu_type: "menu", is_visible: true, is_active: true },
   // ── Admin system (parent_id=40) ───────────────────────────────────
   { id: 401, name: "列表页", code: "cc_admin_list", icon: "FileText", path: "/component-center/list-page", component: "component_center/admin/list_page", parent_id: 40, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 402, name: "统计列表页", code: "cc_admin_stats_list", icon: "BarChart3", path: "/component-center/stats-list-page", component: "component_center/admin/stats_list_page", parent_id: 40, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
@@ -83,6 +83,14 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 409, name: "高级表格页", code: "cc_admin_advanced_table", icon: "List", path: "/component-center/admin/advanced-table", component: "component_center/admin/advanced_table_page", parent_id: 40, sort_order: 9, menu_type: "menu", is_visible: true, is_active: true },
   // ── Data visualization (parent_id=41) ─────────────────────────────
   { id: 414, name: "数据大屏", code: "cc_dataviz_dashboard", icon: "BarChart3", path: "/component-center/dashboard-page", component: "component_center/dataviz/dashboard_page", parent_id: 41, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
+  // ── Page patterns (parent_id=43): one page per pattern (IDs 4301+), all on the shared demo API (demo_records) ──
+  { id: 4301, name: "标准列表", code: "cc_patterns_standard_list", icon: "List", path: "/component-center/patterns/standard-list", component: "component_center/patterns/demo_record_page", parent_id: 43, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
+  // The shared demo API's buttons hang under the directory, not a page (IDs 431–435; after the pages in the role editor)
+  { id: 431, name: "新增记录", code: "cc_patterns_add", icon: null, path: null, component: null, parent_id: 43, sort_order: 101, menu_type: "button", is_visible: false, is_active: true },
+  { id: 432, name: "编辑记录", code: "cc_patterns_edit", icon: null, path: null, component: null, parent_id: 43, sort_order: 102, menu_type: "button", is_visible: false, is_active: true },
+  { id: 433, name: "删除记录", code: "cc_patterns_delete", icon: null, path: null, component: null, parent_id: 43, sort_order: 103, menu_type: "button", is_visible: false, is_active: true },
+  { id: 434, name: "导出记录", code: "cc_patterns_export", icon: null, path: null, component: null, parent_id: 43, sort_order: 104, menu_type: "button", is_visible: false, is_active: true },
+  { id: 435, name: "导入记录", code: "cc_patterns_import", icon: null, path: null, component: null, parent_id: 43, sort_order: 105, menu_type: "button", is_visible: false, is_active: true },
   // User management button permissions
   { id: 211, name: "新增用户", code: "system_users_add", icon: null, path: null, component: null, parent_id: 21, sort_order: 1, menu_type: "button", is_visible: false, is_active: true },
   { id: 212, name: "编辑用户", code: "system_users_edit", icon: null, path: null, component: null, parent_id: 21, sort_order: 2, menu_type: "button", is_visible: false, is_active: true },
@@ -184,11 +192,6 @@ export const MENUS_DATA: readonly MenuSeed[] = [
   { id: 411, name: "实时折线图", code: "cc_dataviz_realtime_chart", icon: "Activity", path: "/component-center/dataviz/realtime-chart", component: "component_center/dataviz/realtime_chart_page", parent_id: 41, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
   { id: 412, name: "热力日历图", code: "cc_dataviz_heatmap", icon: "Calendar", path: "/component-center/dataviz/heatmap", component: "component_center/dataviz/heatmap_page", parent_id: 41, sort_order: 3, menu_type: "menu", is_visible: true, is_active: true },
   { id: 413, name: "流量转化分析", code: "cc_dataviz_traffic_flow", icon: "Workflow", path: "/component-center/dataviz/traffic-flow", component: "component_center/dataviz/traffic_flow_page", parent_id: 41, sort_order: 4, menu_type: "menu", is_visible: true, is_active: true },
-  // ── 3D / creative (parent_id=42) ─────────────────────────────────────
-  { id: 421, name: "粒子连线动画", code: "cc_3d_particle", icon: "Star", path: "/component-center/creative/particle", component: "component_center/creative/particle_canvas_page", parent_id: 42, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
-  { id: 422, name: "CSS 3D 卡片", code: "cc_3d_css", icon: "CreditCard", path: "/component-center/creative/css-3d", component: "component_center/creative/css_3d_page", parent_id: 42, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },
-  { id: 423, name: "Three.js 地球", code: "cc_3d_globe", icon: "Globe", path: "/component-center/creative/globe", component: "component_center/creative/threejs_globe_page", parent_id: 42, sort_order: 3, menu_type: "menu", is_visible: true, is_active: true },
-  { id: 424, name: "粒子形态变换", code: "cc_3d_morphing", icon: "Hexagon", path: "/component-center/creative/morphing", component: "component_center/creative/morphing_particles_page", parent_id: 42, sort_order: 4, menu_type: "menu", is_visible: true, is_active: true },
   // ── AI apps (parent_id=44) ────────────────────────────────────────
   { id: 441, name: "AI 对话", code: "cc_ai_chat", icon: "MessageSquare", path: "/component-center/ai/chat", component: "component_center/ai/ai_chat_page", parent_id: 44, sort_order: 1, menu_type: "menu", is_visible: true, is_active: true },
   { id: 442, name: "AI 提示词工坊", code: "cc_ai_prompt", icon: "PenLine", path: "/component-center/ai/prompt", component: "component_center/ai/ai_prompt_page", parent_id: 44, sort_order: 2, menu_type: "menu", is_visible: true, is_active: true },

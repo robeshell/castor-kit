@@ -1,6 +1,6 @@
 # Component gallery
 
-After signing in, the Component Gallery menu holds 28 example pages in six groups. They all follow the project's frontend conventions, so you can use any of them as a reference or starting point for a new page.
+After signing in, the Component Gallery menu holds 24 example pages in five groups. They all follow the project's frontend conventions, so you can use any of them as a reference or starting point for a new page.
 
 Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.tsx`. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
 
@@ -30,17 +30,6 @@ Group directory `dataviz/`. Built on ECharts; chart colors follow the theme and 
 | Real-time Line Chart | `/component-center/dataviz/realtime-chart` | Continuously scrolling sensor curves (frontend only) |
 | Calendar Heatmap | `/component-center/dataviz/heatmap` | Yearly calendar heatmap and an hour × weekday heatmap (frontend only) |
 | Traffic Flow | `/component-center/dataviz/traffic-flow` | A Sankey diagram of visits from source to landing page to outcome, next to a funnel from visit to payment |
-
-## 3D / Creative
-
-Group directory `creative/`; frontend-only pages.
-
-| Page | Route | Description |
-|---|---|---|
-| Particle Network | `/component-center/creative/particle` | Canvas particles connected by lines; the default colors come from the current accent color |
-| CSS 3D Cards | `/component-center/creative/css-3d` | Pure-CSS 3D effects such as flip on hover, a spinning cube and parallax tracking |
-| Three.js Globe | `/component-center/creative/globe` | A 3D globe rendered with Three.js; scene colors follow the accent color |
-| Particle Morphing | `/component-center/creative/morphing` | WebGL particles morphing between several shapes |
 
 ## AI Apps
 

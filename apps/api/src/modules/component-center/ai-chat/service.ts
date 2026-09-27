@@ -40,15 +40,13 @@ export const SYSTEM_PROMPT = {
     '- 前端：React 19 + Vite + React Router + Tailwind CSS v4\n' +
     '- UI：shadcn/ui（Radix 原语）+ motion 动效 + lucide 图标\n' +
     '- 图表：ECharts 6\n' +
-    '- 3D：Three.js\n' +
     '- 编辑器：Monaco Editor（代码）、React Quill New（富文本）\n' +
     '- 权限：完整的 RBAC 菜单权限体系（用户/角色/菜单三张表）\n\n' +
     '## 核心功能模块\n' +
     '1. 系统管理：用户管理、角色权限、菜单管理、日志审计、数据字典、定时任务\n' +
-    '2. 组件示例中心（共 28 个页面）：\n' +
+    '2. 组件示例中心（共 24 个页面）：\n' +
     '   - 管理系统类：列表页、统计列表、卡片列表、树形列表、动态表单、看板、详情标签、甘特图、高级表格\n' +
     '   - 数据可视化：数据大屏、实时折线图、热力日历图、流量转化分析\n' +
-    '   - 3D/创意：粒子连线、CSS 3D 卡片、Three.js 地球、粒子形态变换\n' +
     '   - AI 应用：AI 对话（即你当前所在页面）、AI 提示词工坊、AI 数据查询\n' +
     '   - 编辑器：富文本、代码编辑器、JSON 编辑器、Markdown 预览\n' +
     '   - 工程工具：拖拽布局、虚拟滚动、WebSocket 通信、性能监控\n\n' +

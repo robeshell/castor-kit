@@ -51,7 +51,7 @@ castor-kit is an open-source admin panel you can run today and extend with AI to
     <td><b>Import & export</b><br>Excel and CSV for every table, with row-level validation.</td>
   </tr>
   <tr>
-    <td><b>25+ example pages</b><br>Dashboards, charts, Kanban, 3D, AI chat, editors and more.</td>
+    <td><b>25+ example pages</b><br>Dashboards, charts, Kanban, AI chat, editors and more.</td>
     <td><b>Clean architecture</b><br>Clear layers, strict TypeScript, reviewable SQL migrations.</td>
     <td><b>One-command deploy</b><br>Docker Compose starts the database and the whole app.</td>
   </tr>
@@ -113,8 +113,8 @@ The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workfl
 | Layer | Technology |
 |---|---|
 | **Backend** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **Frontend** | React 19 · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
-| **Data & charts** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
+| **Frontend** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
+| **Data & charts** | TanStack Table · react-hook-form · ECharts 6 |
 | **Tooling** | pnpm workspaces · Vitest · ESLint · MCP server · Docker Compose |
 
 <details>

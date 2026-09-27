@@ -47,7 +47,7 @@
 
 因此，页面里只要使用 `primary`、`brand-*` 等语义类，切换强调色时就会自动跟随。**不要在页面中写死某个强调色的色值。**
 
-ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS 变量的实际值，主题或强调色切换时会重新计算。canvas / WebGL 场景（如粒子动画、Three.js 地球）也从 `--brand-from/via/to` 取色。
+ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS 变量的实际值，主题或强调色切换时会重新计算。
 
 ### 新增一个强调色
 

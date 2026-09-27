@@ -105,7 +105,7 @@ apps/web/
     │   ├── auth/pages/login/         # Login page
     │   ├── admin/{pages,api}/        # System pages and API clients
     │   └── component_center/
-    │       ├── pages/{admin,dataviz,creative,ai,editor,devtools}/
+    │       ├── pages/{admin,dataviz,ai,editor,devtools}/
     │       └── api/
     └── shared/
         ├── api/request.js    # Axios instance (baseURL '/api'; sends the CSRF header and Accept-Language automatically)
