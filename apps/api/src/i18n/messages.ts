@@ -469,6 +469,17 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '请选择接收通知的用户': { 'en-US': 'Choose the user who receives the notification', 'ja-JP': '通知を受け取るユーザーを選択してください' },
   '接收通知的用户不存在': { 'en-US': 'The user receiving the notification does not exist', 'ja-JP': '通知を受け取るユーザーが存在しません' },
   '开始日期不能晚于结束日期': { 'en-US': 'The start date cannot be after the end date', 'ja-JP': '開始日は終了日より後にできません' },
+
+  // component center: shared demo records (page patterns)
+  '记录不能为空': { 'en-US': 'Record is required', 'ja-JP': 'レコードを指定してください' },
+  '请选择要操作的记录': { 'en-US': 'Select the records first', 'ja-JP': '操作するレコードを選択してください' },
+  '记录不存在或已删除': { 'en-US': 'Some records do not exist or have been deleted', 'ja-JP': 'レコードが存在しないか、削除されています' },
+  '请至少修改一个字段': { 'en-US': 'Change at least one field', 'ja-JP': '変更する項目を 1 つ以上指定してください' },
+  '上级记录不存在': { 'en-US': 'Parent record not found', 'ja-JP': '親レコードが存在しません' },
+  '上级记录不能是自身或其下级记录': { 'en-US': 'The parent cannot be the record itself or one of its descendants', 'ja-JP': '親レコードに自身またはその子孫レコードは指定できません' },
+  '存在下级记录，不能删除': { 'en-US': 'This record has child records and cannot be deleted', 'ja-JP': '子レコードがあるため削除できません' },
+  '所选记录包含未选中的下级记录，不能删除': { 'en-US': 'The selected records have child records that are not selected, so they cannot be deleted', 'ja-JP': '選択したレコードに未選択の子レコードがあるため削除できません' },
+  '排序列表中有重复的记录': { 'en-US': 'The reorder list contains the same record more than once', 'ja-JP': '並べ替えリストに同じレコードが重複しています' },
 }
 
 /** First match wins: keep specific patterns first and the scaffold catch-alls at the end */
@@ -523,6 +534,7 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   // component center: advanced table
   { re: /^已更新 (\d+) 条记录$/, 'en-US': '$1 record(s) updated', 'ja-JP': '$1 件のレコードを更新しました' },
   { re: /^已删除 (\d+) 条记录$/, 'en-US': '$1 record(s) deleted', 'ja-JP': '$1 件のレコードを削除しました' },
+  { re: /^一次最多处理 (\d+) 条记录$/, 'en-US': 'At most $1 records can be processed at a time', 'ja-JP': '一度に処理できるのは $1 件までです' },
 
   // component center: AI SQL
   { re: /^SQL 包含不允许的操作关键字：(.+)$/, 'en-US': 'SQL contains a disallowed keyword: $1', 'ja-JP': 'SQL に使用できないキーワードが含まれています：$1' },

@@ -55,6 +55,7 @@ describe('demo write guard', () => {
       '/api/admin/login',
       '/api/admin/logout',
       '/api/admin/component-center/kanban/cards',
+      '/api/admin/component-center/demo-records/reorder',
       '/api/admin/notifications/12/read',
       '/api/admin/notifications/read-all',
       '/api/admin/files',

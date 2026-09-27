@@ -135,6 +135,10 @@
     {
       "name": "示例-AI 应用",
       "description": "组件示例中心：AI 对话、AI 提示词工坊、AI 数据查询"
+    },
+    {
+      "name": "示例-页面模板",
+      "description": "组件示例中心：页面模板（标准列表、卡片列表、树形列表、看板、甘特图等）共用的示例数据"
     }
   ],
   "components": {
@@ -5520,6 +5524,2404 @@
             "description": "无权限"
           }
         }
+      }
+    },
+    "/api/admin/component-center/demo-records": {
+      "get": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "示例数据列表",
+        "description": "需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。按筛选条件分页；排序由 sort_field + sort_dir 指定，缺省按 ID 倒序。",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "页码"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 20
+            },
+            "description": "每页条数，最多 200"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "按名称或编码模糊搜索"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "product",
+                "design",
+                "engineering",
+                "marketing",
+                "operations"
+              ]
+            },
+            "description": "分类；空串或缺省为全部"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "todo",
+                "in_progress",
+                "done",
+                "archived"
+              ]
+            },
+            "description": "状态；空串或缺省为全部"
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "负责人（完全匹配）；空串或缺省为全部"
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "true",
+                "false",
+                "1",
+                "0"
+              ]
+            },
+            "description": "是否启用：true / 1 只看启用，false / 0 只看停用；空串或缺省为全部"
+          },
+          {
+            "name": "parent_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "上级记录：root 只看顶级记录，数字只看该记录的直接下级；空串或缺省为全部"
+          },
+          {
+            "name": "start_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期不早于（YYYY-MM-DD）；格式不对时忽略"
+          },
+          {
+            "name": "start_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期不晚于（YYYY-MM-DD）；格式不对时忽略"
+          },
+          {
+            "name": "sort_field",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "id",
+                "name",
+                "code",
+                "status",
+                "priority",
+                "amount",
+                "quantity",
+                "progress",
+                "start_date",
+                "end_date",
+                "sort_order",
+                "created_at",
+                "updated_at"
+              ]
+            },
+            "description": "排序字段；空串、缺省或其他值按 ID 倒序"
+          },
+          {
+            "name": "sort_dir",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "排序方向：asc 升序，desc 降序（缺省）；同值再按 ID 倒序"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "名称"
+                          },
+                          "code": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "编码"
+                          },
+                          "category": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "product",
+                              "design",
+                              "engineering",
+                              "marketing",
+                              "operations",
+                              null
+                            ],
+                            "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                          },
+                          "status": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "todo",
+                              "in_progress",
+                              "done",
+                              "archived",
+                              null
+                            ],
+                            "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档"
+                          },
+                          "owner": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "负责人"
+                          },
+                          "priority": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "优先级；整数"
+                          },
+                          "is_active": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ],
+                            "description": "是否启用；布尔值（true / false）"
+                          },
+                          "amount": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                          },
+                          "quantity": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "数量；整数"
+                          },
+                          "progress": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "进度；0–100 的整数"
+                          },
+                          "start_date": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date",
+                            "description": "开始日期；YYYY-MM-DD"
+                          },
+                          "end_date": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date",
+                            "description": "结束日期；YYYY-MM-DD"
+                          },
+                          "parent_id": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "上级记录 ID；null 为顶级记录"
+                          },
+                          "sort_order": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "排序；整数"
+                          },
+                          "cover": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "描述"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "标签；字符串数组"
+                          },
+                          "extra": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "扩展字段：动态表单填写的值（任意 JSON 对象）"
+                          },
+                          "created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "创建时间（ISO 8601，UTC）"
+                          },
+                          "updated_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "更新时间（ISO 8601，UTC）"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "新增示例数据",
+        "description": "需要 cc_patterns_add。唯一字段重复、值超长或类型不对返回 400。结束日期不能早于开始日期，上级记录必须存在（否则 400）。成功后触发 demo_record.created 事件。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": [
+                      "string"
+                    ],
+                    "maxLength": 100,
+                    "description": "名称；必填"
+                  },
+                  "code": {
+                    "type": [
+                      "string"
+                    ],
+                    "maxLength": 50,
+                    "description": "编码；必填；唯一"
+                  },
+                  "category": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "product",
+                      "design",
+                      "engineering",
+                      "marketing",
+                      "operations",
+                      null
+                    ],
+                    "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "todo",
+                      "in_progress",
+                      "done",
+                      "archived",
+                      null
+                    ],
+                    "default": "todo",
+                    "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档；新增时缺省为 todo"
+                  },
+                  "owner": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 50,
+                    "description": "负责人"
+                  },
+                  "priority": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": 0,
+                    "description": "优先级；整数；新增时缺省为 0"
+                  },
+                  "is_active": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ],
+                    "default": true,
+                    "description": "是否启用；布尔值（true / false）；新增时缺省为 true"
+                  },
+                  "amount": {
+                    "type": [
+                      "number",
+                      "string",
+                      "null"
+                    ],
+                    "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                  },
+                  "quantity": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "数量；整数"
+                  },
+                  "progress": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": 0,
+                    "description": "进度；0–100 的整数；新增时缺省为 0",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "start_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date",
+                    "description": "开始日期；YYYY-MM-DD"
+                  },
+                  "end_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date",
+                    "description": "结束日期；YYYY-MM-DD"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "description": "上级记录 ID；null 为顶级记录。必须是已存在的记录，且不能是自身或其下级记录（否则 400）"
+                  },
+                  "sort_order": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": 0,
+                    "description": "排序；整数；新增时缺省为 0"
+                  },
+                  "cover": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "描述"
+                  },
+                  "tags": {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "标签；字符串数组，每项去掉首尾空格，空项忽略；缺省或 null 为 []"
+                  },
+                  "extra": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "additionalProperties": true,
+                    "description": "扩展字段：动态表单填写的值（任意 JSON 对象）；缺省或 null 为 {}"
+                  }
+                },
+                "required": [
+                  "name",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "名称"
+                    },
+                    "code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "编码"
+                    },
+                    "category": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "product",
+                        "design",
+                        "engineering",
+                        "marketing",
+                        "operations",
+                        null
+                      ],
+                      "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                    },
+                    "status": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "todo",
+                        "in_progress",
+                        "done",
+                        "archived",
+                        null
+                      ],
+                      "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档"
+                    },
+                    "owner": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "负责人"
+                    },
+                    "priority": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "优先级；整数"
+                    },
+                    "is_active": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "是否启用；布尔值（true / false）"
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                    },
+                    "quantity": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "数量；整数"
+                    },
+                    "progress": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "进度；0–100 的整数"
+                    },
+                    "start_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date",
+                      "description": "开始日期；YYYY-MM-DD"
+                    },
+                    "end_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date",
+                      "description": "结束日期；YYYY-MM-DD"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "上级记录 ID；null 为顶级记录"
+                    },
+                    "sort_order": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "排序；整数"
+                    },
+                    "cover": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "描述"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "标签；字符串数组"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "扩展字段：动态表单填写的值（任意 JSON 对象）"
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "创建时间（ISO 8601，UTC）"
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "更新时间（ISO 8601，UTC）"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误（必填字段为空、值无效、唯一字段重复等）"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/demo-records/batch-delete": {
+      "post": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "批量删除示例数据",
+        "description": "需要 cc_patterns_delete。在一个事务里删除 ids 的全部记录。可以连同全部下级一起删除；若有下级记录不在 ids 中，整批不删并返回 400「所选记录包含未选中的下级记录，不能删除」。有记录不存在返回 400「记录不存在或已删除」。每条记录触发一次 demo_record.deleted 事件。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "minItems": 1,
+                    "description": "要操作的记录 ID；不能为空（400「请选择要操作的记录」），一次最多 500 条"
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "已删除 N 条记录"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误、记录不存在或有未选中的下级记录"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/demo-records/batch-update": {
+      "post": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "批量修改示例数据",
+        "description": "需要 cc_patterns_edit。在一个事务里把请求中出现的字段写到 ids 的每条记录；没出现的字段不改。status / is_active / priority 为 null 也视为不改，owner / category 为 null 时清空。有记录不存在返回 400「记录不存在或已删除」，没有要改的字段返回 400「请至少修改一个字段」。每条记录触发一次 demo_record.updated 事件。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "minItems": 1,
+                    "description": "要操作的记录 ID；不能为空（400「请选择要操作的记录」），一次最多 500 条"
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "todo",
+                      "in_progress",
+                      "done",
+                      "archived",
+                      null
+                    ],
+                    "description": "状态；null 或缺省为不改"
+                  },
+                  "category": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "product",
+                      "design",
+                      "engineering",
+                      "marketing",
+                      "operations",
+                      null
+                    ],
+                    "description": "分类；null 为清空，缺省为不改"
+                  },
+                  "owner": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 50,
+                    "description": "负责人；null 或空串为清空，缺省为不改"
+                  },
+                  "is_active": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ],
+                    "description": "是否启用；null 或缺省为不改"
+                  },
+                  "priority": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "优先级；null 或缺省为不改"
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "已更新 N 条记录"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/demo-records/export": {
+      "post": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "导出示例数据",
+        "description": "需要 cc_patterns_export。ids 为空时导出全部，按 ID 倒序；fields 缺省时导出所有列，枚举字段导出为选项名称，标签以逗号连接；扩展字段（extra）不导出。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "要导出的记录 ID；缺省、null 或为空时导出全部"
+                  },
+                  "fields": {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "id",
+                        "name",
+                        "code",
+                        "category",
+                        "status",
+                        "owner",
+                        "priority",
+                        "is_active",
+                        "amount",
+                        "quantity",
+                        "progress",
+                        "start_date",
+                        "end_date",
+                        "parent_id",
+                        "sort_order",
+                        "cover",
+                        "description",
+                        "tags",
+                        "created_at"
+                      ]
+                    },
+                    "description": "导出列；缺省、null 或为空时导出所有列"
+                  },
+                  "file_type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "csv",
+                      "xlsx",
+                      null
+                    ],
+                    "default": "xlsx",
+                    "description": "文件格式，缺省、null 或其他值按 xlsx"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "文件内容（demo_record_export.xlsx / .csv）",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/demo-records/import": {
+      "post": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "导入示例数据",
+        "description": "需要 cc_patterns_import。表头按模板（第一列「名称」必填，固定选项列可填名称），只新增不更新；「上级记录」填已存在记录的 ID，「标签」用逗号分隔；任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "csv / xlsx 文件"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "导入成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "integer",
+                      "description": "新增条数"
+                    },
+                    "updated": {
+                      "type": "integer",
+                      "description": "固定为 0"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "文件不合法或存在错误数据（响应含 error_rows、error_count）"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "413": {
+            "description": "文件过大"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/demo-records/reorder": {
+      "put": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "调整示例数据顺序",
+        "description": "需要 cc_patterns_edit。看板拖动（换列时带 status）、树拖动（换上级时带 parent_id）和手动排序共用：请求体是数组，每项设置一条记录的 sort_order，出现 status / parent_id 时一并修改（parent_id 为 null 移到顶级）。在一个事务里先应用全部移动再检查：上级记录必须存在，且记录不能落到自身或其下级之下（400）；同一记录出现两次、有记录不存在都返回 400，一次最多 500 条。只写入值有变化的记录，每条触发一次 demo_record.updated 事件。请求体不是数组返回 400。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "记录 ID"
+                    },
+                    "sort_order": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "新的排序值；缺省或 null 为 0"
+                    },
+                    "status": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "todo",
+                        "in_progress",
+                        "done",
+                        "archived",
+                        null
+                      ],
+                      "description": "新的状态（看板换列）；null 或缺省为不改"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1,
+                      "description": "新的上级记录 ID；null 移到顶级，缺省为不改"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "排序成功"
+                    },
+                    "updated": {
+                      "type": "integer",
+                      "description": "实际修改的记录数"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误、记录不存在或会形成循环"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/demo-records/stats": {
+      "get": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "示例数据统计",
+        "description": "需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。统计与列表相同筛选条件下的记录：总数、金额合计、数量合计、各状态和各分类的记录数（每个选项都列出，没有记录为 0）。",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "按名称或编码模糊搜索"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "product",
+                "design",
+                "engineering",
+                "marketing",
+                "operations"
+              ]
+            },
+            "description": "分类；空串或缺省为全部"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "todo",
+                "in_progress",
+                "done",
+                "archived"
+              ]
+            },
+            "description": "状态；空串或缺省为全部"
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "负责人（完全匹配）；空串或缺省为全部"
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "true",
+                "false",
+                "1",
+                "0"
+              ]
+            },
+            "description": "是否启用：true / 1 只看启用，false / 0 只看停用；空串或缺省为全部"
+          },
+          {
+            "name": "parent_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "上级记录：root 只看顶级记录，数字只看该记录的直接下级；空串或缺省为全部"
+          },
+          {
+            "name": "start_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期不早于（YYYY-MM-DD）；格式不对时忽略"
+          },
+          {
+            "name": "start_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期不晚于（YYYY-MM-DD）；格式不对时忽略"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "description": "记录总数"
+                    },
+                    "amount_sum": {
+                      "type": "string",
+                      "description": "金额合计；以字符串返回以免丢失精度（如 \"12800.50\"）"
+                    },
+                    "quantity_sum": {
+                      "type": "integer",
+                      "description": "数量合计"
+                    },
+                    "by_status": {
+                      "type": "array",
+                      "description": "各状态的记录数（按看板列顺序）",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "todo",
+                              "in_progress",
+                              "done",
+                              "archived"
+                            ],
+                            "description": "状态"
+                          },
+                          "count": {
+                            "type": "integer",
+                            "description": "记录数"
+                          }
+                        }
+                      }
+                    },
+                    "by_category": {
+                      "type": "array",
+                      "description": "各分类的记录数；最后一项 category 为 null，是未分类（或分类不在选项中）的记录数",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "category": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "product",
+                              "design",
+                              "engineering",
+                              "marketing",
+                              "operations",
+                              null
+                            ],
+                            "description": "分类；null 为未分类"
+                          },
+                          "count": {
+                            "type": "integer",
+                            "description": "记录数"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/demo-records/template": {
+      "get": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "下载示例数据导入模板",
+        "description": "需要 cc_patterns_import。只含表头：名称、编码、分类、状态、负责人、优先级、是否启用、金额、数量、进度、开始日期、结束日期、上级记录、排序、封面、描述（第一列必填）。",
+        "parameters": [
+          {
+            "name": "file_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
+              "default": "xlsx"
+            },
+            "description": "文件格式，缺省或其他值按 xlsx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "模板文件（demo_record_import_template.xlsx / .csv）",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/component-center/demo-records/tree": {
+      "get": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "示例数据树",
+        "description": "需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。按 parent_id 组装成树，同级按 sort_order、再按 ID 升序。带筛选条件时保留命中的记录及其所有上级（保证命中项可达），其余记录不返回。",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "按名称或编码模糊搜索"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "product",
+                "design",
+                "engineering",
+                "marketing",
+                "operations"
+              ]
+            },
+            "description": "分类；空串或缺省为全部"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "todo",
+                "in_progress",
+                "done",
+                "archived"
+              ]
+            },
+            "description": "状态；空串或缺省为全部"
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "负责人（完全匹配）；空串或缺省为全部"
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "true",
+                "false",
+                "1",
+                "0"
+              ]
+            },
+            "description": "是否启用：true / 1 只看启用，false / 0 只看停用；空串或缺省为全部"
+          },
+          {
+            "name": "start_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期不早于（YYYY-MM-DD）；格式不对时忽略"
+          },
+          {
+            "name": "start_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期不晚于（YYYY-MM-DD）；格式不对时忽略"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功，返回顶级记录数组，每个节点带 children（同结构递归）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "名称"
+                      },
+                      "code": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "编码"
+                      },
+                      "category": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "enum": [
+                          "product",
+                          "design",
+                          "engineering",
+                          "marketing",
+                          "operations",
+                          null
+                        ],
+                        "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                      },
+                      "status": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "enum": [
+                          "todo",
+                          "in_progress",
+                          "done",
+                          "archived",
+                          null
+                        ],
+                        "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档"
+                      },
+                      "owner": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "负责人"
+                      },
+                      "priority": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "description": "优先级；整数"
+                      },
+                      "is_active": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ],
+                        "description": "是否启用；布尔值（true / false）"
+                      },
+                      "amount": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                      },
+                      "quantity": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "description": "数量；整数"
+                      },
+                      "progress": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "description": "进度；0–100 的整数"
+                      },
+                      "start_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date",
+                        "description": "开始日期；YYYY-MM-DD"
+                      },
+                      "end_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date",
+                        "description": "结束日期；YYYY-MM-DD"
+                      },
+                      "parent_id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "description": "上级记录 ID；null 为顶级记录"
+                      },
+                      "sort_order": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "description": "排序；整数"
+                      },
+                      "cover": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                      },
+                      "description": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "描述"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "标签；字符串数组"
+                      },
+                      "extra": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "扩展字段：动态表单填写的值（任意 JSON 对象）"
+                      },
+                      "created_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date-time",
+                        "description": "创建时间（ISO 8601，UTC）"
+                      },
+                      "updated_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date-time",
+                        "description": "更新时间（ISO 8601，UTC）"
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        },
+                        "description": "下级记录（与本节点结构相同，递归）"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          }
+        }
+      }
+    },
+    "/api/admin/component-center/demo-records/{item_id}": {
+      "get": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "示例数据详情",
+        "description": "需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。先查权限（403）再查记录（不存在返回 404），没有权限时无法判断记录是否存在。",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "示例数据 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "名称"
+                    },
+                    "code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "编码"
+                    },
+                    "category": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "product",
+                        "design",
+                        "engineering",
+                        "marketing",
+                        "operations",
+                        null
+                      ],
+                      "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                    },
+                    "status": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "todo",
+                        "in_progress",
+                        "done",
+                        "archived",
+                        null
+                      ],
+                      "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档"
+                    },
+                    "owner": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "负责人"
+                    },
+                    "priority": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "优先级；整数"
+                    },
+                    "is_active": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "是否启用；布尔值（true / false）"
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                    },
+                    "quantity": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "数量；整数"
+                    },
+                    "progress": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "进度；0–100 的整数"
+                    },
+                    "start_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date",
+                      "description": "开始日期；YYYY-MM-DD"
+                    },
+                    "end_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date",
+                      "description": "结束日期；YYYY-MM-DD"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "上级记录 ID；null 为顶级记录"
+                    },
+                    "sort_order": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "排序；整数"
+                    },
+                    "cover": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "描述"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "标签；字符串数组"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "扩展字段：动态表单填写的值（任意 JSON 对象）"
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "创建时间（ISO 8601，UTC）"
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "更新时间（ISO 8601，UTC）"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "记录不存在"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "编辑示例数据",
+        "description": "需要 cc_patterns_edit。先查权限（403）再查记录（不存在返回 404），没有权限时无法判断记录是否存在。只修改请求体中出现的字段，必填字段不能清空；唯一字段重复、值超长或类型不对返回 400。结束日期不能早于开始日期；上级记录必须存在，且不能是自身或其下级记录（否则 400）。成功后触发 demo_record.updated 事件。",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "示例数据 ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": [
+                      "string"
+                    ],
+                    "maxLength": 100,
+                    "description": "名称；必填"
+                  },
+                  "code": {
+                    "type": [
+                      "string"
+                    ],
+                    "maxLength": 50,
+                    "description": "编码；必填；唯一"
+                  },
+                  "category": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "product",
+                      "design",
+                      "engineering",
+                      "marketing",
+                      "operations",
+                      null
+                    ],
+                    "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "todo",
+                      "in_progress",
+                      "done",
+                      "archived",
+                      null
+                    ],
+                    "default": "todo",
+                    "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档；新增时缺省为 todo"
+                  },
+                  "owner": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 50,
+                    "description": "负责人"
+                  },
+                  "priority": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": 0,
+                    "description": "优先级；整数；新增时缺省为 0"
+                  },
+                  "is_active": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ],
+                    "default": true,
+                    "description": "是否启用；布尔值（true / false）；新增时缺省为 true"
+                  },
+                  "amount": {
+                    "type": [
+                      "number",
+                      "string",
+                      "null"
+                    ],
+                    "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                  },
+                  "quantity": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "数量；整数"
+                  },
+                  "progress": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": 0,
+                    "description": "进度；0–100 的整数；新增时缺省为 0",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "start_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date",
+                    "description": "开始日期；YYYY-MM-DD"
+                  },
+                  "end_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date",
+                    "description": "结束日期；YYYY-MM-DD"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "description": "上级记录 ID；null 为顶级记录。必须是已存在的记录，且不能是自身或其下级记录（否则 400）"
+                  },
+                  "sort_order": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": 0,
+                    "description": "排序；整数；新增时缺省为 0"
+                  },
+                  "cover": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "描述"
+                  },
+                  "tags": {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "标签；字符串数组，每项去掉首尾空格，空项忽略；缺省或 null 为 []"
+                  },
+                  "extra": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "additionalProperties": true,
+                    "description": "扩展字段：动态表单填写的值（任意 JSON 对象）；缺省或 null 为 {}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "名称"
+                    },
+                    "code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "编码"
+                    },
+                    "category": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "product",
+                        "design",
+                        "engineering",
+                        "marketing",
+                        "operations",
+                        null
+                      ],
+                      "description": "分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营"
+                    },
+                    "status": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "todo",
+                        "in_progress",
+                        "done",
+                        "archived",
+                        null
+                      ],
+                      "description": "状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档"
+                    },
+                    "owner": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "负责人"
+                    },
+                    "priority": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "优先级；整数"
+                    },
+                    "is_active": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "是否启用；布尔值（true / false）"
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度"
+                    },
+                    "quantity": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "数量；整数"
+                    },
+                    "progress": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "进度；0–100 的整数"
+                    },
+                    "start_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date",
+                      "description": "开始日期；YYYY-MM-DD"
+                    },
+                    "end_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date",
+                      "description": "结束日期；YYYY-MM-DD"
+                    },
+                    "parent_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "上级记录 ID；null 为顶级记录"
+                    },
+                    "sort_order": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "排序；整数"
+                    },
+                    "cover": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址）"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "描述"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "标签；字符串数组"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "扩展字段：动态表单填写的值（任意 JSON 对象）"
+                    },
+                    "created_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "创建时间（ISO 8601，UTC）"
+                    },
+                    "updated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "更新时间（ISO 8601，UTC）"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "记录不存在"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "示例-页面模板"
+        ],
+        "summary": "删除示例数据",
+        "description": "需要 cc_patterns_delete。先查权限（403）再查记录（不存在返回 404），没有权限时无法判断记录是否存在。有下级记录时不能删除，返回 400「存在下级记录，不能删除」（先删除或移走下级记录）。成功后触发 demo_record.deleted 事件。",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "示例数据 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已删除",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "存在下级记录"
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限"
+          },
+          "404": {
+            "description": "记录不存在"
+          }
+        },
+        "x-apifox-folder": "后台/组件示例中心/页面模板",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/admin/component-center/detail-tabs/members": {

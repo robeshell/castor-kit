@@ -3840,6 +3840,1367 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/component-center/demo-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 示例数据列表
+         * @description 需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。按筛选条件分页；排序由 sort_field + sort_dir 指定，缺省按 ID 倒序。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 页码 */
+                    page?: number;
+                    /** @description 每页条数，最多 200 */
+                    per_page?: number;
+                    /** @description 按名称或编码模糊搜索 */
+                    search?: string;
+                    /** @description 分类；空串或缺省为全部 */
+                    category?: "" | "product" | "design" | "engineering" | "marketing" | "operations";
+                    /** @description 状态；空串或缺省为全部 */
+                    status?: "" | "todo" | "in_progress" | "done" | "archived";
+                    /** @description 负责人（完全匹配）；空串或缺省为全部 */
+                    owner?: string;
+                    /** @description 是否启用：true / 1 只看启用，false / 0 只看停用；空串或缺省为全部 */
+                    is_active?: "" | "true" | "false" | "1" | "0";
+                    /** @description 上级记录：root 只看顶级记录，数字只看该记录的直接下级；空串或缺省为全部 */
+                    parent_id?: string;
+                    /** @description 开始日期不早于（YYYY-MM-DD）；格式不对时忽略 */
+                    start_from?: string;
+                    /** @description 开始日期不晚于（YYYY-MM-DD）；格式不对时忽略 */
+                    start_to?: string;
+                    /** @description 排序字段；空串、缺省或其他值按 ID 倒序 */
+                    sort_field?: "" | "id" | "name" | "code" | "status" | "priority" | "amount" | "quantity" | "progress" | "start_date" | "end_date" | "sort_order" | "created_at" | "updated_at";
+                    /** @description 排序方向：asc 升序，desc 降序（缺省）；同值再按 ID 倒序 */
+                    sort_dir?: "asc" | "desc";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: number;
+                                /** @description 名称 */
+                                name: string | null;
+                                /** @description 编码 */
+                                code: string | null;
+                                /**
+                                 * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                                 * @enum {string|null}
+                                 */
+                                category: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                                /**
+                                 * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档
+                                 * @enum {string|null}
+                                 */
+                                status: "todo" | "in_progress" | "done" | "archived" | null;
+                                /** @description 负责人 */
+                                owner: string | null;
+                                /** @description 优先级；整数 */
+                                priority: number | null;
+                                /** @description 是否启用；布尔值（true / false） */
+                                is_active: boolean | null;
+                                /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                                amount: string | null;
+                                /** @description 数量；整数 */
+                                quantity: number | null;
+                                /** @description 进度；0–100 的整数 */
+                                progress: number | null;
+                                /**
+                                 * Format: date
+                                 * @description 开始日期；YYYY-MM-DD
+                                 */
+                                start_date: string | null;
+                                /**
+                                 * Format: date
+                                 * @description 结束日期；YYYY-MM-DD
+                                 */
+                                end_date: string | null;
+                                /** @description 上级记录 ID；null 为顶级记录 */
+                                parent_id: number | null;
+                                /** @description 排序；整数 */
+                                sort_order: number | null;
+                                /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                                cover: string | null;
+                                /** @description 描述 */
+                                description: string | null;
+                                /** @description 标签；字符串数组 */
+                                tags: string[];
+                                /** @description 扩展字段：动态表单填写的值（任意 JSON 对象） */
+                                extra: {
+                                    [key: string]: unknown;
+                                };
+                                /**
+                                 * Format: date-time
+                                 * @description 创建时间（ISO 8601，UTC）
+                                 */
+                                created_at: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description 更新时间（ISO 8601，UTC）
+                                 */
+                                updated_at: string | null;
+                            }[];
+                            total: number;
+                            page: number;
+                            per_page: number;
+                        };
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * 新增示例数据
+         * @description 需要 cc_patterns_add。唯一字段重复、值超长或类型不对返回 400。结束日期不能早于开始日期，上级记录必须存在（否则 400）。成功后触发 demo_record.created 事件。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 名称；必填 */
+                        name: string;
+                        /** @description 编码；必填；唯一 */
+                        code: string;
+                        /**
+                         * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                         * @enum {string|null}
+                         */
+                        category?: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                        /**
+                         * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档；新增时缺省为 todo
+                         * @default todo
+                         * @enum {string|null}
+                         */
+                        status?: "todo" | "in_progress" | "done" | "archived" | null;
+                        /** @description 负责人 */
+                        owner?: string | null;
+                        /**
+                         * @description 优先级；整数；新增时缺省为 0
+                         * @default 0
+                         */
+                        priority?: number | null;
+                        /**
+                         * @description 是否启用；布尔值（true / false）；新增时缺省为 true
+                         * @default true
+                         */
+                        is_active?: boolean | null;
+                        /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                        amount?: number | string | null;
+                        /** @description 数量；整数 */
+                        quantity?: number | null;
+                        /**
+                         * @description 进度；0–100 的整数；新增时缺省为 0
+                         * @default 0
+                         */
+                        progress?: number | null;
+                        /**
+                         * Format: date
+                         * @description 开始日期；YYYY-MM-DD
+                         */
+                        start_date?: string | null;
+                        /**
+                         * Format: date
+                         * @description 结束日期；YYYY-MM-DD
+                         */
+                        end_date?: string | null;
+                        /** @description 上级记录 ID；null 为顶级记录。必须是已存在的记录，且不能是自身或其下级记录（否则 400） */
+                        parent_id?: number | null;
+                        /**
+                         * @description 排序；整数；新增时缺省为 0
+                         * @default 0
+                         */
+                        sort_order?: number | null;
+                        /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                        cover?: string | null;
+                        /** @description 描述 */
+                        description?: string | null;
+                        /** @description 标签；字符串数组，每项去掉首尾空格，空项忽略；缺省或 null 为 [] */
+                        tags?: string[] | null;
+                        /** @description 扩展字段：动态表单填写的值（任意 JSON 对象）；缺省或 null 为 {} */
+                        extra?: {
+                            [key: string]: unknown;
+                        } | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description 已创建 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            /** @description 名称 */
+                            name: string | null;
+                            /** @description 编码 */
+                            code: string | null;
+                            /**
+                             * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                             * @enum {string|null}
+                             */
+                            category: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                            /**
+                             * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档
+                             * @enum {string|null}
+                             */
+                            status: "todo" | "in_progress" | "done" | "archived" | null;
+                            /** @description 负责人 */
+                            owner: string | null;
+                            /** @description 优先级；整数 */
+                            priority: number | null;
+                            /** @description 是否启用；布尔值（true / false） */
+                            is_active: boolean | null;
+                            /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                            amount: string | null;
+                            /** @description 数量；整数 */
+                            quantity: number | null;
+                            /** @description 进度；0–100 的整数 */
+                            progress: number | null;
+                            /**
+                             * Format: date
+                             * @description 开始日期；YYYY-MM-DD
+                             */
+                            start_date: string | null;
+                            /**
+                             * Format: date
+                             * @description 结束日期；YYYY-MM-DD
+                             */
+                            end_date: string | null;
+                            /** @description 上级记录 ID；null 为顶级记录 */
+                            parent_id: number | null;
+                            /** @description 排序；整数 */
+                            sort_order: number | null;
+                            /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                            cover: string | null;
+                            /** @description 描述 */
+                            description: string | null;
+                            /** @description 标签；字符串数组 */
+                            tags: string[];
+                            /** @description 扩展字段：动态表单填写的值（任意 JSON 对象） */
+                            extra: {
+                                [key: string]: unknown;
+                            };
+                            /**
+                             * Format: date-time
+                             * @description 创建时间（ISO 8601，UTC）
+                             */
+                            created_at: string | null;
+                            /**
+                             * Format: date-time
+                             * @description 更新时间（ISO 8601，UTC）
+                             */
+                            updated_at: string | null;
+                        };
+                    };
+                };
+                /** @description 请求参数错误（必填字段为空、值无效、唯一字段重复等） */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/batch-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 批量删除示例数据
+         * @description 需要 cc_patterns_delete。在一个事务里删除 ids 的全部记录。可以连同全部下级一起删除；若有下级记录不在 ids 中，整批不删并返回 400「所选记录包含未选中的下级记录，不能删除」。有记录不存在返回 400「记录不存在或已删除」。每条记录触发一次 demo_record.deleted 事件。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 要操作的记录 ID；不能为空（400「请选择要操作的记录」），一次最多 500 条 */
+                        ids: number[];
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description 已删除 N 条记录 */
+                            message: string;
+                        };
+                    };
+                };
+                /** @description 请求参数错误、记录不存在或有未选中的下级记录 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/batch-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 批量修改示例数据
+         * @description 需要 cc_patterns_edit。在一个事务里把请求中出现的字段写到 ids 的每条记录；没出现的字段不改。status / is_active / priority 为 null 也视为不改，owner / category 为 null 时清空。有记录不存在返回 400「记录不存在或已删除」，没有要改的字段返回 400「请至少修改一个字段」。每条记录触发一次 demo_record.updated 事件。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 要操作的记录 ID；不能为空（400「请选择要操作的记录」），一次最多 500 条 */
+                        ids: number[];
+                        /**
+                         * @description 状态；null 或缺省为不改
+                         * @enum {string|null}
+                         */
+                        status?: "todo" | "in_progress" | "done" | "archived" | null;
+                        /**
+                         * @description 分类；null 为清空，缺省为不改
+                         * @enum {string|null}
+                         */
+                        category?: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                        /** @description 负责人；null 或空串为清空，缺省为不改 */
+                        owner?: string | null;
+                        /** @description 是否启用；null 或缺省为不改 */
+                        is_active?: boolean | null;
+                        /** @description 优先级；null 或缺省为不改 */
+                        priority?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description 已更新 N 条记录 */
+                            message: string;
+                        };
+                    };
+                };
+                /** @description 请求参数错误 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 导出示例数据
+         * @description 需要 cc_patterns_export。ids 为空时导出全部，按 ID 倒序；fields 缺省时导出所有列，枚举字段导出为选项名称，标签以逗号连接；扩展字段（extra）不导出。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 要导出的记录 ID；缺省、null 或为空时导出全部 */
+                        ids?: number[] | null;
+                        /** @description 导出列；缺省、null 或为空时导出所有列 */
+                        fields?: ("id" | "name" | "code" | "category" | "status" | "owner" | "priority" | "is_active" | "amount" | "quantity" | "progress" | "start_date" | "end_date" | "parent_id" | "sort_order" | "cover" | "description" | "tags" | "created_at")[] | null;
+                        /**
+                         * @description 文件格式，缺省、null 或其他值按 xlsx
+                         * @default xlsx
+                         * @enum {string|null}
+                         */
+                        file_type?: "csv" | "xlsx" | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description 文件内容（demo_record_export.xlsx / .csv） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 导入示例数据
+         * @description 需要 cc_patterns_import。表头按模板（第一列「名称」必填，固定选项列可填名称），只新增不更新；「上级记录」填已存在记录的 ID，「标签」用逗号分隔；任一行出错整批回滚，400 响应带 error_rows（最多 500 条）和 error_count。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description csv / xlsx 文件
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 导入成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** @description 新增条数 */
+                            created: number;
+                            /** @description 固定为 0 */
+                            updated: number;
+                        };
+                    };
+                };
+                /** @description 文件不合法或存在错误数据（响应含 error_rows、error_count） */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 文件过大 */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 调整示例数据顺序
+         * @description 需要 cc_patterns_edit。看板拖动（换列时带 status）、树拖动（换上级时带 parent_id）和手动排序共用：请求体是数组，每项设置一条记录的 sort_order，出现 status / parent_id 时一并修改（parent_id 为 null 移到顶级）。在一个事务里先应用全部移动再检查：上级记录必须存在，且记录不能落到自身或其下级之下（400）；同一记录出现两次、有记录不存在都返回 400，一次最多 500 条。只写入值有变化的记录，每条触发一次 demo_record.updated 事件。请求体不是数组返回 400。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 记录 ID */
+                        id: number;
+                        /** @description 新的排序值；缺省或 null 为 0 */
+                        sort_order?: number | null;
+                        /**
+                         * @description 新的状态（看板换列）；null 或缺省为不改
+                         * @enum {string|null}
+                         */
+                        status?: "todo" | "in_progress" | "done" | "archived" | null;
+                        /** @description 新的上级记录 ID；null 移到顶级，缺省为不改 */
+                        parent_id?: number | null;
+                    }[];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description 排序成功 */
+                            message: string;
+                            /** @description 实际修改的记录数 */
+                            updated: number;
+                        };
+                    };
+                };
+                /** @description 请求参数错误、记录不存在或会形成循环 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 示例数据统计
+         * @description 需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。统计与列表相同筛选条件下的记录：总数、金额合计、数量合计、各状态和各分类的记录数（每个选项都列出，没有记录为 0）。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 按名称或编码模糊搜索 */
+                    search?: string;
+                    /** @description 分类；空串或缺省为全部 */
+                    category?: "" | "product" | "design" | "engineering" | "marketing" | "operations";
+                    /** @description 状态；空串或缺省为全部 */
+                    status?: "" | "todo" | "in_progress" | "done" | "archived";
+                    /** @description 负责人（完全匹配）；空串或缺省为全部 */
+                    owner?: string;
+                    /** @description 是否启用：true / 1 只看启用，false / 0 只看停用；空串或缺省为全部 */
+                    is_active?: "" | "true" | "false" | "1" | "0";
+                    /** @description 上级记录：root 只看顶级记录，数字只看该记录的直接下级；空串或缺省为全部 */
+                    parent_id?: string;
+                    /** @description 开始日期不早于（YYYY-MM-DD）；格式不对时忽略 */
+                    start_from?: string;
+                    /** @description 开始日期不晚于（YYYY-MM-DD）；格式不对时忽略 */
+                    start_to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description 记录总数 */
+                            total: number;
+                            /** @description 金额合计；以字符串返回以免丢失精度（如 "12800.50"） */
+                            amount_sum: string;
+                            /** @description 数量合计 */
+                            quantity_sum: number;
+                            /** @description 各状态的记录数（按看板列顺序） */
+                            by_status: {
+                                /**
+                                 * @description 状态
+                                 * @enum {string}
+                                 */
+                                status: "todo" | "in_progress" | "done" | "archived";
+                                /** @description 记录数 */
+                                count: number;
+                            }[];
+                            /** @description 各分类的记录数；最后一项 category 为 null，是未分类（或分类不在选项中）的记录数 */
+                            by_category: {
+                                /**
+                                 * @description 分类；null 为未分类
+                                 * @enum {string|null}
+                                 */
+                                category: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                                /** @description 记录数 */
+                                count: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 下载示例数据导入模板
+         * @description 需要 cc_patterns_import。只含表头：名称、编码、分类、状态、负责人、优先级、是否启用、金额、数量、进度、开始日期、结束日期、上级记录、排序、封面、描述（第一列必填）。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 文件格式，缺省或其他值按 xlsx */
+                    file_type?: "csv" | "xlsx";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 模板文件（demo_record_import_template.xlsx / .csv） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 示例数据树
+         * @description 需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。按 parent_id 组装成树，同级按 sort_order、再按 ID 升序。带筛选条件时保留命中的记录及其所有上级（保证命中项可达），其余记录不返回。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 按名称或编码模糊搜索 */
+                    search?: string;
+                    /** @description 分类；空串或缺省为全部 */
+                    category?: "" | "product" | "design" | "engineering" | "marketing" | "operations";
+                    /** @description 状态；空串或缺省为全部 */
+                    status?: "" | "todo" | "in_progress" | "done" | "archived";
+                    /** @description 负责人（完全匹配）；空串或缺省为全部 */
+                    owner?: string;
+                    /** @description 是否启用：true / 1 只看启用，false / 0 只看停用；空串或缺省为全部 */
+                    is_active?: "" | "true" | "false" | "1" | "0";
+                    /** @description 开始日期不早于（YYYY-MM-DD）；格式不对时忽略 */
+                    start_from?: string;
+                    /** @description 开始日期不晚于（YYYY-MM-DD）；格式不对时忽略 */
+                    start_to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功，返回顶级记录数组，每个节点带 children（同结构递归） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            /** @description 名称 */
+                            name: string | null;
+                            /** @description 编码 */
+                            code: string | null;
+                            /**
+                             * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                             * @enum {string|null}
+                             */
+                            category: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                            /**
+                             * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档
+                             * @enum {string|null}
+                             */
+                            status: "todo" | "in_progress" | "done" | "archived" | null;
+                            /** @description 负责人 */
+                            owner: string | null;
+                            /** @description 优先级；整数 */
+                            priority: number | null;
+                            /** @description 是否启用；布尔值（true / false） */
+                            is_active: boolean | null;
+                            /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                            amount: string | null;
+                            /** @description 数量；整数 */
+                            quantity: number | null;
+                            /** @description 进度；0–100 的整数 */
+                            progress: number | null;
+                            /**
+                             * Format: date
+                             * @description 开始日期；YYYY-MM-DD
+                             */
+                            start_date: string | null;
+                            /**
+                             * Format: date
+                             * @description 结束日期；YYYY-MM-DD
+                             */
+                            end_date: string | null;
+                            /** @description 上级记录 ID；null 为顶级记录 */
+                            parent_id: number | null;
+                            /** @description 排序；整数 */
+                            sort_order: number | null;
+                            /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                            cover: string | null;
+                            /** @description 描述 */
+                            description: string | null;
+                            /** @description 标签；字符串数组 */
+                            tags: string[];
+                            /** @description 扩展字段：动态表单填写的值（任意 JSON 对象） */
+                            extra: {
+                                [key: string]: unknown;
+                            };
+                            /**
+                             * Format: date-time
+                             * @description 创建时间（ISO 8601，UTC）
+                             */
+                            created_at: string | null;
+                            /**
+                             * Format: date-time
+                             * @description 更新时间（ISO 8601，UTC）
+                             */
+                            updated_at: string | null;
+                            /** @description 下级记录（与本节点结构相同，递归） */
+                            children: {
+                                [key: string]: unknown;
+                            }[];
+                        }[];
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/component-center/demo-records/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 示例数据详情
+         * @description 需要以下之一：cc_patterns、cc_patterns_standard_list（页面模板目录或其下任一页面）。先查权限（403）再查记录（不存在返回 404），没有权限时无法判断记录是否存在。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description 示例数据 ID */
+                    item_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            /** @description 名称 */
+                            name: string | null;
+                            /** @description 编码 */
+                            code: string | null;
+                            /**
+                             * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                             * @enum {string|null}
+                             */
+                            category: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                            /**
+                             * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档
+                             * @enum {string|null}
+                             */
+                            status: "todo" | "in_progress" | "done" | "archived" | null;
+                            /** @description 负责人 */
+                            owner: string | null;
+                            /** @description 优先级；整数 */
+                            priority: number | null;
+                            /** @description 是否启用；布尔值（true / false） */
+                            is_active: boolean | null;
+                            /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                            amount: string | null;
+                            /** @description 数量；整数 */
+                            quantity: number | null;
+                            /** @description 进度；0–100 的整数 */
+                            progress: number | null;
+                            /**
+                             * Format: date
+                             * @description 开始日期；YYYY-MM-DD
+                             */
+                            start_date: string | null;
+                            /**
+                             * Format: date
+                             * @description 结束日期；YYYY-MM-DD
+                             */
+                            end_date: string | null;
+                            /** @description 上级记录 ID；null 为顶级记录 */
+                            parent_id: number | null;
+                            /** @description 排序；整数 */
+                            sort_order: number | null;
+                            /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                            cover: string | null;
+                            /** @description 描述 */
+                            description: string | null;
+                            /** @description 标签；字符串数组 */
+                            tags: string[];
+                            /** @description 扩展字段：动态表单填写的值（任意 JSON 对象） */
+                            extra: {
+                                [key: string]: unknown;
+                            };
+                            /**
+                             * Format: date-time
+                             * @description 创建时间（ISO 8601，UTC）
+                             */
+                            created_at: string | null;
+                            /**
+                             * Format: date-time
+                             * @description 更新时间（ISO 8601，UTC）
+                             */
+                            updated_at: string | null;
+                        };
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 记录不存在 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * 编辑示例数据
+         * @description 需要 cc_patterns_edit。先查权限（403）再查记录（不存在返回 404），没有权限时无法判断记录是否存在。只修改请求体中出现的字段，必填字段不能清空；唯一字段重复、值超长或类型不对返回 400。结束日期不能早于开始日期；上级记录必须存在，且不能是自身或其下级记录（否则 400）。成功后触发 demo_record.updated 事件。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description 示例数据 ID */
+                    item_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 名称；必填 */
+                        name?: string;
+                        /** @description 编码；必填；唯一 */
+                        code?: string;
+                        /**
+                         * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                         * @enum {string|null}
+                         */
+                        category?: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                        /**
+                         * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档；新增时缺省为 todo
+                         * @default todo
+                         * @enum {string|null}
+                         */
+                        status?: "todo" | "in_progress" | "done" | "archived" | null;
+                        /** @description 负责人 */
+                        owner?: string | null;
+                        /**
+                         * @description 优先级；整数；新增时缺省为 0
+                         * @default 0
+                         */
+                        priority?: number | null;
+                        /**
+                         * @description 是否启用；布尔值（true / false）；新增时缺省为 true
+                         * @default true
+                         */
+                        is_active?: boolean | null;
+                        /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                        amount?: number | string | null;
+                        /** @description 数量；整数 */
+                        quantity?: number | null;
+                        /**
+                         * @description 进度；0–100 的整数；新增时缺省为 0
+                         * @default 0
+                         */
+                        progress?: number | null;
+                        /**
+                         * Format: date
+                         * @description 开始日期；YYYY-MM-DD
+                         */
+                        start_date?: string | null;
+                        /**
+                         * Format: date
+                         * @description 结束日期；YYYY-MM-DD
+                         */
+                        end_date?: string | null;
+                        /** @description 上级记录 ID；null 为顶级记录。必须是已存在的记录，且不能是自身或其下级记录（否则 400） */
+                        parent_id?: number | null;
+                        /**
+                         * @description 排序；整数；新增时缺省为 0
+                         * @default 0
+                         */
+                        sort_order?: number | null;
+                        /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                        cover?: string | null;
+                        /** @description 描述 */
+                        description?: string | null;
+                        /** @description 标签；字符串数组，每项去掉首尾空格，空项忽略；缺省或 null 为 [] */
+                        tags?: string[] | null;
+                        /** @description 扩展字段：动态表单填写的值（任意 JSON 对象）；缺省或 null 为 {} */
+                        extra?: {
+                            [key: string]: unknown;
+                        } | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            /** @description 名称 */
+                            name: string | null;
+                            /** @description 编码 */
+                            code: string | null;
+                            /**
+                             * @description 分类；可选值：product=产品，design=设计，engineering=研发，marketing=市场，operations=运营
+                             * @enum {string|null}
+                             */
+                            category: "product" | "design" | "engineering" | "marketing" | "operations" | null;
+                            /**
+                             * @description 状态；可选值：todo=待办，in_progress=进行中，done=已完成，archived=已归档
+                             * @enum {string|null}
+                             */
+                            status: "todo" | "in_progress" | "done" | "archived" | null;
+                            /** @description 负责人 */
+                            owner: string | null;
+                            /** @description 优先级；整数 */
+                            priority: number | null;
+                            /** @description 是否启用；布尔值（true / false） */
+                            is_active: boolean | null;
+                            /** @description 金额；数值（最多 2 位小数），响应中以字符串返回以免丢失精度 */
+                            amount: string | null;
+                            /** @description 数量；整数 */
+                            quantity: number | null;
+                            /** @description 进度；0–100 的整数 */
+                            progress: number | null;
+                            /**
+                             * Format: date
+                             * @description 开始日期；YYYY-MM-DD
+                             */
+                            start_date: string | null;
+                            /**
+                             * Format: date
+                             * @description 结束日期；YYYY-MM-DD
+                             */
+                            end_date: string | null;
+                            /** @description 上级记录 ID；null 为顶级记录 */
+                            parent_id: number | null;
+                            /** @description 排序；整数 */
+                            sort_order: number | null;
+                            /** @description 封面；文件中心的图片文件 ID（也可传 /api/admin/files/<id> 地址） */
+                            cover: string | null;
+                            /** @description 描述 */
+                            description: string | null;
+                            /** @description 标签；字符串数组 */
+                            tags: string[];
+                            /** @description 扩展字段：动态表单填写的值（任意 JSON 对象） */
+                            extra: {
+                                [key: string]: unknown;
+                            };
+                            /**
+                             * Format: date-time
+                             * @description 创建时间（ISO 8601，UTC）
+                             */
+                            created_at: string | null;
+                            /**
+                             * Format: date-time
+                             * @description 更新时间（ISO 8601，UTC）
+                             */
+                            updated_at: string | null;
+                        };
+                    };
+                };
+                /** @description 请求参数错误 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 记录不存在 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /**
+         * 删除示例数据
+         * @description 需要 cc_patterns_delete。先查权限（403）再查记录（不存在返回 404），没有权限时无法判断记录是否存在。有下级记录时不能删除，返回 400「存在下级记录，不能删除」（先删除或移走下级记录）。成功后触发 demo_record.deleted 事件。
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description 示例数据 ID */
+                    item_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 已删除 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description 存在下级记录 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 记录不存在 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/component-center/detail-tabs/members": {
         parameters: {
             query?: never;
