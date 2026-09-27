@@ -65,7 +65,7 @@ const STATUS_OPTIONS = [
   { label: '草稿', value: 'draft' },
   { label: '已发布', value: 'published' },
   { label: '已归档', value: 'archived' },
-]
+] as const
 const STATUS_META: Record<Row['status'], BadgeMeta> = {
   draft: { label: '草稿', tone: 'neutral' },
   published: { label: '已发布', tone: 'success' },
@@ -106,6 +106,10 @@ const isExportField = (value: string): value is ExportField => EXPORT_FIELDS.som
 const normalizeFileType = (raw: string): DynamicFormPageFileType => (raw === 'csv' || raw === 'xlsx' ? raw : 'csv')
 /** The applied filters are the strings runSearch set (or missing); a missing one stays missing in the request */
 const textFilter = (value: unknown) => (typeof value === 'string' ? value : undefined)
+type StatusFilter = NonNullable<NonNullable<DynamicFormPageExportBody['filters']>['status']>
+/** The applied status filter is what FilterSelect emitted: an option value or '' (all) */
+const toStatusFilter = (value: unknown): StatusFilter | undefined =>
+  value === '' ? '' : STATUS_OPTIONS.find((o) => o.value === value)?.value
 
 /** A list row (no field sub-table) or a detail (with it) */
 type EditableRecord = Row & { fields?: DynamicFormPageDetail['fields'] }
@@ -295,7 +299,7 @@ export default function DynamicFormPage() {
       filters: {
         search: textFilter(filters.search),
         category: textFilter(filters.category),
-        status: textFilter(filters.status),
+        status: toStatusFilter(filters.status),
         is_active: textFilter(filters.is_active),
       },
     }

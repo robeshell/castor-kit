@@ -24,10 +24,10 @@ export interface paths {
                     per_page?: number;
                     /** @description 按标题模糊搜索 */
                     search?: string;
-                    /** @description 按状态精确筛选 */
-                    status?: "draft" | "published";
-                    /** @description 按公告类型精确筛选 */
-                    announce_type?: "system" | "activity" | "update";
+                    /** @description 按状态精确筛选；空串表示不筛选 */
+                    status?: "draft" | "published" | "";
+                    /** @description 按公告类型精确筛选；空串表示不筛选 */
+                    announce_type?: "system" | "activity" | "update" | "";
                 };
                 header?: never;
                 path?: never;
@@ -110,14 +110,20 @@ export interface paths {
                         title: string;
                         /** @description 内容，空值存为空字符串 */
                         content?: string | null;
-                        /** @description 公告类型：system / activity / update，默认 system（接口不校验取值） */
-                        announce_type?: string;
-                        /** @description 状态：draft / published，默认 draft（接口不校验取值） */
-                        status?: string;
-                        /** @description 是否置顶，默认 false */
-                        is_top?: boolean;
-                        /** @description 排序权重，默认 0 */
-                        sort_order?: number;
+                        /**
+                         * @description 公告类型：system / activity / update，缺省、null 或空串时为 system；其他值返回 400「公告类型只能是 system、activity 或 update」
+                         * @enum {string|null}
+                         */
+                        announce_type?: "system" | "activity" | "update" | null;
+                        /**
+                         * @description 状态：draft / published，缺省、null 或空串时为 draft；其他值返回 400「状态只能是 draft 或 published」
+                         * @enum {string|null}
+                         */
+                        status?: "draft" | "published" | null;
+                        /** @description 是否置顶，缺省或 null 时为 false */
+                        is_top?: boolean | null;
+                        /** @description 排序权重，缺省或 null 时为 0 */
+                        sort_order?: number | null;
                         /** @description 发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM，按时区换算为 UTC），不带时区按 UTC；空值表示未设置；格式不合法返回 400「发布时间的值无效」 */
                         publish_at?: string | null;
                     };
@@ -213,22 +219,22 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description 要导出的字段，未知字段忽略；为空时导出全部 */
-                        fields?: ("id" | "title" | "announce_type" | "status" | "is_top" | "sort_order" | "content" | "publish_at" | "created_at")[];
+                        /** @description 要导出的字段，未知字段忽略；缺省、null 或为空时导出全部 */
+                        fields?: ("id" | "title" | "announce_type" | "status" | "is_top" | "sort_order" | "content" | "publish_at" | "created_at")[] | null;
                         /**
                          * @description 文件格式，其他值按 xlsx
                          * @default xlsx
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                         /**
-                         * @description 导出范围
+                         * @description 导出范围，缺省、null 或空串时为 all
                          * @default all
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "all" | "selected";
-                        /** @description export_mode 为 selected 时要导出的公告 ID */
-                        ids?: number[];
+                        export_mode?: "all" | "selected" | null;
+                        /** @description export_mode 为 selected 时要导出的公告 ID；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
                     };
                 };
             };
@@ -519,14 +525,20 @@ export interface paths {
                         title?: string;
                         /** @description 内容，空值存为空字符串 */
                         content?: string | null;
-                        /** @description 公告类型：system / activity / update（接口不校验取值） */
-                        announce_type?: string;
-                        /** @description 状态：draft / published（接口不校验取值）；改为 published 且原发布时间为空时自动写入当前时间 */
-                        status?: string;
-                        /** @description 是否置顶 */
-                        is_top?: boolean;
-                        /** @description 排序权重，空值按 0 */
-                        sort_order?: number;
+                        /**
+                         * @description 公告类型：system / activity / update，null 或空串时为 system；其他值返回 400「公告类型只能是 system、activity 或 update」
+                         * @enum {string|null}
+                         */
+                        announce_type?: "system" | "activity" | "update" | null;
+                        /**
+                         * @description 状态：draft / published，null 或空串时为 draft；其他值返回 400「状态只能是 draft 或 published」。改为 published 且原发布时间为空时自动写入当前时间
+                         * @enum {string|null}
+                         */
+                        status?: "draft" | "published" | null;
+                        /** @description 是否置顶，null 时为 false */
+                        is_top?: boolean | null;
+                        /** @description 排序权重，null 时为 0 */
+                        sort_order?: number | null;
                         /** @description 发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM，按时区换算为 UTC），不带时区按 UTC；传空值清空；格式不合法返回 400「发布时间的值无效」 */
                         publish_at?: string | null;
                     };
@@ -864,7 +876,8 @@ export interface paths {
                     per_page?: number;
                     /** @description 名称、前缀、创建人 */
                     search?: string;
-                    status?: "active" | "expired" | "revoked";
+                    /** @description Token 状态：active 有效 / expired 已过期 / revoked 已吊销；空串或其他值不筛选 */
+                    status?: "active" | "expired" | "revoked" | "";
                 };
                 header?: never;
                 path?: never;
@@ -1141,9 +1154,9 @@ export interface paths {
                             }[];
                         }[];
                         context?: {
-                            path?: string;
-                            title?: string;
-                        };
+                            path?: string | null;
+                            title?: string | null;
+                        } | null;
                     };
                 };
             };
@@ -1289,16 +1302,16 @@ export interface paths {
                     per_page?: number;
                     /** @description 按名称、编码、标签、备注、负责人模糊搜索 */
                     search?: string;
-                    /** @description 按状态精确筛选 */
-                    status?: "draft" | "published" | "archived";
-                    /** @description 按分类精确筛选 */
-                    category?: "general" | "order" | "user" | "finance" | "risk";
+                    /** @description 按状态精确筛选；空串表示不筛选 */
+                    status?: "draft" | "published" | "archived" | "";
+                    /** @description 按分类精确筛选；空串表示不筛选 */
+                    category?: "general" | "order" | "user" | "finance" | "risk" | "";
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；缺省或无法识别时不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "on" | "off";
-                    /** @description 为真时只返回置顶记录 */
-                    pinned_only?: "true" | "false" | "1" | "0" | "yes" | "no" | "on" | "off";
+                    /** @description 按启用状态筛选；缺省、空串或无法识别时不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "on" | "off" | "";
+                    /** @description 为真时只返回置顶记录；缺省、空串或其他值不筛选 */
+                    pinned_only?: "true" | "false" | "1" | "0" | "yes" | "no" | "on" | "off" | "";
                     /** @description 排序字段；其他值按 sort_order */
                     sort_field?: "sort_order" | "priority" | "progress" | "score" | "updated_at" | "due_date" | "id";
                     /** @description 排序方向；非 desc 一律按升序 */
@@ -1407,36 +1420,36 @@ export interface paths {
                         /** @description 编码，唯一 */
                         row_code: string;
                         /**
-                         * @description 分类；不在枚举内时按 general 处理
-                         * @enum {string}
+                         * @description 分类，缺省、null 或空串时为 general；其他值返回 400「分类的值无效」
+                         * @enum {string|null}
                          */
-                        category?: "general" | "order" | "user" | "finance" | "risk";
+                        category?: "general" | "order" | "user" | "finance" | "risk" | null;
                         /** @description 负责人；空串视为 null */
                         owner?: string | null;
                         /**
-                         * @description 状态：draft / published / archived，缺省为 draft；其他值返回 400
-                         * @enum {string}
+                         * @description 状态：draft / published / archived，缺省、null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
                         status?: "draft" | "published" | "archived" | null;
-                        /** @description 优先级，缺省为 0 */
-                        priority?: number;
-                        /** @description 进度；自动截断到 0–100 */
-                        progress?: number;
-                        /** @description 评分；存为 numeric(7,2) */
-                        score?: number;
+                        /** @description 优先级，缺省或 null 时为 0 */
+                        priority?: number | null;
+                        /** @description 进度；自动截断到 0–100；缺省或 null 时为 0 */
+                        progress?: number | null;
+                        /** @description 评分；存为 numeric(7,2)；缺省或 null 时为 0 */
+                        score?: number | null;
                         /** @description 标签（逗号分隔文本） */
                         tags?: string | null;
-                        /** @description 是否启用（true / false），缺省为 true */
-                        is_active?: boolean;
-                        /** @description 是否置顶（true / false），缺省为 false */
-                        is_pinned?: boolean;
+                        /** @description 是否启用（true / false），缺省或 null 时为 true */
+                        is_active?: boolean | null;
+                        /** @description 是否置顶（true / false），缺省或 null 时为 false */
+                        is_pinned?: boolean | null;
                         /**
                          * Format: date
                          * @description 截止日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「截止日期的值无效」
                          */
                         due_date?: string | null;
-                        /** @description 排序值；超出 32 位整数范围返回 400 */
-                        sort_order?: number;
+                        /** @description 排序值；超出 32 位整数范围返回 400；缺省或 null 时为 0 */
+                        sort_order?: number | null;
                         /** @description 备注 */
                         remark?: string | null;
                     };
@@ -1631,18 +1644,18 @@ export interface paths {
                         /** @description 要更新的记录 ID */
                         ids: number[];
                         /**
-                         * @description 状态：draft / published / archived；其他值返回 400
-                         * @enum {string}
+                         * @description 状态：draft / published / archived，null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
                         status?: "draft" | "published" | "archived" | null;
                         /** @description 负责人；空串视为 null */
                         owner?: string | null;
-                        /** @description 是否启用（true / false） */
-                        is_active?: boolean;
-                        /** @description 是否置顶（true / false） */
-                        is_pinned?: boolean;
-                        /** @description 优先级 */
-                        priority?: number;
+                        /** @description 是否启用（true / false），null 时为 true */
+                        is_active?: boolean | null;
+                        /** @description 是否置顶（true / false），null 时为 false */
+                        is_pinned?: boolean | null;
+                        /** @description 优先级，null 时为 0 */
+                        priority?: number | null;
                     };
                 };
             };
@@ -1718,9 +1731,9 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @description 记录 ID */
-                        id?: number;
-                        /** @description 排序值，缺省为 0 */
-                        sort_order?: number;
+                        id?: number | null;
+                        /** @description 排序值，缺省或 null 时为 0 */
+                        sort_order?: number | null;
                     }[];
                 };
             };
@@ -1804,36 +1817,36 @@ export interface paths {
                         /** @description 编码，唯一（传入时不能为空） */
                         row_code?: string;
                         /**
-                         * @description 分类；不在枚举内时保持原值
-                         * @enum {string}
+                         * @description 分类，null 或空串时为 general；其他值返回 400「分类的值无效」
+                         * @enum {string|null}
                          */
-                        category?: "general" | "order" | "user" | "finance" | "risk";
+                        category?: "general" | "order" | "user" | "finance" | "risk" | null;
                         /** @description 负责人；空串视为 null */
                         owner?: string | null;
                         /**
-                         * @description 状态：draft / published / archived；其他值返回 400
-                         * @enum {string}
+                         * @description 状态：draft / published / archived，null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
                         status?: "draft" | "published" | "archived" | null;
-                        /** @description 优先级 */
-                        priority?: number;
-                        /** @description 进度；自动截断到 0–100 */
-                        progress?: number;
-                        /** @description 评分；存为 numeric(7,2) */
-                        score?: number;
+                        /** @description 优先级，null 时为 0 */
+                        priority?: number | null;
+                        /** @description 进度；自动截断到 0–100；null 时为 0 */
+                        progress?: number | null;
+                        /** @description 评分；存为 numeric(7,2)；null 时为 0 */
+                        score?: number | null;
                         /** @description 标签（逗号分隔文本） */
                         tags?: string | null;
-                        /** @description 是否启用（true / false） */
-                        is_active?: boolean;
-                        /** @description 是否置顶（true / false） */
-                        is_pinned?: boolean;
+                        /** @description 是否启用（true / false），null 时为 true */
+                        is_active?: boolean | null;
+                        /** @description 是否置顶（true / false），null 时为 false */
+                        is_pinned?: boolean | null;
                         /**
                          * Format: date
                          * @description 截止日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「截止日期的值无效」
                          */
                         due_date?: string | null;
-                        /** @description 排序值；超出 32 位整数范围返回 400 */
-                        sort_order?: number;
+                        /** @description 排序值；超出 32 位整数范围返回 400；null 时为 0 */
+                        sort_order?: number | null;
                         /** @description 备注 */
                         remark?: string | null;
                     };
@@ -2224,12 +2237,12 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description 提示词内容；省略时按空串处理 */
-                        content?: string;
+                        /** @description 提示词内容；缺省或 null 时按空串处理 */
+                        content?: string | null;
                         /** @description 变量名 → 值（值会转成字符串）；省略时为空对象 */
                         variables?: {
                             [key: string]: unknown;
-                        };
+                        } | null;
                     };
                 };
             };
@@ -2374,16 +2387,13 @@ export interface paths {
                         /** @description 提示词内容，变量写作 {{变量名}}（字母、数字、下划线） */
                         content: string;
                         /** @description 分类，为空时用 custom */
-                        category?: string;
+                        category?: string | null;
                         /** @description 模板说明；空串存为 null */
                         description?: string | null;
                         /** @description 标签：字符串数组或逗号分隔的字符串，统一存为逗号分隔（去空白、去空项） */
                         tags?: string[] | string | null;
-                        /**
-                         * @description 是否启用（true / false），缺省为 true
-                         * @enum {boolean|null}
-                         */
-                        is_active?: true | false | 0 | 1 | null;
+                        /** @description 是否启用（true / false），缺省为 true */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -2904,10 +2914,10 @@ export interface paths {
                     category?: string;
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
-                    /** @description 按发布状态精确筛选 */
-                    status?: "draft" | "published" | "archived";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
+                    /** @description 按发布状态精确筛选；空串表示不筛选 */
+                    status?: "draft" | "published" | "archived" | "";
                 };
                 header?: never;
                 path?: never;
@@ -3011,27 +3021,27 @@ export interface paths {
                         /** @description 副标题 */
                         subtitle?: string | null;
                         /**
-                         * @description 分类，缺省为 general（不校验取值）
+                         * @description 分类（不校验取值），缺省、null 或空串时为 general
                          * @example general
                          * @example product
                          * @example article
                          * @example event
                          * @example promotion
                          */
-                        category?: string;
+                        category?: string | null;
                         /** @description 封面图地址 */
                         cover_url?: string | null;
                         /** @description 标签 */
                         tag?: string | null;
                         /**
-                         * @description 发布状态，缺省为 draft
-                         * @enum {string}
+                         * @description 发布状态，缺省、null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
-                        status?: "draft" | "published" | "archived";
+                        status?: "draft" | "published" | "archived" | null;
                         /** @description 负责人 */
                         owner?: string | null;
-                        /** @description 优先级，无法解析为整数时为 0 */
-                        priority?: number;
+                        /** @description 优先级（整数），缺省或 null 时为 0；非整数返回 400「优先级的值无效」 */
+                        priority?: number | null;
                         /** @description 是否启用：true / false，缺省为 true */
                         is_active?: boolean | null;
                         /** @description 描述 */
@@ -3146,10 +3156,10 @@ export interface paths {
                     category?: string;
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
-                    /** @description 按发布状态精确筛选 */
-                    status?: "draft" | "published" | "archived";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
+                    /** @description 按发布状态精确筛选；空串表示不筛选 */
+                    status?: "draft" | "published" | "archived" | "";
                 };
                 header?: never;
                 path?: never;
@@ -3206,37 +3216,37 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description 导出方式，缺省为 selected
+                         * @description 导出方式：selected 导出勾选的 ids，filtered / all 按 filters 导出；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description selected 模式下要导出的记录 ID */
-                        ids?: number[];
-                        /** @description 要导出的列；为空或全部无效时导出所有列 */
-                        fields?: ("id" | "title" | "card_code" | "subtitle" | "category" | "tag" | "status" | "owner" | "priority" | "is_active" | "description" | "created_at" | "updated_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description selected 模式下要导出的记录 ID；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 要导出的列；缺省、null、为空或全部无效时导出所有列 */
+                        fields?: ("id" | "title" | "card_code" | "subtitle" | "category" | "tag" | "status" | "owner" | "priority" | "is_active" | "description" | "created_at" | "updated_at")[] | null;
                         /** @description filtered 模式下的筛选条件 */
                         filters?: {
                             /** @description 按标题、编码、负责人模糊搜索 */
-                            search?: string;
+                            search?: string | null;
                             /** @description 分类 */
-                            category?: string;
+                            category?: string | null;
                             /** @description 负责人（模糊） */
-                            owner?: string;
+                            owner?: string | null;
                             /** @description 启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选 */
                             is_active?: string | null;
                             /**
-                             * @description 发布状态
-                             * @enum {string}
+                             * @description 发布状态，精确匹配；空串或 null 表示全部
+                             * @enum {string|null}
                              */
-                            status?: "draft" | "published" | "archived";
-                        };
+                            status?: "draft" | "published" | "archived" | "" | null;
+                        } | null;
                         /**
                          * @description 文件格式，缺省或无法识别时为 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -3581,27 +3591,27 @@ export interface paths {
                         /** @description 副标题 */
                         subtitle?: string | null;
                         /**
-                         * @description 分类，缺省为 general（不校验取值）
+                         * @description 分类（不校验取值），null 或空串时为 general
                          * @example general
                          * @example product
                          * @example article
                          * @example event
                          * @example promotion
                          */
-                        category?: string;
+                        category?: string | null;
                         /** @description 封面图地址 */
                         cover_url?: string | null;
                         /** @description 标签 */
                         tag?: string | null;
                         /**
-                         * @description 发布状态，缺省为 原值
-                         * @enum {string}
+                         * @description 发布状态，null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
-                        status?: "draft" | "published" | "archived";
+                        status?: "draft" | "published" | "archived" | null;
                         /** @description 负责人 */
                         owner?: string | null;
-                        /** @description 优先级，无法解析为整数时保持原值 */
-                        priority?: number;
+                        /** @description 优先级（整数），null 时为 0；非整数返回 400「优先级的值无效」 */
+                        priority?: number | null;
                         /** @description 是否启用：true / false */
                         is_active?: boolean | null;
                         /** @description 描述 */
@@ -3938,20 +3948,20 @@ export interface paths {
                         /** @description 电话；空串存为 null */
                         phone?: string | null;
                         /**
-                         * @description 不在枚举内或为空时按 active 保存
-                         * @enum {string}
+                         * @description 状态：active / leave / probation，缺省、null 或空串时为 active；其他值返回 400「状态的值无效」
+                         * @enum {string|null}
                          */
-                        status?: "active" | "leave" | "probation";
+                        status?: "active" | "leave" | "probation" | null;
                         /** @description 入职日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「入职日期的值无效」 */
                         join_date?: string | null;
                         /** @description 头像颜色，为空时用 #4080FF */
-                        avatar_color?: string;
+                        avatar_color?: string | null;
                         /** @description 个人简介；空串存为 null */
                         bio?: string | null;
-                        /** @description 排序值，缺省为 0 */
-                        sort_order?: number;
-                        /** @description 是否启用（true / false），缺省为 true */
-                        is_active?: boolean;
+                        /** @description 排序值，缺省或 null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否启用（true / false），缺省或 null 时为 true */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -4152,20 +4162,20 @@ export interface paths {
                         /** @description 电话；空串存为 null */
                         phone?: string | null;
                         /**
-                         * @description 不在枚举内或为空时按 active 保存
-                         * @enum {string}
+                         * @description 状态：active / leave / probation，null 或空串时为 active；其他值返回 400「状态的值无效」
+                         * @enum {string|null}
                          */
-                        status?: "active" | "leave" | "probation";
+                        status?: "active" | "leave" | "probation" | null;
                         /** @description 入职日期 YYYY-MM-DD（须为有效日期）；空值为 null，格式不对返回 400「入职日期的值无效」 */
                         join_date?: string | null;
                         /** @description 头像颜色，为空时用 #4080FF */
-                        avatar_color?: string;
+                        avatar_color?: string | null;
                         /** @description 个人简介；空串存为 null */
                         bio?: string | null;
-                        /** @description 排序值 */
-                        sort_order?: number;
-                        /** @description 是否启用（true / false） */
-                        is_active?: boolean;
+                        /** @description 排序值，null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否启用（true / false），null 时为 true */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -4403,12 +4413,12 @@ export interface paths {
                     search?: string;
                     /** @description 按分类精确筛选 */
                     category?: string;
-                    /** @description 按发布状态精确筛选 */
-                    status?: "draft" | "published" | "archived";
+                    /** @description 按发布状态精确筛选；空串表示不筛选 */
+                    status?: "draft" | "published" | "archived" | "";
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
                 };
                 header?: never;
                 path?: never;
@@ -4506,45 +4516,45 @@ export interface paths {
                         /** @description 记录编码，唯一，去首尾空格后不能为空 */
                         record_code: string;
                         /**
-                         * @description 分类，缺省为 general（不校验取值）
+                         * @description 分类（不校验取值），缺省、null 或空串时为 general
                          * @example general
                          * @example config
                          * @example profile
                          * @example spec
                          */
-                        category?: string;
+                        category?: string | null;
                         /**
-                         * @description 发布状态，缺省为 draft
-                         * @enum {string}
+                         * @description 发布状态，缺省、null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
-                        status?: "draft" | "published" | "archived";
+                        status?: "draft" | "published" | "archived" | null;
                         /** @description 负责人 */
                         owner?: string | null;
-                        /** @description 优先级，无法解析为整数时为 0 */
-                        priority?: number;
+                        /** @description 优先级（整数），缺省或 null 时为 0；非整数返回 400「优先级的值无效」 */
+                        priority?: number | null;
                         /** @description 是否启用：true / false，缺省为 true */
                         is_active?: boolean | null;
                         /** @description 描述 */
                         description?: string | null;
-                        /** @description 动态字段，最多 20 条 */
+                        /** @description 动态字段，最多 20 条；缺省或 null 视为空列表 */
                         fields?: {
                             /** @description 字段键，为空的条目会被跳过 */
-                            field_key?: string;
+                            field_key?: string | null;
                             /** @description 字段值 */
                             field_value?: string | null;
                             /**
-                             * @description 字段类型，缺省 text（不校验取值）
+                             * @description 字段类型（不校验取值），缺省、null 或空串时为 text
                              * @example text
                              * @example number
                              * @example boolean
                              * @example date
                              */
-                            field_type?: string;
+                            field_type?: string | null;
                             /** @description 排序，缺省为该条目在数组中的下标 */
-                            sort_order?: number;
+                            sort_order?: number | null;
                             /** @description 备注 */
                             remark?: string | null;
-                        }[];
+                        }[] | null;
                     };
                 };
             };
@@ -4676,12 +4686,12 @@ export interface paths {
                     search?: string;
                     /** @description 按分类精确筛选 */
                     category?: string;
-                    /** @description 按发布状态精确筛选 */
-                    status?: "draft" | "published" | "archived";
+                    /** @description 按发布状态精确筛选；空串表示不筛选 */
+                    status?: "draft" | "published" | "archived" | "";
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
                 };
                 header?: never;
                 path?: never;
@@ -4738,37 +4748,37 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description 导出方式，缺省为 selected
+                         * @description 导出方式：selected 导出勾选的 ids，filtered / all 按 filters 导出；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description selected 模式下要导出的记录 ID */
-                        ids?: number[];
-                        /** @description 要导出的列；为空或全部无效时导出所有列 */
-                        fields?: ("id" | "title" | "record_code" | "category" | "status" | "owner" | "priority" | "is_active" | "fields_count" | "description" | "created_at" | "updated_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description selected 模式下要导出的记录 ID；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 要导出的列；缺省、null、为空或全部无效时导出所有列 */
+                        fields?: ("id" | "title" | "record_code" | "category" | "status" | "owner" | "priority" | "is_active" | "fields_count" | "description" | "created_at" | "updated_at")[] | null;
                         /** @description filtered 模式下的筛选条件 */
                         filters?: {
                             /** @description 按标题、记录编码、负责人模糊搜索 */
-                            search?: string;
+                            search?: string | null;
                             /** @description 分类 */
-                            category?: string;
+                            category?: string | null;
                             /**
-                             * @description 发布状态
-                             * @enum {string}
+                             * @description 发布状态，精确匹配；空串或 null 表示全部
+                             * @enum {string|null}
                              */
-                            status?: "draft" | "published" | "archived";
+                            status?: "draft" | "published" | "archived" | "" | null;
                             /** @description 负责人（模糊） */
-                            owner?: string;
+                            owner?: string | null;
                             /** @description 启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选 */
                             is_active?: string | null;
-                        };
+                        } | null;
                         /**
                          * @description 文件格式，缺省或无法识别时为 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -5132,22 +5142,22 @@ export interface paths {
                         /** @description 标题，去首尾空格后不能为空 */
                         title?: string;
                         /**
-                         * @description 分类，缺省为 general（不校验取值）
+                         * @description 分类（不校验取值），null 或空串时为 general
                          * @example general
                          * @example config
                          * @example profile
                          * @example spec
                          */
-                        category?: string;
+                        category?: string | null;
                         /**
-                         * @description 发布状态，缺省为 原值
-                         * @enum {string}
+                         * @description 发布状态，null 或空串时为 draft；其他值返回 400
+                         * @enum {string|null}
                          */
-                        status?: "draft" | "published" | "archived";
+                        status?: "draft" | "published" | "archived" | null;
                         /** @description 负责人 */
                         owner?: string | null;
-                        /** @description 优先级，无法解析为整数时保持原值 */
-                        priority?: number;
+                        /** @description 优先级（整数），null 时为 0；非整数返回 400「优先级的值无效」 */
+                        priority?: number | null;
                         /** @description 是否启用：true / false */
                         is_active?: boolean | null;
                         /** @description 描述 */
@@ -5155,19 +5165,19 @@ export interface paths {
                         /** @description 动态字段，最多 20 条；传入时整体替换原有字段，不传或 null 时保持不变 */
                         fields?: {
                             /** @description 字段键，为空的条目会被跳过 */
-                            field_key?: string;
+                            field_key?: string | null;
                             /** @description 字段值 */
                             field_value?: string | null;
                             /**
-                             * @description 字段类型，缺省 text（不校验取值）
+                             * @description 字段类型（不校验取值），缺省、null 或空串时为 text
                              * @example text
                              * @example number
                              * @example boolean
                              * @example date
                              */
-                            field_type?: string;
+                            field_type?: string | null;
                             /** @description 排序，缺省为该条目在数组中的下标 */
-                            sort_order?: number;
+                            sort_order?: number | null;
                             /** @description 备注 */
                             remark?: string | null;
                         }[] | null;
@@ -5359,10 +5369,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description 按状态筛选 */
-                    status?: "not_started" | "in_progress" | "completed" | "delayed";
-                    /** @description 按优先级筛选 */
-                    priority?: "low" | "medium" | "high" | "critical";
+                    /** @description 按状态筛选；空串表示不筛选 */
+                    status?: "not_started" | "in_progress" | "completed" | "delayed" | "";
+                    /** @description 按优先级筛选；空串表示不筛选 */
+                    priority?: "low" | "medium" | "high" | "critical" | "";
                 };
                 header?: never;
                 path?: never;
@@ -5455,10 +5465,10 @@ export interface paths {
                         /** @description 任务标题 */
                         title: string;
                         /**
-                         * @description 类型；不在枚举内时按 task
-                         * @enum {string}
+                         * @description 类型，缺省、null 或空串时为 task；其他值返回 400「任务类型的值无效」
+                         * @enum {string|null}
                          */
-                        task_type?: "phase" | "task" | "milestone";
+                        task_type?: "phase" | "task" | "milestone" | null;
                         /**
                          * Format: date
                          * @description 开始日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「开始日期不能为空」，格式不对返回 400「开始日期的值无效」
@@ -5469,24 +5479,24 @@ export interface paths {
                          * @description 结束日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「结束日期不能为空」，格式不对返回 400「结束日期的值无效」
                          */
                         end_date: string;
-                        /** @description 进度；自动截断到 0–100，缺省 0 */
-                        progress?: number;
+                        /** @description 进度；自动截断到 0–100；缺省或 null 时为 0 */
+                        progress?: number | null;
                         /** @description 负责人；空串视为 null */
                         assignee?: string | null;
                         /**
-                         * @description 优先级；不在枚举内时按 medium
-                         * @enum {string}
+                         * @description 优先级，缺省、null 或空串时为 medium；其他值返回 400「优先级的值无效」
+                         * @enum {string|null}
                          */
-                        priority?: "low" | "medium" | "high" | "critical";
+                        priority?: "low" | "medium" | "high" | "critical" | null;
                         /**
-                         * @description 状态；不在枚举内时按 not_started
-                         * @enum {string}
+                         * @description 状态，缺省、null 或空串时为 not_started；其他值返回 400「状态的值无效」
+                         * @enum {string|null}
                          */
-                        status?: "not_started" | "in_progress" | "completed" | "delayed";
+                        status?: "not_started" | "in_progress" | "completed" | "delayed" | null;
                         /** @description 条形颜色；缺省或空串为 #4080FF */
-                        color?: string;
-                        /** @description 排序值，缺省为 0 */
-                        sort_order?: number;
+                        color?: string | null;
+                        /** @description 排序值，缺省或 null 时为 0 */
+                        sort_order?: number | null;
                     };
                 };
             };
@@ -5599,38 +5609,38 @@ export interface paths {
                         /** @description 任务标题（传入时不能为空） */
                         title?: string;
                         /**
-                         * @description 类型；不在枚举内时按 task
-                         * @enum {string}
+                         * @description 类型，null 或空串时为 task；其他值返回 400「任务类型的值无效」
+                         * @enum {string|null}
                          */
-                        task_type?: "phase" | "task" | "milestone";
+                        task_type?: "phase" | "task" | "milestone" | null;
                         /**
                          * Format: date
-                         * @description 开始日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「开始日期不能为空」，格式不对返回 400「开始日期的值无效」
+                         * @description 开始日期 YYYY-MM-DD（须为有效日期）；不传则不修改，传 null 返回 400「开始日期不能为空」，格式不对返回 400「开始日期的值无效」
                          */
-                        start_date?: string | null;
+                        start_date?: string;
                         /**
                          * Format: date
-                         * @description 结束日期 YYYY-MM-DD（须为有效日期），必填；缺省或传 null 返回 400「结束日期不能为空」，格式不对返回 400「结束日期的值无效」
+                         * @description 结束日期 YYYY-MM-DD（须为有效日期）；不传则不修改，传 null 返回 400「结束日期不能为空」，格式不对返回 400「结束日期的值无效」
                          */
-                        end_date?: string | null;
-                        /** @description 进度；自动截断到 0–100 */
-                        progress?: number;
+                        end_date?: string;
+                        /** @description 进度；自动截断到 0–100；null 时为 0 */
+                        progress?: number | null;
                         /** @description 负责人；空串视为 null */
                         assignee?: string | null;
                         /**
-                         * @description 优先级；不在枚举内时按 medium
-                         * @enum {string}
+                         * @description 优先级，null 或空串时为 medium；其他值返回 400「优先级的值无效」
+                         * @enum {string|null}
                          */
-                        priority?: "low" | "medium" | "high" | "critical";
+                        priority?: "low" | "medium" | "high" | "critical" | null;
                         /**
-                         * @description 状态；不在枚举内时按 not_started
-                         * @enum {string}
+                         * @description 状态，null 或空串时为 not_started；其他值返回 400「状态的值无效」
+                         * @enum {string|null}
                          */
-                        status?: "not_started" | "in_progress" | "completed" | "delayed";
+                        status?: "not_started" | "in_progress" | "completed" | "delayed" | null;
                         /** @description 条形颜色；缺省或空串为 #4080FF */
-                        color?: string;
-                        /** @description 排序值 */
-                        sort_order?: number;
+                        color?: string | null;
+                        /** @description 排序值，null 时为 0 */
+                        sort_order?: number | null;
                     };
                 };
             };
@@ -5903,13 +5913,13 @@ export interface paths {
                         /** @description 列编码，唯一 */
                         board_code: string;
                         /** @description 列颜色；缺省或空串为 #4080FF */
-                        color?: string;
-                        /** @description 排序值，缺省为 0 */
-                        sort_order?: number;
-                        /** @description 在制品上限（0 表示不限制），缺省为 0 */
-                        wip_limit?: number;
-                        /** @description 布尔值；字符串 true/1/yes/启用 视为真，其他字符串视为假（缺省 true） */
-                        is_active?: boolean;
+                        color?: string | null;
+                        /** @description 排序值，缺省或 null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 在制品上限（0 表示不限制），缺省或 null 时为 0 */
+                        wip_limit?: number | null;
+                        /** @description 是否启用（true / false），缺省或 null 时为 true；其他值返回 400「启用的值无效」 */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -6038,13 +6048,13 @@ export interface paths {
                         /** @description 列标题（传入时不能为空） */
                         title?: string;
                         /** @description 列颜色；空串为 #4080FF */
-                        color?: string;
-                        /** @description 排序值 */
-                        sort_order?: number;
-                        /** @description 在制品上限（0 表示不限制） */
-                        wip_limit?: number;
-                        /** @description 布尔值；字符串 true/1/yes/启用 视为真，其他字符串视为假 */
-                        is_active?: boolean;
+                        color?: string | null;
+                        /** @description 排序值，null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 在制品上限（0 表示不限制），null 时为 0 */
+                        wip_limit?: number | null;
+                        /** @description 是否启用（true / false），null 时为 true；其他值返回 400「启用的值无效」 */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -6238,14 +6248,14 @@ export interface paths {
                         /** @description 卡片标题 */
                         title: string;
                         /** @description 卡片编码；缺省自动生成，重复时自动换成随机编码 */
-                        card_code?: string;
+                        card_code?: string | null;
                         /** @description 描述 */
                         description?: string | null;
                         /**
-                         * @description 优先级；不在枚举内时按 medium
-                         * @enum {string}
+                         * @description 优先级，缺省、null 或空串时为 medium；其他值返回 400「优先级的值无效」
+                         * @enum {string|null}
                          */
-                        priority?: "low" | "medium" | "high" | "urgent";
+                        priority?: "low" | "medium" | "high" | "urgent" | null;
                         /** @description 负责人 */
                         assignee?: string | null;
                         /**
@@ -6255,10 +6265,10 @@ export interface paths {
                         due_date?: string | null;
                         /** @description 标签（逗号分隔文本） */
                         tags?: string | null;
-                        /** @description 排序值，缺省为 0 */
-                        sort_order?: number;
-                        /** @description 布尔值；字符串 true/1/yes/启用 视为真，其他字符串视为假（缺省 true） */
-                        is_active?: boolean;
+                        /** @description 排序值，缺省或 null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否启用（true / false），缺省或 null 时为 true；其他值返回 400「启用的值无效」 */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -6367,11 +6377,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @description 卡片 ID */
-                        id?: number;
-                        /** @description 目标列 ID；缺省或为 0 时不改所属列 */
-                        board_id?: number;
-                        /** @description 排序值，缺省为 0 */
-                        sort_order?: number;
+                        id?: number | null;
+                        /** @description 目标列 ID；缺省或 null 时不改所属列 */
+                        board_id?: number | null;
+                        /** @description 排序值，缺省或 null 时为 0 */
+                        sort_order?: number | null;
                     }[];
                 };
             };
@@ -6451,16 +6461,16 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @description 移动到的列 ID */
-                        board_id?: number;
+                        board_id?: number | null;
                         /** @description 卡片标题（传入时不能为空） */
                         title?: string;
                         /** @description 描述 */
                         description?: string | null;
                         /**
-                         * @description 优先级；不在枚举内时按 medium
-                         * @enum {string}
+                         * @description 优先级，null 或空串时为 medium；其他值返回 400「优先级的值无效」
+                         * @enum {string|null}
                          */
-                        priority?: "low" | "medium" | "high" | "urgent";
+                        priority?: "low" | "medium" | "high" | "urgent" | null;
                         /** @description 负责人 */
                         assignee?: string | null;
                         /**
@@ -6470,10 +6480,10 @@ export interface paths {
                         due_date?: string | null;
                         /** @description 标签 */
                         tags?: string | null;
-                        /** @description 排序值 */
-                        sort_order?: number;
-                        /** @description 布尔值；字符串 true/1/yes/启用 视为真，其他字符串视为假 */
-                        is_active?: boolean;
+                        /** @description 排序值，null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否启用（true / false），null 时为 true；其他值返回 400「启用的值无效」 */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -6813,20 +6823,26 @@ export interface paths {
                         conditions?: {
                             groups?: {
                                 /** @description 分组名称（缺省为「分组N」） */
-                                name?: string;
-                                /** @enum {string} */
-                                logic?: "AND" | "OR";
-                            }[];
+                                name?: string | null;
+                                /**
+                                 * @description 逻辑：AND / OR，缺省、null 或空串时为 AND
+                                 * @enum {string|null}
+                                 */
+                                logic?: "AND" | "OR" | null;
+                            }[] | null;
                             items?: {
                                 /** @description 字段 */
-                                field?: string;
+                                field?: string | null;
                                 /** @description 运算符 */
-                                operator?: string;
-                                /** @description 比较值（缺省为空字符串） */
+                                operator?: string | null;
+                                /** @description 比较值（任意 JSON 值），缺省或 null 时为空字符串 */
                                 value?: unknown;
-                                /** @enum {string} */
-                                logic?: "AND" | "OR";
-                            }[];
+                                /**
+                                 * @description 逻辑：AND / OR，缺省、null 或空串时为 AND
+                                 * @enum {string|null}
+                                 */
+                                logic?: "AND" | "OR" | null;
+                            }[] | null;
                         } | null;
                         /** @description 展示配置（JSON 对象），缺省为 {} */
                         display_config?: {
@@ -7050,35 +7066,35 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description 要导出的记录 ID（export_mode=selected 时必填） */
-                        ids?: number[];
-                        /** @description 导出字段，可选 id、name、query_code、category、keyword、data_source、owner、image_urls、file_urls、priority、is_active、status、condition_logic、conditions_json、display_config、permission_config、schema_config、version、published_at、description、created_at、updated_at；为空或都无效时导出全部字段 */
-                        fields?: string[];
+                        /** @description 要导出的记录 ID（export_mode=selected 时必填）；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出字段，可选 id、name、query_code、category、keyword、data_source、owner、image_urls、file_urls、priority、is_active、status、condition_logic、conditions_json、display_config、permission_config、schema_config、version、published_at、description、created_at、updated_at；缺省、null、为空或都无效时导出全部字段 */
+                        fields?: string[] | null;
                         /**
-                         * @description 导出方式，默认 selected
+                         * @description 导出方式：selected 导出勾选的 ids，filtered / all 按 filters 导出；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
+                        export_mode?: "selected" | "filtered" | "all" | null;
                         /** @description 筛选条件（export_mode=filtered 时使用；必须是对象） */
                         filters?: {
                             /** @description 模糊匹配名称、编码、关键字、数据源、负责人 */
-                            search?: string;
+                            search?: string | null;
                             /** @description 分类，精确匹配 */
-                            category?: string;
+                            category?: string | null;
                             /** @description 负责人，模糊匹配 */
-                            owner?: string;
+                            owner?: string | null;
                             /** @description 启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选 */
                             is_active?: string | null;
                             /** @description 发布状态，精确匹配 */
-                            status?: string;
-                        };
+                            status?: string | null;
+                        } | null;
                         /**
                          * @description 文件格式，默认 csv；其他值按 csv 处理
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -7255,7 +7271,28 @@ export interface paths {
                         } | null;
                         /** @description 条件配置 { groups, items }，只用于统计条件数 */
                         conditions?: {
-                            [key: string]: unknown;
+                            groups?: {
+                                /** @description 分组名称（缺省为「分组N」） */
+                                name?: string | null;
+                                /**
+                                 * @description 逻辑：AND / OR，缺省、null 或空串时为 AND
+                                 * @enum {string|null}
+                                 */
+                                logic?: "AND" | "OR" | null;
+                            }[] | null;
+                            items?: {
+                                /** @description 字段 */
+                                field?: string | null;
+                                /** @description 运算符 */
+                                operator?: string | null;
+                                /** @description 比较值（任意 JSON 值），缺省或 null 时为空字符串 */
+                                value?: unknown;
+                                /**
+                                 * @description 逻辑：AND / OR，缺省、null 或空串时为 AND
+                                 * @enum {string|null}
+                                 */
+                                logic?: "AND" | "OR" | null;
+                            }[] | null;
                         } | null;
                     };
                 };
@@ -7575,20 +7612,26 @@ export interface paths {
                         conditions?: {
                             groups?: {
                                 /** @description 分组名称（缺省为「分组N」） */
-                                name?: string;
-                                /** @enum {string} */
-                                logic?: "AND" | "OR";
-                            }[];
+                                name?: string | null;
+                                /**
+                                 * @description 逻辑：AND / OR，缺省、null 或空串时为 AND
+                                 * @enum {string|null}
+                                 */
+                                logic?: "AND" | "OR" | null;
+                            }[] | null;
                             items?: {
                                 /** @description 字段 */
-                                field?: string;
+                                field?: string | null;
                                 /** @description 运算符 */
-                                operator?: string;
-                                /** @description 比较值（缺省为空字符串） */
+                                operator?: string | null;
+                                /** @description 比较值（任意 JSON 值），缺省或 null 时为空字符串 */
                                 value?: unknown;
-                                /** @enum {string} */
-                                logic?: "AND" | "OR";
-                            }[];
+                                /**
+                                 * @description 逻辑：AND / OR，缺省、null 或空串时为 AND
+                                 * @enum {string|null}
+                                 */
+                                logic?: "AND" | "OR" | null;
+                            }[] | null;
                         } | null;
                         /** @description 展示配置（JSON 对象），缺省为 {} */
                         display_config?: {
@@ -8346,35 +8389,35 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description 要导出的记录 ID（export_mode=selected 时必填） */
-                        ids?: number[];
-                        /** @description 导出字段，可选 id、name、item_code、category、status、amount、quantity、owner、priority、is_active、description、created_at、updated_at；为空或都无效时导出全部字段 */
-                        fields?: string[];
+                        /** @description 要导出的记录 ID（export_mode=selected 时必填）；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出字段，可选 id、name、item_code、category、status、amount、quantity、owner、priority、is_active、description、created_at、updated_at；缺省、null、为空或都无效时导出全部字段 */
+                        fields?: string[] | null;
                         /**
-                         * @description 导出方式，默认 selected
+                         * @description 导出方式：selected 导出勾选的 ids，filtered / all 按 filters 导出；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
+                        export_mode?: "selected" | "filtered" | "all" | null;
                         /** @description 筛选条件（export_mode=filtered 时使用；必须是对象） */
                         filters?: {
                             /** @description 模糊匹配名称、编码、负责人 */
-                            search?: string;
+                            search?: string | null;
                             /** @description 分类，精确匹配 */
-                            category?: string;
+                            category?: string | null;
                             /** @description 负责人，模糊匹配 */
-                            owner?: string;
+                            owner?: string | null;
                             /** @description 启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选 */
                             is_active?: string | null;
                             /** @description 发布状态，精确匹配 */
-                            status?: string;
-                        };
+                            status?: string | null;
+                        } | null;
                         /**
                          * @description 文件格式，默认 csv；其他值按 csv 处理
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -8964,12 +9007,12 @@ export interface paths {
                     search?: string;
                     /** @description 按节点类型精确筛选 */
                     node_type?: string;
-                    /** @description 按状态精确筛选 */
-                    status?: "active" | "inactive" | "archived";
+                    /** @description 按状态精确筛选；空串表示不筛选 */
+                    status?: "active" | "inactive" | "archived" | "";
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
                 };
                 header?: never;
                 path?: never;
@@ -9076,25 +9119,25 @@ export interface paths {
                         /** @description 父节点 ID，必须存在；为空表示根节点 */
                         parent_id?: number | null;
                         /**
-                         * @description 节点类型，缺省为 category（不校验取值）
+                         * @description 节点类型（不校验取值），缺省、null 或空串时为 category
                          * @example category
                          * @example item
                          * @example group
                          */
-                        node_type?: string;
+                        node_type?: string | null;
                         /** @description 图标 */
                         icon?: string | null;
                         /** @description 描述 */
                         description?: string | null;
-                        /** @description 排序，无法解析为整数时为 0 */
-                        sort_order?: number;
+                        /** @description 排序（整数），缺省或 null 时为 0；非整数返回 400「排序的值无效」 */
+                        sort_order?: number | null;
                         /** @description 是否启用：true / false，缺省为 true */
                         is_active?: boolean | null;
                         /**
-                         * @description 状态，缺省为 active
-                         * @enum {string}
+                         * @description 状态，缺省、null 或空串时为 active；其他值返回 400
+                         * @enum {string|null}
                          */
-                        status?: "active" | "inactive" | "archived";
+                        status?: "active" | "inactive" | "archived" | null;
                         /** @description 负责人 */
                         owner?: string | null;
                     };
@@ -9208,12 +9251,12 @@ export interface paths {
                     search?: string;
                     /** @description 按节点类型精确筛选 */
                     node_type?: string;
-                    /** @description 按状态精确筛选 */
-                    status?: "active" | "inactive" | "archived";
+                    /** @description 按状态精确筛选；空串表示不筛选 */
+                    status?: "active" | "inactive" | "archived" | "";
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
                 };
                 header?: never;
                 path?: never;
@@ -9270,42 +9313,42 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description 导出方式，缺省为 selected
+                         * @description 导出方式：selected 导出勾选的 ids，filtered / all 按 filters 导出；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description selected 模式下要导出的记录 ID */
-                        ids?: number[];
-                        /** @description 要导出的列；为空或全部无效时导出所有列 */
-                        fields?: ("id" | "name" | "node_code" | "parent_id" | "node_type" | "icon" | "status" | "owner" | "sort_order" | "is_active" | "description" | "created_at" | "updated_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description selected 模式下要导出的记录 ID；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 要导出的列；缺省、null、为空或全部无效时导出所有列 */
+                        fields?: ("id" | "name" | "node_code" | "parent_id" | "node_type" | "icon" | "status" | "owner" | "sort_order" | "is_active" | "description" | "created_at" | "updated_at")[] | null;
                         /** @description filtered 模式下的筛选条件 */
                         filters?: {
                             /** @description 按节点名称、编码、负责人模糊搜索 */
-                            search?: string;
+                            search?: string | null;
                             /**
                              * @description 节点类型
                              * @example category
                              * @example item
                              * @example group
                              */
-                            node_type?: string;
+                            node_type?: string | null;
                             /**
-                             * @description 状态
-                             * @enum {string}
+                             * @description 状态，精确匹配；空串或 null 表示全部
+                             * @enum {string|null}
                              */
-                            status?: "active" | "inactive" | "archived";
+                            status?: "active" | "inactive" | "archived" | "" | null;
                             /** @description 负责人（模糊） */
-                            owner?: string;
+                            owner?: string | null;
                             /** @description 启用状态，与列表的 is_active 查询参数相同：true / 1 / 启用 … 或 false / 0 / 停用 …，其他值不筛选 */
                             is_active?: string | null;
-                        };
+                        } | null;
                         /**
                          * @description 文件格式，缺省或无法识别时为 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -9545,12 +9588,12 @@ export interface paths {
                     search?: string;
                     /** @description 按节点类型精确筛选 */
                     node_type?: string;
-                    /** @description 按状态精确筛选 */
-                    status?: "active" | "inactive" | "archived";
+                    /** @description 按状态精确筛选；空串表示不筛选 */
+                    status?: "active" | "inactive" | "archived" | "";
                     /** @description 按负责人模糊筛选 */
                     owner?: string;
-                    /** @description 按启用状态筛选；其他值视为不筛选 */
-                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用";
+                    /** @description 按启用状态筛选；空串或其他值不筛选 */
+                    is_active?: "true" | "false" | "1" | "0" | "yes" | "no" | "启用" | "停用" | "";
                 };
                 header?: never;
                 path?: never;
@@ -9770,25 +9813,25 @@ export interface paths {
                         /** @description 父节点 ID；null 表示移到根；必须存在，且不能是自身或自身的子孙节点 */
                         parent_id?: number | null;
                         /**
-                         * @description 节点类型，缺省为 category（不校验取值）
+                         * @description 节点类型（不校验取值），null 或空串时为 category
                          * @example category
                          * @example item
                          * @example group
                          */
-                        node_type?: string;
+                        node_type?: string | null;
                         /** @description 图标 */
                         icon?: string | null;
                         /** @description 描述 */
                         description?: string | null;
-                        /** @description 排序，无法解析为整数时保持原值 */
-                        sort_order?: number;
+                        /** @description 排序（整数），null 时为 0；非整数返回 400「排序的值无效」 */
+                        sort_order?: number | null;
                         /** @description 是否启用：true / false */
                         is_active?: boolean | null;
                         /**
-                         * @description 状态，缺省为 原值
-                         * @enum {string}
+                         * @description 状态，null 或空串时为 active；其他值返回 400
+                         * @enum {string|null}
                          */
-                        status?: "active" | "inactive" | "archived";
+                        status?: "active" | "inactive" | "archived" | null;
                         /** @description 负责人 */
                         owner?: string | null;
                     };
@@ -10076,7 +10119,8 @@ export interface paths {
                 query?: {
                     /** @description 按名称 / 编码搜索 */
                     search?: string;
-                    status?: "active" | "disabled";
+                    /** @description 部门状态，精确匹配；空串或其他值不筛选 */
+                    status?: "active" | "disabled" | "";
                 };
                 header?: never;
                 path?: never;
@@ -10165,7 +10209,8 @@ export interface paths {
                         parent_id?: number | null;
                         /** @description 负责人（用户 ID） */
                         leader_id?: number | null;
-                        sort_order?: number;
+                        /** @description 缺省或 null 时为 0 */
+                        sort_order?: number | null;
                         /** @enum {string} */
                         status?: "active" | "disabled";
                     };
@@ -10329,7 +10374,8 @@ export interface paths {
                         parent_id?: number | null;
                         /** @description 负责人（用户 ID） */
                         leader_id?: number | null;
-                        sort_order?: number;
+                        /** @description null 时为 0 */
+                        sort_order?: number | null;
                         /** @enum {string} */
                         status?: "active" | "disabled";
                     };
@@ -10661,10 +10707,10 @@ export interface paths {
                         code: string;
                         /** @description 描述 */
                         description?: string | null;
-                        /** @description 排序，默认 0 */
-                        sort_order?: number;
-                        /** @description 是否启用，默认 true */
-                        is_active?: boolean;
+                        /** @description 排序，缺省或 null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否启用，缺省或 null 时为 true */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -10833,17 +10879,19 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @description 移动到的目标字典 ID */
-                        dict_type_id?: number;
+                        dict_type_id?: number | null;
                         /** @description 字典标签（去除首尾空格后不能为空） */
                         label?: string;
                         /** @description 字典值，同一字典内唯一 */
                         value?: string;
                         /** @description 标签颜色，如 #1677ff */
                         color?: string | null;
-                        sort_order?: number;
-                        /** @description 设为 true 会取消目标字典其他项的默认 */
-                        is_default?: boolean;
-                        is_active?: boolean;
+                        /** @description null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 设为 true 会取消目标字典其他项的默认，null 时为 false */
+                        is_default?: boolean | null;
+                        /** @description null 时为 true */
+                        is_active?: boolean | null;
                         /** @description 备注 */
                         description?: string | null;
                     };
@@ -11179,10 +11227,10 @@ export interface paths {
                         code?: string;
                         /** @description 描述 */
                         description?: string | null;
-                        /** @description 排序，默认 0 */
-                        sort_order?: number;
-                        /** @description 是否启用，默认 true */
-                        is_active?: boolean;
+                        /** @description 排序，null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否启用，null 时为 true */
+                        is_active?: boolean | null;
                     };
                 };
             };
@@ -11453,12 +11501,12 @@ export interface paths {
                         value: string;
                         /** @description 标签颜色，如 #1677ff */
                         color?: string | null;
-                        /** @description 排序，默认 0 */
-                        sort_order?: number;
-                        /** @description 是否默认项，默认 false；设为 true 会取消同一字典其他项的默认 */
-                        is_default?: boolean;
-                        /** @description 是否启用，默认 true */
-                        is_active?: boolean;
+                        /** @description 排序，缺省或 null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否默认项；设为 true 会取消同一字典其他项的默认；缺省或 null 时为 false */
+                        is_default?: boolean | null;
+                        /** @description 是否启用，缺省或 null 时为 true */
+                        is_active?: boolean | null;
                         /** @description 备注 */
                         description?: string | null;
                     };
@@ -11807,9 +11855,10 @@ export interface paths {
                     per_page?: number;
                     /** @description 按文件名搜索 */
                     search?: string;
-                    kind?: "image" | "document" | "other";
-                    /** @description 是否被业务记录引用 */
-                    referenced?: "yes" | "no";
+                    /** @description 文件类别：image 图片 / document 文档 / other 其他；空串或其他值不筛选 */
+                    kind?: "image" | "document" | "other" | "";
+                    /** @description 是否被业务记录引用；空串表示不筛选 */
+                    referenced?: "yes" | "no" | "";
                 };
                 header?: never;
                 path?: never;
@@ -12337,9 +12386,9 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @description 身份验证器 App 上的 6 位验证码（允许前后一个周期，空格忽略） */
-                        code?: string;
+                        code?: string | null;
                         /** @description 恢复码（不区分大小写，忽略空格和连字符） */
-                        recovery_code?: string;
+                        recovery_code?: string | null;
                     };
                 };
             };
@@ -12508,8 +12557,8 @@ export interface paths {
                     per_page?: number;
                     /** @description 按用户名模糊搜索 */
                     username?: string;
-                    /** @description 登录结果，精确匹配 */
-                    status?: "success" | "failed";
+                    /** @description 登录结果，精确匹配；空串表示不筛选 */
+                    status?: "success" | "failed" | "";
                 };
                 header?: never;
                 path?: never;
@@ -12606,30 +12655,31 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配
+                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配（all 同 filtered）；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description export_mode 为 selected 时必填且不能为空 */
-                        ids?: number[];
-                        /** @description 导出列，按给定顺序；为空或全部无效时导出全部列 */
-                        fields?: ("id" | "username" | "status" | "ip" | "user_agent" | "message" | "created_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description export_mode 为 selected 时必填且不能为空；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出列，按给定顺序；缺省、null、为空或全部无效时导出全部列 */
+                        fields?: ("id" | "username" | "status" | "ip" | "user_agent" | "message" | "created_at")[] | null;
                         /** @description export_mode 为 filtered 时的筛选条件 */
                         filters?: {
                             /** @description 用户名，模糊匹配 */
-                            username?: string;
+                            username?: string | null;
                             /**
-                             * @description 精确匹配
-                             * @enum {string}
+                             * @description 登录结果，精确匹配；空串或 null 表示全部
+                             * @enum {string|null}
                              */
-                            status?: "success" | "failed";
-                        };
+                            status?: "success" | "failed" | "" | null;
+                        } | null;
                         /**
+                         * @description 文件格式，缺省或其他值按 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -12808,29 +12858,30 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配
+                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配（all 同 filtered）；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description export_mode 为 selected 时必填且不能为空 */
-                        ids?: number[];
-                        /** @description 导出列，按给定顺序；为空或全部无效时导出全部列 */
-                        fields?: ("id" | "username" | "module" | "action" | "method" | "path" | "target_id" | "status_code" | "ip" | "user_agent" | "payload" | "created_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description export_mode 为 selected 时必填且不能为空；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出列，按给定顺序；缺省、null、为空或全部无效时导出全部列 */
+                        fields?: ("id" | "username" | "module" | "action" | "method" | "path" | "target_id" | "status_code" | "ip" | "user_agent" | "payload" | "created_at")[] | null;
                         /** @description export_mode 为 filtered 时的筛选条件 */
                         filters?: {
                             /** @description 用户名，模糊匹配 */
-                            username?: string;
+                            username?: string | null;
                             /** @description 精确匹配 */
-                            module?: string;
+                            module?: string | null;
                             /** @description 精确匹配 */
-                            action?: string;
-                        };
+                            action?: string | null;
+                        } | null;
                         /**
+                         * @description 文件格式，缺省或其他值按 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -13073,8 +13124,11 @@ export interface paths {
                         name: string;
                         /** @description 菜单编码（权限码），唯一 */
                         code: string;
-                        /** @description 类型：directory / menu / button，新增时缺省 menu（此接口不校验取值，只有导入会校验） */
-                        menu_type?: string;
+                        /**
+                         * @description 类型：directory / menu / button，缺省、null 或空串时为 menu；其他值返回 400「菜单类型只能是 directory、menu 或 button」
+                         * @enum {string|null}
+                         */
+                        menu_type?: "directory" | "menu" | "button" | null;
                         icon?: string | null;
                         /** @description 前端路由路径 */
                         path?: string | null;
@@ -13082,12 +13136,12 @@ export interface paths {
                         component?: string | null;
                         /** @description 父菜单 ID，null 为顶级 */
                         parent_id?: number | null;
-                        /** @description 排序，新增时缺省 0 */
-                        sort_order?: number;
-                        /** @description 是否在侧边栏显示，新增时缺省 true */
-                        is_visible?: boolean;
-                        /** @description 是否启用，新增时缺省 true */
-                        is_active?: boolean;
+                        /** @description 排序，缺省或 null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否在侧边栏显示，缺省或 null 时为 true */
+                        is_visible?: boolean | null;
+                        /** @description 是否启用，缺省或 null 时为 true */
+                        is_active?: boolean | null;
                         description?: string | null;
                     };
                 };
@@ -13180,26 +13234,26 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配数据
+                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配数据（all 同 filtered）；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description selected 模式必填且不能为空 */
-                        ids?: number[];
-                        /** @description 导出列，缺省或全部无效时导出所有列 */
-                        fields?: ("id" | "name" | "code" | "menu_type" | "path" | "component" | "icon" | "parent_code" | "sort_order" | "is_visible" | "is_active" | "description")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description selected 模式必填且不能为空；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出列，缺省、null、为空或全部无效时导出所有列 */
+                        fields?: ("id" | "name" | "code" | "menu_type" | "path" | "component" | "icon" | "parent_code" | "sort_order" | "is_visible" | "is_active" | "description")[] | null;
                         /** @description filtered 模式的筛选条件 */
                         filters?: {
                             /** @description 按菜单名称、编码模糊搜索 */
-                            search?: string;
-                        };
+                            search?: string | null;
+                        } | null;
                         /**
                          * @description 文件格式，缺省或其他值按 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -13509,8 +13563,11 @@ export interface paths {
                         name?: string;
                         /** @description 菜单编码（权限码），唯一 */
                         code?: string;
-                        /** @description 类型：directory / menu / button，新增时缺省 menu（此接口不校验取值，只有导入会校验） */
-                        menu_type?: string;
+                        /**
+                         * @description 类型：directory / menu / button，null 或空串时为 menu；其他值返回 400「菜单类型只能是 directory、menu 或 button」
+                         * @enum {string|null}
+                         */
+                        menu_type?: "directory" | "menu" | "button" | null;
                         icon?: string | null;
                         /** @description 前端路由路径 */
                         path?: string | null;
@@ -13518,12 +13575,12 @@ export interface paths {
                         component?: string | null;
                         /** @description 父菜单 ID，null 为顶级 */
                         parent_id?: number | null;
-                        /** @description 排序，新增时缺省 0 */
-                        sort_order?: number;
-                        /** @description 是否在侧边栏显示，新增时缺省 true */
-                        is_visible?: boolean;
-                        /** @description 是否启用，新增时缺省 true */
-                        is_active?: boolean;
+                        /** @description 排序，null 时为 0 */
+                        sort_order?: number | null;
+                        /** @description 是否在侧边栏显示，null 时为 true */
+                        is_visible?: boolean | null;
+                        /** @description 是否启用，null 时为 true */
+                        is_active?: boolean | null;
                         description?: string | null;
                     };
                 };
@@ -13847,8 +13904,8 @@ export interface paths {
                     page?: number;
                     /** @description 每页条数（最大 200） */
                     per_page?: number;
-                    /** @description 已读筛选：true 已读 / false 未读 / 其他值不筛选 */
-                    is_read?: "all" | "true" | "false";
+                    /** @description 已读筛选：true 已读 / false 未读；all、空串或其他值不筛选 */
+                    is_read?: "all" | "true" | "false" | "";
                 };
                 header?: never;
                 path?: never;
@@ -13929,18 +13986,18 @@ export interface paths {
                         /** @description 内容，空值存为空字符串 */
                         content?: string | null;
                         /**
-                         * @description 通知类型：info / warning / success / error，默认 info；其他值返回 400「通知类型的值无效」
+                         * @description 通知类型：info / warning / success / error，缺省、null 或空串时为 info；其他值返回 400「通知类型的值无效」
                          * @default info
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        noti_type?: "info" | "warning" | "success" | "error";
+                        noti_type?: "info" | "warning" | "success" | "error" | null;
                         /** @description 点击跳转的链接 */
                         link?: string | null;
                         /**
-                         * @description 是否全员通知
+                         * @description 是否全员通知，缺省或 null 时为 true
                          * @default true
                          */
-                        is_global?: boolean;
+                        is_global?: boolean | null;
                         /** @description 接收用户 ID，仅 is_global 为 false 时使用 */
                         user_id?: number | null;
                     };
@@ -14442,12 +14499,12 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        nickname?: string;
+                        nickname?: string | null;
                         /** Format: email */
-                        email?: string;
-                        phone?: string;
+                        email?: string | null;
+                        phone?: string | null;
                         /** @description http(s):// 或 / 开头的图片地址 */
-                        avatar?: string;
+                        avatar?: string | null;
                     };
                 };
             };
@@ -15139,9 +15196,9 @@ export interface paths {
                     "application/json": {
                         password: string;
                         /** @description 6 位验证码 */
-                        code?: string;
+                        code?: string | null;
                         /** @description 恢复码 */
-                        recovery_code?: string;
+                        recovery_code?: string | null;
                     };
                 };
             };
@@ -15290,14 +15347,14 @@ export interface paths {
                         code: string;
                         description?: string | null;
                         /**
-                         * @description 数据范围，缺省 all
-                         * @enum {string}
+                         * @description 数据范围，缺省、null 或空串时为 all
+                         * @enum {string|null}
                          */
-                        data_scope?: "all" | "dept_and_children" | "dept" | "self" | "custom";
-                        /** @description 自定义部门（仅 data_scope 为 custom 时生效，部门须存在） */
-                        dept_ids?: number[];
-                        /** @description 授权菜单 ID，整体替换；不存在的 ID 会被忽略 */
-                        menu_ids?: number[];
+                        data_scope?: "all" | "dept_and_children" | "dept" | "self" | "custom" | null;
+                        /** @description 自定义部门（仅 data_scope 为 custom 时生效，部门须存在）；缺省或 null 视为空列表 */
+                        dept_ids?: number[] | null;
+                        /** @description 授权菜单 ID，整体替换；不存在的 ID 会被忽略；缺省或 null 视为空列表 */
+                        menu_ids?: number[] | null;
                     };
                 };
             };
@@ -15395,26 +15452,26 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配数据
+                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配数据（all 同 filtered）；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description selected 模式必填且不能为空 */
-                        ids?: number[];
-                        /** @description 导出列，缺省或全部无效时导出所有列 */
-                        fields?: ("id" | "name" | "code" | "description" | "data_scope" | "dept_codes" | "menu_codes" | "menu_names" | "created_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description selected 模式必填且不能为空；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出列，缺省、null、为空或全部无效时导出所有列 */
+                        fields?: ("id" | "name" | "code" | "description" | "data_scope" | "dept_codes" | "menu_codes" | "menu_names" | "created_at")[] | null;
                         /** @description filtered 模式的筛选条件 */
                         filters?: {
                             /** @description 按角色名称、编码模糊搜索 */
-                            search?: string;
-                        };
+                            search?: string | null;
+                        } | null;
                         /**
                          * @description 文件格式，缺省或其他值按 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -15650,14 +15707,14 @@ export interface paths {
                         code?: string;
                         description?: string | null;
                         /**
-                         * @description 数据范围，缺省 all
-                         * @enum {string}
+                         * @description 数据范围，null 或空串时为 all
+                         * @enum {string|null}
                          */
-                        data_scope?: "all" | "dept_and_children" | "dept" | "self" | "custom";
-                        /** @description 自定义部门（仅 data_scope 为 custom 时生效，部门须存在） */
-                        dept_ids?: number[];
-                        /** @description 授权菜单 ID，整体替换；不存在的 ID 会被忽略 */
-                        menu_ids?: number[];
+                        data_scope?: "all" | "dept_and_children" | "dept" | "self" | "custom" | null;
+                        /** @description 自定义部门（仅 data_scope 为 custom 时生效，部门须存在）；null 视为空列表 */
+                        dept_ids?: number[] | null;
+                        /** @description 授权菜单 ID，整体替换；不存在的 ID 会被忽略；null 视为空列表（清空授权） */
+                        menu_ids?: number[] | null;
                     };
                 };
             };
@@ -15822,8 +15879,8 @@ export interface paths {
                     per_page?: number;
                     /** @description 按任务名称、任务编码、请求地址模糊搜索 */
                     search?: string;
-                    /** @description 按最近状态（last_status）精确筛选 */
-                    status?: "idle" | "running" | "success" | "failed";
+                    /** @description 按最近状态（last_status）精确筛选；空串表示不筛选 */
+                    status?: "idle" | "running" | "success" | "failed" | "";
                     /** @description 按启用状态筛选：true/false（也接受 1/0、yes/no、on/off、是/否、启用/停用），无法识别时不筛选 */
                     is_active?: string;
                 };
@@ -15936,11 +15993,11 @@ export interface paths {
                         /** @description 5 段 Cron 表达式：分 时 日 月 周（如 *\/5 * * * *），一年内必须有触发时间 */
                         cron_expression: string;
                         /**
-                         * @description 请求方法，不区分大小写
+                         * @description 请求方法，不区分大小写；缺省、null 或空串时为 GET
                          * @default GET
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        request_method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+                        request_method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | null;
                         /** @description 目标地址：只支持 http/https，不能指向内网或保留地址（域名会解析后逐个检查） */
                         request_url: string;
                         /** @description 请求头：JSON 对象或 JSON 对象字符串，空值表示无请求头 */
@@ -15950,15 +16007,15 @@ export interface paths {
                         /** @description 请求体原文；执行时能解析为 JSON 对象 / 数组则按 JSON 发送，否则按文本发送 */
                         request_body?: string | null;
                         /**
-                         * @description 超时秒数，超出范围自动截到 1–120
+                         * @description 超时秒数，超出范围自动截到 1–120；缺省或 null 时为 10
                          * @default 10
                          */
-                        timeout_seconds?: number;
+                        timeout_seconds?: number | null;
                         /**
-                         * @description 是否启用（true / false），缺省为 true
+                         * @description 是否启用（true / false），缺省或 null 时为 true
                          * @default true
                          */
-                        is_active?: boolean;
+                        is_active?: boolean | null;
                         /** @description 备注 */
                         remark?: string | null;
                     };
@@ -16074,8 +16131,8 @@ export interface paths {
                     per_page?: number;
                     /** @description 只看某个任务的记录；0 或无法解析时不筛选 */
                     task_id?: number;
-                    /** @description 按执行结果精确筛选 */
-                    status?: "success" | "failed";
+                    /** @description 按执行结果精确筛选；空串表示不筛选 */
+                    status?: "success" | "failed" | "";
                 };
                 header?: never;
                 path?: never;
@@ -16283,10 +16340,10 @@ export interface paths {
                         /** @description 5 段 Cron 表达式：分 时 日 月 周（如 *\/5 * * * *），一年内必须有触发时间 */
                         cron_expression?: string;
                         /**
-                         * @description 请求方法，不区分大小写
-                         * @enum {string}
+                         * @description 请求方法，不区分大小写；null 或空串时为 GET
+                         * @enum {string|null}
                          */
-                        request_method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+                        request_method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | null;
                         /** @description 目标地址：只支持 http/https，不能指向内网或保留地址（域名会解析后逐个检查） */
                         request_url?: string;
                         /** @description 请求头：JSON 对象或 JSON 对象字符串，空值表示无请求头 */
@@ -16295,10 +16352,10 @@ export interface paths {
                         } | string | null;
                         /** @description 请求体原文；执行时能解析为 JSON 对象 / 数组则按 JSON 发送，否则按文本发送 */
                         request_body?: string | null;
-                        /** @description 超时秒数，超出范围自动截到 1–120 */
-                        timeout_seconds?: number;
-                        /** @description 是否启用（true / false） */
-                        is_active?: boolean;
+                        /** @description 超时秒数，超出范围自动截到 1–120；null 时为 10 */
+                        timeout_seconds?: number | null;
+                        /** @description 是否启用（true / false），null 时为 true */
+                        is_active?: boolean | null;
                         /** @description 备注 */
                         remark?: string | null;
                     };
@@ -17104,7 +17161,7 @@ export interface paths {
                         /** @description 表单里还没保存的修改（{ 设置项: 值 }），套在已保存的值上使用；不写入。密钥：字符串 = 用这个值，null = 视为清除，不传 = 用已保存的值 */
                         values?: {
                             [key: string]: unknown;
-                        };
+                        } | null;
                     };
                 };
             };
@@ -17192,7 +17249,7 @@ export interface paths {
                         /** @description 表单里还没保存的修改（{ 设置项: 值 }），套在已保存的值上使用；不写入。密钥：字符串 = 用这个值，null = 视为清除，不传 = 用已保存的值 */
                         values?: {
                             [key: string]: unknown;
-                        };
+                        } | null;
                     };
                 };
             };
@@ -17277,7 +17334,7 @@ export interface paths {
                         /** @description 表单里还没保存的修改（{ 设置项: 值 }），套在已保存的值上使用；不写入。密钥：字符串 = 用这个值，null = 视为清除，不传 = 用已保存的值 */
                         values?: {
                             [key: string]: unknown;
-                        };
+                        } | null;
                     };
                 };
             };
@@ -17742,8 +17799,8 @@ export interface paths {
                     per_page?: number;
                     /** @description 按用户名、昵称、邮箱、手机号模糊搜索 */
                     search?: string;
-                    /** @description 状态筛选，其他值忽略 */
-                    status?: "active" | "disabled";
+                    /** @description 状态筛选；空串或其他值不筛选 */
+                    status?: "active" | "disabled" | "";
                     /** @description 部门 ID，包含其下级部门；非数字忽略 */
                     dept_id?: string;
                 };
@@ -17852,8 +17909,8 @@ export interface paths {
                         avatar?: string | null;
                         /** @description 部门 ID，null 表示不分配；部门必须存在且在当前数据权限范围内 */
                         dept_id?: number | null;
-                        /** @description 角色 ID 列表（全部须存在）；授予或移除 super_admin 仅超级管理员可做 */
-                        role_ids?: number[];
+                        /** @description 角色 ID 列表（全部须存在）；授予或移除 super_admin 仅超级管理员可做；缺省或 null 视为空列表 */
+                        role_ids?: number[] | null;
                     };
                 };
             };
@@ -17957,30 +18014,33 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配数据
+                         * @description selected 导出勾选的 ids；filtered 按 filters 导出全部匹配数据（all 同 filtered）；缺省、null 或空串时为 selected
                          * @default selected
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        export_mode?: "selected" | "filtered";
-                        /** @description selected 模式必填且不能为空 */
-                        ids?: number[];
-                        /** @description 导出列，缺省或全部无效时导出所有列 */
-                        fields?: ("id" | "username" | "nickname" | "email" | "phone" | "dept_name" | "status" | "role_names" | "role_codes" | "last_login_at" | "last_login_ip" | "created_at")[];
+                        export_mode?: "selected" | "filtered" | "all" | null;
+                        /** @description selected 模式必填且不能为空；缺省或 null 视为空列表 */
+                        ids?: number[] | null;
+                        /** @description 导出列，缺省、null、为空或全部无效时导出所有列 */
+                        fields?: ("id" | "username" | "nickname" | "email" | "phone" | "dept_name" | "status" | "role_names" | "role_codes" | "last_login_at" | "last_login_ip" | "created_at")[] | null;
                         /** @description filtered 模式的筛选条件 */
                         filters?: {
                             /** @description 按用户名、昵称、邮箱、手机号模糊搜索 */
-                            search?: string;
-                            /** @enum {string} */
-                            status?: "active" | "disabled";
+                            search?: string | null;
+                            /**
+                             * @description 用户状态，精确匹配；空串或 null 表示全部
+                             * @enum {string|null}
+                             */
+                            status?: "active" | "disabled" | "" | null;
                             /** @description 部门 ID（须为 JSON 整数），包含其下级部门 */
-                            dept_id?: number;
-                        };
+                            dept_id?: number | null;
+                        } | null;
                         /**
                          * @description 文件格式，缺省或其他值按 csv
                          * @default csv
-                         * @enum {string}
+                         * @enum {string|null}
                          */
-                        file_type?: "csv" | "xlsx";
+                        file_type?: "csv" | "xlsx" | null;
                     };
                 };
             };
@@ -18211,7 +18271,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @description 新密码，留空不修改；须符合密码规则 */
-                        password?: string;
+                        password?: string | null;
                         /** @description 昵称，空值存为 null */
                         nickname?: string | null;
                         /**
@@ -18225,8 +18285,8 @@ export interface paths {
                         avatar?: string | null;
                         /** @description 部门 ID，null 表示不分配；部门必须存在且在当前数据权限范围内 */
                         dept_id?: number | null;
-                        /** @description 角色 ID 列表（全部须存在）；授予或移除 super_admin 仅超级管理员可做 */
-                        role_ids?: number[];
+                        /** @description 角色 ID 列表（全部须存在）；授予或移除 super_admin 仅超级管理员可做；null 视为空列表（移除全部角色） */
+                        role_ids?: number[] | null;
                     };
                 };
             };
@@ -18670,11 +18730,13 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        name?: string;
+                        /** @description 名称（去掉首尾空格后不能为空，最多 100 个字符） */
+                        name: string;
                         /** @description http(s)，不能是保留地址；生产默认也不能是内网 */
-                        url?: string;
-                        /** @description 事件名、"*" 或 "user.*" 这样的前缀 */
-                        events?: string[];
+                        url: string;
+                        /** @description 订阅的事件（至少一个）：事件名、"*" 或 "user.*" 这样的前缀；未知事件返回 400 */
+                        events: string[];
+                        /** @description 是否启用（true / false），缺省为 true */
                         is_active?: boolean;
                     };
                 };
@@ -19123,7 +19185,8 @@ export interface paths {
                 query?: {
                     page?: number;
                     per_page?: number;
-                    status?: "pending" | "delivering" | "success" | "failed";
+                    /** @description 投递状态，精确匹配；空串或其他值不筛选 */
+                    status?: "pending" | "delivering" | "success" | "failed" | "";
                 };
                 header?: never;
                 path: {

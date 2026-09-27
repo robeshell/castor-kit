@@ -16,12 +16,8 @@ export interface DepartmentNode extends Department {
   children?: DepartmentNode[]
 }
 
-/**
- * Tree query: search (name / code) and status.
- * TODO(openapi): the backend reads `status` as free text and lists every status for '' or any other value
- * (apps/api/src/modules/admin/departments/routes.ts); the doc only allows the enum, but the departments page sends ''.
- */
-export type DepartmentQuery = Omit<ApiQuery<'/api/admin/departments'>, 'status'> & { status?: string }
+/** Tree query: search (name / code) and status ('' = every status) */
+export type DepartmentQuery = ApiQuery<'/api/admin/departments'>
 
 /** Department tree: [{ id, name, code, parent_id, leader_id, leader_name, user_count, sort_order, status, children }] */
 export const getDepartments = (params?: DepartmentQuery) => request.get<unknown, DepartmentNode[]>(BASE, { params })

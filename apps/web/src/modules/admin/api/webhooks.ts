@@ -7,12 +7,8 @@ export type Webhook = ApiItem<'/api/admin/webhooks'>
 export type WebhookEvent = ApiItem<'/api/admin/webhooks/events'>
 /** One delivery attempt record of a webhook */
 export type WebhookDelivery = ApiItem<'/api/admin/webhooks/{webhook_id}/deliveries'>
-/**
- * Deliveries query.
- * TODO(openapi): the backend reads status as free text and ignores anything that isn't a delivery status
- * (apps/api/src/modules/admin/webhooks/routes.ts); the doc types it as the enum.
- */
-export type WebhookDeliveriesQuery = Omit<ApiQuery<'/api/admin/webhooks/{webhook_id}/deliveries'>, 'status'> & { status?: string }
+/** Deliveries query: status '' = every status */
+export type WebhookDeliveriesQuery = ApiQuery<'/api/admin/webhooks/{webhook_id}/deliveries'>
 
 export const getWebhooks = () => request.get<unknown, ApiResponse<'/api/admin/webhooks'>>('/admin/webhooks')
 export const getWebhookEvents = () => request.get<unknown, ApiResponse<'/api/admin/webhooks/events'>>('/admin/webhooks/events')

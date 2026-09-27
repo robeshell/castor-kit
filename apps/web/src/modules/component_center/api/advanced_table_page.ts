@@ -6,14 +6,8 @@ export type AdvancedTableRow = ApiItem<'/api/admin/component-center/advanced-tab
 /** Summary cards above the table */
 export type AdvancedTableStats = ApiResponse<'/api/admin/component-center/advanced-table/stats'>
 
-/**
- * Update body. TODO(openapi): the doc has `score?: number` (and non-null priority / progress / is_active / is_pinned /
- * sort_order / category), but the backend's rowBody fields are nullish (missing / null → the default), and the page
- * sends a row's `score` (documented as `number | null`) back when undoing an edit.
- */
-export type AdvancedTableRowUpdate = Omit<ApiBody<'/api/admin/component-center/advanced-table/rows/{item_id}', 'put'>, 'score'> & {
-  score?: number | null
-}
+/** Update body: any subset of the fields (null → the field's default, so a row's `score` can be sent back as it was) */
+export type AdvancedTableRowUpdate = ApiBody<'/api/admin/component-center/advanced-table/rows/{item_id}', 'put'>
 
 export const getAdvancedTableStats = () =>
   request.get<unknown, AdvancedTableStats>('/admin/component-center/advanced-table/stats')

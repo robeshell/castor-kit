@@ -16,10 +16,13 @@ import {
   unpublishAnnouncement,
   updateAnnouncement,
   type Announcement,
+  type AnnouncementBody,
+  type AnnouncementExportBody,
+  type AnnouncementFileType,
 } from '@/modules/admin/api/announcement'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
-import ExportDialog, { type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
+import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
 import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormGrid, FormInput, FormNumber, FormSelect, FormSwitch, FormTextarea } from '@/shared/components/FormFields'
@@ -56,13 +59,21 @@ const EXPORT_FIELD_OPTIONS = [
   { label: '内容', value: 'content' },
   { label: '发布时间', value: 'publish_at' },
   { label: '创建时间', value: 'created_at' },
-]
+] as const satisfies readonly ExportFieldOption[]
+type ExportField = NonNullable<AnnouncementExportBody['fields']>[number]
+/** ExportDialog only emits values of EXPORT_FIELD_OPTIONS */
+const isExportField = (value: string): value is ExportField => EXPORT_FIELD_OPTIONS.some((o) => o.value === value)
+/** ExportDialog / ImportDialog only offer xlsx and csv */
+const normalizeFileType = (raw: string): AnnouncementFileType => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
+
+type AnnounceType = NonNullable<AnnouncementBody['announce_type']>
+type AnnouncementStatus = NonNullable<AnnouncementBody['status']>
 /** What the form holds and submits (the create / edit body) */
 interface FormValues {
   title: string
-  announce_type: string
+  announce_type: AnnounceType
   content: string
-  status: string
+  status: AnnouncementStatus
   is_top: boolean
   sort_order: number | null
 }
@@ -103,8 +114,9 @@ export default function Announcements() {
     form.reset({
       title: record.title ?? '',
       content: record.content ?? '',
-      announce_type: record.announce_type ?? 'system',
-      status: record.status ?? 'draft',
+      // The response doc types these as text; the backend only stores the values its create / edit body accepts
+      announce_type: (record.announce_type ?? 'system') as AnnounceType,
+      status: (record.status ?? 'draft') as AnnouncementStatus,
       is_top: Boolean(record.is_top),
       sort_order: record.sort_order ?? 0,
     })
@@ -158,9 +170,10 @@ export default function Announcements() {
   }
 
   const handleExport = async ({ fields, fileType }: ExportParams) => {
+    const type = normalizeFileType(fileType)
     try {
-      const blob = await exportAnnouncements({ fields, file_type: fileType, export_mode: 'all' })
-      downloadBlobFile(blob, `announcements_export.${fileType}`)
+      const blob = await exportAnnouncements({ fields: fields.filter(isExportField), file_type: type, export_mode: 'all' })
+      downloadBlobFile(blob, `announcements_export.${type}`)
       setExportOpen(false)
       toast.success('导出成功')
     } catch {
@@ -169,8 +182,9 @@ export default function Announcements() {
   }
 
   const handleDownloadTemplate = (fileType: string) => {
-    downloadAnnouncementTemplate(fileType)
-      .then((blob) => downloadBlobFile(blob, `announcements_template.${fileType}`))
+    const type = normalizeFileType(fileType)
+    downloadAnnouncementTemplate(type)
+      .then((blob) => downloadBlobFile(blob, `announcements_template.${type}`))
       .catch(() => toast.error('模板下载失败'))
   }
 

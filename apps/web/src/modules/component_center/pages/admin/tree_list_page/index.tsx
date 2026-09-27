@@ -519,7 +519,7 @@ export default function TreeListPage() {
       file_type: ext,
       export_mode: selectedKeys.length > 0 ? 'selected' : 'filtered',
       ids: selectedKeys,
-      filters: { search: debouncedTableSearch, node_type: filterNodeType, status: filterStatus },
+      filters: { search: debouncedTableSearch, node_type: filterNodeType, status: filterStatus === '' || isStatus(filterStatus) ? filterStatus : undefined },
     }
     try {
       const blob = await exportTreeListPage(payload)

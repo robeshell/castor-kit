@@ -67,12 +67,19 @@ Each item ships as its own PR and meets these requirements:
 - Component center: the list page's `EditorSection` shows its Chinese title / description untranslated (the locales have them); tree list `<Trans components=[...]>` without a `key`; card list: a record with `is_active: null` shows the switch off but saves `true` if left untouched, the PUT body carries `id` / timestamps, clearing priority saves 0 while the doc says "keeps the original value"; kanban sends `board_code` on update, which the API doesn't accept
 - AI / editors: the AI SQL schema sheet shows "no tables" instead of an error after a failed first load (and doesn't retry); the prompt page resets the form with untrimmed values after saving; the code editor's "format" says done for languages Monaco can't format (Python, SQL, Java) and its promise has no `.catch`
 - Charts / creative: the heatmap labels dates in UTC but finds weekends in local time (a day off before 08:00 in UTC+8); `toLocaleTimeString('zh-CN' / 'zh')` in the dashboard, perf monitor and WebSocket pages ignores the UI language; the particle canvas divides by a zero distance when the pointer sits exactly on a particle; the two Three.js pages only resize on window `resize` (not when the sidebar collapses)
-- The OpenAPI doc is stricter than the backend in about ten request params / bodies (nullable `field.int` values such as `sort_order` and `timeout_seconds`, filters where `''` means "all", export `fields` / `file_type` read as free text); the API files keep local types marked `// TODO(openapi)` until the doc is reconciled
+- ~~The OpenAPI doc is stricter than the backend in about ten request params / bodies~~ Reconciled: request bodies declare every nullish `field.*` value as nullable, list / export filters where `''` means "all" list `''`, and the pages send typed export `fields` / `file_type`; the API files use the generated types (no `// TODO(openapi)` left)
 - The OpenAPI doc types `user` in the `POST /api/admin/two-factor/enable` response as a free-form object, and tree `children` can't be recursive inline (the API files keep local node types)
 
 Done early (step 5 needed it): `useAuth()` / `useTagsView()` throw outside their provider and return non-null values. Every caller destructured the result, so a missing provider already threw; now the error says why.
 
 **Why steps 1-5 don't change behavior**: each converted file is checked by stripping its types and comparing with the old JS, so a regression can only come from the types themselves. Code that is correct but not idiomatic TypeScript is kept as it was and cleaned up in step 6, where behavior changes are reviewed on their own.
+
+**Follow-up: keep the OpenAPI request bodies in sync automatically.** The reconciliation (332 differences between the doc and the Zod `field.*` declarations) was a one-off comparison. To stop the drift coming back:
+
+1. Each route that parses a body registers its schema (a `BODY_SCHEMAS` list per module, or a `parseBody` wrapper that records the schema while `collectApiRoutes` builds the app); fail when a body-reading route has no entry.
+2. `test/openapi-doc.test.ts` and verify's `openapi_sync` compare each documented request body with `z.toJSONSchema(schema, { io: 'input' })` plus real `safeParse` probes for null / missing / `''` (preprocess wrappers make the JSON Schema alone misleading), against an allowlist of intentional differences, each with its reason.
+3. Move the 18 fields the services enforce (e.g. change-password `old_password`, scheduled task `request_url`, gantt dates) into `required(...)` in Zod, so the allowlist shrinks to the export `fields[]` / `file_type` enums.
+4. `scripts/lib/scaffold-openapi.ts` still documents export `ids` / `fields` / `file_type` as non-null; align it.
 
 ---
 

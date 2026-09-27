@@ -41,6 +41,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
+- The OpenAPI doc's request side matches the backend (332 differences found by comparing every documented request body with its Zod `field.*` declaration): nullish fields are nullable with their defaults spelled out, list / export filters accept `''` for "all", `export_mode` lists `all`, announcements / menus document their validated enums, webhooks mark `name` / `url` / `events` required, and descriptions that promised lenient parsing where the API returns 400 are corrected. The frontend API files use the generated types everywhere (no local workarounds left).
 - Tags view: the close button on inactive tabs is faintly visible instead of leaving an invisible gap, so the spacing between tabs is even.
 
 ## [0.1.0] - 2026-09-27

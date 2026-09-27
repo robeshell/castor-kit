@@ -5,22 +5,11 @@ import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types
 export type DynamicFormPageItem = ApiItem<'/api/admin/component-center/dynamic-form-page'>
 /** A record with its dynamic fields */
 export type DynamicFormPageDetail = ApiResponse<'/api/admin/component-center/dynamic-form-page/{item_id}'>
-/**
- * Create / edit bodies.
- * TODO(openapi): the backend reads priority with field.int (dynamicFormBody in
- * apps/api/src/modules/component-center/dynamic-form-page/schema.ts), so it takes null (→ 0); the doc types it as non-null.
- */
-type NullablePriority<B> = Omit<B, 'priority'> & { priority?: number | null }
-export type DynamicFormPageCreateBody = NullablePriority<ApiBody<'/api/admin/component-center/dynamic-form-page', 'post'>>
-export type DynamicFormPageUpdateBody = NullablePriority<ApiBody<'/api/admin/component-center/dynamic-form-page/{item_id}', 'put'>>
-/**
- * Export request.
- * TODO(openapi): the backend reads every filter with field.text (dynamicFormExportBody, built by exportBody), so `status`
- * takes any text ('' = every status); the doc types it as the enum.
- */
-export type DynamicFormPageExportBody = Omit<ApiBody<'/api/admin/component-center/dynamic-form-page/export', 'post'>, 'filters'> & {
-  filters?: { search?: string; category?: string; status?: string; owner?: string; is_active?: string | null }
-}
+/** Create / edit bodies (priority: null → 0) */
+export type DynamicFormPageCreateBody = ApiBody<'/api/admin/component-center/dynamic-form-page', 'post'>
+export type DynamicFormPageUpdateBody = ApiBody<'/api/admin/component-center/dynamic-form-page/{item_id}', 'put'>
+/** Export request (filters.status '' = every status) */
+export type DynamicFormPageExportBody = ApiBody<'/api/admin/component-center/dynamic-form-page/export', 'post'>
 /** Export / template file type */
 export type DynamicFormPageFileType = NonNullable<ApiQuery<'/api/admin/component-center/dynamic-form-page/template'>['file_type']>
 
