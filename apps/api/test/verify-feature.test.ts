@@ -313,7 +313,7 @@ describe('verify-feature 全局检查', () => {
     rmSync(join(root, 'apps/api/drizzle/0001_ck_verify_pending.sql'))
     writeFileSync(journalPath, original)
 
-    const down = await checkMigrationApplied(ctx, undefined, 'postgresql://wangwenyu@127.0.0.1:1/nope')
+    const down = await checkMigrationApplied(ctx, undefined, 'postgresql://127.0.0.1:1/nope')
     expect(down.passed).toBe(false)
     expect(down.error).toMatch(/^连接数据库 nope 失败/)
     expect(await checkMigrationApplied(ctx, undefined, null)).toMatchObject({ passed: false })

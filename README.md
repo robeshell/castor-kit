@@ -85,6 +85,7 @@ createdb castor_kit
 pnpm db:migrate
 pnpm seed:rbac
 pnpm dev                                              # API :5001 · web :5173
+# open http://localhost:5173 and sign in as admin / admin123
 ```
 
 </details>
@@ -96,12 +97,13 @@ pnpm dev                                              # API :5001 · web :5173
 3. **It builds and checks.** The AI runs the scaffold, migration and permission sync, then the delivery gate:
 
 ```text
-$ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json   # the spec the AI wrote from your description
 $ pnpm seed:rbac -- --incremental
+$ pnpm db:migrate
 $ pnpm verify -- --module equipment
-✓ typescript_compile  ✓ migration_chain  ✓ router_registration  ✓ rbac_sync
-✓ api_tests  ✓ frontend_tests  ✓ frontend_build
+  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
+  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+✅ 全部检查通过，功能可交付！
 ```
 
 The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workflow](website/en/guide/ai-workflow.md) for details.

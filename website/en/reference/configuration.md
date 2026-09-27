@@ -33,7 +33,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 |---|---|---|
 | `NODE_ENV` | Runtime environment: `development` / `test` / `production`; any other value is treated as `development` | `development` |
 | `PORT` | Listening port | `5001` in development, `5002` in test, `5000` in production |
-| `DEV_DATABASE_URL` | Development database connection | `postgresql://localhost/castor_kit_dev` (`postgresql://localhost/castor_kit` in `apps/api/.env.example`) |
+| `DEV_DATABASE_URL` | Development database connection | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | Test database connection | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | Production database connection | `postgresql://localhost/castor_kit` |
 | `MIGRATIONS_DIR` | Migrations directory | Found automatically by searching upward for a `drizzle/` directory |

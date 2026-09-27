@@ -5,7 +5,7 @@ export default defineConfig({
   schema: './src/db/schema/index.ts',
   out: './drizzle',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? process.env.DEV_DATABASE_URL ?? 'postgresql://localhost/castor_kit_dev',
+    url: process.env.DATABASE_URL ?? process.env.DEV_DATABASE_URL ?? 'postgresql://localhost/castor_kit',
   },
   migrations: {
     // Keep migration records in a separate schema, out of public (so the AI SQL table-exposure logic doesn't see them)

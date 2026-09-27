@@ -57,7 +57,7 @@ Run all commands from the repo root.
 ### 1. Prerequisites
 
 - Node 22 or later (the repo's `.nvmrc` is `22`)
-- pnpm (the version is in the `packageManager` field of the root `package.json`; enable it with `corepack enable`)
+- pnpm (the version is in the `packageManager` field of the root `package.json`; enable it with `corepack enable`; Node 25 and later no longer bundle corepack, so use `npm i -g pnpm@11` there)
 - A local PostgreSQL 14 or later that you can reach with `createdb` / `psql`
 
 ### 2. Install dependencies

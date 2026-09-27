@@ -5,7 +5,7 @@
  */
 
 import { hkdfSync } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import compress from '@fastify/compress'
 import cookie from '@fastify/cookie'
@@ -131,6 +131,8 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
 
   const spaIndex = join(config.webDistDir, 'index.html')
   const hasSpa = existsSync(spaIndex)
+  // The runtime data dir is not in git: create it so a fresh clone starts without a missing-root warning
+  if (!hasSpa) mkdirSync(config.instanceDir, { recursive: true })
   // Always registered (provides reply.sendFile, also used to serve uploaded files back); static routes are skipped when there is no frontend build
   await app.register(
     fastifyStatic,

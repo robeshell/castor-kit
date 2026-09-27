@@ -33,7 +33,7 @@ castor-kit 的配置分两类：
 |---|---|---|
 | `NODE_ENV` | 运行环境：`development` / `test` / `production`，其他值按 `development` 处理 | `development` |
 | `PORT` | 监听端口 | 开发 `5001`、测试 `5002`、生产 `5000` |
-| `DEV_DATABASE_URL` | 开发环境数据库连接 | `postgresql://localhost/castor_kit_dev`（`apps/api/.env.example` 中为 `postgresql://localhost/castor_kit`） |
+| `DEV_DATABASE_URL` | 开发环境数据库连接 | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | 测试环境数据库连接 | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 生产环境数据库连接 | `postgresql://localhost/castor_kit` |
 | `MIGRATIONS_DIR` | 迁移文件目录 | 自动向上查找 `drizzle/` 目录 |

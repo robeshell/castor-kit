@@ -33,7 +33,7 @@ castor-kit の設定は 2 種類です。
 |---|---|---|
 | `NODE_ENV` | 実行環境：`development` / `test` / `production`。それ以外の値は `development` として扱う | `development` |
 | `PORT` | 待ち受けポート | 開発 `5001`、テスト `5002`、本番 `5000` |
-| `DEV_DATABASE_URL` | 開発環境のデータベース接続 | `postgresql://localhost/castor_kit_dev`（`apps/api/.env.example` では `postgresql://localhost/castor_kit`） |
+| `DEV_DATABASE_URL` | 開発環境のデータベース接続 | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | テスト環境のデータベース接続 | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 本番環境のデータベース接続 | `postgresql://localhost/castor_kit` |
 | `MIGRATIONS_DIR` | マイグレーションファイルのディレクトリ | `drizzle/` ディレクトリを上位に向かって自動で探索 |

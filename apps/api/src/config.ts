@@ -200,7 +200,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
       ? parsed.DATABASE_URL || 'postgresql://localhost/castor_kit'
       : env === 'test'
         ? parsed.TEST_DATABASE_URL || 'postgresql://localhost/castor_kit_test'
-        : parsed.DEV_DATABASE_URL || 'postgresql://localhost/castor_kit_dev'
+        : parsed.DEV_DATABASE_URL || 'postgresql://localhost/castor_kit'
 
   const defaultPort = env === 'production' ? 5000 : env === 'test' ? 5002 : 5001
   const instanceDir = parsed.INSTANCE_DIR ? resolve(parsed.INSTANCE_DIR) : resolve(API_ROOT, 'instance')

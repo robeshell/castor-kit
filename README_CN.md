@@ -85,6 +85,7 @@ createdb castor_kit
 pnpm db:migrate
 pnpm seed:rbac
 pnpm dev                                              # API :5001 · 前端 :5173
+# 打开 http://localhost:5173，用 admin / admin123 登录
 ```
 
 </details>
@@ -96,12 +97,13 @@ pnpm dev                                              # API :5001 · 前端 :517
 3. **生成并检查**：AI 依次运行脚手架、数据库迁移、权限同步，最后跑交付检查：
 
 ```text
-$ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json   # AI 根据你的描述写出的 spec
 $ pnpm seed:rbac -- --incremental
+$ pnpm db:migrate
 $ pnpm verify -- --module equipment
-✓ typescript_compile  ✓ migration_chain  ✓ router_registration  ✓ rbac_sync
-✓ api_tests  ✓ frontend_tests  ✓ frontend_build
+  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
+  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+✅ 全部检查通过，功能可交付！
 ```
 
 AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发](website/guide/ai-workflow.md)。

@@ -7,7 +7,7 @@
 Node 22 + TypeScript（Fastify 5 + Zod + Drizzle）+ React 19 + PostgreSQL + shadcn/ui（Tailwind CSS v4 + motion）的 AI-First 管理后台脚手架（前端 UI 体系见 `docs/frontend-redesign-plan.md`）。pnpm monorepo：`apps/api`（后端）、`apps/web`（前端）、`apps/mcp`（MCP Server）。
 
 - 后端端口：5001 | 前端：Vite dev server 5173（`/api`、`/ws` proxy 到 5001）| 启动：`pnpm dev`
-- 数据库：`postgresql://wangwenyu@localhost/castor_kit`
+- 数据库：`postgresql://localhost/castor_kit`
 - 路径别名：后端 `@/*` → `apps/api/src/*`；前端 `@` → `apps/web/src`
 
 ## 核心约定

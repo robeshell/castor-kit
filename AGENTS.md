@@ -72,7 +72,7 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 
 **开发环境：**
 - 端口：api 5001、web 5173（Vite proxy 把 `/api`、`/ws` 转发到 5001）；测试环境 5002；生产 5000
-- 数据库：`postgresql://wangwenyu@localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`；未设置时默认 `postgresql://localhost/castor_kit_dev`）
+- 数据库：`postgresql://localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`，未设置时也是它）
 - 本地配置：`apps/api/.env.development`（参考 `apps/api/.env.example`，已被 gitignore；仓库根目录的 `.env.<NODE_ENV>` 也会被读取）
 - 默认账号：`admin` / `admin123`
 - 测试库：`createdb -T castor_kit castor_kit_test`（克隆）或 `createdb castor_kit_test`（空库，测试会自动执行迁移）；`pnpm test`
