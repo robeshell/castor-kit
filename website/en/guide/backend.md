@@ -84,7 +84,6 @@ All business APIs are mounted under `/api/admin/`. Resource names are hyphenated
 |---|---|---|
 | `intParam('item_id')` | `@/common/http` | Builds a path parameter that only matches digits |
 | `parseIntParam(value)` | `@/common/http` | Parses a path parameter |
-| `jsonBody(request)` | `@/common/http` | Reads the request body (treated as `{}` if it isn't an object or isn't JSON) |
 | `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | Validates the body against a Zod declaration (create fills defaults / update keeps only the fields sent); JSON types only, a wrong type → 400`<field>的值无效`; call it after the permission check |
 | `queryString(request, key)` | `@/common/http` | Reads a query parameter |
 | `getUploadedFile(request)` | `@/common/http` | Reads an uploaded file |

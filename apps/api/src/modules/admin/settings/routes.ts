@@ -6,9 +6,10 @@
 
 import type { FastifyInstance } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
-import { jsonBody } from '@/common/http'
 import { authRateLimit } from '@/common/rate-limit'
 import { requireRecentAuth } from '@/common/session'
+import { parseBody } from '@/common/validation'
+import { testBody, testMailBody, updateBody } from './schema'
 import { SettingsService } from './service'
 
 export async function registerSettingsRoutes(app: FastifyInstance): Promise<void> {
@@ -30,7 +31,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     }
     requireRecentAuth(request)
     const user = await getCurrentAdminUser(request)
-    return service.update(jsonBody(request).values, user?.id ?? null, user?.nickname || user?.username)
+    return service.update(parseBody(updateBody, request.body).values, user?.id ?? null, user?.nickname || user?.username)
   })
 
   app.post('/api/admin/settings/test/mail', testOpts, async (request, reply) => {
@@ -38,8 +39,8 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
-    const body = jsonBody(request)
-    return service.testMail(body.values, body.to)
+    const { values, to } = parseBody(testMailBody, request.body)
+    return service.testMail(values, to)
   })
 
   app.post('/api/admin/settings/test/storage', testOpts, async (request, reply) => {
@@ -47,7 +48,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
-    return service.testStorage(jsonBody(request).values)
+    return service.testStorage(parseBody(testBody, request.body).values)
   })
 
   app.post('/api/admin/settings/test/ai', testOpts, async (request, reply) => {
@@ -55,6 +56,6 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       return reply.status(403).send({ error: '无权限修改系统设置' })
     }
     requireRecentAuth(request)
-    return service.testAi(jsonBody(request).values)
+    return service.testAi(parseBody(testBody, request.body).values)
   })
 }

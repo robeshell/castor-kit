@@ -75,6 +75,11 @@ describe('password reset', () => {
     expect(row!.token_hash).toHaveLength(64)
     expect(row!.token_hash).not.toBe(tokenFrom(outbox[0]!))
     expect((await requestReset('not-an-email')).json()).toEqual({ error: '请输入正确的邮箱地址' })
+    const post = (url: string, payload: object) => app.inject({ method: 'POST', url: `/api/admin/password-reset/${url}`, payload })
+    expect((await post('request', {})).json()).toEqual({ error: '请输入正确的邮箱地址' })
+    expect((await post('request', { email: 123 })).json()).toEqual({ error: '邮箱的值无效' })
+    expect((await post('confirm', { token: 'x' })).json()).toEqual({ error: '请填写完整信息' })
+    expect((await post('confirm', { token: 'x', new_password: 12345678 })).json()).toEqual({ error: '新密码的值无效' })
   })
 
   it('确认：按密码规则校验；成功后旧密码失效、所有会话下线；链接只能用一次，新申请使旧链接作废', async () => {

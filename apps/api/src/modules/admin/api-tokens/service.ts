@@ -13,12 +13,10 @@ import type { Db } from '@/db/client'
 import { apiTokenToDict, type AdminUserWithRoles } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
 import { ApiTokenRepository, type TokenFilters } from './repository'
-
-type Data = Record<string, unknown>
+import type { ApiTokenInput } from './schema'
 
 /** Active tokens one user may hold */
 export const MAX_ACTIVE_TOKENS = 20
-const MAX_DAYS = 3650
 
 export class ApiTokenService {
   private readonly repo: ApiTokenRepository
@@ -60,20 +58,12 @@ export class ApiTokenService {
   }
 
   /** Create a token for the user; the plain text is returned this once only */
-  async create(user: AdminUserWithRoles, data: Data) {
+  async create(user: AdminUserWithRoles, { name, scopes, expires_in_days: days }: ApiTokenInput) {
     if (!(await this.enabled())) throw new ServiceError('API Token 未开启', 400)
-    const name = typeof data.name === 'string' ? data.name.trim() : ''
-    if (!name || name.length > 100) throw new ServiceError('请填写名称（最多 100 个字符）', 400)
-    const scopes = Array.isArray(data.scopes) ? [...new Set(data.scopes.filter((s): s is string => typeof s === 'string'))] : []
-    if (scopes.length === 0) throw new ServiceError('请至少选择一项权限', 400)
     const held = isSuperAdmin(user) ? null : new Set(collectMenuCodes(user))
     const options = new Set((await this.repo.activeMenus()).map((m) => m.code))
     const outside = scopes.filter((s) => !options.has(s) || (held !== null && !held.has(s)))
     if (outside.length > 0) throw new ServiceError(`不能授予自己没有的权限：${outside.join(', ')}`, 400)
-    const days = data.expires_in_days
-    if (days !== null && !(typeof days === 'number' && Number.isInteger(days) && days >= 1 && days <= MAX_DAYS)) {
-      throw new ServiceError('有效期不合法', 400)
-    }
     if ((await this.repo.countActiveOwn(user.id)) >= MAX_ACTIVE_TOKENS) {
       throw new ServiceError(`每人最多 ${MAX_ACTIVE_TOKENS} 个有效的 API Token，请先吊销不用的`, 400)
     }

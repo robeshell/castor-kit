@@ -12,14 +12,16 @@ import { getCurrentAdminUser, hasMenuPermission, loadAdminsWithRolesByIds, login
 import { ensureCsrfToken } from '@/common/csrf'
 import { resolveDataScope } from '@/common/data-scope'
 import { ServiceError } from '@/common/errors'
-import { intParam, jsonBody, parseIntParam } from '@/common/http'
+import { intParam, parseIntParam } from '@/common/http'
 import { authRateLimit } from '@/common/rate-limit'
 import { isSuperAdmin } from '@/common/rbac'
 import { getClientIp, getUserAgent } from '@/common/request-meta'
 import { attachSession, createSession, isSignedIn, markVerified, revokeSessions, type MfaState } from '@/common/session'
+import { parseBody } from '@/common/validation'
 import type { AdminUserWithRoles } from '@/db/schema'
 import { AuthService } from '../auth/service'
 import { UserService } from '../users/service'
+import { codeBody, enableBody, passwordBody, reauthBody } from './schema'
 import { TwoFactorService } from './service'
 
 export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<void> {
@@ -60,7 +62,7 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
     const user = await pendingUser(request, 'verify')
     const client = clientOf(request)
     await auth.assertNotBlocked(user.username, client.ip)
-    if (!(await service.verify(user.id, jsonBody(request)))) {
+    if (!(await service.verify(user.id, parseBody(codeBody, request.body)))) {
       await auth.recordSecondFactorFailure(user, client)
       throw new ServiceError('验证码错误', 400)
     }
@@ -74,8 +76,8 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
   app.post('/api/admin/reauth', { preHandler: loginRequired, onRequest: authRateLimit(app) }, async (request) => {
     const user = (await getCurrentAdminUser(request))!
     const client = clientOf(request)
-    const body = jsonBody(request)
     await auth.assertNotBlocked(user.username, client.ip)
+    const body = parseBody(reauthBody, request.body)
     if (!(await service.passwordMatches(user.id, body.password))) {
       await auth.recordSecondFactorFailure(user, client, '身份验证密码错误')
       throw new ServiceError('密码错误', 400)
@@ -101,17 +103,17 @@ export async function registerTwoFactorRoutes(app: FastifyInstance): Promise<voi
 
   app.post('/api/admin/two-factor/enable', { preHandler: enrollGuard, onRequest: authRateLimit(app) }, async (request) => {
     const user = await enrollingUser(request)
-    const { recovery_codes } = await service.enable(user.id, jsonBody(request))
+    const { recovery_codes } = await service.enable(user.id, parseBody(enableBody, request.body))
     if (isSignedIn(request)) return { message: '两步验证已开启', recovery_codes }
     return { ...(await completeSignIn(request, user)), recovery_codes }
   })
 
   app.post('/api/admin/two-factor/disable', { preHandler: loginRequired }, async (request) => {
-    return service.disable((await getCurrentAdminUser(request))!, jsonBody(request))
+    return service.disable((await getCurrentAdminUser(request))!, parseBody(passwordBody, request.body))
   })
 
   app.post('/api/admin/two-factor/recovery-codes', { preHandler: loginRequired }, async (request) => {
-    return service.regenerateRecoveryCodes((await getCurrentAdminUser(request))!.id, jsonBody(request))
+    return service.regenerateRecoveryCodes((await getCurrentAdminUser(request))!.id, parseBody(passwordBody, request.body))
   })
 
   app.delete(`/api/admin/users/${intParam('user_id')}/two-factor`, { preHandler: loginRequired }, async (request, reply) => {

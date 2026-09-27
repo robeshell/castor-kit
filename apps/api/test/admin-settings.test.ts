@@ -49,6 +49,13 @@ describe('system settings', () => {
 
   it('保存：校验类型与范围、未知键、角色编码；前置条件缺失时不能打开；公开部分经 app-info 下发', async () => {
     expect((await put({ 'security.nope': true })).json()).toEqual({ error: '未知的设置项：security.nope' })
+    // `values` is a { key: value } object and is required
+    const save = (payload: object) => s.inject({ method: 'PUT', url: '/api/admin/settings', payload })
+    for (const payload of [{}, { values: null }]) expect((await save(payload)).json()).toEqual({ error: '请提交要保存的设置' })
+    for (const values of [[], 'x', 1]) {
+      const res = await save({ values })
+      expect([res.statusCode, res.json()]).toEqual([400, { error: '设置项的值无效' }])
+    }
     expect((await put({ 'security.password_min_length': 3 })).json()).toEqual({ error: '设置项取值不合法：security.password_min_length' })
     expect((await put({ 'security.totp_enabled': 'yes' })).json()).toEqual({ error: '设置项取值不合法：security.totp_enabled' })
     expect((await put({ 'security.totp_required_roles': ['no_such_role'] })).json()).toEqual({ error: '角色编码不存在: no_such_role' })

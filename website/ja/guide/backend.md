@@ -84,7 +84,6 @@ export function customerToDict(item: Customer) {
 |---|---|---|
 | `intParam('item_id')` | `@/common/http` | 数字だけにマッチするパスパラメーターを生成 |
 | `parseIntParam(value)` | `@/common/http` | パスパラメーターを解析 |
-| `jsonBody(request)` | `@/common/http` | リクエストボディを読み取る（オブジェクトでない場合や JSON でない場合は `{}` として扱う） |
 | `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | Zod の宣言でリクエストボディを検証（新規はデフォルト値を補完、編集は送られた項目のみ）。JSON の型のみ受け付け、型が違えば 400`<項目>的值无效`。権限チェックの後に呼ぶ |
 | `queryString(request, key)` | `@/common/http` | クエリパラメーターを読み取る |
 | `getUploadedFile(request)` | `@/common/http` | アップロードされたファイルを読み取る |

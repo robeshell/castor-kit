@@ -90,10 +90,14 @@ describe('ai chat 错误分支（非流式 JSON）', () => {
     }
   })
 
-  it('消息为空 400；格式不对 400；太长 400', async () => {
-    for (const payload of [{}, { messages: [] }, { messages: null }, { messages: '' }, { messages: 0 }, { messages: {} }, { messages: 'hi' }]) {
+  it('消息为空 400；不是列表 400；格式不对 400；太长 400', async () => {
+    for (const payload of [{}, { messages: [] }, { messages: null }, { messages: '' }]) {
       const res = await s.inject({ method: 'POST', url: URL_PATH, payload })
       expect([res.statusCode, res.json()]).toEqual([400, { error: '消息不能为空' }])
+    }
+    for (const payload of [{ messages: 0 }, { messages: {} }, { messages: 'hi' }]) {
+      const res = await s.inject({ method: 'POST', url: URL_PATH, payload })
+      expect([res.statusCode, res.json()]).toEqual([400, { error: '消息的值无效' }])
     }
     for (const messages of [[{ role: 'user', content: 'old format' }], [{ id: '1', role: 'robot', parts: [] }], [5]]) {
       const res = await s.inject({ method: 'POST', url: URL_PATH, payload: { messages } })

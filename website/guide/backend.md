@@ -84,7 +84,6 @@ export function customerToDict(item: Customer) {
 |---|---|---|
 | `intParam('item_id')` | `@/common/http` | 生成只匹配数字的路径参数 |
 | `parseIntParam(value)` | `@/common/http` | 解析路径参数 |
-| `jsonBody(request)` | `@/common/http` | 读取请求体（非对象或非 JSON 时按 `{}` 处理） |
 | `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | 按 Zod 声明校验请求体（新建取默认值 / 编辑只含传入字段），只收 JSON 原生类型，类型不对 → 400`<字段>的值无效`；在权限检查之后调用 |
 | `queryString(request, key)` | `@/common/http` | 读取查询参数 |
 | `getUploadedFile(request)` | `@/common/http` | 读取上传文件 |

@@ -6,9 +6,11 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loginRequired } from '@/common/auth'
-import { intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { requireRecentAuth } from '@/common/session'
+import { parseBody, parsePatch } from '@/common/validation'
+import { webhookBody } from './schema'
 import { WebhookService } from './service'
 
 const STATUSES = ['pending', 'delivering', 'success', 'failed'] as const
@@ -37,15 +39,16 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
   app.post(BASE, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_webhooks_add'))) return reply.status(403).send({ error: '无权限新增 Webhook' })
     requireRecentAuth(request)
+    const values = parseBody(webhookBody, request.body)
     const actor = await actorOf(request)
-    return reply.status(201).send(await service.create(jsonBody(request), actor.id, actor.name))
+    return reply.status(201).send(await service.create(values, actor.id, actor.name))
   })
 
   app.put(ONE, opts, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_webhooks_edit'))) return reply.status(403).send({ error: '无权限编辑 Webhook' })
     const hook = await hookOf(request)
     requireRecentAuth(request)
-    return service.update(hook, jsonBody(request), (await actorOf(request)).name)
+    return service.update(hook, parsePatch(webhookBody, request.body), (await actorOf(request)).name)
   })
 
   app.delete(ONE, opts, async (request, reply) => {

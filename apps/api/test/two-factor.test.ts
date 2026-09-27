@@ -146,6 +146,8 @@ describe('two-step verification: sign-in', () => {
     expect(await successes()).toBe(before)
 
     expect((await post(c, '/api/admin/login/two-factor', { code: '123456' })).json()).toEqual({ error: '验证码错误' })
+    // A code that isn't text is refused before it is checked
+    expect((await post(c, '/api/admin/login/two-factor', { code: 123456 })).json()).toEqual({ error: '验证码的值无效' })
     // The code used to enable 2FA is from the same time step: rejected as a replay
     expect((await post(c, '/api/admin/login/two-factor', { code: totpCode(secret) })).statusCode).toBe(400)
     const ok = await post(c, '/api/admin/login/two-factor', { code: nextCode(secret) })
@@ -235,6 +237,8 @@ describe('two-step verification: turning off and resetting', () => {
     expect(fresh).not.toContain(recoveryCodes[0])
 
     expect((await post(c, '/api/admin/two-factor/disable', { password: 'nope' })).json()).toEqual({ error: '密码错误' })
+    expect((await post(c, '/api/admin/two-factor/disable')).json()).toEqual({ error: '密码错误' })
+    expect((await post(c, '/api/admin/two-factor/disable', { password: 1 })).json()).toEqual({ error: '密码的值无效' })
     expect((await post(c, '/api/admin/two-factor/disable', { password: FIXTURE_PASSWORD })).json()).toEqual({ message: '两步验证已关闭' })
     const [row] = await handle.db.select().from(admin_users).where(eq(admin_users.id, fixture.userId))
     expect([row!.totp_secret, row!.totp_enabled_at]).toEqual([null, null])

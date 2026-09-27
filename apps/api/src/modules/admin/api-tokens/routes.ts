@@ -10,9 +10,11 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getCurrentAdminUser, hasMenuPermission, loadAdminsWithRolesByIds, loginRequired } from '@/common/auth'
 import { resolveDataScope } from '@/common/data-scope'
-import { intParam, jsonBody, parseIntParam, queryString } from '@/common/http'
+import { intParam, parseIntParam, queryString } from '@/common/http'
 import { parsePagination } from '@/common/pagination'
 import { requireRecentAuth } from '@/common/session'
+import { parseBody } from '@/common/validation'
+import { apiTokenBody } from './schema'
 import { ApiTokenService } from './service'
 
 const STATUSES = ['active', 'expired', 'revoked'] as const
@@ -30,7 +32,7 @@ export async function registerApiTokenRoutes(app: FastifyInstance): Promise<void
   app.post('/api/admin/profile/api-tokens', opts, async (request) => {
     // A token is a long-lived credential: minting one needs the password (and 2FA code) again
     requireRecentAuth(request)
-    return service.create(await me(request), jsonBody(request))
+    return service.create(await me(request), parseBody(apiTokenBody, request.body))
   })
 
   app.delete(`/api/admin/profile/api-tokens/${intParam('token_id')}`, opts, async (request) => {

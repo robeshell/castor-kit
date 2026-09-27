@@ -10,10 +10,11 @@ import { Readable } from 'node:stream'
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import type { FastifyInstance } from 'fastify'
 import { loginRequired } from '@/common/auth'
-import { jsonBody } from '@/common/http'
 import { requestLanguage } from '@/common/i18n'
+import { parseBody } from '@/common/validation'
 import { parseChatMessages } from '@/modules/component-center/ai-chat/service'
-import { AssistantService, type PageContext } from './service'
+import { assistantChatBody } from './schema'
+import { AssistantService } from './service'
 
 export async function registerAssistantRoutes(app: FastifyInstance): Promise<void> {
   const service = new AssistantService(app)
@@ -24,13 +25,8 @@ export async function registerAssistantRoutes(app: FastifyInstance): Promise<voi
     if (!app.settings.isAvailable('ai.assistant_enabled', settings)) {
       return reply.status(403).send({ error: 'AI 小助手未开启' })
     }
-    const body = jsonBody(request)
-    const messages = await parseChatMessages(body.messages)
-    const raw = (body.context ?? {}) as Record<string, unknown>
-    const context: PageContext = {
-      path: typeof raw.path === 'string' ? raw.path.slice(0, 200) : undefined,
-      title: typeof raw.title === 'string' ? raw.title.slice(0, 100) : undefined,
-    }
+    const { messages: raw, context } = parseBody(assistantChatBody, request.body)
+    const messages = await parseChatMessages(raw)
 
     const abort = new AbortController()
     reply.raw.on('close', () => {

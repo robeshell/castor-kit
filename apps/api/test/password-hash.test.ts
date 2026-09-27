@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkPasswordHash, generatePasswordHash } from '@/common/password'
+import { checkPasswordHash, generatePasswordHash, isPasswordHash } from '@/common/password'
 import { FAST_HASH } from './helpers'
 
 const PHC_RE = /^\$scrypt\$ln=15,r=8,p=3\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$/
@@ -24,6 +24,8 @@ describe('scrypt 密码哈希', () => {
     for (const bad of [null, '', 'plain', hash.replace('$scrypt$', '$argon2id$'), hash.replace('ln=4', 'ln=30'), hash.replace('p=1', 'p=0'), `${hash}$x`]) {
       expect(await checkPasswordHash(bad, 'x'), String(bad)).toBe(false)
     }
+    expect(isPasswordHash(hash)).toBe(true)
+    expect(isPasswordHash('pbkdf2:sha256:1000$abc$00')).toBe(false)
     expect(await checkPasswordHash(hash, undefined)).toBe(false)
     expect(await checkPasswordHash(hash, 123)).toBe(false)
   })

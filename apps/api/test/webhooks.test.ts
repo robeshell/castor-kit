@@ -98,6 +98,21 @@ describe('webhooks', () => {
     expect((await createHook(['*'], 'http://169.254.169.254/latest')).json()).toEqual({
       error: '不允许访问保留地址（169.254.169.254 解析为 169.254.169.254）',
     })
+    // Values of the wrong JSON type are rejected, not ignored
+    const post = (payload: object) => admin.inject({ method: 'POST', url: '/api/admin/webhooks', payload })
+    expect((await post({ name: 'ci', url: receiverUrl, events: 'user.*' })).json()).toEqual({ error: '订阅事件的值无效' })
+    expect((await post({ name: 'ci', url: receiverUrl, events: ['*'], is_active: 'no' })).json()).toEqual({ error: '是否启用的值无效' })
+    expect((await post({ name: 'x'.repeat(101), url: receiverUrl, events: ['*'] })).json()).toEqual({ error: '请填写名称（最多 100 个字符）' })
+    const put = (payload: object) => admin.inject({ method: 'PUT', url: `/api/admin/webhooks/${item.id}`, payload })
+    expect((await put({ url: 42 })).json()).toEqual({ error: '地址的值无效' })
+    expect((await put({ events: [] })).json()).toEqual({ error: '请至少订阅一个事件' })
+    // A partial update changes only the fields sent
+    expect((await put({ name: ' renamed ' })).json()).toMatchObject({ name: 'renamed', url: receiverUrl, events: ['user.*'], is_active: true })
+    // is_active: false survives a partial edit; null is rejected rather than switching the webhook back on
+    expect((await put({ is_active: false })).json()).toMatchObject({ is_active: false })
+    expect((await put({ name: 'renamed' })).json()).toMatchObject({ is_active: false })
+    expect((await put({ is_active: null })).json()).toEqual({ error: '是否启用的值无效' })
+
     const [note] = await handle.db.select().from(notifications).where(eq(notifications.link, '/system/webhooks'))
     expect(note!.title).toContain('新增了 Webhook：ci')
 

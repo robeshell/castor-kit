@@ -19,8 +19,7 @@ import { revokeSessions } from '@/common/session'
 import type { SettingsStore } from '@/common/settings'
 import type { Db } from '@/db/client'
 import { PasswordResetRepository, TOKEN_MINUTES } from './repository'
-
-type Data = Record<string, unknown>
+import type { ResetConfirmInput, ResetRequestInput } from './schema'
 
 const REQUESTED = '如果该邮箱属于某个账号，重置链接已发送，请查收邮件'
 
@@ -68,10 +67,8 @@ export class PasswordResetService {
   }
 
   /** Send a reset link to the account with this email (if any). Returns the mail job for tests to await. */
-  async request(data: Data, ip: string, lang: Language): Promise<{ body: { message: string }; sent: Promise<void> }> {
+  async request({ email }: ResetRequestInput, ip: string, lang: Language): Promise<{ body: { message: string }; sent: Promise<void> }> {
     const { mailer, appBaseUrl } = await this.assertAvailable()
-    const email = typeof data.email === 'string' ? data.email.trim() : ''
-    if (!email || email.length > 100 || !email.includes('@')) throw new ServiceError('请输入正确的邮箱地址', 400)
     const user = await this.repo.findActiveByEmail(email)
     let sent: Promise<void> = Promise.resolve()
     if (user && user.email) {
@@ -87,11 +84,8 @@ export class PasswordResetService {
   }
 
   /** Set a new password with a token from the mail */
-  async confirm(data: Data) {
+  async confirm({ token, new_password: password }: ResetConfirmInput) {
     await this.assertAvailable()
-    const token = typeof data.token === 'string' ? data.token.trim() : ''
-    const password = typeof data.new_password === 'string' ? data.new_password : ''
-    if (!token || !password) throw new ServiceError('请填写完整信息', 400)
     const policyError = passwordPolicyError(password, passwordPolicyOf(await this.settings.get()), '新密码')
     if (policyError) throw new ServiceError(policyError, 400)
     const passwordHash = await generatePasswordHash(password)

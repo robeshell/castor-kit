@@ -100,7 +100,7 @@ castor-kit/
 │   │   │   │   ├── data-scope.ts      # 数据权限：resolveDataScope / dataScopeWhere / currentActor
 │   │   │   │   ├── csrf.ts            # 双提交校验
 │   │   │   │   ├── errors.ts          # ServiceError + 统一错误处理器
-│   │   │   │   ├── http.ts            # intParam / parseIntParam / jsonBody / queryString / getUploadedFile
+│   │   │   │   ├── http.ts            # intParam / parseIntParam / queryString / getUploadedFile
 │   │   │   │   ├── pagination.ts      # parsePagination（MAX_PER_PAGE=200，默认 20）
 │   │   │   │   ├── serialize.ts       # toIso() 等，统一时间输出格式
 │   │   │   │   ├── tabular.ts         # csv/xlsx 读写 + 公式注入防护 + 5MB 上限

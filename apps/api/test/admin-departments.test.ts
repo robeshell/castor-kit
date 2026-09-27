@@ -68,10 +68,16 @@ describe('departments', () => {
     expect((await post({ name: 'x' })).json()).toEqual({ error: '部门编码不能为空' })
     expect((await post({ name: 'x', code: `${P}root` })).json()).toEqual({ error: '部门编码已存在' })
     expect((await post({ name: 'x', code: `${P}x`, parent_id: 99999999 })).json()).toEqual({ error: '上级部门不存在' })
-    expect((await post({ name: 'x', code: `${P}x`, parent_id: 'abc' })).json()).toEqual({ error: '上级部门不存在' })
+    expect((await post({ name: 'x', code: `${P}x`, parent_id: 'abc' })).json()).toEqual({ error: '上级部门的值无效' })
     expect((await post({ name: 'x', code: `${P}x`, leader_id: 99999999 })).json()).toEqual({ error: '负责人不存在' })
     expect((await post({ name: 'x', code: `${P}x`, sort_order: -1 })).json()).toEqual({ error: '排序必须是非负整数' })
     expect((await post({ name: 'x', code: `${P}x`, status: 'paused' })).json()).toEqual({ error: '状态取值不合法' })
+    // Values of the wrong JSON type are rejected rather than converted
+    expect((await post({ name: 'x', code: `${P}x`, sort_order: '5' })).json()).toEqual({ error: '排序的值无效' })
+    expect((await post({ name: 'x', code: `${P}x`, leader_id: String(s.userId) })).json()).toEqual({ error: '负责人的值无效' })
+    expect((await post({ name: 123, code: `${P}x` })).json()).toEqual({ error: '部门名称的值无效' })
+    expect((await post({ name: 'x'.repeat(101), code: `${P}x` })).json()).toEqual({ error: '部门名称不能超过 100 个字符' })
+    expect((await post({ name: 'x', code: `${P}${'x'.repeat(50)}` })).json()).toEqual({ error: '部门编码不能超过 50 个字符' })
   })
 
   it('树：子部门挂在父级下，带负责人与人数；搜索保留祖先', async () => {
@@ -102,6 +108,12 @@ describe('departments', () => {
     const cycle = await s.inject({ method: 'PUT', url: `${BASE}/${root!.id}`, payload: { parent_id: fe!.id } })
     expect(cycle.json()).toEqual({ error: '上级部门不能是自身或其下级部门' })
 
+    // A disabled department stays disabled on a partial edit; null / '' status is rejected, not turned into active
+    const edit = (payload: object) => s.inject({ method: 'PUT', url: `${BASE}/${fe!.id}`, payload })
+    expect((await edit({ status: 'disabled' })).json()).toMatchObject({ status: 'disabled' })
+    expect((await edit({ sort_order: 7 })).json()).toMatchObject({ status: 'disabled' })
+    for (const status of [null, '']) expect((await edit({ status })).json(), String(status)).toEqual({ error: '状态取值不合法' })
+    await edit({ status: 'active' })
     const ok = await s.inject({ method: 'PUT', url: `${BASE}/${fe!.id}`, payload: { name: '前端组（新）', leader_id: null } })
     expect(ok.json()).toMatchObject({ name: '前端组（新）', code: `${P}fe` })
     expect((await s.inject({ url: `${BASE}/${fe!.id}` })).json().name).toBe('前端组（新）')
@@ -118,6 +130,8 @@ describe('departments', () => {
     expect(again.json().changed).toBe(false)
     const bad = await s.inject({ method: 'POST', url: `${BASE}/${mkt!.id}/sort`, payload: { direction: 'left' } })
     expect(bad.json()).toEqual({ error: 'direction 参数必须是 up 或 down' })
+    const missing = await s.inject({ method: 'POST', url: `${BASE}/${mkt!.id}/sort`, payload: {} })
+    expect(missing.json()).toEqual({ error: 'direction 参数必须是 up 或 down' })
   })
 
   it('删除：有下级或有用户时拒绝；否则删除', async () => {

@@ -80,6 +80,13 @@ describe('API tokens: creating', () => {
     expect((await createToken(staff, ['system_users'], { name: '' })).json()).toEqual({ error: '请填写名称（最多 100 个字符）' })
     expect((await createToken(staff, ['system_users'], { expires_in_days: 0 })).json()).toEqual({ error: '有效期不合法' })
     expect((await createToken(staff, ['system_users'], { expires_in_days: null })).json().item.expires_at).toBeNull()
+    // Values of the wrong JSON type are rejected, and the expiry must be sent (null = never)
+    expect((await createToken(staff, ['system_users'], { expires_in_days: '30' })).json()).toEqual({ error: '有效期的值无效' })
+    expect((await createToken(staff, ['system_users'], { expires_in_days: undefined })).json()).toEqual({ error: '有效期的值无效' })
+    expect((await createToken(staff, ['system_users'], { name: 123 })).json()).toEqual({ error: '名称的值无效' })
+    expect((await createToken(staff, ['system_users'], { scopes: 'system_users' })).json()).toEqual({ error: '权限的值无效' })
+    const deduped = (await createToken(staff, ['system_users', ' system_users '])).json()
+    expect(deduped.item.scopes).toEqual(['system_users'])
 
     await handle.db.execute(`update sessions set verified_at = '2000-01-01' where user_id = ${staff.userId}`)
     expect((await createToken(staff, ['system_users'])).json()).toEqual({ error: '请先验证身份', reauth_required: true })
