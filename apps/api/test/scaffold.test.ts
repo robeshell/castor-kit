@@ -2,12 +2,14 @@
  * scripts/scaffold.ts
  *
  * - Pure functions: naming / field parsing / inference rules / auto-registration;
- *   frontend pages are checked with apps/web's eslint (via stdin, nothing written to disk) and @/ path existence
+ *   frontend pages (TSX) are checked with apps/web's eslint (via stdin, nothing written to disk) and @/ path existence
  * - i18n: every fixed Chinese string of the generated page is covered by PAGE_TEXTS, whose translations match the shared
  *   catalogs (apps/web/src/locales); the page passes apps/web/scripts/i18n-scan.mjs with only shared + generated locales
  * - Integration: copy apps/api into a temp dir (src + drizzle, node_modules symlinked), run scaffold with --root pointing at it,
  *   and assert the generated files, registration, migration SQL, that generated code passes tsc, reruns don't overwrite, and dry-run writes nothing.
- *   The temp copy also gets apps/web's shared locales and i18n scanner, so the generated page is scanned there. Never writes to the main repo.
+ *   The temp copy also gets apps/web's shared locales and i18n scanner, so the generated page is scanned there, and a
+ *   tsconfig that resolves @/ to the copy first and apps/web/src second: the generated page + API file are type-checked
+ *   with apps/web's tsc against the openapi.d.ts scaffold regenerated in the copy. Never writes to the main repo.
  * - Comments in scaffold.ts and in every generated file are English (UI / error text stays Chinese)
  */
 
@@ -58,6 +60,7 @@ const SCRIPT = join(API_DIR, 'scripts', 'scaffold.ts')
 const WEB_DIR = resolve(API_DIR, '..', 'web')
 const WEB_SRC = join(WEB_DIR, 'src')
 const ESLINT = join(WEB_DIR, 'node_modules', '.bin', 'eslint')
+const WEB_TSC = join(WEB_DIR, 'node_modules', '.bin', 'tsc')
 const I18N_SCAN = join(WEB_DIR, 'scripts', 'i18n-scan.mjs')
 const REPO_ROOT = resolve(API_DIR, '..', '..')
 const DOC = join(REPO_ROOT, 'docs', 'apifox-full.openapi.json')
@@ -99,6 +102,16 @@ function scanInCopy(root: string, target: string): { problems: ScanProblem[]; co
   })
   expect(res.stderr).toBe('')
   return JSON.parse(res.stdout) as { problems: ScanProblem[]; conflicts: unknown[] }
+}
+
+/**
+ * apps/web's tsc over the temp copy (its tsconfig resolves @/ to the copy, then to apps/web/src); only errors in files
+ * matching `ours` count (other modules generated in the copy are checked by their own tests), plus errors without a
+ * file position (a broken tsconfig would otherwise pass unnoticed)
+ */
+function webTypeErrors(root: string, ours: RegExp): string[] {
+  const tsc = spawnSync(WEB_TSC, ['--noEmit', '-p', join(root, 'apps/web/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
+  return `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => ours.test(l) || /^error TS\d+/.test(l.trim()))
 }
 
 function scaffoldCli(args: string[]) {
@@ -194,7 +207,7 @@ describe('scaffold 纯函数', () => {
         const hit = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'].some((ext) => existsSync(join(WEB_SRC, `${spec}${ext}`)))
         expect(hit, `${name}: @/${spec}`).toBe(true)
       }
-      const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', `src/modules/${domain}/pages/${name}/index.jsx`], {
+      const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', `src/modules/${domain}/pages/${name}/index.tsx`], {
         cwd: WEB_DIR,
         input: page,
         encoding: 'utf8',
@@ -235,7 +248,7 @@ describe('scaffold 纯函数', () => {
         expect(Object.keys(own['ja-JP']).sort()).toEqual(texts)
 
         // The real scanner, with only the generated locales as catalog: no problems
-        const file = join(tmp, `${name}.jsx`)
+        const file = join(tmp, `${name}.tsx`)
         writeFileSync(file, page)
         expect(scanFile(file, own).map((p) => `${p.line} [${p.kind}] ${p.text}`), name).toEqual([])
         // With empty catalogs the scanner flags exactly the strings pageTexts() found (so the extraction misses nothing)
@@ -591,6 +604,12 @@ describe('scaffold CLI（临时目录副本）', () => {
     mkdirSync(join(root, 'apps', 'web', 'scripts'), { recursive: true })
     cpSync(I18N_SCAN, join(root, 'apps', 'web', 'scripts', 'i18n-scan.mjs'))
     symlinkSync(join(WEB_DIR, 'node_modules'), join(root, 'apps', 'web', 'node_modules'), 'dir')
+    // Type-checking the generated TSX: @/ resolves to the copy first (generated modules, the regenerated openapi.d.ts),
+    // then to apps/web/src (the shared components they import)
+    writeFileSync(
+      join(root, 'apps', 'web', 'tsconfig.json'),
+      JSON.stringify({ extends: join(WEB_DIR, 'tsconfig.json'), compilerOptions: { baseUrl: '.', paths: { '@/*': ['./src/*', `${WEB_SRC}/*`] } }, include: ['src'] }),
+    )
     // Generated API tests import ./helpers, which tsc needs for the check
     mkdirSync(join(api, 'test'), { recursive: true })
     cpSync(join(API_DIR, 'test', 'helpers.ts'), join(api, 'test', 'helpers.ts'))
@@ -623,7 +642,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(res.code).toBe(0)
     expect(res.out).toContain('[dry-run] would write: apps/api/src/modules/component-center/ck-scaffold-demo/routes.ts')
     expect(res.out).toContain('[dry-run] would write: apps/api/test/cc-ck-scaffold-demo.test.ts')
-    expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/pages/admin/ck_scaffold_demo_page/index.jsx')
+    expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/api/ck_scaffold_demo.ts')
+    expect(res.out).toContain('[dry-run] would write: apps/web/src/modules/component_center/pages/admin/ck_scaffold_demo_page/index.tsx')
     expect(res.out).toContain('[dry-run] would run: drizzle-kit generate --name ck_scaffold_demo')
     expect(res.out).toContain('Perm prefix: cc_ck_scaffold_demo')
     expect(existsSync(join(root, 'apps/api/src/modules/component-center/ck-scaffold-demo'))).toBe(false)
@@ -631,6 +651,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(readdirSync(join(root, 'apps/api/drizzle')).filter((f) => f.endsWith('.sql'))).toEqual(['0000_init.sql'])
     expect(res.out).toContain('[dry-run] would update: docs/apifox-full.openapi.json')
     expect(readFileSync(join(root, 'docs/apifox-full.openapi.json'), 'utf8')).toBe(readFileSync(DOC, 'utf8'))
+    expect(res.out).toContain('[dry-run] would update: apps/web/src/shared/api/openapi.d.ts')
+    expect(existsSync(join(root, 'apps/web/src/shared/api/openapi.d.ts'))).toBe(false)
   })
 
   it('生成：文件 + 注册 + drizzle 迁移，生成代码通过 tsc', () => {
@@ -644,14 +666,17 @@ describe('scaffold CLI（临时目录副本）', () => {
       'apps/api/src/modules/admin/ck-scaffold-demo/service.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts',
       'apps/api/test/admin-ck-scaffold-demo.test.ts',
-      'apps/web/src/modules/admin/api/ck_scaffold_demo.js',
-      'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx',
+      'apps/web/src/modules/admin/api/ck_scaffold_demo.ts',
+      'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.tsx',
     ]) {
       expect(res.out).toContain(`[create] ${rel}`)
       expect(existsSync(join(root, rel)), rel).toBe(true)
     }
     expect(res.out).toContain('[update] apps/api/src/db/schema/index.ts')
     expect(res.out).toContain('[update] apps/api/src/modules/admin/router.ts')
+    // The frontend's API types are regenerated from the doc the module was just added to
+    expect(res.out).toContain('[update] apps/web/src/shared/api/openapi.d.ts')
+    expect(readFileSync(join(root, 'apps/web/src/shared/api/openapi.d.ts'), 'utf8')).toContain('"/api/admin/ck-scaffold-demos/{item_id}": {')
     expect(res.out).toContain('✅ Scaffold generated')
 
     const index = readFileSync(join(root, 'apps/api/src/db/schema/index.ts'), 'utf8')
@@ -685,16 +710,23 @@ describe('scaffold CLI（临时目录副本）', () => {
     }
     expect(routes).not.toMatch(/const item = await service\.getOr404[^\n]*\n {4}if \(!\(await hasMenuPermission/)
 
-    // Frontend: api file format; page follows the users page structure
-    const api = readFileSync(join(root, 'apps/web/src/modules/admin/api/ck_scaffold_demo.js'), 'utf8')
+    // Frontend: the API file is typed from the module's OpenAPI entries; page follows the users page structure
+    const api = readFileSync(join(root, 'apps/web/src/modules/admin/api/ck_scaffold_demo.ts'), 'utf8')
     expect(api).toContain("const BASE = '/admin/ck-scaffold-demos'")
-    const page = readFileSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx'), 'utf8')
+    expect(api).toContain("export type CkScaffoldDemo = ApiItem<'/api/admin/ck-scaffold-demos'>")
+    expect(api).toContain("export const updateItem = (id: number, data: ApiBody<'/api/admin/ck-scaffold-demos/{item_id}', 'put'>) =>")
+    const page = readFileSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.tsx'), 'utf8')
     expect(page).toContain('export default function CkScaffoldDemoPage()')
     expect(page).toContain("from '@/modules/admin/api/ck_scaffold_demo'")
     for (const tag of ['PageHeader', 'FilterBar', 'SearchInput', 'DataTable', 'FormDialog', 'ImportDialog', 'ExportDialog', 'ConfirmAction']) {
       expect(page).toContain(`<${tag}`)
     }
     expect(page).toContain('useCrudList(')
+    // Typed with the shared components: rows from the API file, form values per field
+    expect(page).toContain('  type CkScaffoldDemo as Row,')
+    expect(page).toContain('  const columns: DataTableColumn<Row>[] = [')
+    expect(page).toContain('  const form = useForm<FormValues>({ defaultValues: EMPTY_VALUES })')
+    for (const line of ['  name: string', '  amount: number | string | null', '  active: boolean', '  level: number | null']) expect(page).toContain(line)
     // Field type → form component
     for (const line of [
       '<FormInput control={form.control} name="name" label="Name" />',
@@ -729,8 +761,8 @@ describe('scaffold CLI（临时目录副本）', () => {
       'apps/api/src/modules/admin/ck-scaffold-demo/service.ts',
       'apps/api/src/modules/admin/ck-scaffold-demo/routes.ts',
       'apps/api/test/admin-ck-scaffold-demo.test.ts',
-      'apps/web/src/modules/admin/api/ck_scaffold_demo.js',
-      'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.jsx',
+      'apps/web/src/modules/admin/api/ck_scaffold_demo.ts',
+      'apps/web/src/modules/admin/pages/ck_scaffold_demo/index.tsx',
     ]) {
       expect(cjkComments(readFileSync(join(root, rel), 'utf8')), rel).toEqual([])
     }
@@ -773,6 +805,16 @@ describe('scaffold CLI（临时目录副本）', () => {
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-demo|schema\/index\.ts|admin\/router\.ts/.test(l))
     expect(ours).toEqual([])
+    // ... and so do the page and API file, with apps/web's tsc (strict, noUncheckedIndexedAccess)
+    expect(webTypeErrors(root, /ck_scaffold_demo/)).toEqual([])
+    // The API file passes apps/web's eslint too (the page is linted in the pure-function tests)
+    const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', 'src/modules/admin/api/ck_scaffold_demo.ts'], {
+      cwd: WEB_DIR,
+      input: api,
+      encoding: 'utf8',
+      timeout: 60_000,
+    })
+    expect(lint.status, `${lint.stdout}${lint.stderr}`).toBe(0)
   }, 180_000)
 
   it('重复执行：不覆盖已有文件、不重复注册、不产生新迁移', () => {
@@ -812,12 +854,12 @@ describe('scaffold CLI（临时目录副本）', () => {
     const keys = Object.keys(locales['en-US']!)
     expect(Object.keys(locales['ja-JP']!)).toEqual(keys)
     expect(keys).toEqual([...keys].sort())
-    expect(keys).toEqual(pageTexts(readFileSync(join(root, pageDir, 'index.jsx'), 'utf8')))
+    expect(keys).toEqual(pageTexts(readFileSync(join(root, pageDir, 'index.tsx'), 'utf8')))
     expect(keys).toEqual(expect.arrayContaining(['是', '否', '确认删除该记录？', '已勾选 {{count}} 条，将优先导出勾选数据。']))
     // Shared locales restored: the page locales duplicate them with identical translations → no conflicts
     expect(scanInCopy(root, pageDir.replace('apps/web/', ''))).toEqual({ problems: [], conflicts: [] })
     expect(res.out).toContain('[create] apps/api/src/modules/component-center/ck-scaffold-cc/routes.ts')
-    expect(res.out).toContain('[create] apps/web/src/modules/component_center/pages/admin/ck_scaffold_cc_page/index.jsx')
+    expect(res.out).toContain('[create] apps/web/src/modules/component_center/pages/admin/ck_scaffold_cc_page/index.tsx')
     expect(res.out).toContain('[skip] migration (--skip-migration)')
     const router = readFileSync(join(root, 'apps/api/src/modules/component-center/router.ts'), 'utf8')
     expect(router).toContain('  await registerCkScaffoldCcRoutes(app)')
@@ -860,6 +902,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-ds/.test(l))
     expect(ours).toEqual([])
+    // The row type carries dept_id / created_by; the form doesn't
+    expect(webTypeErrors(root, /ck_scaffold_ds/)).toEqual([])
   }, 180_000)
 
   it('file / image 字段：存文件 ID，接受文件地址，写入时登记引用，页面用上传控件和缩略图 / 链接', () => {
@@ -875,7 +919,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(repo).toContain("await syncFileRefs(this.db, 'ck_scaffold_fls', row!.id, { cover: row!.cover, attachment: row!.attachment })")
     expect(repo).toContain("await clearFileRefs(this.db, 'ck_scaffold_fls', id)")
 
-    const page = read('apps/web/src/modules/admin/pages/ck_scaffold_fl/index.jsx')
+    const page = read('apps/web/src/modules/admin/pages/ck_scaffold_fl/index.tsx')
     expect(page).toContain('<FormImageUpload control={form.control} name="cover"')
     expect(page).toContain('<FormFileUpload control={form.control} name="attachment"')
     expect(page).toContain("import { fileUrl } from '@/shared/api/files'")
@@ -883,6 +927,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-scaffold-fl/.test(l))
     expect(ours).toEqual([])
+    expect(page).toContain('  cover: string | null')
+    expect(webTypeErrors(root, /ck_scaffold_fl/)).toEqual([])
   }, 180_000)
 
   it('--spec：中文标签、NOT NULL / UNIQUE / 默认值、固定选项、字典、规则测试、菜单与菜单译文；页面 eslint 与 i18n 扫描通过，代码通过 tsc', () => {
@@ -918,7 +964,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(test).toContain("toEqual([400, { error: '设备状态的值无效' }])")
     expect(test).toContain('serial_no: nextNumber(),')
 
-    const pagePath = 'apps/web/src/modules/admin/pages/ck_spec_device/index.jsx'
+    const pagePath = 'apps/web/src/modules/admin/pages/ck_spec_device/index.tsx'
     const page = read(pagePath)
     expect(page).toContain('title="设备台账"')
     expect(page).toContain(`<FormInput control={form.control} name="code" label="设备编号" rules={{ required: '此项必填' }} />`)
@@ -927,7 +973,10 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain("const DICT_CODES = ['device_category']")
     expect(page).toContain("  status: 'idle',")
     expect(page).toContain('  price: 1999.5,')
-    const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', 'src/modules/admin/pages/ck_spec_device/index.jsx'], {
+    // Enum form values are the option values; the options are keyed by the enum fields
+    expect(page).toContain("  status: 'idle' | 'in_use' | null")
+    expect(page).toContain("const FIELD_OPTIONS: Record<'status', { value: string; label: string }[]> = {")
+    const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', 'src/modules/admin/pages/ck_spec_device/index.tsx'], {
       cwd: WEB_DIR,
       input: page,
       encoding: 'utf8',
@@ -949,6 +998,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     const tsc = spawnSync(TSC, ['--noEmit', '-p', join(root, 'apps/api/tsconfig.json')], { encoding: 'utf8', timeout: 120_000 })
     const ours = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((l) => /ck-spec-device|seed-rbac/.test(l))
     expect(ours).toEqual([])
+    // Enum / dict / image / required fields type-check against the documented body and row
+    expect(webTypeErrors(root, /ck_spec_device/)).toEqual([])
 
     // Again: nothing is overwritten and the menu isn't added twice
     const again = scaffoldCli(['--spec', specPath, '--skip-migration', '--root', root])

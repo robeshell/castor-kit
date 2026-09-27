@@ -121,8 +121,8 @@ Existing files are skipped, never overwritten.
 | `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` | Table definition + `toDict` |
 | `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts` | The four backend layers |
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | Basic API tests (CRUD, search, 404, export, import template, import) |
-| `apps/web/src/modules/<module>/api/<name>.js` | Frontend API client |
-| Frontend list page `index.jsx` | In `pages/<name>/` for the `admin` domain, `pages/admin/<name>_page/` for the `component_center` domain |
+| `apps/web/src/modules/<module>/api/<name>.ts` | Frontend API client, typed from the module's OpenAPI entries (row type `ApiItem<'/api/admin/<name-kebab>s'>`) |
+| Frontend list page `index.tsx` | In `pages/<name>/` for the `admin` domain, `pages/admin/<name>_page/` for the `component_center` domain; typed with the shared components (`FormValues`, `DataTableColumn<Row>[]`) |
 | Page `locales/{en-US,ja-JP}.json` | Only generated when the page has Chinese text not covered by the shared translations |
 
 `<domain-dir>` is `admin` or `component-center`; `<name-kebab>` is the resource name with underscores replaced by hyphens.
@@ -130,6 +130,7 @@ Existing files are skipped, never overwritten.
 It also automatically:
 
 - Registers the module in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts`
+- Writes the module's endpoints into `docs/apifox-full.openapi.json` and regenerates the frontend API types (`apps/web/src/shared/api/openapi.d.ts`) from it
 - Runs `drizzle-kit generate --name <name>` to generate the migration
 
 scaffold prints the permission code prefix (Perm prefix), the menu `component` value and the API path in its output; use them directly when adding the menu.

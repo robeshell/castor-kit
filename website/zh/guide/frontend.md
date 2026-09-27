@@ -27,7 +27,7 @@
 只有启用且可见、类型为 `menu` 的菜单会生成路由。页面组件按需懒加载。菜单存在但找不到对应文件时，页面区域会显示“页面未配置”提示。
 
 ::: warning 页面位置
-页面必须放在 `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx`，否则动态路由找不到。对应的 API 文件放在 `apps/web/src/modules/<module>/api/<page>.js`。
+页面必须放在 `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`（尚未迁移的页面是 `index.jsx`），否则动态路由找不到。对应的 API 文件放在 `apps/web/src/modules/<module>/api/<page>.ts`。
 :::
 
 新增页面后还需要在 `seed-rbac.ts` 中添加菜单，见 [权限 RBAC](/zh/guide/rbac)。

@@ -70,7 +70,7 @@ describe('castor-kit MCP server (stdio)', () => {
     assert.match(out, /📁 backend\//)
     for (const f of ['routes.ts', 'service.ts', 'repository.ts', 'schema.ts', 'README.md']) assert.ok(out.includes(`   ${f}`), f)
     assert.match(out, /📁 frontend\//)
-    assert.match(out, /list_page\/index\.jsx/)
+    assert.match(out, /list_page\/index\.tsx/)
   })
 
   it('get_project_context 返回 AGENTS.md + 当前后端模块', async () => {

@@ -419,7 +419,7 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
   return {
     name: 'frontend_page',
     passed: false,
-    error: `No frontend page index.jsx found; its directory should be named ${module}, ${singular} or ${module}_page`,
+    error: `No frontend page index.tsx (or index.jsx) found; its directory should be named ${module}, ${singular} or ${module}_page`,
   }
 }
 

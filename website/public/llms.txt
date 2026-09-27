@@ -18,7 +18,7 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 - [Module Spec Schema](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json)
 - [Requirement → Spec Examples](https://github.com/robeshell/castor-kit/blob/main/docs/examples/specs/README.md)
 - [Code Templates](https://github.com/robeshell/castor-kit/blob/main/docs/templates/backend/README.md)
-- [Frontend Templates](https://github.com/robeshell/castor-kit/blob/main/docs/templates/frontend/list_page/index.jsx)
+- [Frontend Templates](https://github.com/robeshell/castor-kit/blob/main/docs/templates/frontend/list_page/index.tsx)
 - [MCP Server](https://github.com/robeshell/castor-kit/blob/main/apps/mcp/src/index.ts)
 - [shadcn/ui Skill](https://github.com/robeshell/castor-kit/blob/main/.agents/skills/shadcn-ui-skills/SKILL.md)
 - [shadcn add Relay Script](https://github.com/robeshell/castor-kit/blob/main/apps/web/scripts/shadcn-add.sh)
@@ -55,7 +55,7 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 - App shell (sidebar, top bar, ⌘K, theme): `apps/web/src/components/app/`
 - shadcn/ui primitives: `apps/web/src/components/ui/` (config `apps/web/components.json`)
 - Design tokens (light/dark) and brand gradient utilities: `apps/web/src/index.css`
-- Module pages: `apps/web/src/modules/**/pages/**/index.jsx` (reference CRUD page: `apps/web/src/modules/admin/pages/users/index.jsx`)
+- Module pages: `apps/web/src/modules/**/pages/**/index.tsx` (`index.jsx` for pages not yet converted; reference CRUD page: `apps/web/src/modules/admin/pages/users/index.jsx`)
 - Module APIs: `apps/web/src/modules/**/api/*.js`
 - Shared business components (PageHeader, DataTable, Filters, FormDialog, FormFields, ConfirmAction, StatusBadge, …): `apps/web/src/shared/components/`
 - Shared import/export UI: `apps/web/src/shared/components/data-transfer/` (ImportDialog / ExportDialog)
