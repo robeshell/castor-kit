@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format is based on 
 - English first, for a global audience:
   - The developer specs are written in English: `AGENTS.md`, `CLAUDE.md`, `docs/`, the `new-feature-autopilot` and `shadcn-ui-skills` skills, and the MCP server's tool descriptions. UI copy is still written in Chinese as the i18n key (`t('中文原文')`), with English and Japanese translations.
   - English is the fallback language: the admin UI uses it when neither a saved choice nor the browser language matches, and the API answers in English when a request has no supported `Accept-Language` (curl, API-token clients). The page title and `<html lang>` are English.
+  - The developer tools speak English: `pnpm verify`, `pnpm scaffold` (including spec validation errors and the `docs/spec.schema.json` hints), `pnpm openapi:generate`, `pnpm seed:rbac`, the setup / seed scripts and the Docker setup wizard (`scripts/setup.sh`). Generated code keeps Chinese UI copy as the i18n key, and the generated OpenAPI text stays Chinese.
   - The docs site's default language is English, at the root (`/guide/…`). Chinese moved to `/zh/`; Japanese stays at `/ja/`. Old `/en/…` links redirect to the same page at its new address.
 - Repository root tidied:
   - The Docker setup wizard is `bash scripts/setup.sh`; the image entry point moved to `scripts/docker-entrypoint.sh`.
@@ -24,6 +25,10 @@ All notable changes to this project are documented here. The format is based on 
   - ECharts is registered on demand. `@/shared/components/Chart` is bound to `@/lib/echarts`, which registers only the charts, components and renderers the pages use. Chart pages load about 40% less code.
   - The sign-in, reset-password and profile pages load on demand. The first download is about a fifth smaller.
   - A page's code is prefetched when the pointer or keyboard focus reaches its menu item. While the browser is idle, the system pages and the gallery's admin pages are prefetched one at a time; this is skipped in data-saver mode.
+
+### Fixed
+
+- Tags view: the close button on inactive tabs is faintly visible instead of leaving an invisible gap, so the spacing between tabs is even.
 
 ## [0.1.0] - 2026-09-27
 
