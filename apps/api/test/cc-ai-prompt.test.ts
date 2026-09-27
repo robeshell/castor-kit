@@ -1,6 +1,7 @@
 import { eq, like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { toIso } from '@/common/serialize'
 import type { DbHandle } from '@/db/client'
 import { ai_prompt_templates } from '@/db/schema'
 import { extractVariables, findVariables, SEED_TEMPLATES } from '@/modules/component-center/ai-prompt/schema'
@@ -154,7 +155,7 @@ describe('ai-prompt', () => {
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body).toMatchObject({ content: '{{x}} {{y}}', category: 'custom', description: '5', tags: ['p', 'q'], is_active: true, variables: ['x', 'y'] })
-    expect(body.updated_at).not.toBe(toIsoLike(a!.updated_at))
+    expect(body.updated_at).not.toBe(toIso(a!.updated_at))
 
     const same = await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { name: ` ${P}a `, tags: ['p', 'q'] } })
     expect(same.json().updated_at).toBe(body.updated_at)
@@ -202,7 +203,3 @@ describe('ai-prompt', () => {
     }
   })
 })
-
-function toIsoLike(v: string | null): string | null {
-  return v ? v.replace(' ', 'T') : v
-}

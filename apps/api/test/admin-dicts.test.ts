@@ -86,7 +86,7 @@ describe('dicts：字典类型', () => {
     expect(Object.keys(body).sort()).toEqual(
       ['code', 'created_at', 'description', 'id', 'is_active', 'item_count', 'name', 'sort_order', 'updated_at'].sort(),
     )
-    expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/)
+    expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/)
   })
 
   it('新增校验：名称/编码为空、编码重复、类型不符 → 400 且不落库', async () => {

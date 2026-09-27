@@ -60,7 +60,7 @@ export function handWritten500s(source: string): string[] {
 }
 
 /** The Python stack by name: the language, its web framework and ORM, and the libraries whose behavior used to be replayed */
-const PYTHON_TERMS = /\b(python|flask|sqlalchemy|werkzeug|psycopg2?|urllib|url(split|parse)|ensure_ascii|str\.title|json\.(dumps|loads)|py[A-Z]\w*)\b/i
+const PYTHON_TERMS = /\b(python|flask|sqlalchemy|werkzeug|psycopg2?|urllib|url(split|parse)|isoformat|ensure_ascii|str\.title|json\.(dumps|loads)|py[A-Z]\w*)\b/i
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]
 
@@ -129,5 +129,6 @@ describe('conventions', () => {
     expect(PYTHON_TERMS.test('const v = pyTruthy(x)')).toBe(true)
     expect(PYTHON_TERMS.test('const copy = happyPath(x)')).toBe(false)
     expect(PYTHON_TERMS.test('// same as urlsplit()')).toBe(true)
+    expect(PYTHON_TERMS.test('/** isoformat without Z */')).toBe(true)
   })
 })

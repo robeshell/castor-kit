@@ -88,7 +88,7 @@ X-Castor-Delivery: 8939b329-81ce-47fe-b5a6-e8746a0cbaa1
 X-Castor-Timestamp: 1790410668
 X-Castor-Signature: sha256=e6f82d49…
 
-{"id":"8939b329-…","event":"user.created","created_at":"2026-09-26T08:17:48.687000","data":{…}}
+{"id":"8939b329-…","event":"user.created","created_at":"2026-09-26T08:17:48.687000Z","data":{…}}
 ```
 
 - 2xx を返せば成功です。リダイレクトには従わず、失敗として扱います

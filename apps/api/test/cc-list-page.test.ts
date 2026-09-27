@@ -108,7 +108,7 @@ describe('list-page CRUD', () => {
       version: 1,
       keyword: null,
     })
-    expect(body.published_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/)
+    expect(body.published_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/)
 
     const [row] = await handle.db.select().from(query_managements).where(eq(query_managements.id, body.id))
     expect(row!.conditions_json).toBe(
@@ -287,7 +287,7 @@ describe('list-page 预览', () => {
     expect(body.elapsed_ms).toBe(35 + 5 * 6 + 2 * 11)
     expect(body.columns.map((c: { title: string }) => c.title)).toEqual(['User2id', 'Is Active', 'Priority', 'Status', 'Created At'])
     expect(body.rows[1]).toMatchObject({ user2id: 'user2id_sample_2', is_active: false, priority: 2, status: 'draft' })
-    expect(body.rows[0].created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+    expect(body.rows[0].created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/)
 
     const empty = (await s.inject({ method: 'POST', url: `${B}/run-preview`, payload: { display_config: { selected_fields: [''], preview_rows: 0 } } })).json()
     expect(empty.columns.map((c: { dataIndex: string }) => c.dataIndex)).toEqual(['id', 'name', 'status', 'owner', 'updated_at'])

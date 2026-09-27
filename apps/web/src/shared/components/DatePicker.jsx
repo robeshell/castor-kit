@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { localParts, localToIso, parseApiTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useTx } from '@/i18n'
 import { dateLocale } from '@/i18n/date-locale'
@@ -70,14 +71,16 @@ export function DatePicker({ value, onChange, placeholder = '选择日期', disa
   )
 }
 
-/** Date-time: value / onChange use 'YYYY-MM-DD HH:mm:ss' (ISO 'YYYY-MM-DDTHH:mm:ss' is also accepted) */
+/**
+ * Date-time in the browser's time zone. value: an API time (ISO 8601, e.g. `2026-08-01T12:35:48.834152Z`) or '';
+ * onChange: ISO 8601 with the browser's offset (`2026-08-01T20:35:48+08:00`), which the API converts to UTC, or ''.
+ */
 export function DateTimePicker({ value, onChange, disabled, className }) {
-  const text = typeof value === 'string' ? value.replace('T', ' ') : ''
-  const datePart = text.slice(0, 10)
-  const timePart = text.length >= 16 ? text.slice(11, 19).padEnd(8, ':00').slice(0, 8) : ''
+  const ms = parseApiTime(value)
+  const { date: datePart, time: timePart } = Number.isNaN(ms) ? { date: '', time: '' } : localParts(ms)
   const emit = (d, t) => {
     if (!d) return onChange?.('')
-    return onChange?.(`${d} ${t || '00:00:00'}`)
+    return onChange?.(localToIso(d, t || '00:00:00'))
   }
   return (
     <div className={cn('flex gap-2', className)}>

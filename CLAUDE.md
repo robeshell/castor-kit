@@ -42,7 +42,7 @@
 - **API 路由前缀**：`/api/admin/...`；列表响应 `{ items, total, page, per_page }`，错误响应 `{ error, ...payload }`
 - **权限检查**：`import { hasMenuPermission, loginRequired } from '@/common/auth'`，`await hasMenuPermission(request, 'system_xxx')`；也有 `hasAnyMenuPermission` / `menuPermissionRequired(code)`
   - 不允许在 routes 文件内自定义 `hasPermission`
-- **model 层**：Drizzle `pgTable` + `xxxToDict()`；时间列 `createdAt()/updatedAt()`，输出 `toIso()`，numeric 保持字符串
+- **model 层**：Drizzle `pgTable` + `xxxToDict()`；时间列 `createdAt()/updatedAt()`，输出 `toIso()`（ISO 8601 UTC，带 `Z`），numeric 保持字符串
 - **新增域**：需在 `src/router.ts` + `db/schema/index.ts` 中注册（已有域内新增模块由 scaffold 自动注册）
 - **导入导出**：`common/tabular.ts`（`buildTable` / `sendTable` / `readTableFile`），只支持 csv / xlsx
 

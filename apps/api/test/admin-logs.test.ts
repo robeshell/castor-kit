@@ -97,7 +97,7 @@ describe('日志列表', () => {
       ip: null,
       user_agent: 'UA',
       message: '密码错误',
-      created_at: '2026-01-02T09:30:00.250000',
+      created_at: '2026-01-02T09:30:00.250000Z',
     })
     const failed = (await s.inject({ url: `/api/admin/logs/login?username=${P}&status=failed` })).json()
     expect(failed.total).toBe(1)
@@ -110,7 +110,7 @@ describe('日志列表', () => {
   it('操作日志：module / action 精确筛选', async () => {
     const res = (await s.inject({ url: `/api/admin/logs/operation?username=${P}&module=menus&action=update` })).json()
     expect(res.total).toBe(1)
-    expect(res.items[0]).toMatchObject({ id: opIds[1], module: 'menus', action: 'update', target_id: '12', payload: '{"a":1}', status_code: 200, created_at: '2026-02-01T12:00:00' })
+    expect(res.items[0]).toMatchObject({ id: opIds[1], module: 'menus', action: 'update', target_id: '12', payload: '{"a":1}', status_code: 200, created_at: '2026-02-01T12:00:00.000000Z' })
     expect(Object.keys(res.items[0]).sort()).toEqual(
       ['action', 'api_token_id', 'created_at', 'id', 'ip', 'method', 'module', 'path', 'payload', 'status_code', 'target_id', 'user_agent', 'user_id', 'username'].sort(),
     )

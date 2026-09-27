@@ -15,6 +15,7 @@ import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { requestPath } from '@/common/csrf'
 import { getClientIp } from '@/common/request-meta'
+import { utcTextToMillis } from '@/common/serialize'
 import type { Executor } from '@/db/client'
 import { api_tokens, type ApiToken } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
@@ -98,7 +99,7 @@ export function registerApiTokenResolver(app: FastifyInstance): void {
     if (!row) return reply.status(401).send({ error: 'API Token 无效或已过期' })
     if (apiTokenDenied(request.method, path)) return reply.status(403).send({ error: '该接口不支持 API Token' })
     request.apiToken = row
-    const last = row.last_used_at ? Date.parse(`${row.last_used_at.replace(' ', 'T').slice(0, 23)}Z`) : 0
+    const last = row.last_used_at ? utcTextToMillis(row.last_used_at) : 0
     if (Date.now() - last > TOUCH_INTERVAL_MS) {
       await app.db
         .update(api_tokens)

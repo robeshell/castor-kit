@@ -320,7 +320,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 ### 横切约定（详见 `docs/architecture.md`「横切约定」）
 
-- **时间**：pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（`YYYY-MM-DDTHH:mm:ss[.ffffff]`，无 `Z`）。**禁止** `Date#toISOString()`
+- **时间**：列是 `timestamp`（无时区）存 UTC，pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（ISO 8601 UTC：`YYYY-MM-DDTHH:mm:ss.ffffffZ`，6 位小数 + `Z`）。请求里的时间用 `field.dateTime`：带时区（`Z` / `±HH:MM`）的换算成 UTC，不带时区的按 UTC。前端用 `@/lib/format` 按浏览器时区显示。**禁止** `Date#toISOString()`（只有毫秒）
 - **数值**：`numeric` 列保持字符串（如 `"12.50"`），`toDict()` 里不要 `parseFloat`
 - **请求校验**：请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
 - **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON
@@ -433,7 +433,7 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 | `int` / `float` | `FormNumber`（`step={1}` / `step={0.01}`） | 右对齐 + `tabular-nums` | `null` |
 | `bool` | `FormSwitch` | `StatusBadge`（是 / 否） | `false` |
 | `date` | `FormDate` | `formatDate` | `''`（编辑回填 `formatDate(v, '')`） |
-| `datetime` | `FormDateTime` | `formatDateTime` | `''`（编辑回填 `formatDateTime(v, '')`） |
+| `datetime` | `FormDateTime` | `formatDateTime` | `''`（编辑回填接口原值 `v ?? ''`，选择器按本地时区显示、提交带时区偏移的 ISO 时间） |
 | `file` / `image` | `FormFileUpload` / `FormImageUpload` | 「查看」链接 / 缩略图（`fileUrl(id)`） | `null` |
 | 枚举 / 状态（手写） | `FormSelect` / `FormRadioGroup` | `StatusBadge` + tone 映射 | - |
 
@@ -845,7 +845,7 @@ ID=3   组件示例中心 (component_center)
 - 密码哈希格式 `pbkdf2:sha256:<iter>$<salt>$<hex>`（`common/password.ts`，异步 pbkdf2）
 - 会话：服务端会话表 `sessions` 是唯一事实源（可列出、可强制下线、改密码 / 停用 / 重置密码即失效）；`@fastify/secure-session` 的 cookie `castor_session` 只装 `{ sid, csrf_token }`，密钥用 HKDF 从 `SECRET_KEY` 派生。判断登录一律用 `common/session.ts` 的 `isSignedIn(request)`，不要读 cookie 字段
 - 配置分两层：服务启动前就要用的（数据库地址、`SECRET_KEY`、端口、调度器开关等）放环境变量；其余一律进系统设置（`common/settings.ts` 注册表 + `system_settings` 表）——功能开关、安全参数、邮件、文件存储、上传限制、AI 模型、网站地址。密钥类（`type: 'secret'`）用 `secret-box` 加密存储、从不回显；注册表项可声明 `env`，该环境变量非空时锁定取值（页面只读），变量名同时登记在 `common/settings-env.ts`。新功能需要配置时加注册表项，不要再加只能改环境变量的配置；读取用 `app.settings.get()`（热路径 `peek()`），邮件 / 存储这类客户端通过 `MailerProvider` / `StorageProvider` 按当前设置重建。改设置的接口（保存与测试）必须先过 `requireRecentAuth(request)`（10 分钟内登录或 `/api/admin/reauth` 验证过身份），保存后通知所有超级管理员；会让服务器主动连接的地址类设置要在保存和测试时过 `common/outbound.ts` 的检查（保留地址始终拒绝，内网看 `SETTINGS_ALLOW_PRIVATE_NETWORK`）
-- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T` 并把小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0，补齐后格式稳定）
+- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T`、小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0）、末尾加 `Z`；写库用 `utcNow()`（`timezone('utc', now())`），应用侧生成的当前时间用 `utcNowIso()`（接口）/ `utcNowText()`（写库）
 - cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
 - 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
 - 操作日志用全局 `onResponse` hook 集中写，不散到 service

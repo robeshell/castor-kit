@@ -358,7 +358,7 @@ export function fieldDeclaration(s: ScaffoldSpec, f: string, t: string): string 
     case 'date':
       return wrap(`field.date(${label})`)
     case 'dateTime':
-      return wrap(`field.dateTime(${label}, { offset: false })`)
+      return wrap(`field.dateTime(${label})`)
     case 'fileId':
       return meta.required ? `required(field.fileId(${label}), ${empty})` : `field.fileId(${label})`
     case 'choice':
@@ -1256,12 +1256,11 @@ export const importItems = (file) => {
 `
 }
 
-/** Edit: record → form value (dates converted to the DatePicker / DateTimePicker format) */
+/** Edit: record → form value (dates as DatePicker takes them; DateTimePicker takes the API time as it is) */
 function formValueExpr(field: string, kind: FrontendKind): string {
   const v = `record.${field}`
   if (kind === 'bool') return `Boolean(${v})`
   if (kind === 'date') return `formatDate(${v}, '')`
-  if (kind === 'datetime') return `formatDateTime(${v}, '')`
   if (kind === 'int' || kind === 'float' || kind === 'file' || kind === 'image' || kind === 'enum' || kind === 'dict') return `${v} ?? null`
   return `${v} ?? ''`
 }

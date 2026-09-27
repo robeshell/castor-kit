@@ -285,7 +285,7 @@ describe('scaffold 纯函数', () => {
       "  f: field.decimal('F'),",
       "  b: field.optionalBool('B'),",
       "  d: field.date('D'),",
-      "  t: field.dateTime('T', { offset: false }),",
+      "  t: field.dateTime('T'),",
       "  img: field.fileId('Img'),",
       '  if (row.n !== undefined) body.n = intCell(row.n)',
       '  if (row.b !== undefined) body.b = parseYesNo(row.b) ?? row.b',
@@ -716,7 +716,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain('render: (value) => formatDateTime(value),')
     // Edit prefill: dates converted to picker format; id / created_at not sent in the PUT
     expect(page).toContain("  birthday: formatDate(record.birthday, ''),")
-    expect(page).toContain("  visited_at: formatDateTime(record.visited_at, ''),")
+    expect(page).toContain("  visited_at: record.visited_at ?? '',")
 
     // i18n: the shared locales cover every page string, so no page locales; the scanner passes in the copy
     expect(res.out).toContain('[skip] page locales: every page string is translated in apps/web/src/locales')

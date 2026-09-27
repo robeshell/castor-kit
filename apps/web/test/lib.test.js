@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { findActiveMenu, flattenMenus, navigablePages } from '@/components/app/menu-tree'
-import { formatBytes, formatDate, formatDateTime, formatNumber } from '@/lib/format'
+import { formatBytes, formatDate, formatDateTime, formatNumber, localToIso, parseApiTime } from '@/lib/format'
 import { resolveMenuIcon } from '@/lib/menu-icons'
 import { Home, List } from 'lucide-react'
 
@@ -38,10 +38,31 @@ describe('menu-tree', () => {
 })
 
 describe('format', () => {
-  it('时间按原样截断展示', () => {
-    expect(formatDateTime('2026-08-01T12:35:48.834152')).toBe('2026-08-01 12:35:48')
-    expect(formatDate('2026-08-01T12:35:48')).toBe('2026-08-01')
-    expect(formatDateTime(null)).toBe('-')
+  describe('时间按浏览器时区展示（固定为 Asia/Shanghai）', () => {
+    const tz = process.env.TZ
+    beforeAll(() => {
+      process.env.TZ = 'Asia/Shanghai'
+    })
+    afterAll(() => {
+      process.env.TZ = tz
+    })
+
+    it('接口时间（UTC，带 Z）转为本地时间', () => {
+      expect(formatDateTime('2026-08-01T12:35:48.834152Z')).toBe('2026-08-01 20:35:48')
+      expect(formatDateTime('2026-08-01T20:35:48.000000Z')).toBe('2026-08-02 04:35:48')
+      // Text without a zone is UTC, as the API reads it
+      expect(formatDateTime('2026-08-01 12:35:48')).toBe('2026-08-01 20:35:48')
+      expect(formatDate('2026-08-01T20:35:48.000000Z')).toBe('2026-08-02')
+      expect(formatDate('2026-08-01')).toBe('2026-08-01')
+      expect(formatDateTime(null)).toBe('-')
+      expect(parseApiTime('2026-08-01T12:35:48.834152Z')).toBe(Date.UTC(2026, 7, 1, 12, 35, 48, 834))
+      expect(parseApiTime('not a time')).toBeNaN()
+    })
+
+    it('日期时间选择器的输出带本地时区偏移', () => {
+      expect(localToIso('2026-08-01', '20:35:48')).toBe('2026-08-01T20:35:48+08:00')
+      expect(parseApiTime(localToIso('2026-08-01', '20:35:48'))).toBe(Date.UTC(2026, 7, 1, 12, 35, 48))
+    })
   })
   it('数字千分位', () => {
     expect(formatNumber(1234567)).toBe('1,234,567')

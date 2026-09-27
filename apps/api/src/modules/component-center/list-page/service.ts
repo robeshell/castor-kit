@@ -12,7 +12,7 @@ import type { z } from 'zod'
 import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
-import { formatDateTime, utcNowIso } from '@/common/serialize'
+import { utcNowIso } from '@/common/serialize'
 import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type UploadedFile } from '@/common/tabular'
 import { exportColumns, parseIntText, parseYesNo } from '@/common/validation'
 import type { Db } from '@/db/client'
@@ -221,7 +221,7 @@ export class ListPageService {
         const key = col.dataIndex
         if (key === 'id' || key === 'priority') row[key] = index + 1
         else if (key === 'is_active') row[key] = index % 2 === 0
-        else if (key === 'updated_at' || key === 'created_at') row[key] = formatDateTime(utcNowIso())
+        else if (key === 'updated_at' || key === 'created_at') row[key] = utcNowIso()
         else if (key === 'status') row[key] = index % 2 === 0 ? 'published' : 'draft'
         else row[key] = `${key}_sample_${index + 1}`
       }

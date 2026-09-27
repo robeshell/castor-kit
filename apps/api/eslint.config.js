@@ -10,7 +10,7 @@ export default tseslint.config(
     files: ['**/*.ts'],
     languageOptions: { globals: globals.node },
     rules: {
-      // Timestamp output must go through common/serialize.toIso / utcNowIso (isoformat style: no Z, 6-digit microseconds, see docs/architecture.md §4.2)
+      // Timestamp output must go through common/serialize.toIso / utcNowIso (ISO 8601 in UTC with 6-digit microseconds; toISOString keeps milliseconds only)
       'no-restricted-syntax': [
         'error',
         {

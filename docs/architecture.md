@@ -124,7 +124,7 @@ castor-kit/
 - 反代：`trustProxy` 取一跳，`request.ip` 即真实 IP，不手动读 `X-Forwarded-For`。
 
 ### 4.2 时间与数值输出
-- 时间字段格式 `YYYY-MM-DDTHH:mm:ss[.ffffff]`（**无 `Z` 后缀**，值为 UTC；整秒时不带小数部分）。`pg` 的 `timestamp`（1114）/ `date`（1082）解析器设为原样返回文本，**不经过 JS `Date`**——`Date` 会按本地时区解析造成偏移，且只有毫秒精度。`toIso()` 把空格换成 `T` 并把小数秒右补 0 到 6 位（见 §9）。禁止 `Date#toISOString()`。
+- 时间字段格式为 ISO 8601 / RFC 3339 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`（固定 6 位小数 + `Z`），任何标准日期库都能直接解析。列是 `timestamp`（无时区）存 UTC；`pg` 的 `timestamp`（1114）/ `date`（1082）解析器设为原样返回文本，**不经过 JS `Date`**——`Date` 只有毫秒精度。`toIso()` 把空格换成 `T`、小数秒右补 0 到 6 位、加 `Z`（见 §9）。请求里的时间（`field.dateTime`）带时区的换算成 UTC 再存，不带时区的按 UTC。前端 `@/lib/format` 按浏览器时区显示；导出文件（CSV / XLSX）里的时间是 UTC。禁止 `Date#toISOString()`。
 - `created_at` / `updated_at` 在库里没有 DB DEFAULT，由应用侧默认值写入：`db/schema/columns.ts` 的 `createdAt()` / `updatedAt()`（`timezone('utc', now())`）。
 - `numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里**不要** `parseFloat`；`NaN` → `null`。
 
@@ -300,7 +300,7 @@ castor-kit/
 以下行为均有测试覆盖，修改前先确认理由已不成立。
 
 - **404 / 405**：未命中路由的 GET/HEAD → `/api/*` 返回 404 JSON，其余路径落 SPA；未命中的其他方法一律 `405 {error:'请求方法不允许'}`（含未知路径；只注册了 POST 的路径被 GET 是 404）。原因：SPA 需要对任意路径接受 GET，而写方法打到不存在的地址应明确告诉调用方方法不被接受。
-- **`toIso()` 补齐 6 位微秒**：pg 的文本输出会去掉小数秒末尾的 0（如 `.68794`）；有小数部分时一律补到 6 位，保证同一时刻的输出稳定（整秒时不带小数部分，契约测试比较解析后的值）。
+- **时间用标准 ISO 8601（UTC，带 `Z`），固定 6 位微秒**：早期为了与旧接口一致，输出不带 `Z`、整秒时省略小数，前端直接截取文本显示，结果页面显示的是 UTC 时间、按本地时间解析的地方（如 Token 过期判断）会差一个时区；2026-09 改为带 `Z` 的标准格式，前端按浏览器时区显示。pg 的文本输出会去掉小数秒末尾的 0（如 `.68794`），`toIso()` 一律补到 6 位，同一时刻的输出稳定；保留微秒是因为 `Date#toISOString()` 只有毫秒，截断后会改变相等比较。
 - **写操作整体回滚**：service 的写操作包在一个事务里，出错整体回滚；操作日志在 `onResponse` 里独立写入，不会把半截修改带进库。
 - **SSRF 连接阶段复检**：除了保存时校验地址，执行时在 `connect.lookup` 阶段再检查一次解析结果（含 IPv4-mapped IPv6 等变体），防 DNS rebinding 和重定向到内网。
 - **`setup-once` 用增量模式同步 RBAC**：容器每次启动都会跑 setup-once，全量重建会清空账号与角色，所以只 upsert 不删除。

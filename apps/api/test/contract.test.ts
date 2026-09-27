@@ -24,7 +24,7 @@ import {
 } from './helpers'
 
 /** API time format: UTC without an offset; the fraction has 6 digits, or is left out when it is 0 */
-const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?$/
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/
 
 let app: FastifyInstance
 let handle: DbHandle

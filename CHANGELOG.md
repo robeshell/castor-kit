@@ -36,6 +36,13 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- **API contract — times are standard ISO 8601 in UTC with a `Z`**: every timestamp in responses, webhook payloads (`created_at`) and `/health` is `YYYY-MM-DDTHH:mm:ss.ffffffZ` (always six fraction digits), instead of the old Python-`isoformat` text without a zone that dropped the fraction on whole seconds. Clients can parse it with any date library; code that appended `Z` itself must stop doing so.
+  - Times in requests (`field.dateTime`, e.g. an announcement's `publish_at` and scaffolded `datetime` fields) accept an offset (`Z` / `±HH:MM`) and are converted to UTC in the API; text without an offset is UTC. Before, an offset was converted by PostgreSQL to the session time zone, so on a database whose default zone wasn't UTC the stored time was shifted.
+  - The web app shows times in the browser's time zone (`@/lib/format`: `formatDateTime`, `formatDate`, `formatRelative`, `parseApiTime`); pages used to show UTC wall time. Token expiry badges no longer read the expiry as local time. `DateTimePicker` shows local time and sends ISO 8601 with the browser's offset; scaffolded edit forms pass the API value to it as is.
+  - The webhook list's `last_at` goes through `toIso()` like every other time (it was raw database text).
+  - The OpenAPI document marks the 260 response `*_at` fields as `format: date-time`; scaffolded `datetime` fields and `created_at` / `updated_at` too.
+  - `common/serialize.ts` gains `utcNowText()` (database text) and `utcTextToMillis()`, which replace three copies of the same parsing in sessions, API tokens and demo reset. Exported CSV / XLSX files still carry UTC times.
+  - The conventions guard now also rejects `isoformat`.
 - Last traces of the old Python backend outside the API code:
   - `apps/web/scripts/shadcn-add.sh` relays the shadcn registry with a small Node server instead of a Python one, so adding shadcn components no longer needs python3.
   - The WebSocket Origin check compares hosts with the WHATWG URL parser (`sameHost`) instead of a port of Python's `urlsplit`; case and default ports compare equal, and a Host header that isn't `host[:port]` never matches.

@@ -278,19 +278,22 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "发布时间"
                           },
                           "created_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -371,7 +374,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM）；空值表示未设置；格式不合法返回 400「发布时间的值无效」"
+                    "description": "发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM，按时区换算为 UTC），不带时区按 UTC；空值表示未设置；格式不合法返回 400「发布时间的值无效」"
                   }
                 },
                 "required": [
@@ -429,19 +432,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "发布时间"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -855,7 +861,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM）；传空值清空；格式不合法返回 400「发布时间的值无效」"
+                    "description": "发布时间：YYYY-MM-DD HH:MM[:SS]（也可用 T 分隔），可带时区（Z / ±HH:MM，按时区换算为 UTC），不带时区按 UTC；传空值清空；格式不合法返回 400「发布时间的值无效」"
                   }
                 }
               }
@@ -910,19 +916,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "发布时间"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -1080,19 +1089,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "发布时间"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -1190,19 +1202,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "发布时间"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -1306,13 +1321,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "last_used_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "last_used_ip": {
                             "type": [
@@ -1339,13 +1356,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "revoked_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -1975,13 +1994,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -2237,13 +2258,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -2744,13 +2767,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -3218,13 +3243,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -3374,13 +3401,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -3535,13 +3564,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -4075,6 +4106,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "创建时间（ISO 8601）"
                           },
                           "updated_at": {
@@ -4082,6 +4114,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "更新时间（ISO 8601）"
                           }
                         }
@@ -4310,6 +4343,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -4317,6 +4351,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     }
                   }
@@ -4895,6 +4930,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -4902,6 +4938,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     }
                   }
@@ -5128,6 +5165,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -5135,6 +5173,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     }
                   }
@@ -5400,13 +5439,15 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       }
                     }
                   }
@@ -5611,13 +5652,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -5752,13 +5795,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -5973,13 +6018,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -6301,6 +6348,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "创建时间（ISO 8601）"
                           },
                           "updated_at": {
@@ -6308,6 +6356,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "更新时间（ISO 8601）"
                           }
                         }
@@ -6537,6 +6586,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -6544,6 +6594,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     },
                     "fields": {
@@ -6589,6 +6640,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "创建时间（ISO 8601）"
                           }
                         }
@@ -7150,6 +7202,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -7157,6 +7210,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     },
                     "fields": {
@@ -7202,6 +7256,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "创建时间（ISO 8601）"
                           }
                         }
@@ -7431,6 +7486,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -7438,6 +7494,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     },
                     "fields": {
@@ -7483,6 +7540,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "创建时间（ISO 8601）"
                           }
                         }
@@ -7700,13 +7758,15 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       }
                     }
                   }
@@ -7909,13 +7969,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -8130,13 +8192,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -8282,13 +8346,15 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "cards": {
                         "type": "array",
@@ -8360,13 +8426,15 @@
                               "type": [
                                 "string",
                                 "null"
-                              ]
+                              ],
+                              "format": "date-time"
                             },
                             "updated_at": {
                               "type": [
                                 "string",
                                 "null"
-                              ]
+                              ],
+                              "format": "date-time"
                             }
                           }
                         },
@@ -8493,13 +8561,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "cards": {
                       "type": "array",
@@ -8571,13 +8641,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       },
@@ -8710,13 +8782,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "cards": {
                       "type": "array",
@@ -8788,13 +8862,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       },
@@ -9048,13 +9124,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -9324,13 +9402,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -9675,6 +9755,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "首次发布时间"
                           },
                           "description": {
@@ -9688,13 +9769,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -10139,6 +10222,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "首次发布时间"
                     },
                     "description": {
@@ -10152,13 +10236,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -10989,6 +11075,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "首次发布时间"
                     },
                     "description": {
@@ -11002,13 +11089,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -11450,6 +11539,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "首次发布时间"
                     },
                     "description": {
@@ -11463,13 +11553,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -11647,7 +11739,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -11898,6 +11991,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "首次发布时间"
                     },
                     "description": {
@@ -11911,13 +12005,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -12098,13 +12194,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -12312,13 +12410,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -12902,13 +13002,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -13113,13 +13215,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -13394,6 +13498,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "创建时间（ISO 8601）"
                           },
                           "updated_at": {
@@ -13401,6 +13506,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "更新时间（ISO 8601）"
                           }
                         }
@@ -13613,6 +13719,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -13620,6 +13727,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     }
                   }
@@ -14256,6 +14364,7 @@
                           "string",
                           "null"
                         ],
+                        "format": "date-time",
                         "description": "创建时间（ISO 8601）"
                       },
                       "updated_at": {
@@ -14263,6 +14372,7 @@
                           "string",
                           "null"
                         ],
+                        "format": "date-time",
                         "description": "更新时间（ISO 8601）"
                       },
                       "children": {
@@ -14402,6 +14512,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -14409,6 +14520,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     }
                   }
@@ -14619,6 +14731,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "创建时间（ISO 8601）"
                     },
                     "updated_at": {
@@ -14626,6 +14739,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "更新时间（ISO 8601）"
                     }
                   }
@@ -14903,13 +15017,15 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "leader_name": {
                         "type": [
@@ -15054,13 +15170,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -15153,13 +15271,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -15294,13 +15414,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -15575,13 +15697,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -15715,13 +15839,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -15830,13 +15956,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "dict_type_code": {
                       "type": "string",
@@ -16002,13 +16130,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "dict_type_code": {
                       "type": "string",
@@ -16255,13 +16385,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "items": {
                       "type": "array",
@@ -16320,13 +16452,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       },
@@ -16459,13 +16593,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -16658,13 +16794,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "dict_type_code": {
                             "type": "string",
@@ -16720,13 +16858,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     }
@@ -16888,13 +17028,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "dict_type_code": {
                       "type": "string",
@@ -17289,7 +17431,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -17411,7 +17554,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -17646,7 +17790,8 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     },
@@ -17794,6 +17939,7 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "上次登录时间"
                         },
                         "last_login_ip": {
@@ -17811,13 +17957,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "roles": {
                           "type": "array",
@@ -17844,7 +17992,8 @@
                                 "type": [
                                   "string",
                                   "null"
-                                ]
+                                ],
+                                "format": "date-time"
                               }
                             }
                           }
@@ -18003,6 +18152,7 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "上次登录时间"
                         },
                         "last_login_ip": {
@@ -18020,13 +18170,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "roles": {
                           "type": "array",
@@ -18053,7 +18205,8 @@
                                 "type": [
                                   "string",
                                   "null"
-                                ]
+                                ],
+                                "format": "date-time"
                               }
                             }
                           }
@@ -18240,7 +18393,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -18538,7 +18692,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -18783,6 +18938,7 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "上次登录时间"
                         },
                         "last_login_ip": {
@@ -18800,13 +18956,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "roles": {
                           "type": "array",
@@ -18833,7 +18991,8 @@
                                 "type": [
                                   "string",
                                   "null"
-                                ]
+                                ],
+                                "format": "date-time"
                               }
                             }
                           }
@@ -18976,13 +19135,15 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "children": {
                         "type": "array",
@@ -19179,13 +19340,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -19566,13 +19729,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "children": {
                       "type": "array",
@@ -19778,13 +19943,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -20050,13 +20217,15 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "children": {
                         "type": "array",
@@ -20194,7 +20363,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "is_read": {
                             "type": "boolean",
@@ -20356,7 +20526,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "is_read": {
                       "type": "boolean",
@@ -20820,7 +20991,8 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "last_login_ip": {
                           "type": [
@@ -20832,13 +21004,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "roles": {
                           "type": "array",
@@ -20930,13 +21104,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "last_used_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "last_used_ip": {
                             "type": [
@@ -20963,13 +21139,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "revoked_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -21080,13 +21258,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "last_used_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "last_used_ip": {
                           "type": [
@@ -21113,13 +21293,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "revoked_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     }
@@ -21355,6 +21537,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "登录时间"
                           },
                           "last_seen_at": {
@@ -21362,6 +21545,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "最近活动时间（每分钟最多刷新一次）"
                           },
                           "expires_at": {
@@ -21369,6 +21553,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "到期时间（滑动续期）"
                           },
                           "current": {
@@ -21625,7 +21810,8 @@
                         "type": [
                           "string",
                           "null"
-                        ]
+                        ],
+                        "format": "date-time"
                       },
                       "data_scope": {
                         "type": "string",
@@ -21798,7 +21984,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "data_scope": {
                       "type": "string",
@@ -22235,7 +22422,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "data_scope": {
                       "type": "string",
@@ -22564,6 +22752,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "最近执行时间（UTC）"
                           },
                           "next_run_at": {
@@ -22571,19 +22760,22 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "下次执行时间（UTC），停用时为 null"
                           },
                           "created_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -22829,6 +23021,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "最近执行时间（UTC）"
                     },
                     "next_run_at": {
@@ -22836,19 +23029,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "下次执行时间（UTC），停用时为 null"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -23003,13 +23199,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "finished_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "duration_ms": {
                             "type": [
@@ -23022,7 +23220,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -23196,6 +23395,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "最近执行时间（UTC）"
                     },
                     "next_run_at": {
@@ -23203,19 +23403,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "下次执行时间（UTC），停用时为 null"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -23454,6 +23657,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "最近执行时间（UTC）"
                     },
                     "next_run_at": {
@@ -23461,19 +23665,22 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "下次执行时间（UTC），停用时为 null"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -23709,6 +23916,7 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "最近执行时间（UTC）"
                         },
                         "next_run_at": {
@@ -23716,19 +23924,22 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "下次执行时间（UTC），停用时为 null"
                         },
                         "created_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     },
@@ -23796,13 +24007,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "finished_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "duration_ms": {
                           "type": [
@@ -23815,7 +24028,8 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     },
@@ -23965,6 +24179,7 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "最近执行时间（UTC）"
                         },
                         "next_run_at": {
@@ -23972,19 +24187,22 @@
                             "string",
                             "null"
                           ],
+                          "format": "date-time",
                           "description": "下次执行时间（UTC），停用时为 null"
                         },
                         "created_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     },
@@ -24052,13 +24270,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "finished_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "duration_ms": {
                           "type": [
@@ -24071,7 +24291,8 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         }
                       }
                     },
@@ -24173,6 +24394,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "登录时间"
                           },
                           "last_seen_at": {
@@ -24180,6 +24402,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "最近活动时间（每分钟最多刷新一次）"
                           },
                           "expires_at": {
@@ -24187,6 +24410,7 @@
                               "string",
                               "null"
                             ],
+                            "format": "date-time",
                             "description": "到期时间（滑动续期）"
                           },
                           "current": {
@@ -24866,7 +25090,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "required": {
                       "type": "boolean",
@@ -25288,7 +25513,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "last_login_ip": {
                             "type": [
@@ -25304,13 +25530,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "roles": {
                             "type": "array",
@@ -25336,7 +25564,8 @@
                                   "type": [
                                     "string",
                                     "null"
-                                  ]
+                                  ],
+                                  "format": "date-time"
                                 }
                               }
                             }
@@ -25524,7 +25753,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "last_login_ip": {
                       "type": [
@@ -25540,13 +25770,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "roles": {
                       "type": "array",
@@ -25572,7 +25804,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -26022,7 +26255,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "last_login_ip": {
                       "type": [
@@ -26038,13 +26272,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "roles": {
                       "type": "array",
@@ -26070,7 +26306,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -26261,7 +26498,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "last_login_ip": {
                       "type": [
@@ -26273,13 +26511,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "roles": {
                       "type": "array",
@@ -26441,13 +26681,15 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "updated_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "last_status": {
                             "type": [
@@ -26460,7 +26702,8 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "failed_24h": {
                             "type": "integer",
@@ -26572,13 +26815,15 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "updated_at": {
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "last_status": {
                           "type": [
@@ -26591,7 +26836,8 @@
                           "type": [
                             "string",
                             "null"
-                          ]
+                          ],
+                          "format": "date-time"
                         },
                         "failed_24h": {
                           "type": "integer",
@@ -26686,7 +26932,8 @@
                           "type": "string"
                         },
                         "created_at": {
-                          "type": "string"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         "data": {
                           "description": "事件数据"
@@ -26727,6 +26974,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "下次重试时间"
                     },
                     "delivered_at": {
@@ -26734,13 +26982,15 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "成功送达时间"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
@@ -26910,13 +27160,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "last_status": {
                       "type": [
@@ -26929,7 +27181,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     },
                     "failed_24h": {
                       "type": "integer",
@@ -27128,19 +27381,22 @@
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "delivered_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           },
                           "created_at": {
                             "type": [
                               "string",
                               "null"
-                            ]
+                            ],
+                            "format": "date-time"
                           }
                         }
                       }
@@ -27347,7 +27603,8 @@
                           "type": "string"
                         },
                         "created_at": {
-                          "type": "string"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         "data": {
                           "description": "事件数据"
@@ -27388,6 +27645,7 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "下次重试时间"
                     },
                     "delivered_at": {
@@ -27395,13 +27653,15 @@
                         "string",
                         "null"
                       ],
+                      "format": "date-time",
                       "description": "成功送达时间"
                     },
                     "created_at": {
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "format": "date-time"
                     }
                   }
                 }
