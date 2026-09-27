@@ -31,3 +31,32 @@ export const importItems = (file: Blob) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+
+// ── Beyond CRUD: the endpoints the page patterns share ────────────────────────
+type P = '/api/admin/component-center/demo-records'
+
+/** Query of the list / tree / stats endpoints (the same filters) */
+export type DemoRecordQuery = ApiQuery<P>
+/** One node of GET …/tree (records nested by parent_id, ordered by sort_order) */
+export type DemoRecordTreeNode = ApiResponse<`${P}/tree`> extends (infer N)[] ? N : never
+export type DemoRecordStats = ApiResponse<`${P}/stats`>
+export type DemoRecordBatchUpdateBody = ApiBody<`${P}/batch-update`, 'post'>
+export type DemoRecordReorderBody = ApiBody<`${P}/reorder`, 'put'>
+
+export const getItem = (id: number) => request.get<unknown, ApiResponse<`${P}/{item_id}`>>(`${BASE}/${id}`)
+export const getTree = (params?: ApiQuery<`${P}/tree`>) => request.get<unknown, ApiResponse<`${P}/tree`>>(`${BASE}/tree`, { params })
+export const getStats = (params?: ApiQuery<`${P}/stats`>) => request.get<unknown, DemoRecordStats>(`${BASE}/stats`, { params })
+export const batchUpdate = (data: DemoRecordBatchUpdateBody) =>
+  request.post<unknown, ApiResponse<`${P}/batch-update`, 'post'>>(`${BASE}/batch-update`, data)
+export const batchDelete = (data: ApiBody<`${P}/batch-delete`, 'post'>) =>
+  request.post<unknown, ApiResponse<`${P}/batch-delete`, 'post'>>(`${BASE}/batch-delete`, data)
+/** Kanban moves (status + sort_order) and tree drags (parent_id + sort_order) */
+export const reorder = (data: DemoRecordReorderBody) => request.put<unknown, ApiResponse<`${P}/reorder`, 'put'>>(`${BASE}/reorder`, data)
+
+/**
+ * A tree node with its children typed. Local type: the OpenAPI doc can't express the recursive `children`
+ * (DemoRecordTreeNode has `{ [key: string]: unknown }[]`).
+ */
+export type DemoRecordNode = Omit<DemoRecordTreeNode, 'children'> & { children: DemoRecordNode[] }
+/** GET …/tree with the children typed recursively (same request as getTree) */
+export const getNodeTree = (params?: ApiQuery<`${P}/tree`>) => request.get<unknown, DemoRecordNode[]>(`${BASE}/tree`, { params })

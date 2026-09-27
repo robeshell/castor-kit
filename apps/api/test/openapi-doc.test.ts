@@ -229,10 +229,10 @@ describe('docs/apifox-full.openapi.json', () => {
     const { bodies } = apiRoutes
     expect(bodies.get('POST /api/admin/departments')?.mode).toBe('create')
     expect(bodies.get('PUT /api/admin/departments/{dept_id}')?.mode).toBe('patch')
-    expect(bodies.get('PUT /api/admin/component-center/kanban/cards/reorder')?.mode).toBe('array')
-    // A handler shared by GET and POST (export from the query or the body) declares its body on the POST route only
-    expect(bodies.has('POST /api/admin/component-center/list-page/export')).toBe(true)
-    expect(bodies.has('GET /api/admin/component-center/list-page/export')).toBe(false)
+    expect(bodies.get('PUT /api/admin/component-center/demo-records/reorder')?.mode).toBe('array')
+    expect(bodies.has('POST /api/admin/component-center/demo-records/export')).toBe(true)
+    // GET routes never declare a body
+    expect(bodies.has('GET /api/admin/component-center/demo-records/template')).toBe(false)
   })
 
   it('documents every registered /api route per the rules (fix the listed operations; see AGENTS.md "OpenAPI writing rules")', () => {

@@ -54,7 +54,7 @@ describe('demo write guard', () => {
     for (const path of [
       '/api/admin/login',
       '/api/admin/logout',
-      '/api/admin/component-center/kanban/cards',
+      '/api/admin/component-center/ai/prompt',
       '/api/admin/component-center/demo-records/reorder',
       '/api/admin/notifications/12/read',
       '/api/admin/notifications/read-all',
@@ -109,7 +109,7 @@ describe('demo mode app', () => {
 
   it('lets reads and gallery writes through', async () => {
     expect((await s.inject({ method: 'GET', url: '/api/admin/users' })).statusCode).toBe(200)
-    const res = await s.inject({ method: 'POST', url: '/api/admin/component-center/kanban/boards', payload: {} })
+    const res = await s.inject({ method: 'POST', url: '/api/admin/component-center/demo-records', payload: {} })
     expect(res.statusCode).not.toBe(403)
   })
 
@@ -155,10 +155,11 @@ describe('demo data reset', () => {
       }
       // Sequences continue after the fixture ids
       const { rows: next } = await client.query<{ id: number }>(
-        "INSERT INTO kanban_boards (title, board_code) VALUES ('x', 'ck_test_seq') RETURNING id",
+        "INSERT INTO demo_records (name, code) VALUES ('x', 'ck_test_seq') RETURNING id",
       )
-      expect(next[0]!.id).toBeGreaterThan(DEMO_FIXTURES.find(([t]) => t === 'kanban_boards')![1].length)
-      await client.query("DELETE FROM kanban_boards WHERE board_code = 'ck_test_seq'")
+      const fixtureIds = DEMO_FIXTURES.find(([t]) => t === 'demo_records')![1].map((row) => Number(row.id))
+      expect(next[0]!.id).toBeGreaterThan(Math.max(...fixtureIds))
+      await client.query("DELETE FROM demo_records WHERE code = 'ck_test_seq'")
 
       const later = new Date(now.getTime() + 3_600_000)
       expect(await resetDemoIfDue({ databaseUrl: TEST_DATABASE_URL, resetHours: 24, now: later, log: () => {} })).toBe(false)

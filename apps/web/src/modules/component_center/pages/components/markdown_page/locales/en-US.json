@@ -1,0 +1,15 @@
+{
+  "GFM 扩展：表格（支持列对齐，太宽时在自己的框里横向滚动）、任务列表、删除线和自动识别的链接。": "GFM extensions: tables (with column alignment; wide ones scroll inside their own box), task lists, strikethrough and bare links turned into links.",
+  "Markdown 源码": "Markdown source",
+  "Markdown 源码；为空时什么也不渲染": "Markdown source; renders nothing when empty",
+  "className 调整字号和行高，适合评论、消息这类小块内容。": "className adjusts the font size and line height, for small pieces such as comments and messages.",
+  "代码块": "Code block",
+  "代码块上方显示语言和复制按钮，没写语言时显示 text；行内代码用等宽字体。": "A code block shows its language and a copy button above it (text when none is given); inline code is monospaced.",
+  "外层容器的 class，可以调整字号和行高": "Class of the outer container; can adjust the font size and line height",
+  "左边编辑源码，右边实时预览；用 useDeferredValue 让长文档输入时不卡顿。": "Edit the source on the left with a live preview on the right; useDeferredValue keeps typing smooth in long documents.",
+  "把 Markdown 渲染成带项目排版的内容：标题、列表、引用、表格、任务列表、删除线、链接（在新标签页打开）和带复制按钮的代码块，颜色跟随亮色 / 暗色主题。源码里的 HTML 标签按原文显示、不会执行，用户输入的内容也可以放心渲染。代码块不做语法高亮，也不带编辑器：编辑时自己配一个文本框。": "Renders Markdown with the project's typography: headings, lists, quotes, tables, task lists, strikethrough, links (opened in a new tab) and code blocks with a copy button, in light and dark themes. HTML tags in the source are shown as text and never run, so user input is safe to render. Code blocks aren't syntax-highlighted, and there is no editor: pair it with a text area for editing.",
+  "源码与预览": "Source and preview",
+  "紧凑排版": "Compact typography",
+  "表格与任务列表": "Tables and task lists",
+  "评论": "Comments"
+}

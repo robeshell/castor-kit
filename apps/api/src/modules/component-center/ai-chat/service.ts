@@ -44,15 +44,15 @@ export const SYSTEM_PROMPT = {
     '- 权限：完整的 RBAC 菜单权限体系（用户/角色/菜单三张表）\n\n' +
     '## 核心功能模块\n' +
     '1. 系统管理：用户管理、角色权限、菜单管理、日志审计、数据字典、定时任务\n' +
-    '2. 组件示例中心（共 24 个页面）：\n' +
-    '   - 管理系统类：列表页、统计列表、卡片列表、树形列表、动态表单、看板、详情标签、甘特图、高级表格\n' +
+    '2. 组件示例中心（共 25 个页面）：\n' +
+    '   - 页面模板（每种页面模式一个参考实现，共用示例数据接口 /api/admin/component-center/demo-records）：标准列表、卡片列表、树形列表、统计列表、详情页、分步表单、动态表单、看板、甘特图、高级表格\n' +
     '   - 数据可视化：数据大屏、实时折线图、热力日历图、流量转化分析\n' +
     '   - AI 应用：AI 对话（即你当前所在页面）、AI 提示词工坊、AI 数据查询\n' +
     '   - 编辑器：富文本、代码编辑器、JSON 编辑器、Markdown 预览\n' +
     '   - 工程工具：拖拽布局、虚拟滚动、WebSocket 通信、性能监控\n\n' +
     '## 开发约定\n' +
     '- API 路由统一前缀：/api/admin/...\n' +
-    '- 前端动态路由：通过 import.meta.glob 扫描 pages/**/index.jsx\n' +
+    '- 前端动态路由：通过 import.meta.glob 扫描 pages/**/index.tsx\n' +
     '- 权限检查：hasMenuPermission(request, code) / menuPermissionRequired(code)（common/auth.ts）\n' +
     '- 默认账号：admin（密码以部署配置为准）\n' +
     '- 开发端口：后端 5001，前端 5173（Vite）\n\n' +

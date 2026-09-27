@@ -105,7 +105,7 @@ apps/web/
     │   ├── auth/pages/login/         # ログインページ
     │   ├── admin/{pages,api}/        # システム管理のページと API
     │   └── component_center/
-    │       ├── pages/{admin,dataviz,ai,editor,devtools}/
+    │       ├── pages/{patterns,dataviz,ai,editor,devtools}/
     │       └── api/
     └── shared/
         ├── api/request.js    # Axios インスタンス（baseURL '/api'。CSRF ヘッダーと Accept-Language を自動付与）
@@ -127,7 +127,7 @@ apps/web/
 | プロジェクト名とパッケージ名 | 小文字のハイフン区切り | `castor-kit`、`@castor-kit/api` |
 | バックエンドのディレクトリ名とファイル名 | 小文字のハイフン区切り | `component-center`、`scheduled-task` |
 | データベースのテーブル名 | アンダースコア区切り | `scheduled_tasks` |
-| フロントエンドのディレクトリ、メニューの `component` フィールド | アンダースコア区切り | `component_center/admin/list_page` |
+| フロントエンドのディレクトリ、メニューの `component` フィールド | アンダースコア区切り | `component_center/patterns/card_list_page` |
 | API パス | ハイフン区切り、複数形 | `/api/admin/customer-orders` |
 
 セッション cookie 名 `castor_session` は例外で、アンダースコアを使います。

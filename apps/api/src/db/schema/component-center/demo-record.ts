@@ -8,6 +8,8 @@
  * - numeric columns stay strings; date columns are 'YYYY-MM-DD' text
  * - parent_id: self-reference (tree list, tree drag). The foreign key has no ON DELETE action, so a row with children
  *   can't be deleted; the service answers that with a clear 400 first (see DemoRecordService.deleteItem)
+ * - Two independent orders, so one view's drags never scramble the other: sort_order = sibling order in the tree,
+ *   board_order = card order within a status column of the kanban
  * - cover: a file-center id (scaffold `image` type), registered with syncFileRefs on write
  * - tags: JSON array of strings (card list); extra: JSON object of dynamic-form values (dynamic form)
  * - After changing the table, run `pnpm db:generate --name <description>` + `pnpm db:migrate`
@@ -35,6 +37,7 @@ export const demo_records = pgTable(
     end_date: date({ mode: 'string' }),
     parent_id: integer(),
     sort_order: integer().notNull().default(0),
+    board_order: integer().notNull().default(0),
     cover: varchar({ length: 36 }),
     description: text(),
     tags: jsonb().$type<string[]>().notNull().default([]),
@@ -68,6 +71,7 @@ export function demoRecordToDict(item: DemoRecord) {
     end_date: item.end_date,
     parent_id: item.parent_id,
     sort_order: item.sort_order,
+    board_order: item.board_order,
     cover: item.cover,
     description: item.description,
     tags: item.tags,

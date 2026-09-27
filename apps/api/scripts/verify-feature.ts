@@ -106,7 +106,7 @@ const toPascal = (name: string) =>
     .map((w) => (w ? w[0]!.toUpperCase() + w.slice(1).toLowerCase() : ''))
     .join('')
 
-/** Candidate spellings of the module name: customer / customers / customer_page / list_page → list */
+/** Candidate spellings of the module name: customer / customers / customer_page / invoice_page → invoice */
 export function moduleCandidates(module: string): string[] {
   const singular = singularOf(module)
   const names = [module, singular, `${module}_page`, `${singular}_page`]

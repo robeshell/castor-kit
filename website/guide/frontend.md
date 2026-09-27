@@ -21,7 +21,7 @@ There is no hand-written route table. `apps/web/src/App.tsx` builds the routes f
 | `component` value | File |
 |---|---|
 | `admin/users` | `modules/admin/pages/users/index.tsx` |
-| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.tsx` |
+| `component_center/patterns/kanban_page` | `modules/component_center/pages/patterns/kanban_page/index.tsx` |
 | `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.tsx` |
 
 Only menus that are active, visible and of type `menu` produce routes. Page components are lazy-loaded. If a menu exists but its file can't be found, the page area shows a "Page not configured" notice.
@@ -124,7 +124,7 @@ The path alias `@` points to `apps/web/src`.
 
 ## Shared components
 
-Components come in two layers: shadcn/ui primitives in `@/components/ui/*` (source lives in the repo, edit as needed) and shared business components in `@/shared/components/*`. Use only `lucide-react` for icons.
+Components come in two layers: shadcn/ui primitives in `@/components/ui/*` (source lives in the repo, edit as needed) and shared business components in `@/shared/components/*`. Use only `lucide-react` for icons. Live examples of each shared component, with their source and key props, are in the Component Gallery's [Components](/guide/components#components) section.
 
 | Component | Purpose |
 |---|---|
@@ -140,6 +140,7 @@ Components come in two layers: shadcn/ui primitives in `@/components/ui/*` (sour
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | Import / export dialogs |
 | `TreeSelect` / `CheckableTree` | Searchable single-pick tree / multi-select tree with cascading checks |
 | `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | File (drag and drop, progress) / image / avatar upload; pair with `uploadFile` from `@/shared/api/files` to store in the file center |
+| `ConditionBuilder` | Conditions (field / operator / value) combined with AND / OR, plus one level of condition groups; controlled, and its value `ConditionTree` is plain JSON to save or send to an API |
 
 Form field example:
 

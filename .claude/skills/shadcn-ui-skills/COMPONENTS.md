@@ -122,7 +122,7 @@ const form = useForm({ defaultValues: { name: '', status: 'active', enabled: tru
 | `FormRadioGroup` | `options` / `direction` | any |
 | `FormCheckboxGroup` | `options` / `columns` | array |
 | `FormDate` | `placeholder` | `'YYYY-MM-DD'` |
-| `FormDateTime` | - | `'YYYY-MM-DD HH:mm:ss'` |
+| `FormDateTime` | - | ISO 8601 string (an API time in; out with the browser's UTC offset, e.g. `'2026-09-28T14:30:00+08:00'`) |
 | `FormTags` | `placeholder` | string[] |
 | `FormCustom` | `render({ value, onChange, field, fieldState })` | anything |
 | `FormGrid` | `columns` (default 2, single column on mobile) | layout container |
@@ -159,6 +159,7 @@ import EmptyState from '@/shared/components/EmptyState'
 | `StatCard` / `Sparkline` / `CountUp` | `<StatCard label="用户数" value={128} delta="+12%" trend={[...]} icon={Users} />` |
 | `DatePicker` / `DateTimePicker` | Date picking outside forms; value formats as above |
 | `MultiSelect` / `TagInput` | Multi-select / tag input outside forms |
+| `ConditionBuilder` | Conditions (field / operator / value) combined with AND / OR, plus one level of condition groups: `<ConditionBuilder fields={FIELDS} value={tree} onChange={setTree} />`; `fields: ConditionField<K>[]` (`{ key, label, type: 'text' \| 'number' \| 'date' \| 'select' \| 'boolean', options?, operators? }`), value `ConditionTree<K>` = `{ logic, items: [{ field, operator, value }], groups: [{ logic, items }] }`, plain JSON (no ids) to save or send; `allowGroups` / `disabled`. Controlled and data-agnostic: saving, API params or client-side filtering are the page's job (examples: Components → Condition Builder) |
 | `data-transfer/ImportDialog` | `open` / `onOpenChange` / `title` / `targetLabel` / `onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)` / `errorExportFileName`; failed rows are shown automatically and can be downloaded |
 | `data-transfer/ExportDialog` | `open` / `onOpenChange` / `title` / `fieldOptions` / `defaultFields` / `ruleHint` / `onConfirm({ fields, fileType })` (returns a Promise; the caller closes the dialog on success) |
 | `upload/FileUpload` / `upload/ImageUpload` | `fileList` / `onFileListChange` / `uploadApi` / `limit` / `accept` / `maxSizeMB`; entries are `{ uid, name, url, status: 'uploading' \| 'success' \| 'error', response }` |

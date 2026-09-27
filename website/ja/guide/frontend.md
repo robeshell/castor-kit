@@ -21,7 +21,7 @@
 | `component` の値 | 対応するファイル |
 |---|---|
 | `admin/users` | `modules/admin/pages/users/index.tsx` |
-| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.tsx` |
+| `component_center/patterns/kanban_page` | `modules/component_center/pages/patterns/kanban_page/index.tsx` |
 | `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.tsx` |
 
 ルートが生成されるのは、有効かつ表示状態で、種類が `menu` のメニューだけです。ページコンポーネントは必要に応じて遅延読み込みされます。メニューは存在するのに対応するファイルが見つからない場合、ページ領域に「ページが設定されていません」と表示されます。
@@ -124,7 +124,7 @@ export const importItems = (file) => {
 
 ## 共通コンポーネント
 
-コンポーネントは 2 層に分かれています。shadcn/ui のアトミックコンポーネントは `@/components/ui/*`（ソースはリポジトリ内にあり、必要に応じて変更可能）、業務向けの共通コンポーネントは `@/shared/components/*` にあります。アイコンは `lucide-react` だけを使います。
+コンポーネントは 2 層に分かれています。shadcn/ui のアトミックコンポーネントは `@/components/ui/*`（ソースはリポジトリ内にあり、必要に応じて変更可能）、業務向けの共通コンポーネントは `@/shared/components/*` にあります。アイコンは `lucide-react` だけを使います。各共通コンポーネントのライブのサンプル、ソース、主要なプロパティは、コンポーネント例の[コンポーネント](/ja/guide/components#components)グループにあります。
 
 | コンポーネント | 用途 |
 |---|---|
@@ -140,6 +140,7 @@ export const importItems = (file) => {
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | インポート / エクスポートダイアログ |
 | `TreeSelect` / `CheckableTree` | 検索できるツリーの単一選択 / 親子連動のツリー複数選択 |
 | `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | ファイル（ドラッグ＆ドロップ、進捗表示）/ 画像 / アバターのアップロード。`@/shared/api/files` の `uploadFile` と組み合わせてファイルセンターに保存 |
+| `ConditionBuilder` | フィールド / 演算子 / 値からなる条件を AND / OR で組み合わせ、1 階層の条件グループも使える。制御コンポーネントで、値の `ConditionTree` はそのまま保存したり API に送ったりできるプレーンな JSON |
 
 フォームフィールドの例：
 

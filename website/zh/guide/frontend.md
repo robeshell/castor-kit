@@ -21,7 +21,7 @@
 | `component` 值 | 对应文件 |
 |---|---|
 | `admin/users` | `modules/admin/pages/users/index.tsx` |
-| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.tsx` |
+| `component_center/patterns/kanban_page` | `modules/component_center/pages/patterns/kanban_page/index.tsx` |
 | `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.tsx` |
 
 只有启用且可见、类型为 `menu` 的菜单会生成路由。页面组件按需懒加载。菜单存在但找不到对应文件时，页面区域会显示“页面未配置”提示。
@@ -124,7 +124,7 @@ export const importItems = (file) => {
 
 ## 公共组件
 
-组件分两层：shadcn/ui 原子组件在 `@/components/ui/*`（源码在仓库内，可按需修改），业务公共组件在 `@/shared/components/*`。图标只用 `lucide-react`。
+组件分两层：shadcn/ui 原子组件在 `@/components/ui/*`（源码在仓库内，可按需修改），业务公共组件在 `@/shared/components/*`。图标只用 `lucide-react`。每个公共组件的实时示例、源码和关键属性见组件示例中心的[组件](/zh/guide/components#components)分组。
 
 | 组件 | 用途 |
 |---|---|
@@ -140,6 +140,7 @@ export const importItems = (file) => {
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | 导入 / 导出弹窗 |
 | `TreeSelect` / `CheckableTree` | 可搜索的树形单选 / 带父子联动的树形多选 |
 | `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | 文件（拖拽、进度）/ 图片 / 头像上传；配合 `@/shared/api/files` 的 `uploadFile` 上传到文件中心 |
+| `ConditionBuilder` | 由字段 / 运算符 / 值组成的条件，用 AND / OR 组合，支持一层条件组；受控组件，值 `ConditionTree` 是普通 JSON，可直接保存或传给接口 |
 
 表单字段示例：
 

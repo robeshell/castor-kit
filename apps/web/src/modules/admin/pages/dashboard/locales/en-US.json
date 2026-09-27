@@ -8,7 +8,7 @@
   "人": "people",
   "今日日志": "Today's logs",
   "内存": "Memory",
-  "列表 · 表单 · 看板 · 甘特": "List · Form · Kanban · Gantt",
+  "列表 · 详情 · 表单 · 看板": "List · Detail · Form · Kanban",
   "夜深了": "Working late",
   "大屏 · 折线 · 热力 · 流量": "Dashboard · Line · Heatmap · Traffic",
   "审计日志": "Audit logs",
@@ -27,7 +27,6 @@
   "查看审计日志": "View audit logs",
   "注册用户": "Registered users",
   "磁盘": "Disk",
-  "管理系统": "Admin pages",
   "系统活跃度": "System activity",
   "系统状态": "System status",
   "累计发送": "Total sent",
@@ -40,5 +39,6 @@
   "近 7 天操作日志，共 {{count}} 条": "Operation logs over the last 7 days: {{count}} in total",
   "连接失败": "Connection failed",
   "问问 AI": "Ask AI",
+  "页面模板": "Page patterns",
   "项": "items"
 }

@@ -1,24 +1,65 @@
 # Component gallery
 
-After signing in, the Component Gallery menu holds 24 example pages in five groups. They all follow the project's frontend conventions, so you can use any of them as a reference or starting point for a new page.
+After signing in, the Component Gallery menu holds 36 example pages in six groups: Page Patterns, Components, Data Visualization, AI Apps, Editors / Low-code and Engineering Tools. The gallery is the reference that developers and AI agents copy from: every page follows the project's frontend conventions exactly. Each page pattern has one page that is its reference implementation, and each group of shared components has one page that shows how to use them. To build a card list or a kanban board, start from the matching pattern page; to use `DataTable` or an upload field, look it up under [Components](#components).
 
-Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.tsx`. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
+Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.tsx`; the doc comment at the top of each page says when to use the pattern and what to copy. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
 
-## Admin Pages
+## Page Patterns
 
-Group directory `admin/`; every page has a backend API and a database table.
+Group directory `patterns/`. All ten pages work on the same demo data through one shared API (see [below](#shared-demo-api)).
 
-| Page | Route | Description |
+| Pattern | Route | What it shows | Reference directory |
+|---|---|---|---|
+| Standard List | `/component-center/patterns/standard-list` | A plain CRUD resource: category / status / enabled filters, table with pagination and row selection, create / edit dialog, delete, import / export (selected rows or everything). It is `pnpm scaffold` output plus the filters, the same structure as the Users page | `patterns/demo_record_page` |
+| Card List | `/component-center/patterns/card-list` | The standard list with the table swapped for a responsive card grid: cover image (uploaded to the file center, with a placeholder), category / status badges, tags, owner; skeleton cards while loading, an empty state | `patterns/card_list_page` |
+| Tree List | `/component-center/patterns/tree-list` | Records nested by `parent_id`: the whole tree on the left (searched on the server, keeping the ancestors of each match), the selected record's children in a table on the right with a breadcrumb; move up / down among siblings, a parent picker that excludes the record's own descendants | `patterns/tree_list_page` |
+| Stats List | `/component-center/patterns/stats-list` | Stat cards (count, amount, quantity, completion rate), a category donut chart and a stacked status bar above the table; the stats and the table read the same filters, and every write reloads both | `patterns/stats_list_page` |
+| Detail Page | `/component-center/patterns/detail` | One record's detail: a record picker on the left, a header with key facts and edit / delete, then tabs (overview, children, tags and extra fields); the record is in the URL (`?id=`) | `patterns/detail_page` |
+| Step Form | `/component-center/patterns/step-form` | A create wizard as a full page: one form across the steps, each step validated on "Next", a review step with links back to each step, then a success state | `patterns/step_form_page` |
+| Dynamic Form | `/component-center/patterns/dynamic-form` | Fixed fields plus user-defined extra fields (text / number / boolean / date) you can add and remove, stored as the record's jsonb `extra` | `patterns/dynamic_form_page` |
+| Kanban | `/component-center/patterns/kanban` | Columns are the status values (to do / in progress / completed / archived); drag cards within and across columns (dnd-kit), saved optimistically with one reorder request and rolled back on failure; the archived column collapses to a narrow rail | `patterns/kanban_page` |
+| Gantt Chart | `/component-center/patterns/gantt` | Records on a timeline in work-breakdown order (by `parent_id`, collapsible): day / week scale, weekend shading, a today line, summary bars for parents and progress bars for leaves; click a bar to edit | `patterns/gantt_page` |
+| Advanced Table | `/component-center/patterns/advanced-table` | A table worked in place: server-side sorting, inline row editing with undo, row selection with batch update (status / owner / enabled) and batch delete, column visibility | `patterns/advanced_table_page` |
+
+The shared option lists (category and status labels and badge tones) are in `patterns/demo-record-options.ts`. How to use each shared component on its own is in [Components](#components).
+
+### Shared demo API {#shared-demo-api}
+
+The ten pattern pages don't each have a backend. They share one module, `apps/api/src/modules/component-center/demo-record`, with one table, `demo_records`, under `/api/admin/component-center/demo-records`:
+
+| Endpoint | Used by |
+|---|---|
+| `GET /demo-records` (filters, pagination, sorting), `GET /demo-records/{id}` | Every page |
+| `POST` / `PUT /{id}` / `DELETE /{id}` | Create, edit, delete (a record that still has children can't be deleted) |
+| `GET /demo-records/tree` | Tree list, parent pickers |
+| `GET /demo-records/stats` | Stats list: totals, counts by status and by category, under the same filters as the list |
+| `POST /demo-records/batch-update`, `POST /demo-records/batch-delete` | Advanced table |
+| `PUT /demo-records/reorder` | Tree list (`sort_order`), kanban (`board_order` and `status`) |
+| `POST /demo-records/export`, `GET /demo-records/template`, `POST /demo-records/import` | Standard list |
+
+Besides the common fields (`name`, `code`, `category`, `status`, `owner`, `priority`, `is_active`, `description`), each pattern uses a few of its own: `parent_id` + `sort_order` (tree), `board_order` (kanban card order, kept apart from the tree's order), `amount` + `quantity` (stats), `start_date` / `end_date` / `progress` (gantt), `cover` + `tags` (cards), `extra` (dynamic form). `status` is `todo` / `in_progress` / `done` / `archived`; `category` is `product` / `design` / `engineering` / `marketing` / `operations`.
+
+Permissions belong to the Page Patterns directory (menu code `cc_patterns`), not to one page: its buttons `cc_patterns_add` / `_edit` / `_delete` / `_export` / `_import` guard the writes, and reading is allowed with the directory or any page under it (`DEMO_RECORD_VIEW_CODES` in the module's `schema.ts`). See [Permissions (RBAC)](/guide/rbac#permission-codes). In [demo mode](/reference/configuration#public-demo) the gallery stays writable, and the demo records are restored periodically from `apps/api/src/demo/fixtures.ts`.
+
+## Components {#components}
+
+Group directory `components/`. Where the page patterns show whole pages, these pages show how to use each shared component from `apps/web/src/shared/components/`: every example is live code rendered on the page, with its exact source one click away (syntax-highlighted, with a copy button) and a table of the component's key props. Look here first before using a shared component. All data is mock data, and there are no buttons to grant: the pages have no backend of their own (the uploads page stores files in the real file center).
+
+| Page | Route | Components covered |
 |---|---|---|
-| List Page | `/component-center/list-page` | The most complete CRUD list: filters, pagination, create/edit/delete, import/export, image and file upload |
-| Stats List Page | `/component-center/stats-list-page` | Stat cards plus category distribution and publish status charts above the list; creation uses a multi-step form |
-| Card List Page | `/component-center/card-list-page` | Records shown as a card grid, with create/edit/delete |
-| Tree List Page | `/component-center/tree-list-page` | Tree on the left, details on the right; supports changing the parent node, with cycle detection |
-| Dynamic Form Page | `/component-center/dynamic-form-page` | Basic info plus a sub-table of dynamic fields you can add and remove |
-| Kanban Board | `/component-center/admin/kanban` | Drag-and-drop ordering of Kanban columns and cards, with WIP limits |
-| Detail Tabs | `/component-center/admin/detail-tabs` | Member list on the left, details split into tabs on the right |
-| Gantt Chart | `/component-center/admin/gantt` | Gantt-chart scheduling of project tasks |
-| Advanced Table | `/component-center/admin/advanced-table` | Inline editing, column settings, drag-to-reorder, bulk actions, pinned action column |
+| Data Table | `/component-center/components/data-table` | `DataTable` (columns, custom cells, row selection with a batch toolbar, pagination, loading and empty states), `RowActions`, `ConfirmAction` |
+| Forms | `/component-center/components/forms` | The react-hook-form fields in `FormFields` (`FormInput`, `FormSelect`, `FormDate`, `FormTreeSelect`, `FormFileUpload`, `FormCustom`, …) and `FormGrid`; `FormDialog`, `FormSheet`, and the read-only `DetailSheet` / `DescriptionList` |
+| Filters | `/component-center/components/filters` | `FilterBar` with `SearchInput` / `FilterSelect`, `SegmentedTabs` |
+| Pickers | `/component-center/components/pickers` | `MultiSelect`, `TagInput`, `DatePicker` / `DateTimePicker`, `TreeSelect`, used on their own (controlled `value` + `onChange`) |
+| Trees | `/component-center/components/trees` | `TreeView` (selection, expansion, custom rows, filtering), `CheckableTree` (cascading checks, inside a form) |
+| Uploads | `/component-center/components/uploads` | `FileUpload`, `ImageUpload`, `AvatarUpload`, `FileIdUpload`, uploading to the file center |
+| Import / Export | `/component-center/components/import-export` | `ImportDialog` (success and failed rows) and `ExportDialog`, wired to mock handlers |
+| Feedback | `/component-center/components/feedback` | `StatusBadge`, `EmptyState`, `ConfirmAction`, `toast` (`@/lib/toast`), the `Skeleton` loading pattern |
+| Data Display | `/component-center/components/data-display` | `StatCard` (with `CountUp` / `Sparkline`), `Chart` (ECharts with theme colors), `Panel`, `PageHeader`, `UserAvatar` |
+| Markdown | `/component-center/components/markdown` | `MarkdownView` |
+| Condition Builder | `/component-center/components/condition-builder` | `ConditionBuilder`: field / operator / value conditions combined with AND / OR, plus condition groups; its value is plain JSON to save or send to an API (examples: filtering table rows, saving a query in a form, single-level and read-only) |
+
+Each page lives in `components/<group>_page/`: every example is its own file under `examples/`, imported by the page twice, once as a component for the live preview and once with Vite's `?raw` for the source shown under it, so the preview and the code can't drift; the props tables are in the page's `props.ts`. The layout pieces (`ShowcasePage`, `ShowcaseSection`, `Example`, `PropsTable`, `CodeBlock`) are in `apps/web/src/modules/component_center/showcase/`. To add a page or an example, follow "Component showcase pages" in [AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md); a test fails when an example file isn't wired both ways.
 
 ## Data Visualization
 

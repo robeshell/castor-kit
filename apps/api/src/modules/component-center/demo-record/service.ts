@@ -213,12 +213,18 @@ export class DemoRecordService {
   }
 
   /**
-   * Reorder (kanban drag, tree drag, manual order): each entry sets a record's sort_order and, when present, its
-   * status and parent. All moves are applied, then checked together: parents must exist and no record may end up
-   * under itself. Only records whose values change are written.
+   * Reorder (kanban drag, tree drag, manual order): each entry sets only the values it carries — board_order (card
+   * order within a kanban column), sort_order (sibling order in the tree), status, parent — so a kanban drag never
+   * touches the tree's order and vice versa. An entry carrying none of them is a 400. All moves are applied, then
+   * checked together: parents must exist and no record may end up under itself. Only records whose values change are
+   * written.
    */
   async reorder(items: z.output<typeof reorderItem>[]) {
     if (items.length === 0) return { message: '排序成功', updated: 0 }
+    // null board_order / sort_order / status mean "not changed" (NOT NULL columns); parent_id null = move to the root
+    const carriesChange = (i: z.output<typeof reorderItem>) =>
+      typeof i.board_order === 'number' || typeof i.sort_order === 'number' || Boolean(i.status) || i.parent_id !== undefined
+    if (!items.every(carriesChange)) throw new ServiceError('排序项至少要指定一个要调整的字段', 400)
     const ids = items.map((i) => i.id)
     if (new Set(ids).size !== ids.length) throw new ServiceError('排序列表中有重复的记录', 400)
     const changed = await this.inTx(async (repo) => {
@@ -234,7 +240,8 @@ export class DemoRecordService {
       for (const item of items) {
         const row = current.get(item.id)!
         const values: Partial<NewDemoRecord> = {}
-        if (item.sort_order !== row.sort_order) values.sort_order = item.sort_order
+        if (typeof item.board_order === 'number' && item.board_order !== row.board_order) values.board_order = item.board_order
+        if (typeof item.sort_order === 'number' && item.sort_order !== row.sort_order) values.sort_order = item.sort_order
         if (item.status && item.status !== row.status) values.status = item.status
         if (item.parent_id !== undefined && item.parent_id !== row.parent_id) values.parent_id = item.parent_id
         if (Object.keys(values).length === 0) continue

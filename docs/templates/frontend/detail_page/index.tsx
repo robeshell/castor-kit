@@ -10,7 +10,7 @@
  * Types: Row is the record the API returns (ApiItem, see ../list_page/api.ts for the API file); FormValues is what the
  * form holds and submits, checked against the create / edit body.
  *
- * Reference implementation: apps/web/src/modules/component_center/pages/admin/detail_tabs_page/index.tsx
+ * Reference implementation: apps/web/src/modules/component_center/pages/patterns/detail_page/index.tsx (page patterns → detail page)
  * Design and conventions: docs/frontend-design-system.md
  */
 import { useEffect, useState } from 'react'

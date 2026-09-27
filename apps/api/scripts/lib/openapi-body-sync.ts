@@ -84,9 +84,6 @@ export const BODY_SYNC_ALLOWLIST: BodySyncException[] = [
   ...[
     '/api/admin/logs/login/export',
     '/api/admin/users/export',
-    '/api/admin/component-center/card-list-page/export',
-    '/api/admin/component-center/dynamic-form-page/export',
-    '/api/admin/component-center/tree-list-page/export',
   ].map((path): BodySyncException => ({ method: 'POST', path, field: 'filters.status', kind: 'enum-free-text', reason: FILTER_STATUS })),
 
   // Fields the service enforces although Zod lets them through (moving them into Zod's required(...) would change
@@ -119,32 +116,6 @@ export const BODY_SYNC_ALLOWLIST: BodySyncException[] = [
     field: 'request_url',
     kind: 'nullable',
     reason: 'the service rejects clearing it (null / blank) with its own 400 message; the Zod field lets it through',
-  },
-  { method: 'POST', path: '/api/admin/component-center/gantt/tasks', field: 'start_date', kind: ['nullable', 'required-extra'], reason: SERVICE_REQUIRED },
-  { method: 'POST', path: '/api/admin/component-center/gantt/tasks', field: 'end_date', kind: ['nullable', 'required-extra'], reason: SERVICE_REQUIRED },
-  ...['start_date', 'end_date'].map(
-    (field): BodySyncException => ({
-      method: 'PUT',
-      path: '/api/admin/component-center/gantt/tasks/{task_id}',
-      field,
-      kind: 'nullable',
-      reason: 'the service rejects clearing it (null) with its own 400 message; the Zod field lets it through',
-    }),
-  ),
-  { method: 'POST', path: '/api/admin/component-center/kanban/cards', field: 'board_id', kind: ['nullable', 'required-extra'], reason: SERVICE_REQUIRED },
-  {
-    method: 'POST',
-    path: '/api/admin/component-center/advanced-table/rows/batch-update',
-    field: 'ids',
-    kind: ['nullable', 'required-extra'],
-    reason: 'the service rejects an empty id list with its own 400 message; the Zod field (read as a patch) lets it through',
-  },
-  {
-    method: 'POST',
-    path: '/api/admin/component-center/advanced-table/rows/batch-delete',
-    field: 'ids',
-    kind: ['nullable', 'required-extra'],
-    reason: 'the service rejects an empty id list with its own 400 message; the Zod field lets it through',
   },
 
   // Undocumented on purpose

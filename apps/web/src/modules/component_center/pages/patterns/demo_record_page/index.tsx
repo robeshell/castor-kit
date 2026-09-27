@@ -2,10 +2,13 @@
  * Page patterns → Standard list: the reference implementation of the standard list pattern, on the shared demo API
  * (/api/admin/component-center/demo-records, see modules/component-center/demo-record in apps/api).
  *
- * This is `pnpm scaffold` output (spec: name demo_record, domain component_center) kept as generated, plus the
- * category / status / enabled filters. Same structure as apps/web/src/modules/admin/pages/users/index.tsx:
- * PageHeader -> FilterBar -> DataTable (pagination / selection / row actions) -> FormDialog (react-hook-form)
- * -> ImportDialog / ExportDialog.
+ * Use it for a plain CRUD resource: filter, page, create / edit in a dialog, delete, import / export. This is
+ * `pnpm scaffold` output (spec: name demo_record, domain component_center) with three hand edits worth copying:
+ * the category / status / enabled filters; a column subset instead of one column per field (the form and the
+ * export still cover every field); status and enabled as StatusBadge, in the tones of the options the patterns
+ * share (../demo-record-options). Same structure as apps/web/src/modules/admin/pages/users/index.tsx: PageHeader ->
+ * FilterBar -> DataTable (pagination / selection / row actions) -> FormDialog (react-hook-form) -> ImportDialog /
+ * ExportDialog.
  *
  * Types: Row is the record the API returns (ApiItem of the module's OpenAPI entry, see ./api); FormValues is what the
  * form holds and submits, checked against the create / edit body. Change a field in the OpenAPI doc
@@ -22,7 +25,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Download, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatDate, formatDateTime } from '@/lib/format'
+import { formatDate, formatNumber } from '@/lib/format'
 import { toast } from '@/lib/toast'
 import {
   createItem,
@@ -36,6 +39,17 @@ import {
   type DemoRecordExportBody,
   type DemoRecordFileType,
 } from '@/modules/component_center/api/demo_record'
+import {
+  CATEGORY_OPTIONS,
+  categoryLabel,
+  enabledOption,
+  ENABLED_OPTIONS,
+  STATUS_OPTIONS,
+  statusLabel,
+  statusTone,
+  type DemoCategory,
+  type DemoStatus,
+} from '@/modules/component_center/pages/patterns/demo-record-options'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
 import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
@@ -44,7 +58,6 @@ import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filter
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormDate, FormImageUpload, FormInput, FormNumber, FormSelect, FormSwitch, FormTextarea } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
-import { fileUrl } from '@/shared/api/files'
 import StatusBadge from '@/shared/components/StatusBadge'
 import { useCrudList } from '@/shared/hooks/useCrudList'
 import { downloadBlobFile } from '@/shared/utils/file'
@@ -74,24 +87,12 @@ type ExportField = (typeof EXPORT_FIELDS)[number]['value']
 const isExportField = (value: string): value is ExportField => EXPORT_FIELDS.some((o) => o.value === value)
 const normalizeFileType = (raw: string): DemoRecordFileType => (raw === 'csv' || raw === 'xlsx' ? raw : 'xlsx')
 
-/** Choices of the enum fields: the value is stored, the label is shown */
-const FIELD_OPTIONS: Record<'category' | 'status', { value: string; label: string }[]> = {
-  category: [{ value: 'product', label: '产品' }, { value: 'design', label: '设计' }, { value: 'engineering', label: '研发' }, { value: 'marketing', label: '市场' }, { value: 'operations', label: '运营' }],
-  status: [{ value: 'todo', label: '待办' }, { value: 'in_progress', label: '进行中' }, { value: 'done', label: '已完成' }, { value: 'archived', label: '已归档' }],
-}
-const optionLabel = (field: keyof typeof FIELD_OPTIONS, value: string | null) => FIELD_OPTIONS[field].find((o) => o.value === value)?.label
-/** is_active filter: the API reads true / false ('' = all) */
-const ACTIVE_OPTIONS = [
-  { value: 'true', label: '启用' },
-  { value: 'false', label: '停用' },
-]
-
 /** What the form holds and submits (the create / edit body) */
 interface FormValues {
   name: string
   code: string
-  category: 'product' | 'design' | 'engineering' | 'marketing' | 'operations' | null
-  status: 'todo' | 'in_progress' | 'done' | 'archived' | null
+  category: DemoCategory | null
+  status: DemoStatus | null
   owner: string
   priority: number | null
   is_active: boolean
@@ -241,67 +242,60 @@ export default function StandardListPage() {
     }
   }
 
+  // A column subset: what a row is recognised and compared by. The rest of the fields are in the form and the export.
   const columns: DataTableColumn<Row>[] = [
-    { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },
-    { key: 'name', title: '名称', dataIndex: 'name' },
-    { key: 'code', title: '编码', dataIndex: 'code' },
+    {
+      key: 'name',
+      title: '名称',
+      dataIndex: 'name',
+      render: (value, record) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium">{value}</div>
+          <div className="text-muted-foreground truncate font-mono text-xs">{record.code}</div>
+        </div>
+      ),
+    },
     {
       key: 'category',
       title: '分类',
       dataIndex: 'category',
+      width: 100,
       render: (value) => {
-        const label = optionLabel('category', value)
-        return label ? t(label) : value
+        const label = categoryLabel(value)
+        return label ? t(label) : (value ?? '-')
       },
     },
     {
       key: 'status',
       title: '状态',
       dataIndex: 'status',
-      render: (value) => {
-        const label = optionLabel('status', value)
-        return label ? t(label) : value
-      },
+      width: 110,
+      render: (value) =>
+        value ? (
+          <StatusBadge tone={statusTone(value)} dot>
+            {statusLabel(value)}
+          </StatusBadge>
+        ) : (
+          '-'
+        ),
     },
-    { key: 'owner', title: '负责人', dataIndex: 'owner' },
+    { key: 'owner', title: '负责人', dataIndex: 'owner', width: 100, render: (value) => value || '-' },
     {
       key: 'priority',
       title: '优先级',
       dataIndex: 'priority',
+      width: 80,
       align: 'right',
       className: 'tabular-nums',
-    },
-    {
-      key: 'is_active',
-      title: '是否启用',
-      dataIndex: 'is_active',
-      width: 100,
-      render: (value) => (
-        <StatusBadge tone={value ? 'success' : 'neutral'} dot>
-          {value ? '是' : '否'}
-        </StatusBadge>
-      ),
     },
     {
       key: 'amount',
       title: '金额',
       dataIndex: 'amount',
+      width: 120,
       align: 'right',
       className: 'tabular-nums',
-    },
-    {
-      key: 'quantity',
-      title: '数量',
-      dataIndex: 'quantity',
-      align: 'right',
-      className: 'tabular-nums',
-    },
-    {
-      key: 'progress',
-      title: '进度',
-      dataIndex: 'progress',
-      align: 'right',
-      className: 'tabular-nums',
+      render: (value) => formatNumber(value),
     },
     {
       key: 'start_date',
@@ -320,40 +314,19 @@ export default function StandardListPage() {
       render: (value) => formatDate(value),
     },
     {
-      key: 'parent_id',
-      title: '上级记录',
-      dataIndex: 'parent_id',
-      align: 'right',
-      className: 'tabular-nums',
-    },
-    {
-      key: 'sort_order',
-      title: '排序',
-      dataIndex: 'sort_order',
-      align: 'right',
-      className: 'tabular-nums',
-    },
-    {
-      key: 'cover',
-      title: '封面',
-      dataIndex: 'cover',
-      width: 80,
-      render: (value) =>
-        value ? <img src={fileUrl(value)} alt="" loading="lazy" className="bg-muted ring-border size-9 rounded-md object-cover ring-1" /> : null,
-    },
-    {
-      key: 'description',
-      title: '描述',
-      dataIndex: 'description',
-      ellipsis: true,
-    },
-    {
-      key: 'created_at',
-      title: '创建时间',
-      dataIndex: 'created_at',
-      width: 180,
-      className: 'text-muted-foreground tabular-nums',
-      render: (value) => formatDateTime(value),
+      key: 'is_active',
+      title: '是否启用',
+      dataIndex: 'is_active',
+      width: 100,
+      render: (value) => {
+        if (value === null) return '-'
+        const option = enabledOption(value)
+        return (
+          <StatusBadge tone={option.tone} dot>
+            {option.label}
+          </StatusBadge>
+        )
+      },
     },
     {
       key: 'actions',
@@ -399,9 +372,9 @@ export default function StandardListPage() {
 
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
-        <FilterSelect value={category} onChange={setCategory} options={FIELD_OPTIONS.category} placeholder="分类" />
-        <FilterSelect value={status} onChange={setStatus} options={FIELD_OPTIONS.status} placeholder="状态" />
-        <FilterSelect value={isActive} onChange={setIsActive} options={ACTIVE_OPTIONS} placeholder="是否启用" />
+        <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={isActive} onChange={setIsActive} options={ENABLED_OPTIONS} placeholder="是否启用" />
       </FilterBar>
 
       <AnimatePresence>
@@ -450,8 +423,8 @@ export default function StandardListPage() {
       >
         <FormInput control={form.control} name="name" label="名称" rules={{ required: '此项必填' }} />
         <FormInput control={form.control} name="code" label="编码" rules={{ required: '此项必填' }} />
-        <FormSelect control={form.control} name="category" label="分类" options={FIELD_OPTIONS.category} clearable />
-        <FormSelect control={form.control} name="status" label="状态" options={FIELD_OPTIONS.status} rules={{ required: '此项必填' }} />
+        <FormSelect control={form.control} name="category" label="分类" options={CATEGORY_OPTIONS} clearable />
+        <FormSelect control={form.control} name="status" label="状态" options={STATUS_OPTIONS} rules={{ required: '此项必填' }} />
         <FormInput control={form.control} name="owner" label="负责人" />
         <FormNumber control={form.control} name="priority" label="优先级" step={1} rules={{ required: '此项必填' }} />
         <FormSwitch control={form.control} name="is_active" label="是否启用" rules={{ required: '此项必填' }} />

@@ -81,7 +81,7 @@ castor-kit/
 
 **Why is the model layer centralized in `db/schema/` while the other three layers live in feature folders?** Drizzle needs a single schema export for drizzle-kit. Repository / service / routes sit together by feature, so generating a new feature means creating 4 files in one directory plus 1 schema file, which is harder to get wrong than spreading files across 5 per-layer directories.
 
-Naming: backend directories and file names are lowercase and hyphenated (`component-center`, `scheduled-task`); table names, frontend directories and the menu `component` value keep underscores (`component_center/admin/list_page`).
+Naming: backend directories and file names are lowercase and hyphenated (`component-center`, `scheduled-task`); table names, frontend directories and the menu `component` value keep underscores (`component_center/patterns/card_list_page`).
 
 ---
 
@@ -214,7 +214,7 @@ Naming: backend directories and file names are lowercase and hyphenated (`compon
   - Serving: only png / jpeg / gif / webp are previewed inline; everything else is `attachment` + `nosniff`. `ETag` is the sha256 (a match returns 304). The `s3` driver redirects 302 to a signed URL valid for 10 minutes (or to the public URL when one is configured).
   - References: business writes call `syncFileRefs` / `clearFileRefs` from `common/file-refs.ts` in the same transaction, recorded in `file_references`; referenced files can't be deleted. Avatars are still stored as URLs (`/api/admin/files/<id>`), and external URLs keep working.
   - Cleanup: a built-in maintenance job in the scheduler loop (`MaintenanceJob`, not a user-defined scheduled task) deletes files uploaded more than 24 hours ago with no references every hour. `pg_try_advisory_xact_lock` ensures only one replica runs it, and references are re-checked at deletion time.
-- Images / attachments in the component showcase `list_page` also go through the file center (`image_urls` / `file_urls` store file URLs, and the repository registers references on write).
+- The component gallery's page patterns go through the file center too: `demo_records.cover` (the card list's cover image) stores a file id, and the repository registers the reference on write.
 - Upload limits are published through the public `GET /api/admin/app-info` (`upload.max_size` / `upload.allowed_types`), so the frontend upload component checks locally first. Files over `BODY_LIMIT` that multipart rejects also get `文件过大，最大支持 N MB` ("file too large, max N MB").
 - Public demo mode allows `POST /api/admin/files` (the component showcase needs uploads); delete and list keep their normal rules.
 - `@fastify/multipart`, limited by `BODY_LIMIT` (default 16MB, 413 when exceeded); file names use `path.basename` + allowlisted extension + a random prefix; on read-back the resolved path is checked to still be inside the upload directory (prevents directory traversal).

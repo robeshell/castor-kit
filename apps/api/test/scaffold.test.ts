@@ -336,10 +336,10 @@ describe('scaffold 纯函数', () => {
   })
 
   it('注册 db/schema/index.ts：插在同域最后一行之后；已注册返回 null', () => {
-    const index = "// admin\nexport * from './admin/rbac'\nexport * from './admin/dicts'\n\n// cc\nexport * from './component-center/gantt'\n"
+    const index = "// admin\nexport * from './admin/rbac'\nexport * from './admin/dicts'\n\n// cc\nexport * from './component-center/demo-record'\n"
     const next = registerSchemaExport(index, 'admin', 'customer')!
     expect(next).toBe(
-      "// admin\nexport * from './admin/rbac'\nexport * from './admin/dicts'\nexport * from './admin/customer'\n\n// cc\nexport * from './component-center/gantt'\n",
+      "// admin\nexport * from './admin/rbac'\nexport * from './admin/dicts'\nexport * from './admin/customer'\n\n// cc\nexport * from './component-center/demo-record'\n",
     )
     expect(registerSchemaExport(next, 'admin', 'customer')).toBeNull()
     expect(registerSchemaExport("export * from './admin/rbac'\n", 'new-domain', 'x')).toBe(
@@ -374,11 +374,19 @@ describe('scaffold 纯函数', () => {
   })
 })
 
-/** Keep only the initial migration: the test must not change as feature migrations are added to the repo */
+/**
+ * Keep only the initial migration, so the test doesn't change as feature migrations are added to the repo. Its snapshot
+ * becomes the latest one (same id, no parent): drizzle-kit then diffs only the scaffolded table, and never asks whether a
+ * table created since 0000 was renamed from one dropped since.
+ */
 function trimDrizzleToInitial(dir: string): void {
   const journalPath = join(dir, 'meta', '_journal.json')
-  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { idx: number; tag: string }[] }
   const [initial] = journal.entries
+  const snapshotPath = (idx: number) => join(dir, 'meta', `${String(idx).padStart(4, '0')}_snapshot.json`)
+  const initialSnapshot = JSON.parse(readFileSync(snapshotPath(initial!.idx), 'utf8')) as { id: string; prevId: string }
+  const latestSnapshot = JSON.parse(readFileSync(snapshotPath(journal.entries.at(-1)!.idx), 'utf8')) as Record<string, unknown>
+  writeFileSync(snapshotPath(initial!.idx), JSON.stringify({ ...latestSnapshot, id: initialSnapshot.id, prevId: initialSnapshot.prevId }, null, 2))
   for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${initial!.tag}.sql`) rmSync(join(dir, f))
   for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
   writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [initial] }, null, 2))
