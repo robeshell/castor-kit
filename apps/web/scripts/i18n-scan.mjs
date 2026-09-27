@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * i18n scanner for apps/web/src (Chinese source text is the i18n key, see src/i18n/index.js).
+ * i18n scanner for apps/web/src (Chinese source text is the i18n key, see src/i18n/index.ts).
  *
  * Reports, per file:
  *   - missing:  a Chinese string literal with no en-US / ja-JP translation in any locales/*.json

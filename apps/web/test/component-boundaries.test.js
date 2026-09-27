@@ -26,8 +26,8 @@ const RULES = [
 
 const ALLOWED = new Map([
   // Project changes to shadcn originals: form translates validation messages, sonner follows the app theme
-  ['components/ui/form.jsx', /@\/i18n/],
-  ['components/ui/sonner.jsx', /@\/context\/ThemeContext/],
+  ['components/ui/form.tsx', /@\/i18n/],
+  ['components/ui/sonner.tsx', /@\/context\/ThemeContext/],
   // Upload components still call the files API and read upload limits from the app info
   ['shared/components/upload/FileIdUpload.jsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],
   ['shared/components/upload/AvatarUpload.jsx', /@\/(shared\/api|shared\/hooks\/useAppInfo)/],

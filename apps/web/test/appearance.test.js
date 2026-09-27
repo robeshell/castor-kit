@@ -15,18 +15,18 @@ function presetVars(selector) {
 }
 
 describe('accent presets', () => {
-  it('every accent in lib/appearance.js has light and dark hex stops in index.css', () => {
+  it('every accent in lib/appearance.ts has light and dark hex stops in index.css', () => {
     for (const { id } of ACCENTS) {
       for (const selector of [`[data-accent='${id}']`, `.dark[data-accent='${id}']`]) {
         const vars = presetVars(selector)
         expect(vars, selector).not.toBeNull()
-        // chart-theme.js converts --brand-from to rgba, so the stops must stay plain hex
+        // chart-theme.ts converts --brand-from to rgba, so the stops must stay plain hex
         for (const name of ['--brand-from', '--brand-via', '--brand-to']) expect(vars[name], `${selector} ${name}`).toMatch(HEX)
       }
     }
   })
 
-  it('index.css has no preset missing from lib/appearance.js', () => {
+  it('index.css has no preset missing from lib/appearance.ts', () => {
     const ids = [...css.matchAll(/^\[data-accent='([a-z]+)'\]/gm)].map((m) => m[1])
     expect(ids.sort()).toEqual(ACCENTS.map((a) => a.id).sort())
   })

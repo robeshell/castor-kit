@@ -44,7 +44,7 @@ Each item ships as its own PR and meets these requirements:
 | Step | Scope | Status |
 |---|---|---|
 | 1 | Toolchain: `tsconfig.json` (strict, `allowJs`), web typecheck in `pnpm typecheck` / `verify`, web lint in `pnpm lint`, typescript-eslint; page routing, i18n scanner, import check and `shadcn-add.sh` accept `.ts` / `.tsx`; component layer boundaries test; first files (`lib/utils`, `PageHeader`, `StatusBadge`, `shared/api/types`, the sessions API) | Done |
-| 2 | `components/ui`: regenerate with the shadcn CLI as TSX (`components.json` `tsx: true`) and reapply the project's changes; `lib`, `i18n`, hooks, context | Not started |
+| 2 | `components/ui` and AI Elements as TSX (`components.json` `tsx: true`), keeping the project's changes; `lib`, `i18n`, hooks, context | Done: typed in place against the upstream TSX (type-stripped output identical to the old JSX); changes from upstream listed in `docs/shadcn-changes.md` |
 | 3 | `shared/components` and the request layer; API response types generated from `docs/apifox-full.openapi.json` | Not started |
 | 4 | Scaffold: generated pages and API files, `docs/templates/frontend`, skills and AGENTS.md describe TSX | Not started |
 | 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | Not started |

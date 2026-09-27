@@ -93,7 +93,7 @@ apps/web/
 └── src/
     ├── App.jsx               # Dynamic routing (scans pages with import.meta.glob)
     ├── index.css             # Tailwind v4 entry + design tokens (light / dark / accent colors)
-    ├── i18n/index.js         # i18next setup
+    ├── i18n/index.ts         # i18next setup
     ├── locales/              # Shared UI translations; menus/ holds menu name translations
     ├── context/              # AuthContext / ThemeContext / TagsViewContext
     ├── components/

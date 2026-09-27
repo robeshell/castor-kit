@@ -10,7 +10,7 @@ This page explains how these options are implemented and what they require of yo
 - The choice is saved under the `theme` key in `localStorage`; if the user has never chosen, it follows the system setting.
 - While switching, a global color transition is briefly enabled and then removed, so it doesn't affect normal hover animations.
 
-The implementation is in `apps/web/src/context/ThemeContext.jsx`. As long as a page uses semantic color classes (see [Frontend](/guide/frontend#styling-rules)), dark mode just works.
+The implementation is in `apps/web/src/context/ThemeContext.tsx`. As long as a page uses semantic color classes (see [Frontend](/guide/frontend#styling-rules)), dark mode just works.
 
 ## Accent color
 
@@ -51,8 +51,8 @@ ECharts charts read the actual values of the current CSS variables through `useC
 
 ### Adding an accent color
 
-1. Add `{ id, label }` to `ACCENTS` in `apps/web/src/lib/appearance.js`. `label` is the Chinese source text and also serves as the translation key.
-2. Add the matching `[data-accent='<id>']` light and dark stop sets to `apps/web/src/index.css`. Keep the stops in hex; `chart-theme.js` converts `--brand-from` to rgba.
+1. Add `{ id, label }` to `ACCENTS` in `apps/web/src/lib/appearance.ts`. `label` is the Chinese source text and also serves as the translation key.
+2. Add the matching `[data-accent='<id>']` light and dark stop sets to `apps/web/src/index.css`. Keep the stops in hex; `chart-theme.ts` converts `--brand-from` to rgba.
 3. Add English and Japanese translations for `label`.
 
 ## Navigation mode
@@ -98,7 +98,7 @@ The tabs bar is on by default and can be turned off in Appearance. When it's on,
 - The tab list is saved under the `tags-view` key in `sessionStorage`, so it only applies to the current browser tab
 - Switching back to a tab restores its last query parameters and scroll position
 
-State management is in `apps/web/src/context/TagsViewContext.jsx`; the page area is rendered in `apps/web/src/components/app/AppLayout.jsx`.
+State management is in `apps/web/src/context/TagsViewContext.tsx`; the page area is rendered in `apps/web/src/components/app/AppLayout.jsx`.
 
 ### How keep-alive works
 
@@ -136,4 +136,4 @@ useEffect(() => {
 | `localStorage` | `lang` | UI language; see [Internationalization](/guide/i18n) |
 | `sessionStorage` | `tags-view` | Open tabs |
 
-Unknown keys or invalid values in `appearance` are ignored and fall back to the defaults. The Appearance panel has a Reset button. The options are defined in one place: `apps/web/src/lib/appearance.js`.
+Unknown keys or invalid values in `appearance` are ignored and fall back to the defaults. The Appearance panel has a Reset button. The options are defined in one place: `apps/web/src/lib/appearance.ts`.

@@ -57,7 +57,7 @@ Inference guidelines (field types: see "Field type inference" below):
 | Import / export | `csv-parse` + `exceljs` (**csv / xlsx only; `.xls` is not supported**) | - |
 | Testing | Vitest + a real PostgreSQL | - |
 | Frontend framework | React + Vite + React Router + Axios (TypeScript / TSX; JSX → TSX migration in progress, see `docs/roadmap.md` "TypeScript frontend") | 19 / 5 / 7 |
-| UI components | shadcn/ui (new-york style, Radix primitives, source in `apps/web/src/components/ui/`, still JSX) | - |
+| UI components | shadcn/ui (new-york style, Radix primitives, source in `apps/web/src/components/ui/`, TSX; changes from upstream in `docs/shadcn-changes.md`) | - |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS-variable themes (light / dark, `apps/web/src/index.css`) | 4.x |
 | Motion | `motion` (`motion/react`) + `tw-animate-css` (overlay enter / exit) | - |
 | Icons | `lucide-react` | - |
@@ -332,7 +332,7 @@ Details: docs/architecture.md "Cross-cutting conventions".
 - **Operation log**: written centrally to `operation_logs` by a global `onResponse` hook registered by the logs module; don't write log entries from services
 - **Files**: uploads and storage all go through the file center (`modules/admin/files` + `common/storage/`, drivers `local` / `s3`, see the `STORAGE_*` env vars). The frontend uses `uploadFile` from `@/shared/api/files` and the `upload/*` components (in forms, `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload`). Business tables store the file ID (or, for things like avatars, the `/api/admin/files/<id>` URL). When writing, call `syncFileRefs(tx, tableName, rowId, { field: value })` from `common/file-refs.ts` in the same transaction, and `clearFileRefs` when deleting; otherwise the file is treated as an orphan and cleaned up 24 hours after upload. The scaffold's `file` / `image` types handle this automatically
 - **Data scope**: a role's `data_scope` (`all` / `dept_and_children` / `dept` / `self` / `custom`) decides which rows it can see. In routes, `await resolveDataScope(request)` gets the scope; in the repository, filter with `and(..., dataScopeWhere(scope, { deptColumn, ownerColumn }))` (the repository never touches `request`); detail / update / delete outside the scope always return 404. Scoped modules export `DATA_SCOPE` from `schema.ts`, and verify's `data_scope_filter` checks that the repository uses `dataScopeWhere`. New modules that need it are generated with `pnpm scaffold ... --data-scope` (adds `dept_id` / `created_by`, filled from `currentActor` on create). User management already uses it (department column `dept_id`, owner column `id`)
-- **CSRF**: write requests under `/api/*` must send `X-CSRF-Token` (the frontend's request.js handles this); the login endpoint is exempt
+- **CSRF**: write requests under `/api/*` must send `X-CSRF-Token` (the frontend's request.ts handles this); the login endpoint is exempt
 - **API tokens**: requests with `Authorization: Bearer ck_…` are authenticated by `common/api-token.ts` (no cookie read, no CSRF check), and `request.apiToken` is set; `hasMenuPermission` checks the token's scopes before the super admin rule, so business code just uses it as usual. Account and security endpoints are refused centrally through `API_TOKEN_DENIED`; when you add such an endpoint (password change, secrets, sessions, etc.), add its path there
 - **Webhook events**: **after** a write's transaction commits, the service calls `this.events?.emit('<module>.created' | '.updated' | '.deleted', data)` (`created` / `updated` send the `xxxToDict` result, `deleted` sends `{ id }`); routes register event names with Chinese descriptions via `declareEvents({ ... })`, and pass `app.events` when constructing the service. `emit` never throws; don't `await` it to decide a business outcome. Scaffold-generated modules handle this automatically
 - **Public demo (`DEMO_MODE`)**: write requests outside the allowlist in `common/demo.ts` all get 403. Currently allowed: login / logout, `/api/admin/component-center/*`, file uploads (`POST /api/admin/files`, needed by the gallery's images / attachments), and marking notifications read. New business domains are read-only in the demo by default; to make one writable there, add its path to `DEMO_WRITABLE` and add sample data in `src/demo/fixtures.ts` (reset logic: `src/demo/reset.ts`)
@@ -341,7 +341,7 @@ Details: docs/architecture.md "Cross-cutting conventions".
 
 ## Frontend conventions
 
-The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api/request.js`), `AuthContext`, `useCrudList` and the pages. The UI system is described in `docs/frontend-design-system.md`: **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**, written in JavaScript (JSX), with UI copy in Chinese (the i18n source key).
+The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api/request.ts`), `AuthContext`, `useCrudList` and the pages. The UI system is described in `docs/frontend-design-system.md`: **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**, moving from JSX to TSX (see "TypeScript (migration in progress)"), with UI copy in Chinese (the i18n source key).
 
 ### Dynamic routing
 
@@ -366,10 +366,10 @@ Where scaffold puts pages: admin domain → `pages/<name>/index.jsx`; component_
 
 ### TypeScript (migration in progress)
 
-The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`. `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
 
 - New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
-- New component files use their layer's current extension until that layer is converted. A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
+- New component files use their layer's current extension until that layer is converted (`components/ui` and `components/ai-elements` are TSX, and the shadcn CLI now writes TSX). A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
 - Converting a file: rename with `git mv`, give props an exported `interface XxxProps`, keep imports extensionless (importers need no change); don't enable `checkJs`.
 
 ### Calling the API
@@ -454,17 +454,17 @@ lib: `@/lib/utils` (`cn`), `@/lib/toast` (`toast.success / error / warning`, `to
 **Design tokens and motion** (details: `docs/frontend-design-system.md` §2):
 
 - Colors always use semantic classes: `bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`; with semantic classes only, dark mode (`<html class="dark">`) is correct for free
-- Users can switch the accent color under Appearance settings in the top bar (presets in `src/lib/appearance.js`, default Ocean; the `[data-accent]` presets in `index.css` only define `--brand-from/via/to`, and `--primary`, `--ring`, chart colors and `brand-soft/glow/shadow` are all derived from those three). Pages always use the `primary` / `brand-*` semantic classes; never hard-code a particular accent color, or it won't follow the switch. Navigation mode (sidebar / top / mixed), sidebar style and content width live in the same panel and are handled by `AppLayout`; pages don't need to care
-- Tab bar (on by default, can be turned off in Appearance settings): opened pages stay as tabs, with state in `src/context/TagsViewContext.jsx`. When it's on, each tab page is kept alive with React `<Activity>`: switching away keeps the page state (filters, pagination, form input), but effects are cleaned up and run again on return (requests in `useEffect` fetch again; timers / polling / WebSockets stop while hidden). So page side effects must live in effects with proper cleanup; never start timers at module level or during render
+- Users can switch the accent color under Appearance settings in the top bar (presets in `src/lib/appearance.ts`, default Ocean; the `[data-accent]` presets in `index.css` only define `--brand-from/via/to`, and `--primary`, `--ring`, chart colors and `brand-soft/glow/shadow` are all derived from those three). Pages always use the `primary` / `brand-*` semantic classes; never hard-code a particular accent color, or it won't follow the switch. Navigation mode (sidebar / top / mixed), sidebar style and content width live in the same panel and are handled by `AppLayout`; pages don't need to care
+- Tab bar (on by default, can be turned off in Appearance settings): opened pages stay as tabs, with state in `src/context/TagsViewContext.tsx`. When it's on, each tab page is kept alive with React `<Activity>`: switching away keeps the page state (filters, pagination, form input), but effects are cleaned up and run again on return (requests in `useEffect` fetch again; timers / polling / WebSockets stop while hidden). So page side effects must live in effects with proper cleanup; never start timers at module level or during render
 - Neutral gray is the base; the accent (default Ocean gradient blue → sky → cyan) is only an accent: `bg-brand-gradient` (decoration) / `bg-brand-gradient-strong` (carries white text) / `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow` (only for small decorations, never as a large background behind content; in light mode it looks like a stain); no purple
 - Spacing with Tailwind (`space-y-4` / `gap-4`), numbers with `tabular-nums`; on mobile (<768px) nothing may overflow horizontally (table containers scroll horizontally)
 - Restrained motion: interactions 150-250ms ease-out; staggered list entrances, layoutId indicators, number rolls and overlay enter / exit are already provided by the shared components; `prefers-reduced-motion` is handled globally
 
-**Menu icons**: `menus.icon` stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.js` resolves to a lucide component; new menus reuse names already in the mapping, and a new icon needs a new entry in the mapping.
+**Menu icons**: `menus.icon` stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.ts` resolves to a lucide component; new menus reuse names already in the mapping, and a new icon needs a new entry in the mapping.
 
 ### Internationalization (i18n) and code comments
 
-The UI supports Simplified Chinese / English / Japanese, and **the Chinese source text is the translation key** (design in `apps/web/src/i18n/index.js` and `apps/api/src/common/i18n.ts`).
+The UI supports Simplified Chinese / English / Japanese, and **the Chinese source text is the translation key** (design in `apps/web/src/i18n/index.ts` and `apps/api/src/common/i18n.ts`).
 
 - **Frontend**: `const { t } = useTranslation()`, then `t('保存')` ("Save") or `t('共 {{count}} 条', { count })` ("{{count}} items in total"). English / Japanese go in the **page's own directory**, `locales/en-US.json` and `locales/ja-JP.json` ("Chinese → translation"; both files have the same keys); shared copy lives in `src/locales/`, and menu names, keyed by menu code, in `src/locales/menus/`.
   - String props passed to shared components (PageHeader / Panel titles, DataTable column titles, FormFields label / placeholder / options / rules messages, FilterSelect / SegmentedTabs / StatusBadge / StatCard / RowActions / ConfirmAction / FormDialog, etc.) are translated by the component: write the Chinese and add the translations. `toast.success('固定中文')` (a fixed Chinese string) is translated automatically too.
@@ -484,7 +484,7 @@ apps/web/scripts/shadcn-add.sh --view badge         # only view the registry con
 apps/web/scripts/shadcn-add.sh badge -o -y          # overwrite existing files (loses local changes; confirm first)
 ```
 
-The script clears `HTTP(S)_PROXY` before running the CLI (npm package downloads still use the original proxy via `npm_config_proxy`), rewrites `import { cn } from "cn"` in the registry source back to `@/lib/utils`, and removes the `cn` package if it was installed by mistake. After adding, check `git diff apps/web/package.json` and make sure the component only uses semantic color classes; change focus styles to the project's `ring-2` + `ring-ring/20` (shadcn's default `ring-[3px]` / `ring-ring/50` is too heavy; `apps/web/test/focus-ring.test.js` catches it).
+The script clears `HTTP(S)_PROXY` before running the CLI (npm package downloads still use the original proxy via `npm_config_proxy`), rewrites `import { cn } from "cn"` in the registry source back to `@/lib/utils`, and removes the `cn` package if it was installed by mistake. After adding, check `git diff apps/web/package.json` and make sure the component only uses semantic color classes; change focus styles to the project's `ring-2` + `ring-ring/20` (shadcn's default `ring-[3px]` / `ring-ring/50` is too heavy; `apps/web/test/focus-ring.test.js` catches it). Every project change to an upstream component is listed in `docs/shadcn-changes.md`: re-apply it after overwriting a component with `-o`, and add a line there when you change one.
 
 ### Adding AI Elements components
 
@@ -495,7 +495,7 @@ curl -sSo /tmp/el-reasoning.json https://elements.ai-sdk.dev/api/registry/reason
 yes n | apps/web/scripts/shadcn-add.sh /tmp/el-reasoning.json -y
 ```
 
-The CLI converts to JSX according to `components.json` (`tsx: false`). After installing, check the size of new dependencies (compare `npx vite build` before and after); change English copy in the components to `t('中文')` or have the caller pass it in; dependencies in the registry that point to other AI Elements components by full URL must also be downloaded locally before installing.
+The CLI writes TSX according to `components.json` (`tsx: true`). After installing, check the size of new dependencies (compare `npx vite build` before and after); change English copy in the components to `t('中文')` or have the caller pass it in; dependencies in the registry that point to other AI Elements components by full URL must also be downloaded locally before installing.
 
 ### Frontend-only pages (no backend API)
 

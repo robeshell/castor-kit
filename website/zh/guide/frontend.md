@@ -111,7 +111,7 @@ export const importItems = (file) => {
 }
 ```
 
-`request.js` 已处理：
+`request.ts` 已处理：
 
 - `baseURL` 为 `/api`，所以路径写 `/admin/...`
 - 响应已解包：直接用 `res.items`、`res.total`，**不要**写 `res.data.items`
@@ -210,7 +210,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # 只查看 registry 内容，�
 
 ## 菜单图标
 
-`menus.icon` 字段存的是 lucide 图标名（如 `Users`、`Settings`），由 `apps/web/src/lib/menu-icons.js` 解析成 lucide 图标组件。新增菜单时沿用映射表中已有的名字，需要新图标时在映射表里补一条。
+`menus.icon` 字段存的是 lucide 图标名（如 `Users`、`Settings`），由 `apps/web/src/lib/menu-icons.ts` 解析成 lucide 图标组件。新增菜单时沿用映射表中已有的名字，需要新图标时在映射表里补一条。
 
 ## 多语言与副作用
 

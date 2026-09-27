@@ -95,7 +95,7 @@ export function customerToDict(item: Customer) {
 - **数値**：`numeric` 列は文字列のまま出力します（例：`"12.50"`）。`toDict()` の中で数値に変換しないでください。
 - **リクエストボディの検証**：`schema.ts` で `@/common/validation` の `field.*` を使ってボディを宣言し、ルートは権限チェックの後に `parseBody` / `parsePatch` を呼びます。JSON の型のみ受け付け（テキストは前後の空白を除いた文字列、整数は number、真偽値は true / false）、余分なフィールドは無視し、型が違えば 400 を返します。`pnpm scaffold` で生成したモジュールも同じ書き方で、インポート行は `rowToBody` でボディの形に変換され、同じ宣言で検証されます。
 - **操作ログ**：logs モジュールが登録するグローバルな `onResponse` フックが `operation_logs` にまとめて書き込むので、service の中で手書きしないでください。
-- **CSRF**：`/api/*` 配下の書き込みリクエストには `X-CSRF-Token` ヘッダーが必要です。フロントエンドの `request.js` が自動で処理し、ログイン API は対象外です。
+- **CSRF**：`/api/*` 配下の書き込みリクエストには `X-CSRF-Token` ヘッダーが必要です。フロントエンドの `request.ts` が自動で処理し、ログイン API は対象外です。
 
 ## 権限チェック
 

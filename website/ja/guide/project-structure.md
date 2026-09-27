@@ -93,7 +93,7 @@ apps/web/
 └── src/
     ├── App.jsx               # 動的ルーティング（import.meta.glob でページをスキャン）
     ├── index.css             # Tailwind v4 のエントリー + デザイントークン（ライト / ダーク / アクセントカラー）
-    ├── i18n/index.js         # i18next の初期化
+    ├── i18n/index.ts         # i18next の初期化
     ├── locales/              # 共通文言の翻訳。menus/ はメニュー名の翻訳
     ├── context/              # AuthContext / ThemeContext / TagsViewContext
     ├── components/

@@ -59,7 +59,7 @@
         },
         "icon": {
           "type": "string",
-          "description": "An icon name from apps/web/src/lib/menu-icons.js"
+          "description": "An icon name from apps/web/src/lib/menu-icons.ts"
         }
       },
       "description": "Only when present are the menu and button permissions added to scripts/seed-rbac.ts; new business modules usually use {}"

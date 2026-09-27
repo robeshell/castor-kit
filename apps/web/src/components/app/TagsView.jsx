@@ -51,7 +51,7 @@ function TabActions({ Item, Separator, tab }) {
 }
 
 /**
- * Tags view: one tab per opened page under the top bar (state in context/TagsViewContext.jsx).
+ * Tags view: one tab per opened page under the top bar (state in context/TagsViewContext.tsx).
  * Tabs are text only (third-level menus show no icon in the sidebar either, so icons here would be inconsistent).
  * Middle-click closes a tab; right-click opens the tab menu. Desktop only.
  */

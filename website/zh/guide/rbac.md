@@ -88,7 +88,7 @@ castor-kit 使用基于角色的权限控制：用户拥有角色，角色被授
 ```
 
 - `component` 使用 `pnpm scaffold` 输出的 Menu component 值。
-- `icon` 沿用 `apps/web/src/lib/menu-icons.js` 映射表里已有的名字。
+- `icon` 沿用 `apps/web/src/lib/menu-icons.ts` 映射表里已有的名字。
 - 新菜单还需要在 `apps/web/src/locales/menus/en-US.json` 和 `ja-JP.json` 中按 `code` 添加译名，见 [多语言](/zh/guide/i18n#菜单名翻译)。
 
 ### 同步到数据库
