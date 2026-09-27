@@ -21,8 +21,8 @@
 | `component` の値 | 対応するファイル |
 |---|---|
 | `admin/users` | `modules/admin/pages/users/index.tsx` |
-| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.jsx` |
-| `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.jsx` |
+| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.tsx` |
+| `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.tsx` |
 
 ルートが生成されるのは、有効かつ表示状態で、種類が `menu` のメニューだけです。ページコンポーネントは必要に応じて遅延読み込みされます。メニューは存在するのに対応するファイルが見つからない場合、ページ領域に「ページが設定されていません」と表示されます。
 

@@ -21,8 +21,8 @@ There is no hand-written route table. `apps/web/src/App.jsx` scans every page wi
 | `component` value | File |
 |---|---|
 | `admin/users` | `modules/admin/pages/users/index.tsx` |
-| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.jsx` |
-| `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.jsx` |
+| `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.tsx` |
+| `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.tsx` |
 
 Only menus that are active, visible and of type `menu` produce routes. Page components are lazy-loaded. If a menu exists but its file can't be found, the page area shows a "Page not configured" notice.
 

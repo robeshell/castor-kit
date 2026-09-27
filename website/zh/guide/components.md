@@ -2,7 +2,7 @@
 
 登录后，“组件示例中心”菜单下有 28 个示例页面，按六个分组组织。它们都遵循项目的前端规范，可以直接作为新页面的参考或起点。
 
-页面源码位于 `apps/web/src/modules/component_center/pages/<分组目录>/<页面>/index.jsx`，带后端接口的示例对应 `apps/api/src/modules/component-center/` 下的模块。
+页面源码位于 `apps/web/src/modules/component_center/pages/<分组目录>/<页面>/index.tsx`，带后端接口的示例对应 `apps/api/src/modules/component-center/` 下的模块。
 
 ## 管理系统
 
