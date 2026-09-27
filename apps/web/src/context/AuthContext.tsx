@@ -133,4 +133,9 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
 }
 
 /** The auth state; null outside <AuthProvider> */
-export const useAuth = (): AuthContextValue | null => useContext(AuthContext)
+/** The auth state; every caller sits inside <AuthProvider> (outside it, destructuring the result would fail anyway) */
+export function useAuth(): AuthContextValue {
+  const value = useContext(AuthContext)
+  if (!value) throw new Error('useAuth() must be used inside <AuthProvider>')
+  return value
+}

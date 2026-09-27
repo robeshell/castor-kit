@@ -48,7 +48,7 @@ Each item ships as its own PR and meets these requirements:
 | 3 | `shared/components` and the module API files; API types generated from `docs/apifox-full.openapi.json` (`src/shared/api/openapi.d.ts`, helpers `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody`); fixed the doc where the types showed it disagreed with the backend | Done |
 | 4 | Scaffold: generated pages and API files, `docs/templates/frontend`, skills and AGENTS.md describe TSX | Done: `pnpm scaffold` writes `api/<name>.ts` (row / body types from the module's OpenAPI entries) and `index.tsx` (`FormValues` per field, `DataTableColumn<Row>[]`, no `any` or casts) and regenerates `openapi.d.ts` after writing the doc; the scaffold tests type-check the generated files with apps/web's tsc |
 | 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | Not started |
-| 6 | Idiomatic TypeScript cleanup (changes behavior, so its own PRs): context hooks (`useAuth`, `useTagsView`) throw outside their provider and return non-null values; drop defensive checks the types now guarantee (`x \|\| {}`, `typeof x === 'function'`) and dead branches; remove avoidable type assertions; one export / file-naming style (default vs named exports, `useXxx.ts` vs `use-xxx.ts`) | Not started |
+| 6 | Idiomatic TypeScript cleanup (changes behavior, so its own PRs): drop defensive checks the types now guarantee (`x \|\| {}`, `typeof x === 'function'`) and dead branches; remove avoidable type assertions; one export / file-naming style (default vs named exports, `useXxx.ts` vs `use-xxx.ts`) | Not started |
 
 **Acceptance per step**: `pnpm verify` green including the web typecheck; pages behave the same; no new `.jsx` in a converted layer.
 
@@ -61,6 +61,8 @@ Each item ships as its own PR and meets these requirements:
 - `useFormField` (shadcn upstream) checks `if (!fieldContext)`, which never fires because the context default is `{}`
 - `AuthContext` has a `data.menus` branch that the typed `my-menus` API shows is dead
 - The OpenAPI doc types `user` in the `POST /api/admin/two-factor/enable` response as a free-form object, and tree `children` can't be recursive inline (the API files keep local node types)
+
+Done early (step 5 needed it): `useAuth()` / `useTagsView()` throw outside their provider and return non-null values. Every caller destructured the result, so a missing provider already threw; now the error says why.
 
 **Why steps 1-5 don't change behavior**: each converted file is checked by stripping its types and comparing with the old JS, so a regression can only come from the types themselves. Code that is correct but not idiomatic TypeScript is kept as it was and cleaned up in step 6, where behavior changes are reviewed on their own.
 
