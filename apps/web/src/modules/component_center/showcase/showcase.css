@@ -1,0 +1,4 @@
+/* Shiki dual-theme tokens: the inline color is the light theme, --shiki-dark the dark one */
+.dark .showcase-code span {
+  color: var(--shiki-dark) !important;
+}

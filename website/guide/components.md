@@ -1,6 +1,6 @@
 # Component gallery
 
-After signing in, the Component Gallery menu holds 25 example pages in five groups. The gallery is the reference that developers and AI agents copy from: every page follows the project's frontend conventions exactly, and each page pattern has one page that is its reference implementation. To build a card list or a kanban board, start from the matching page below.
+After signing in, the Component Gallery menu holds 36 example pages in six groups: Page Patterns, Components, Data Visualization, AI Apps, Editors / Low-code and Engineering Tools. The gallery is the reference that developers and AI agents copy from: every page follows the project's frontend conventions exactly. Each page pattern has one page that is its reference implementation, and each group of shared components has one page that shows how to use them. To build a card list or a kanban board, start from the matching pattern page; to use `DataTable` or an upload field, look it up under [Components](#components).
 
 Page source lives in `apps/web/src/modules/component_center/pages/<group-dir>/<page>/index.tsx`; the doc comment at the top of each page says when to use the pattern and what to copy. Examples with a backend API have a matching module under `apps/api/src/modules/component-center/`.
 
@@ -21,7 +21,7 @@ Group directory `patterns/`. All ten pages work on the same demo data through on
 | Gantt Chart | `/component-center/patterns/gantt` | Records on a timeline in work-breakdown order (by `parent_id`, collapsible): day / week scale, weekend shading, a today line, summary bars for parents and progress bars for leaves; click a bar to edit | `patterns/gantt_page` |
 | Advanced Table | `/component-center/patterns/advanced-table` | A table worked in place: server-side sorting, inline row editing with undo, row selection with batch update (status / owner / enabled) and batch delete, column visibility | `patterns/advanced_table_page` |
 
-The shared option lists (category and status labels and badge tones) are in `patterns/demo-record-options.ts`. Component showcase pages, one per shared component (tables, form fields, uploads, charts, and the saved-query condition builder), are planned for the gallery next.
+The shared option lists (category and status labels and badge tones) are in `patterns/demo-record-options.ts`. How to use each shared component on its own is in [Components](#components).
 
 ### Shared demo API {#shared-demo-api}
 
@@ -40,6 +40,26 @@ The ten pattern pages don't each have a backend. They share one module, `apps/ap
 Besides the common fields (`name`, `code`, `category`, `status`, `owner`, `priority`, `is_active`, `description`), each pattern uses a few of its own: `parent_id` + `sort_order` (tree), `board_order` (kanban card order, kept apart from the tree's order), `amount` + `quantity` (stats), `start_date` / `end_date` / `progress` (gantt), `cover` + `tags` (cards), `extra` (dynamic form). `status` is `todo` / `in_progress` / `done` / `archived`; `category` is `product` / `design` / `engineering` / `marketing` / `operations`.
 
 Permissions belong to the Page Patterns directory (menu code `cc_patterns`), not to one page: its buttons `cc_patterns_add` / `_edit` / `_delete` / `_export` / `_import` guard the writes, and reading is allowed with the directory or any page under it (`DEMO_RECORD_VIEW_CODES` in the module's `schema.ts`). See [Permissions (RBAC)](/guide/rbac#permission-codes). In [demo mode](/reference/configuration#public-demo) the gallery stays writable, and the demo records are restored periodically from `apps/api/src/demo/fixtures.ts`.
+
+## Components {#components}
+
+Group directory `components/`. Where the page patterns show whole pages, these pages show how to use each shared component from `apps/web/src/shared/components/`: every example is live code rendered on the page, with its exact source one click away (syntax-highlighted, with a copy button) and a table of the component's key props. Look here first before using a shared component. All data is mock data, and there are no buttons to grant: the pages have no backend of their own (the uploads page stores files in the real file center).
+
+| Page | Route | Components covered |
+|---|---|---|
+| Data Table | `/component-center/components/data-table` | `DataTable` (columns, custom cells, row selection with a batch toolbar, pagination, loading and empty states), `RowActions`, `ConfirmAction` |
+| Forms | `/component-center/components/forms` | The react-hook-form fields in `FormFields` (`FormInput`, `FormSelect`, `FormDate`, `FormTreeSelect`, `FormFileUpload`, `FormCustom`, …) and `FormGrid`; `FormDialog`, `FormSheet`, and the read-only `DetailSheet` / `DescriptionList` |
+| Filters | `/component-center/components/filters` | `FilterBar` with `SearchInput` / `FilterSelect`, `SegmentedTabs` |
+| Pickers | `/component-center/components/pickers` | `MultiSelect`, `TagInput`, `DatePicker` / `DateTimePicker`, `TreeSelect`, used on their own (controlled `value` + `onChange`) |
+| Trees | `/component-center/components/trees` | `TreeView` (selection, expansion, custom rows, filtering), `CheckableTree` (cascading checks, inside a form) |
+| Uploads | `/component-center/components/uploads` | `FileUpload`, `ImageUpload`, `AvatarUpload`, `FileIdUpload`, uploading to the file center |
+| Import / Export | `/component-center/components/import-export` | `ImportDialog` (success and failed rows) and `ExportDialog`, wired to mock handlers |
+| Feedback | `/component-center/components/feedback` | `StatusBadge`, `EmptyState`, `ConfirmAction`, `toast` (`@/lib/toast`), the `Skeleton` loading pattern |
+| Data Display | `/component-center/components/data-display` | `StatCard` (with `CountUp` / `Sparkline`), `Chart` (ECharts with theme colors), `Panel`, `PageHeader`, `UserAvatar` |
+| Markdown | `/component-center/components/markdown` | `MarkdownView` |
+| Condition Builder | `/component-center/components/condition-builder` | `ConditionBuilder`: field / operator / value conditions combined with AND / OR, plus condition groups; its value is plain JSON to save or send to an API (examples: filtering table rows, saving a query in a form, single-level and read-only) |
+
+Each page lives in `components/<group>_page/`: every example is its own file under `examples/`, imported by the page twice, once as a component for the live preview and once with Vite's `?raw` for the source shown under it, so the preview and the code can't drift; the props tables are in the page's `props.ts`. The layout pieces (`ShowcasePage`, `ShowcaseSection`, `Example`, `PropsTable`, `CodeBlock`) are in `apps/web/src/modules/component_center/showcase/`. To add a page or an example, follow "Component showcase pages" in [AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md); a test fails when an example file isn't wired both ways.
 
 ## Data Visualization
 

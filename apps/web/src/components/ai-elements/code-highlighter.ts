@@ -35,7 +35,8 @@ const GRAMMARS = {
   xml: () => import('shiki/langs/xml.mjs'),
 }
 
-type GrammarName = keyof typeof GRAMMARS
+/** A language the highlighter can load */
+export type GrammarName = keyof typeof GRAMMARS
 
 const ALIASES: Record<string, string> = {
   js: 'javascript',
@@ -81,7 +82,8 @@ function getHighlighter(): Promise<HighlighterCore> {
   return highlighter
 }
 
-async function tokensFor(code: string, lang: GrammarName): Promise<TokensResult> {
+/** Dual-theme tokens (each token's htmlStyle carries `color` and `--shiki-dark`); also used by the component gallery's code blocks */
+export async function tokensFor(code: string, lang: GrammarName): Promise<TokensResult> {
   const shiki = await getHighlighter()
   if (!shiki.getLoadedLanguages().includes(lang)) await shiki.loadLanguage(GRAMMARS[lang]())
   return shiki.codeToTokens(code, { lang, themes: { light: THEMES[0], dark: THEMES[1] } })

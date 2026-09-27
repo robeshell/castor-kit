@@ -20,7 +20,7 @@ Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form
 
 - **Teams that want AI to actually ship features**: a product manager or developer describes the requirement in one sentence, and the AI works out the technical details: routes, field types, permission codes, menu IDs.
 - **Developers who need a well-structured admin starting point**: login, users, roles, menus, logs, data dictionaries, scheduled tasks, notifications and announcements work out of the box, together with a full RBAC permission system.
-- **Frontend developers looking for reference implementations of common admin pages**: the Component Gallery ships 25 example pages, including one reference implementation per page pattern (standard, card, tree and stats lists, detail page, step and dynamic forms, Kanban, Gantt chart, advanced table) plus data dashboards, AI chat, editors and more. See [Component gallery](/guide/components).
+- **Frontend developers looking for reference implementations of common admin pages**: the Component Gallery ships 36 example pages, including one reference implementation per page pattern (standard, card, tree and stats lists, detail page, step and dynamic forms, Kanban, Gantt chart, advanced table), one usage page per group of shared components (live examples with their exact source and key props: data table, forms, filters, pickers, trees, uploads, import / export, feedback, data display, Markdown, condition builder), plus data dashboards, AI chat, editors and more. See [Component gallery](/guide/components).
 
 ## Core features
 

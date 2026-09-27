@@ -1,6 +1,6 @@
 # コンポーネント例
 
-ログイン後、「コンポーネント例」メニューの下には 25 個のサンプルページがあり、5 つのグループに分かれています。コンポーネント例は、開発者と AI エージェントがそのまま手本にするためのものです。どのページもプロジェクトのフロントエンド規約に厳密に従っており、ページパターンごとに参考実装となるページが 1 つずつあります。カード一覧やカンバンを作るときは、下の対応するページから始めてください。
+ログイン後、「コンポーネント例」メニューの下には 36 個のサンプルページがあり、「ページテンプレート」「コンポーネント」「データ可視化」「AI アプリ」「エディター / ローコード」「開発ツール」の 6 つのグループに分かれています。コンポーネント例は、開発者と AI エージェントがそのまま手本にするためのものです。どのページもプロジェクトのフロントエンド規約に厳密に従っています。ページパターンごとに参考実装となるページが 1 つずつあり、共通コンポーネントのグループごとに使い方を示すページが 1 つずつあります。カード一覧やカンバンを作るときは対応するページテンプレートから始め、`DataTable` やアップロードのフィールドを使うときは[コンポーネント](#components)で調べてください。
 
 ページのソースは `apps/web/src/modules/component_center/pages/<グループのディレクトリ>/<ページ>/index.tsx` にあり、各ページ冒頭のドキュメントコメントに、そのパターンを使う場面と手本にすべき書き方がまとめてあります。バックエンド API を持つサンプルは `apps/api/src/modules/component-center/` 配下のモジュールに対応しています。
 
@@ -21,7 +21,7 @@
 | ガントチャート | `/component-center/patterns/gantt` | 作業分解の順（`parent_id` の階層、折りたたみ可能）でレコードをタイムラインに配置：日 / 週の目盛り、週末の網掛け、今日の線。親は集約バー、末端は進捗バーで表示し、バーをクリックすると編集 | `patterns/gantt_page` |
 | 高度なテーブル | `/component-center/patterns/advanced-table` | テーブル上で直接作業するためのもの：サーバー側の並べ替え、行内編集（元に戻せる）、選択した行の一括更新（状態 / 担当者 / 有効）と一括削除、列の表示設定 | `patterns/advanced_table_page` |
 
-各ページで共有する選択肢（カテゴリと状態の名前、バッジの色調）は `patterns/demo-record-options.ts` にあります。今後、共通コンポーネントごとに 1 ページのコンポーネント紹介ページ（テーブル、フォームのフィールド、アップロード、グラフ、保存クエリ用の条件ビルダーなど）も追加する予定です。
+各ページで共有する選択肢（カテゴリと状態の名前、バッジの色調）は `patterns/demo-record-options.ts` にあります。個々の共通コンポーネントの使い方は[コンポーネント](#components)を参照してください。
 
 ### 共有のデモ API {#shared-demo-api}
 
@@ -40,6 +40,26 @@
 共通のフィールド（`name`、`code`、`category`、`status`、`owner`、`priority`、`is_active`、`description`）のほかに、パターンごとにいくつかのフィールドを使います：`parent_id` + `sort_order`（ツリー）、`board_order`（カンバンのカードの順序。ツリーの順序とは別）、`amount` + `quantity`（集計）、`start_date` / `end_date` / `progress`（ガントチャート）、`cover` + `tags`（カード）、`extra`（動的フォーム）。`status` の値は `todo` / `in_progress` / `done` / `archived`、`category` の値は `product` / `design` / `engineering` / `marketing` / `operations` です。
 
 権限は個々のページではなく「ページテンプレート」のディレクトリ（メニューコード `cc_patterns`）に属します。ディレクトリのボタン `cc_patterns_add` / `_edit` / `_delete` / `_export` / `_import` が書き込みを制御し、読み取りはディレクトリまたはその配下のいずれかのページの権限があれば許可されます（モジュールの `schema.ts` にある `DEMO_RECORD_VIEW_CODES`）。[権限（RBAC）](/ja/guide/rbac#permission-codes)を参照してください。[デモモード](/ja/reference/configuration#public-demo)でもコンポーネント例には書き込めます。デモのレコードは `apps/api/src/demo/fixtures.ts` から定期的に復元されます。
+
+## コンポーネント {#components}
+
+グループのディレクトリは `components/` です。ページテンプレートがページ全体を示すのに対し、こちらのページは `apps/web/src/shared/components/` の共通コンポーネントそれぞれの使い方を示します。どのサンプルもページ上でそのまま動く実際のコードで、クリック 1 つで正確なソース（シンタックスハイライト付き、コピー可能）を表示でき、コンポーネントの主要なプロパティの表も付いています。共通コンポーネントを使う前に、まずここを確認してください。データはすべてモックで、割り当てるボタン権限もありません。これらのページは専用のバックエンドを持ちません（アップロードのページだけは実際のファイルセンターにファイルを保存します）。
+
+| ページ | ルート | 扱うコンポーネント |
+|---|---|---|
+| データテーブル | `/component-center/components/data-table` | `DataTable`（列定義、カスタムセル、行選択と一括操作バー、ページング、読み込み中と空の状態）、`RowActions`、`ConfirmAction` |
+| フォーム | `/component-center/components/forms` | `FormFields` の react-hook-form 用フィールド（`FormInput`、`FormSelect`、`FormDate`、`FormTreeSelect`、`FormFileUpload`、`FormCustom` など）と `FormGrid`。`FormDialog`、`FormSheet`、読み取り専用の `DetailSheet` / `DescriptionList` |
+| フィルター | `/component-center/components/filters` | `FilterBar` と `SearchInput` / `FilterSelect`、`SegmentedTabs` |
+| ピッカー | `/component-center/components/pickers` | 単独で使う（制御された `value` + `onChange`）`MultiSelect`、`TagInput`、`DatePicker` / `DateTimePicker`、`TreeSelect` |
+| ツリー | `/component-center/components/trees` | `TreeView`（選択、展開、カスタム行、絞り込み）、`CheckableTree`（親子連動のチェック、フォーム内での利用） |
+| アップロード | `/component-center/components/uploads` | `FileUpload`、`ImageUpload`、`AvatarUpload`、`FileIdUpload`。ファイルセンターにアップロード |
+| インポート / エクスポート | `/component-center/components/import-export` | `ImportDialog`（成功と失敗した行）と `ExportDialog`。モックの処理関数につないである |
+| フィードバック | `/component-center/components/feedback` | `StatusBadge`、`EmptyState`、`ConfirmAction`、`toast`（`@/lib/toast`）、`Skeleton` による読み込み中の表示 |
+| データ表示 | `/component-center/components/data-display` | `StatCard`（`CountUp` / `Sparkline` 付き）、`Chart`（テーマの配色に従う ECharts）、`Panel`、`PageHeader`、`UserAvatar` |
+| Markdown | `/component-center/components/markdown` | `MarkdownView` |
+| 条件ビルダー | `/component-center/components/condition-builder` | `ConditionBuilder`：フィールド / 演算子 / 値からなる条件を AND / OR で組み合わせ、条件グループも追加できる。値はプレーンな JSON で、そのまま保存したり API に送ったりできる（サンプル：テーブルのデータの絞り込み、フォームでのクエリ保存、1 階層のみと読み取り専用） |
+
+各ページは `components/<グループ>_page/` にあります。サンプルはそれぞれ `examples/` 配下の独立したファイルで、ページはこれを 2 回インポートします。1 回はライブプレビュー用のコンポーネントとして、もう 1 回は下に表示するソースを取得するために Vite の `?raw` 付きでインポートするので、プレビューとコードが食い違うことはありません。プロパティの表はページの `props.ts` にあります。レイアウト用の部品（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）は `apps/web/src/modules/component_center/showcase/` にあります。ページやサンプルを追加するときは、[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) の「Component showcase pages」の節に従ってください。サンプルのファイルが 2 通りの方法でインポートされていないと、テストが失敗します。
 
 ## データ可視化
 
