@@ -167,19 +167,19 @@ describe('手动执行（真实 HTTP）', () => {
     expect(failedRuns.total).toBe(1)
   })
 
-  it('请求体：JSON 对象按 requests json= 发送（json.dumps 默认分隔符 + ensure_ascii + Content-Type）；纯文本按 data= 发送', async () => {
+  it('请求体：JSON 对象 / 数组按 JSON 发送（紧凑 JSON + Content-Type）；其他文本原样发送', async () => {
     const json = await seedTask({ request_url: `${base}/echo`, request_method: 'POST', request_body: '{"a": 1.0, "名": "值"}' })
     const res = await run(json)
     expect(JSON.parse(res.json().run.response_body)).toEqual({
       method: 'POST',
       ctype: 'application/json',
-      body: '{"a": 1.0, "\\u540d": "\\u503c"}',
+      body: '{"a":1,"名":"值"}',
     })
 
     const text = await seedTask({ request_url: `${base}/echo`, request_method: 'PUT', request_body: '纯文本' })
     expect(JSON.parse((await run(text)).json().run.response_body)).toEqual({ method: 'PUT', ctype: null, body: '纯文本' })
 
-    // A custom Content-Type is not overridden; GET also carries a body (requests behavior)
+    // A custom Content-Type is not overridden; GET also carries a body
     const custom = await seedTask({
       request_url: `${base}/echo`,
       request_headers: '{"content-type": "application/vnd.x+json"}',
@@ -188,7 +188,7 @@ describe('手动执行（真实 HTTP）', () => {
     expect(JSON.parse((await run(custom)).json().run.response_body)).toEqual({ method: 'GET', ctype: 'application/vnd.x+json', body: '[1]' })
   })
 
-  it('响应解码与截断：text/* 无 charset 按 latin-1；按字符截到 2000', async () => {
+  it('响应解码与截断：text/* 无 charset 按 ISO-8859-1；按字符截到 2000', async () => {
     const latin = await seedTask({ request_url: `${base}/latin` })
     expect((await run(latin)).json().run.response_body).toBe('café\u0080')
     const long = await seedTask({ request_url: `${base}/long` })
@@ -199,7 +199,7 @@ describe('手动执行（真实 HTTP）', () => {
     const r302 = await seedTask({ request_url: `${base}/redirect`, request_method: 'POST', request_body: '{"k": 1}' })
     expect(JSON.parse((await run(r302)).json().run.response_body)).toEqual({ method: 'GET', ctype: null, body: '' })
     const r307 = await seedTask({ request_url: `${base}/redirect-307`, request_method: 'POST', request_body: '{"k": 1}' })
-    expect(JSON.parse((await run(r307)).json().run.response_body)).toEqual({ method: 'POST', ctype: 'application/json', body: '{"k": 1}' })
+    expect(JSON.parse((await run(r307)).json().run.response_body)).toEqual({ method: 'POST', ctype: 'application/json', body: '{"k":1}' })
 
     const priv = await seedTask({ request_url: `${base}/redirect-private` })
     const res = await run(priv)
@@ -213,7 +213,7 @@ describe('手动执行（真实 HTTP）', () => {
     const res = await run(task)
     expect(performance.now() - t0).toBeLessThan(2500)
     expect(res.statusCode).toBe(500)
-    expect(res.json()).toMatchObject({ error: 'Request timed out. (timeout=1)', run: { status: 'failed', response_status: null } })
+    expect(res.json()).toMatchObject({ error: '请求超时（1 秒）', run: { status: 'failed', response_status: null } })
     expect(res.json().run.duration_ms).toBeGreaterThanOrEqual(900)
   })
 

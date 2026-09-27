@@ -478,6 +478,8 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
 /** First match wins: keep specific patterns first and the scaffold catch-alls at the end */
 export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
+  { re: /^重定向次数超过 (\d+) 次$/, 'en-US': 'More than $1 redirects', 'ja-JP': 'リダイレクトが $1 回を超えました' },
+  { re: /^请求超时（(\d+) 秒）$/, 'en-US': 'The request timed out ($1 s)', 'ja-JP': 'リクエストがタイムアウトしました（$1 秒）' },
   { re: /^AI 生成失败（模型服务返回 (\d+)），请检查模型配置后重试$/, 'en-US': 'AI generation failed (the model service returned $1). Please check the model settings and try again.', 'ja-JP': 'AI による生成に失敗しました（モデルサービスが $1 を返しました）。モデルの設定を確認してから再度お試しください。' },
   { re: /^AI 服务暂时不可用（(.+)），请稍后重试$/, 'en-US': 'The AI service is temporarily unavailable ($1). Please try again later.', 'ja-JP': 'AI サービスは一時的に利用できません（$1）。しばらくしてから再度お試しください。' },
   // framework / common

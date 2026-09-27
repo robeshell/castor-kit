@@ -1,79 +1,57 @@
 /**
- * Scheduled task schema layer
+ * Scheduled task schema layer: request body
  *
- * Cron parsing / URL SSRF protection live in common/scheduler (also used by the scheduler and worker); this file holds the module's own
- * bool / int / JSON object parsing and the normalize* helpers used by the service.
- *
- * Scheduled tasks have no export endpoint, so this module defines no EXPORT_FIELD_MAP.
+ * Cron parsing / URL SSRF protection live in common/scheduler (also used by the scheduler and worker). The URL is
+ * validated in the service, since it resolves the hostname. Scheduled tasks have no export endpoint.
  */
 
 import { z } from 'zod'
-import { pyInt, pyStr, pyTruthy } from '@/common/py'
-import { ScheduledTaskSchemaError } from '@/common/scheduler/errors'
-import { pyStrip } from '@/common/scheduler/py-compat'
-import { isPyDict, pyJsonDumps, pyJsonLoads, PyJsonDecodeError, type PyJson } from '@/common/scheduler/py-json'
+import { field, invalidMessage } from '@/common/validation'
 
-/** Request body: loose + all optional; normalization happens in the service */
-export const scheduledTaskBodySchema = z.record(z.string(), z.unknown()).nullish()
+export const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const
 
-export const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+/** Request headers: a JSON object, or its JSON text (the form's text area); stored as JSON text */
+const requestHeaders = z
+  .union([z.string(), z.record(z.string(), z.unknown())], { error: invalidMessage('请求头') })
+  .nullish()
+  .transform((value, ctx) => {
+    if (value === null || value === undefined) return null
+    if (typeof value !== 'string') return JSON.stringify(value)
+    const text = value.trim()
+    if (!text) return null
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      ctx.addIssue({ code: 'custom', message: 'JSON 格式不合法' })
+      return z.NEVER
+    }
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      ctx.addIssue({ code: 'custom', message: 'JSON 内容必须是对象' })
+      return z.NEVER
+    }
+    return JSON.stringify(parsed)
+  })
 
-/** Falsy → ''; otherwise stringify and trim */
-export function pyText(value: unknown): string {
-  return pyStrip(pyTruthy(value) ? pyStr(value) : '')
-}
+export const taskBody = z.object({
+  name: field.requiredText('任务名称', '任务名称不能为空'),
+  task_code: field.requiredText('任务编码', '任务编码不能为空'),
+  cron_expression: field.requiredText('Cron 表达式', 'Cron 表达式不能为空'),
+  request_method: z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim().toUpperCase() : v),
+    field.choice('请求方法', METHODS, 'GET', '请求方法仅支持 GET/POST/PUT/DELETE/PATCH'),
+  ),
+  request_url: field.text('请求地址'),
+  request_headers: requestHeaders,
+  request_body: field.text('请求体'),
+  timeout_seconds: field.int('超时时间', 10),
+  is_active: field.bool('启用', true),
+  remark: field.text('备注'),
+})
 
-/** parse_bool(value, default) */
-export function parseBool<T>(value: unknown, fallback: T): boolean | T {
-  if (value === null || value === undefined || value === '') return fallback
-  if (typeof value === 'boolean') return value
-  const raw = pyStrip(pyStr(value)).toLowerCase()
-  if (['1', 'true', 'yes', 'on', '是', '启用'].includes(raw)) return true
-  if (['0', 'false', 'no', 'off', '否', '停用'].includes(raw)) return false
-  return fallback
-}
+export type TaskInput = z.output<typeof taskBody>
 
-/** parse_int(value, default): `int(value)`, returning the default on TypeError / ValueError */
-export function parseIntValue(value: unknown, fallback: number): number {
-  try {
-    return pyInt(value)
-  } catch {
-    return fallback
-  }
-}
-
-/** parse_json_object(value, default={}): returns a dict (a Map or a plain object from the request body) */
-export function parseJsonObject(value: unknown): Map<string, PyJson> | Record<string, unknown> {
-  if (value === null || value === undefined) return {}
-  if (isPyDict(value)) return value
-  const text = pyStrip(pyStr(value))
-  if (!text) return {}
-  let parsed: PyJson
-  try {
-    parsed = pyJsonLoads(text)
-  } catch (err) {
-    if (err instanceof PyJsonDecodeError) throw new ScheduledTaskSchemaError('JSON 格式不合法')
-    throw err
-  }
-  if (!isPyDict(parsed)) throw new ScheduledTaskSchemaError('JSON 内容必须是对象')
-  return parsed
-}
-
-/** ScheduledTaskService._normalize_json_string */
-export function normalizeJsonString(value: unknown): string | null {
-  if (value === null || value === undefined) return null
-  if (isPyDict(value)) return pyJsonDumps(value, { ensureAscii: false })
-  const text = pyStrip(pyStr(value))
-  if (!text) return null
-  return pyJsonDumps(parseJsonObject(text), { ensureAscii: false })
-}
-
-/** ScheduledTaskService._normalize_text */
-export function normalizeText(value: unknown): string | null {
-  return pyText(value) || null
-}
-
-/** `max(1, min(x, 120))` */
+/** Timeout in seconds, kept within 1–120 */
 export function clampTimeout(value: number): number {
   return Math.max(1, Math.min(value, 120))
 }

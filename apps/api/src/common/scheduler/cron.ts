@@ -11,9 +11,7 @@
  * (`YYYY-MM-DD HH:mm:ss[.ffffff]`), output is `YYYY-MM-DD HH:mm:00`, ready to write to the DB.
  */
 
-import { pyStr, pyTruthy } from '@/common/py'
 import { ScheduledTaskSchemaError } from './errors'
-import { pyIntFromDigits, pyIsDigit, pySplitWhitespace, pyStrip } from './py-compat'
 
 export interface CronSpec {
   text: string
@@ -24,12 +22,11 @@ export interface CronSpec {
   weekdays: Set<number>
 }
 
-export function parseCronExpression(expression: unknown): CronSpec {
-  // str(expression or '').strip()
-  const text = pyStrip(pyTruthy(expression) ? pyStr(expression) : '')
+export function parseCronExpression(expression: string | null | undefined): CronSpec {
+  const text = (expression ?? '').trim()
   if (!text) throw new ScheduledTaskSchemaError('Cron 表达式不能为空')
 
-  const fields = pySplitWhitespace(text)
+  const fields = text.split(/\s+/)
   if (fields.length !== 5) throw new ScheduledTaskSchemaError('Cron 表达式格式错误，应为 5 段: 分 时 日 月 周')
 
   return {
@@ -46,7 +43,7 @@ function parseCronField(field: string, minValue: number, maxValue: number, alias
   const result = new Set<number>()
 
   for (const part of field.split(',')) {
-    const token = pyStrip(part)
+    const token = part.trim()
     if (!token) throw new ScheduledTaskSchemaError('Cron 表达式存在空字段')
 
     if (token === '*') {
@@ -60,10 +57,10 @@ function parseCronField(field: string, minValue: number, maxValue: number, alias
     if (slash >= 0) {
       base = token.slice(0, slash)
       const stepRaw = token.slice(slash + 1)
-      if (!pyIsDigit(stepRaw) || pyIntFromDigits(stepRaw) <= 0) {
+      if (!/^\d+$/.test(stepRaw) || Number(stepRaw) <= 0) {
         throw new ScheduledTaskSchemaError(`Cron 步长不合法: ${token}`)
       }
-      step = pyIntFromDigits(stepRaw)
+      step = Number(stepRaw)
     }
 
     let start: number
@@ -88,20 +85,16 @@ function parseCronField(field: string, minValue: number, maxValue: number, alias
   return result
 }
 
-/** Normalize integer text: strip leading zeros, convert Unicode digits to ASCII (large numbers stay exact as text) */
+/** Integer text without leading zeros (large numbers stay exact as text) */
 function canonicalIntText(text: string): string {
   const negative = text.startsWith('-')
-  let digits = ''
-  for (const ch of negative ? text.slice(1) : text) digits += String(Math.abs(pyIntFromDigits(ch)))
-  digits = digits.replace(/^0+(?=\d)/, '')
+  const digits = (negative ? text.slice(1) : text).replace(/^0+(?=\d)/, '')
   return negative && digits !== '0' ? `-${digits}` : digits
 }
 
 function parseNum(raw: string, minValue: number, maxValue: number, alias: Map<number, number>): number {
-  const text = pyStrip(raw)
-  if (!text || (text[0] === '-' && !pyIsDigit(text.slice(1))) || (text[0] !== '-' && !pyIsDigit(text))) {
-    throw new ScheduledTaskSchemaError(`Cron 数值不合法: ${raw}`)
-  }
+  const text = raw.trim()
+  if (!/^-?\d+$/.test(text)) throw new ScheduledTaskSchemaError(`Cron 数值不合法: ${raw}`)
 
   const canonical = canonicalIntText(text)
   let value = Number(canonical)
@@ -184,11 +177,11 @@ export const LOOKAHEAD_MINUTES = 366 * 24 * 60
  * Scan minute by minute starting from the minute after baseTime (DB UTC timestamp text) and return the first match.
  * Returns `YYYY-MM-DD HH:mm:00` text (writable to the DB as-is; emitted via toIso when read back).
  */
-export function computeNextRunAt(expression: unknown, baseTime: string, lookaheadMinutes = LOOKAHEAD_MINUTES): string {
+export function computeNextRunAt(expression: string | null | undefined, baseTime: string, lookaheadMinutes = LOOKAHEAD_MINUTES): string {
   const cron = parseCronExpression(expression)
   const base = parseTimestamp(baseTime)
 
-  // current = base.replace(second=0, microsecond=0) + timedelta(minutes=1)
+  // Start at the next whole minute
   let { year, month, day, hour, minute } = base
   // cron weekday: Monday=1 ... Sunday=0; 1970-01-01 was a Thursday (4)
   let weekday = (((daysFromCivil(year, month, day) + 4) % 7) + 7) % 7

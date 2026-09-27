@@ -152,7 +152,7 @@ describe('执行一轮（executeDueTasks）', () => {
     expect(ex.calls[0]).toMatchObject({
       method: 'GET',
       url: 'https://1.1.1.1/x',
-      headers: { 'X-A': '1', B: 'True', C: 'None', D: '1.0' },
+      headers: { 'X-A': '1', B: 'true', D: '1' },
       body: null,
       timeoutSeconds: 10,
     })
@@ -187,33 +187,25 @@ describe('执行一轮（executeDueTasks）', () => {
     expect(run).toMatchObject({ status: 'failed', response_status: null, response_body: null, error_message: 'connect ECONNREFUSED' })
   })
 
-  it('请求体：dict/list → json（Python json.dumps 形态）；其他 → data=str(parsed)；NaN → failed', async () => {
-    const cases: Array<[string, HttpRequestSpec['body'] | 'nan']> = [
-      ['{"a": 1.0, "b": [1, "中"]}', { kind: 'json', text: '{"a": 1.0, "b": [1, "\\u4e2d"]}' }],
-      ['[1,2]', { kind: 'json', text: '[1, 2]' }],
+  it('请求体：JSON 对象 / 数组 → 紧凑 JSON；其他文本（含 JSON 标量、非法 JSON）原样发送', async () => {
+    const cases: Array<[string, HttpRequestSpec['body']]> = [
+      ['{"a": 1.0, "b": [1, "中"]}', { kind: 'json', text: '{"a":1,"b":[1,"中"]}' }],
+      ['[1,2]', { kind: 'json', text: '[1,2]' }],
       ['  hello  ', { kind: 'data', text: 'hello' }],
       ['123', { kind: 'data', text: '123' }],
-      ['1e5', { kind: 'data', text: '100000.0' }],
-      ['true', { kind: 'data', text: 'True' }],
-      ['null', { kind: 'data', text: 'None' }],
-      ['"quoted"', { kind: 'data', text: 'quoted' }],
-      ['{"x": NaN}', 'nan'],
+      ['true', { kind: 'data', text: 'true' }],
+      ['"quoted"', { kind: 'data', text: '"quoted"' }],
+      ['{"x": NaN}', { kind: 'data', text: '{"x": NaN}' }],
     ]
     for (const [raw, expected] of cases) {
       const task = await insertTask({ request_body: raw, request_method: 'POST' })
       const ex = fakeExecutor(() => ({ status: 200, text: '' }))
       await new ScheduledTaskService(handle.db, { httpExecutor: ex }).executeTask(task, 'manual')
-      if (expected === 'nan') {
-        expect(ex.calls).toHaveLength(0)
-        const [run] = await runsOf(task.id)
-        expect(run).toMatchObject({ status: 'failed', error_message: 'Out of range float values are not JSON compliant: nan' })
-      } else {
-        expect(ex.calls[0]!.body).toEqual(expected)
-      }
+      expect(ex.calls[0]!.body, raw).toEqual(expected)
     }
   })
 
-  it('超时参数 max(1, min(int(x or 10), 120))', async () => {
+  it('超时参数：缺省 / 0 → 10，限制在 1–120 秒', async () => {
     for (const [value, expected] of [
       [500, 120],
       [0, 10],

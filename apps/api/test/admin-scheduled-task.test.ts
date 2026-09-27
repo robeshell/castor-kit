@@ -127,8 +127,8 @@ describe('新增', () => {
         request_method: ' post ',
         request_headers: { 'X-中文': '值', n: 1 },
         request_body: '  {"a":1}  ',
-        timeout_seconds: '999',
-        is_active: '停用',
+        timeout_seconds: 999,
+        is_active: false,
         remark: '   ',
       }),
     })
@@ -137,7 +137,7 @@ describe('新增', () => {
       name: '新增任务',
       task_code: `${P}create_a`,
       request_method: 'POST',
-      request_headers: '{"X-中文": "值", "n": 1}',
+      request_headers: '{"X-中文":"值","n":1}',
       request_body: '{"a":1}',
       timeout_seconds: 120,
       is_active: false,
@@ -151,7 +151,7 @@ describe('新增', () => {
     expect(created.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}$/)
   })
 
-  it('启用：next_run_at 为 cron 的下一个触发分钟；请求头文本按 Python json.dumps 重排', async () => {
+  it('启用：next_run_at 为 cron 的下一个触发分钟；请求头文本存为紧凑 JSON', async () => {
     const res = await s.inject({
       method: 'POST',
       url: T,
@@ -162,7 +162,7 @@ describe('新增', () => {
     expect(body.request_method).toBe('GET')
     expect(body.timeout_seconds).toBe(10)
     expect(body.is_active).toBe(true)
-    expect(body.request_headers).toBe('{"b": 1.0, "a": [1, "x"]}')
+    expect(body.request_headers).toBe('{"b":1,"a":[1,"x"]}')
     // Day-of-month and day-of-week are ANDed: the next day that is both the 1st and a Monday
     expect(body.next_run_at).toMatch(/^\d{4}-\d{2}-01T00:00:00$/)
     const [y, m] = body.next_run_at.split('-').map(Number)
@@ -175,14 +175,15 @@ describe('新增', () => {
       [{ task_code: '  ' }, '任务编码不能为空'],
       [{ cron_expression: null }, 'Cron 表达式不能为空'],
       [{ request_method: 'OPTIONS' }, '请求方法仅支持 GET/POST/PUT/DELETE/PATCH'],
-      [{ request_method: '  ' }, '请求方法仅支持 GET/POST/PUT/DELETE/PATCH'],
       [{ task_code: `${P}create_a` }, '任务编码已存在'],
       [{ cron_expression: '* * *' }, 'Cron 表达式格式错误，应为 5 段: 分 时 日 月 周'],
       [{ cron_expression: '0 0 30 2 *' }, 'Cron 表达式在一年内没有可触发时间，请检查配置'],
       [{ cron_expression: '0 0 * * 5-7' }, 'Cron 区间不合法: 5-7'],
       [{ request_headers: '{bad' }, 'JSON 格式不合法'],
       [{ request_headers: '[1]' }, 'JSON 内容必须是对象'],
-      [{ request_headers: ['a'] }, 'JSON 格式不合法'],
+      [{ request_headers: ['a'] }, '请求头的值无效'],
+      [{ timeout_seconds: '10' }, '超时时间的值无效'],
+      [{ is_active: '停用' }, '启用的值无效'],
     ]
     for (const [extra, error] of cases) {
       const res = await s.inject({ method: 'POST', url: T, payload: valid({ task_code: `${P}create_bad`, ...extra }) })
@@ -237,7 +238,7 @@ describe('详情 / 编辑 / 删除', () => {
     const res = await s.inject({
       method: 'PUT',
       url: `${T}/${task.id}`,
-      payload: { name: ' 改名 ', is_active: 'yes', cron_expression: ' 30 * * * * ', timeout_seconds: 0, request_body: 'hi', remark: '备注' },
+      payload: { name: ' 改名 ', is_active: true, cron_expression: ' 30 * * * * ', timeout_seconds: 0, request_body: 'hi', remark: '备注' },
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
@@ -246,9 +247,9 @@ describe('详情 / 编辑 / 删除', () => {
 
     const off = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { is_active: false } })
     expect(off.json().next_run_at).toBeNull()
-    // Invalid is_active / timeout fall back to the current value
-    const keep = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { is_active: 'maybe', timeout_seconds: 'x' } })
-    expect(keep.json()).toMatchObject({ is_active: false, timeout_seconds: 1 })
+    // Values of the wrong type are rejected
+    expect((await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { is_active: 'maybe' } })).json()).toEqual({ error: '启用的值无效' })
+    expect((await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { timeout_seconds: 'x' } })).json()).toEqual({ error: '超时时间的值无效' })
   })
 
   it('编辑：值没变化时不发 UPDATE（updated_at 不变）', async () => {
@@ -272,7 +273,8 @@ describe('详情 / 编辑 / 删除', () => {
       [{ request_url: '' }, '请求地址不能为空'],
       [{ request_url: 'gopher://1.1.1.1/' }, '请求地址仅支持 http/https 协议'],
       [{ request_url: 'http://10.0.0.1/' }, '不允许访问内网地址'],
-      [{ request_url: 'http://1.1.1.1:65536/' }, '请求地址端口不合法'],
+      [{ request_url: 'http://1.1.1.1:65536/' }, '请求地址格式不合法'],
+      [{ request_url: 'http://1.1.1.1:0/' }, '请求地址端口不合法'],
       [{ is_active: true, cron_expression: '0 0 31 4 *' }, 'Cron 表达式在一年内没有可触发时间，请检查配置'],
     ]
     for (const [payload, error] of cases) {
@@ -281,7 +283,7 @@ describe('详情 / 编辑 / 删除', () => {
     }
     // Its own code doesn't count as a duplicate
     expect((await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { task_code: task.task_code } })).statusCode).toBe(200)
-    // urlsplit ValueError: 400 "请求地址格式不合法"
+    // An unparsable URL: 400 "请求地址格式不合法"
     const bad = await s.inject({ method: 'PUT', url: `${T}/${task.id}`, payload: { request_url: 'http://[::1/x' } })
     expect([bad.statusCode, bad.json()]).toEqual([400, { error: '请求地址格式不合法' }])
   })

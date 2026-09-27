@@ -36,6 +36,12 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Removing the old Python backend's shadow, step 5 — scheduled tasks. `common/scheduler/py-json.ts`, `py-compat.ts` and the unused `common/sqla-bind.ts` are deleted:
+  - **Request body**: the task body is declared with `common/validation.ts`. Request headers are a JSON object or its JSON text, stored as compact JSON. `timeout_seconds` / `is_active` take JSON types, and a blank method means GET.
+  - **Cron**: expressions use ASCII digits; JavaScript whitespace separates fields. The ports of Python's `str.isspace` / `str.isdigit` and Unicode-digit `int()` are gone, so `٣ * * * *` is now an error.
+  - **URL checks**: request URLs are checked with the WHATWG URL parser, the same one the HTTP client connects with, replacing a port of `urllib.parse.urlsplit`. Validation and connection can no longer disagree about the host, and IPv4 shorthands (`http://127.1/`, `0x7f000001`) are normalized before the internal-address check. Malformed URLs (bad ports, IPv6 zones) are「请求地址格式不合法」; port 0 is still「请求地址端口不合法」.
+  - **Execution**: a stored JSON object / array body is sent as compact JSON; any other text is sent as-is. Before, Python `str()` sent `true` as `True` and `"x"` without quotes. Header values are stringified the JavaScript way, and null headers are left out (they used to be sent as `None`).
+  - **Error messages**: `请求超时（N 秒）`, `重定向次数超过 30 次` and the http/https-only message replace the messages copied from Python requests.
 - Removing the old Python backend's shadow, step 4 — dates and the remaining component-gallery pages (kanban, detail tabs, Gantt, advanced table) declare their bodies with `common/validation.ts`:
   - **Dates**: strict `YYYY-MM-DD` naming a real day; anything else is a 400「<field>的值无效」. `common/py-date.ts` is deleted: its port of Python's `date.fromisoformat(str(v)[:10])` accepted `20240101ab`, ISO week dates and truncated datetimes, and silently stored `null` for anything else.
   - **Choices**: out-of-list priorities, statuses and categories are a 400 instead of silently falling back to the default. Statuses must be lowercase.

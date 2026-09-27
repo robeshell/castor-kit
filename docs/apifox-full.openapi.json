@@ -22689,12 +22689,9 @@
                     "description": "超时秒数，超出范围自动截到 1–120"
                   },
                   "is_active": {
-                    "type": [
-                      "boolean",
-                      "string"
-                    ],
+                    "type": "boolean",
                     "default": true,
-                    "description": "是否启用；也接受 1/0、true/false、yes/no、on/off、是/否、启用/停用，无法识别时按 true"
+                    "description": "是否启用（true / false），缺省为 true"
                   },
                   "remark": {
                     "type": [
@@ -23324,11 +23321,8 @@
                     "description": "超时秒数，超出范围自动截到 1–120"
                   },
                   "is_active": {
-                    "type": [
-                      "boolean",
-                      "string"
-                    ],
-                    "description": "是否启用；也接受 1/0、true/false、yes/no、on/off、是/否、启用/停用，无法识别时保持原值"
+                    "type": "boolean",
+                    "description": "是否启用（true / false）"
                   },
                   "remark": {
                     "type": [
