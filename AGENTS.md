@@ -582,7 +582,7 @@ Protections (enforced in the roles / users services, with the UI disabled to mat
 
 ### Changing menus
 
-1. Add / change the menu entries and button permissions in `MENUS_DATA` (the single source of truth) in `apps/api/scripts/seed-rbac.ts`
+1. Add / change the menu entries and button permissions in `MENUS_DATA` (the single source of truth) in `apps/api/scripts/seed-rbac.ts`, and their English / Japanese names, keyed by code, in `apps/web/src/locales/menus/{en-US,ja-JP}.json` (`apps/web/test/i18n.test.ts` fails on a code without them; `pnpm scaffold --spec` with `menu` writes both)
 2. Run `pnpm seed:rbac -- --incremental`
 3. `--incremental` upserts by `code`: it only inserts / updates, **never deletes** existing records, and refreshes the super admin's permissions; after inserting it syncs the `menus` sequence
 4. Deleting a menu takes manual SQL: `DELETE FROM menus WHERE id = xxx`

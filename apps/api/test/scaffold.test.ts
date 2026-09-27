@@ -397,6 +397,9 @@ const DEVICE_SPEC: SpecFile = {
     { name: 'serial_no', type: 'int', label: '序列号', unique: true },
     { name: 'active', type: 'bool', label: '在用', default: true },
     { name: 'photo', type: 'image', label: '设备照片' },
+    // Required without a default, empty (null) in a new form: the page narrows them before submitting
+    { name: 'weight', type: 'int', label: '重量', required: true },
+    { name: 'grade', type: 'enum', label: '等级', required: true, options: [{ value: 'a', label: '甲' }, { value: 'b', label: '乙' }] },
   ],
   menu: {},
   i18n: {
@@ -544,7 +547,7 @@ describe('scaffold OpenAPI 条目', () => {
     expect(create.description).toContain('需要 system_ck_spec_device_add')
     const body = create.requestBody.content['application/json'].schema
     // Required without a default: must be sent, null rejected; status is required but has a default, so it may be left out
-    expect(body.required).toEqual(['code', 'name'])
+    expect(body.required).toEqual(['code', 'name', 'weight', 'grade'])
     expect(body.properties.code.type).toEqual(['string'])
     expect(body.properties.status).toMatchObject({ enum: ['idle', 'in_use', null], default: 'idle' })
     expect(body.properties.status.description).toContain('idle=闲置')
@@ -614,7 +617,7 @@ describe('spec 工具：JSON Schema 与示例', () => {
     expect(lines[0]).toBe('❌ Field a: missing label (the Chinese name, used for table headers, forms and API docs)')
     const ok: string[] = []
     expect(validateOnly(DEVICE_SPEC, (l) => ok.push(l))).toBe(0)
-    expect(ok[0]).toBe('✅ Spec is valid: ck_spec_device (设备台账), 8 fields')
+    expect(ok[0]).toBe('✅ Spec is valid: ck_spec_device (设备台账), 10 fields')
     expect(ok.join('\n')).toContain('/api/admin/ck-spec-devices')
     const cli = scaffoldCli(['--spec', join(EXAMPLES, 'device.json'), '--validate-only'])
     expect(cli.code, cli.out).toBe(0)
@@ -1022,12 +1025,12 @@ describe('scaffold CLI（临时目录副本）', () => {
 
     // Enum fields filter the list: query parameter → repository exact match, documented with the option values
     const routesTs = read('apps/api/src/modules/admin/ck-spec-device/routes.ts')
-    expect(routesTs).toContain("    const filters = { status: queryString(request, 'status').trim() }")
+    expect(routesTs).toContain("    const filters = { status: queryString(request, 'status').trim(), grade: queryString(request, 'grade').trim() }")
     expect(routesTs).toContain("return service.listItems(page, per_page, queryString(request, 'search').trim(), filters)")
     const repoTs = read('apps/api/src/modules/admin/ck-spec-device/repository.ts')
-    expect(repoTs).toContain('    return and(filters.status ? eq(ck_spec_devices.status, filters.status) : undefined)')
+    expect(repoTs).toContain('    return and(filters.status ? eq(ck_spec_devices.status, filters.status) : undefined, filters.grade ? eq(ck_spec_devices.grade, filters.grade) : undefined)')
     expect(repoTs).toContain('    const where = and(this.searchWhere(search), this.filterWhere(filters))')
-    expect(schema).toContain("export type CkSpecDeviceFilters = Record<'status', string>")
+    expect(schema).toContain("export type CkSpecDeviceFilters = Record<'status' | 'grade', string>")
     const listDoc = (JSON.parse(read('docs/apifox-full.openapi.json')) as { paths: Record<string, { get: { parameters: Array<{ name: string; schema: unknown }> } }> })
       .paths['/api/admin/ck-spec-devices']!.get.parameters
     expect(listDoc.find((p) => p.name === 'status')?.schema).toEqual({ type: 'string', enum: ['idle', 'in_use', ''] })
@@ -1050,12 +1053,16 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain('  price: 1999.5,')
     // Enum form values are the option values; the options are keyed by the enum fields
     expect(page).toContain("  status: 'idle' | 'in_use' | null")
-    expect(page).toContain("const FIELD_OPTIONS: Record<'status', { value: string; label: string; tone?: StatusTone }[]> = {")
+    expect(page).toContain("const FIELD_OPTIONS: Record<'status' | 'grade', { value: string; label: string; tone?: StatusTone }[]> = {")
     expect(page).toContain("  status: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中', tone: 'success' }],")
     // Enum columns are badges in the option's tone (neutral when the spec gives none)
     expect(page).toContain("import StatusBadge, { type StatusTone } from '@/shared/components/StatusBadge'")
     expect(page).toContain("        const option = optionOf('status', value)")
     expect(page).toContain("          <StatusBadge tone={option.tone ?? 'neutral'} dot>")
+    // Required fields that start empty (null) are narrowed before submit, so the body type-checks (see webTypeErrors below)
+    expect(page).toContain('const toBody = ({ weight, grade, ...rest }: FormValues): CkSpecDeviceBody | null =>')
+    expect(page).toContain('  weight === null || grade === null ? null : { ...rest, weight, grade }')
+    expect(page).toContain('        await createItem(body)')
     // ... and a filter per enum field, sent with the search
     expect(page).toContain('<FilterSelect value={filterValues.status} onChange={(value) => setFilterValues((prev) => ({ ...prev, status: value }))} options={FIELD_OPTIONS.status} placeholder="设备状态" />')
     expect(page).toContain('    list.handleSearch({ search: search.trim(), ...filterValues })')

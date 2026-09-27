@@ -1457,6 +1457,21 @@ export function genFrontendPage(s: ScaffoldSpec): string {
     "  { label: '创建时间', value: 'created_at' },",
   ]
   const formTypeLines = fields.map(([f, kind]) => `  ${key(f)}: ${formTypeOf(f, kind)}`)
+  // Required fields without a default whose empty form value is null (numbers, options): the form's required rule
+  // keeps them filled on submit, but the create body types them non-null, so toBody() narrows them
+  const narrowed = fields
+    .filter(([f, kind]) => {
+      const type = s.fields.find(([name]) => name === f)?.[1] ?? 'str'
+      return s.meta[f]?.required && defaultLiteral(type, s.meta[f]?.default) === null && FRONTEND_FIELD_MAP[kind].formType.endsWith('| null')
+    })
+    .map(([f]) => f)
+  const toBodyBlock = narrowed.length
+    ? `
+/** The request body: the required rules keep ${narrowed.join(' / ')} filled on submit, which the form's types can't see */
+const toBody = ({ ${narrowed.map(key).join(', ')}, ...rest }: FormValues): ${s.pascal}Body | null =>
+  ${narrowed.map((f) => `${f} === null`).join(' || ')} ? null : { ...rest, ${narrowed.map(key).join(', ')} }
+`
+    : ''
   const emptyLines = fields.map(([f, kind]) => `  ${key(f)}: ${emptyOf(f, kind)},`)
   const toFormLines = fields.map(([f, kind]) => `  ${key(f)}: ${formValueExpr(f, kind)},`)
   const formLines = fields.map(([f, kind]) => {
@@ -1534,7 +1549,7 @@ import {
   getItems,
   importItems,
   updateItem,
-  type ${s.pascal} as Row,
+  type ${s.pascal} as Row,${narrowed.length ? `\n  type ${s.pascal}Body,` : ''}
   type ${s.pascal}ExportBody,
   type ${s.pascal}FileType,
 } from '@/modules/${s.webModule}/api/${s.name}'
@@ -1589,7 +1604,7 @@ ${emptyLines.join('\n')}
 const toFormValues = (record: Row): FormValues => ({
 ${toFormLines.join('\n')}
 })
-
+${toBodyBlock}
 export default function ${s.pascal}Page() {
   const { t } = useTranslation()
   const list = useCrudList(
@@ -1627,13 +1642,13 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     setFormOpen(true)
   }
 
-  const submit = async (values: FormValues) => {
+  const submit = async (values: FormValues) => {${narrowed.length ? `\n    const body = toBody(values)\n    if (!body) return` : ''}
     try {
       if (editing) {
-        await updateItem(editing.id, values)
+        await updateItem(editing.id, ${narrowed.length ? 'body' : 'values'})
         toast.success('更新成功')
       } else {
-        await createItem(values)
+        await createItem(${narrowed.length ? 'body' : 'values'})
         toast.success('创建成功')
       }
       setFormOpen(false)
@@ -2301,6 +2316,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
     log(`  1. Fill in field validation and Chinese headers (modules/${s.domainDir}/${s.kebab}/schema.ts) and the page copy (page-specific translations go in the page's locales/)`)
     log(`  2. Add the menu (component: '${s.menuComponent}') and button permissions to apps/api/scripts/seed-rbac.ts:`)
     log(`     ${s.permPrefix} / ${s.permPrefix}_add / _edit / _delete / _export / _import`)
+    log('     and their English / Japanese names, keyed by code, to apps/web/src/locales/menus/{en-US,ja-JP}.json')
     log('  3. Run: pnpm seed:rbac -- --incremental')
   }
   log('  · Review the new migration SQL in apps/api/drizzle/, then run: pnpm db:migrate')
