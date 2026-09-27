@@ -94,7 +94,7 @@ pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "<fiel
 scaffold will:
 - Generate `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` (Drizzle table definition + toDict)
 - Generate `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts`
-- Generate the frontend `apps/web/src/modules/<module>/api/<name>.ts` + page `index.tsx` (shadcn/ui system, same structure as the users page: PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog), typed from the module's OpenAPI entries: the API file exports the row type `ApiItem<'/api/admin/<name-kebab>s'>`, the page has `interface FormValues` + `useForm<FormValues>` and `DataTableColumn<Row>[]` (AGENTS.md "TypeScript (migration in progress)")
+- Generate the frontend `apps/web/src/modules/<module>/api/<name>.ts` + page `index.tsx` (shadcn/ui system, same structure as the users page: PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog), typed from the module's OpenAPI entries: the API file exports the row type `ApiItem<'/api/admin/<name-kebab>s'>`, the page has `interface FormValues` + `useForm<FormValues>` and `DataTableColumn<Row>[]` (AGENTS.md "TypeScript")
 - Write the module's endpoints into `docs/apifox-full.openapi.json` and regenerate `apps/web/src/shared/api/openapi.d.ts` from it, so the generated frontend files type-check straight away
 - Generate basic API tests `apps/api/test/<admin|cc>-<name-kebab>.test.ts` (CRUD, list search, 404, export, import template, successful import / rollback when a required column is empty)
 - Register in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts` automatically

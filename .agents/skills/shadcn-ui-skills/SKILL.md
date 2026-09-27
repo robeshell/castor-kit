@@ -5,7 +5,7 @@ description: "Guide to shadcn/ui + Tailwind CSS v4 + motion in the castor-kit fr
 
 # shadcn/ui guide (castor-kit)
 
-castor-kit's frontend is built on **shadcn/ui (new-york, Radix) + Tailwind CSS v4 + motion + lucide-react**; the frontend is moving from JSX to TSX layer by layer (see AGENTS.md "TypeScript (migration in progress)"), and UI copy is written in Chinese (as the i18n key).
+castor-kit's frontend is built on **shadcn/ui (new-york, Radix) + Tailwind CSS v4 + motion + lucide-react**; the frontend is written in TypeScript / TSX (see AGENTS.md "TypeScript")"), and UI copy is written in Chinese (as the i18n key).
 Design system: `docs/frontend-design-system.md`; project conventions: `AGENTS.md` "Frontend conventions".
 
 ## Files

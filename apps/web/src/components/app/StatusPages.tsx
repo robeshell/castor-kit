@@ -1,17 +1,25 @@
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Compass, LayoutDashboard, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Compass, LayoutDashboard, ShieldAlert, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTranslation } from 'react-i18next'
 
-function Shell({ icon: Icon, code, title, description, children }) {
+/** A status code in large type, or an icon when there is no code */
+type ShellProps = { title: string; description: string; children?: ReactNode } & (
+  | { code: string; icon?: undefined }
+  | { code?: undefined; icon: LucideIcon }
+)
+
+function Shell({ icon: Icon, code, title, description, children }: ShellProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
       {code ? (
         <div className="text-brand-gradient text-7xl font-semibold tracking-tighter tabular-nums">{code}</div>
       ) : (
         <div className="bg-muted text-muted-foreground mb-2 flex size-12 items-center justify-center rounded-xl">
-          <Icon className="size-5" />
+          {/* Always set when there is no code (ShellProps); TypeScript cannot narrow it from `code` */}
+          {Icon ? <Icon className="size-5" /> : null}
         </div>
       )}
       <h2 className="mt-3 text-lg font-semibold tracking-tight">{title}</h2>
@@ -21,7 +29,14 @@ function Shell({ icon: Icon, code, title, description, children }) {
   )
 }
 
-export function ErrorPage({ code, title, description }) {
+export interface ErrorPageProps {
+  /** HTTP-like status shown in large type, e.g. "404" */
+  code: string
+  title: string
+  description: string
+}
+
+export function ErrorPage({ code, title, description }: ErrorPageProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   return (
@@ -49,13 +64,20 @@ export function NoPermissionPage() {
   )
 }
 
-export function RouteNotConfigured({ path, component }) {
+export interface RouteNotConfiguredProps {
+  /** The menu's route path */
+  path: string
+  /** The menu's component value that matched no page */
+  component: string | null
+}
+
+export function RouteNotConfigured({ path, component }: RouteNotConfiguredProps) {
   const { t } = useTranslation()
   return (
     <Shell
       icon={Compass}
       title={t('页面未配置')}
-      description={t('菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.jsx 对齐，例如 admin/users。', { path, component: component || t('(空)') })}
+      description={t('菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.tsx 对齐，例如 admin/users。', { path, component: component || t('(空)') })}
     />
   )
 }

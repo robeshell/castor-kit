@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai'
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses, type TextUIPart } from 'ai'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Lightbulb, MessageSquarePlus, Sparkles, X } from 'lucide-react'
@@ -26,7 +26,7 @@ import { EASE_OUT } from '@/lib/motion'
 import { menuLabel } from '@/lib/menu-label'
 import { cn } from '@/lib/utils'
 import { getCsrfToken } from '@/shared/api/request'
-import ToolPart from '@/components/app/assistant/ToolPart'
+import ToolPart, { type AssistantToolPart, type AssistantUIMessage, type ToolPartProps } from '@/components/app/assistant/ToolPart'
 
 /** Messages kept in sessionStorage (older ones are dropped) */
 const KEEP_MESSAGES = 40
@@ -34,18 +34,19 @@ const KEEP_MESSAGES = 40
 // Chinese source text; translated with t() when rendered
 const SUGGESTIONS = ['系统里一共有多少个用户？', '列出所有部门', '最近 10 条操作日志', '这个页面能做什么？']
 
-const storageKey = (userId) => `castor-kit:assistant:${userId}`
+const storageKey = (userId: number) => `castor-kit:assistant:${userId}`
 
-function loadMessages(userId) {
+function loadMessages(userId: number): AssistantUIMessage[] {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(storageKey(userId)) || '[]')
-    return Array.isArray(saved) ? saved : []
+    const saved: unknown = JSON.parse(sessionStorage.getItem(storageKey(userId)) || '[]')
+    // Only saveMessages writes this key, so an array here is a list of this widget's messages
+    return Array.isArray(saved) ? (saved as AssistantUIMessage[]) : []
   } catch {
     return []
   }
 }
 
-function saveMessages(userId, messages) {
+function saveMessages(userId: number, messages: AssistantUIMessage[]) {
   try {
     if (messages.length === 0) sessionStorage.removeItem(storageKey(userId))
     else sessionStorage.setItem(storageKey(userId), JSON.stringify(messages.slice(-KEEP_MESSAGES)))
@@ -55,11 +56,11 @@ function saveMessages(userId, messages) {
 }
 
 /** A non-2xx answer arrives as an Error whose message is the response body: show its `error` field when it is JSON */
-function errorText(error) {
+function errorText(error: Error | undefined): string {
   const text = error?.message || ''
   try {
-    const data = JSON.parse(text)
-    if (data && typeof data.error === 'string') return data.error
+    const data: unknown = JSON.parse(text)
+    if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') return data.error
   } catch {
     /* not JSON */
   }
@@ -67,10 +68,10 @@ function errorText(error) {
 }
 
 /** The page being viewed (one widget per app) */
-let pageContext = {}
+let pageContext: { path?: string; title?: string } = {}
 
 /** useChat's own fetch: CSRF header (writes need it), UI language (errors are translated) and the page context */
-const transport = new DefaultChatTransport({
+const transport = new DefaultChatTransport<AssistantUIMessage>({
   api: '/api/admin/assistant/chat',
   credentials: 'include',
   headers: () => ({ 'X-CSRF-Token': getCsrfToken(), 'Accept-Language': i18n.language }),
@@ -96,7 +97,14 @@ function TypingDots() {
 }
 
 /** One message: the user's text, or the assistant's text and tool calls in the order they happened */
-function AssistantMessage({ message, streaming, onRespond }) {
+interface AssistantMessageProps {
+  message: AssistantUIMessage
+  /** This message is the one being streamed in */
+  streaming: boolean
+  onRespond: ToolPartProps['onRespond']
+}
+
+function AssistantMessage({ message, streaming, onRespond }: AssistantMessageProps) {
   const translations = useStreamdownTranslations()
   if (message.role === 'user') {
     const text = message.parts
@@ -109,7 +117,9 @@ function AssistantMessage({ message, streaming, onRespond }) {
       </Message>
     )
   }
-  const parts = message.parts.filter((p) => (p.type === 'text' && p.text) || p.type.startsWith('tool-'))
+  const parts = message.parts.filter(
+    (p): p is TextUIPart | AssistantToolPart => (p.type === 'text' && Boolean(p.text)) || p.type.startsWith('tool-'),
+  )
   const lastIndex = parts.length - 1
   return (
     <Message from="assistant" className="max-w-full">
@@ -146,20 +156,21 @@ export default function AssistantWidget() {
   const location = useLocation()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
-  const buttonRef = useRef(null)
-  const panelRef = useRef(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
   const userId = user?.id
 
   // The page being viewed, sent along with each message
   const flat = useMemo(() => flattenMenus(menus), [menus])
   const active = findActiveMenu(flat, location.pathname)
-  const title = active ? menuLabel(active) : STATIC_TITLES[location.pathname] ? t(STATIC_TITLES[location.pathname]) : ''
+  const staticTitle = STATIC_TITLES[location.pathname]
+  const title = active ? menuLabel(active) : staticTitle ? t(staticTitle) : ''
   useEffect(() => {
     pageContext = { path: location.pathname, ...(title ? { title } : {}) }
   }, [location.pathname, title])
 
   const initial = useMemo(() => (userId ? loadMessages(userId) : []), [userId])
-  const { messages, setMessages, sendMessage, addToolApprovalResponse, stop, status, error, clearError } = useChat({
+  const { messages, setMessages, sendMessage, addToolApprovalResponse, stop, status, error, clearError } = useChat<AssistantUIMessage>({
     id: `assistant-${userId ?? 'anon'}`,
     messages: initial,
     transport,
@@ -169,7 +180,7 @@ export default function AssistantWidget() {
   const busy = status === 'submitted' || status === 'streaming'
   const last = messages.at(-1)
   // A write waiting for the user: the model can't continue until it is allowed or refused
-  const awaitingApproval = last?.role === 'assistant' && last.parts.some((p) => p.state === 'approval-requested')
+  const awaitingApproval = last?.role === 'assistant' && last.parts.some((p) => 'state' in p && p.state === 'approval-requested')
 
   useEffect(() => {
     if (userId && !busy) saveMessages(userId, messages)
@@ -177,7 +188,7 @@ export default function AssistantWidget() {
 
   // ⌘/Ctrl + J toggles the panel
   useEffect(() => {
-    const onKey = (event) => {
+    const onKey = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === 'j' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
         event.preventDefault()
         setOpen((value) => !value)
@@ -197,7 +208,7 @@ export default function AssistantWidget() {
     requestAnimationFrame(() => buttonRef.current?.focus())
   }
 
-  const send = (text) => {
+  const send = (text: string) => {
     const value = text.trim()
     if (!value || busy || awaitingApproval) return
     clearError()
@@ -211,7 +222,7 @@ export default function AssistantWidget() {
     setMessages([])
   }
 
-  const respond = (id, approved) => addToolApprovalResponse({ id, approved })
+  const respond = (id: string, approved: boolean) => addToolApprovalResponse({ id, approved })
 
   const empty = messages.length === 0
   const shortcut = isMac ? '⌘J' : 'Ctrl J'

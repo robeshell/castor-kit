@@ -7,10 +7,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/context/AuthContext'
 import { formatRelative } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { getNotifications, getUnreadCount, markAllAsRead, markAsRead } from '@/modules/admin/api/notifications'
+import { getNotifications, getUnreadCount, markAllAsRead, markAsRead, type NotificationItem } from '@/modules/admin/api/notifications'
 import { useTranslation } from 'react-i18next'
 
-const DOT = {
+const DOT: Record<NotificationItem['noti_type'], string> = {
   info: 'bg-info',
   success: 'bg-success',
   warning: 'bg-warning',
@@ -23,7 +23,7 @@ export default function NotificationBell() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [unread, setUnread] = useState(0)
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState<NotificationItem[]>([])
 
   const fetchUnread = useCallback(() => {
     getUnreadCount()
@@ -40,7 +40,7 @@ export default function NotificationBell() {
   // Unread count polling: paused while the tab is hidden to avoid wasting requests in the background
   useEffect(() => {
     if (!user) return undefined
-    let timer = null
+    let timer: ReturnType<typeof setInterval> | null = null
     const start = () => {
       if (!timer) timer = setInterval(fetchUnread, 30000)
     }
@@ -58,12 +58,12 @@ export default function NotificationBell() {
     }
   }, [user, fetchUnread])
 
-  const onOpenChange = (next) => {
+  const onOpenChange = (next: boolean) => {
     setOpen(next)
     if (next) fetchRecent()
   }
 
-  const openItem = (item) => {
+  const openItem = (item: NotificationItem) => {
     markAsRead(item.id).catch(() => {})
     setOpen(false)
     fetchUnread()

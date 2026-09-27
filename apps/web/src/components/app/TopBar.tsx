@@ -32,14 +32,25 @@ import { useTranslation } from 'react-i18next'
  * Top bar. Desktop content depends on the nav mode: breadcrumbs (sidebar), brand + full menu (top),
  * or top-level section tabs (mixed). Mobile always uses the sidebar sheet + breadcrumbs.
  */
-export default function TopBar({ onOpenSearch }) {
+export interface TopBarProps {
+  /** Open the ⌘K command menu */
+  onOpenSearch: () => void
+}
+
+/** One breadcrumb: an ancestor, or the current page */
+interface Crumb {
+  name: string
+  current?: boolean
+}
+
+export default function TopBar({ onOpenSearch }: TopBarProps) {
   const { t } = useTranslation()
   const { menus } = useAuth()
   const { navMode } = useTheme()
   const { isMobile } = useSidebar()
   const mode = isMobile ? 'sidebar' : navMode
   const location = useLocation()
-  const trail = useMemo(() => {
+  const trail = useMemo<Crumb[]>(() => {
     const active = findActiveMenu(flattenMenus(menus), location.pathname)
     if (active) return [...active.parents.map((p) => ({ name: menuLabel(p) })), { name: menuLabel(active), current: true }]
     const title = STATIC_TITLES[location.pathname]

@@ -91,7 +91,7 @@ apps/web/
 │   └── i18n-scan.mjs         # 未翻訳の文言をスキャン
 ├── test/                     # Vitest（i18n、外観、タブバー、共通コンポーネントなど）
 └── src/
-    ├── App.jsx               # 動的ルーティング（import.meta.glob でページをスキャン）
+    ├── App.tsx               # 動的ルーティング（import.meta.glob でページをスキャン）
     ├── index.css             # Tailwind v4 のエントリー + デザイントークン（ライト / ダーク / アクセントカラー）
     ├── i18n/index.ts         # i18next の初期化
     ├── locales/              # 共通文言の翻訳。menus/ はメニュー名の翻訳
@@ -114,7 +114,7 @@ apps/web/
         └── components/       # 業務向け共通コンポーネント：PageHeader / DataTable / FormDialog / ...
 ```
 
-ページファイルは必ず `modules/<module>/pages/<subdir>/<page>/index.jsx` に置いてください。そうしないと動的ルーティングがページを見つけられません。詳しくは [フロントエンド](/ja/guide/frontend) を参照してください。
+ページファイルは必ず `modules/<module>/pages/<subdir>/<page>/index.tsx` に置いてください。そうしないと動的ルーティングがページを見つけられません。詳しくは [フロントエンド](/ja/guide/frontend) を参照してください。
 
 ## MCP Server apps/mcp
 

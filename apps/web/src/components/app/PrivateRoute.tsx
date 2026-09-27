@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import BrandMark from '@/components/app/BrandMark'
@@ -14,7 +15,12 @@ export function FullscreenLoader() {
   )
 }
 
-export default function PrivateRoute({ children }) {
+export interface PrivateRouteProps {
+  /** Rendered once a signed-in user is known */
+  children?: ReactNode
+}
+
+export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, loading } = useAuth()
   if (loading) return <FullscreenLoader />
   if (!user) return <Navigate to="/login" replace />

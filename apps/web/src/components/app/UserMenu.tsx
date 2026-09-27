@@ -11,13 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, type CurrentUser } from '@/context/AuthContext'
 import { roleName } from '@/lib/role-label'
 import { userDisplayName } from '@/lib/user'
 import UserAvatar from '@/shared/components/UserAvatar'
 import { useTranslation } from 'react-i18next'
 
-function MenuAvatar({ user, className }) {
+function MenuAvatar({ user, className }: { user: CurrentUser | null; className?: string }) {
   return <UserAvatar src={user?.avatar} name={userDisplayName(user)} className={className} />
 }
 
@@ -34,7 +34,7 @@ function usePointerCloseFocus() {
     onKeyDown: () => {
       byPointer.current = false
     },
-    onCloseAutoFocus: (event) => {
+    onCloseAutoFocus: (event: Event) => {
       if (byPointer.current) event.preventDefault()
       byPointer.current = false
     },
@@ -55,7 +55,14 @@ function useUserMenu() {
 }
 
 /** Dropdown items shared by the sidebar footer menu and the compact top-bar menu */
-function UserMenuItems({ user, roleText, onLogout }) {
+interface UserMenuItemsProps {
+  user: CurrentUser | null
+  /** The user's first role, or "member" */
+  roleText: string
+  onLogout: () => void
+}
+
+function UserMenuItems({ user, roleText, onLogout }: UserMenuItemsProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   return (

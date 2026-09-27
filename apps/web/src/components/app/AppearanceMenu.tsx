@@ -1,14 +1,22 @@
+import type { ReactNode } from 'react'
 import { Check, Palette, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useTheme } from '@/context/ThemeContext'
-import { ACCENTS, CONTENT_WIDTHS, DEFAULT_APPEARANCE, NAV_MODES, SIDEBAR_VARIANTS } from '@/lib/appearance'
+import { ACCENTS, CONTENT_WIDTHS, DEFAULT_APPEARANCE, NAV_MODES, SIDEBAR_VARIANTS, type AppearanceOption, type NavMode } from '@/lib/appearance'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
-function Section({ title, hint, children }) {
+interface SectionProps {
+  title: string
+  /** Shown on the right of the title */
+  hint?: ReactNode
+  children: ReactNode
+}
+
+function Section({ title, hint, children }: SectionProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
@@ -21,7 +29,7 @@ function Section({ title, hint, children }) {
 }
 
 /** Wireframe thumbnail of a nav mode: the bars are the navigation, the rest is content */
-function NavPreview({ mode }) {
+function NavPreview({ mode }: { mode: NavMode }) {
   const bar = 'bg-muted-foreground/30 rounded-[2px]'
   return (
     <span className="bg-background flex h-11 w-full gap-1 overflow-hidden rounded-md p-1 shadow-[0_0_0_1px_var(--border)]">
@@ -36,7 +44,14 @@ function NavPreview({ mode }) {
   )
 }
 
-function OptionGroup({ value, options, onChange, disabled }) {
+interface OptionGroupProps<Id extends string> {
+  value: Id
+  options: readonly AppearanceOption<Id>[]
+  onChange: (next: Id) => void
+  disabled?: boolean
+}
+
+function OptionGroup<Id extends string>({ value, options, onChange, disabled }: OptionGroupProps<Id>) {
   const { t } = useTranslation()
   return (
     <ToggleGroup
@@ -45,7 +60,8 @@ function OptionGroup({ value, options, onChange, disabled }) {
       size="sm"
       value={value}
       disabled={disabled}
-      onValueChange={(next) => next && onChange(next)}
+      // The group only emits the value of one of its items, i.e. an option id
+      onValueChange={(next) => next && onChange(next as Id)}
       className="w-full"
     >
       {options.map((o) => (

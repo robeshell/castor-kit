@@ -19,7 +19,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, type MenuNode } from '@/context/AuthContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
 import { prefetchPage } from '@/lib/page-modules'
 import { menuLabel } from '@/lib/menu-label'
@@ -27,7 +27,8 @@ import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import BrandMark from '@/components/app/BrandMark'
 import UserMenu from '@/components/app/UserMenu'
-import { HOME_SECTION, findActiveMenu, flattenMenus, isNavVisible, visibleChildren } from '@/components/app/menu-tree'
+import { HOME_SECTION, findActiveMenu, flattenMenus, isNavVisible, visibleChildren, type Section } from '@/components/app/menu-tree'
+import type { SidebarVariant } from '@/lib/appearance'
 import { useTranslation } from 'react-i18next'
 
 /*
@@ -51,9 +52,16 @@ function ActivePill() {
 }
 
 /** Fetch a page's code when the pointer or keyboard focus reaches its menu item, so the click doesn't wait for it */
-const prefetchOn = (menu) => ({ onPointerEnter: () => prefetchPage(menu.component), onFocus: () => prefetchPage(menu.component) })
+const prefetchOn = (menu: MenuNode) => ({ onPointerEnter: () => prefetchPage(menu.component), onFocus: () => prefetchPage(menu.component) })
 
-function MenuLeaf({ menu, activeId, onNavigate }) {
+interface MenuLeafProps {
+  menu: MenuNode
+  /** Id of the menu matching the current page */
+  activeId: number | undefined
+  onNavigate: () => void
+}
+
+function MenuLeaf({ menu, activeId, onNavigate }: MenuLeafProps) {
   const active = menu.id === activeId
   return (
     <SidebarMenuItem>
@@ -73,7 +81,13 @@ function MenuLeaf({ menu, activeId, onNavigate }) {
   )
 }
 
-function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
+interface MenuBranchProps extends MenuLeafProps {
+  /** Ids of the expanded groups */
+  openIds: Set<number>
+  toggleOpen: (id: number) => void
+}
+
+function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }: MenuBranchProps) {
   const { state } = useSidebar()
   const children = visibleChildren(menu)
   const open = openIds.has(menu.id)
@@ -120,7 +134,12 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }) {
  * variant: shadcn sidebar variant (sidebar / floating / inset).
  * section: mixed nav mode only; limits the menus to one top-level section (a root group id, or HOME_SECTION for root-level pages).
  */
-export default function AppSidebar({ variant = 'sidebar', section }) {
+export interface AppSidebarProps {
+  variant?: SidebarVariant
+  section?: Section
+}
+
+export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarProps) {
   // Subscribe to language changes: re-render menu names when the language switches (menuLabel reads i18n directly)
   useTranslation()
   const { menus } = useAuth()
@@ -129,8 +148,8 @@ export default function AppSidebar({ variant = 'sidebar', section }) {
 
   const flat = useMemo(() => flattenMenus(menus), [menus])
   const active = useMemo(() => findActiveMenu(flat, location.pathname), [flat, location.pathname])
-  const [openIds, setOpenIds] = useState(() => new Set())
-  const [seenActiveId, setSeenActiveId] = useState(null)
+  const [openIds, setOpenIds] = useState(() => new Set<number>())
+  const [seenActiveId, setSeenActiveId] = useState<number | null>(null)
 
   // On route change, auto-expand the current page's ancestor groups without collapsing groups the user expanded manually (derived during render to avoid setState in an effect)
   if (active && active.id !== seenActiveId) {
@@ -142,7 +161,7 @@ export default function AppSidebar({ variant = 'sidebar', section }) {
     })
   }
 
-  const toggleOpen = (id) =>
+  const toggleOpen = (id: number) =>
     setOpenIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)

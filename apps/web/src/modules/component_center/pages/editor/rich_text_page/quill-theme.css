@@ -141,7 +141,7 @@
   border-color: var(--foreground);
 }
 
-/* Header picker labels: translated text set by rich_text_page/index.jsx (--rt-label-*) */
+/* Header picker labels: translated text set by rich_text_page/index.tsx (--rt-label-*) */
 .rt-editor .ql-snow .ql-picker.ql-header .ql-picker-label::before,
 .rt-editor .ql-snow .ql-picker.ql-header .ql-picker-item::before {
   content: var(--rt-label-normal, 'Normal');

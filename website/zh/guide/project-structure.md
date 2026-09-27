@@ -91,7 +91,7 @@ apps/web/
 │   └── i18n-scan.mjs         # 未翻译文案扫描
 ├── test/                     # Vitest（i18n、外观、标签栏、公共组件等）
 └── src/
-    ├── App.jsx               # 动态路由（import.meta.glob 扫描页面）
+    ├── App.tsx               # 动态路由（import.meta.glob 扫描页面）
     ├── index.css             # Tailwind v4 入口 + 设计 tokens（浅色 / 深色 / 强调色）
     ├── i18n/index.ts         # i18next 初始化
     ├── locales/              # 公共文案译文；menus/ 为菜单名译文
@@ -114,7 +114,7 @@ apps/web/
         └── components/       # 业务公共组件：PageHeader / DataTable / FormDialog / ...
 ```
 
-页面文件必须放在 `modules/<module>/pages/<subdir>/<page>/index.jsx`，否则动态路由找不到。详见 [前端开发](/zh/guide/frontend)。
+页面文件必须放在 `modules/<module>/pages/<subdir>/<page>/index.tsx`，否则动态路由找不到。详见 [前端开发](/zh/guide/frontend)。
 
 ## MCP Server apps/mcp
 

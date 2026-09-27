@@ -46,8 +46,8 @@
 - **New domain**: register it in `src/router.ts` + `db/schema/index.ts` (new modules inside an existing domain are registered by scaffold automatically)
 - **Import / export**: `common/tabular.ts` (`buildTable` / `sendTable` / `readTableFile`), csv / xlsx only
 
-### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react; moving from JSX to TSX, see AGENTS.md "TypeScript (migration in progress)")
-- **Dynamic routing**: `App.jsx` resolves pages via `lib/page-modules.ts` (`import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`); `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/admin/kanban_page`)
+### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react, TypeScript / TSX; see AGENTS.md "TypeScript")
+- **Dynamic routing**: `App.tsx` resolves pages via `lib/page-modules.ts` (`import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`); `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/admin/kanban_page`)
 - **API client**: `apps/web/src/shared/api/request.ts` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
 - **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.tsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`
 - **Import / export**: reuse `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
@@ -82,7 +82,7 @@ pnpm openapi:generate && pnpm openapi:apifox
 1. [ ] Read the related existing modules (see `apps/api/src/modules/admin/users/`, `apps/web/src/modules/admin/pages/users/index.tsx`)
 2. [ ] `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."`
 3. [ ] Backend: fill in the business logic in `db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts`
-4. [ ] Frontend: `pages/<subdir>/<page>/index.tsx` + `api/<page>.ts` (what scaffold generates; frontend-only pages need no api file): row type from the API file, `interface FormValues` + `useForm<FormValues>`, `DataTableColumn<Row>[]`, no `any` / casts (see AGENTS.md "TypeScript (migration in progress)")
+4. [ ] Frontend: `pages/<subdir>/<page>/index.tsx` + `api/<page>.ts` (what scaffold generates; frontend-only pages need no api file): row type from the API file, `interface FormValues` + `useForm<FormValues>`, `DataTableColumn<Row>[]`, no `any` / casts (see AGENTS.md "TypeScript")
 5. [ ] RBAC: add the menu + button permission entries in `seed-rbac.ts`, run `pnpm seed:rbac -- --incremental`
 6. [ ] Migration: review the new SQL in `apps/api/drizzle/` → `pnpm db:migrate` → confirm with `psql \d`
 7. [ ] OpenAPI: scaffold has already written the module's endpoints; if you changed the generated routes / fields or added routes, update the doc following AGENTS.md "OpenAPI writing rules" until `pnpm openapi:generate -- --strict` passes

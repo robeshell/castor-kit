@@ -98,7 +98,7 @@ shadcn の `<Sidebar variant>` と 1 対 1 で対応しています。
 - タブの一覧は `sessionStorage` の `tags-view` キーに保存され、現在のブラウザタブでのみ有効です
 - タブに戻ると、前回のクエリパラメーターとスクロール位置が復元されます
 
-状態管理は `apps/web/src/context/TagsViewContext.tsx`、ページ領域の描画は `apps/web/src/components/app/AppLayout.jsx` にあります。
+状態管理は `apps/web/src/context/TagsViewContext.tsx`、ページ領域の描画は `apps/web/src/components/app/AppLayout.tsx` にあります。
 
 ### 状態保持の仕組み
 

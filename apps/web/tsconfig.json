@@ -14,9 +14,6 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    // The frontend is moving from JSX to TSX file by file: .js / .jsx files still compile but are not type-checked
-    "allowJs": true,
-    "checkJs": false,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

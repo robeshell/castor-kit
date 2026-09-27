@@ -91,7 +91,7 @@ apps/web/
 │   └── i18n-scan.mjs         # Scanner for untranslated text
 ├── test/                     # Vitest (i18n, appearance, tabs bar, shared components, ...)
 └── src/
-    ├── App.jsx               # Dynamic routing (scans pages with import.meta.glob)
+    ├── App.tsx               # Dynamic routing (scans pages with import.meta.glob)
     ├── index.css             # Tailwind v4 entry + design tokens (light / dark / accent colors)
     ├── i18n/index.ts         # i18next setup
     ├── locales/              # Shared UI translations; menus/ holds menu name translations
@@ -114,7 +114,7 @@ apps/web/
         └── components/       # Shared business components: PageHeader / DataTable / FormDialog / ...
 ```
 
-Page files must live at `modules/<module>/pages/<subdir>/<page>/index.jsx`, otherwise dynamic routing won't find them. See [Frontend](/guide/frontend).
+Page files must live at `modules/<module>/pages/<subdir>/<page>/index.tsx`, otherwise dynamic routing won't find them. See [Frontend](/guide/frontend).
 
 ## MCP Server: apps/mcp
 

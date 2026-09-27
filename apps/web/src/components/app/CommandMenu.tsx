@@ -15,18 +15,23 @@ import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
 import { menuLabel } from '@/lib/menu-label'
-import { flattenMenus, navigablePages } from '@/components/app/menu-tree'
+import { flattenMenus, navigablePages, type FlatMenu, type RoutedMenu } from '@/components/app/menu-tree'
 import { useTranslation } from 'react-i18next'
 
 /** ⌘K command palette: navigate to pages, switch theme, personal settings, log out */
-export default function CommandMenu({ open, onOpenChange }) {
+export interface CommandMenuProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export default function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   const { t } = useTranslation()
   const { menus, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   useEffect(() => {
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
         onOpenChange(!open)
@@ -38,16 +43,17 @@ export default function CommandMenu({ open, onOpenChange }) {
 
   const pages = useMemo(() => navigablePages(flattenMenus(menus)), [menus])
   const groups = useMemo(() => {
-    const map = new Map()
+    const map = new Map<string, RoutedMenu<FlatMenu>[]>()
     pages.forEach((page) => {
       const label = page.parents.length ? page.parents.map((p) => menuLabel(p)).join(' / ') : t('常用')
       if (!map.has(label)) map.set(label, [])
-      map.get(label).push(page)
+      // Set just above when missing
+      map.get(label)!.push(page)
     })
     return Array.from(map.entries())
   }, [pages, t])
 
-  const run = (fn) => {
+  const run = (fn: () => void) => {
     onOpenChange(false)
     fn()
   }

@@ -1,6 +1,6 @@
 # castor-kit frontend design system
 
-> The UI system of `apps/web`: shadcn/ui + Tailwind CSS v4 + motion + lucide-react (moving from JSX to TSX, see AGENTS.md "TypeScript (migration in progress)"). Visual direction: clean, with smooth motion, in the style of English-language SaaS products (Linear / Vercel / Stripe),
+> The UI system of `apps/web`: shadcn/ui + Tailwind CSS v4 + motion + lucide-react (TypeScript / TSX, see AGENTS.md "TypeScript"). Visual direction: clean, with smooth motion, in the style of English-language SaaS products (Linear / Vercel / Stripe),
 > on a neutral gray base, with the **Ocean gradient (blue → sky → cyan)** as the default accent color; the gradient is only an accent. The accent can be switched to other presets in the Appearance menu (`src/lib/appearance.ts`), and every accent token is derived from `--brand-from/via/to`.
 > Component usage, common page patterns and things not to do are in `.claude/skills/shadcn-ui-skills/`; project conventions are in `AGENTS.md` "Frontend conventions".
 
@@ -8,7 +8,7 @@
 
 | Concern | Choice |
 |---|---|
-| React | React 19 (TypeScript / TSX; converted layer by layer from JSX) |
+| React | React 19 (TypeScript / TSX) |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS variable themes (light / dark) |
 | Components | shadcn/ui (new-york, Radix), source in `src/components/ui/` (TSX); changes from upstream in `docs/shadcn-changes.md` |
 | Motion | `motion` (page transitions, staggered list entrances, layoutId indicators, number counters) + `tw-animate-css` (overlay enter / exit) |
@@ -55,7 +55,7 @@ apps/web/src/
 ├── lib/                    # utils(cn), toast, menu-icons, motion presets, format (dates / numbers), appearance, chart-theme
 ├── context/                # AuthContext, ThemeContext (html.dark), TagsViewContext
 ├── i18n/                   # i18next setup and date locales
-└── modules/**/pages/**/index.tsx   # pages (index.jsx until converted; routed by import.meta.glob in lib/page-modules.ts)
+└── modules/**/pages/**/index.tsx   # pages (routed by import.meta.glob in lib/page-modules.ts)
 ```
 
 ## 4. Shared component conventions (pages must reuse them, not build their own)

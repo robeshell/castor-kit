@@ -98,7 +98,7 @@ ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS
 - 标签列表保存在 `sessionStorage` 的 `tags-view` 键中，仅对当前浏览器标签页有效
 - 切回某个标签时恢复它上次的查询参数和滚动位置
 
-状态管理在 `apps/web/src/context/TagsViewContext.tsx`，页面区域的渲染在 `apps/web/src/components/app/AppLayout.jsx`。
+状态管理在 `apps/web/src/context/TagsViewContext.tsx`，页面区域的渲染在 `apps/web/src/components/app/AppLayout.tsx`。
 
 ### 保活机制
 

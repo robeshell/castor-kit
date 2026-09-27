@@ -1,4 +1,4 @@
-import { createElement, useMemo } from 'react'
+import { createElement, useMemo, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { motion } from 'motion/react'
@@ -11,7 +11,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, type MenuNode } from '@/context/AuthContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
 import { prefetchPage } from '@/lib/page-modules'
 import { menuLabel } from '@/lib/menu-label'
@@ -28,12 +28,21 @@ function TabPill() {
   return <motion.span layoutId="top-nav-pill" transition={layoutSpring} className="bg-accent absolute inset-0 -z-10 rounded-md" />
 }
 
-function tabClass(active) {
+function tabClass(active: boolean): string {
   return cn(TAB, active ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground')
 }
 
 /** Nested dropdown items; branches become submenus. Like the sidebar, only the first level under a root shows icons */
-function MenuItems({ menus, activeId, activePath, depth = 0 }) {
+interface MenuItemsProps {
+  menus: MenuNode[]
+  /** Id of the menu matching the current page */
+  activeId: number | undefined
+  /** Ids of the current page and its ancestors */
+  activePath: Set<number>
+  depth?: number
+}
+
+function MenuItems({ menus, activeId, activePath, depth = 0 }: MenuItemsProps): ReactNode {
   return menus.map((menu) => {
     const children = visibleChildren(menu)
     const icon = depth === 0 ? createElement(resolveMenuIcon(menu), { className: cn(activePath.has(menu.id) && 'text-primary') }) : null
@@ -66,7 +75,12 @@ function MenuItems({ menus, activeId, activePath, depth = 0 }) {
  * - mode="full" (top nav mode): every root; groups open a dropdown with the whole subtree
  * - mode="sections" (mixed mode): every root as a tab; a group tab jumps to its first page and the sidebar shows its menus
  */
-export default function TopNav({ mode = 'full', className }) {
+export interface TopNavProps {
+  mode?: 'full' | 'sections'
+  className?: string
+}
+
+export default function TopNav({ mode = 'full', className }: TopNavProps) {
   useTranslation() // re-render menu names when the language switches
   const { menus } = useAuth()
   const location = useLocation()

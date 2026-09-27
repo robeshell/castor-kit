@@ -1,10 +1,11 @@
 import { lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { AuthProvider, useAuth, type MenuNode } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import AppLayout from '@/components/app/AppLayout'
 import PrivateRoute from '@/components/app/PrivateRoute'
 import { ErrorPage, NoPermissionPage, RouteNotConfigured } from '@/components/app/StatusPages'
+import { hasRoutePath, type RoutedMenu } from '@/components/app/menu-tree'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { resolvePageComponent } from '@/lib/page-modules'
@@ -15,14 +16,14 @@ const Login = lazy(() => import('@/modules/auth/pages/login'))
 const ResetPassword = lazy(() => import('@/modules/auth/pages/reset_password'))
 const Profile = lazy(() => import('@/modules/admin/pages/profile'))
 
-function collectRouteMenus(menus = []) {
-  const result = []
-  const walk = (nodes = []) => {
+function collectRouteMenus(menus: MenuNode[] = []): RoutedMenu[] {
+  const result: RoutedMenu[] = []
+  const walk = (nodes: MenuNode[] = []) => {
     nodes.forEach((menu) => {
       if (!menu?.is_active || !menu?.is_visible) {
         return
       }
-      if (menu.menu_type === 'menu' && menu.path?.startsWith('/')) {
+      if (menu.menu_type === 'menu' && hasRoutePath(menu)) {
         result.push(menu)
       }
       if (Array.isArray(menu.children) && menu.children.length > 0) {
@@ -34,7 +35,7 @@ function collectRouteMenus(menus = []) {
   return result
 }
 
-function normalizeRoutePath(pathname = '') {
+function normalizeRoutePath(pathname = ''): string {
   return pathname.replace(/^\/+/, '')
 }
 
@@ -44,7 +45,7 @@ function AppRoutes() {
 
   const routeMenus = useMemo(() => {
     const all = collectRouteMenus(menus)
-    const dedup = new Map()
+    const dedup = new Map<string, RoutedMenu>()
     all.forEach((menu) => {
       if (!dedup.has(menu.path)) {
         dedup.set(menu.path, menu)
@@ -58,7 +59,8 @@ function AppRoutes() {
       return null
     }
     const dashboardMenu = routeMenus.find((menu) => menu.path === '/dashboard')
-    return (dashboardMenu || routeMenus[0]).path
+    // routeMenus is non-empty here (checked above)
+    return (dashboardMenu || routeMenus[0]!).path
   }, [routeMenus])
 
   return (

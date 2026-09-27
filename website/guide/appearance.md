@@ -98,7 +98,7 @@ The tabs bar is on by default and can be turned off in Appearance. When it's on,
 - The tab list is saved under the `tags-view` key in `sessionStorage`, so it only applies to the current browser tab
 - Switching back to a tab restores its last query parameters and scroll position
 
-State management is in `apps/web/src/context/TagsViewContext.tsx`; the page area is rendered in `apps/web/src/components/app/AppLayout.jsx`.
+State management is in `apps/web/src/context/TagsViewContext.tsx`; the page area is rendered in `apps/web/src/components/app/AppLayout.tsx`.
 
 ### How keep-alive works
 

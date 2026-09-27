@@ -56,7 +56,7 @@ Inference guidelines (field types: see "Field type inference" below):
 | Other plugins | `@fastify/cors` / `compress` / `static` / `multipart` / `websocket` / `swagger` | - |
 | Import / export | `csv-parse` + `exceljs` (**csv / xlsx only; `.xls` is not supported**) | - |
 | Testing | Vitest + a real PostgreSQL | - |
-| Frontend framework | React + Vite + React Router + Axios (TypeScript / TSX; JSX → TSX migration in progress, see `docs/roadmap.md` "TypeScript frontend") | 19 / 5 / 7 |
+| Frontend framework | React + Vite + React Router + Axios (TypeScript / TSX) | 19 / 5 / 7 |
 | UI components | shadcn/ui (new-york style, Radix primitives, source in `apps/web/src/components/ui/`, TSX; changes from upstream in `docs/shadcn-changes.md`) | - |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS-variable themes (light / dark, `apps/web/src/index.css`) | 4.x |
 | Motion | `motion` (`motion/react`) + `tw-animate-css` (overlay enter / exit) | - |
@@ -139,11 +139,11 @@ castor-kit/
 │   │   │                              #          init-ro-role / generate-openapi / import-apifox
 │   │   ├── test/                      # Vitest (real PostgreSQL)
 │   │   └── drizzle.config.ts
-│   ├── web/                           # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (moving from JSX to TSX)
+│   ├── web/                           # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (TypeScript)
 │   │   ├── components.json            # shadcn CLI config (new-york / zinc / lucide / aliases)
 │   │   ├── scripts/shadcn-add.sh      # runs npx shadcn@latest add through a local relay (see "Adding shadcn/ui primitives")
 │   │   └── src/
-│   │       ├── App.jsx                # dynamic routing (import.meta.glob)
+│   │       ├── App.tsx                # dynamic routing (import.meta.glob)
 │   │       ├── index.css              # Tailwind v4 entry + design tokens (light / dark) + brand gradient utilities
 │   │       ├── context/               # AuthContext / ThemeContext (toggles html.dark)
 │   │       ├── components/
@@ -342,11 +342,11 @@ Details: docs/architecture.md "Cross-cutting conventions".
 
 ## Frontend conventions
 
-The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api/request.ts`), `AuthContext`, `useCrudList` and the pages. The UI system is described in `docs/frontend-design-system.md`: **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**, moving from JSX to TSX (see "TypeScript (migration in progress)"), with UI copy in Chinese (the i18n source key).
+The frontend consists of dynamic routing (`App.tsx`), the API layer (`shared/api/request.ts`), `AuthContext`, `useCrudList` and the pages. The UI system is described in `docs/frontend-design-system.md`: **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**, written in TypeScript (see "TypeScript"), with UI copy in Chinese (the i18n source key).
 
 ### Dynamic routing
 
-`apps/web/src/App.jsx` resolves pages through `lib/page-modules.ts`, which scans them with `import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`.
+`apps/web/src/App.tsx` resolves pages through `lib/page-modules.ts`, which scans them with `import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`.
 
 **Menu `component` field format:** `<module>/<subdir>/<page_name>`
 
@@ -359,20 +359,20 @@ component_center/dataviz/dashboard_page  → modules/component_center/pages/data
 ### File locations
 
 ```
-apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.tsx   ← page component (existing pages are index.jsx until step 5)
+apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.tsx   ← page component
 apps/web/src/modules/<module>/api/<page_name>.ts                      ← API call layer
 ```
 
 Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_center domain → `pages/admin/<name>_page/index.tsx`; the API file is `api/<name>.ts`.
 
-### TypeScript (migration in progress)
+### TypeScript
 
-The frontend is moving from JSX to TSX layer by layer, bottom-up: `components/ui` → `lib` / hooks / context → `shared/components` → scaffold templates → pages (plan and status: `docs/roadmap.md` "TypeScript frontend"). Already TypeScript: `components/ui`, `components/ai-elements`, `lib`, `i18n`, `context`, `shared/hooks`, `shared/api`, `shared/utils`, `shared/components`, and every `modules/<module>/api/*.ts`. Every page is TSX too (auth, admin, component center). Still JSX: the app shell `components/app`, `App.jsx` and `main.jsx`. `pnpm scaffold` generates TSX: `pages/.../index.tsx` and `api/<name>.ts`, typed like `docs/templates/frontend/` (see "Typed pages" below). `apps/web/tsconfig.json` is strict (same options as the API) with `allowJs`: `.ts` / `.tsx` files are type-checked by `pnpm typecheck` and the `verify` gate, `.js` / `.jsx` files compile unchecked.
+`apps/web/src` is TypeScript only (`.ts` / `.tsx`; `apps/web/test/typescript-only.test.js` fails on a `.js` / `.jsx` file there). `apps/web/tsconfig.json` uses the same strict options as the API (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`), and `pnpm typecheck` / the `verify` gate type-check the whole app. Tests under `apps/web/test` and the config files are still JavaScript.
 
-- New non-component files are TypeScript: `lib/*.ts`, API files `modules/<module>/api/<page>.ts` (type the response with `request.get<unknown, ListResponse<Row>>(...)`, shared shapes in `@/shared/api/types`), type-only files.
-- New component files are TSX: shared components and primitives (the shadcn CLI writes TSX) and new pages (scaffold writes `index.tsx`). Existing pages stay JSX until step 5; edit them in place.
-- Shared components are typed for the pages that will use them: `DataTable<Row>` with `DataTableColumn<Row>[]` (render values typed from `dataIndex`), FormFields generic over the react-hook-form values (`name` must be a real field), `FormDialog` / `FormSheet` over `UseFormReturn`, `TreeView` / `CheckableTree` over a `TreeNode` subtype, `MultiSelect<V>`, `SegmentedTabs<V>`. Row types come from the API files (`export type User = ApiItem<'/api/admin/users'>`). A `.tsx` file that imports a `.jsx` component gets its props inferred as required `any`, so a layer can only move once the layers below it have.
-- Converting a file: rename with `git mv`, give props an exported `interface XxxProps`, keep imports extensionless (importers need no change); don't enable `checkJs`.
+- API files `modules/<module>/api/<page>.ts` take their types from the OpenAPI doc (see "Calling the API"); shared shapes live in `@/shared/api/types`.
+- Components export `interface XxxProps`; type-only imports use `import type` / `import { type X }`. No `any`; a cast (`as`, `!`) needs a one-line comment saying why it holds.
+- Shared components are typed for pages: `DataTable<Row>` with `DataTableColumn<Row>[]` (render values typed from `dataIndex`), FormFields generic over the react-hook-form values (`name` must be a real field), `FormDialog` / `FormSheet` over `UseFormReturn`, `TreeView` / `CheckableTree` over a `TreeNode` subtype, `MultiSelect<V>`, `SegmentedTabs<V>`, `Chart` over echarts' `EChartsOption`. Row types come from the API files (`export type User = ApiItem<'/api/admin/users'>`).
+- `useAuth()` / `useTagsView()` return non-null values (they throw outside their provider).
 - **Typed pages** (what scaffold generates, `docs/templates/frontend/list_page/`): the API file exports the row type (`export type Customer = ApiItem<'/api/admin/customers'>`, the path exactly as documented) and types every function with `ApiQuery` / `ApiBody` / `ApiResponse` (export / template return `Blob`). The page imports the row type (`type Customer as Row`) and declares `interface FormValues` field by field (str / text / date / datetime → `string`, int → `number | null`, float → `number | string | null` because decimals come back as strings, bool → `boolean`, enum → its option values `| null`, dict / file / image → `string | null`); then `useForm<FormValues>`, `const columns: DataTableColumn<Row>[]`, `useState<Row | null>` / `useState<number[]>`, and `useCrudList` infers Row from the API function. Submitting `FormValues` to `createItem` / `updateItem` is checked against the documented body, so a form that doesn't match the API fails `tsc`. No `any` and no casts at call sites: fix the OpenAPI doc (then `pnpm openapi:generate`) or the page instead. Scaffold writes the module's OpenAPI entries and regenerates `openapi.d.ts` itself, so the generated files type-check straight away.
 
 ### Calling the API
@@ -644,7 +644,7 @@ AI infers types from the business description; **the PM never specifies technica
 ❌ A migration generated but not applied, or declared done without confirming with psql \d
 ❌ Declaring done without passing the verify-feature gate
 ❌ New endpoints left with only the openapi:generate skeleton, or with an invented summary / fields (write them from the code per "OpenAPI writing rules")
-❌ Frontend pages not placed at modules/<module>/pages/<subdir>/<page>/index.tsx (index.jsx for pages not yet converted; dynamic routing won't find them elsewhere)
+❌ Frontend pages not placed at modules/<module>/pages/<subdir>/<page>/index.tsx (dynamic routing won't find them elsewhere)
 ❌ New frontend code in .jsx / .js, or `any` / type casts at call sites in a new page (type it from the API file; fix the OpenAPI doc when a type is wrong)
 ❌ Re-adding .xls support to import / export (decided: csv / xlsx only)
 ❌ Asking the PM about technical details such as route paths, permission codes or field types (AI infers them)
@@ -874,7 +874,7 @@ ID=3   组件示例中心 [Component Gallery] (component_center)
 
 - The project name is `castor-kit`; names are always lowercase and hyphenated, no camelCase, no Stack suffix
 - Backend: Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino; no NestJS
-- Frontend: React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (moving from JSX to TSX, see `docs/roadmap.md` "TypeScript frontend"; UI copy in Chinese as the i18n key); UI system in `docs/frontend-design-system.md`
+- Frontend: React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (TypeScript; UI copy in Chinese as the i18n key); UI system in `docs/frontend-design-system.md`
 - `.xls` is not supported; csv / xlsx only
 - Passwords are hashed with scrypt and stored as a PHC string `$scrypt$ln=15,r=8,p=3$<salt>$<hash>` (`common/password.ts`, async; the parameters are in the string, so old hashes still verify after the parameters are raised)
 - Sessions: the server-side `sessions` table is the single source of truth (can be listed and force-revoked; a password change / account disable / password reset invalidates them); the `@fastify/secure-session` cookie `castor_session` only holds `{ sid, csrf_token }`, with its key derived from `SECRET_KEY` via HKDF. Always check sign-in with `isSignedIn(request)` from `common/session.ts`; never read cookie fields

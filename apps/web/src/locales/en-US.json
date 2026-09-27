@@ -118,7 +118,7 @@
   "移除文件": "Remove file",
   "第 {{from}}–{{to}} 条，共 {{total}} 条": "{{from}}–{{to}} of {{total}}",
   "编辑": "Edit",
-  "菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.jsx 对齐，例如 admin/users。": "The component {{component}} for menu path {{path}} is not registered in the frontend. component must match apps/web/src/modules/<module>/pages/<page>/index.jsx, e.g. admin/users.",
+  "菜单路径 {{path}} 对应的组件 {{component}} 未在前端注册。component 需与 apps/web/src/modules/<module>/pages/<page>/index.tsx 对齐，例如 admin/users。": "The component {{component}} for menu path {{path}} is not registered in the frontend. component must match apps/web/src/modules/<module>/pages/<page>/index.tsx, e.g. admin/users.",
   "请先选择导入文件": "Choose a file to import first",
   "请至少勾选一个导出字段": "Select at least one field to export",
   "请输入密码": "Enter your password",
