@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import ReactECharts from 'echarts-for-react'
+import ReactECharts from '@/shared/components/Chart'
 import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import {

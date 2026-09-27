@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import ReactECharts from '@/shared/components/Chart'
 import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { ArrowDown, ArrowUp, CircleCheck, CircleX, Plug, PlugZap, Radio, Send, Unplug } from 'lucide-react'

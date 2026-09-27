@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
 import { resolveMenuIcon } from '@/lib/menu-icons'
+import { prefetchPage } from '@/lib/page-modules'
 import { menuLabel } from '@/lib/menu-label'
 import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -51,7 +52,7 @@ function MenuItems({ menus, activeId, activePath, depth = 0 }) {
     }
     return (
       <DropdownMenuItem key={menu.id} asChild className={cn(menu.id === activeId && 'font-medium')}>
-        <Link to={menu.path || '#'}>
+        <Link to={menu.path || '#'} onPointerEnter={() => prefetchPage(menu.component)} onFocus={() => prefetchPage(menu.component)}>
           {icon}
           {menuLabel(menu)}
         </Link>

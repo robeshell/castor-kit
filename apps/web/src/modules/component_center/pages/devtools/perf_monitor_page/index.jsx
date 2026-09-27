@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import ReactECharts from '@/shared/components/Chart'
 import { motion } from 'motion/react'
 import { AlertTriangle, ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Trans, useTranslation } from 'react-i18next'
-import ReactECharts from 'echarts-for-react'
+import ReactECharts from '@/shared/components/Chart'
 import { AnimatePresence, motion } from 'motion/react'
 import { Archive, CircleCheck, Download, Layers, Plus, Upload, Wallet, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'

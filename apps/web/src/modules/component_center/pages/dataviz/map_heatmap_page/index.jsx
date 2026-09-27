@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
-import * as echarts from 'echarts'
+import { echarts } from '@/lib/echarts'
+import ReactECharts from '@/shared/components/Chart'
 import { AlertTriangle, MapPin, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'

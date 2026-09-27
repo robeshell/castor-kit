@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import ReactECharts from '@/shared/components/Chart'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Code2, Copy, Database, Play, Search, Sparkles } from 'lucide-react'
