@@ -113,7 +113,7 @@ AI が従うルールは [`AGENTS.md`](AGENTS.md) にあります。詳しくは
 | レイヤー | 技術 |
 |---|---|
 | **バックエンド** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **フロントエンド** | React 19 · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
+| **フロントエンド** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
 | **データとチャート** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
 | **ツール** | pnpm workspaces · Vitest · ESLint · MCP サーバー · Docker Compose |
 

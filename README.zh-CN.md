@@ -113,7 +113,7 @@ AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发]
 | 层 | 技术 |
 |---|---|
 | **后端** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **前端** | React 19 · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
+| **前端** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
 | **数据与图表** | TanStack Table · react-hook-form · ECharts 6 · Three.js |
 | **工具链** | pnpm workspaces · Vitest · ESLint · MCP Server · Docker Compose |
 
