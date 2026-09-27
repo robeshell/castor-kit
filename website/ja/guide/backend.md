@@ -92,7 +92,7 @@ export function customerToDict(item: Customer) {
 
 ### 横断的な規約
 
-- **日時**：`timestamp` / `date` 列はテキストとして読み取り、JS の `Date` を経由しません。出力には必ず `toIso()` を使います。形式は ISO 8601 の UTC 時刻 `YYYY-MM-DDTHH:mm:ss.ffffffZ` です。リクエストの日時はタイムゾーン付きなら UTC に換算し、タイムゾーンなしなら UTC として扱います。フロントエンドはブラウザのタイムゾーンで表示します。`Date#toISOString()`（ミリ秒まで）の使用は禁止です。
+- **日時**：`timestamp` / `date` 列はテキストとして読み取り、JS の `Date` を経由しません。出力には必ず `toIso()` を使います。形式は ISO 8601 の UTC 時刻 `YYYY-MM-DDTHH:mm:ss.ffffffZ` です。リクエストの日時はタイムゾーン付きなら UTC に換算し、タイムゾーンなしなら UTC として扱います。フロントエンドはブラウザのタイムゾーンで表示します。エクスポート / インポートするファイルの日時とダッシュボードの日付は、リクエストヘッダー `X-Time-Zone`（フロントエンドがブラウザのタイムゾーンを自動で付けます）に従います。エクスポート列は `formatDateTime()`、インポートのセルは先に `withZoneOffset()` を通します。`Date#toISOString()`（ミリ秒まで）の使用は禁止です。
 - **数値**：`numeric` 列は文字列のまま出力します（例：`"12.50"`）。`toDict()` の中で数値に変換しないでください。
 - **リクエストボディの検証**：`schema.ts` で `@/common/validation` の `field.*` を使ってボディを宣言し、ルートは権限チェックの後に `parseBody` / `parsePatch` を呼びます。JSON の型のみ受け付け（テキストは前後の空白を除いた文字列、整数は number、真偽値は true / false）、余分なフィールドは無視し、型が違えば 400 を返します。`pnpm scaffold` で生成したモジュールも同じ書き方で、インポート行は `rowToBody` でボディの形に変換され、同じ宣言で検証されます。
 - **操作ログ**：logs モジュールが登録するグローバルな `onResponse` フックが `operation_logs` にまとめて書き込むので、service の中で手書きしないでください。

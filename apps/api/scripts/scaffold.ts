@@ -378,6 +378,9 @@ function cellConversion(s: ScaffoldSpec, f: string, t: string): string | null {
       return `parseYesNo(${cell}) ?? ${cell}`
     case 'choice':
       return `FIELD_OPTIONS.${f}!.find((o) => o.label === ${cell})?.value ?? ${cell}`
+    case 'dateTime':
+      // A file's times are the importer's wall time (exports write them that way too)
+      return `withZoneOffset(${cell})`
     default:
       return null
   }
@@ -394,14 +397,18 @@ export function genModuleSchema(s: ScaffoldSpec): string {
   const usesDefault = declarations.some((d) => d.includes('withDefault('))
   const validationImports = ['field', ...(kinds.includes('bool') ? ['parseYesNo'] : []), ...(usesRequired ? ['required'] : []), ...(usesDefault ? ['withDefault'] : [])]
   const enumFields = s.fields.filter(([, t]) => fieldSpec(t).kind === 'choice').map(([f]) => f)
+  const exportLine = (f: string, t: string): string => {
+    const label = q(labelOf(s, f))
+    if (enumFields.includes(f)) return `  ${key(f)}: [${label}, (item) => optionLabel(${q(f)}, item.${f})],`
+    const kind = fieldSpec(t).kind
+    if (kind === 'bool') return `  ${key(f)}: [${label}, (item) => (item.${f} === null ? '' : item.${f} ? '是' : '否')],`
+    if (kind === 'dateTime') return `  ${key(f)}: [${label}, (item) => formatDateTime(item.${f})],`
+    return `  ${key(f)}: ${label},`
+  }
   const exportLines = [
     `  id: 'ID',`,
-    ...s.exportFields.map(([f]) =>
-      enumFields.includes(f)
-        ? `  ${key(f)}: [${q(labelOf(s, f))}, (item) => optionLabel(${q(f)}, item.${f})],`
-        : `  ${key(f)}: ${q(labelOf(s, f))},`,
-    ),
-    `  created_at: '创建时间',`,
+    ...s.exportFields.map(([f, t]) => exportLine(f, t)),
+    `  created_at: ['创建时间', (item) => formatDateTime(item.created_at)],`,
   ]
   const importLines = s.importFields.map(([f]) => `  ${key(labelOf(s, f))}: ${q(f)},`)
   const optionsBlock = enumFields.length
@@ -434,7 +441,8 @@ const intCell = (text: string) => (/^[+-]?\\d+$/.test(text.trim()) ? Number(text
  */
 
 import { z } from 'zod'
-import { ${validationImports.join(', ')} } from '@/common/validation'
+import { formatDateTime } from '@/common/serialize'
+${kinds.includes('dateTime') ? "import { withZoneOffset } from '@/common/time-zone'\n" : ''}import { ${validationImports.join(', ')} } from '@/common/validation'
 import type { ${s.pascal} } from '@/db/schema'
 ${optionsBlock}
 export const ${s.camel}Body = z.object({
@@ -452,7 +460,7 @@ export const ${s.camel}ExportBody = z.object({
 
 /**
  * Export columns: a header string (value taken from the toDict field of the same name), or [header, value function]
- * (when a conversion is needed, e.g. enum values shown as Chinese labels, booleans shown as yes / no text).
+ * (when a conversion is needed: enum values shown as their labels, booleans as yes / no text, times as the caller's wall time).
  * Headers are translated into Chinese by the AI / developer; field validation errors also use these headers as field names.
  */
 export type ExportColumn = string | [header: string, value: (item: ${s.pascal}) => unknown]

@@ -25,6 +25,7 @@ import { registerSessionResolver } from './common/session'
 import { MAX_SESSION_TTL_HOURS, SettingsStore } from './common/settings'
 import { registerDemoGuard } from './common/demo'
 import { INTERNAL_ERROR_MESSAGE, registerErrorHandler } from './common/errors'
+import { registerTimeZone } from './common/time-zone'
 import { registerResponseTranslation } from './common/i18n'
 import { utcNowIso } from './common/serialize'
 import type { AppConfig } from './config'
@@ -121,6 +122,8 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
   })
 
   registerErrorHandler(app)
+  // The caller's time zone (X-Time-Zone) for exported files and the dashboard
+  registerTimeZone(app)
   // Public demo: system management is read-only (no-op unless DEMO_MODE)
   registerDemoGuard(app, config)
   // Translate response messages for en-US / ja-JP requests (Accept-Language)

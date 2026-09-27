@@ -124,7 +124,7 @@ castor-kit/
 - 反代：`trustProxy` 取一跳，`request.ip` 即真实 IP，不手动读 `X-Forwarded-For`。
 
 ### 4.2 时间与数值输出
-- 时间字段格式为 ISO 8601 / RFC 3339 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`（固定 6 位小数 + `Z`），任何标准日期库都能直接解析。列是 `timestamp`（无时区）存 UTC；`pg` 的 `timestamp`（1114）/ `date`（1082）解析器设为原样返回文本，**不经过 JS `Date`**——`Date` 只有毫秒精度。`toIso()` 把空格换成 `T`、小数秒右补 0 到 6 位、加 `Z`（见 §9）。请求里的时间（`field.dateTime`）带时区的换算成 UTC 再存，不带时区的按 UTC。前端 `@/lib/format` 按浏览器时区显示；导出文件（CSV / XLSX）里的时间是 UTC。禁止 `Date#toISOString()`。
+- 时间字段格式为 ISO 8601 / RFC 3339 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`（固定 6 位小数 + `Z`），任何标准日期库都能直接解析。列是 `timestamp`（无时区）存 UTC；`pg` 的 `timestamp`（1114）/ `date`（1082）解析器设为原样返回文本，**不经过 JS `Date`**——`Date` 只有毫秒精度。`toIso()` 把空格换成 `T`、小数秒右补 0 到 6 位、加 `Z`（见 §9）。请求里的时间（`field.dateTime`）带时区的换算成 UTC 再存，不带时区的按 UTC。前端 `@/lib/format` 按浏览器时区显示。给人看的时间按调用方时区：前端每个请求都带 `X-Time-Zone`（浏览器的 IANA 时区名，不传或无效时为 UTC），`common/time-zone.ts` 用 AsyncLocalStorage 把它带到整个请求里——导出文件（CSV / XLSX）里的时间由 `formatDateTime()` 按它输出，导入文件里不带时区的时间由 `withZoneOffset()` 按它补上偏移，首页统计的「今天」和近 7 天也按它的日期计算。禁止 `Date#toISOString()`。
 - `created_at` / `updated_at` 在库里没有 DB DEFAULT，由应用侧默认值写入：`db/schema/columns.ts` 的 `createdAt()` / `updatedAt()`（`timezone('utc', now())`）。
 - `numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里**不要** `parseFloat`；`NaN` → `null`。
 

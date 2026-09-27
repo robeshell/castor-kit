@@ -144,6 +144,21 @@ describe('日志导出', () => {
     expect(res.body).toBe('\uFEFF时间,说明\r\n2026-01-02 09:30:00,密码错误\r\n')
   })
 
+  it('导出的时间按请求的 X-Time-Zone 显示（无效或缺省时为 UTC）', async () => {
+    const exportIn = async (zone?: string) =>
+      (
+        await s.inject({
+          method: 'POST',
+          url: '/api/admin/logs/login/export',
+          headers: zone ? { 'x-time-zone': zone } : {},
+          payload: { export_mode: 'filtered', filters: { username: `${P}alice`, status: 'failed' }, fields: ['created_at'] },
+        })
+      ).body
+    expect(await exportIn('Asia/Shanghai')).toBe('\uFEFF时间\r\n2026-01-02 17:30:00\r\n')
+    expect(await exportIn('America/New_York')).toBe('\uFEFF时间\r\n2026-01-02 04:30:00\r\n')
+    expect(await exportIn('Not/A_Zone')).toBe('\uFEFF时间\r\n2026-01-02 09:30:00\r\n')
+  })
+
   it('操作日志导出 csv / xlsx', async () => {
     const csv = await s.inject({
       method: 'POST',

@@ -320,7 +320,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 ### 横切约定（详见 `docs/architecture.md`「横切约定」）
 
-- **时间**：列是 `timestamp`（无时区）存 UTC，pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（ISO 8601 UTC：`YYYY-MM-DDTHH:mm:ss.ffffffZ`，6 位小数 + `Z`）。请求里的时间用 `field.dateTime`：带时区（`Z` / `±HH:MM`）的换算成 UTC，不带时区的按 UTC。前端用 `@/lib/format` 按浏览器时区显示。**禁止** `Date#toISOString()`（只有毫秒）
+- **时间**：列是 `timestamp`（无时区）存 UTC，pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（ISO 8601 UTC：`YYYY-MM-DDTHH:mm:ss.ffffffZ`，6 位小数 + `Z`）。请求里的时间用 `field.dateTime`：带时区（`Z` / `±HH:MM`）的换算成 UTC，不带时区的按 UTC。前端用 `@/lib/format` 按浏览器时区显示。给人看的时间按调用方时区：前端每个请求带 `X-Time-Zone`（浏览器的 IANA 时区），导出列里的时间用 `formatDateTime()`（`common/serialize.ts`，按当前请求的时区输出墙上时间），导入文件里的时间先 `withZoneOffset()`（`common/time-zone.ts`）再交给 `field.dateTime`；首页统计的「今天」也按这个时区算。**禁止** `Date#toISOString()`（只有毫秒）
 - **数值**：`numeric` 列保持字符串（如 `"12.50"`），`toDict()` 里不要 `parseFloat`
 - **请求校验**：请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
 - **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON

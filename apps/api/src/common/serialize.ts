@@ -10,6 +10,7 @@
  * - appends `Z`
  * Never use `Date#toISOString()` in responses (it keeps milliseconds only).
  */
+import { currentTimeZone, formatInZone } from './time-zone'
 
 const DB_TIMESTAMP_RE = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?$/
 
@@ -51,9 +52,14 @@ export function utcTextToMillis(value: string): number {
   return m ? Date.parse(`${m[1]}T${m[2]}.${(m[3] ?? '').padEnd(3, '0').slice(0, 3)}Z`) : Number.NaN
 }
 
-/** Format as `YYYY-MM-DD HH:mm:ss` (input is raw timestamp text from the DB, UTC: exported files carry UTC time); empty values return '' */
+/**
+ * A timestamp (DB text in UTC, or an API time) as wall time in the current request's time zone, `YYYY-MM-DD HH:mm:ss`:
+ * what exported files show (common/time-zone.ts). Empty values return ''.
+ */
 export function formatDateTime(value: string | null | undefined): string {
-  return value ? value.replace('T', ' ').slice(0, 19) : ''
+  if (!value) return ''
+  const ms = utcTextToMillis(value.replace(/Z$/, ''))
+  return Number.isNaN(ms) ? value.replace('T', ' ').slice(0, 19) : formatInZone(ms, currentTimeZone())
 }
 
 /** Format as `YYYY-MM-DD`; empty values return '' */

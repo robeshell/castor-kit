@@ -36,6 +36,11 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- **Files and the dashboard use the caller's time zone**: the web app sends its IANA time zone in an `X-Time-Zone` header on every request (API callers may send it too; missing or unknown means UTC).
+  - Exported CSV / XLSX files write times as wall time in that zone (`formatDateTime()`, reading the zone from the request through `common/time-zone.ts`).
+  - Scaffolded imports read time cells in that zone (`withZoneOffset()`), so an exported file imports back unchanged.
+  - The dashboard's "today" and last-7-days buckets are dates in that zone. Today's count also gained its upper bound, so rows after today no longer count.
+  - Scaffolded exports also write booleans as 是 / 否 (what their import reads) and `created_at` through `formatDateTime()`. Exports that fall back to the generic cell format write booleans as `true` / `false`.
 - **Password hashes use scrypt**, stored as a PHC string `$scrypt$ln=15,r=8,p=3$<salt>$<hash>` (OWASP parameters, kept in the string so they can be raised later). The previous `pbkdf2:sha256:<iterations>$<salt>$<hex>` format is no longer accepted: on a database created before this change, reset the passwords with `pnpm seed:rbac -- --incremental --reset-admin-password` (admin, from `ADMIN_PASSWORD`) and `pnpm seed:demo -- --reset-passwords` (sample users); other accounts get a new password from an admin or through password reset.
 - **API contract — times are standard ISO 8601 in UTC with a `Z`**: every timestamp in responses, webhook payloads (`created_at`) and `/health` is `YYYY-MM-DDTHH:mm:ss.ffffffZ` (always six fraction digits), instead of text without a zone that dropped the fraction on whole seconds. Clients can parse it with any date library; code that appended `Z` itself must stop doing so.
   - Times in requests (`field.dateTime`, e.g. an announcement's `publish_at` and scaffolded `datetime` fields) accept an offset (`Z` / `±HH:MM`) and are converted to UTC in the API; text without an offset is UTC. Before, an offset was converted by PostgreSQL to the session time zone, so on a database whose default zone wasn't UTC the stored time was shifted.

@@ -739,6 +739,11 @@ describe('scaffold CLI（临时目录副本）', () => {
     // Backend error messages stay Chinese (translated by src/i18n/messages.ts, see test/i18n-messages.test.ts)
     const schemaTs = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/schema.ts'), 'utf8')
     expect(schemaTs).toContain('export const ckScaffoldDemoBody = z.object({')
+    // Export columns: times as the caller's wall time, booleans as 是 / 否; import cells get the caller's offset
+    expect(schemaTs).toContain("  created_at: ['创建时间', (item) => formatDateTime(item.created_at)],")
+    expect(schemaTs).toContain("  visited_at: ['Visited At', (item) => formatDateTime(item.visited_at)],")
+    expect(schemaTs).toContain("  active: ['Active', (item) => (item.active === null ? '' : item.active ? '是' : '否')],")
+    expect(schemaTs).toContain('  if (row.visited_at !== undefined) body.visited_at = withZoneOffset(row.visited_at)')
     const serviceTs = readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/service.ts'), 'utf8')
     for (const msg of ["'删除成功'", "'导入失败，存在错误数据'", "'导入成功'", '`${requiredHeader}不能为空`']) expect(serviceTs).toContain(msg)
     // No unique numeric field: the generated test has no unused nextNumber helper (it would fail lint)

@@ -41,7 +41,7 @@ async function scalar(query: ReturnType<typeof sql>): Promise<string> {
 }
 
 describe('dashboard', () => {
-  it('统计：只需登录；计数与数据库一致；近 7 天按 UTC 日期聚合', async () => {
+  it('统计：只需登录；计数与数据库一致；没有 X-Time-Zone 时近 7 天按 UTC 日期聚合', async () => {
     // Create two operation logs: today (UTC) and 6 days ago (UTC), plus one 7 days ago (not counted)
     for (const offset of [0, 6, 7]) {
       const [row] = await handle.db
@@ -89,6 +89,23 @@ describe('dashboard', () => {
     expect(body.week_log_counts[0]).toBe(sixAgoCount)
     expect(body.week_log_counts[0]).toBeGreaterThanOrEqual(1)
     for (const n of body.week_log_counts) expect(Number.isInteger(n)).toBe(true)
+  })
+
+  it('X-Time-Zone：「今天」和近 7 天按调用方时区的日期计算', async () => {
+    const zone = 'Pacific/Kiritimati' // UTC+14: its date is ahead of UTC's most of the day
+    const body = (await u.inject({ url: '/api/admin/dashboard/stats', headers: { 'x-time-zone': zone } })).json()
+    const localToday = sql`(timezone(${zone}, now()))::date`
+    expect(body.week_labels[6]).toBe(await scalar(sql`to_char(${localToday}, 'MM/DD')`))
+    expect(body.week_labels[0]).toBe(await scalar(sql`to_char(${localToday} - 6, 'MM/DD')`))
+    const localCount = async (daysAgo: number) =>
+      Number(
+        await scalar(
+          sql`(SELECT count(*) FROM operation_logs WHERE (timezone(${zone}, timezone('utc', created_at)))::date = ${localToday} - ${daysAgo}::int)`,
+        ),
+      )
+    expect(body.today_log_count).toBe(await localCount(0))
+    expect(body.week_log_counts[6]).toBe(await localCount(0))
+    expect(body.week_log_counts[0]).toBe(await localCount(6))
   })
 
   it('未登录 → 401', async () => {
