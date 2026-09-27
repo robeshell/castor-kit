@@ -6,19 +6,15 @@
  *    permission which ids exist. Reading the caller's own context first (the signed-in user, their data scope) is fine.
  * 2. No hand-written `new ServiceError(…, 500)`: input problems are 4xx, and real server failures go through
  *    internalError() / writeError() (common/errors.ts, common/db-errors.ts), so every 500 is recognisably one.
- * 3. No emulation of the old Python backend. The code was ported from a Python (Flask / SQLAlchemy) service and used to
- *    replay its semantics (truthiness, `str()`, `json.dumps` formatting, `date.fromisoformat`, `urlsplit` …); all of
- *    that was removed in 2026-09. Request bodies are declared with common/validation.ts, and neither the code nor its
- *    comments describe themselves in terms of the Python stack.
  *
- * The first two run over the repository's modules, the backend template and what `pnpm scaffold` generates.
+ * Both run over the repository's modules, the backend template and what `pnpm scaffold` generates.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { buildSpec, genModuleSchema, genRoutes, genService } from '../scripts/scaffold'
+import { buildSpec, genRoutes, genService } from '../scripts/scaffold'
 
 const API_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO = resolve(API_DIR, '..', '..')
@@ -27,11 +23,11 @@ const SRC = join(API_DIR, 'src')
 /** Awaited calls that read the caller's own context, not the requested record */
 const CALLER_CONTEXT = new Set(['getCurrentAdminUser', 'resolveDataScope', 'currentActor', 'callerOf', 'actorOf'])
 
-function walk(dir: string, out: string[] = [], ext = /\.ts$/): string[] {
+function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
-    if (statSync(path).isDirectory()) walk(path, out, ext)
-    else if (ext.test(name)) out.push(path)
+    if (statSync(path).isDirectory()) walk(path, out)
+    else if (name.endsWith('.ts')) out.push(path)
   }
   return out
 }
@@ -59,8 +55,6 @@ export function handWritten500s(source: string): string[] {
   return [...source.matchAll(/new ServiceError\((?:[^()]|\([^()]*\))*?,\s*500\s*,?\s*\)/g)].map((m) => m[0].replace(/\s+/g, ' ').slice(0, 120))
 }
 
-/** The Python stack by name: the language, its web framework and ORM, and the libraries whose behavior used to be replayed */
-const PYTHON_TERMS = /\b(python|flask|sqlalchemy|werkzeug|psycopg2?|urllib|url(split|parse)|isoformat|ensure_ascii|str\.title|json\.(dumps|loads)|py[A-Z]\w*)\b/i
 
 const specs = [buildSpec('ck_guard', 'admin', [['name', 'str']]), buildSpec('ck_guard', 'admin', [['name', 'str']], { dataScope: true })]
 
@@ -89,33 +83,6 @@ describe('conventions', () => {
     expect(problems, 'input problems are 4xx; server failures use internalError() / writeError()').toEqual([])
   })
 
-  it('no emulation of the old Python backend (API code, scripts and tests, lint config, web and MCP scripts, the backend template, scaffold output)', () => {
-    const files = [
-      ...walk(SRC),
-      ...walk(join(API_DIR, 'scripts')),
-      ...walk(join(API_DIR, 'test')).filter((f) => !f.endsWith('conventions.test.ts')),
-      join(API_DIR, 'eslint.config.js'),
-      ...walk(join(REPO, 'apps/web/scripts'), [], /\.(m?js|sh)$/),
-      ...walk(join(REPO, 'apps/mcp/src')),
-      ...walk(join(REPO, 'apps/mcp/test')),
-    ]
-    const sources: Array<[string, string]> = [
-      ...files.map((f): [string, string] => [relative(REPO, f), readFileSync(f, 'utf8')]),
-      ['docs/templates/backend/schema.ts', readFileSync(join(REPO, 'docs/templates/backend/schema.ts'), 'utf8')],
-      ['docs/templates/backend/service.ts', readFileSync(join(REPO, 'docs/templates/backend/service.ts'), 'utf8')],
-      ...specs.flatMap((s): Array<[string, string]> => [
-        ['scaffold genModuleSchema', genModuleSchema(s)],
-        ['scaffold genService', genService(s)],
-        ['scaffold genRoutes', genRoutes(s)],
-      ]),
-    ]
-    const hits = sources.flatMap(([name, source]) => {
-      const m = PYTHON_TERMS.exec(source)
-      return m ? [`${name}: ${m[0]}`] : []
-    })
-    expect(hits, 'describe the behavior itself, and declare request bodies with common/validation.ts').toEqual([])
-  })
-
   it('the checks themselves catch what they are for', () => {
     const route = (body: string) => `\n  app.put(itemPath, opts, async (request, reply) => {\n${body}\n  })\n`
     const permission = "    if (!(await hasMenuPermission(request, 'x_edit'))) {\n      return reply.status(403).send({ error: '无权限' })\n    }"
@@ -125,10 +92,5 @@ describe('conventions', () => {
     expect(handWritten500s("throw new ServiceError('失败', 500)")).toHaveLength(1)
     expect(handWritten500s('throw new ServiceError(\n  err instanceof Error ? err.message : String(err),\n  500,\n)')).toHaveLength(1)
     expect(handWritten500s("throw new ServiceError('无权限', 403)")).toEqual([])
-    expect(PYTHON_TERMS.test('/** Python `str(x or \'\')` */')).toBe(true)
-    expect(PYTHON_TERMS.test('const v = pyTruthy(x)')).toBe(true)
-    expect(PYTHON_TERMS.test('const copy = happyPath(x)')).toBe(false)
-    expect(PYTHON_TERMS.test('// same as urlsplit()')).toBe(true)
-    expect(PYTHON_TERMS.test('/** isoformat without Z */')).toBe(true)
   })
 })

@@ -90,7 +90,7 @@ function baseFixture(): void {
   put('apps/web/src/modules/admin/api/ck_widget.js', '')
   put('apps/web/src/modules/admin/pages/ck_widget/index.jsx', '')
   // Docs
-  put('AGENTS.md', '# t\n\n见 `apps/api/src/router.ts`、`db/schema/index.ts` 与 [plan](docs/plan.md)；外部 `/Users/x/y.py`、`<name>/routes.ts`\n')
+  put('AGENTS.md', '# t\n\n见 `apps/api/src/router.ts`、`db/schema/index.ts` 与 [plan](docs/plan.md)；外部 `/Users/x/y.md`、`<name>/routes.ts`\n')
   put('docs/plan.md', '')
 }
 
