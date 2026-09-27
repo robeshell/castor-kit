@@ -13,7 +13,7 @@
 | 文件 | 目标位置 | 对应层 | 说明 |
 |---|---|---|---|
 | `db-schema.ts` | `apps/api/src/db/schema/<domain>/<resource>.ts` | model 层 | Drizzle `pgTable` + `toDict`，只放表结构与序列化 |
-| `schema.ts` | `apps/api/src/modules/<domain>/<resource>/schema.ts` | schema 层 | 请求体归一化、导入导出字段映射 |
+| `schema.ts` | `apps/api/src/modules/<domain>/<resource>/schema.ts` | schema 层 | 请求体声明（`@/common/validation` 的 `field.*`）、导入导出字段映射 |
 | `repository.ts` | `apps/api/src/modules/<domain>/<resource>/repository.ts` | crud 层 | 纯数据库读写（Drizzle 查询） |
 | `service.ts` | `apps/api/src/modules/<domain>/<resource>/service.ts` | service 层 | 业务逻辑 + `ServiceError` |
 | `routes.ts` | `apps/api/src/modules/<domain>/<resource>/routes.ts` | api 层 | Fastify 路由 + 权限检查 |

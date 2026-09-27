@@ -94,7 +94,7 @@ export function customerToDict(item: Customer) {
 
 - **时间**：`timestamp` / `date` 列以文本读取，不经过 JS `Date`；输出一律用 `toIso()`，格式 `YYYY-MM-DDTHH:mm:ss[.ffffff]`，没有 `Z` 后缀，值为 UTC。禁止使用 `Date#toISOString()`。
 - **数值**：`numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里不要转成数字。
-- **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由在权限检查之后 `parseBody` / `parsePatch`。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块用 `schema.ts` 的 `buildValues`：请求体和导入行共用一套按字段类型的转换。
+- **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由在权限检查之后 `parseBody` / `parsePatch`。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块同样如此，导入行经 `rowToBody` 转成请求体形状后走同一份声明。
 - **操作日志**：由 logs 模块注册的全局 `onResponse` 钩子统一写入 `operation_logs`，不要在 service 里手写。
 - **CSRF**：`/api/*` 下的写请求需要带 `X-CSRF-Token` 头，前端的 `request.js` 已自动处理，登录接口豁免。
 

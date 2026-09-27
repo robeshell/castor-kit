@@ -10,7 +10,6 @@
 import { count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
 import { <resource>s, type <Resource>, type New<Resource> } from '@/db/schema'
-import type { <Resource>Values } from './schema'
 
 export class <Resource>Repository {
   constructor(private readonly db: Executor) {}
@@ -51,7 +50,7 @@ export class <Resource>Repository {
     return row!
   }
 
-  async update(id: number, values: <Resource>Values): Promise<<Resource> | null> {
+  async update(id: number, values: Partial<New<Resource>>): Promise<<Resource> | null> {
     const [row] = await this.db.update(<resource>s).set(values).where(eq(<resource>s.id, id)).returning()
     return row ?? null
   }

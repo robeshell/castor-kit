@@ -20,6 +20,20 @@
 
 import { z } from 'zod'
 import { invalidInput, ServiceError } from './errors'
+import { fileIdOf } from './file-refs'
+
+/** A nullable field that must be filled: missing / null / '' → 400 `message` */
+export function required<S extends z.ZodType>(schema: S, message: string) {
+  return z.preprocess(
+    (v) => (v === '' ? null : v),
+    schema.refine((v) => v !== null && v !== undefined, { error: message }).transform((v) => v as NonNullable<z.output<S>>),
+  )
+}
+
+/** A nullable field with a value used when it's missing / null */
+export function withDefault<S extends z.ZodType, T extends NonNullable<z.output<S>>>(schema: S, value: T) {
+  return schema.transform((v) => (v ?? value) as NonNullable<z.output<S>>)
+}
 
 /** 「<label>的值无效」: the message for a value of the wrong type */
 export const invalidMessage = (label: string) => `${label}的值无效`
@@ -65,6 +79,46 @@ export const field = {
       .nullish()
       .transform((v) => v ?? fallback),
 
+  /**
+   * A decimal for a numeric column: a JSON number, or its text (the API returns numeric columns as text such as
+   * '12.50', so a value read back can be sent again); kept as text so no precision is lost. Missing / null / '' → null
+   */
+  decimal: (label: string) =>
+    z.preprocess(
+      (v) => (v === '' ? null : typeof v === 'number' && Number.isFinite(v) ? String(v) : v),
+      z
+        .string({ error: invalid(label) })
+        .trim()
+        .regex(/^[+-]?(\d+\.?\d*|\.\d+)$/, { error: invalid(label) })
+        .nullish()
+        .transform((v) => v ?? null),
+    ),
+
+  /** Optional boolean (true / false only); missing / null → null */
+  optionalBool: (label: string) =>
+    z
+      .boolean({ error: invalid(label) })
+      .nullish()
+      .transform((v) => v ?? null),
+
+  /** A file-center id, or a file URL (`/api/admin/files/<id>`) reduced to its id; missing / null / '' → null */
+  fileId: (label: string) =>
+    z.preprocess(
+      (v) => (v === '' ? null : v),
+      z
+        .string({ error: invalid(label) })
+        .nullish()
+        .transform((v, ctx) => {
+          if (v === null || v === undefined) return null
+          const id = fileIdOf(v)
+          if (!id) {
+            ctx.addIssue({ code: 'custom', message: invalid(label) })
+            return z.NEVER
+          }
+          return id
+        }),
+    ),
+
   /** Boolean (true / false only); missing / null → `fallback` */
   bool: (label: string, fallback: boolean) =>
     z
@@ -98,13 +152,13 @@ export const field = {
    * A date and time `YYYY-MM-DD HH:MM[:SS[.ffffff]]` (`T` also accepted as the separator), optionally with an offset
    * (`Z` / `±HH:MM`); returned with a space separator and `Z` as `+00:00`. Missing / null / '' → null.
    */
-  dateTime: (label: string) =>
+  dateTime: (label: string, { offset = true }: { offset?: boolean } = {}) =>
     z.preprocess(
       (v) => (v === '' ? null : v),
       z
         .string({ error: invalid(label) })
         .trim()
-        .refine(isDateTime, { error: invalid(label) })
+        .refine((v) => isDateTime(v) && (offset || !/(Z|[+-]\d{2}:\d{2})$/.test(v)), { error: invalid(label) })
         .nullish()
         .transform((v) => (v ? v.replace('T', ' ').replace(/Z$/, '+00:00') : null)),
     ),
@@ -115,6 +169,16 @@ export const field = {
       .array(z.string({ error: invalid(label) }).trim(), { error: invalid(label) })
       .nullish()
       .transform((v) => (v ?? []).filter(Boolean)),
+
+  /** One of `values`, or null; missing / null / '' → null */
+  optionalChoice: <const T extends readonly [string, ...string[]]>(label: string, values: T, message = invalid(label)) =>
+    z.preprocess(
+      (v) => (v === '' ? null : v),
+      z
+        .enum(values, { error: message })
+        .nullish()
+        .transform((v): T[number] | null => v ?? null),
+    ),
 
   /** Record id (a positive int4, the id column type); missing / null → null */
   id: (label: string) => field.optionalInt(label, { min: 1, max: INT4_MAX }),

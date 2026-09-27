@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { ServiceError } from '@/common/errors'
-import { exportColumns, field, isDate, parseArrayBody, parseBody, parseIntText, parseNumberText, parsePatch, parseYesNo } from '@/common/validation'
+import { exportColumns, field, isDate, parseArrayBody, parseBody, parseIntText, parseNumberText, parsePatch, parseYesNo, required, withDefault } from '@/common/validation'
 
 const body = z.object({
   name: field.requiredText('名称', '名称不能为空'),
@@ -70,6 +70,34 @@ describe('common/validation', () => {
     expect(parseBody(body, { name: 'x', day: '', at: '' })).toMatchObject({ day: null, at: null })
     expect(errorOf(() => parseBody(body, { name: 'x', day: '2024-03-05xx' }))).toEqual([400, '日期的值无效'])
     expect(errorOf(() => parseBody(body, { name: 'x', at: '2024-02-30 10:00' }))).toEqual([400, '时间的值无效'])
+  })
+
+  it('scaffold fields: decimal / optional bool / optional choice / file id, required(…) and withDefault(…)', () => {
+    const generated = z.object({
+      price: field.decimal('价格'),
+      on: field.optionalBool('启用'),
+      kind: field.optionalChoice('类型', ['a', 'b']),
+      file: field.fileId('附件'),
+      at: field.dateTime('时间', { offset: false }),
+      qty: required(field.optionalInt('数量'), '数量不能为空'),
+      note: withDefault(field.text('备注'), '无'),
+    })
+    const id = '0f8fad5b-d9cb-469f-a165-70867728950e'
+    expect(parseBody(generated, { price: 12.5, qty: 1, file: `/api/admin/files/${id}` })).toEqual({
+      price: '12.5', on: null, kind: null, file: id, at: null, qty: 1, note: '无',
+    })
+    expect(parseBody(generated, { price: ' 12.50 ', qty: 1, kind: '', at: '2026-01-15 08:30' })).toMatchObject({ price: '12.50', kind: null, at: '2026-01-15 08:30' })
+    for (const [data, message] of [
+      [{}, '数量不能为空'],
+      [{ qty: '' }, '数量不能为空'],
+      [{ qty: 1, price: 'abc' }, '价格的值无效'],
+      [{ qty: 1, on: 1 }, '启用的值无效'],
+      [{ qty: 1, kind: 'c' }, '类型的值无效'],
+      [{ qty: 1, file: 'not-a-file' }, '附件的值无效'],
+      [{ qty: 1, at: '2026-01-15T08:30:00Z' }, '时间的值无效'],
+    ] as const) {
+      expect(errorOf(() => parseBody(generated, data)), JSON.stringify(data)).toEqual([400, message])
+    }
   })
 
   it('array bodies, export columns, text parsers', () => {

@@ -24,13 +24,13 @@ export const FIELD_OPENAPI: Record<string, { request: Schema; response: Schema; 
   str20: { request: { type: ['string', 'null'], maxLength: 20 }, response: { type: ['string', 'null'] } },
   str500: { request: { type: ['string', 'null'], maxLength: 500 }, response: { type: ['string', 'null'] } },
   text: { request: { type: ['string', 'null'] }, response: { type: ['string', 'null'] } },
-  int: { request: { type: ['integer', 'string', 'null'] }, response: { type: ['integer', 'null'] }, note: '整数（也接受数字字符串）' },
+  int: { request: { type: ['integer', 'null'] }, response: { type: ['integer', 'null'] }, note: '整数' },
   float: {
     request: { type: ['number', 'string', 'null'] },
     response: { type: ['string', 'null'] },
     note: '数值（最多 2 位小数），响应中以字符串返回以免丢失精度',
   },
-  bool: { request: { type: ['boolean', 'string', 'null'] }, response: { type: ['boolean', 'null'] }, note: '布尔值（也接受 1 / 0、是 / 否）' },
+  bool: { request: { type: ['boolean', 'null'] }, response: { type: ['boolean', 'null'] }, note: '布尔值（true / false）' },
   date: { request: { type: ['string', 'null'], format: 'date' }, response: { type: ['string', 'null'], format: 'date' }, note: 'YYYY-MM-DD' },
   datetime: {
     request: { type: ['string', 'null'] },

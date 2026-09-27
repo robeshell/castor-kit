@@ -131,7 +131,7 @@ castor-kit/
 ### 4.3 请求宽松度
 - 请求体用 Zod 声明：`common/validation.ts` 的 `field.*`（`requiredText` / `text` / `secret` / `int` / `bool` / `choice` / `date` / `dateTime` / `id` / `ids` / `textList`）组成 `z.object`，列表导出共用 `exportBody`。路由在权限检查之后调用 `parseBody`（新建，缺省字段取默认值）或 `parsePatch`（编辑，只含请求里出现的字段），service 拿到有类型的值。只收 JSON 原生类型，不做 `'1'` → 1 之类的隐式转换；多余字段忽略；请求体不是对象 → 400「请求参数格式不正确」，字段类型不对 → 400「<字段>的值无效」。不挂在路由的 `schema: { body }` 上，因为那会先于登录与权限检查执行（登录接口例外）。
 - 查询参数和导入单元格永远是文本，用 `parseYesNo` / `parseIntText` 解析。
-- `pnpm scaffold` 生成的模块用 `schema.ts` 的 `buildValues`：请求体（`jsonBody(request)`）与导入行共用一套按字段类型的转换，同样只收对应类型。
+- `pnpm scaffold` 生成的模块用同一套写法：`schema.ts` 里按字段类型生成 `field.*` 声明（spec 的必填、默认值用 `required(…)` / `withDefault(…)` 表达），导入行经 `rowToBody` 转成请求体形状后走同一份声明。
 
 ### 4.4 认证、密码与会话
 - `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/admin/login'}`。除了会话标记，它还会加载当前用户（按请求缓存，后续权限检查不再查库）：账号已删除或 `status = 'disabled'` 时清掉会话并同样返回 401，停用因此在下一次请求就生效。停用账号在 `getCurrentAdminUser` 里视为未登录，所有权限检查都失败。
