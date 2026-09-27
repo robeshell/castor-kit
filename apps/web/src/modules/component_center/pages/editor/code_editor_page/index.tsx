@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/lib/toast'
 import { useMonacoTheme, type MonacoThemeMode } from '@/lib/monaco-theme'
 import { INITIAL_CODE } from '@/modules/component_center/pages/editor/code_editor_page/demo-content'
+import { canFormat } from '@/modules/component_center/pages/editor/code_editor_page/formatting'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import { useIsMobile } from '@/shared/hooks/useIsMobile'
@@ -82,9 +83,17 @@ export default function CodeEditorPage() {
   }
 
   const handleFormat = () => {
+    // Monaco's format action resolves without doing anything for these, so say so instead of reporting success
+    if (!canFormat(language)) {
+      toast.info('不支持格式化该语言')
+      return
+    }
     const action = editorRef.current?.getAction('editor.action.formatDocument')
     if (!action) return
-    action.run().then(() => toast.success('代码已格式化'))
+    action
+      .run()
+      .then(() => toast.success('代码已格式化'))
+      .catch(() => toast.error('格式化失败'))
   }
 
   const handleCopy = () => {
@@ -131,10 +140,10 @@ export default function CodeEditorPage() {
           </div>
           <div className="text-muted-foreground flex items-center gap-4 text-xs">
             <span>
-              <Trans i18nKey="行数 <0>{{count}}</0>" values={{ count: lineCount }} components={[<span className="text-foreground font-medium tabular-nums" />]} />
+              <Trans i18nKey="行数 <0>{{count}}</0>" values={{ count: lineCount }} components={[<span key="0" className="text-foreground font-medium tabular-nums" />]} />
             </span>
             <span>
-              <Trans i18nKey="字符 <0>{{count}}</0>" values={{ count: charCount }} components={[<span className="text-foreground font-medium tabular-nums" />]} />
+              <Trans i18nKey="字符 <0>{{count}}</0>" values={{ count: charCount }} components={[<span key="0" className="text-foreground font-medium tabular-nums" />]} />
             </span>
             <span className="bg-brand-soft text-primary inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[11px]">
               <FileCode2 className="size-3" />

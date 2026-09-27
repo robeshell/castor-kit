@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
-import { formatRelative } from '@/lib/format'
+import { formatBytes, formatRelative } from '@/lib/format'
 import { stagger } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { getOperationLogs, type OperationLog } from '@/modules/admin/api/logs'
@@ -37,11 +37,8 @@ import type { ApiResponse } from '@/shared/api/types'
 
 /** Workbench counters and the last 7 days of operation logs */
 type DashboardStats = ApiResponse<'/api/admin/dashboard/stats'>
-/**
- * Server performance snapshot. The system panel reads net_sent_mb / net_recv_mb, which the API doesn't return (it
- * returns net_sent / net_recv, cumulative MB), so both tiles always show 0.00: an existing bug, kept as-is here.
- */
-type PerfStats = ApiResponse<'/api/admin/component-center/devtools/perf-stats'> & { net_sent_mb?: number; net_recv_mb?: number }
+/** Server performance snapshot (net_sent / net_recv: cumulative MB since boot, not a rate) */
+type PerfStats = ApiResponse<'/api/admin/component-center/devtools/perf-stats'>
 
 const QUICK_LINKS = [
   { label: '管理系统', desc: '列表 · 表单 · 看板 · 甘特', icon: LayoutGrid, path: '/component-center/list-page' },
@@ -149,18 +146,16 @@ function SystemHealth() {
           <HealthBar label={t('磁盘')} value={stats?.disk_pct} />
           <div className="grid grid-cols-2 gap-2 pt-1">
             {[
-              { label: '网络发送', value: stats?.net_sent_mb, icon: ArrowUpRight },
-              { label: '网络接收', value: stats?.net_recv_mb, icon: ArrowDownRight },
+              { label: '累计发送', value: stats?.net_sent, icon: ArrowUpRight },
+              { label: '累计接收', value: stats?.net_recv, icon: ArrowDownRight },
             ].map((item) => (
               <div key={item.label} className="bg-muted/50 rounded-lg px-3 py-2.5">
                 <div className="text-muted-foreground flex items-center gap-1 text-[11px]">
                   <item.icon className="size-3" />
                   {t(item.label)}
                 </div>
-                <div className="mt-1 text-sm font-medium tabular-nums">
-                  {(item.value ?? 0).toFixed(2)}
-                  <span className="text-muted-foreground ml-1 text-xs font-normal">MB/s</span>
-                </div>
+                {/* The API reports MB; formatBytes picks a readable unit (a busy host reaches TB since boot) */}
+                <div className="mt-1 text-sm font-medium tabular-nums">{formatBytes((item.value ?? 0) * 1024 * 1024)}</div>
               </div>
             ))}
           </div>
@@ -305,11 +300,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     request
-      // Error responses reject; the check below also treats a 2xx body with `error` as no data (defensive)
-      .get<unknown, DashboardStats & { error?: unknown }>('/admin/dashboard/stats')
-      .then((data) => {
-        setStats(data && !data.error ? data : {})
-      })
+      // Error responses reject (the interceptor), so a resolved body is always the stats
+      .get<unknown, DashboardStats>('/admin/dashboard/stats')
+      .then((data) => setStats(data))
       .catch(() => setStats({}))
   }, [])
 

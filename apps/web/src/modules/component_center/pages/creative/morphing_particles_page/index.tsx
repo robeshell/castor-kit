@@ -105,7 +105,6 @@ interface MorphState {
   shapeIdx: number
   paletteIdx: number
   auto: boolean
-  morphT: number
   startMorph?: (newIdx: number) => void
   applyPalette?: (idx: number) => void
 }
@@ -113,7 +112,7 @@ interface MorphState {
 export default function MorphingParticlesPage() {
   const { t } = useTranslation()
   const mountRef = useRef<HTMLDivElement>(null)
-  const stateRef = useRef<MorphState>({ shapeIdx: 0, paletteIdx: 0, auto: true, morphT: 1.0 })
+  const stateRef = useRef<MorphState>({ shapeIdx: 0, paletteIdx: 0, auto: true })
   const [shapeIdx, setShapeIdx] = useState(0)
   const [paletteIdx, setPaletteIdx] = useState(0)
   const [morphing, setMorphing] = useState(false)
@@ -246,17 +245,20 @@ export default function MorphingParticlesPage() {
 
     const onResize = () => {
       const w2 = mount.clientWidth, h2 = mount.clientHeight
+      if (!w2 || !h2) return
       camera.aspect = w2 / h2; camera.updateProjectionMatrix()
       renderer.setSize(w2, h2)
     }
-    window.addEventListener('resize', onResize)
+    // Observe the container: sidebar collapse etc. resize it without a window resize
+    const ro = new ResizeObserver(onResize)
+    ro.observe(mount)
 
     return () => {
       clearTimeout(autoTimer)
       cancelAnimationFrame(raf)
       window.removeEventListener('mouseup', onUp)
       window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('resize', onResize)
+      ro.disconnect()
       renderer.domElement.removeEventListener('mousedown', onDown)
       mount.removeChild(renderer.domElement)
       renderer.dispose()

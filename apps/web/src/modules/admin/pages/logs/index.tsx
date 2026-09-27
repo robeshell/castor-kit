@@ -25,11 +25,6 @@ import { useCrudList, type CrudListParams, type CrudListResponse } from '@/share
 import { downloadBlobFile } from '@/shared/utils/file'
 import { Trans, useTranslation } from 'react-i18next'
 
-/**
- * The failure-reason column falls back to fail_reason, which the API never returns (the reason is in message):
- * declared here so the existing fallback type-checks; it always reads undefined.
- */
-type LoginLogRow = LoginLog & { fail_reason?: undefined }
 type LogTab = 'login' | 'operation'
 
 const METHOD_TONE: Record<string, StatusTone> = { POST: 'success', PUT: 'info', DELETE: 'danger', GET: 'neutral' }
@@ -88,7 +83,7 @@ const timeColumn: DataTableColumn<{ created_at: string | null }> = {
   render: (v) => formatDateTime(v, ''),
 }
 
-const LOGIN_COLUMNS: DataTableColumn<LoginLogRow>[] = [
+const LOGIN_COLUMNS: DataTableColumn<LoginLog>[] = [
   { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },
   { key: 'username', title: '用户名', dataIndex: 'username', width: 140, className: 'font-medium' },
   { key: 'ip', title: 'IP 地址', dataIndex: 'ip', width: 140, className: 'font-mono text-xs' },
@@ -105,12 +100,12 @@ const LOGIN_COLUMNS: DataTableColumn<LoginLogRow>[] = [
   },
   {
     // The failure reason comes from the backend's message field; hidden for successful logins
-    key: 'fail_reason',
+    key: 'message',
     title: '失败原因',
     dataIndex: 'message',
     width: 180,
     ellipsis: true,
-    render: (v, row) => (row.status === 'success' ? null : v || row.fail_reason),
+    render: (v, row) => (row.status === 'success' ? null : v),
   },
   { key: 'user_agent', title: 'User-Agent', dataIndex: 'user_agent', ellipsis: true, className: 'text-muted-foreground text-xs' },
   timeColumn,
@@ -184,7 +179,7 @@ export default function Logs() {
   const [tab, setTab] = useState<LogTab>('login')
 
   // Login logs
-  const loginList = useCrudList(withErrorToast<LoginLogRow>(getLoginLogs), { defaultPerPage: 20 })
+  const loginList = useCrudList(withErrorToast<LoginLog>(getLoginLogs), { defaultPerPage: 20 })
   const [loginUsername, setLoginUsername] = useState('')
   const [loginStatus, setLoginStatus] = useState('')
   const [loginSelectedKeys, setLoginSelectedKeys] = useState<number[]>([])

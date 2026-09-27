@@ -130,7 +130,7 @@ export default function MarkdownPage() {
             title="编辑"
             extra={
               <span className="text-muted-foreground text-xs">
-                <Trans i18nKey="字数 <0>{{count}}</0>" values={{ count: wordCount }} components={[<span className="text-foreground font-medium tabular-nums" />]} />
+                <Trans i18nKey="字数 <0>{{count}}</0>" values={{ count: wordCount }} components={[<span key="0" className="text-foreground font-medium tabular-nums" />]} />
               </span>
             }
           />

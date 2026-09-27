@@ -23,6 +23,7 @@ import {
   type CardListPageFileType,
   type CardListPageItem as Row,
 } from '@/modules/component_center/api/card_list_page'
+import { DEFAULT_FORM_VALUES, toFormValues, type FormValues } from '@/modules/component_center/pages/admin/card_list_page/form'
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import { DataPagination } from '@/shared/components/DataTable'
 import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
@@ -81,38 +82,6 @@ const CATEGORY_TONE_MAP: Record<string, StatusTone> = {
   article: 'success',
   event: 'info',
   promotion: 'danger',
-}
-
-/**
- * What the form holds: the card's editable fields, nullable like the record they are reset from (editing spreads the
- * whole record into the form, so its other fields ride along and are ignored by the API)
- */
-interface FormValues {
-  title: string
-  card_code: string
-  subtitle: string | null
-  category: string | null
-  status: Row['status']
-  tag: string | null
-  owner: string | null
-  priority: number | null
-  cover_url: string | null
-  is_active: boolean | null
-  description: string | null
-}
-
-const DEFAULT_FORM_VALUES: FormValues = {
-  title: '',
-  card_code: '',
-  subtitle: '',
-  category: 'general',
-  status: 'draft',
-  tag: '',
-  owner: '',
-  priority: 0,
-  cover_url: '',
-  is_active: true,
-  description: '',
 }
 
 const DESCRIPTION_MAX = 300
@@ -191,7 +160,8 @@ function ItemCard({ record, onView, onEdit, onDelete }: ItemCardProps) {
           <StatusBadge tone={statusMeta.tone} dot>
             {statusMeta.label}
           </StatusBadge>
-          {!record.is_active ? <StatusBadge tone="neutral">{t('停用')}</StatusBadge> : null}
+          {/* null is saved as true (the backend default), so only an explicit false is disabled */}
+          {record.is_active === false ? <StatusBadge tone="neutral">{t('停用')}</StatusBadge> : null}
           {record.tag ? (
             <span className="text-muted-foreground inline-flex h-5 items-center rounded-md border px-1.5 text-xs">{record.tag}</span>
           ) : null}
@@ -324,10 +294,10 @@ export default function CardListPage() {
     setFormOpen(true)
   }
 
-  // null only from the detail sheet's footer, which is shown once a record was opened (spreading null adds nothing)
+  // null only from the detail sheet's footer, which is shown once a record was opened
   const openEdit = (record: Row | null) => {
     setEditRecord(record)
-    form.reset({ ...DEFAULT_FORM_VALUES, ...record })
+    form.reset(record ? toFormValues(record) : DEFAULT_FORM_VALUES)
     setFormOpen(true)
   }
 
@@ -489,7 +459,7 @@ export default function CardListPage() {
           <FormSelect control={form.control} name="status" label="发布状态" options={STATUS_OPTIONS} />
           <FormInput control={form.control} name="tag" label="标签" placeholder="例如：新品、推荐" />
           <FormInput control={form.control} name="owner" label="负责人" placeholder="例如：admin" />
-          <FormNumber control={form.control} name="priority" label="优先级" min={0} max={9999} />
+          <FormNumber control={form.control} name="priority" label="优先级" placeholder="留空为 0" min={0} max={9999} />
         </FormGrid>
         <FormCustom
           control={form.control}
@@ -628,8 +598,8 @@ export default function CardListPage() {
                 {
                   label: '启用',
                   value: (
-                    <StatusBadge tone={detailRecord.is_active ? 'success' : 'neutral'} dot>
-                      {detailRecord.is_active ? '启用' : '停用'}
+                    <StatusBadge tone={detailRecord.is_active !== false ? 'success' : 'neutral'} dot>
+                      {detailRecord.is_active !== false ? '启用' : '停用'}
                     </StatusBadge>
                   ),
                 },

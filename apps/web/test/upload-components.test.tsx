@@ -1,10 +1,12 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import AvatarUpload from '@/shared/components/upload/AvatarUpload'
 import FileIdUpload from '@/shared/components/upload/FileIdUpload'
 import FileUpload from '@/shared/components/upload/FileUpload'
+import ImageUpload from '@/shared/components/upload/ImageUpload'
+import i18n from '@/i18n'
 import type { FileInfo } from '@/shared/api/files'
 import type { UploadApi, UploadFileItem } from '@/shared/components/upload/useUploader'
 
@@ -66,6 +68,19 @@ describe('FileUpload', () => {
     await act(async () => finish())
     await waitFor(() => expect(screen.getByRole('link', { name: 'a.pdf' })).toHaveAttribute('href', '/api/admin/files/x'))
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+})
+
+describe('ImageUpload', () => {
+  afterEach(async () => {
+    await act(() => i18n.changeLanguage('zh-CN'))
+  })
+
+  it('promptText 与 FileUpload 一样按当前语言翻译', async () => {
+    i18n.addResourceBundle('en-US', 'translation', { 图片提示文字: 'Image hint' }, true, true)
+    await i18n.changeLanguage('en-US')
+    render(<ImageUpload promptText="图片提示文字" />)
+    expect(screen.getByText('Image hint')).toBeInTheDocument()
   })
 })
 

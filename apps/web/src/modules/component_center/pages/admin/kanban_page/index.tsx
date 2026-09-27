@@ -575,14 +575,14 @@ export default function KanbanPage() {
   const submitBoard = async (values: BoardFormValues) => {
     const payload = {
       title: (values.title || '').trim(),
-      board_code: (values.board_code || '').trim(),
       color: values.color || DEFAULT_COLOR,
       wip_limit: Number(values.wip_limit) || 0,
       is_active: values.is_active !== false,
     }
     try {
+      // The column code is set on create only (the update API doesn't take it)
       if (boardEditing) await updateKanbanBoard(boardEditing.id, payload)
-      else await createKanbanBoard(payload)
+      else await createKanbanBoard({ ...payload, board_code: (values.board_code || '').trim() })
       toast.success(boardEditing ? '列已更新' : '列已创建')
       setBoardOpen(false)
       fetchBoards()
@@ -833,6 +833,7 @@ export default function KanbanPage() {
           label="列编码"
           placeholder="如 todo / in_progress"
           rules={{ required: '请输入列编码' }}
+          disabled={Boolean(boardEditing)}
         />
         <FormNumber control={boardForm.control} name="wip_limit" label="WIP 限制" placeholder="0 表示不限制" min={0} />
         <FormCustom

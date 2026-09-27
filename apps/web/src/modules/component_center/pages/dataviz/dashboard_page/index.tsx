@@ -282,7 +282,7 @@ function ProgressListCard() {
 
 // ── Page ────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const c = useChartColors()
   const [lastUpdated, setLastUpdated] = useState(() => new Date())
 
@@ -303,7 +303,7 @@ export default function DashboardPage() {
               </span>
               {t('更新于')}
               <span className="font-mono tabular-nums">
-                {lastUpdated.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {lastUpdated.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
               </span>
             </span>
             <Button size="sm" variant="outline" onClick={handleRefresh}>

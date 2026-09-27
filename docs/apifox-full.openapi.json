@@ -4378,7 +4378,7 @@
                       "boolean",
                       "null"
                     ],
-                    "description": "是否启用：true / false，缺省为 true"
+                    "description": "是否启用：true / false，缺省或 null 时为 true"
                   },
                   "description": {
                     "type": [
@@ -5248,7 +5248,7 @@
                       "boolean",
                       "null"
                     ],
-                    "description": "是否启用：true / false"
+                    "description": "是否启用：true / false；null 时为 true"
                   },
                   "description": {
                     "type": [
@@ -25965,8 +25965,134 @@
                     },
                     "user": {
                       "type": "object",
-                      "properties": {},
-                      "additionalProperties": true,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "username": {
+                          "type": "string",
+                          "description": "用户名"
+                        },
+                        "nickname": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "昵称"
+                        },
+                        "email": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "avatar": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "头像地址"
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "账号状态",
+                          "enum": [
+                            "active",
+                            "disabled"
+                          ]
+                        },
+                        "dept_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "所属部门 ID"
+                        },
+                        "dept_name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "所属部门名称"
+                        },
+                        "last_login_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time",
+                          "description": "上次登录时间"
+                        },
+                        "last_login_ip": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "上次登录 IP"
+                        },
+                        "totp_enabled": {
+                          "type": "boolean",
+                          "description": "是否已开启两步验证"
+                        },
+                        "created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "roles": {
+                          "type": "array",
+                          "description": "所属角色",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "created_at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "menu_codes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "拥有的菜单 / 按钮权限编码（去重，无固定顺序）"
+                        }
+                      },
                       "description": "仅登录流程中返回"
                     },
                     "csrf_token": {

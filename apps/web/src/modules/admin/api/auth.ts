@@ -20,11 +20,8 @@ export interface MyMenu extends Omit<ApiResponse<'/api/admin/my-menus'>[number],
   children?: MyMenu[]
 }
 
-/**
- * Result of enabling 2FA; `user` / `csrf_token` only come back when enabling finishes a sign-in that required setup.
- * `user` is overridden locally because the OpenAPI doc still types it as `{ [key: string]: unknown }`.
- */
-export type EnableTwoFactorResult = Omit<ApiResponse<'/api/admin/two-factor/enable', 'post'>, 'user'> & { user?: SignedInUser }
+/** Result of enabling 2FA; `user` / `csrf_token` only come back when enabling finishes a sign-in that required setup */
+export type EnableTwoFactorResult = ApiResponse<'/api/admin/two-factor/enable', 'post'>
 
 export const login = (data: ApiBody<'/api/admin/login', 'post'>) => request.post<unknown, LoginResult>('/admin/login', data)
 export const logout = () => request.post<unknown, ApiResponse<'/api/admin/logout', 'post'>>('/admin/logout')

@@ -27,7 +27,7 @@ import EmptyState from '@/shared/components/EmptyState'
 export type RowKey = string | number
 
 interface DataTableColumnBase {
-  /** React key; defaults to dataIndex */
+  /** React key; defaults to dataIndex, then the column index */
   key?: string
   /** Chinese source text (translated here) or a node */
   title?: ReactNode
@@ -167,9 +167,9 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                   />
                 </th>
               ) : null}
-              {columns.map((col: ErasedColumn<Row>) => (
+              {columns.map((col: ErasedColumn<Row>, j) => (
                 <th
-                  key={col.key || col.dataIndex}
+                  key={col.key || col.dataIndex || j}
                   style={col.width ? { width: col.width, minWidth: col.minWidth } : col.minWidth ? { minWidth: col.minWidth } : undefined}
                   className={cn(
                     'text-muted-foreground h-9 px-3 text-left text-xs font-medium whitespace-nowrap',
@@ -226,13 +226,13 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                           />
                         </td>
                       ) : null}
-                      {columns.map((col: ErasedColumn<Row>) => {
+                      {columns.map((col: ErasedColumn<Row>, j) => {
                         const value = col.dataIndex ? row?.[col.dataIndex] : undefined
                         // Without render the raw value is shown: the column's field has to hold something renderable
                         const content = col.render ? col.render(value, row, index) : (value as ReactNode)
                         return (
                           <td
-                            key={col.key || col.dataIndex}
+                            key={col.key || col.dataIndex || j}
                             className={cn(
                               'px-3 py-2 align-middle',
                               col.align === 'right' && 'text-right',
@@ -292,9 +292,11 @@ export interface DataPaginationProps {
 /** Pagination bar: N total · page numbers · previous/next */
 export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, loading = false, className }: DataPaginationProps) {
   const { t } = useTranslation()
-  const totalPages = Math.max(1, Math.ceil(total / perPage))
-  const from = total === 0 ? 0 : (page - 1) * perPage + 1
-  const to = Math.min(page * perPage, total)
+  // A non-positive (or NaN) page size would divide by zero: treat everything as one page
+  const size = perPage > 0 ? perPage : Math.max(total, 1)
+  const totalPages = Math.max(1, Math.ceil(total / size))
+  const from = total === 0 ? 0 : (page - 1) * size + 1
+  const to = Math.min(page * size, total)
   return (
     <div className={cn('flex items-center justify-between gap-3 border-t px-3 py-2.5 text-xs', className)}>
       <span className="text-muted-foreground tabular-nums">

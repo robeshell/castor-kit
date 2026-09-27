@@ -3042,7 +3042,7 @@ export interface paths {
                         owner?: string | null;
                         /** @description 优先级（整数），缺省或 null 时为 0；非整数返回 400「优先级的值无效」 */
                         priority?: number | null;
-                        /** @description 是否启用：true / false，缺省为 true */
+                        /** @description 是否启用：true / false，缺省或 null 时为 true */
                         is_active?: boolean | null;
                         /** @description 描述 */
                         description?: string | null;
@@ -3612,7 +3612,7 @@ export interface paths {
                         owner?: string | null;
                         /** @description 优先级（整数），null 时为 0；非整数返回 400「优先级的值无效」 */
                         priority?: number | null;
-                        /** @description 是否启用：true / false */
+                        /** @description 是否启用：true / false；null 时为 true */
                         is_active?: boolean | null;
                         /** @description 描述 */
                         description?: string | null;
@@ -17588,7 +17588,48 @@ export interface paths {
                             recovery_codes: string[];
                             /** @description 仅登录流程中返回 */
                             user?: {
-                                [key: string]: unknown;
+                                id: number;
+                                /** @description 用户名 */
+                                username: string;
+                                /** @description 昵称 */
+                                nickname: string | null;
+                                email: string | null;
+                                phone: string | null;
+                                /** @description 头像地址 */
+                                avatar: string | null;
+                                /**
+                                 * @description 账号状态
+                                 * @enum {string}
+                                 */
+                                status: "active" | "disabled";
+                                /** @description 所属部门 ID */
+                                dept_id: number | null;
+                                /** @description 所属部门名称 */
+                                dept_name: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description 上次登录时间
+                                 */
+                                last_login_at: string | null;
+                                /** @description 上次登录 IP */
+                                last_login_ip: string | null;
+                                /** @description 是否已开启两步验证 */
+                                totp_enabled: boolean;
+                                /** Format: date-time */
+                                created_at: string | null;
+                                /** Format: date-time */
+                                updated_at: string | null;
+                                /** @description 所属角色 */
+                                roles: {
+                                    id: number;
+                                    name: string;
+                                    code: string;
+                                    description: string | null;
+                                    /** Format: date-time */
+                                    created_at: string | null;
+                                }[];
+                                /** @description 拥有的菜单 / 按钮权限编码（去重，无固定顺序） */
+                                menu_codes: string[];
                             };
                             /** @description 仅登录流程中返回 */
                             csrf_token?: string;

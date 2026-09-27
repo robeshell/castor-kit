@@ -260,16 +260,19 @@ export default function ThreejsGlobePage() {
 
     const onResize = () => {
       const w = mount.clientWidth, h = mount.clientHeight
+      if (!w || !h) return
       camera.aspect = w / h; camera.updateProjectionMatrix()
       renderer.setSize(w, h)
     }
-    window.addEventListener('resize', onResize)
+    // Observe the container: sidebar collapse etc. resize it without a window resize
+    const ro = new ResizeObserver(onResize)
+    ro.observe(mount)
 
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('mouseup',   onUp)
       window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('resize',    onResize)
+      ro.disconnect()
       renderer.domElement.removeEventListener('mousedown', onDown)
       renderer.domElement.removeEventListener('mousemove', onPointerMove)
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)

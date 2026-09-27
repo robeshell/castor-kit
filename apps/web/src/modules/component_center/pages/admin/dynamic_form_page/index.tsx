@@ -412,7 +412,7 @@ export default function DynamicFormPage() {
                 <Trans
                   i18nKey="已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据"
                   values={{ count: selectedKeys.length }}
-                  components={[<span className="font-medium tabular-nums" />]}
+                  components={[<span key="0" className="font-medium tabular-nums" />]}
                 />
               </span>
               <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => setSelectedKeys([])}>
