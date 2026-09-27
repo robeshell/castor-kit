@@ -1,6 +1,7 @@
 {
   "例如：#16a34a": "e.g. #16a34a",
   "例如：order_status": "e.g. order_status",
+  "值": "Value",
   "删除前需要先清空字典项": "Remove all of its items before deleting it",
   "加载字典类型失败": "Failed to load dictionary types",
   "加载字典项失败": "Failed to load dictionary items",
@@ -28,7 +29,6 @@
   "新建字典项": "Add dictionary item",
   "无": "None",
   "暂无字典类型": "No dictionary types",
-  "标签": "Label",
   "标签颜色": "Label color",
   "点击右上角「新建」添加字典项，或批量导入": "Click \"New\" in the top right to add an item, or import in bulk",
   "点击右上角「新建字典类型」开始": "Click \"Add dictionary type\" in the top right to get started",

@@ -11,5 +11,6 @@
   "共 {{count}} 个会话": "{{count}} sessions",
   "共 {{count}} 个会话_one": "{{count}} session",
   "搜索用户名、昵称、IP": "Search username, nickname, IP",
-  "没有在线的会话": "No active sessions"
+  "没有在线的会话": "No active sessions",
+  "用户": "User"
 }

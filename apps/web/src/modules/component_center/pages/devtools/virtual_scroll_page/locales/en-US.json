@@ -3,8 +3,11 @@
   "{{total}} 条": "{{total}} rows",
   "~{{n}} 个": "~{{n}}",
   "休假": "On leave",
+  "入职日期": "Start date",
   "共 {{total}} 条数据": "{{total}} rows in total",
   "匹配 {{matched}} / {{total}} 条": "{{matched}} / {{total}} rows match",
+  "在职": "Active",
+  "姓名": "Name",
   "完整员工数据集，一次性生成": "Full employee dataset, generated in one go",
   "实际 DOM 节点": "Actual DOM nodes",
   "实际挂载 DOM 节点数量远少于总数据量，内存占用极低": "Far fewer DOM nodes are mounted than there are rows, so memory use stays very low",
@@ -18,7 +21,9 @@
   "虚拟滚动列表": "Virtual scroll list",
   "虚拟滚动窗口高度 {{height}}px，每行高度 {{rowHeight}}px，可视区约 {{min}}~{{max}} 行": "Viewport height {{height}}px, row height {{rowHeight}}px, about {{min}}–{{max}} rows visible",
   "行": "row",
+  "试用期": "Probation",
   "跳转": "Jump",
   "跳转到第": "Go to",
+  "部门": "Department",
   "首次渲染时生成一次": "Generated once on first render"
 }

@@ -107,7 +107,7 @@ afterAll(() => {
 describe('verify-feature 模块级检查', () => {
   it('模块名候选：单复数、_page 后缀', () => {
     expect(moduleCandidates('users')).toEqual(['users', 'user', 'users_page', 'user_page'])
-    expect(moduleCandidates('kanban_page')).toEqual(['kanban_page', 'kanban_page_page', 'kanban'])
+    expect(moduleCandidates('invoice_page')).toEqual(['invoice_page', 'invoice_page_page', 'invoice'])
   })
 
   it('backend_file：找到 routes 且 repository/service 齐全；缺层 / 缺模块报错', () => {

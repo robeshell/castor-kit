@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { Executor } from '@/db/client'
 
 /** Self-referencing tables these helpers may run on (constant names from code, never user input) */
-export type TreeTable = 'menus' | 'tree_nodes' | 'departments'
+export type TreeTable = 'menus' | 'departments'
 
 /** Max depth when walking up ancestors: guarantees termination even if the DB already contains a cycle */
 const MAX_DEPTH = 1000

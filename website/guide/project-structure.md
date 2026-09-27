@@ -105,7 +105,7 @@ apps/web/
     │   ├── auth/pages/login/         # Login page
     │   ├── admin/{pages,api}/        # System pages and API clients
     │   └── component_center/
-    │       ├── pages/{admin,dataviz,ai,editor,devtools}/
+    │       ├── pages/{patterns,dataviz,ai,editor,devtools}/
     │       └── api/
     └── shared/
         ├── api/request.js    # Axios instance (baseURL '/api'; sends the CSRF header and Accept-Language automatically)
@@ -127,7 +127,7 @@ Page files must live at `modules/<module>/pages/<subdir>/<page>/index.tsx`, othe
 | Project and package names | Lowercase, hyphenated | `castor-kit`, `@castor-kit/api` |
 | Backend directory and file names | Lowercase, hyphenated | `component-center`, `scheduled-task` |
 | Database table names | Underscores | `scheduled_tasks` |
-| Frontend directories, menu `component` field | Underscores | `component_center/admin/list_page` |
+| Frontend directories, menu `component` field | Underscores | `component_center/patterns/card_list_page` |
 | API paths | Hyphenated, plural | `/api/admin/customer-orders` |
 
 The session cookie name `castor_session` is an exception and uses an underscore.

@@ -24,11 +24,12 @@ const SORT_COLUMNS: Record<SortField, AnyPgColumn> = {
   start_date: t.start_date,
   end_date: t.end_date,
   sort_order: t.sort_order,
+  board_order: t.board_order,
   created_at: t.created_at,
   updated_at: t.updated_at,
 }
 
-/** Tree / board order: sort_order, then id */
+/** Tree order (siblings): sort_order, then id. The kanban's card order is board_order, read through the list's sort_field */
 const TREE_ORDER = [asc(t.sort_order), asc(t.id)]
 
 export class DemoRecordRepository {

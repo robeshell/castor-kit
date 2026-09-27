@@ -21,7 +21,19 @@ import type { DemoRecord } from '@/db/schema'
  * role editor keeps half-checked parents out), so reads accept the directory code or any page code listed here.
  * Add a page's code here when a new page pattern is added under the directory.
  */
-export const DEMO_RECORD_VIEW_CODES = ['cc_patterns', 'cc_patterns_standard_list'] as const
+export const DEMO_RECORD_VIEW_CODES = [
+  'cc_patterns',
+  'cc_patterns_standard_list',
+  'cc_patterns_card_list',
+  'cc_patterns_tree_list',
+  'cc_patterns_stats_list',
+  'cc_patterns_detail',
+  'cc_patterns_step_form',
+  'cc_patterns_dynamic_form',
+  'cc_patterns_kanban',
+  'cc_patterns_gantt',
+  'cc_patterns_advanced_table',
+] as const
 
 export const DEMO_RECORD_PERMS = {
   add: 'cc_patterns_add',
@@ -33,7 +45,7 @@ export const DEMO_RECORD_PERMS = {
 
 // ─── Options ───────────────────────────────────────────────────────────────────
 
-/** Status: the kanban columns and the gantt states, in board order */
+/** Status: the kanban columns (left to right) and the gantt states */
 export const STATUSES = ['todo', 'in_progress', 'done', 'archived'] as const
 export const CATEGORIES = ['product', 'design', 'engineering', 'marketing', 'operations'] as const
 export type DemoRecordStatus = (typeof STATUSES)[number]
@@ -74,6 +86,7 @@ export const demoRecordBody = z.object({
   end_date: field.date('结束日期'),
   parent_id: field.id('上级记录'),
   sort_order: field.int('排序', 0),
+  board_order: field.int('看板顺序', 0),
   cover: field.fileId('封面'),
   description: field.text('描述'),
   tags: field.textList('标签'),
@@ -105,12 +118,15 @@ export const batchUpdateBody = z.object({
 export const batchDeleteBody = z.object({ ids: selectedIds() })
 
 /**
- * One entry of a reorder request: the record's new sort order and, optionally, its new status (kanban: a card moved
- * to another column) and new parent (tree drag; null = move to the root). status / parent_id left out are not changed.
+ * One entry of a reorder request: the record and only the values to change. The kanban sends board_order (card order
+ * within a column) and, when a card moves to another column, status; the tree sends sort_order (sibling order) and,
+ * when a node moves, parent_id (null = move to the root). board_order / sort_order / status left out or null are not
+ * changed (NOT NULL columns); an entry that changes nothing is a 400 (see DemoRecordService.reorder).
  */
 export const reorderItem = z.object({
   id: required(field.id('记录'), '记录不能为空'),
-  sort_order: field.int('排序', 0),
+  board_order: field.optionalInt('看板顺序').optional(),
+  sort_order: field.optionalInt('排序').optional(),
   status: field.optionalChoice('状态', STATUSES).optional(),
   parent_id: field.id('上级记录').optional(),
 })
@@ -153,6 +169,7 @@ export const SORT_FIELDS = [
   'start_date',
   'end_date',
   'sort_order',
+  'board_order',
   'created_at',
   'updated_at',
 ] as const
@@ -188,6 +205,7 @@ export const EXPORT_FIELD_MAP: Record<string, ExportColumn> = {
   end_date: '结束日期',
   parent_id: '上级记录',
   sort_order: '排序',
+  board_order: '看板顺序',
   cover: '封面',
   description: '描述',
   tags: ['标签', (item) => item.tags.join(',')],
@@ -216,6 +234,7 @@ export const IMPORT_HEADER_MAP: Record<string, string> = {
   '结束日期': 'end_date',
   '上级记录': 'parent_id',
   '排序': 'sort_order',
+  '看板顺序': 'board_order',
   '封面': 'cover',
   '描述': 'description',
   '标签': 'tags',
@@ -238,6 +257,7 @@ export function rowToBody(row: Record<string, string>): Record<string, unknown> 
   if (row.progress !== undefined) body.progress = intCell(row.progress)
   if (row.parent_id !== undefined) body.parent_id = intCell(row.parent_id)
   if (row.sort_order !== undefined) body.sort_order = intCell(row.sort_order)
+  if (row.board_order !== undefined) body.board_order = intCell(row.board_order)
   if (row.tags !== undefined) body.tags = row.tags.split(/[,，、]/)
   return body
 }

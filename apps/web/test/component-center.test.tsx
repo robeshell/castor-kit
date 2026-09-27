@@ -2,46 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@/i18n'
-import type { CardListPageItem } from '@/modules/component_center/api/card_list_page'
-import { DEFAULT_FORM_VALUES, toFormValues } from '@/modules/component_center/pages/admin/card_list_page/form'
 import { generateCalendarData, localDateKey } from '@/modules/component_center/pages/dataviz/heatmap_page/calendar'
 import { canFormat } from '@/modules/component_center/pages/editor/code_editor_page/formatting'
 import SchemaSheet from '@/modules/component_center/pages/ai/ai_sql_page/SchemaSheet'
 
 vi.mock('@/modules/component_center/api/ai_sql', () => ({ getDBSchema: vi.fn() }))
 const aiSql = await import('@/modules/component_center/api/ai_sql')
-
-describe('卡片列表表单', () => {
-  const record: CardListPageItem = {
-    id: 7,
-    title: '卡片',
-    card_code: 'card_007',
-    subtitle: null,
-    category: null,
-    cover_url: null,
-    tag: '新品',
-    status: 'published',
-    owner: 'admin',
-    priority: 3,
-    is_active: null,
-    description: null,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-02T00:00:00Z',
-  }
-
-  it('编辑时只带表单字段（PUT 不含 id / 时间戳）', () => {
-    const values = toFormValues(record)
-    expect(Object.keys(values).sort()).toEqual(Object.keys(DEFAULT_FORM_VALUES).sort())
-    expect(values).not.toHaveProperty('id')
-    expect(values).not.toHaveProperty('created_at')
-    expect(values).toMatchObject({ title: '卡片', card_code: 'card_007', tag: '新品', status: 'published', priority: 3 })
-  })
-
-  it('null 显示为后端保存时的默认值：is_active → true，category → general', () => {
-    expect(toFormValues(record)).toMatchObject({ is_active: true, category: 'general' })
-    expect(toFormValues({ ...record, is_active: false, category: 'event' })).toMatchObject({ is_active: false, category: 'event' })
-  })
-})
 
 describe('热力图日历数据', () => {
   // A random source that makes the value reveal the branch: weekday → 17, weekend → 11

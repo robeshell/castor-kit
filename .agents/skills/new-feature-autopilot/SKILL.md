@@ -52,7 +52,7 @@ What to infer:
 - Frontend file path (admin domain modules/admin/pages/<name>/index.tsx;
                      component_center domain modules/component_center/pages/admin/<name>_page/index.tsx; API file api/<name>.ts)
 - Menu ID (an ID not used in `MENUS_DATA`, from the ID allocation ranges in AGENTS.md; button ID = menu ID × 10 + sequence number)
-- Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/admin/<name-kebab>` (consistent with the sibling pages under `管理系统` (Admin system))
+- Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/<group>/<name-kebab>` (like the sibling pages of the gallery group it goes under, e.g. `/component-center/patterns/kanban`)
 - Menu order: last among its siblings; icon: reuse a name already in the mapping table in `apps/web/src/lib/menu-icons.ts`
 - Resource name: scaffold always appends `s` to the table name / API path, so think about the plural when choosing the name (`equipment` becomes `equipments`; use a countable noun such as `device` instead)
 - Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English

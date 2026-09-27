@@ -38,9 +38,9 @@ const EXEC_ERROR = 'SQL 执行错误，请检查语法或表权限'
 
 describe('isSafeSql', () => {
   it('allows basic select / with cte / trailing semicolon', () => {
-    expect(isSafeSql('SELECT * FROM kanban_boards')[0]).toBe(true)
+    expect(isSafeSql('SELECT * FROM demo_records')[0]).toBe(true)
     expect(isSafeSql('WITH x AS (SELECT 1) SELECT * FROM x')[0]).toBe(true)
-    expect(isSafeSql('SELECT * FROM kanban_boards;')[0]).toBe(true)
+    expect(isSafeSql('SELECT * FROM demo_records;')[0]).toBe(true)
   })
 
   it('blocks multi statement', () => {
@@ -83,7 +83,7 @@ describe('isSafeSql', () => {
     ]) {
       expect(isVisibleTable(table)).toBe(false)
     }
-    expect(isVisibleTable('kanban_boards')).toBe(true)
+    expect(isVisibleTable('demo_records')).toBe(true)
     expect(isVisibleTable('AUDIT_x')).toBe(false)
     expect(isVisibleTable(null)).toBe(true)
   })
@@ -292,7 +292,7 @@ describe('AI SQL 路由', () => {
     const body = res.json() as { tables: string[]; schema: string }
     expect(Object.keys(body).sort()).toEqual(['schema', 'tables'])
     expect(body.tables).toEqual([...body.tables].sort())
-    expect(body.tables).toContain('kanban_boards')
+    expect(body.tables).toContain('demo_records')
     expect(body.tables).toContain(TABLE)
     for (const hidden of ['admin_users', 'roles', 'menus', 'user_roles', 'role_menus', 'operation_logs', 'login_logs', 'scheduled_tasks', 'scheduled_task_runs']) {
       expect(body.tables).not.toContain(hidden)
@@ -342,7 +342,7 @@ describe('AI SQL 路由', () => {
 
   it('execute：写操作 / 多语句 / 高危函数被拒（400 仅 error）', async () => {
     const cases: [string, string][] = [
-      ['DELETE FROM kanban_boards', '只允许 SELECT 查询语句'],
+      ['DELETE FROM demo_records', '只允许 SELECT 查询语句'],
       ['SELECT 1; DROP TABLE x', '仅允许单条语句，不能包含分号'],
       ['SELECT 1 INTO new_table', 'SQL 包含不允许的操作关键字：INTO'],
       ["SELECT set_config('default_transaction_read_only','off',false)", 'SQL 使用了不允许的函数：set_config'],
@@ -422,9 +422,9 @@ describe('AI SQL 路由', () => {
     const res = await s.inject({ method: 'POST', url: GENERATE, payload: { question: '  列出看板  ' } })
     expect(res.statusCode).toBe(200)
     const body = res.json()
-    expect(body.sql).toBe('SELECT id, title FROM kanban_boards ORDER BY id LIMIT 3')
+    expect(body.sql).toBe('SELECT id, name FROM demo_records ORDER BY id LIMIT 3')
     expect(Object.keys(body).sort()).toEqual(['columns', 'row_count', 'rows', 'sql', 'truncated'])
-    expect(body.columns).toEqual(['id', 'title'])
+    expect(body.columns).toEqual(['id', 'name'])
 
     const req = up.requests[before]!
     expect(req.headers.authorization).toBe('Bearer x')
@@ -445,7 +445,7 @@ describe('AI SQL 路由', () => {
 
     const unsafe = await s.inject({ method: 'POST', url: GENERATE, payload: { question: 'q:unsafe' } })
     expect(unsafe.statusCode).toBe(400)
-    expect(unsafe.json()).toEqual({ error: '只允许 SELECT 查询语句', sql: 'DELETE FROM kanban_boards' })
+    expect(unsafe.json()).toEqual({ error: '只允许 SELECT 查询语句', sql: 'DELETE FROM demo_records' })
 
     const bad = await s.inject({ method: 'POST', url: GENERATE, payload: { question: 'q:badsql' } })
     expect(bad.statusCode).toBe(400)
