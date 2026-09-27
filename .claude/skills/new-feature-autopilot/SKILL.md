@@ -70,6 +70,7 @@ What to infer (the spec and `--validate-only` settle all of it):
 - Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English; the list gets a filter per enum field and shows each option as a badge, so give status-like options a `tone` (`success` / `warning` / `danger`, default `neutral`)
 - parent_id: the 业务管理 (Business) directory by default; spec `menu.parentId` when the PM names another place
 - Migration name (scaffold uses <name> by default)
+- Page pattern: a plain list unless the requirement says otherwise ("board", "drag between states" → kanban; "categories / nested" → tree list; "totals / by status" → stats list; "timeline / schedule" → gantt; "custom attributes" → dynamic form …); look it up in AGENTS.md "Page patterns (which page to copy)", which also lists the backend pieces the pattern needs (e.g. a date range for gantt, `parent_id` for a tree)
 ```
 
 ### Step 3 — Show the business preview and wait for confirmation
@@ -80,6 +81,7 @@ Show the PM business-level information only, in this format:
 📋 <feature name>
 
 Location: <parent menu> → <feature name>   (as --validate-only reports it)
+Shown as: <a list | cards | a tree | a kanban board | …>   (the page pattern, in the PM's words)
 Features: list, create, edit, delete (adjust as needed)
 Fields:
   · <field label> (required)
@@ -137,7 +139,7 @@ Fill in the actual fields, the Chinese column headers (`EXPORT_FIELD_MAP` / `IMP
 
 **4b'. Frontend page**
 
-The page scaffold generates already works; polish it for the business:
+The page scaffold generates already works; polish it for the business. If the preview named a pattern other than a plain list, rebuild `index.tsx` after that pattern's page (`apps/web/src/modules/component_center/pages/patterns/<pattern>_page/`; its top comment lists what to copy), keep the generated API file and types, and add the backend pieces from the AGENTS.md table (routes, service, repository, OpenAPI entries and API tests, following `apps/api/src/modules/component-center/demo-record`). For a single shared component, its showcase page (`pages/components/<group>_page/`) has live examples with their source.
 
 - With a spec, the title, labels, required rules, enum `FormSelect`s and `StatusBadge` columns are already generated (**no description** under the page title; see the "Copy" item in the design doc); with `--fields` only, change the title and labels to Chinese and add `rules` (messages matching the backend) by hand
 - **Types**: keep the page typed as generated (`docs/templates/frontend/list_page/` shows the pattern): a new or changed field goes into `FormValues`, `EMPTY_VALUES` / `toFormValues` and the columns; the row and body types come from the OpenAPI doc, so when you change the backend's fields update the doc and run `pnpm openapi:generate`, and `tsc` points at the page code to follow. No `any`, no casts at call sites

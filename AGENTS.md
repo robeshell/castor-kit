@@ -725,6 +725,7 @@ Step 1  Read the context
         → Read the code skeleton templates in docs/templates/ (backend/README.md has the substitution rules)
         → Look at similar existing modules for naming (backend: modules/admin/users/, frontend: apps/web/src/modules/admin/pages/users/index.tsx)
         → Check the current menu tree (MENUS_DATA in apps/api/scripts/seed-rbac.ts) to pick the parent_id and the next free ID
+        → Not a plain list (cards, tree, stats, kanban, gantt, steps …)? Find the page to copy in "Page patterns (which page to copy)"
 
 Step 2  Write the internal spec (an AI-internal document; the PM doesn't read it)
         → Write it as a spec JSON (docs/spec.schema.json, examples in docs/examples/specs/) and check it with
@@ -733,6 +734,7 @@ Step 2  Write the internal spec (an AI-internal document; the PM doesn't read it
 Step 3  Show the business preview (for the PM to confirm)
         Show business-level information only:
         · Feature name and location (which menu it lives under)
+        · How it is shown when it isn't a plain list (cards, a tree, a kanban board …)
         · Field list (Chinese names, required fields marked)
         · Available actions (create / read / update / delete, import / export, etc.)
         · Wait for confirmation or changes; on changes, go back to Step 2
@@ -744,6 +746,7 @@ Step 4  Implement
             db/schema/index.ts automatically, writes the module's OpenAPI entries and regenerates the frontend API types,
             with a spec menu also the menu + buttons in seed-rbac.ts, and runs drizzle-kit generate --name <name> to create the migration)
         → Fill in the business logic and Chinese headers in the order db/schema → schema → repository → service → routes
+        → Another page pattern: rebuild the generated page after its pattern page and add the backend pieces it needs ("Page patterns (which page to copy)")
         → If you change the table structure afterwards: pnpm db:generate --name <description> (note: no -- here)
         → Menu + button permissions (_add/_edit/_delete/_export/_import): already in seed-rbac.ts with a spec `menu`, otherwise add them by hand;
           then run pnpm seed:rbac -- --incremental
