@@ -22,11 +22,11 @@ export const login_logs = pgTable(
   },
   (table) => [
     // Shared by the login rate-limit query (status + time window) and login log list sorting
-    index('ix_login_logs_status_created_at').using('btree', table.status, table.created_at),
+    index('login_logs_status_created_at_idx').using('btree', table.status, table.created_at),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [admin_users.id],
-      name: 'login_logs_user_id_fkey',
+      name: 'login_logs_user_id_fk',
     }).onDelete('set null'),
   ],
 )
@@ -54,12 +54,12 @@ export const operation_logs = pgTable(
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [admin_users.id],
-      name: 'operation_logs_user_id_fkey',
+      name: 'operation_logs_user_id_fk',
     }).onDelete('set null'),
     foreignKey({
       columns: [table.api_token_id],
       foreignColumns: [api_tokens.id],
-      name: 'operation_logs_api_token_id_fkey',
+      name: 'operation_logs_api_token_id_fk',
     }).onDelete('set null'),
   ],
 )

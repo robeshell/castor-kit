@@ -18,7 +18,7 @@ const USER_NOT_FOUND = { error: '用户不存在' }
 export async function registerNotificationRoutes(app: FastifyInstance): Promise<void> {
   const service = new NotificationService(app.db)
   const opts = { preHandler: loginRequired }
-  // Ids beyond the integer range don't hit get_or_404; they fall through to the service's not-found-or-forbidden 404 (a plain conditional query there)
+  // Ids beyond the integer range don't hit getOr404; they fall through to the service's not-found-or-forbidden 404 (a plain conditional query there)
   const notiIdOf = (request: FastifyRequest) => Number((request.params as { noti_id: string }).noti_id)
 
   app.get('/api/admin/notifications', opts, async (request, reply) => {

@@ -17,7 +17,7 @@ This page covers the four pieces the workflow relies on: the project context in 
 
 Each tool's own config file only adds to it and points back to `AGENTS.md`. When you change a project convention, change `AGENTS.md` first.
 
-Deeper architecture notes are in `docs/architecture.md`; the frontend UI approach is in `docs/frontend-redesign-plan.md`.
+Deeper architecture notes are in `docs/architecture.md`; the frontend UI approach is in `docs/frontend-design-system.md`.
 
 ## Supported AI tools
 
@@ -250,7 +250,6 @@ Module checks (run when `--module` is passed):
 | `backend_file` | Backend routes / repository / service files exist |
 | `data_scope_filter` | A module whose `schema.ts` declares `DATA_SCOPE` must filter with `dataScopeWhere` in its repository; skipped otherwise |
 | `frontend_page` | The frontend page file exists |
-| `frontend_no_legacy_ui` | The page directory doesn't use retired UI systems such as `@douyinfe/*` or `var(--semi-*)` |
 | `frontend_api` | The frontend API file exists |
 | `router_registration` | Routes are registered in `src/router.ts` or the domain `router.ts` |
 | `schema_registration` | The table definition is registered in `db/schema/index.ts` |

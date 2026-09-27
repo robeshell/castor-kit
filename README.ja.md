@@ -43,7 +43,7 @@ castor-kit はオープンソースの管理画面です。今日そのまま使
   <tr>
     <td width="33%"><b>権限管理</b><br>ユーザー、ロール、メニュー、ボタン単位まで。</td>
     <td width="33%"><b>AI 対応</b><br>一文からテーブル、API、画面、権限を生成。</td>
-    <td width="33%"><b>自動チェック</b><br>型、マイグレーション、ルート、権限、テスト、ビルドの 15 項目。</td>
+    <td width="33%"><b>自動チェック</b><br>型、マイグレーション、ルート、権限、テスト、ビルドの 16 項目。</td>
   </tr>
   <tr>
     <td><b>テーマとレイアウト</b><br>6 色のテーマ、3 種類のレイアウト、ライト / ダーク、タブバー。</td>
@@ -85,6 +85,7 @@ createdb castor_kit
 pnpm db:migrate
 pnpm seed:rbac
 pnpm dev                                              # API :5001 · Web :5173
+# http://localhost:5173 を開き、admin / admin123 でサインイン
 ```
 
 </details>
@@ -96,12 +97,13 @@ pnpm dev                                              # API :5001 · Web :5173
 3. **生成とチェック**：AI がスキャフォールド、マイグレーション、権限の同期を実行し、最後に納品チェックを走らせます。
 
 ```text
-$ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json   # 説明から AI が書いた spec
 $ pnpm seed:rbac -- --incremental
+$ pnpm db:migrate
 $ pnpm verify -- --module equipment
-✓ typescript_compile  ✓ migration_chain  ✓ router_registration  ✓ rbac_sync
-✓ api_tests  ✓ frontend_tests  ✓ frontend_build
+  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
+  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+✅ 全部检查通过，功能可交付！
 ```
 
 AI が従うルールは [`AGENTS.md`](AGENTS.md) にあります。詳しくは [AI 駆動開発](website/ja/guide/ai-workflow.md) を参照してください。

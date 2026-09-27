@@ -29,7 +29,7 @@ export const sessions = pgTable(
     verified_at: timestamp({ mode: 'string' }),
   },
   (table) => [
-    foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'sessions_user_id_fkey' }).onDelete('cascade'),
+    foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'sessions_user_id_fk' }).onDelete('cascade'),
     index('sessions_user_id_idx').on(table.user_id),
     index('sessions_expires_at_idx').on(table.expires_at),
   ],
@@ -48,7 +48,7 @@ export const password_reset_tokens = pgTable(
     used_at: timestamp({ mode: 'string' }),
   },
   (table) => [
-    foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'password_reset_tokens_user_id_fkey' }).onDelete('cascade'),
+    foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'password_reset_tokens_user_id_fk' }).onDelete('cascade'),
     index('password_reset_tokens_hash_idx').on(table.token_hash),
   ],
 )
@@ -64,7 +64,7 @@ export const user_recovery_codes = pgTable(
     used_at: timestamp({ mode: 'string' }),
   },
   (table) => [
-    foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'user_recovery_codes_user_id_fkey' }).onDelete('cascade'),
+    foreignKey({ columns: [table.user_id], foreignColumns: [admin_users.id], name: 'user_recovery_codes_user_id_fk' }).onDelete('cascade'),
     index('user_recovery_codes_user_id_idx').on(table.user_id),
   ],
 )
@@ -79,7 +79,7 @@ export const system_settings = pgTable(
     updated_by: integer(),
   },
   (table) => [
-    foreignKey({ columns: [table.updated_by], foreignColumns: [admin_users.id], name: 'system_settings_updated_by_fkey' }).onDelete('set null'),
+    foreignKey({ columns: [table.updated_by], foreignColumns: [admin_users.id], name: 'system_settings_updated_by_fk' }).onDelete('set null'),
   ],
 )
 

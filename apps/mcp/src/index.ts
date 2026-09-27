@@ -338,12 +338,12 @@ export function createServer(): McpServer {
       description:
         '生成一个完整模块：db/schema 表定义 + schema/repository/service/routes + 接口测试 + 前端页面，' +
         '自动注册到 db/schema/index.ts 与 router.ts、生成 drizzle 迁移、写好 OpenAPI 文档；spec 里写了 menu 时同时写入菜单和按钮权限。' +
-        '优先传 spec（先用 validate_spec 校验）；name / fields 是没有中文标签和选项的旧用法。生成后还需补充业务逻辑。',
+        '优先传 spec（先用 validate_spec 校验）；name / domain / fields 是简写用法（字段没有中文标签和选项）。生成后还需补充业务逻辑。',
       inputSchema: {
         spec: z.record(z.string(), z.unknown()).optional().describe('模块规格对象（推荐），格式见 get_spec_guide；传了 spec 就不看 name / domain / fields'),
-        name: z.string().optional().describe('旧用法：资源名，snake_case，如 customer'),
-        domain: z.enum(['admin', 'component_center']).optional().describe('旧用法：所属域'),
-        fields: z.string().optional().describe('旧用法：字段列表，格式 "name:str,phone:str20,amount:float"'),
+        name: z.string().optional().describe('简写用法：资源名，snake_case，如 customer'),
+        domain: z.enum(['admin', 'component_center']).optional().describe('简写用法：所属域'),
+        fields: z.string().optional().describe('简写用法：字段列表，格式 "name:str,phone:str20,amount:float"'),
         dry_run: z.boolean().optional().default(false).describe('只预览不写文件，默认 false'),
       },
     },

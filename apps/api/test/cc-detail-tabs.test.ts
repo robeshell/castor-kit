@@ -2,7 +2,7 @@ import { like } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbHandle } from '@/db/client'
-import { cc_detail_members } from '@/db/schema'
+import { detail_members } from '@/db/schema'
 import {
   buildTestApp,
   cleanupFixture,
@@ -23,7 +23,7 @@ let s: AuthedSession
 let memberId: number
 
 async function cleanup() {
-  await handle.db.delete(cc_detail_members).where(like(cc_detail_members.name, `${P}%`))
+  await handle.db.delete(detail_members).where(like(detail_members.name, `${P}%`))
 }
 
 beforeAll(async () => {
@@ -33,7 +33,7 @@ beforeAll(async () => {
   await cleanup()
   // The primary key sequence in a cloned test DB may lag behind MAX(id); sync it first
   await handle.pool.query(
-    "SELECT setval(pg_get_serial_sequence('cc_detail_members', 'id'), COALESCE((SELECT MAX(id) FROM cc_detail_members), 0) + 1, false)",
+    "SELECT setval(pg_get_serial_sequence('detail_members', 'id'), COALESCE((SELECT MAX(id) FROM detail_members), 0) + 1, false)",
   )
 })
 

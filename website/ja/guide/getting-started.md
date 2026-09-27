@@ -57,7 +57,7 @@ docker compose --env-file .env.production up -d         # 再起動
 ### 1. 環境を用意する
 
 - Node 22 以上（リポジトリのルートにある `.nvmrc` は `22`）
-- pnpm（バージョンはルートの `package.json` の `packageManager` フィールドを参照。`corepack enable` で有効化できます）
+- pnpm（バージョンはルートの `package.json` の `packageManager` フィールドを参照。`corepack enable` で有効化できます。Node 25 以降は corepack が同梱されないため `npm i -g pnpm@11` を使います）
 - ローカルの PostgreSQL 14 以上。`createdb` / `psql` で接続できること
 
 ### 2. 依存関係をインストールする

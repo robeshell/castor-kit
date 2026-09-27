@@ -188,12 +188,12 @@ describe('notification', () => {
       ['DELETE', '/api/admin/notifications/1'],
     ] as const) {
       const res = await g.inject({ method, url, ...(method === 'POST' ? { payload: {} } : {}) })
-      expect([res.statusCode, res.json()], `${method} ${url}`).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
+      expect([res.statusCode, res.json()], `${method} ${url}`).toEqual([401, { error: '未授权访问', redirect: '/login' }])
     }
   })
 
   it('未登录 → 401', async () => {
     const res = await app.inject({ url: '/api/admin/notifications/unread-count' })
-    expect([res.statusCode, res.json()]).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
+    expect([res.statusCode, res.json()]).toEqual([401, { error: '未授权访问', redirect: '/login' }])
   })
 })

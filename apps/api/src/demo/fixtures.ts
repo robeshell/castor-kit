@@ -152,7 +152,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "is_active": true
     }
   ]],
-  ['query_managements', [
+  ['saved_queries', [
     {
       "id": 1,
       "name": "订单异常预警看板",
@@ -205,7 +205,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "node_code": "init_tree_org_root",
       "parent_id": null,
       "node_type": "category",
-      "icon": "IconHome",
+      "icon": "Home",
       "description": "组织结构总览",
       "sort_order": 1,
       "is_active": true,
@@ -218,7 +218,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "node_code": "init_tree_business",
       "parent_id": 1,
       "node_type": "folder",
-      "icon": "IconGridSquare",
+      "icon": "LayoutGrid",
       "description": "业务线节点",
       "sort_order": 1,
       "is_active": true,
@@ -231,7 +231,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "node_code": "init_tree_data_ops",
       "parent_id": 2,
       "node_type": "member",
-      "icon": "IconUser",
+      "icon": "User",
       "description": "负责日常指标运营",
       "sort_order": 1,
       "is_active": true,
@@ -244,7 +244,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "node_code": "init_tree_risk",
       "parent_id": 2,
       "node_type": "member",
-      "icon": "IconAlertTriangle",
+      "icon": "TriangleAlert",
       "description": "负责风险策略执行",
       "sort_order": 2,
       "is_active": true,
@@ -337,7 +337,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "description": "用于演示财务稽核场景卡片"
     }
   ]],
-  ['cc_detail_members', [
+  ['detail_members', [
     {
       "id": 1,
       "name": "张伟",
@@ -619,7 +619,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "is_active": true
     }
   ]],
-  ['cc_gantt_tasks', [
+  ['gantt_tasks', [
     {
       "id": 1,
       "title": "产品设计阶段",
@@ -751,7 +751,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "sort_order": 9
     }
   ]],
-  ['cc_advanced_table_rows', [
+  ['advanced_table_rows', [
     {
       "id": 1,
       "row_code": "ADV-001",

@@ -1,7 +1,7 @@
 # castor-kit — Claude Code 专属补充
 
 > **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/architecture.md`（架构说明：技术栈、横切约定、迁移、部署、设计决定）；路线图上的功能先读 `docs/roadmap.md` 对应章节。
-> 开始任何实现前先读这两个文件；涉及前端 UI 时再读 `docs/frontend-redesign-plan.md`（shadcn/ui 体系）。本文件只放 Claude Code 专属的补充内容。
+> 开始任何实现前先读这两个文件；涉及前端 UI 时再读 `docs/frontend-design-system.md`（shadcn/ui 体系）。本文件只放 Claude Code 专属的补充内容。
 
 ## 规则
 
@@ -51,7 +51,7 @@
 - **API client**：`apps/web/src/shared/api/request.js`（拦截 401 自动跳登录页、自动带 CSRF 头、响应已 unwrap）
 - **页面结构**：照 `apps/web/src/modules/admin/pages/users/index.jsx`——PageHeader → FilterBar → DataTable → FormDialog（react-hook-form + FormFields）→ ImportDialog / ExportDialog，删除用 ConfirmAction，反馈用 `@/lib/toast`
 - **导入导出**：复用 `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
-- **样式**：只用 Tailwind 语义色类（`bg-card` / `text-muted-foreground` / `bg-brand-soft` …），Ocean 渐变只做点缀，禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色
+- **样式**：只用 Tailwind 语义色类（`bg-card` / `text-muted-foreground` / `bg-brand-soft` …），Ocean 渐变只做点缀，禁止写死十六进制颜色；只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类，不引入其他 UI 组件库（antd、MUI 等）
 - **纯前端页面**（无后端 CRUD API）：creative/、devtools/websocket_page、devtools/perf_monitor_page、dataviz/heatmap_page、dataviz/realtime_chart_page
 
 ### RBAC

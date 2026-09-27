@@ -1127,7 +1127,7 @@ ${lines.join('\n')}
 
 // ─── Frontend code generation (shadcn/ui, same structure as apps/web/src/modules/admin/pages/users/index.jsx) ──
 //
-// The api file comes from a fixed template; the page follows docs/frontend-redesign-plan.md:
+// The api file comes from a fixed template; the page follows docs/frontend-design-system.md:
 // PageHeader + FilterBar/SearchInput + DataTable + FormDialog/FormFields + ImportDialog/ExportDialog
 // + ConfirmAction + toast + useCrudList. Field → form component / table column rendering: see FRONTEND_FIELD_MAP.
 //
@@ -2216,17 +2216,20 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     printUsage(import.meta.url)
     return 0
   }
+  // Paths on the command line are relative to where the user ran `pnpm scaffold` (pnpm runs this script in apps/api)
+  const callerDir = process.env.INIT_CWD ?? process.cwd()
+  const root = values.root === undefined ? undefined : resolve(callerDir, values.root)
   if (values['write-schema']) {
-    const path = join(resolve(values.root ?? DEFAULT_ROOT), 'docs', 'spec.schema.json')
+    const path = join(root ?? DEFAULT_ROOT, 'docs', 'spec.schema.json')
     writeFileSync(path, specSchemaText(), 'utf8')
     console.log(`✅ 已写入 ${relative(process.cwd(), path)}`)
     return 0
   }
-  const common = { root: values.root, dryRun: values['dry-run'], skipMigration: values['skip-migration'] }
+  const common = { root, dryRun: values['dry-run'], skipMigration: values['skip-migration'] }
   if (values.spec) {
     let spec: SpecFile
     try {
-      spec = JSON.parse(readFileSync(resolve(values.spec), 'utf8')) as SpecFile
+      spec = JSON.parse(readFileSync(resolve(callerDir, values.spec), 'utf8')) as SpecFile
     } catch (err) {
       console.error(`❌ 无法读取 spec 文件：${err instanceof Error ? err.message : String(err)}`)
       return 2

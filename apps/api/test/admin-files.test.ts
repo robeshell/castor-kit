@@ -199,9 +199,9 @@ describe('files: local driver', () => {
 })
 
 describe('files: 超过请求体上限', () => {
-  it('超过 MAX_CONTENT_LENGTH 的文件被 multipart 拦下时，也返回「文件过大」和适用的上限', async () => {
+  it('超过 BODY_LIMIT 的文件被 multipart 拦下时，也返回「文件过大」和适用的上限', async () => {
     const app = await buildTestApp({
-      maxContentLength: 1024 * 1024,
+      bodyLimit: 1024 * 1024,
       storageLocalDir: tempStorageDir(),
       settingsEnv: { UPLOAD_MAX_SIZE: String(512 * 1024) },
     })

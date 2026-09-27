@@ -20,7 +20,7 @@ export const CONTENT = {
     },
     stats: [
       ['25+', '示例页面'],
-      ['15', '项自动检查'],
+      ['16', '项自动检查'],
       ['3', '种界面语言'],
       ['1', '条命令部署'],
     ],
@@ -91,7 +91,7 @@ export const CONTENT = {
     },
     stats: [
       ['25+', 'example pages'],
-      ['15', 'automated checks'],
+      ['16', 'automated checks'],
       ['3', 'UI languages'],
       ['1', 'command to deploy'],
     ],
@@ -162,7 +162,7 @@ export const CONTENT = {
     },
     stats: [
       ['25+', 'サンプル画面'],
-      ['15', '項目の自動チェック'],
+      ['16', '項目の自動チェック'],
       ['3', 'つの UI 言語'],
       ['1', 'コマンドでデプロイ'],
     ],

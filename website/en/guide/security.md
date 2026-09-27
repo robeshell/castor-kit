@@ -20,7 +20,7 @@ The System settings page holds switches and parameters that can change at runtim
 | `security.auth_rate_limit_per_minute` | Sign-in requests per IP per minute (sign-in, 2FA code and password reset share it) | `20` |
 | `security.api_tokens_enabled` | Allow API tokens, see [Open API](/en/guide/open-api) | Off |
 
-- The defaults match the previous behavior: after upgrading, nothing changes until a switch is turned on
+- The defaults are conservative: none of these features take effect until their switch is turned on
 - A switch whose prerequisites are missing can't be turned on, and the page says why. For example, password reset needs mail to be configured, and neither two-step verification nor password reset can be turned on in demo mode
 - Secrets such as passwords, the S3 secret key and API keys are stored encrypted with a key derived from `SECRET_KEY`; neither the API nor the page returns them again
 - A setting whose environment variable is set (e.g. `SMTP_HOST`, `AI_API_KEY`) follows the variable and is read-only on the page. Only what the server needs before it starts (database URL, `SECRET_KEY`, ports …) must be an environment variable

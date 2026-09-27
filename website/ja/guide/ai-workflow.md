@@ -17,7 +17,7 @@ castor-kit が目指すのは、業務要件を自然言語で伝えるだけで
 
 各ツール専用の設定ファイルは補足にとどめ、いずれも `AGENTS.md` を参照するようになっています。プロジェクトの規約を変更するときは、まず `AGENTS.md` を修正してください。
 
-より踏み込んだアーキテクチャの説明は `docs/architecture.md`、フロントエンドの UI 方針は `docs/frontend-redesign-plan.md` にあります。
+より踏み込んだアーキテクチャの説明は `docs/architecture.md`、フロントエンドの UI 方針は `docs/frontend-design-system.md` にあります。
 
 ## 対応している AI ツール
 
@@ -250,7 +250,6 @@ pnpm verify -- --module customer --json          # 構造化 JSON を出力（st
 | `backend_file` | バックエンドの routes / repository / service ファイルが存在する |
 | `data_scope_filter` | `schema.ts` で `DATA_SCOPE` を宣言したモジュールは、repository で `dataScopeWhere` による絞り込みが必要。宣言がなければスキップ |
 | `frontend_page` | フロントエンドのページファイルが存在する |
-| `frontend_no_legacy_ui` | ページディレクトリで `@douyinfe/*`、`var(--semi-*)` などの廃止済み UI 体系を使っていない |
 | `frontend_api` | フロントエンドの API ファイルが存在する |
 | `router_registration` | ルートが `src/router.ts` またはドメインの `router.ts` に登録されている |
 | `schema_registration` | テーブル定義が `db/schema/index.ts` に登録されている |

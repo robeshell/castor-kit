@@ -24,7 +24,7 @@ import { Trans, useTranslation } from 'react-i18next'
 const METHOD_TONE = { POST: 'success', PUT: 'info', DELETE: 'danger', GET: 'neutral' }
 const LOGIN_STATUS_OPTIONS = [
   { label: '成功', value: 'success' },
-  // The backend writes failed logins as 'failed' (the old page filtered by 'fail' and matched nothing)
+  // The backend writes failed logins as 'failed'
   { label: '失败', value: 'failed' },
 ]
 const LOGIN_EXPORT_FIELDS = [
@@ -82,7 +82,7 @@ const LOGIN_COLUMNS = [
     ),
   },
   {
-    // The backend field is message (the old page read a nonexistent fail_reason, so the column was always empty); hidden for successful logins
+    // The failure reason comes from the backend's message field; hidden for successful logins
     key: 'fail_reason',
     title: '失败原因',
     dataIndex: 'message',

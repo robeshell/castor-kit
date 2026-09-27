@@ -5,7 +5,7 @@ import { resolveMenuIcon } from '@/lib/menu-icons'
 import { Home, List } from 'lucide-react'
 
 const MENUS = [
-  { id: 1, name: '首页', code: 'dashboard', path: '/dashboard', menu_type: 'menu', is_active: true, is_visible: true, icon: 'IconHome' },
+  { id: 1, name: '首页', code: 'dashboard', path: '/dashboard', menu_type: 'menu', is_active: true, is_visible: true, icon: 'Home' },
   {
     id: 2,
     name: '系统管理',
@@ -85,7 +85,7 @@ describe('formatBytes', () => {
 
 describe('menu-icons', () => {
   it('IconXxx 图标名映射到 lucide，未知回退 List', () => {
-    expect(resolveMenuIcon({ icon: 'IconHome' })).toBe(Home)
+    expect(resolveMenuIcon({ icon: 'Home' })).toBe(Home)
     expect(resolveMenuIcon({ icon: 'IconUnknown', code: 'x' })).toBe(List)
   })
 })

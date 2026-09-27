@@ -276,7 +276,7 @@ describe('AI SQL 路由', () => {
     for (const [method, url] of [['GET', SCHEMA], ['POST', EXECUTE], ['POST', GENERATE]] as const) {
       const res = await app.inject({ method, url, payload: method === 'POST' ? { sql: 'SELECT 1' } : undefined })
       expect(res.statusCode).toBe(401)
-      expect(res.json()).toEqual({ error: '未授权访问', redirect: '/admin/login' })
+      expect(res.json()).toEqual({ error: '未授权访问', redirect: '/login' })
     }
     const plain = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD)
     for (const [method, url] of [['GET', SCHEMA], ['POST', EXECUTE], ['POST', GENERATE]] as const) {

@@ -54,10 +54,10 @@ pnpm verify -- --module <name> --skip-build
 
 ### 前端约定（apps/web）
 
-UI 为 shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX），已从 Semi Design 迁移，方案见 `docs/frontend-redesign-plan.md`：
+UI 为 shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX），设计系统见 `docs/frontend-design-system.md`：
 
 - 列表页照 `apps/web/src/modules/admin/pages/users/index.jsx`（PageHeader → FilterBar → DataTable → FormDialog → ImportDialog / ExportDialog），公共组件在 `apps/web/src/shared/components/`
-- 颜色只用 Tailwind 语义类；禁止 `@douyinfe/*`、`var(--semi-*)`、写死十六进制颜色（`pnpm verify` 的 `frontend_no_legacy_ui` 会拦截页面里的 Semi 残留）
+- 只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类；不引入其他 UI 组件库（antd、MUI 等），不写死十六进制颜色
 - 新增 shadcn 原子组件：`apps/web/scripts/shadcn-add.sh <组件>`（本机 CLI 直连 ui.shadcn.com 会失败，脚本经本地中转 + `REGISTRY_URL` 执行 `npx shadcn@latest add`）
 
 ### Shell 命令执行权限

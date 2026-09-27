@@ -22,7 +22,7 @@ export const dynamic_form_records = pgTable('dynamic_form_records', {
   created_at: createdAt(),
   updated_at: updatedAt(),
 }, (table) => [
-  unique('dynamic_form_records_record_code_key').on(table.record_code),
+  unique('dynamic_form_records_record_code_unique').on(table.record_code),
 ])
 
 export const dynamic_form_fields = pgTable('dynamic_form_fields', {
@@ -38,7 +38,7 @@ export const dynamic_form_fields = pgTable('dynamic_form_fields', {
   foreignKey({
       columns: [table.record_id],
       foreignColumns: [dynamic_form_records.id],
-      name: 'dynamic_form_fields_record_id_fkey'
+      name: 'dynamic_form_fields_record_id_fk'
     }).onDelete('cascade'),
 ])
 

@@ -1,7 +1,7 @@
 /**
  * One focus style across the UI: a 2px ring at 20% of the brand color next to the ring-colored border.
  * shadcn's default (a 3px ring at 50%) looks heavy with the brand orange and comes back with every newly added
- * component, so the old values are rejected here.
+ * component, so those default values are rejected here.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'

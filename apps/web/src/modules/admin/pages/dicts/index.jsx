@@ -51,7 +51,7 @@ function ActiveBadge({ value }) {
   )
 }
 
-/** Dict item color: color picker + text input + preview (replaces the old input[type=color] + Input + Tag) */
+/** Dict item color: color picker + text input + preview */
 function ColorField({ value, onChange }) {
   const { t } = useTranslation()
   const color = (value || '').trim()

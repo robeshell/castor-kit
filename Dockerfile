@@ -47,14 +47,14 @@ COPY docker-entrypoint.sh ./
 
 # Required runtime dirs + non-root user (defense in depth: limits privilege escalation inside the container)
 RUN chmod +x docker-entrypoint.sh && \
-    mkdir -p instance && \
+    mkdir -p data && \
     useradd --uid 10001 --create-home appuser && \
-    chown -R appuser:appuser /app/instance
+    chown -R appuser:appuser /app/data
 
 ENV NODE_ENV=production \
     PORT=5000 \
     WEB_DIST_DIR=/app/web \
-    INSTANCE_DIR=/app/instance \
+    DATA_DIR=/app/data \
     MIGRATIONS_DIR=/app/drizzle
 
 EXPOSE 5000

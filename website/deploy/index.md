@@ -13,7 +13,7 @@
 | 组件 | 说明 |
 |---|---|
 | `db` | 镜像 `postgres:alpine`，库名和用户名均为 `castor_kit`，数据存放在卷 `postgres_data` |
-| `app` | 由仓库根目录的 `Dockerfile` 构建，容器内监听 5000 端口，上传文件存放在卷 `app_instance`（挂载到 `/app/instance`） |
+| `app` | 由仓库根目录的 `Dockerfile` 构建，容器内监听 5000 端口，上传文件存放在卷 `app_data`（挂载到 `/app/data`） |
 
 镜像构建分两个阶段：两个阶段都基于 `node:22-bookworm-slim`（glibc；`sodium-native` 等原生模块只提供 glibc 版预编译文件，不能用 Alpine）。第一阶段安装依赖并构建前端（Vite）和后端（tsup），再裁剪为生产依赖；第二阶段是运行镜像，以非 root 用户（uid 10001）运行，并配置了基于 `/health` 的健康检查。
 
@@ -175,9 +175,9 @@ compose 会用最新代码重新构建镜像并重建 `app` 容器。容器启�
 | 卷 | 默认名称 | 内容 |
 |---|---|---|
 | `postgres_data` | `castor-kit_postgres_data` | PostgreSQL 数据 |
-| `app_instance` | `castor-kit_app_instance` | 上传文件（`local` 存储驱动；用 `s3` 驱动时文件在对象存储里） |
+| `app_data` | `castor-kit_app_data` | 上传文件（`local` 存储驱动；用 `s3` 驱动时文件在对象存储里） |
 
-需要复用已有的卷时，在 `.env.production` 中设置 `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` 为已有卷名。
+卷名可在 `.env.production` 中用 `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` 覆盖，例如指向已有的卷。
 
 备份数据库示例：
 
@@ -193,9 +193,9 @@ docker compose --env-file .env.production exec db pg_dump -U castor_kit castor_k
 
 生产环境建议在应用前面放一层反向代理（如 Nginx）处理 TLS。需要注意：
 
-- **转发 `Host` 和协议头**：应用信任一跳代理，会从 `X-Forwarded-For` / `X-Forwarded-Proto` 获取客户端 IP 和协议。`SESSION_COOKIE_SECURE` 留空时，按请求协议自动决定是否给 cookie 加 `Secure` 标志，所以要正确传递 `X-Forwarded-Proto`。
+- **转发 `Host` 和协议头**：应用信任一跳代理，会从 `X-Forwarded-For` / `X-Forwarded-Proto` 获取客户端 IP 和协议。`COOKIE_SECURE` 留空时，按请求协议自动决定是否给 cookie 加 `Secure` 标志，所以要正确传递 `X-Forwarded-Proto`。
 - **WebSocket**：`/ws` 路径需要转发 `Upgrade` 头。WebSocket 握手会校验 `Origin` 与 `Host` 同源（或在 `CORS_ORIGINS` 白名单中），因此代理必须保留原始 `Host`。
-- **请求体大小**：应用允许的请求体上限默认为 16MB（`MAX_CONTENT_LENGTH`），导入文件上限为 5MB。Nginx 的 `client_max_body_size` 默认只有 1MB，需要相应调大。
+- **请求体大小**：应用允许的请求体上限默认为 16MB（`BODY_LIMIT`），导入文件上限为 5MB。Nginx 的 `client_max_body_size` 默认只有 1MB，需要相应调大。
 - **流式响应**：AI 对话使用 SSE，应用已在响应头中设置 `X-Accel-Buffering: no` 关闭 Nginx 缓冲。
 
 Nginx 配置示例（假设 `APP_PORT=5000`）：
@@ -227,7 +227,7 @@ server {
 }
 ```
 
-HTTPS 证书可以使用 Let's Encrypt（例如 Certbot 的 Nginx 插件）申请。启用 HTTPS 后，也可以在 `.env.production` 中显式设置 `SESSION_COOKIE_SECURE=true`。
+HTTPS 证书可以使用 Let's Encrypt（例如 Certbot 的 Nginx 插件）申请。启用 HTTPS 后，也可以在 `.env.production` 中显式设置 `COOKIE_SECURE=true`。
 
 ::: tip 只通过代理访问
 使用反向代理时，可以把 `docker-compose.yml` 中的端口映射改为只绑定本机（如 `"127.0.0.1:${APP_PORT:-8080}:5000"`），避免绕过代理直接访问。

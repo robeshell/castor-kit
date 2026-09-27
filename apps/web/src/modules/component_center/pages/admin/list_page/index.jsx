@@ -258,7 +258,7 @@ const buildConditionPayload = (items = []) => ({
     .filter((item) => item.field && item.operator),
 })
 
-/** Returns the JSON parse error message, or null when valid (empty text is treated as '{}', same as the old page) */
+/** Returns the JSON parse error message, or null when valid (empty text is treated as '{}') */
 const jsonError = (text) => {
   try {
     JSON.parse(text || '{}')

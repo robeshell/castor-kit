@@ -17,7 +17,7 @@ castor-kit 的目标是：你用自然语言描述业务需求，AI 编程工具
 
 各工具的专属配置文件只做补充，并都指回 `AGENTS.md`。修改项目约定时，应当先改 `AGENTS.md`。
 
-更深入的架构说明在 `docs/architecture.md`，前端 UI 方案在 `docs/frontend-redesign-plan.md`。
+更深入的架构说明在 `docs/architecture.md`，前端 UI 方案在 `docs/frontend-design-system.md`。
 
 ## 支持的 AI 工具
 
@@ -250,7 +250,6 @@ pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout
 | `backend_file` | 后端 routes / repository / service 文件存在 |
 | `data_scope_filter` | `schema.ts` 声明了 `DATA_SCOPE` 的模块，repository 必须用 `dataScopeWhere` 过滤；未声明时跳过 |
 | `frontend_page` | 前端页面文件存在 |
-| `frontend_no_legacy_ui` | 页面目录不使用 `@douyinfe/*`、`var(--semi-*)` 等已下线的 UI 体系 |
 | `frontend_api` | 前端 API 文件存在 |
 | `router_registration` | 路由已在 `src/router.ts` 或域 `router.ts` 注册 |
 | `schema_registration` | 表定义已在 `db/schema/index.ts` 注册 |

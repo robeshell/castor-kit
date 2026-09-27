@@ -8,7 +8,7 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 
 - [Agent Rules](./AGENTS.md)
 - [Architecture](./docs/architecture.md)
-- [Frontend Redesign Plan (shadcn/ui)](./docs/frontend-redesign-plan.md)
+- [Frontend Redesign Plan (shadcn/ui)](./docs/frontend-design-system.md)
 - [OpenAPI Source](./docs/apifox-full.openapi.json)
 - [OpenAPI Generator](./apps/api/scripts/generate-openapi.ts)
 - [Apifox Push Script](./apps/api/scripts/import-apifox.ts)
@@ -33,7 +33,7 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 - Database migrations: `apps/api/drizzle/` (drizzle-kit generate, journal in `apps/api/drizzle/meta/_journal.json`)
 - Engineering scripts: `apps/api/scripts/`
 - Shared capabilities: `apps/api/src/common/`
-- Permission helper baseline: `apps/api/src/common/auth.ts` (`hasMenuPermission` as default API permission check)
+- Permission helper: `apps/api/src/common/auth.ts` (`hasMenuPermission` as default API permission check)
 
 ## Tech Stack
 
@@ -60,7 +60,7 @@ It is a pnpm monorepo: Fastify 5 + Zod + Drizzle backend on PostgreSQL, React 19
 - Shared business components (PageHeader, DataTable, Filters, FormDialog, FormFields, ConfirmAction, StatusBadge, …): `apps/web/src/shared/components/`
 - Shared import/export UI: `apps/web/src/shared/components/data-transfer/` (ImportDialog / ExportDialog)
 - Shared API client/utilities: `apps/web/src/shared/api/request.js`, `apps/web/src/shared/utils/file.js`, `apps/web/src/lib/` (toast, format, motion, chart-theme)
-- Forbidden in pages: `@douyinfe/*` imports, `var(--semi-*)`, hard-coded hex colors (use Tailwind semantic classes)
+- Pages use only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes; no other UI component library (antd, MUI, etc.) and no hard-coded hex colors
 
 ## Definition of Done
 

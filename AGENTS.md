@@ -6,7 +6,7 @@
 > 各工具专属配置：`CLAUDE.md`（Claude Code）| `CODEX.md`（Codex CLI）| `.cursor/rules/`（Cursor）| `.github/copilot-instructions.md`（Copilot）| `.windsurfrules`（Windsurf）| `llms.txt`（入口索引）
 > 架构说明：`docs/architecture.md`（技术栈、分层与反模式、横切约定、迁移、工具链、部署、设计决定）。
 > 功能路线图：`docs/roadmap.md`（计划中的新功能及其数据模型、接口、验收标准；实现其中任何一项前先读对应章节，完成后更新状态）。
-> 前端 UI 方案：`docs/frontend-redesign-plan.md`（Semi Design → shadcn/ui + Tailwind CSS v4 + motion，设计 tokens 与公共组件约定）。
+> 前端 UI 方案：`docs/frontend-design-system.md`（shadcn/ui + Tailwind CSS v4 + motion 的设计 tokens 与公共组件约定）。
 
 ---
 
@@ -16,7 +16,7 @@
 
 目标：PM 用自然语言描述业务意图 → AI Agent 自动推断技术决策 → 展示业务预览供确认 → 端到端交付符合规范的新功能模块（数据表、接口、页面、权限、迁移）。
 
-castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle + PostgreSQL），前端 `apps/web`（React 19 + **shadcn/ui + Tailwind CSS v4 + motion**，见 `docs/frontend-redesign-plan.md`），`apps/mcp` 把 scaffold / verify / seed / 迁移等工具链暴露给 MCP Client。整体架构与设计决定见 `docs/architecture.md`。
+castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle + PostgreSQL），前端 `apps/web`（React 19 + **shadcn/ui + Tailwind CSS v4 + motion**，见 `docs/frontend-design-system.md`），`apps/mcp` 把 scaffold / verify / seed / 迁移等工具链暴露给 MCP Client。整体架构与设计决定见 `docs/architecture.md`。
 
 ---
 
@@ -72,7 +72,7 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 
 **开发环境：**
 - 端口：api 5001、web 5173（Vite proxy 把 `/api`、`/ws` 转发到 5001）；测试环境 5002；生产 5000
-- 数据库：`postgresql://wangwenyu@localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`；未设置时默认 `postgresql://localhost/castor_kit_dev`）
+- 数据库：`postgresql://localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`，未设置时也是它）
 - 本地配置：`apps/api/.env.development`（参考 `apps/api/.env.example`，已被 gitignore；仓库根目录的 `.env.<NODE_ENV>` 也会被读取）
 - 默认账号：`admin` / `admin123`
 - 测试库：`createdb -T castor_kit castor_kit_test`（克隆）或 `createdb castor_kit_test`（空库，测试会自动执行迁移）；`pnpm test`
@@ -164,7 +164,7 @@ castor-kit/
 │   └── mcp/                           # @castor-kit/mcp —— MCP Server（src/index.ts）
 ├── docs/
 │   ├── architecture.md                # 架构说明
-│   ├── frontend-redesign-plan.md      # 前端 UI 方案（Semi → shadcn/ui）
+│   ├── frontend-design-system.md      # 前端设计系统（shadcn/ui）
 │   ├── apifox-full.openapi.json       # OpenAPI 文档（写法见「OpenAPI 编写规范」）
 │   ├── spec.schema.json               # scaffold --spec 规格的 JSON Schema（pnpm scaffold -- --write-schema 生成）
 │   ├── examples/specs/                # 「一句需求 → spec」示例（README.md 写逐字段推断理由）
@@ -251,7 +251,7 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 
 - 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），**先做权限检查（403）再 `service.getOr404(id)`（404）**：没有权限的人不能靠 404 / 403 的差别试探某个 id 是否存在；有权限但不在数据权限范围内的记录同样返回 404。`test/conventions.test.ts` 会检查所有路由、后端模板和 scaffold 生成的路由
 - 请求体：在 `schema.ts` 用 `z.object({ name: field.requiredText('名称', '名称不能为空'), sort_order: field.int('排序', 0), … })` 声明，路由在权限检查之后调用 `parseBody(schema, request.body)`（新建，缺省字段取默认值）/ `parsePatch(schema, request.body)`（编辑，只含请求里出现的字段），service 拿到的是已校验、有类型的值（样板：`modules/admin/dicts`）。`pnpm scaffold` 生成的模块也是这套写法（导入行经 `rowToBody` 转成请求体形状，走同一份声明）。只收 JSON 原生类型：文本是字符串（去首尾空白），整数是 number，布尔是 true / false，不做 `'1'` → 1 之类的隐式转换。需要登录或权限的路由不要用 `schema: { body }`——它在登录与权限检查之前执行，会把 401 / 403 变成 400（登录这类无需登录的接口可以用）
-- 用 JavaScript / Node 的标准做法：`JSON.stringify` / `JSON.parse`、`new URL()`、请求体用 Zod 声明（`common/validation.ts`），不要自己重写其他语言或框架的行为（真值判断、字符串格式化、日期解析等）
+- 用 JavaScript / Node 的标准做法：`JSON.stringify` / `JSON.parse`、`new URL()`、请求体用 Zod 声明（`common/validation.ts`），不要自己模仿其他语言或框架的行为（真值判断、字符串格式化、日期解析等）
 - 查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`；查询参数和导入单元格永远是文本，用 `@/common/validation` 的 `parseYesNo` / `parseIntText` / `parseNumberText` 解析
 
 ### OpenAPI 编写规范
@@ -260,7 +260,7 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 
 | 项 | 要求 |
 |---|---|
-| 路径键 | 与路由同名的 OpenAPI 写法：`intParam('user_id')` → `/api/admin/users/{user_id}`；一个路径只写一份；不用旧写法 `{int:x}` |
+| 路径键 | 与路由同名的 OpenAPI 写法：`intParam('user_id')` → `/api/admin/users/{user_id}`；一个路径只写一份；路径参数写成 `{x}`，不带类型前缀 |
 | 方法 | 小写（`get` / `post` / `put` / `patch` / `delete`） |
 | `summary` | 简短的中文动作：「新增部门」「部门列表」「导出公告」「下载导入模板」；不写方法和路径，不夹英文标识符（`创建users` 这类自动生成的不合格） |
 | `description` | 中文：所需权限（「需要 system_users_add」/「需要以下之一：…」/「登录即可」/「公开，无需登录」）、是否按数据权限过滤、值得知道的行为（副作用、事件、关键校验、404 的含义） |
@@ -308,7 +308,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
            <domain>_<resource>_import        （标准列表页必有）
 ```
 
-> 历史遗留：组件示例中心的 31/33/34/35/36/37 号菜单使用 `system_*` 编码（如 `system_list_page`），已入库勿改；新 component_center 模块一律 `cc_<name>`（与 scaffold 的 Perm prefix 一致）。
+> 组件示例中心的页面一律 `cc_<分组>_<页面>`（如 `cc_admin_kanban_page`），系统管理一律 `system_<页面>`；scaffold 生成的模块用它输出的 Perm prefix（`<域前缀>_<name>`）。
 
 ### 新增域注册
 
@@ -336,7 +336,7 @@ function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_l
 
 ## 前端架构约定
 
-前端由动态路由（`App.jsx`）、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面组成；UI 体系见 `docs/frontend-redesign-plan.md`：**shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言为 JavaScript（JSX），文案中文。
+前端由动态路由（`App.jsx`）、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面组成；UI 体系见 `docs/frontend-design-system.md`：**shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言为 JavaScript（JSX），文案中文。
 
 ### 动态路由机制
 
@@ -391,7 +391,8 @@ export const importItems = (file) => {
 ### UI 组件规范
 
 - **组件体系**：shadcn/ui 原子组件（`@/components/ui/*`，源码在仓库里，可按需改）+ 业务公共组件（`@/shared/components/*`）；图标只用 `lucide-react`
-- **禁止**：`@douyinfe/*`（Semi 已下线）、antd / material-ui 等其他 UI 库、`var(--semi-*)`、页面里写死十六进制颜色（例外：canvas / WebGL 内部着色、图表数据色——图表先用 `useChartColors`）、大段 inline style 做布局、emoji 当图标
+- **只用** `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类；不引入其他 UI 组件库（antd、MUI 等）
+- **禁止**：页面里写死十六进制颜色（例外：canvas / WebGL 内部着色、图表数据色——图表先用 `useChartColors`）、大段 inline style 做布局、emoji 当图标
 - **参考实现**：`apps/web/src/modules/admin/pages/users/index.jsx`（标准 CRUD 列表页）、`apps/web/src/modules/admin/pages/dashboard/index.jsx`（卡片 / 图表 / 动效）、`apps/web/src/modules/admin/pages/profile/index.jsx`（表单页）；模板见 `docs/templates/frontend/`
 - **文档优先**：实现 shadcn 组件前先查 shadcn/ui 官方文档（https://ui.shadcn.com/docs/components ，有 shadcn MCP 时优先用它）；技能说明见 `.claude/skills/shadcn-ui-skills/SKILL.md`。文档与仓库现有实现冲突时以仓库为准（`components/ui` 里的组件可能已按本项目 tokens 调整过）
 
@@ -437,7 +438,7 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 | `file` / `image` | `FormFileUpload` / `FormImageUpload` | 「查看」链接 / 缩略图（`fileUrl(id)`） | `null` |
 | 枚举 / 状态（手写） | `FormSelect` / `FormRadioGroup` | `StatusBadge` + tone 映射 | - |
 
-**设计 tokens 与动效**（详见 `docs/frontend-redesign-plan.md` §3）：
+**设计 tokens 与动效**（详见 `docs/frontend-design-system.md` §2）：
 
 - 颜色一律用语义类：`bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`；只用语义类，暗色模式（`<html class="dark">`）天然正确
 - 强调色可由用户在顶栏「外观设置」切换（预设见 `src/lib/appearance.js`，默认 Ocean；`index.css` 的 `[data-accent]` 预设只定义 `--brand-from/via/to`，`--primary`、`--ring`、图表色、`brand-soft/glow/shadow` 都由这三个派生）。页面里一律用 `primary` / `brand-*` 语义类，不要写死某个强调色，否则切换后不跟随。导航模式（侧边栏 / 顶部 / 混合）、侧边栏样式、内容宽度也在同一面板，由 `AppLayout` 处理，页面无需关心
@@ -446,7 +447,7 @@ lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning
 - 间距用 Tailwind（`space-y-4` / `gap-4`），数字 `tabular-nums`；移动端（<768px）不能横向撑破（表格容器横向滚动）
 - 动效克制：交互 150–250ms ease-out；列表错峰入场、指示条 layoutId、数字滚动、弹层进出已由公共组件提供；`prefers-reduced-motion` 已全局处理
 
-**菜单图标**：`menus.icon` 存的是历史 Semi 图标名（如 `IconUser`），由 `apps/web/src/lib/menu-icons.js` 映射到 lucide；新增菜单沿用映射表里已有的名字，需要新图标时在映射表补一条。
+**菜单图标**：`menus.icon` 存 lucide 图标名（如 `Users`、`Settings`），由 `apps/web/src/lib/menu-icons.js` 解析成 lucide 组件；新增菜单沿用映射表里已有的名字，需要新图标时在映射表补一条。
 
 ### 多语言（i18n）与代码注释
 
@@ -549,7 +550,7 @@ user_roles：用户-角色 多对多（复合主键）
 
 ```
 系统管理分组（parent_id=2）：  ID 201-209（组织权限 201 / 安全审计 202 / 系统配置 203 / 内容消息 204）
-系统管理页面（parent_id=分组）：ID 21-39 已用满；新页面从 2001 开始（消息通知/公告为历史遗留 100002/100003；页面挂在分组下，不直接挂 2）
+系统管理页面（parent_id=分组）：ID 21-39；新页面从 2001 开始（页面挂在分组下，不直接挂 2）
 组件示例中心（parent_id=3）：  ID 40-499
   管理系统（parent_id=40）：   ID 401-409
   数据可视化（parent_id=41）： ID 411-419
@@ -560,12 +561,12 @@ user_roles：用户-角色 多对多（复合主键）
 新业务域菜单：                  从 1000 开始（ID 1000 = 「业务管理」目录 code `biz`，scaffold --spec 第一次登记菜单时创建；生成的模块 1001–1999，按钮 = ID × 10 + 1…5）
 ```
 
-> **取 ID 前先查实际占用**，不要按「区间里的下一个数」推算——区间里夹着历史遗留 ID：31、33–37 属于组件示例中心，32 是定时任务，都落在系统管理的 21–39 区间里。
+> **取 ID 前先查实际占用**，不要按「区间里的下一个数」推算：
 > ```bash
 > grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
 > ```
 
-> 注：`31/33/34/35/36/37`（组件页）与 `100002/100003`（系统管理）为历史遗留 ID，与现行区间不符但已入库并被 role_menus 引用，勿重排；新菜单请严格遵循上述区间。按钮权限 ID 在 `MENUS_DATA` 中写死，规则为「菜单 ID × 10 + 序号」（如用户管理 21 → 211 新增 / 212 编辑 / 213 删除 / 214 导出 / 215 导入 / 216 启用停用；拖拽看板 401 → 4011…；消息通知 100002 → 1000021…）。
+> 新菜单严格遵循上述区间。按钮权限 ID 在 `MENUS_DATA` 中写死，规则为「菜单 ID × 10 + 序号」（如用户管理 21 → 211 新增 / 212 编辑 / 213 删除 / 214 导出 / 215 导入 / 216 启用停用；拖拽看板 401 → 4011…）。
 
 ---
 
@@ -609,8 +610,8 @@ AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 
 ❌ db/schema 内写业务逻辑（只放 pgTable + toDict）
 ❌ 直接 Date#toISOString() 输出时间（必须用 @/common/serialize 的 toIso）
 ❌ toDict() 里把 numeric 转成数字（保持字符串）
-❌ 前端导入 @douyinfe/*（Semi 已下线；verify 的 frontend_no_legacy_ui 会拦截）或引入 antd / material-ui 等其他 UI 库
-❌ 前端用 var(--semi-*)、写死十六进制颜色、大段 inline style 布局（用 Tailwind 语义类）
+❌ 前端引入其他 UI 组件库（antd、MUI 等）：只用 @/components/ui/*、@/shared/components/*、lucide-react 与 Tailwind 语义色类
+❌ 前端写死十六进制颜色、大段 inline style 布局（用 Tailwind 语义类）
 ❌ 页面各写一套表格 / 弹窗 / 确认框（必须复用 DataTable / FormDialog / ConfirmAction / ImportDialog / ExportDialog）
 ❌ 前端用 fetch/XMLHttpRequest 写请求（必须用 @/shared/api/request）
 ❌ 硬编码菜单 ID（先查菜单树取下一个可用 ID）
@@ -758,7 +759,7 @@ pnpm mcp
 
 ## MCP Server
 
-`apps/mcp/src/index.ts` 把工具链暴露为 MCP 协议，工具：`get_project_context` / `get_menu_tree` / `get_spec_guide`（spec 的 JSON Schema 与需求 → spec 示例）/ `validate_spec` / `scaffold_feature`（传 `spec` 或旧的 `name` + `fields`）/ `check_openapi` / `run_verify` / `init_rbac` / `run_migration` / `list_templates`。
+`apps/mcp/src/index.ts` 把工具链暴露为 MCP 协议，工具：`get_project_context` / `get_menu_tree` / `get_spec_guide`（spec 的 JSON Schema 与需求 → spec 示例）/ `validate_spec` / `scaffold_feature`（传 `spec` 或简写的 `name` + `fields`）/ `check_openapi` / `run_verify` / `init_rbac` / `run_migration` / `list_templates`。
 
 Claude Desktop 配置（`claude_desktop_config.json`）：
 ```json
@@ -795,24 +796,24 @@ ID=2   系统管理 (system)
     ID=39  Webhook → /system/webhooks → admin/webhooks（按钮 391 新增 / 392 编辑 / 393 删除 system_webhooks_*）
   ID=204 内容消息 (system_group_content)
     ID=27  文件管理 → /system/files → admin/files
-    ID=100002 消息通知 → /system/notifications → admin/notifications
-    ID=100003 公告管理 → /system/announcements → admin/announcement_page
+    ID=30  消息通知 → /system/notifications → admin/notifications
+    ID=31  公告管理 → /system/announcements → admin/announcement_page
 ID=3   组件示例中心 (component_center)
   ID=40  管理系统 (cc_admin)
-    ID=31  列表页 → /component-center/list-page → component_center/admin/list_page
-    ID=33  统计列表页 → /component-center/stats-list-page → component_center/admin/stats_list_page
-    ID=34  卡片列表页 → /component-center/card-list-page → component_center/admin/card_list_page
-    ID=35  树形列表页 → /component-center/tree-list-page → component_center/admin/tree_list_page
-    ID=36  动态表单页 → /component-center/dynamic-form-page → component_center/admin/dynamic_form_page
-    ID=401 拖拽看板页 → /component-center/admin/kanban → component_center/admin/kanban_page
-    ID=402 详情标签页 → /component-center/admin/detail-tabs → component_center/admin/detail_tabs_page
-    ID=403 甘特图页 → /component-center/admin/gantt → component_center/admin/gantt_page
-    ID=404 高级表格页 → /component-center/admin/advanced-table → component_center/admin/advanced_table_page
+    ID=401 列表页 (cc_admin_list) → /component-center/list-page → component_center/admin/list_page
+    ID=402 统计列表页 (cc_admin_stats_list) → /component-center/stats-list-page → component_center/admin/stats_list_page
+    ID=403 卡片列表页 (cc_admin_card_list) → /component-center/card-list-page → component_center/admin/card_list_page
+    ID=404 树形列表页 (cc_admin_tree_list) → /component-center/tree-list-page → component_center/admin/tree_list_page
+    ID=405 动态表单页 (cc_admin_dynamic_form) → /component-center/dynamic-form-page → component_center/admin/dynamic_form_page
+    ID=406 拖拽看板页 (cc_admin_kanban) → /component-center/admin/kanban → component_center/admin/kanban_page
+    ID=407 详情标签页 (cc_admin_detail_tabs) → /component-center/admin/detail-tabs → component_center/admin/detail_tabs_page
+    ID=408 甘特图页 (cc_admin_gantt) → /component-center/admin/gantt → component_center/admin/gantt_page
+    ID=409 高级表格页 (cc_admin_advanced_table) → /component-center/admin/advanced-table → component_center/admin/advanced_table_page
   ID=41  数据可视化 (cc_dataviz)
-    ID=37  数据大屏 → /component-center/dashboard-page → component_center/dataviz/dashboard_page
     ID=411 实时折线图 → /component-center/dataviz/realtime-chart → component_center/dataviz/realtime_chart_page
     ID=412 热力日历图 → /component-center/dataviz/heatmap → component_center/dataviz/heatmap_page
     ID=413 地图热力图 → /component-center/dataviz/map-heatmap → component_center/dataviz/map_heatmap_page
+    ID=414 数据大屏 (cc_dataviz_dashboard) → /component-center/dashboard-page → component_center/dataviz/dashboard_page
   ID=42  3D / 创意 (cc_3d)
     ID=421 粒子连线动画 → /component-center/creative/particle → component_center/creative/particle_canvas_page
     ID=422 CSS 3D 卡片 → /component-center/creative/css-3d → component_center/creative/css_3d_page
@@ -840,13 +841,13 @@ ID=3   组件示例中心 (component_center)
 
 - 项目名 `castor-kit`；命名一律小写连字符，不用驼峰、不用 Stack 后缀
 - 后端：Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino；不用 NestJS
-- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-redesign-plan.md`
+- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-design-system.md`
 - `.xls` 不支持，只支持 csv / xlsx
 - 密码哈希用 scrypt，存成 PHC 字符串 `$scrypt$ln=15,r=8,p=3$<盐>$<哈希>`（`common/password.ts`，异步；参数写在字符串里，调高参数后旧哈希照样能校验）
 - 会话：服务端会话表 `sessions` 是唯一事实源（可列出、可强制下线、改密码 / 停用 / 重置密码即失效）；`@fastify/secure-session` 的 cookie `castor_session` 只装 `{ sid, csrf_token }`，密钥用 HKDF 从 `SECRET_KEY` 派生。判断登录一律用 `common/session.ts` 的 `isSignedIn(request)`，不要读 cookie 字段
 - 配置分两层：服务启动前就要用的（数据库地址、`SECRET_KEY`、端口、调度器开关等）放环境变量；其余一律进系统设置（`common/settings.ts` 注册表 + `system_settings` 表）——功能开关、安全参数、邮件、文件存储、上传限制、AI 模型、网站地址。密钥类（`type: 'secret'`）用 `secret-box` 加密存储、从不回显；注册表项可声明 `env`，该环境变量非空时锁定取值（页面只读），变量名同时登记在 `common/settings-env.ts`。新功能需要配置时加注册表项，不要再加只能改环境变量的配置；读取用 `app.settings.get()`（热路径 `peek()`），邮件 / 存储这类客户端通过 `MailerProvider` / `StorageProvider` 按当前设置重建。改设置的接口（保存与测试）必须先过 `requireRecentAuth(request)`（10 分钟内登录或 `/api/admin/reauth` 验证过身份），保存后通知所有超级管理员；会让服务器主动连接的地址类设置要在保存和测试时过 `common/outbound.ts` 的检查（保留地址始终拒绝，内网看 `SETTINGS_ALLOW_PRIVATE_NETWORK`）
 - 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T`、小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0）、末尾加 `Z`；写库用 `utcNow()`（`timezone('utc', now())`），应用侧生成的当前时间用 `utcNowIso()`（接口）/ `utcNowText()`（写库）
-- cron 匹配器自研（日/周为 AND 语义，与标准 cron 的 OR 不同），不用 `cron-parser`
+- cron 匹配器自研，标准 5 段语义：日与周同时受限时取 OR（与 Vixie cron 一致）
 - 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
 - 操作日志用全局 `onResponse` hook 集中写，不散到 service
 - AI 小助手（`modules/admin/assistant`）的工具一律经 `app.inject` 带着当前用户的 cookie / CSRF 调用自己的接口，权限、数据权限、演示模式限制和操作日志都由原接口负责；不要给它加直连数据库或绕过路由的工具。写操作必须 `needsApproval`（审批请求用 `SECRET_KEY` 派生的密钥签名）；账号安全、系统设置、导入导出等不开放的接口登记在 `catalog.ts` 的 `ASSISTANT_DENIED`

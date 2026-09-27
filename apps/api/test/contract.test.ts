@@ -23,7 +23,7 @@ import {
   type Fixture,
 } from './helpers'
 
-/** API time format: UTC without an offset; the fraction has 6 digits, or is left out when it is 0 */
+/** API time format: ISO 8601 in UTC, six fraction digits and Z */
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/
 
 let app: FastifyInstance
@@ -88,16 +88,7 @@ describe('内置路由与错误形状', () => {
   it('未登录访问受保护接口 → 401 带 redirect', async () => {
     const res = await app.inject('/api/admin/me')
     expect(res.statusCode).toBe(401)
-    expect(res.json()).toEqual({ error: '未授权访问', redirect: '/admin/login' })
-  })
-
-  it('/admin/login 页面路由按登录态重定向', async () => {
-    const anon = await app.inject('/admin/login')
-    expect(anon.statusCode).toBe(302)
-    expect(anon.headers.location).toBe('/')
-    const { cookie } = await loggedIn()
-    const authed = await app.inject({ url: '/admin/login', cookies: { castor_session: cookie } })
-    expect(authed.headers.location).toBe('/admin')
+    expect(res.json()).toEqual({ error: '未授权访问', redirect: '/login' })
   })
 })
 
@@ -117,6 +108,8 @@ describe('登录 / 会话', () => {
   })
 
   it('登录成功：形状、csrf_token、cookie 属性，并清零失败计数', async () => {
+    // The user in the response is read before this sign-in is recorded: sign in once first so last_login_at has a value
+    expect((await login()).statusCode).toBe(200)
     const res = await login()
     expect(res.statusCode).toBe(200)
     const body = res.json()

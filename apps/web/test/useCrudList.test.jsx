@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 /** useCrudList hook behavior tests (focus: page number falling back and converging after deleting the last item on the last page) */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'

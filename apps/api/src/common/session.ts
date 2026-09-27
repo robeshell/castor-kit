@@ -21,8 +21,8 @@ import type { Executor } from '@/db/client'
 import { sessions, type SessionRow } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
 
-/** Paths that read the session (API, WebSocket, the /admin/login redirect) */
-const SESSION_PATHS = /^\/(api|ws|admin)(\/|$)/
+/** Paths that read the session (API, WebSocket) */
+const SESSION_PATHS = /^\/(api|ws)(\/|$)/
 
 /** How often last_seen_at / expires_at are refreshed for an active session */
 const TOUCH_INTERVAL_SECONDS = 60

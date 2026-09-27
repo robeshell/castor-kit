@@ -1,7 +1,7 @@
 # 设计 tokens 与动效规范
 
 视觉方向：简洁、动效丝滑、偏英文 SaaS 风格（Linear / Vercel / Stripe）。中性灰为底，**Ocean 渐变（blue → sky → cyan）是唯一强调色**，渐变只做点缀，不用紫色。
-tokens 定义在 `apps/web/src/index.css`（`:root` 亮色、`.dark` 暗色，`@theme inline` 暴露给 Tailwind），完整说明见 `docs/frontend-redesign-plan.md` §3。
+tokens 定义在 `apps/web/src/index.css`（`:root` 亮色、`.dark` 暗色，`@theme inline` 暴露给 Tailwind），完整说明见 `docs/frontend-design-system.md` §2。
 
 ## 颜色：只用语义类
 

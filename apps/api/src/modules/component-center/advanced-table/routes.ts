@@ -20,14 +20,14 @@ export async function registerAdvancedTableRoutes(app: FastifyInstance): Promise
   const itemId = (request: FastifyRequest) => parseIntParam((request.params as { item_id: string }).item_id)
 
   app.get(`${BASE}/stats`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_advanced_table'))) {
       return reply.status(403).send({ error: '无权限查看统计数据' })
     }
     return service.getStats()
   })
 
   app.get(`${BASE}/rows`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'cc_admin_advanced_table_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_advanced_table'))) {
       return reply.status(403).send({ error: '无权限查看数据' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)

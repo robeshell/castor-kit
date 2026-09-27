@@ -120,7 +120,7 @@ export function lintOpenApi(doc: unknown, routes: Map<string, string[]>): LintIs
   for (const [path, entry] of Object.entries(paths)) {
     if (!path.startsWith('/api/')) continue
     shapes.set(shapeOf(path), [...(shapes.get(shapeOf(path)) ?? []), path])
-    if (/\{[^}]*:[^}]*\}/.test(path)) issues.push({ rule: 'path-key', operation: path, message: '旧写法 {int:x} / {path:x}，改成 {x}（与路由参数同名）' })
+    if (/\{[^}]*:[^}]*\}/.test(path)) issues.push({ rule: 'path-key', operation: path, message: '路径参数不要带类型前缀，写成 {x}（与路由参数同名）' })
     if (!isObject(entry)) continue
     for (const key of Object.keys(entry)) {
       if (key !== key.toLowerCase() && (METHODS as readonly string[]).includes(key.toLowerCase())) {

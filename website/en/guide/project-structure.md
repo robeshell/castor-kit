@@ -14,7 +14,7 @@ castor-kit/
 │   └── mcp/                  # @castor-kit/mcp: MCP Server
 ├── docs/
 │   ├── architecture.md       # Architecture notes and design decisions
-│   ├── frontend-redesign-plan.md  # Frontend UI system (shadcn/ui)
+│   ├── frontend-design-system.md  # Frontend UI system (shadcn/ui)
 │   ├── apifox-full.openapi.json   # OpenAPI document
 │   ├── spec.schema.json      # JSON Schema of module specs (scaffold --spec)
 │   ├── examples/specs/       # Requirement → spec examples

@@ -11,7 +11,7 @@ import { admin_users, type AdminUserWithRoles } from '@/db/schema'
 import { userHasMenuCode } from './rbac'
 import { clearSession, isSignedIn } from './session'
 
-const LOGIN_PAGE = '/admin/login'
+const LOGIN_PAGE = '/login'
 
 function isApiRequest(request: FastifyRequest): boolean {
   return request.url.startsWith('/api/')

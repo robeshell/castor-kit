@@ -163,10 +163,11 @@ describe('新增', () => {
     expect(body.timeout_seconds).toBe(10)
     expect(body.is_active).toBe(true)
     expect(body.request_headers).toBe('{"b":1,"a":[1,"x"]}')
-    // Day-of-month and day-of-week are ANDed: the next day that is both the 1st and a Monday
-    expect(body.next_run_at).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000000Z$/)
-    const [y, m] = body.next_run_at.split('-').map(Number)
-    expect(new Date(Date.UTC(y, m - 1, 1)).getUTCDay()).toBe(1)
+    // Day-of-month and day-of-week both restricted: the next midnight that is the 1st or a Monday (at most a week away)
+    expect(body.next_run_at).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000000Z$/)
+    const next = new Date(body.next_run_at)
+    expect(next.getUTCDate() === 1 || next.getUTCDay() === 1).toBe(true)
+    expect(next.getTime() - Date.now()).toBeLessThanOrEqual(7 * 24 * 3600 * 1000)
   })
 
   it('校验失败 400 与错误文案', async () => {

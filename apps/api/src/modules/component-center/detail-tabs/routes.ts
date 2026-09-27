@@ -19,7 +19,7 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
   const memberId = (request: { params: unknown }) => parseIntParam((request.params as { member_id: string }).member_id)
 
   app.get(`${BASE}/members`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     const search = queryString(request, 'search', '').trim() || null
@@ -34,7 +34,7 @@ export async function registerDetailTabsRoutes(app: FastifyInstance): Promise<vo
   })
 
   app.get(`${BASE}/members/${intParam('member_id')}`, opts, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs_page'))) {
+    if (!(await hasMenuPermission(request, 'cc_admin_detail_tabs'))) {
       return reply.status(403).send({ error: '无权限' })
     }
     const member = await service.getMemberOr404(memberId(request))

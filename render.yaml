@@ -27,7 +27,7 @@ services:
         value: "true"
       - key: DEMO_RESET_HOURS
         value: "24"
-      - key: SESSION_COOKIE_SECURE
+      - key: COOKIE_SECURE
         value: "true"
       - key: RUN_SCHEDULER_IN_WEB
         value: "true"

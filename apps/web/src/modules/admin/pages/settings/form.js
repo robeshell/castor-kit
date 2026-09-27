@@ -61,7 +61,7 @@ export const FIELD_META = {
     description: '自动：填了接口地址时用路径风格（MinIO 等自建服务需要）',
     options: { auto: '自动', path: '路径风格', virtual: '虚拟主机风格' },
   },
-  'upload.max_size': { label: '单个文件上限', description: '同时受服务器请求体上限 MAX_CONTENT_LENGTH 限制', unit: 'MB', input: 'mb' },
+  'upload.max_size': { label: '单个文件上限', description: '同时受服务器请求体上限 BODY_LIMIT 限制', unit: 'MB', input: 'mb' },
   'upload.allowed_types': { label: '允许的文件类型', description: '扩展名，回车添加；上传时还会检查文件内容与扩展名是否一致', placeholder: '如 pdf', input: 'tags' },
 
   'ai.provider': {

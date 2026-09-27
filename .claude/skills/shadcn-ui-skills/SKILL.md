@@ -5,8 +5,8 @@ description: castor-kit 前端（apps/web）的 shadcn/ui + Tailwind CSS v4 + mo
 
 # shadcn/ui 使用指南（castor-kit）
 
-castor-kit 的前端已从 Semi Design 整体迁移到 **shadcn/ui（new-york，Radix）+ Tailwind CSS v4 + motion + lucide-react**，语言是 JavaScript（JSX），文案中文。
-完整方案：`docs/frontend-redesign-plan.md`；项目约定：`AGENTS.md`「前端架构约定」。
+castor-kit 的前端基于 **shadcn/ui（new-york，Radix）+ Tailwind CSS v4 + motion + lucide-react**，语言是 JavaScript（JSX），文案中文。
+设计系统：`docs/frontend-design-system.md`；项目约定：`AGENTS.md`「前端架构约定」。
 
 ## 文件说明
 
@@ -36,12 +36,12 @@ castor-kit 的前端已从 Semi Design 整体迁移到 **shadcn/ui（new-york，
 
    脚本起一个 Node 本地中转（curl 走系统代理拉 https://ui.shadcn.com/r/…），清掉 `HTTP(S)_PROXY` 后用 `REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add …` 执行，
    结束后关闭中转；还会把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils` 并撤掉误装的 `cn` 包。新增后 `git diff apps/web/package.json` 确认依赖变化，组件里的颜色改成语义类。
-5. **自检**：`cd apps/web && npx eslint <文件>` 零错误；`npx vite build` 通过；亮 / 暗两种主题、<768px 宽度都看一遍；`pnpm verify -- --module <name>` 的 `frontend_no_legacy_ui` 通过。
+5. **自检**：`cd apps/web && npx eslint <文件>` 零错误；`npx vite build` 通过；亮 / 暗两种主题、<768px 宽度都看一遍；`pnpm verify -- --module <name>` 通过。
 
 ## 禁止事项
 
-- ❌ 任何 `@douyinfe/*` 导入（Semi 已下线；verify 的 `frontend_no_legacy_ui` 会拦截）、antd / material-ui 等其他 UI 库
-- ❌ `var(--semi-*)`、页面里写死十六进制颜色（例外：canvas / three.js / WebGL 内部着色、图表数据色——图表先用 `useChartColors`）
+- ❌ 其他 UI 组件库（antd、MUI 等）：只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类
+- ❌ 页面里写死十六进制颜色（例外：canvas / three.js / WebGL 内部着色、图表数据色——图表先用 `useChartColors`）
 - ❌ 大段 inline style 做布局（用 Tailwind 类；只有动态数值可以用 style）
 - ❌ emoji 当图标（用 lucide-react）
 - ❌ 页面各写一套表格 / 弹窗 / 确认框 / 导入导出（复用公共组件）
@@ -49,4 +49,3 @@ castor-kit 的前端已从 Semi Design 整体迁移到 **shadcn/ui（new-york，
 - ❌ 花哨无意义的动画；忽略 `prefers-reduced-motion`
 - ❌ 在 `useEffect` 里同步 `setState`（eslint 的 react-hooks/set-state-in-effect 会报错；用 promise 回调或 `useCrudList`）
 - ❌ 直接 `fetch`（请求一律 `@/shared/api/request`，响应已 unwrap：`res.items` 而不是 `res.data.items`）
-- ❌ 引用已下线的旧公共组件：`@/shared/components/import-export/*`、`@/shared/components/upload/*UploadField`、`@/shared/styles`

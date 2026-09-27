@@ -157,11 +157,11 @@ describe('checkMigrationChain', () => {
 })
 
 describe('仓库里的 drizzle 迁移', () => {
-  it('journal 线性、每条都有 SQL 与快照，起点是 0000_baseline', () => {
+  it('journal 线性、每条都有 SQL 与快照，起点是 0000_init', () => {
     const res = checkMigrationChain(DRIZZLE_DIR)
     expect(res.error).toBeUndefined()
     expect(res.passed).toBe(true)
     const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf8')) as { entries: JournalEntry[] }
-    expect(journal.entries[0]!.tag).toBe('0000_baseline')
+    expect(journal.entries[0]!.tag).toBe('0000_init')
   })
 })

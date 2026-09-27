@@ -23,7 +23,7 @@ export const card_items = pgTable('card_items', {
   created_at: createdAt(),
   updated_at: updatedAt(),
 }, (table) => [
-  unique('card_items_card_code_key').on(table.card_code),
+  unique('card_items_card_code_unique').on(table.card_code),
 ])
 
 export type CardItem = typeof card_items.$inferSelect

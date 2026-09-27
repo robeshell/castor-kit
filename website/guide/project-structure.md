@@ -14,7 +14,7 @@ castor-kit/
 │   └── mcp/                  # @castor-kit/mcp：MCP Server
 ├── docs/
 │   ├── architecture.md       # 架构说明与设计决定
-│   ├── frontend-redesign-plan.md  # 前端 UI 体系（shadcn/ui）
+│   ├── frontend-design-system.md  # 前端 UI 体系（shadcn/ui）
 │   ├── apifox-full.openapi.json   # OpenAPI 文档
 │   ├── spec.schema.json      # 模块规格（scaffold --spec）的 JSON Schema
 │   ├── examples/specs/       # 「一句需求 → spec」示例

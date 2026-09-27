@@ -110,6 +110,6 @@ describe('dashboard', () => {
 
   it('未登录 → 401', async () => {
     const res = await app.inject({ url: '/api/admin/dashboard/stats' })
-    expect([res.statusCode, res.json()]).toEqual([401, { error: '未授权访问', redirect: '/admin/login' }])
+    expect([res.statusCode, res.json()]).toEqual([401, { error: '未授权访问', redirect: '/login' }])
   })
 })

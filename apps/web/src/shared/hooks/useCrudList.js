@@ -3,8 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 /**
  * Generic state machine for CRUD list pages: pagination + search + reset + loading state.
  *
- * List pages used to each copy their own fetchData/search/reset state machine, and the behavior tended to drift.
- * New pages should reuse this hook first:
+ * Keeps fetchData / search / reset behavior identical across list pages. Usage:
  *   const list = useCrudList((params) => listApi(params), { defaultPerPage: 20 })
  *   // list = { data, total, page, perPage, loading, filters,
  *   //          fetchData, handleSearch, handleReset, handlePageChange }

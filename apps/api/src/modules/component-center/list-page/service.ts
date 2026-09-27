@@ -15,16 +15,16 @@ import { buildTable, normalizeTableFileType, readTableFile, TableFileError, type
 import { exportColumns, parseIntText, parseYesNo } from '@/common/validation'
 import type { Db } from '@/db/client'
 import {
-  queryManagementToDict,
-  queryManagementVersionToDict,
-  type QueryManagement,
-  type QueryManagementVersion,
+  savedQueryToDict,
+  savedQueryVersionToDict,
+  type SavedQuery,
+  type SavedQueryVersion,
 } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
-import { ListPageRepository, type ListPageFilters, type QueryManagementUpdate } from './repository'
-import type { query_managements } from '@/db/schema'
+import { ListPageRepository, type ListPageFilters, type SavedQueryUpdate } from './repository'
+import type { saved_queries } from '@/db/schema'
 
-type NewQueryManagement = typeof query_managements.$inferInsert
+type NewSavedQuery = typeof saved_queries.$inferInsert
 import {
   buildErrorRow,
   EXPORT_FIELD_MAP,
@@ -61,8 +61,8 @@ export function listFilters(source: { search?: string | null; category?: string 
 }
 
 /** Column values for the fields present in `values` */
-function columns(values: Partial<ListPageInput>): Partial<NewQueryManagement> {
-  const set: Partial<NewQueryManagement> = {}
+function columns(values: Partial<ListPageInput>): Partial<NewSavedQuery> {
+  const set: Partial<NewSavedQuery> = {}
   for (const key of ['name', 'query_code', 'keyword', 'data_source', 'owner', 'priority', 'is_active', 'status', 'condition_logic', 'description'] as const) {
     if (values[key] !== undefined) (set as Record<string, unknown>)[key] = values[key]
   }
@@ -76,8 +76,8 @@ function columns(values: Partial<ListPageInput>): Partial<NewQueryManagement> {
   return set
 }
 
-function buildSnapshot(item: QueryManagement): string {
-  const { created_at: _c, updated_at: _u, ...payload } = queryManagementToDict(item)
+function buildSnapshot(item: SavedQuery): string {
+  const { created_at: _c, updated_at: _u, ...payload } = savedQueryToDict(item)
   return JSON.stringify(payload)
 }
 
@@ -100,9 +100,9 @@ export class ListPageService {
     }
   }
 
-  private async saveVersionSnapshot(repo: ListPageRepository, item: QueryManagement, action: string, operator: string) {
+  private async saveVersionSnapshot(repo: ListPageRepository, item: SavedQuery, action: string, operator: string) {
     await repo.insertVersion({
-      query_management_id: item.id,
+      query_id: item.id,
       version_no: item.version || 1,
       action,
       operator,
@@ -112,25 +112,25 @@ export class ListPageService {
 
   // ---- CRUD
 
-  async getOr404(id: number): Promise<QueryManagement> {
+  async getOr404(id: number): Promise<SavedQuery> {
     const item = await this.repo.getById(id)
     if (!item) throw notFound()
     return item
   }
 
-  async getVersionOr404(id: number): Promise<QueryManagementVersion> {
+  async getVersionOr404(id: number): Promise<SavedQueryVersion> {
     const version = await this.repo.getVersionById(id)
     if (!version) throw notFound()
     return version
   }
 
-  toDict(item: QueryManagement) {
-    return queryManagementToDict(item)
+  toDict(item: SavedQuery) {
+    return savedQueryToDict(item)
   }
 
   async listItems(page: number, perPage: number, filters: ListPageFilters) {
     const { total, items } = await this.repo.listPage(filters, page, perPage)
-    return { items: items.map(queryManagementToDict), total, page, per_page: perPage }
+    return { items: items.map(savedQueryToDict), total, page, per_page: perPage }
   }
 
   async createItem(values: ListPageInput) {
@@ -147,14 +147,14 @@ export class ListPageService {
       await this.saveVersionSnapshot(repo, created, 'create', values.operator ?? 'system')
       return created
     })
-    return queryManagementToDict(item)
+    return savedQueryToDict(item)
   }
 
-  async updateItem(item: QueryManagement, values: Partial<ListPageInput>) {
+  async updateItem(item: SavedQuery, values: Partial<ListPageInput>) {
     if (values.query_code !== undefined && (await this.repo.findDuplicateCode(values.query_code, item.id))) {
       throw new ServiceError('查询编码已存在', 400)
     }
-    const set: QueryManagementUpdate = columns(values)
+    const set: SavedQueryUpdate = columns(values)
     if (values.status === 'published' && !item.published_at) set.published_at = utcNow()
     set.version = (item.version || 1) + 1
 
@@ -163,10 +163,10 @@ export class ListPageService {
       await this.saveVersionSnapshot(repo, row, 'update', values.operator ?? 'system')
       return row
     })
-    return queryManagementToDict(updated)
+    return savedQueryToDict(updated)
   }
 
-  async deleteItem(item: QueryManagement) {
+  async deleteItem(item: SavedQuery) {
     await this.inTx((repo) => repo.delete(item.id))
     return { message: '删除成功' }
   }
@@ -206,13 +206,13 @@ export class ListPageService {
     }
   }
 
-  async listVersions(item: QueryManagement, page: number, perPage: number) {
+  async listVersions(item: SavedQuery, page: number, perPage: number) {
     const { total, items } = await this.repo.listVersionsPage(item.id, page, perPage)
-    return { items: items.map(queryManagementVersionToDict), total, page, per_page: perPage }
+    return { items: items.map(savedQueryVersionToDict), total, page, per_page: perPage }
   }
 
-  async rollbackVersion(item: QueryManagement, versionItem: QueryManagementVersion, operator: string) {
-    if (versionItem.query_management_id !== item.id) throw new ServiceError('版本不属于当前记录', 400)
+  async rollbackVersion(item: SavedQuery, versionItem: SavedQueryVersion, operator: string) {
+    if (versionItem.query_id !== item.id) throw new ServiceError('版本不属于当前记录', 400)
 
     // A snapshot is the record's dict at that version, so it reads like a request body
     let parsed: unknown = null
@@ -226,7 +226,7 @@ export class ListPageService {
     const values = snapshot.data
     if (await this.repo.findDuplicateCode(values.query_code, item.id)) throw new ServiceError('回滚后查询编码冲突', 400)
 
-    const set: QueryManagementUpdate = {
+    const set: SavedQueryUpdate = {
       ...columns(values),
       published_at: values.status === 'published' ? utcNow() : null,
       version: (item.version || 1) + 1,
@@ -236,7 +236,7 @@ export class ListPageService {
       await this.saveVersionSnapshot(repo, row, 'rollback', operator)
       return row
     })
-    return queryManagementToDict(updated)
+    return savedQueryToDict(updated)
   }
 
   // ---- Import/export
@@ -244,7 +244,7 @@ export class ListPageService {
   async exportItems(options: z.output<typeof listPageExportBody>) {
     const validFields = exportColumns(options.fields, EXPORT_FIELD_MAP)
 
-    let items: QueryManagement[]
+    let items: SavedQuery[]
     if (options.export_mode !== 'selected') {
       items = await this.repo.listFiltered(listFilters(options.filters))
     } else {

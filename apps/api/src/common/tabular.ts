@@ -2,7 +2,7 @@
  * Table file read/write (CSV / XLSX)
  *
  * - `.xls` is not supported: uploading .xls returns an explicit 400; export/template with file_type=xls falls back to the default csv
- * - CSV output uses the excel dialect: `\r\n` line endings, minimal quoting, UTF-8 BOM
+ * - CSV output is Excel-style CSV: `\r\n` line endings, minimal quoting, UTF-8 BOM
  * - Formula injection guard: cells starting with = + @ or tab/CR, or - followed by a non-digit, get a `'` prefix
  * - Import file limit is 5MB
  */
@@ -180,7 +180,7 @@ export async function readTableFile(file: UploadedFile | null | undefined): Prom
 
 // ---------------------------------------------------------------- Write
 
-/** Encode a single CSV field (excel dialect, minimal quoting) */
+/** Encode a single CSV field (Excel-style CSV, minimal quoting) */
 function csvField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
 }

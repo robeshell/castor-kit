@@ -1,8 +1,7 @@
 /**
  * scripts/verify-feature.ts
  *
- * Builds a minimal repo skeleton in a temp dir (module files, router, schema, seed, drizzle journal, frontend files, AGENTS.md);
- * frontend pages are additionally checked for leftovers of the old UI system (@douyinfe/*, var(--semi-*)).
+ * Builds a minimal repo skeleton in a temp dir (module files, router, schema, seed, drizzle journal, frontend files, AGENTS.md).
  * Verifies the pass / fail branches of each check, plus the --json output structure.
  * migration_applied connects to the real test database (TEST_DATABASE_URL).
  */
@@ -18,7 +17,6 @@ import {
   checkDataScopeFilter,
   checkDocPaths,
   checkFrontendApi,
-  checkFrontendNoLegacyUi,
   checkFrontendPage,
   checkMigrationApplied,
   checkMigrationChain,
@@ -57,14 +55,14 @@ function writeJournal(entries: { idx: number; when: number; tag: string }[]): vo
   )
 }
 
-/** Keep only the baseline migration: tests don't change as feature migrations are added to the repo */
-function trimDrizzleToBaseline(dir: string): void {
+/** Keep only the initial migration: tests don't change as feature migrations are added to the repo */
+function trimDrizzleToInitial(dir: string): void {
   const journalPath = join(dir, 'meta', '_journal.json')
   const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] }
-  const [baseline] = journal.entries
-  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${baseline!.tag}.sql`) rmSync(join(dir, f))
+  const [initial] = journal.entries
+  for (const f of readdirSync(dir)) if (f.endsWith('.sql') && f !== `${initial!.tag}.sql`) rmSync(join(dir, f))
   for (const f of readdirSync(join(dir, 'meta'))) if (/^\d{4}_snapshot\.json$/.test(f) && !f.startsWith('0000_')) rmSync(join(dir, 'meta', f))
-  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [baseline] }, null, 2))
+  writeFileSync(journalPath, JSON.stringify({ ...journal, entries: [initial] }, null, 2))
 }
 
 function baseFixture(): void {
@@ -83,9 +81,9 @@ function baseFixture(): void {
     'apps/api/scripts/seed-rbac.ts',
     `export const MENUS_DATA = [\n  { id: 39, name: "部件", code: "system_ck_widget", component: "admin/ck_widget" },\n]\n`,
   )
-  // drizzle: reuse the real baseline (hash matches the one recorded in the test database)
+  // drizzle: reuse the real initial migration (hash matches the one recorded in the test database)
   cpSync(join(API_DIR, 'drizzle'), join(root, 'apps/api/drizzle'), { recursive: true })
-  trimDrizzleToBaseline(join(root, 'apps/api/drizzle'))
+  trimDrizzleToInitial(join(root, 'apps/api/drizzle'))
   // Frontend
   put('apps/web/src/modules/admin/api/ck_widget.js', '')
   put('apps/web/src/modules/admin/pages/ck_widget/index.jsx', '')
@@ -140,41 +138,6 @@ describe('verify-feature 模块级检查', () => {
     expect(checkFrontendApi(ctx, 'nope').error).toBe(
       '未找到前端 API 文件，检查路径：apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/component_center/api/nope.js',
     )
-  })
-
-  it('frontend_no_legacy_ui：页面目录禁止 @douyinfe/*、var(--semi-*)、旧公共组件；页面不存在时跳过', () => {
-    expect(checkFrontendNoLegacyUi(ctx, 'ck_widget')).toEqual({
-      name: 'frontend_no_legacy_ui',
-      passed: true,
-      path: 'apps/web/src/modules/admin/pages/ck_widget',
-    })
-    expect(checkFrontendNoLegacyUi(ctx, 'nope')).toEqual({ name: 'frontend_no_legacy_ui', passed: true, skipped: true })
-
-    put(
-      'apps/web/src/modules/component_center/pages/admin/ck_legacy_page/index.jsx',
-      [
-        '// 从 Semi Design 迁移过来的页面（注释里提到 Semi 不算）',
-        "import { Button } from '@/components/ui/button'",
-        'import {',
-        '  Table,',
-        "} from '@douyinfe/semi-ui'",
-        "import ExportFieldsModal from '@/shared/components/import-export/ExportFieldsModal'",
-        '',
-      ].join('\n'),
-    )
-    put('apps/web/src/modules/component_center/pages/admin/ck_legacy_page/Side.jsx', "const s = { color: 'var(--semi-color-text-2)' }\n")
-    const bad = checkFrontendNoLegacyUi(ctx, 'ck_legacy')
-    expect(bad.passed).toBe(false)
-    expect(bad.error).toContain('Semi Design 已下线')
-    expect(bad.error).toContain('apps/web/src/modules/component_center/pages/admin/ck_legacy_page/index.jsx:5 导入 @douyinfe/*')
-    expect(bad.error).toContain('ck_legacy_page/index.jsx:6 引用已下线的旧公共组件')
-    expect(bad.error).toContain('ck_legacy_page/Side.jsx:1 使用 var(--semi-*)')
-    expect(bad.error).not.toContain('index.jsx:1 ')
-
-    put('apps/web/src/modules/component_center/pages/admin/ck_icons_page/index.jsx', "import '@douyinfe/semi-ui/dist/css/semi.min.css'\n")
-    expect(checkFrontendNoLegacyUi(ctx, 'ck_icons').passed).toBe(false)
-    rmSync(join(root, 'apps/web/src/modules/component_center/pages/admin/ck_legacy_page'), { recursive: true })
-    rmSync(join(root, 'apps/web/src/modules/component_center/pages/admin/ck_icons_page'), { recursive: true })
   })
 
   it('router_registration：只认真实的 await registerXxxRoutes(...) 调用', () => {
@@ -258,19 +221,19 @@ describe('verify-feature 全局检查', () => {
   it('migration_chain：线性通过；缺 SQL / 分叉 / 游离 SQL / idx 断号 报错', () => {
     const journalPath = join(root, 'apps/api/drizzle/meta/_journal.json')
     const original = readFileSync(journalPath, 'utf8')
-    expect(checkMigrationChain(ctx)).toEqual({ name: 'migration_chain', passed: true, head: '0000_baseline' })
+    expect(checkMigrationChain(ctx)).toEqual({ name: 'migration_chain', passed: true, head: '0000_init' })
 
-    const baselineId = (JSON.parse(readFileSync(join(root, 'apps/api/drizzle/meta/0000_snapshot.json'), 'utf8')) as { id: string }).id
+    const initialId = (JSON.parse(readFileSync(join(root, 'apps/api/drizzle/meta/0000_snapshot.json'), 'utf8')) as { id: string }).id
     const base = (JSON.parse(original) as { entries: { idx: number; when: number; tag: string }[] }).entries[0]!
     writeJournal([base, { idx: 1, when: base.when + 1, tag: '0001_a' }])
     put('apps/api/drizzle/0001_a.sql', 'SELECT 1;')
-    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', baselineId))
+    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', initialId))
     expect(checkMigrationChain(ctx)).toMatchObject({ passed: true, head: '0001_a' })
 
-    // Fork: 0001's prevId doesn't point to the baseline
+    // Fork: 0001's prevId doesn't point to the initial migration
     put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', 'someone-else'))
     expect(checkMigrationChain(ctx).error).toContain('0001_a 的 snapshot.prevId 不指向上一条')
-    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', baselineId))
+    put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', initialId))
 
     // Missing SQL + orphan SQL + timestamps out of order + gap in idx
     rmSync(join(root, 'apps/api/drizzle/0001_a.sql'))
@@ -291,8 +254,8 @@ describe('verify-feature 全局检查', () => {
 
   it('migration_applied：journal 全部落库通过；未执行的迁移 / 缺表 报错；连不上库报错', async () => {
     const ok = await checkMigrationApplied(ctx, undefined, TEST_DATABASE_URL)
-    expect(ok).toMatchObject({ name: 'migration_applied', passed: true, head: '0000_baseline' })
-    expect(ok.detail).toMatch(/^已迁移至 0000_baseline（/)
+    expect(ok).toMatchObject({ name: 'migration_applied', passed: true, head: '0000_init' })
+    expect(ok.detail).toMatch(/^已迁移至 0000_init（/)
 
     // Module table missing (schema defines ck_widgets, database doesn't have it)
     const noTable = await checkMigrationApplied(ctx, 'ck_widget', TEST_DATABASE_URL)
@@ -313,7 +276,7 @@ describe('verify-feature 全局检查', () => {
     rmSync(join(root, 'apps/api/drizzle/0001_ck_verify_pending.sql'))
     writeFileSync(journalPath, original)
 
-    const down = await checkMigrationApplied(ctx, undefined, 'postgresql://wangwenyu@127.0.0.1:1/nope')
+    const down = await checkMigrationApplied(ctx, undefined, 'postgresql://127.0.0.1:1/nope')
     expect(down.passed).toBe(false)
     expect(down.error).toMatch(/^连接数据库 nope 失败/)
     expect(await checkMigrationApplied(ctx, undefined, null)).toMatchObject({ passed: false })
@@ -355,7 +318,6 @@ describe('verify-feature 汇总与 CLI', () => {
       'backend_file',
       'data_scope_filter',
       'frontend_page',
-      'frontend_no_legacy_ui',
       'frontend_api',
       'router_registration',
       'schema_registration',
@@ -365,12 +327,12 @@ describe('verify-feature 汇总与 CLI', () => {
       'api_tests',
     ])
     expect(report.passed).toBe(true)
-    expect(report.summary).toBe('17/17 项通过')
+    expect(report.summary).toBe('16/16 项通过')
     expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true })
 
     const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(failing.passed).toBe(false)
-    expect(failing.summary).toBe('12/17 项通过')
+    expect(failing.summary).toBe('11/16 项通过')
   })
 
   it('CLI --json：stdout 只有 JSON，失败时退出码 1；无 --module 时只跑全局检查', () => {

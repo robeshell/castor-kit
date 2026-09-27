@@ -38,7 +38,7 @@
   "发送测试邮件": "Send test mail",
   "只影响之后上传的文件；已有文件仍从原来的位置读取": "Applies to new uploads; existing files are still read from where they were stored",
   "同一 IP 或同一账号连续失败达到次数后暂时锁定": "Locks the IP or account for a while after this many failed attempts",
-  "同时受服务器请求体上限 MAX_CONTENT_LENGTH 限制": "Also capped by the server's request size limit (MAX_CONTENT_LENGTH)",
+  "同时受服务器请求体上限 BODY_LIMIT 限制": "Also capped by the server's request size limit (BODY_LIMIT)",
   "如 pdf": "e.g. pdf",
   "安全": "Security",
   "密码 / 授权码": "Password / app password",

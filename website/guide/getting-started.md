@@ -57,7 +57,7 @@ docker compose --env-file .env.production up -d         # 重新启动
 ### 1. 准备环境
 
 - Node 22 及以上（仓库根目录的 `.nvmrc` 为 `22`）
-- pnpm（版本见根目录 `package.json` 的 `packageManager` 字段，可用 `corepack enable` 启用）
+- pnpm（版本见根目录 `package.json` 的 `packageManager` 字段，可用 `corepack enable` 启用；Node 25 起不再自带 corepack，可改用 `npm i -g pnpm@11`）
 - 本机 PostgreSQL 14 及以上，并能用 `createdb` / `psql` 连接
 
 ### 2. 安装依赖

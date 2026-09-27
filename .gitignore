@@ -1,5 +1,5 @@
 # deps / build
-node_modules/
+node_modules
 dist/
 .turbo/
 *.tsbuildinfo
@@ -9,8 +9,8 @@ dist/
 .env.*
 !.env.example
 
-# runtime
-instance/
+# runtime (DATA_DIR default: apps/api/data)
+/apps/*/data/
 # Ignore only runtime log dirs; a bare logs/ would also match source dirs such as src/modules/admin/logs
 /logs/
 /apps/*/logs/

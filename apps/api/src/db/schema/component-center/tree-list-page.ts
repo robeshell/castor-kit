@@ -27,9 +27,9 @@ export const tree_nodes = pgTable('tree_nodes', {
   foreignKey({
       columns: [table.parent_id],
       foreignColumns: [table.id],
-      name: 'tree_nodes_parent_id_fkey'
+      name: 'tree_nodes_parent_id_fk'
     }).onDelete('set null'),
-  unique('tree_nodes_node_code_key').on(table.node_code),
+  unique('tree_nodes_node_code_unique').on(table.node_code),
 ])
 
 export const tree_nodes_relations = relations(tree_nodes, ({ one, many }) => ({

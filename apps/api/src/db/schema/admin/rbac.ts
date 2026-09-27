@@ -47,8 +47,8 @@ export const admin_users = pgTable(
     updated_at: updatedAt(),
   },
   (table) => [
-    unique('admin_users_username_key').on(table.username),
-    unique('admin_users_email_key').on(table.email),
+    unique('admin_users_username_unique').on(table.username),
+    unique('admin_users_email_unique').on(table.email),
   ],
 )
 
@@ -63,7 +63,7 @@ export const roles = pgTable(
     data_scope: varchar({ length: 20 }).notNull().default('all'),
     created_at: createdAt(),
   },
-  (table) => [unique('roles_code_key').on(table.code)],
+  (table) => [unique('roles_code_unique').on(table.code)],
 )
 
 export const departments = pgTable(
@@ -84,14 +84,14 @@ export const departments = pgTable(
     foreignKey({
       columns: [table.parent_id],
       foreignColumns: [table.id],
-      name: 'departments_parent_id_fkey',
+      name: 'departments_parent_id_fk',
     }).onDelete('restrict'),
     foreignKey({
       columns: [table.leader_id],
       foreignColumns: [admin_users.id],
-      name: 'departments_leader_id_fkey',
+      name: 'departments_leader_id_fk',
     }).onDelete('set null'),
-    unique('departments_code_key').on(table.code),
+    unique('departments_code_unique').on(table.code),
   ],
 )
 
@@ -106,12 +106,12 @@ export const role_depts = pgTable(
     foreignKey({
       columns: [table.role_id],
       foreignColumns: [roles.id],
-      name: 'role_depts_role_id_fkey',
+      name: 'role_depts_role_id_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.dept_id],
       foreignColumns: [departments.id],
-      name: 'role_depts_dept_id_fkey',
+      name: 'role_depts_dept_id_fk',
     }).onDelete('cascade'),
     primaryKey({ columns: [table.role_id, table.dept_id], name: 'role_depts_pkey' }),
   ],
@@ -139,9 +139,9 @@ export const menus = pgTable(
     foreignKey({
       columns: [table.parent_id],
       foreignColumns: [table.id],
-      name: 'menus_parent_id_fkey',
+      name: 'menus_parent_id_fk',
     }).onDelete('cascade'),
-    unique('menus_code_key').on(table.code),
+    unique('menus_code_unique').on(table.code),
   ],
 )
 
@@ -155,12 +155,12 @@ export const user_roles = pgTable(
     foreignKey({
       columns: [table.role_id],
       foreignColumns: [roles.id],
-      name: 'user_roles_role_id_fkey',
+      name: 'user_roles_role_id_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [admin_users.id],
-      name: 'user_roles_user_id_fkey',
+      name: 'user_roles_user_id_fk',
     }).onDelete('cascade'),
     primaryKey({ columns: [table.user_id, table.role_id], name: 'user_roles_pkey' }),
   ],
@@ -176,12 +176,12 @@ export const role_menus = pgTable(
     foreignKey({
       columns: [table.menu_id],
       foreignColumns: [menus.id],
-      name: 'role_menus_menu_id_fkey',
+      name: 'role_menus_menu_id_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.role_id],
       foreignColumns: [roles.id],
-      name: 'role_menus_role_id_fkey',
+      name: 'role_menus_role_id_fk',
     }).onDelete('cascade'),
     primaryKey({ columns: [table.role_id, table.menu_id], name: 'role_menus_pkey' }),
   ],

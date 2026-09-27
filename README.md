@@ -43,7 +43,7 @@ castor-kit is an open-source admin panel you can run today and extend with AI to
   <tr>
     <td width="33%"><b>Permissions</b><br>Users, roles and menus, down to each button.</td>
     <td width="33%"><b>AI-ready</b><br>One sentence becomes a table, API, page and permissions.</td>
-    <td width="33%"><b>Automated checks</b><br>15 checks: types, migrations, routes, RBAC, tests, build.</td>
+    <td width="33%"><b>Automated checks</b><br>16 checks: types, migrations, routes, RBAC, tests, build.</td>
   </tr>
   <tr>
     <td><b>Themes & layouts</b><br>Six accent colors, three layouts, light and dark, tabs bar.</td>
@@ -85,6 +85,7 @@ createdb castor_kit
 pnpm db:migrate
 pnpm seed:rbac
 pnpm dev                                              # API :5001 · web :5173
+# open http://localhost:5173 and sign in as admin / admin123
 ```
 
 </details>
@@ -96,12 +97,13 @@ pnpm dev                                              # API :5001 · web :5173
 3. **It builds and checks.** The AI runs the scaffold, migration and permission sync, then the delivery gate:
 
 ```text
-$ pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json   # the spec the AI wrote from your description
 $ pnpm seed:rbac -- --incremental
+$ pnpm db:migrate
 $ pnpm verify -- --module equipment
-✓ typescript_compile  ✓ migration_chain  ✓ router_registration  ✓ rbac_sync
-✓ api_tests  ✓ frontend_tests  ✓ frontend_build
+  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
+  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+✅ 全部检查通过，功能可交付！
 ```
 
 The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workflow](website/en/guide/ai-workflow.md) for details.

@@ -12,8 +12,9 @@ describe('parsePagination', () => {
     expect(parsePagination({ page: '0', per_page: '0' })).toEqual({ page: 1, per_page: 1 })
     expect(parsePagination({ page: '-5', per_page: '-3' })).toEqual({ page: 1, per_page: 1 })
   })
-  it('非整数回落默认值（等价 request.args.get(type=int)）', () => {
+  it('非整数回落默认值', () => {
     expect(parsePagination({ page: 'abc', per_page: '1.5' })).toEqual({ page: 1, per_page: DEFAULT_PER_PAGE })
+    expect(parsePagination({ page: '1_000', per_page: '' })).toEqual({ page: 1, per_page: DEFAULT_PER_PAGE })
   })
   it('正常值透传', () => {
     expect(parsePagination({ page: '3', per_page: '50' })).toEqual({ page: 3, per_page: 50 })

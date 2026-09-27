@@ -13,7 +13,7 @@ Docker Compose でのデプロイをおすすめします。compose 構成には
 | コンポーネント | 説明 |
 |---|---|
 | `db` | イメージは `postgres:alpine`。データベース名とユーザー名はどちらも `castor_kit` で、データはボリューム `postgres_data` に保存 |
-| `app` | リポジトリのルートにある `Dockerfile` からビルド。コンテナ内では 5000 番ポートで待ち受け、アップロードされたファイルはボリューム `app_instance`（`/app/instance` にマウント）に保存 |
+| `app` | リポジトリのルートにある `Dockerfile` からビルド。コンテナ内では 5000 番ポートで待ち受け、アップロードされたファイルはボリューム `app_data`（`/app/data` にマウント）に保存 |
 
 イメージのビルドは 2 段階です。どちらの段階も `node:22-bookworm-slim`（glibc）をベースにします（`sodium-native` などのネイティブモジュールは glibc 向けのビルド済みバイナリしか提供していないため、Alpine は使えません）。第 1 段階では依存関係をインストールし、フロントエンド（Vite）とバックエンド（tsup）をビルドしてから、本番用の依存関係だけに絞り込みます。第 2 段階は実行用のイメージで、root 以外のユーザー（uid 10001）で動作し、`/health` を使ったヘルスチェックが設定されています。
 
@@ -175,9 +175,9 @@ compose は最新のコードでイメージを再ビルドし、`app` コンテ
 | ボリューム | デフォルトの名前 | 内容 |
 |---|---|---|
 | `postgres_data` | `castor-kit_postgres_data` | PostgreSQL のデータ |
-| `app_instance` | `castor-kit_app_instance` | アップロードされたファイル（`local` ドライバー。`s3` ドライバーではオブジェクトストレージに保存） |
+| `app_data` | `castor-kit_app_data` | アップロードされたファイル（`local` ドライバー。`s3` ドライバーではオブジェクトストレージに保存） |
 
-既存のボリュームを再利用したい場合は、`.env.production` の `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` に既存のボリューム名を設定します。
+ボリューム名は `.env.production` の `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` で上書きできます（既存のボリュームを指定するなど）。
 
 データベースのバックアップ例：
 
@@ -193,9 +193,9 @@ docker compose --env-file .env.production exec db pg_dump -U castor_kit castor_k
 
 本番環境では、アプリケーションの前段にリバースプロキシ（Nginx など）を置いて TLS を処理することをおすすめします。次の点に注意してください。
 
-- **`Host` とプロトコルのヘッダーを転送する**：アプリケーションはプロキシを 1 段まで信頼し、`X-Forwarded-For` / `X-Forwarded-Proto` からクライアントの IP とプロトコルを取得します。`SESSION_COOKIE_SECURE` が空の場合は、リクエストのプロトコルに応じて cookie に `Secure` フラグを付けるかどうかを自動で決めるため、`X-Forwarded-Proto` を正しく渡す必要があります。
+- **`Host` とプロトコルのヘッダーを転送する**：アプリケーションはプロキシを 1 段まで信頼し、`X-Forwarded-For` / `X-Forwarded-Proto` からクライアントの IP とプロトコルを取得します。`COOKIE_SECURE` が空の場合は、リクエストのプロトコルに応じて cookie に `Secure` フラグを付けるかどうかを自動で決めるため、`X-Forwarded-Proto` を正しく渡す必要があります。
 - **WebSocket**：`/ws` パスでは `Upgrade` ヘッダーを転送する必要があります。WebSocket のハンドシェイクでは `Origin` が `Host` と同一オリジンであること（または `CORS_ORIGINS` の許可リストに含まれていること）を検証するため、プロキシは元の `Host` を保持しなければなりません。
-- **リクエストボディのサイズ**：アプリケーションが許可するリクエストボディの上限はデフォルトで 16MB（`MAX_CONTENT_LENGTH`）、インポートファイルの上限は 5MB です。Nginx の `client_max_body_size` はデフォルトで 1MB しかないため、それに合わせて大きくする必要があります。
+- **リクエストボディのサイズ**：アプリケーションが許可するリクエストボディの上限はデフォルトで 16MB（`BODY_LIMIT`）、インポートファイルの上限は 5MB です。Nginx の `client_max_body_size` はデフォルトで 1MB しかないため、それに合わせて大きくする必要があります。
 - **ストリーミングレスポンス**：AI チャットは SSE を使います。アプリケーションはレスポンスヘッダーに `X-Accel-Buffering: no` を設定して、Nginx のバッファリングを無効にしています。
 
 Nginx の設定例（`APP_PORT=5000` の場合）：
@@ -227,7 +227,7 @@ server {
 }
 ```
 
-HTTPS の証明書は Let's Encrypt（Certbot の Nginx プラグインなど）で取得できます。HTTPS を有効にしたら、`.env.production` で `SESSION_COOKIE_SECURE=true` を明示的に設定することもできます。
+HTTPS の証明書は Let's Encrypt（Certbot の Nginx プラグインなど）で取得できます。HTTPS を有効にしたら、`.env.production` で `COOKIE_SECURE=true` を明示的に設定することもできます。
 
 ::: tip プロキシ経由でのみアクセスさせる
 リバースプロキシを使う場合は、`docker-compose.yml` のポートマッピングをローカルホストだけにバインドするよう変更する（例：`"127.0.0.1:${APP_PORT:-8080}:5000"`）と、プロキシを経由しない直接アクセスを防げます。

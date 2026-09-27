@@ -2,7 +2,7 @@
 
 > castor-kit（Castor = 河狸的拉丁属名，"自然界的工程师"；Kit = 脚手架/工具套件）是一个 Node.js/TypeScript + React + RBAC 的 AI-First 管理后台脚手架。命名一律小写连字符，不用驼峰；GitHub 仓库 `castor-kit`，npm scope `@castor-kit/*`。
 >
-> 本文说明整体架构、横切约定与关键设计决定。日常开发约定（字段类型推断、交付流程、菜单树）见 `AGENTS.md`；前端 UI 体系见 `docs/frontend-redesign-plan.md`。
+> 本文说明整体架构、横切约定与关键设计决定。日常开发约定（字段类型推断、交付流程、菜单树）见 `AGENTS.md`；前端 UI 体系见 `docs/frontend-design-system.md`。
 
 ---
 
@@ -24,7 +24,7 @@
 | 系统指标 | `systeminformation` | 性能监控页 / WebSocket 推送 |
 | 测试 | Vitest + 真实 PostgreSQL | AI SQL 只读引擎、序列同步、advisory lock 都是 pg 特有，不用内存库替身 |
 | 代码质量 | ESLint + `tsc --noEmit` | 纳入 verify 门禁 |
-| 前端 | React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX） | 见 `docs/frontend-redesign-plan.md` |
+| 前端 | React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX） | 见 `docs/frontend-design-system.md` |
 | MCP | `@modelcontextprotocol/sdk` | 把工具链暴露给 MCP Client |
 
 不做的事：不上 Next.js/SSR（RBAC 后台 + 动态菜单路由，SSR 没有收益只有复杂度）；不做 GraphQL。
@@ -70,7 +70,7 @@ castor-kit/
 │   └── mcp/                        # @castor-kit/mcp —— MCP Server
 ├── docs/
 │   ├── architecture.md             # 本文
-│   ├── frontend-redesign-plan.md   # 前端 UI 体系
+│   ├── frontend-design-system.md   # 前端 UI 体系
 │   ├── templates/{backend,frontend}/   # 代码骨架模板（AI 临摹用）
 │   └── apifox-full.openapi.json        # OpenAPI 文档
 ├── website/                        # VitePress 文档站（独立 npm 项目）
@@ -134,7 +134,7 @@ castor-kit/
 - `pnpm scaffold` 生成的模块用同一套写法：`schema.ts` 里按字段类型生成 `field.*` 声明（spec 的必填、默认值用 `required(…)` / `withDefault(…)` 表达），导入行经 `rowToBody` 转成请求体形状后走同一份声明。
 
 ### 4.4 认证、密码与会话
-- `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/admin/login'}`。除了会话标记，它还会加载当前用户（按请求缓存，后续权限检查不再查库）：账号已删除或 `status = 'disabled'` 时清掉会话并同样返回 401，停用因此在下一次请求就生效。停用账号在 `getCurrentAdminUser` 里视为未登录，所有权限检查都失败。
+- `loginRequired` preHandler：未登录 → `401 {error:'未授权访问', redirect:'/login'}`。除了会话标记，它还会加载当前用户（按请求缓存，后续权限检查不再查库）：账号已删除或 `status = 'disabled'` 时清掉会话并同样返回 401，停用因此在下一次请求就生效。停用账号在 `getCurrentAdminUser` 里视为未登录，所有权限检查都失败。
 - 当前用户每请求缓存在 `request` 上，一次查询 join `user_roles → roles → role_menus → menus`，避免 N+1。
 - 登录防爆破：基于 `login_logs` 的窗口计数（IP 维度 + 用户名维度，阈值与窗口来自系统设置 `security.login_max_failures` / `login_lockout_minutes`，可由 `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES` 锁定），成功后清零窗口内失败记录。
 - 密码哈希用 scrypt（`node:crypto`），存成 PHC 字符串 `$scrypt$ln=<log2 N>,r=<r>,p=<p>$<盐>$<哈希>`（盐 16 字节、哈希 32 字节，均为不带填充的 base64）。默认参数按 OWASP 建议取 N = 2^15、r = 8、p = 3（每次约 32 MiB 内存、0.1 秒）；参数写在字符串里，以后调高也不影响已有哈希的校验。`common/password.ts` 负责生成与校验，一律**异步**执行（在 libuv 线程池里跑，不阻塞事件循环），比较用 `timingSafeEqual`。忘记 admin 密码时用 `pnpm seed:rbac -- --incremental --reset-admin-password` 按 `ADMIN_PASSWORD` 重置。
@@ -177,7 +177,7 @@ castor-kit/
   - 过期回收：`last_status='running' AND next_run_at IS NULL AND updated_at <= now - lease` → 重置为 `idle` 并 `next_run_at=now`。
   - 执行崩溃：按 cron 算下次时间，`last_status='failed'`。
 - 两种运行方式：`RUN_SCHEDULER_IN_WEB=true` 时在 web 进程内循环（默认 20s）；否则用 `node dist/worker.js` 独立进程。多副本部署建议 `RUN_SCHEDULER_IN_WEB=false` + 单 worker（租约模型本身也能防重）。
-- cron：`common/scheduler/cron.ts` 是自研 5 段匹配器（分 时 日 月 周），"日"与"周"是 **AND** 关系（标准 cron 在两者都受限时是 OR），周字段 Sunday=0，逐分钟向前扫描最多 366 天，UTC。**不要**换成 `cron-parser` / `croner`，否则已有任务的 `next_run_at` 会变。
+- cron：`common/scheduler/cron.ts` 是自研的标准 5 段匹配器（分 时 日 月 周）："日"与"周"都受限时取 **OR**（任一满足即触发，与 Vixie cron 一致），只限其一时按受限的那个匹配；周字段 Sunday=0，逐分钟向前扫描最多 366 天，UTC。
 - SSRF 防护：只允许 http/https，禁止 localhost / 私网 / 链路本地 / 元数据地址；执行时用 `undici` 自定义 `connect.lookup` 把解析结果钉死并复检（见 §9）；`timeout_seconds` 1–120。响应体截断后写 `scheduled_task_runs`。
 
 ### 4.10 AI 调用与 AI 对话（Vercel AI SDK）
@@ -196,16 +196,16 @@ castor-kit/
 
 ### 4.12 文件上传
 - **文件中心**（`modules/admin/files` + `common/storage/`）：`POST /api/admin/files` 上传（只需登录），`GET /api/admin/files/:id` 预览 / 下载（只需登录，ID 是 UUID），列表需要 `system_files`、删除需要 `system_files_delete`。
-  - 校验顺序：大小（系统设置 `upload.max_size` 与 `MAX_CONTENT_LENGTH` 取小，超限 413）→ 扩展名白名单 → `file-type` 读文件头，与扩展名不一致即拒绝（txt / csv 等纯文本要求检测不到二进制签名）。原文件名只取最后一段并去掉控制字符。
+  - 校验顺序：大小（系统设置 `upload.max_size` 与 `BODY_LIMIT` 取小，超限 413）→ 扩展名白名单 → `file-type` 读文件头，与扩展名不一致即拒绝（txt / csv 等纯文本要求检测不到二进制签名）。原文件名只取最后一段并去掉控制字符。
   - 去重：每次上传一条 `files` 记录；对象键按 sha256 生成（`ab/<sha256>`），相同内容共用一个对象，最后一条记录删除时才删对象。
-  - 驱动：`local`（先写临时文件再 rename）与 `s3`（`@aws-sdk/client-s3`，校验和改为「仅在必需时」以兼容各家 S3 兼容服务）。读取时按记录上的 `storage` 选驱动、按记录上的 `bucket` 取对象，切换存储或改 Bucket 不影响旧文件（旧驱动仍需配置、凭证要能访问原桶）。存储配置在系统设置里，保存时选 S3 必须填齐 bucket / 密钥；环境变量锁定的配置不完整时，上传报「未配置」错误。
+  - 驱动：`local`（先写临时文件再 rename）与 `s3`（`@aws-sdk/client-s3`，校验和设为「仅在必需时」以兼容各家 S3 兼容服务）。读取时按记录上的 `storage` 选驱动、按记录上的 `bucket` 取对象，切换存储或改 Bucket 不影响已有文件（原驱动仍需配置、凭证要能访问原桶）。存储配置在系统设置里，保存时选 S3 必须填齐 bucket / 密钥；环境变量锁定的配置不完整时，上传报「未配置」错误。
   - 返回：只有 png / jpeg / gif / webp 内联预览，其余一律 `attachment` + `nosniff`；`ETag` 为 sha256（命中返回 304）；`s3` 驱动 302 到 10 分钟有效的签名地址（设置了公开访问地址时跳公开地址）。
   - 引用：业务写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs` / `clearFileRefs`，记录在 `file_references`；被引用的文件不能删除。头像仍存 URL（`/api/admin/files/<id>`），外部地址照常可用。
   - 清理：调度器循环里的内置维护任务（`MaintenanceJob`，不是用户定义的定时任务）每小时删除上传超过 24 小时且没有引用的文件，`pg_try_advisory_xact_lock` 保证多副本只跑一份，删除时再次确认没有引用。
-- 组件示例中心 `list_page` 的图片 / 附件也走文件中心（`image_urls` / `file_urls` 存文件地址，repository 写入时登记引用）；文件中心之前上传的旧文件仍可经 `/list-page/image/<filename>`、`/list-page/file/<filename>` 回读，不再接受新上传。
-- 上传限制经公开的 `GET /api/admin/app-info` 下发（`upload.max_size` / `upload.allowed_types`），前端上传组件据此先在本地检查；超过 `MAX_CONTENT_LENGTH` 被 multipart 拦下的文件同样返回「文件过大，最大支持 N MB」。
+- 组件示例中心 `list_page` 的图片 / 附件也走文件中心（`image_urls` / `file_urls` 存文件地址，repository 写入时登记引用）。
+- 上传限制经公开的 `GET /api/admin/app-info` 下发（`upload.max_size` / `upload.allowed_types`），前端上传组件据此先在本地检查；超过 `BODY_LIMIT` 被 multipart 拦下的文件同样返回「文件过大，最大支持 N MB」。
 - 公开演示模式放行 `POST /api/admin/files`（组件示例的上传要用），删除与列表仍按原规则。
-- `@fastify/multipart`，上限 `MAX_CONTENT_LENGTH`（默认 16MB，超限 413）；文件名 `path.basename` + 白名单扩展名 + 随机前缀；回读时校验解析后的路径仍在上传目录内（防目录穿越）。
+- `@fastify/multipart`，上限 `BODY_LIMIT`（默认 16MB，超限 413）；文件名 `path.basename` + 白名单扩展名 + 随机前缀；回读时校验解析后的路径仍在上传目录内（防目录穿越）。
 
 ### 4.13 WebSocket `/ws/devtools`
 - 握手阶段校验 Origin（同 Host 或 `CORS_ORIGINS` 白名单，无 Origin 放行）、已登录、`cc_devtools_perf_monitor` 权限，任一不满足直接关闭。
@@ -218,7 +218,7 @@ castor-kit/
 ### 4.15 配置
 - `config.ts` 用 Zod 校验环境变量，运行环境由 `NODE_ENV` 决定（development / test / production）；启动时加载 `.env.<NODE_ENV>`（`apps/api/` 优先，其次仓库根目录；已有环境变量不覆盖）。
 - 生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 即抛错退出（fail-closed）。
-- 其余变量：`DATABASE_URL / DEV_DATABASE_URL / CORS_ORIGINS / SESSION_* / LOGIN_* / TASK_SCHEDULER_* / RUN_SCHEDULER_IN_WEB / ENABLE_TASK_SCHEDULER / AI_API_* / AI_SQL_* / MAX_CONTENT_LENGTH / APIFOX_*`，示例见 `.env.example`。
+- 其余变量：`DATABASE_URL / DEV_DATABASE_URL / CORS_ORIGINS / COOKIE_SECURE / SESSION_* / LOGIN_* / TASK_SCHEDULER_* / RUN_SCHEDULER_IN_WEB / ENABLE_TASK_SCHEDULER / AI_API_* / AI_SQL_* / BODY_LIMIT / DATA_DIR / APIFOX_*`，示例见 `.env.example`。
 - 端口：开发 5001、测试 5002、生产 5000；Vite dev server 5173，把 `/api`、`/ws` 代理到 5001。
 
 ### 4.16 开放接口（API Token 与 Webhook）
@@ -238,7 +238,7 @@ castor-kit/
 
 ## 5. 数据库迁移
 
-- 表定义在 `apps/api/src/db/schema/**`，迁移由 drizzle-kit 生成到 `apps/api/drizzle/`（`0000_baseline.sql` 为初始全量 DDL），执行记录在 `drizzle.__drizzle_migrations`。
+- 表定义在 `apps/api/src/db/schema/**`，迁移由 drizzle-kit 生成到 `apps/api/drizzle/`（`0000_init.sql` 为初始全量 DDL），执行记录在 `drizzle.__drizzle_migrations`。
 - 所有 schema 变更：`pnpm db:generate --name <描述>`（drizzle-kit 不接受 `--`）→ 审查 SQL → `pnpm db:migrate` → `psql -d <库> -c '\d <table>'` 实证。
 - **迁移必须真实落库**：静态检查（verify 的 `migration_chain`）不算完成；`migration_applied` 会比对 journal 与 `drizzle.__drizzle_migrations`，并用 `to_regclass` 确认模块表存在。交付报告注明「已迁移至 <tag>」。
 - 不手写迁移 SQL（破坏 journal 链）；表结构上的关系（`menus.parent_id` 自引用 + `ON DELETE CASCADE`、`user_roles` / `role_menus` 复合主键中间表）在 Drizzle 里都显式查询，不做隐式加载。
@@ -278,9 +278,9 @@ castor-kit/
 ## 8. 部署与测试
 
 ### 8.1 部署
-- **Dockerfile**：两阶段——`node:22-alpine` 构建 web（vite）与 api（tsup），`pnpm deploy --prod` 裁剪生产依赖 → 运行镜像 `node:22-alpine`，非 root `uid 10001`，`HEALTHCHECK curl /health`。
+- **Dockerfile**：两阶段——`node:22-bookworm-slim` 构建 web（vite）与 api（tsup），`pnpm deploy --prod` 裁剪生产依赖 → 运行镜像 `node:22-bookworm-slim`，非 root `uid 10001`，`HEALTHCHECK curl /health`。
 - **docker-entrypoint.sh**：`node dist/setup-once.js`（迁移 + RBAC 增量 + 只读账号）→ `node dist/main.js`。
-- **docker-compose.yml**：`db`（postgres）+ `app`；`NODE_ENV=production`；`postgres_data` / `app_instance` 两个卷，卷名可用 `COMPOSE_DB_VOLUME` / `COMPOSE_INSTANCE_VOLUME` 覆盖以复用已有卷。
+- **docker-compose.yml**：`db`（postgres）+ `app`；`NODE_ENV=production`；数据库与运行时数据（`DATA_DIR`，含上传文件）两个卷，卷名可用 `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` 覆盖（例如指向已有的卷）。
 - **进程模型**：默认单进程；需要多核时用多副本 + `RUN_SCHEDULER_IN_WEB=false` + 单独 worker 服务。
 - **setup.sh**：生成 `.env.production`（随机密钥）并用 compose 启动。
 - **CI**（`.github/workflows/ci.yml`）：`pnpm install` → lint → typecheck → 空库 `setup-once` → api vitest（pg service）→ `pnpm verify --skip-build` → web 单测 → `vite build`。不做自动部署（部署在服务器上手动 `git pull && docker compose --env-file .env.production up -d --build`）；文档站（`website/`）由 `.github/workflows/docs.yml` 构建，合入 main 后发布到 GitHub Pages。
@@ -311,4 +311,4 @@ castor-kit/
 - **成环校验**：菜单与树形列表修改父级时，不能改成自身或自己的子孙（400）；导入同样按最终父子关系检查，成环的行记为错误行、整批回滚。否则树接口会无限递归。
 - **菜单树形搜索**：保留匹配节点及其祖先路径，匹配节点的子树完整返回，搜子菜单也能在树里定位到。
 - **`.xls` 不支持**：只保留 csv / xlsx，减少一个老旧二进制格式的解析依赖；上传时给出明确提示（§6）。
-- **cron 日/周 AND 语义**：见 §4.9，保证已有任务的下次执行时间计算稳定。
+- **cron 采用标准语义**：日与周同时受限时取 OR（§4.9），与 crontab 及常见 cron 工具的理解一致，用户照标准写法填表达式即可。

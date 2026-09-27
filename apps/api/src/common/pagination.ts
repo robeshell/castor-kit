@@ -10,7 +10,7 @@ export const DEFAULT_PER_PAGE = 20
 export function queryInt(value: unknown, fallback: number): number {
   const raw = Array.isArray(value) ? value[0] : value
   if (typeof raw !== 'string') return fallback
-  const text = raw.trim().replace(/_/g, '')
+  const text = raw.trim()
   if (!/^[+-]?\d+$/.test(text)) return fallback
   return Number.parseInt(text, 10)
 }
