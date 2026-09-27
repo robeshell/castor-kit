@@ -28,7 +28,7 @@ import { toast } from '@/lib/toast'
 import { formatDateTime } from '@/lib/format'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import i18n from '@/i18n'
+import i18n, { useTx } from '@/i18n'
 import {
   createListPage,
   deleteListPage,
@@ -318,6 +318,7 @@ const jsonError = (text: string | undefined) => {
 
 export interface EditorSectionProps {
   icon: LucideIcon
+  /** Chinese source text (translated here) or a node */
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
@@ -325,6 +326,7 @@ export interface EditorSectionProps {
 }
 
 function EditorSection({ icon: Icon, title, description, actions, children }: EditorSectionProps) {
+  const tx = useTx()
   return (
     <section className="bg-card rounded-xl border">
       <header className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
@@ -332,8 +334,8 @@ function EditorSection({ icon: Icon, title, description, actions, children }: Ed
           <Icon className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[13px] font-medium">{title}</h3>
-          {description ? <p className="text-muted-foreground text-xs">{description}</p> : null}
+          <h3 className="text-[13px] font-medium">{tx(title)}</h3>
+          {description ? <p className="text-muted-foreground text-xs">{tx(description)}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </header>

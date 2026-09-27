@@ -134,7 +134,8 @@ export default function ParticleCanvasPage() {
           const dx = p.x - mouse.x
           const dy = p.y - mouse.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 100) {
+          // dist 0 (pointer exactly on the particle) has no direction to push in
+          if (dist > 0 && dist < 100) {
             p.vx += (dx / dist) * 0.3
             p.vy += (dy / dist) * 0.3
           }

@@ -60,12 +60,13 @@ const ALIASES: Record<string, string> = {
   postgresql: 'sql',
 }
 
+// Own keys only: plain-object lookups would also match inherited keys such as `constructor`
 const resolve = (language: string): string => {
   const name = String(language || '').trim().toLowerCase()
-  return ALIASES[name] || name
+  return (Object.hasOwn(ALIASES, name) && ALIASES[name]) || name
 }
 
-const isGrammar = (name: string): name is GrammarName => name in GRAMMARS
+const isGrammar = (name: string): name is GrammarName => Object.hasOwn(GRAMMARS, name)
 
 let highlighter: Promise<HighlighterCore> | null = null
 const results = new Map<string, TokensResult>()

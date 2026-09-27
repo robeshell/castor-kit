@@ -99,7 +99,7 @@ export default function ImageUpload<R extends UploadResponse = UploadResponse>({
           </button>
         ) : null}
       </div>
-      {promptText ? <p className="text-muted-foreground text-xs">{promptText}</p> : null}
+      {promptText ? <p className="text-muted-foreground text-xs">{tx(promptText)}</p> : null}
     </div>
   )
 }

@@ -108,7 +108,7 @@ export default function RichTextPage() {
             {t('支持粘贴带格式文本 · 支持快捷键（Ctrl+B 加粗、Ctrl+I 斜体、Ctrl+U 下划线）')}
           </span>
           <span>
-            <Trans i18nKey="字数统计 <0>{{count}}</0> 字" values={{ count: wordCount }} components={[<span className="text-foreground font-medium tabular-nums" />]} />
+            <Trans i18nKey="字数统计 <0>{{count}}</0> 字" values={{ count: wordCount }} components={[<span key="0" className="text-foreground font-medium tabular-nums" />]} />
           </span>
         </div>
       </Panel>

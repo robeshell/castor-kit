@@ -4,7 +4,7 @@ import type { Mock } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useForm } from 'react-hook-form'
-import DataTable from '@/shared/components/DataTable'
+import DataTable, { DataPagination } from '@/shared/components/DataTable'
 import type { DataTableColumn } from '@/shared/components/DataTable'
 import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
@@ -74,6 +74,31 @@ describe('DataTable', () => {
     expect(onChange).toHaveBeenCalledWith(2)
     await userEvent.click(screen.getByText('3'))
     expect(onChange).toHaveBeenCalledWith(3)
+  })
+
+  it('没有 key 和 dataIndex 的列以列序号作 React key', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const columns: DataTableColumn<Row>[] = [
+      { title: '甲', render: (_, row) => `${row.name}-a` },
+      { title: '乙', render: (_, row) => `${row.name}-b` },
+    ]
+    render(<DataTable columns={columns} data={ROWS} />)
+    expect(screen.getByText('alpha-a')).toBeInTheDocument()
+    expect(screen.getByText('beta-b')).toBeInTheDocument()
+    const keyWarnings = consoleError.mock.calls.filter((args) => args.some((arg) => String(arg).includes('key')))
+    consoleError.mockRestore()
+    expect(keyWarnings).toEqual([])
+  })
+})
+
+describe('DataPagination', () => {
+  it('perPage 不是正数时按一页处理', () => {
+    const { container } = render(<DataPagination page={1} perPage={0} total={50} />)
+    expect(screen.getByText('第 1–50 条，共 50 条')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('下一页')).toBeDisabled()
+    expect(container.textContent).not.toMatch(/Infinity|NaN/)
   })
 })
 

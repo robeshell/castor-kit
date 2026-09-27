@@ -108,13 +108,15 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }: Schema
 
   const applySchema = (res: DbSchema) => setTables(parseSchema(res?.schema, Array.isArray(res?.tables) ? res.tables : []))
 
-  // Load once, the first time the sheet opens
+  // Load the first time the sheet opens; after a failed load, opening it again retries
   useEffect(() => {
     if (!open || requestedRef.current) return
     requestedRef.current = true
+    setFailed(false)
     getDBSchema()
       .then(applySchema)
       .catch((err) => {
+        requestedRef.current = false
         setFailed(true)
         toast.apiError(err, '获取数据库结构失败')
       })
@@ -126,6 +128,8 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }: Schema
       applySchema(await getDBSchema())
       setFailed(false)
     } catch (err) {
+      // Loaded tables stay on screen; with none yet, the error state (and its retry) stays
+      setFailed(true)
       toast.apiError(err, '获取数据库结构失败')
     } finally {
       setRefreshing(false)
@@ -163,6 +167,17 @@ export default function SchemaSheet({ open, onOpenChange, onQueryTable }: Schema
               <Skeleton key={i} className="h-9 rounded-lg" />
             ))}
           </div>
+        ) : !tables ? (
+          <EmptyState
+            icon={Database}
+            title="获取数据库结构失败"
+            action={
+              <Button variant="outline" size="sm" onClick={refresh}>
+                <RefreshCw />
+                {t('重试')}
+              </Button>
+            }
+          />
         ) : filtered.length === 0 ? (
           <EmptyState icon={Database} title={tables?.length ? '没有匹配的表' : '暂无可查询的表'} />
         ) : (

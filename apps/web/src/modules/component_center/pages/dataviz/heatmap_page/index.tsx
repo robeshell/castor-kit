@@ -9,28 +9,10 @@ import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
 import StatCard from '@/shared/components/StatCard'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { generateCalendarData, type CalendarPoint } from '@/modules/component_center/pages/dataviz/heatmap_page/calendar'
 
-/** Calendar heatmap point: [YYYY-MM-DD, activity] */
-type CalendarPoint = [date: string, value: number]
 /** Hour × weekday point: [hour 0-23, weekday 0 (Sunday)-6, activity] */
 type HourPoint = [hour: number, day: number, value: number]
-
-// ── Calendar heatmap data (past year) ──────────────────────────────────────────
-function generateCalendarData(): CalendarPoint[] {
-  const data: CalendarPoint[] = []
-  const now = new Date()
-  for (let i = 364; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    const dateStr = d.toISOString().slice(0, 10)
-    // More on weekdays, less on weekends; simulated commit / activity records
-    const isWeekend = d.getDay() === 0 || d.getDay() === 6
-    const base = isWeekend ? 2 : 8
-    const value = Math.random() < 0.25 ? 0 : Math.floor(Math.random() * base + Math.random() * 10)
-    data.push([dateStr, value])
-  }
-  return data
-}
 
 // ── Hour × weekday heatmap data ────────────────────────────────────────────────
 // Chinese source text; translated when the chart option is built

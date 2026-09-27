@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { brandArea, brandLine, chartBase, useChartColors } from '@/lib/chart-theme'
 import { EASE_OUT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import i18n from '@/i18n'
 import EmptyState from '@/shared/components/EmptyState'
 import PageHeader from '@/shared/components/PageHeader'
 import Panel from '@/shared/components/Panel'
@@ -133,7 +134,7 @@ export default function WebSocketPage() {
         kind,
         params,
         type: dir === 'sys' ? null : messageType(text),
-        ts: new Date().toLocaleTimeString('zh', { hour12: false }),
+        ts: new Date().toLocaleTimeString(i18n.language, { hour12: false }),
       },
     ])
     if (dir === 'in') rateCounter.current++
@@ -164,7 +165,7 @@ export default function WebSocketPage() {
         const n = rateCounter.current
         rateCounter.current = 0
         setRateData((prev) => ({
-          times: [...prev.times.slice(-(MAX_PTS - 1)), new Date().toLocaleTimeString('zh', { hour12: false })],
+          times: [...prev.times.slice(-(MAX_PTS - 1)), new Date().toLocaleTimeString(i18n.language, { hour12: false })],
           values: [...prev.values.slice(-(MAX_PTS - 1)), n],
         }))
       }, 1000)

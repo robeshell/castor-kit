@@ -14,9 +14,10 @@ import {
  * Row actions: common actions are laid out as text buttons, the rest go into a "…" menu.
  *   <RowActions actions={[
  *     { label: '编辑', onClick: () => edit(row), hidden: !canEdit },
- *     { label: '删除', danger: true, confirm: { title: '删除该用户？' }, onClick: () => remove(row) },
+ *     { label: '删除', render: () => <ConfirmAction title="删除该用户？" onConfirm={() => remove(row)}>…</ConfirmAction> },
  *   ]} inline={2} />
- * Actions that need confirmation (confirm) should be laid out inline and wrapped in ConfirmAction; see the users page.
+ * RowActions has no confirmation of its own: an action that needs one is laid out inline with `render` returning a
+ * ConfirmAction around its button (see the webhooks page).
  */
 export interface RowAction {
   /** Chinese source text (translated here); also the React key, so unique within a row */

@@ -1,5 +1,6 @@
 {
   "Shift+Alt+F 格式化 · Ctrl+Z 撤销 · Ctrl+/ 注释": "Shift+Alt+F format · Ctrl+Z undo · Ctrl+/ comment",
+  "不支持格式化该语言": "Formatting isn't supported for this language",
   "主题": "Theme",
   "代码已复制到剪贴板": "Code copied to clipboard",
   "代码已格式化": "Code formatted",
@@ -9,6 +10,7 @@
   "已恢复示例代码": "Sample code restored",
   "支持智能补全 · 错误提示 · 括号匹配 · 多光标编辑": "IntelliSense · Error hints · Bracket matching · Multi-cursor editing",
   "格式化代码": "Format code",
+  "格式化失败": "Formatting failed",
   "浅色 (vs)": "Light (vs)",
   "深色 (vs-dark)": "Dark (vs-dark)",
   "示例代码": "Sample code",

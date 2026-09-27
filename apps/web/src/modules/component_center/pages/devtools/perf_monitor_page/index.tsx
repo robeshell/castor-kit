@@ -219,7 +219,7 @@ const HistoryChart = memo(function HistoryChart({ label, data, level, c }: Histo
 })
 
 export default function PerfMonitorPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const c = useChartColors()
   const [data, setData] = useState<PerfStats | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -283,7 +283,7 @@ export default function PerfMonitorPage() {
         actions={
           data ? (
             <StatusBadge tone="success" variant="plain" dot>
-              <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString('zh', { hour12: false })}</span> {t('更新')}
+              <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString(i18n.language, { hour12: false })}</span> {t('更新')}
             </StatusBadge>
           ) : null
         }

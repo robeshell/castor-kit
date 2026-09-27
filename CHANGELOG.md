@@ -42,6 +42,10 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
+- Bugs found during the TypeScript migration:
+  - Dashboard: the system status network tiles always showed 0.00 (they read fields the API doesn't return); they now show the cumulative traffic since boot with a readable unit.
+  - Card list: a card with no `is_active` value showed the switch off but was saved as enabled; the form, badge and detail now show the saved value, and edits send only the form fields.
+  - Heatmap dates were a day off before 08:00 in UTC+8 (UTC labels, local weekends); times on the dashboard, perf monitor and WebSocket pages follow the UI language; the code editor says when a language can't be formatted; the AI SQL schema sheet shows an error with a retry after a failed load; the prompt studio keeps the trimmed values after saving; kanban no longer sends `board_code` on update; the list page's section titles and the image upload hint are translated; the Three.js pages resize with their container; smaller fixes in `DataTable` keys, pagination with a zero page size, the particle canvas and the code highlighter's language check.
 - The OpenAPI doc's request side matches the backend (332 differences found by comparing every documented request body with its Zod `field.*` declaration): nullish fields are nullable with their defaults spelled out, list / export filters accept `''` for "all", `export_mode` lists `all`, announcements / menus document their validated enums, webhooks mark `name` / `url` / `events` required, and descriptions that promised lenient parsing where the API returns 400 are corrected. The frontend API files use the generated types everywhere (no local workarounds left).
 - Tags view: the close button on inactive tabs is faintly visible instead of leaving an invisible gap, so the spacing between tabs is even.
 

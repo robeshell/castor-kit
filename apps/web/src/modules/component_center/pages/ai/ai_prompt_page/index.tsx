@@ -276,7 +276,8 @@ export default function AiPromptPage() {
         setSelectedId(res?.id ?? null)
         toast.success('模板已创建')
       }
-      form.reset(values)
+      // Reset to what was saved (trimmed), so the form shows the stored values and isn't dirty
+      form.reset(payload)
       await loadTemplates()
     } catch (err) {
       toast.apiError(err, '保存失败')
