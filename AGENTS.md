@@ -151,7 +151,9 @@ castor-kit/
 │   │       ├── modules/
 │   │       │   ├── admin/{pages,api}/
 │   │       │   └── component_center/
-│   │       │       ├── pages/{patterns,dataviz,ai,editor,devtools}/   # patterns/ = one reference page per page pattern
+│   │       │       ├── pages/{patterns,components,dataviz,ai,editor,devtools}/   # patterns/ = one reference page per page pattern,
+│   │       │       │                                               # components/ = one usage page per group of shared components
+│   │       │       ├── showcase/                              # layout kit of the components/ pages (ShowcasePage / Example / PropsTable)
 │   │       │       └── api/
 │   │       └── shared/
 │   │           ├── api/request.ts     # Axios instance (baseURL='/api', withCredentials, CSRF header)
@@ -382,7 +384,7 @@ Where scaffold puts pages: admin domain → `pages/<name>/index.tsx`; component_
 
 - API files `modules/<module>/api/<page>.ts` take their types from the OpenAPI doc (see "Calling the API"); shared shapes live in `@/shared/api/types`.
 - Components export `interface XxxProps`; type-only imports use `import type` / `import { type X }`. No `any`; a cast (`as`, `!`) needs a one-line comment saying why it holds.
-- Shared components are typed for pages: `DataTable<Row>` with `DataTableColumn<Row>[]` (render values typed from `dataIndex`), FormFields generic over the react-hook-form values (`name` must be a real field), `FormDialog` / `FormSheet` over `UseFormReturn`, `TreeView` / `CheckableTree` over a `TreeNode` subtype, `MultiSelect<V>`, `SegmentedTabs<V>`, `Chart` over echarts' `EChartsOption`. Row types come from the API files (`export type User = ApiItem<'/api/admin/users'>`).
+- Shared components are typed for pages: `DataTable<Row>` with `DataTableColumn<Row>[]` (render values typed from `dataIndex`), FormFields generic over the react-hook-form values (`name` must be a real field), `FormDialog` / `FormSheet` over `UseFormReturn`, `TreeView` / `CheckableTree` over a `TreeNode` subtype, `MultiSelect<V>`, `SegmentedTabs<V>`, `Chart` over echarts' `EChartsOption`, `ConditionBuilder<K>` over the union of field keys. Row types come from the API files (`export type User = ApiItem<'/api/admin/users'>`).
 - `useAuth()` / `useTagsView()` return non-null values (they throw outside their provider).
 - **Naming and exports** (follow what's there; don't rename existing files):
   - Pages: `modules/<module>/pages/<subdir>/<page>/index.tsx` with a **default export** (the lazy page loader needs it); page-local helpers next to it (`form.ts`, `demo-content.ts`, sub-components in PascalCase `.tsx`).
@@ -461,6 +463,7 @@ Sections use Panel; status uses StatusBadge; empty states use EmptyState; all fe
 | `StatusBadge` | `tone`: neutral / brand / info / success / warning / danger, `dot`, `variant="plain"` |
 | `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | Empty state / segmented tabs with a sliding indicator / tree / metric card |
 | `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | Value format `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
+| `ConditionBuilder` | Controlled AND / OR condition builder (field / operator / value, one level of groups): `fields: ConditionField<K>[]`, `value: ConditionTree<K>` (plain JSON), `onChange` |
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | Import / export dialogs (`open` / `onOpenChange`) |
 | `upload/FileUpload` / `upload/ImageUpload` | Upload (fileList entries `{ uid, name, url, status, response }`) |
 
@@ -489,6 +492,27 @@ lib: `@/lib/utils` (`cn`), `@/lib/toast` (`toast.success / error / warning`, `to
 - Restrained motion: interactions 150-250ms ease-out; staggered list entrances, layoutId indicators, number rolls and overlay enter / exit are already provided by the shared components; `prefers-reduced-motion` is handled globally
 
 **Menu icons**: `menus.icon` stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.ts` resolves to a lucide component; new menus reuse names already in the mapping, and a new icon needs a new entry in the mapping.
+
+### Component showcase pages (usage reference for shared components)
+
+组件示例中心 → 组件 (Components, menu 47) has one page per group of shared components: `modules/component_center/pages/components/<group>_page/` (e.g. `data_table_page` for DataTable + RowActions). **Look there first for how to use a shared component**: every example is live code with its exact source and the key props. Building or extending one of these pages:
+
+- Each example is its own file, `pages/components/<group>_page/examples/<Name>.tsx`, a default-exported component with no props; it is real code under the usual rules (typed, `t()` / Chinese source text for UI copy, English comments, mock data only, `@/` imports) and self-contained, because its source is what readers copy. Never name one `index.tsx` (the page glob would route it).
+- The page imports each example twice, as a component and with Vite's `?raw` for the source (typed by `vite/client`; `test/import-integrity.test.ts` resolves the query; `test/showcase.test.tsx` fails when an example file isn't imported both ways), and wraps it in `Example`:
+  ```tsx
+  import BasicTable from '@/modules/component_center/pages/components/data_table_page/examples/BasicTable'
+  import basicTableSource from '@/modules/component_center/pages/components/data_table_page/examples/BasicTable.tsx?raw'
+
+  <ShowcasePage title="数据表格" intro="…" imports={IMPORTS}>
+    <ShowcaseSection title="示例">
+      <Example title="基础用法" description="…" source={basicTableSource}><BasicTable /></Example>
+    </ShowcaseSection>
+    <ShowcaseSection title="属性">
+      <PropsTable title="DataTable" items={DATA_TABLE_PROPS} />
+    </ShowcaseSection>
+  </ShowcasePage>
+  ```
+- The kit lives in `modules/component_center/showcase/` (`ShowcasePage` + `ShowcaseSection`, `Example`, `PropsTable` + `PropDoc`, `CodeBlock`; highlighting reuses the AI Elements Shiki setup and loads on demand). Props tables are hand-written in the page's `props.ts`, key props only, checked against the component's exported `XxxProps` interface. The page's `locales/` hold every translation its examples and props need.
 
 ### Internationalization (i18n) and code comments
 
@@ -532,6 +556,7 @@ component_center/devtools/websocket_page      (WebSocket /ws/devtools is served 
 component_center/devtools/perf_monitor_page   (metrics come from /ws/devtools)
 component_center/dataviz/heatmap_page
 component_center/dataviz/realtime_chart_page
+component_center/components/*                 (the Components showcase pages: mock data only)
 ```
 
 ---
@@ -598,6 +623,7 @@ Component gallery (parent_id=3):              ID 40-499
   页面模板 [Page Patterns] (ID 43, parent_id=3):  the directory's buttons (the shared demo API) ID 431-435;
                                                 pages (parent_id=43) ID 4301-4399 (43 × 100 + n: a directory with
                                                 its own buttons can't also use 431-439 for pages)
+  组件 [Components] (ID 47, parent_id=3):        pages (parent_id=47) ID 4701-4799 (47 × 100 + n, like 页面模板); no buttons
   AI 应用 [AI Apps] (parent_id=44):               ID 441-449
   编辑器 [Editors] (parent_id=45):                ID 451-459
   工具类 [Engineering Tools] (parent_id=46):      ID 461-469
@@ -862,6 +888,18 @@ ID=3   组件示例中心 [Component Gallery] (component_center)
     ID=4308 看板 [Kanban] (cc_patterns_kanban) → /component-center/patterns/kanban → component_center/patterns/kanban_page
     ID=4309 甘特图 [Gantt Chart] (cc_patterns_gantt) → /component-center/patterns/gantt → component_center/patterns/gantt_page
     ID=4310 高级表格 [Advanced Table] (cc_patterns_advanced_table) → /component-center/patterns/advanced-table → component_center/patterns/advanced_table_page
+  ID=47  组件 [Components] (cc_components; no buttons, mock data only)
+    ID=4701 数据表格 [Data Table] (cc_components_data_table) → /component-center/components/data-table → component_center/components/data_table_page
+    ID=4702 表单 [Forms] (cc_components_forms) → /component-center/components/forms → component_center/components/forms_page
+    ID=4703 筛选 [Filters] (cc_components_filters) → /component-center/components/filters → component_center/components/filters_page
+    ID=4704 选择器 [Pickers] (cc_components_pickers) → /component-center/components/pickers → component_center/components/pickers_page
+    ID=4705 树 [Trees] (cc_components_trees) → /component-center/components/trees → component_center/components/trees_page
+    ID=4706 上传 [Uploads] (cc_components_uploads) → /component-center/components/uploads → component_center/components/uploads_page
+    ID=4707 导入导出 [Import / Export] (cc_components_import_export) → /component-center/components/import-export → component_center/components/import_export_page
+    ID=4708 反馈 [Feedback] (cc_components_feedback) → /component-center/components/feedback → component_center/components/feedback_page
+    ID=4709 数据展示 [Data Display] (cc_components_data_display) → /component-center/components/data-display → component_center/components/data_display_page
+    ID=4710 Markdown (cc_components_markdown) → /component-center/components/markdown → component_center/components/markdown_page
+    ID=4711 条件构建器 [Condition Builder] (cc_components_condition_builder) → /component-center/components/condition-builder → component_center/components/condition_builder_page
   ID=41  数据可视化 [Data Visualization] (cc_dataviz)
     ID=411 实时折线图 [Real-time Line Chart] → /component-center/dataviz/realtime-chart → component_center/dataviz/realtime_chart_page
     ID=412 热力日历图 [Calendar Heatmap] → /component-center/dataviz/heatmap → component_center/dataviz/heatmap_page

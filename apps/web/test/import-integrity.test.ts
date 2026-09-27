@@ -4,6 +4,8 @@
  * Covers two forms:
  *  - @/ alias (must point to a real file under the src root)
  *  - ./ or ../ relative paths (allowed for assets like CSS/images only; JS modules import through the @/ alias)
+ * A Vite query suffix (`?raw`, `?url`: the component gallery imports its example files `?raw` to show their source)
+ * is stripped before resolving, so the file itself must exist.
  */
 import { readdirSync, statSync, existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -52,7 +54,7 @@ describe('导入完整性', () => {
       for (const { spec, line } of collectSpecifiers(file)) {
         if (spec.startsWith('@/')) {
           aliasCount++
-          const target = join(SRC, spec.slice(2))
+          const target = join(SRC, spec.slice(2).replace(/\?(raw|url)$/, ''))
           if (!existsSync(target) && !['.tsx', '.ts', '.d.ts', '.jsx', '.js'].some((ext) => existsSync(`${target}${ext}`))) {
             broken.push(`${file}:${line} → ${spec}（无法解析）`)
           }

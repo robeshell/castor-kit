@@ -102,5 +102,17 @@
   "cc_patterns_edit": "レコードの編集",
   "cc_patterns_delete": "レコードの削除",
   "cc_patterns_export": "レコードのエクスポート",
-  "cc_patterns_import": "レコードのインポート"
+  "cc_patterns_import": "レコードのインポート",
+  "cc_components": "コンポーネント",
+  "cc_components_data_table": "データテーブル",
+  "cc_components_forms": "フォーム",
+  "cc_components_filters": "フィルター",
+  "cc_components_pickers": "ピッカー",
+  "cc_components_trees": "ツリー",
+  "cc_components_uploads": "アップロード",
+  "cc_components_import_export": "インポート / エクスポート",
+  "cc_components_feedback": "フィードバック",
+  "cc_components_data_display": "データ表示",
+  "cc_components_markdown": "Markdown",
+  "cc_components_condition_builder": "条件ビルダー"
 }

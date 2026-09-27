@@ -102,5 +102,17 @@
   "cc_patterns_edit": "Edit record",
   "cc_patterns_delete": "Delete record",
   "cc_patterns_export": "Export records",
-  "cc_patterns_import": "Import records"
+  "cc_patterns_import": "Import records",
+  "cc_components": "Components",
+  "cc_components_data_table": "Data Table",
+  "cc_components_forms": "Forms",
+  "cc_components_filters": "Filters",
+  "cc_components_pickers": "Pickers",
+  "cc_components_trees": "Trees",
+  "cc_components_uploads": "Uploads",
+  "cc_components_import_export": "Import / Export",
+  "cc_components_feedback": "Feedback",
+  "cc_components_data_display": "Data Display",
+  "cc_components_markdown": "Markdown",
+  "cc_components_condition_builder": "Condition Builder"
 }
