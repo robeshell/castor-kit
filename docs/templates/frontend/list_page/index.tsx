@@ -207,7 +207,8 @@ export default function <Resource>Page() {
         </StatusBadge>
       ),
     },
-    { key: 'remark', title: '备注', dataIndex: 'remark', ellipsis: true },
+    // An ellipsis column takes only the width left over, so give it a floor
+    { key: 'remark', title: '备注', dataIndex: 'remark', minWidth: 160, ellipsis: true },
     {
       key: 'created_at',
       title: '创建时间',
@@ -262,6 +263,7 @@ export default function <Resource>Page() {
       {/* Filter bar */}
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
+        {/* The backend reads ?status= in routes.ts and filters in repository.ts (TODOs in docs/templates/backend) */}
         <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
       </FilterBar>
 

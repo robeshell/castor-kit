@@ -13,9 +13,9 @@
       "default": "idle",
       "options": [
         { "value": "idle", "label": "闲置" },
-        { "value": "in_use", "label": "使用中" },
-        { "value": "repairing", "label": "维修中" },
-        { "value": "scrapped", "label": "已报废" }
+        { "value": "in_use", "label": "使用中", "tone": "success" },
+        { "value": "repairing", "label": "维修中", "tone": "warning" },
+        { "value": "scrapped", "label": "已报废", "tone": "danger" }
       ]
     },
     { "name": "category", "type": "dict", "label": "设备分类", "dict": "device_category" },

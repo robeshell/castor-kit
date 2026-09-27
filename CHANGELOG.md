@@ -18,6 +18,17 @@ All notable changes to this project are documented here. The format is based on 
 
 - The component gallery's 3D / creative pages (particle network, CSS 3D cards, Three.js globe, particle morphing) and the `three` dependency: the gallery is being reshaped into reference implementations for developers and AI (`docs/roadmap.md` "Component gallery redesign"). Migration `0002_remove_creative_menus` deletes their menus and role grants on existing databases.
 
+### Fixed
+
+Found by building a module end to end with `/new-feature-autopilot` (friction log in the PR):
+
+- `pnpm scaffold`: each enum field gets a list filter (`FilterSelect` on the page, an exact-match query parameter on the list route, documented with the option values, checked in the generated API test); the backend templates show where the list page template's `status` filter is read. Enum columns are `StatusBadge`s, coloured by an optional `tone` per spec option; list columns keep short values on one line and give free text a minimum width, so narrow screens scroll the table instead of squeezing a column to one character (and ellipsis columns no longer collapse); webhook events are described with the module title ("设备台账已新增") and translated in the module's page locales; downloads are saved under the names the server gives them. `--validate-only` and `--dry-run` name the menu ID and path, `--dry-run` reports the same writes as a real run and ends with "nothing was written", the field list is printed in the `--fields` syntax, and a spec translation that loses to an existing one gets a `[note]`.
+- `pnpm scaffold`: a spec with a required number / option field and no default (e.g. `docs/examples/specs/expense.json`) generated a page that failed `tsc` (the empty form value is `null`, the create body isn't nullable); the page now narrows those fields in a generated `toBody()` before submitting. Its `--fields` next steps and AGENTS.md "Changing menus" mention the menu names in `apps/web/src/locales/menus/`, which the web i18n test requires.
+- `pnpm verify` prints each check's detail (the `migrated to <tag>` line for the delivery report), counts skipped checks as skipped, and no longer says "ready to deliver" when `--skip-*` flags skipped checks (`complete` in `--json`).
+- `pnpm db:migrate` prints in English how many migrations it applied and which one the database is at; `pnpm seed:rbac -- --incremental` lists only menus that changed.
+- The tests read `TEST_DATABASE_URL` from `apps/api/.env.test` as well as the shell, and the Vite dev proxy takes `API_PORT`, so a second checkout can run beside the first with its own databases and ports.
+- AGENTS.md, CLAUDE.md and the autopilot skill lead with the spec flow (`--spec` → `--validate-only` → generate), no longer describe request schemas as `.passthrough()`, and explain a checkout without `apps/api/.env.development`.
+
 ## [0.2.0] - 2026-09-27
 
 English first and TypeScript throughout: the specs, docs and tools speak English, the admin frontend is TypeScript end to end, and the OpenAPI doc is kept in sync with the backend by a check instead of by hand.

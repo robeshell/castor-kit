@@ -154,6 +154,16 @@ export function scaffoldOperations(s: ScaffoldSpec, label: (field: string) => st
   const lookup = `先查权限（403）再查记录（不存在${s.dataScope ? '或不在数据权限范围内' : ''}返回 404），没有权限时无法判断记录是否存在。`
   const invalid = '唯一字段重复、值超长或类型不对返回 400。'
   const importLabels = s.importFields.map(([f]) => label(f))
+  // Enum fields filter the list by exact match ('' = all, as the page's "all" item sends it)
+  const filterParams = s.fields
+    .filter(([, type]) => type === 'enum')
+    .map(([f]) => ({
+      name: f,
+      in: 'query',
+      schema: { type: 'string', enum: [...(s.meta[f]?.options ?? []).map((o) => o.value), ''] },
+      description: `按「${label(f)}」筛选（精确匹配，空为全部）`,
+    }))
+  const filterText = filterParams.length ? `${filterParams.map((p) => p.name).join(' / ')} 按选项值精确筛选。` : ''
   const op = (method: string, path: string, body: Operation): Operation => ({
     tags: [tag.name],
     ...body,
@@ -165,11 +175,12 @@ export function scaffoldOperations(s: ScaffoldSpec, label: (field: string) => st
     [s.apiBase]: {
       get: op('get', s.apiBase, {
         summary: phrase(t, '列表'),
-        description: `需要 ${p}。search 按「${label(s.nameField)}」模糊搜索，按 ID 倒序分页。${scope}`,
+        description: `需要 ${p}。search 按「${label(s.nameField)}」模糊搜索，${filterText}按 ID 倒序分页。${scope}`,
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 }, description: '页码' },
           { name: 'per_page', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 200, default: 20 }, description: '每页条数，最多 200' },
           { name: 'search', in: 'query', schema: { type: 'string' }, description: `按「${label(s.nameField)}」模糊搜索` },
+          ...filterParams,
         ],
         responses: {
           '200': {

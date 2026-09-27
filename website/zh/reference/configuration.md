@@ -34,7 +34,7 @@ castor-kit 的配置分两类：
 | `NODE_ENV` | 运行环境：`development` / `test` / `production`，其他值按 `development` 处理 | `development` |
 | `PORT` | 监听端口 | 开发 `5001`、测试 `5002`、生产 `5000` |
 | `DEV_DATABASE_URL` | 开发环境数据库连接 | `postgresql://localhost/castor_kit` |
-| `TEST_DATABASE_URL` | 测试环境数据库连接 | `postgresql://localhost/castor_kit_test` |
+| `TEST_DATABASE_URL` | 测试环境数据库连接；测试从 shell 或 `apps/api/.env.test` 读取 | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 生产环境数据库连接 | `postgresql://localhost/castor_kit` |
 | `MIGRATIONS_DIR` | 迁移文件目录 | 自动向上查找 `drizzle/` 目录 |
 
@@ -184,7 +184,7 @@ AI 对话、AI 提示词工坊、AI 数据查询和 AI 小助手共用这组设�
 | 项 | 值 |
 |---|---|
 | 开发端口 | `5173` |
-| 代理 | `/api` → `http://localhost:5001`，`/ws` → `ws://localhost:5001` |
+| 代理 | `/api` → `http://localhost:5001`，`/ws` → `ws://localhost:5001`（设置了 `API_PORT` 时用它作端口，例如第二个检出的后端以 `PORT=5011` 运行时用 `API_PORT=5011`） |
 | 路径别名 | `@` → `apps/web/src` |
 
 生产环境下前端构建产物由后端直接提供，请求走同源的 `/api`，不需要额外配置。

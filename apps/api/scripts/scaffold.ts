@@ -33,7 +33,7 @@
  *   apps/web/src/modules/<module>/api/<name>.ts                     typed from the module's OpenAPI entries
  *   apps/web/src/modules/<module>/pages/<subdir>/<name>/index.tsx   shadcn/ui list page (same structure as the users page)
  *   apps/web/src/modules/<module>/pages/<subdir>/<name>/locales/{en-US,ja-JP}.json
- *                     only when the page uses fixed Chinese text that apps/web/src/locales doesn't translate
+ *                     the module's webhook event descriptions, plus any fixed page text no locales file translates yet
  * Auto-registration:
  *   apps/api/src/db/schema/index.ts          export * from './<domain>/<name>'
  *   apps/api/src/modules/<domain>/router.ts  import + await register<Name>Routes(app)
@@ -92,6 +92,11 @@ export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
   dict: { column: 'varchar({ length: 100 })', builder: 'varchar', kind: 'text' },
 }
 
+/** Enum fields: the list filters on each of them (exact match) */
+export function enumFieldsOf(fields: Field[]): string[] {
+  return fields.filter(([, t]) => t === 'enum').map(([f]) => f)
+}
+
 /** Fields holding file-center ids (file / image types) */
 export function fileFieldsOf(fields: Field[]): string[] {
   return fields.filter(([, t]) => fieldSpec(t).kind === 'fileId').map(([f]) => f)
@@ -104,10 +109,16 @@ export function fieldSpec(type: string): FieldTypeSpec {
 
 export type Field = [name: string, type: string]
 
+/** Badge colours of enum options in the list (apps/web StatusBadge tones) */
+export const OPTION_TONES = ['neutral', 'brand', 'info', 'success', 'warning', 'danger'] as const
+export type OptionTone = (typeof OPTION_TONES)[number]
+
 /** A choice of an enum field */
 export interface FieldOption {
   value: string
   label: string
+  /** Badge colour in the list (default neutral), e.g. in use → success, scrapped → danger */
+  tone?: OptionTone
 }
 
 /** What a --spec file can say about a field beyond its name and type */
@@ -452,7 +463,11 @@ ${declarations.join('\n')}
 })
 
 export type ${s.pascal}Input = z.output<typeof ${s.camel}Body>
-
+${
+  enumFieldsOf(s.fields).length
+    ? `\n/** List filters: exact match on the enum fields ('' = no filter) */\nexport type ${s.pascal}Filters = Record<${enumFieldsOf(s.fields).map(q).join(' | ')}, string>\n`
+    : ''
+}
 /** Export request: the rows (ids; none = every row), the columns (fields; none = every column), the file type */
 export const ${s.camel}ExportBody = z.object({
   ids: field.ids('导出记录'),
@@ -520,11 +535,20 @@ export function genRepository(s: ScaffoldSpec): string {
     : `ilike(sql\`\${${s.table}.${s.nameField}}::text\`, \`%\${search}%\`)`
   const ds = s.dataScope
   const fileFields = fileFieldsOf(s.fields)
+  const enumFields = enumFieldsOf(s.fields)
   const refsOf = (row: string) => `{ ${fileFields.map((f) => `${key(f)}: ${row}.${f}`).join(', ')} }`
-  const ormImports = [...(ds ? ['and'] : []), 'count', 'desc', 'eq', 'ilike', 'inArray', ...(isText ? [] : ['sql']), 'type SQL']
+  const ormImports = [...(ds || enumFields.length ? ['and'] : []), 'count', 'desc', 'eq', 'ilike', 'inArray', ...(isText ? [] : ['sql']), 'type SQL']
   const t = s.table
   const scopeParam = ds ? ', scope: DataScope' : ''
-  const listWhere = ds ? 'and(this.searchWhere(search), this.scopeWhere(scope))' : 'this.searchWhere(search)'
+  const listWhere = `${ds || enumFields.length ? 'and(' : ''}this.searchWhere(search)${enumFields.length ? ', this.filterWhere(filters)' : ''}${ds ? ', this.scopeWhere(scope)' : ''}${ds || enumFields.length ? ')' : ''}`
+  const filterMethod = enumFields.length
+    ? `
+  /** List filters: exact match on each enum field that has a value */
+  private filterWhere(filters: ${s.pascal}Filters): SQL | undefined {
+    return and(${enumFields.map((f) => `filters.${f} ? eq(${t}.${f}, filters.${f}) : undefined`).join(', ')})
+  }
+`
+    : ''
   const exportWhere = ds
     ? `and(ids ? inArray(${t}.id, ids) : undefined, this.scopeWhere(scope))`
     : `ids ? inArray(${t}.id, ids) : undefined`
@@ -543,7 +567,7 @@ export function genRepository(s: ScaffoldSpec): string {
 
 import { ${ormImports.join(', ')} } from 'drizzle-orm'
 ${ds ? `import { dataScopeWhere, UNRESTRICTED, type DataScope } from '@/common/data-scope'\n` : ''}${fileFields.length ? `import { clearFileRefs, syncFileRefs } from '@/common/file-refs'\n` : ''}import type { Executor } from '@/db/client'
-import { ${s.table}, type ${s.pascal}, type New${s.pascal} } from '@/db/schema'
+import { ${s.table}, type ${s.pascal}, type New${s.pascal} } from '@/db/schema'${enumFields.length ? `\nimport type { ${s.pascal}Filters } from './schema'` : ''}
 
 export class ${s.pascal}Repository {
   constructor(private readonly db: Executor) {}
@@ -551,8 +575,8 @@ export class ${s.pascal}Repository {
   private searchWhere(search: string): SQL | undefined {
     return search ? ${searchExpr} : undefined
   }
-${scopeMethod}
-  async listPage(page: number, perPage: number, search: string${scopeParam}) {
+${filterMethod}${scopeMethod}
+  async listPage(page: number, perPage: number, search: string${enumFields.length ? `, filters: ${s.pascal}Filters` : ''}${scopeParam}) {
     const where = ${listWhere}
     const [totalRow] = await this.db.select({ n: count() }).from(${s.table}).where(where)
     const items = await this.db
@@ -607,6 +631,7 @@ export function genService(s: ScaffoldSpec): string {
   const ds = s.dataScope
   const scopeParam = ds ? ', scope: DataScope = UNRESTRICTED' : ''
   const scopeArg = ds ? ', scope' : ''
+  const filtered = enumFieldsOf(s.fields).length > 0
   const stampHelper = ds
     ? `
 /** Owner columns of a new row (data scope): the creator and their department */
@@ -637,7 +662,7 @@ import {
   rowToBody,
   ${s.camel}Body,
   type ${s.camel}ExportBody,
-  type ${s.pascal}Input,
+  type ${s.pascal}Input,${filtered ? `\n  type ${s.pascal}Filters,` : ''}
   type ErrorRow,
 } from './schema'
 ${stampHelper}
@@ -661,8 +686,8 @@ export class ${s.pascal}Service {
     }
   }
 
-  async listItems(page: number, perPage: number, search: string${scopeParam}) {
-    const { total, items } = await this.repo.listPage(page, perPage, search${scopeArg})
+  async listItems(page: number, perPage: number, search: string${filtered ? `, filters: ${s.pascal}Filters` : ''}${scopeParam}) {
+    const { total, items } = await this.repo.listPage(page, perPage, search${filtered ? ', filters' : ''}${scopeArg})
     return { items: items.map(${s.camel}ToDict), total, page, per_page: perPage }
   }
 
@@ -714,12 +739,12 @@ export class ${s.pascal}Service {
         return f in dict ? dict[f] : ''
       })
     })
-    return buildTable(headers, rows, ${q(`${s.name}_export`)}, fileType)
+    return buildTable(headers, rows, ${q(`${s.table}_export`)}, fileType)
   }
 
   async downloadTemplate(fileTypeRaw: unknown) {
     const fileType = normalizeTableFileType(fileTypeRaw, 'xlsx')
-    return buildTable(Object.keys(IMPORT_HEADER_MAP), [], ${q(`${s.name}_import_template`)}, fileType)
+    return buildTable(Object.keys(IMPORT_HEADER_MAP), [], ${q(`${s.table}_import_template`)}, fileType)
   }
 
   /** Import: the whole batch is one transaction; any error row rolls it all back and returns 400 + error_rows */
@@ -809,9 +834,7 @@ const BASE = ${q(s.apiBase)}
 
 // Webhook events this module emits (offered on the webhooks page)
 declareEvents({
-  ${q(`${s.name}.created`)}: ${q(`${s.name} 已新增`)},
-  ${q(`${s.name}.updated`)}: ${q(`${s.name} 已修改`)},
-  ${q(`${s.name}.deleted`)}: ${q(`${s.name} 已删除`)},
+${EVENT_ACTIONS.map((action) => `  ${q(`${s.name}.${action}`)}: ${q(eventLabel(s, action))},`).join('\n')}
 })
 
 export async function register${s.pascal}Routes(app: FastifyInstance): Promise<void> {
@@ -824,8 +847,12 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
     if (!(await hasMenuPermission(request, ${q(p)}))) {
       return reply.status(403).send({ error: '无权限' })
     }
-    const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
-    return service.listItems(page, per_page, queryString(request, 'search').trim()${scope})
+    const { page, per_page } = parsePagination(request.query as Record<string, unknown>)${
+      enumFieldsOf(s.fields).length
+        ? `\n    const filters = { ${enumFieldsOf(s.fields).map((f) => `${key(f)}: queryString(request, ${q(f)}).trim()`).join(', ')} }`
+        : ''
+    }
+    return service.listItems(page, per_page, queryString(request, 'search').trim()${enumFieldsOf(s.fields).length ? ', filters' : ''}${scope})
   })
 
   const create = routeBody(${s.camel}Body, 'create')
@@ -1103,6 +1130,16 @@ function genRulesTest(s: ScaffoldSpec): string {
         `    const bad${toPascal(f)} = await s.inject({ method: 'POST', url: BASE, payload: { ...sample('op-${f}'), ${key(f)}: 'not-an-option' } })`,
         `    expect([bad${toPascal(f)}.statusCode, bad${toPascal(f)}.json()]).toEqual([400, { error: ${q(`${label}的值无效`)} }])`,
       )
+      const value = meta.options?.[0]?.value
+      if (value !== undefined) {
+        lines.push(
+          `    // ${f}: the list filters on it (exact match)`,
+          `    await s.inject({ method: 'POST', url: BASE, payload: { ...sample('fl-${f}'), ${key(f)}: ${q(value)} } })`,
+          `    const filtered${toPascal(f)} = (await s.inject({ method: 'GET', url: \`\${BASE}?${f}=${value}&per_page=200\` })).json()`,
+          `    expect(filtered${toPascal(f)}.items.length).toBeGreaterThan(0)`,
+          `    expect(filtered${toPascal(f)}.items.every((row: { ${key(f)}: string | null }) => row.${f} === ${q(value)})).toBe(true)`,
+        )
+      }
     }
     if (meta.unique) {
       lines.push(
@@ -1227,6 +1264,7 @@ export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
   清空勾选: { 'en-US': 'Clear selection', 'ja-JP': '選択を解除' },
   暂无数据: { 'en-US': 'No data', 'ja-JP': 'データがありません' },
   换个关键词试试: { 'en-US': 'Try a different keyword', 'ja-JP': '別のキーワードでお試しください' },
+  换个筛选条件试试: { 'en-US': 'Try different filters', 'ja-JP': '別の条件でお試しください' },
   '点击右上角「新增」添加第一条数据': {
     'en-US': 'Click "Add" in the top right to add the first record',
     'ja-JP': '右上の「追加」から最初のデータを追加してください',
@@ -1303,11 +1341,18 @@ function formValueExpr(field: string, kind: FrontendKind): string {
   return `${v} ?? ''`
 }
 
-/** Table column: bool → StatusBadge, dates → formatDate / formatDateTime, numbers → tabular-nums, options → their label */
-function columnLines(s: ScaffoldSpec, field: string, kind: FrontendKind): string[] {
+/** Short values (codes, numbers, dates, options) never wrap; free text keeps a minimum width, so a narrow screen scrolls the table instead of squeezing a column to one character */
+const NOWRAP_TYPES = new Set(['str20', 'str50', 'int', 'float', 'date', 'datetime', 'dict'])
+
+/**
+ * Table column: bool / enum → StatusBadge, dates → formatDate / formatDateTime, numbers → tabular-nums, dictionary
+ * items → their label
+ */
+function columnLines(s: ScaffoldSpec, field: string, kind: FrontendKind, type: string): string[] {
   const label = labelOf(s, field)
   const head = [`    {`, `      key: ${q(field)},`, `      title: ${q(label)},`, `      dataIndex: ${q(field)},`]
   const tail = [`    },`]
+  const nowrap = NOWRAP_TYPES.has(type) ? ' whitespace-nowrap' : ''
   if (kind === 'bool') {
     // StatusBadge translates string children, so the Chinese stays plain
     return [
@@ -1322,20 +1367,36 @@ function columnLines(s: ScaffoldSpec, field: string, kind: FrontendKind): string
     ]
   }
   if (kind === 'date') {
-    return [...head, `      width: 120,`, `      className: 'text-muted-foreground tabular-nums',`, `      render: (value) => formatDate(value),`, ...tail]
+    return [...head, `      width: 120,`, `      className: 'text-muted-foreground tabular-nums${nowrap}',`, `      render: (value) => formatDate(value),`, ...tail]
   }
   if (kind === 'datetime') {
-    return [...head, `      width: 180,`, `      className: 'text-muted-foreground tabular-nums',`, `      render: (value) => formatDateTime(value),`, ...tail]
+    return [...head, `      width: 180,`, `      className: 'text-muted-foreground tabular-nums${nowrap}',`, `      render: (value) => formatDateTime(value),`, ...tail]
   }
   if (kind === 'int' || kind === 'float') {
-    return [...head, `      align: 'right',`, `      className: 'tabular-nums',`, ...tail]
+    return [...head, `      align: 'right',`, `      className: 'tabular-nums${nowrap}',`, ...tail]
   }
-  if (kind === 'text') return [...head, `      ellipsis: true,`, ...tail]
+  // An ellipsis column takes only the width left over, so it needs a floor
+  if (kind === 'text') return [...head, `      minWidth: 160,`, `      ellipsis: true,`, ...tail]
   if (kind === 'enum') {
-    return [...head, `      render: (value) => {`, `        const label = optionLabel(${q(field)}, value)`, `        return label ? t(label) : value`, `      },`, ...tail]
+    // StatusBadge translates string children (the option label is the Chinese source text)
+    const dot = (s.meta[field]?.options ?? []).some((o) => o.tone) ? ' dot' : ''
+    return [
+      ...head,
+      `      render: (value) => {`,
+      `        const option = optionOf(${q(field)}, value)`,
+      `        return option ? (`,
+      `          <StatusBadge tone={option.tone ?? 'neutral'}${dot}>`,
+      `            {option.label}`,
+      `          </StatusBadge>`,
+      `        ) : (`,
+      `          value`,
+      `        )`,
+      `      },`,
+      ...tail,
+    ]
   }
   if (kind === 'dict') {
-    return [...head, `      render: (value) => dictLabel(dicts, ${q(s.meta[field]?.dict ?? '')}, value),`, ...tail]
+    return [...head, `      className: 'whitespace-nowrap',`, `      render: (value) => dictLabel(dicts, ${q(s.meta[field]?.dict ?? '')}, value),`, ...tail]
   }
   if (kind === 'image') {
     return [
@@ -1359,15 +1420,15 @@ function columnLines(s: ScaffoldSpec, field: string, kind: FrontendKind): string
       ...tail,
     ]
   }
-  return [`    { key: ${q(field)}, title: ${q(label)}, dataIndex: ${q(field)} },`]
+  if (nowrap) return [`    { key: ${q(field)}, title: ${q(label)}, dataIndex: ${q(field)}, className: 'whitespace-nowrap' },`]
+  return [`    { key: ${q(field)}, title: ${q(label)}, dataIndex: ${q(field)}, minWidth: 120 },`]
 }
 
 export function genFrontendPage(s: ScaffoldSpec): string {
   const fields = s.fields.map(([f, t]) => [f, frontendKind(t)] as const)
-  const columnFields = s.exportFields.map(([f, t]) => [f, frontendKind(t)] as const)
+  const columnFields = s.exportFields.map(([f, t]) => [f, frontendKind(t), t] as const)
   const kinds = new Set(fields.map(([, k]) => k))
   const title = s.title
-  const k = s.kebab
   const enumFields = fields.filter(([, kind]) => kind === 'enum').map(([f]) => f)
   const dictCodes = [...new Set(fields.filter(([, kind]) => kind === 'dict').map(([f]) => s.meta[f]?.dict ?? ''))]
   const optionsRef = (f: string) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(f) ? `FIELD_OPTIONS.${f}` : `FIELD_OPTIONS[${q(f)}]`)
@@ -1387,7 +1448,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
   // Import only the components in use (apps/web's eslint enables no-unused-vars)
   const formComponents = [...new Set(fields.map(([, kind]) => FRONTEND_FIELD_MAP[kind].component))].sort()
   const formatImports = [...(kinds.has('date') ? ['formatDate'] : []), 'formatDateTime']
-  const needsStatusBadge = columnFields.some(([, kind]) => kind === 'bool')
+  const needsStatusBadge = columnFields.some(([, kind]) => kind === 'bool' || kind === 'enum')
   const needsFileUrl = columnFields.some(([, kind]) => kind === 'file' || kind === 'image')
 
   const exportFields = [
@@ -1396,6 +1457,21 @@ export function genFrontendPage(s: ScaffoldSpec): string {
     "  { label: '创建时间', value: 'created_at' },",
   ]
   const formTypeLines = fields.map(([f, kind]) => `  ${key(f)}: ${formTypeOf(f, kind)}`)
+  // Required fields without a default whose empty form value is null (numbers, options): the form's required rule
+  // keeps them filled on submit, but the create body types them non-null, so toBody() narrows them
+  const narrowed = fields
+    .filter(([f, kind]) => {
+      const type = s.fields.find(([name]) => name === f)?.[1] ?? 'str'
+      return s.meta[f]?.required && defaultLiteral(type, s.meta[f]?.default) === null && FRONTEND_FIELD_MAP[kind].formType.endsWith('| null')
+    })
+    .map(([f]) => f)
+  const toBodyBlock = narrowed.length
+    ? `
+/** The request body: the required rules keep ${narrowed.join(' / ')} filled on submit, which the form's types can't see */
+const toBody = ({ ${narrowed.map(key).join(', ')}, ...rest }: FormValues): ${s.pascal}Body | null =>
+  ${narrowed.map((f) => `${f} === null`).join(' || ')} ? null : { ...rest, ${narrowed.map(key).join(', ')} }
+`
+    : ''
   const emptyLines = fields.map(([f, kind]) => `  ${key(f)}: ${emptyOf(f, kind)},`)
   const toFormLines = fields.map(([f, kind]) => `  ${key(f)}: ${formValueExpr(f, kind)},`)
   const formLines = fields.map(([f, kind]) => {
@@ -1412,7 +1488,7 @@ export function genFrontendPage(s: ScaffoldSpec): string {
   })
   const columns = [
     `    { key: 'id', title: 'ID', dataIndex: 'id', width: 72, className: 'text-muted-foreground tabular-nums' },`,
-    ...columnFields.flatMap(([f, kind]) => columnLines(s, f, kind)),
+    ...columnFields.flatMap(([f, kind, type]) => columnLines(s, f, kind, type)),
     `    {`,
     `      key: 'created_at',`,
     `      title: '创建时间',`,
@@ -1473,7 +1549,7 @@ import {
   getItems,
   importItems,
   updateItem,
-  type ${s.pascal} as Row,
+  type ${s.pascal} as Row,${narrowed.length ? `\n  type ${s.pascal}Body,` : ''}
   type ${s.pascal}ExportBody,
   type ${s.pascal}FileType,
 } from '@/modules/${s.webModule}/api/${s.name}'
@@ -1481,11 +1557,11 @@ import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
 import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
 import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
-import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FilterBar${enumFields.length ? ', FilterSelect' : ''}, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { ${formComponents.join(', ')} } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
-${needsFileUrl ? "import { fileUrl } from '@/shared/api/files'\n" : ''}${needsStatusBadge ? "import StatusBadge from '@/shared/components/StatusBadge'\n" : ''}import { useCrudList } from '@/shared/hooks/useCrudList'
+${needsFileUrl ? "import { fileUrl } from '@/shared/api/files'\n" : ''}${needsStatusBadge ? `import StatusBadge${enumFields.length ? ', { type StatusTone }' : ''} from '@/shared/components/StatusBadge'\n` : ''}import { useCrudList } from '@/shared/hooks/useCrudList'
 ${dictCodes.length ? "import { dictLabel, useDictOptions } from '@/shared/hooks/useDictOptions'\n" : ''}import { downloadBlobFile } from '@/shared/utils/file'
 
 const EXPORT_FIELDS = [
@@ -1498,13 +1574,20 @@ const normalizeFileType = (raw: string): ${s.pascal}FileType => (raw === 'csv' |
 ${
   enumFields.length
     ? `
-/** Choices of the enum fields: the value is stored, the label is shown */
-const FIELD_OPTIONS: Record<${enumFields.map(q).join(' | ')}, { value: string; label: string }[]> = {
+/** Choices of the enum fields: the value is stored, the label is shown (as a badge of the given tone in the list) */
+const FIELD_OPTIONS: Record<${enumFields.map(q).join(' | ')}, { value: string; label: string; tone?: StatusTone }[]> = {
 ${enumFields
-  .map((f) => `  ${key(f)}: [${(s.meta[f]?.options ?? []).map((o) => `{ value: ${q(o.value)}, label: ${q(o.label)} }`).join(', ')}],`)
+  .map(
+    (f) =>
+      `  ${key(f)}: [${(s.meta[f]?.options ?? [])
+        .map((o) => `{ value: ${q(o.value)}, label: ${q(o.label)}${o.tone ? `, tone: ${q(o.tone)}` : ''} }`)
+        .join(', ')}],`,
+  )
   .join('\n')}
 }
-const optionLabel = (field: keyof typeof FIELD_OPTIONS, value: string | null) => FIELD_OPTIONS[field].find((o) => o.value === value)?.label
+const optionOf = (field: keyof typeof FIELD_OPTIONS, value: string | null) => FIELD_OPTIONS[field].find((o) => o.value === value)
+/** List filters on the enum fields ('' = all) */
+const EMPTY_FILTERS: Record<keyof typeof FIELD_OPTIONS, string> = { ${enumFields.map((f) => `${key(f)}: ''`).join(', ')} }
 `
     : ''
 }${dictCodes.length ? `\n/** Dictionaries used by dict fields (System → Configuration → Data dictionary) */\nconst DICT_CODES = [${dictCodes.map(q).join(', ')}]\n` : ''}
@@ -1521,7 +1604,7 @@ ${emptyLines.join('\n')}
 const toFormValues = (record: Row): FormValues => ({
 ${toFormLines.join('\n')}
 })
-
+${toBodyBlock}
 export default function ${s.pascal}Page() {
   const { t } = useTranslation()
   const list = useCrudList(
@@ -1533,7 +1616,7 @@ export default function ${s.pascal}Page() {
     { defaultPerPage: 20 },
   )
   const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState('')${enumFields.length ? `\n  const [filterValues, setFilterValues] = useState(EMPTY_FILTERS)` : ''}
   const [selectedKeys, setSelectedKeys] = useState<number[]>([])
   const [editing, setEditing] = useState<Row | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -1559,13 +1642,13 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     setFormOpen(true)
   }
 
-  const submit = async (values: FormValues) => {
+  const submit = async (values: FormValues) => {${narrowed.length ? `\n    const body = toBody(values)\n    if (!body) return` : ''}
     try {
       if (editing) {
-        await updateItem(editing.id, values)
+        await updateItem(editing.id, ${narrowed.length ? 'body' : 'values'})
         toast.success('更新成功')
       } else {
-        await createItem(values)
+        await createItem(${narrowed.length ? 'body' : 'values'})
         toast.success('创建成功')
       }
       setFormOpen(false)
@@ -1590,10 +1673,10 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
 
   const runSearch = () => {
     setSelectedKeys([])
-    list.handleSearch({ search: search.trim() })
+    list.handleSearch({ search: search.trim()${enumFields.length ? ', ...filterValues' : ''} })
   }
   const reset = () => {
-    setSearch('')
+    setSearch('')${enumFields.length ? '\n    setFilterValues(EMPTY_FILTERS)' : ''}
     setSelectedKeys([])
     list.handleReset()
   }
@@ -1604,7 +1687,7 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
     if (selectedKeys.length) payload.ids = selectedKeys
     try {
       const blob = await exportItems(payload)
-      downloadBlobFile(blob, \`${k}s_export.\${type}\`)
+      downloadBlobFile(blob, \`${s.table}_export.\${type}\`)
       toast.success('导出成功')
       setExportOpen(false)
     } catch (err) {
@@ -1639,7 +1722,12 @@ ${columns.join('\n')}
       />
 
       <FilterBar onSearch={runSearch} onReset={reset}>
-        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
+        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />${enumFields
+          .map(
+            (f) =>
+              `\n        <FilterSelect value={filterValues.${f}} onChange={(value) => setFilterValues((prev) => ({ ...prev, ${key(f)}: value }))} options={${optionsRef(f)}} placeholder="${labelOf(s, f)}" />`,
+          )
+          .join('')}
       </FilterBar>
 
       <AnimatePresence>
@@ -1676,7 +1764,11 @@ ${columns.join('\n')}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="暂无数据"
-        emptyDescription={filters.search ? '换个关键词试试' : '点击右上角「新增」添加第一条数据'}
+        emptyDescription={${
+          enumFields.length
+            ? `filters.search || ${enumFields.map((f) => `filters.${f}`).join(' || ')} ? '换个筛选条件试试'`
+            : `filters.search ? '换个关键词试试'`
+        } : '点击右上角「新增」添加第一条数据'}
       />
 
       <FormDialog
@@ -1710,7 +1802,7 @@ ${formLines.join('\n')}
         onDownloadTemplate={(fileType) =>
           downloadTemplate(normalizeFileType(fileType))
             .then((blob) => {
-              downloadBlobFile(blob, \`${k}s_import_template.\${normalizeFileType(fileType)}\`)
+              downloadBlobFile(blob, \`${s.table}_import_template.\${normalizeFileType(fileType)}\`)
               toast.success('模板已下载')
             })
             .catch((err: unknown) => toast.apiError(err, '模板下载失败'))
@@ -1720,7 +1812,7 @@ ${formLines.join('\n')}
           toast.success(t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 }))
           fetchData()
         }}
-        errorExportFileName="${k}s_import_errors.csv"
+        errorExportFileName="${s.table}_import_errors.csv"
       />
     </div>
   )
@@ -1741,21 +1833,62 @@ export function pageTexts(code: string): string[] {
   return [...texts].sort()
 }
 
+/** Webhook events every generated module emits (service → routes' declareEvents) */
+const EVENT_ACTIONS = ['created', 'updated', 'deleted'] as const
+type EventAction = (typeof EVENT_ACTIONS)[number]
+const EVENT_VERBS: Record<EventAction, { 'zh-CN': string; 'en-US': string; 'ja-JP': string }> = {
+  created: { 'zh-CN': '已新增', 'en-US': 'created', 'ja-JP': 'が追加された' },
+  updated: { 'zh-CN': '已修改', 'en-US': 'updated', 'ja-JP': 'が変更された' },
+  deleted: { 'zh-CN': '已删除', 'en-US': 'deleted', 'ja-JP': 'が削除された' },
+}
+
+/** Description of a module event on the webhooks page: the module title followed by the action (created / updated / deleted) */
+export function eventLabel(s: ScaffoldSpec, action: EventAction): string {
+  const cjk = /[\u3400-\u9fff]$/.test(s.title)
+  return `${s.title}${cjk ? '' : ' '}${EVENT_VERBS[action]['zh-CN']}`
+}
+
+/**
+ * The event descriptions with their translations; the webhooks page shows them through t(), and every locales file is
+ * one namespace, so they go into the module's own page locales
+ */
+function eventTexts(s: ScaffoldSpec): Record<string, Record<PageLang, string>> {
+  const title = (lang: PageLang) => s.i18n[lang]?.[s.title] || toLabel(s.name)
+  return Object.fromEntries(
+    EVENT_ACTIONS.map((action) => [
+      eventLabel(s, action),
+      { 'en-US': `${title('en-US')} ${EVENT_VERBS[action]['en-US']}`, 'ja-JP': `${title('ja-JP')}${EVENT_VERBS[action]['ja-JP']}` },
+    ]),
+  )
+}
+
 /**
  * Page locales: translations of the page's fixed Chinese strings that the shared catalogs (apps/web/src/locales) lack.
  * Both languages get the same keys (a string missing in either shared catalog goes into both page files).
  * Returns null when the shared catalogs already cover everything.
  */
 export function genFrontendLocales(s: ScaffoldSpec, shared: Catalogs = {}): Record<PageLang, Record<string, string>> | null {
-  const missing = pageTexts(genFrontendPage(s)).filter((text) => PAGE_LANGS.some((lang) => !shared[lang]?.[text]))
+  const events = eventTexts(s)
+  const texts = [...pageTexts(genFrontendPage(s)), ...Object.keys(events)]
+  const missing = texts.filter((text) => PAGE_LANGS.some((lang) => !shared[lang]?.[text]))
   if (missing.length === 0) return null
   const fallback = specFallbackTexts(s)
-  const translate = (text: string, lang: PageLang) => PAGE_TEXTS[text]?.[lang] ?? s.i18n[lang]?.[text] ?? fallback[text]
+  const translate = (text: string, lang: PageLang) => PAGE_TEXTS[text]?.[lang] ?? events[text]?.[lang] ?? s.i18n[lang]?.[text] ?? fallback[text]
   const unknown = missing.filter((text) => PAGE_LANGS.some((lang) => !translate(text, lang)))
   if (unknown.length > 0) throw new Error(`PAGE_TEXTS has no translation for: ${unknown.join(', ')}`)
   return Object.fromEntries(
     PAGE_LANGS.map((lang) => [lang, Object.fromEntries(missing.map((text) => [text, translate(text, lang)!]))]),
   ) as Record<PageLang, Record<string, string>>
+}
+
+/** Spec translations that lose to an existing translation of the same text: [lang, text, spec's, existing] */
+export function overriddenTranslations(s: ScaffoldSpec, catalogs: Catalogs): Array<[PageLang, string, string, string]> {
+  return PAGE_LANGS.flatMap((lang) =>
+    Object.entries(s.i18n[lang] ?? {}).flatMap(([text, spec]): Array<[PageLang, string, string, string]> => {
+      const existing = catalogs[lang]?.[text]
+      return existing !== undefined && existing !== spec ? [[lang, text, spec, existing]] : []
+    }),
+  )
 }
 
 /**
@@ -1886,7 +2019,7 @@ interface WriteContext {
 function writeFile(ctx: WriteContext, path: string, content: string): void {
   const rel = relative(ctx.root, path)
   if (ctx.dryRun) {
-    ctx.log(`  [dry-run] would write: ${rel}`)
+    ctx.log(existsSync(path) ? `  [dry-run] would skip (already exists): ${rel}` : `  [dry-run] would write: ${rel}`)
     return
   }
   mkdirSync(dirname(path), { recursive: true })
@@ -1899,19 +2032,19 @@ function writeFile(ctx: WriteContext, path: string, content: string): void {
   ctx.log(`  [create] ${rel}`)
 }
 
-/** Rewrite a registration file; returns whether it changed (in a dry run: whether it would be looked at) */
+/** Rewrite a registration file; returns whether it changed (in a dry run: whether it would change; nothing is written) */
 function updateFile(ctx: WriteContext, path: string, transform: (content: string) => string | null): boolean {
   const rel = relative(ctx.root, path)
   if (!existsSync(path)) throw new Error(`Registration file not found: ${rel}`)
-  if (ctx.dryRun) {
-    ctx.log(`  [dry-run] would update: ${rel}`)
-    return true
-  }
   const before = readFileSync(path, 'utf8')
   const next = transform(before)
   if (next === null) {
-    ctx.log(`  [skip] already registered: ${rel}`)
+    ctx.log(`  ${ctx.dryRun ? '[dry-run] would skip' : '[skip]'} already registered: ${rel}`)
     return false
+  }
+  if (ctx.dryRun) {
+    ctx.log(`  [dry-run] would update: ${rel}`)
+    return true
   }
   ctx.onChange?.({ path, before })
   writeFileSync(path, next, 'utf8')
@@ -1942,7 +2075,7 @@ export const UNSAFE_TEXT = /["'`\\{}<>\n\r]/
 export const SPEC_KEYS = {
   spec: ['$schema', 'name', 'domain', 'title', 'dataScope', 'fields', 'menu', 'i18n'],
   field: ['name', 'type', 'label', 'required', 'unique', 'default', 'options', 'dict'],
-  option: ['value', 'label'],
+  option: ['value', 'label', 'tone'],
   menu: ['parentId', 'icon'],
   i18n: ['en-US', 'ja-JP'],
 } as const
@@ -1995,7 +2128,10 @@ export function validateSpec(spec: SpecFile): string[] {
       if (options.length === 0) errors.push(`Field ${at}: an enum field needs at least one option`)
       const values = new Set<string>()
       for (const option of options) {
-        for (const key of unknownKeys(option, SPEC_KEYS.option)) errors.push(`Field ${at}: unknown option property ${key} (allowed: value / label)`)
+        for (const key of unknownKeys(option, SPEC_KEYS.option)) errors.push(`Field ${at}: unknown option property ${key} (allowed: value / label / tone)`)
+        if (option?.tone !== undefined && !(OPTION_TONES as readonly unknown[]).includes(option.tone)) {
+          errors.push(`Field ${at}: option tone must be one of ${OPTION_TONES.join(' / ')}`)
+        }
         if (typeof option?.value !== 'string' || !/^[A-Za-z0-9_-]{1,50}$/.test(option.value)) {
           errors.push(`Field ${at}: option values may contain only letters, digits, underscores and hyphens (up to 50 characters)`)
         } else if (values.has(option.value)) errors.push(`Field ${at}: duplicate option value ${option.value}`)
@@ -2103,7 +2239,7 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
     domain === 'admin' ? join(feBase, 'pages', name, 'index.tsx') : join(feBase, 'pages', 'admin', `${name}_page`, 'index.tsx')
 
   log(`\n🔧 Scaffolding: ${name} (domain=${domain})`)
-  log(`   Fields: [${fields.map(([f, t]) => `('${f}', '${t}')`).join(', ')}]`)
+  log(`   Fields: ${fields.map(([f, t]) => `${f}:${t}`).join(', ')}`)
   log(`   Perm prefix: ${s.permPrefix}`)
   log(`   Menu component: ${s.menuComponent}`)
   log(`   API: ${s.apiBase}`)
@@ -2120,7 +2256,12 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   // Frontend files
   writeFile(ctx, join(feBase, 'api', `${name}.ts`), genFrontendApi(s))
   writeFile(ctx, fePagePath, genFrontendPage(s))
-  const locales = genFrontendLocales(s, readAllCatalogs(root))
+  const catalogs = readAllCatalogs(root)
+  const locales = genFrontendLocales(s, catalogs)
+  // One namespace: a text another locales file already translates keeps that translation, not the spec's
+  for (const [lang, text, spec, existing] of overriddenTranslations(s, catalogs)) {
+    log(`  [note] ${lang} "${text}" stays "${existing}" (already translated elsewhere); the spec's "${spec}" is not used`)
+  }
   if (locales) {
     for (const lang of PAGE_LANGS) {
       const json = `${JSON.stringify(sortKeys(locales[lang]), null, 2)}\n`
@@ -2162,6 +2303,10 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
   }
 
   log('')
+  if (dryRun) {
+    log('✅ Dry run finished: nothing was written. Run the same command without --dry-run to generate.')
+    return 0
+  }
   log('✅ Scaffold generated')
   log('')
   log('Next steps:')
@@ -2171,10 +2316,11 @@ function generate(s: ScaffoldSpec, options: ScaffoldOptions, menu?: MenuSpec): n
     log(`  1. Fill in field validation and Chinese headers (modules/${s.domainDir}/${s.kebab}/schema.ts) and the page copy (page-specific translations go in the page's locales/)`)
     log(`  2. Add the menu (component: '${s.menuComponent}') and button permissions to apps/api/scripts/seed-rbac.ts:`)
     log(`     ${s.permPrefix} / ${s.permPrefix}_add / _edit / _delete / _export / _import`)
+    log('     and their English / Japanese names, keyed by code, to apps/web/src/locales/menus/{en-US,ja-JP}.json')
     log('  3. Run: pnpm seed:rbac -- --incremental')
   }
   log('  · Review the new migration SQL in apps/api/drizzle/, then run: pnpm db:migrate')
-  log(`  · Run: psql -d <db> -c '\\d ${s.table}' to confirm the table exists`)
+  log(`  · Run: psql -d <database> -c '\\d ${s.table}' to confirm the table exists (the database of DEV_DATABASE_URL in apps/api/.env.development; castor_kit when unset)`)
   log(`  · Update apps/api/test/${testFilePath(s)} (the generated basic tests) for the business rules`)
   log('  · The API docs are in docs/apifox-full.openapi.json; if you change the generated routes, fields or validation, update them and run: pnpm openapi:generate -- --strict')
   log(`  · Run: pnpm verify -- --module ${name}`)
@@ -2224,9 +2370,9 @@ function regenerateApiTypes(ctx: WriteContext): void {
   ctx.log(`  [update] ${rel}`)
 }
 
-/** Append the module's menu + button permissions to seed-rbac.ts and its names to the menu locales */
-function registerModuleMenu(ctx: WriteContext, s: ScaffoldSpec, menu: MenuSpec): void {
-  const request: MenuRequest = {
+/** The module's menu as scripts/lib/menus.ts plans it */
+function menuRequest(s: ScaffoldSpec, menu: MenuSpec): MenuRequest {
+  return {
     title: s.title,
     titles: { 'en-US': s.i18n['en-US']?.[s.title] || toLabel(s.name), 'ja-JP': s.i18n['ja-JP']?.[s.title] || toLabel(s.name) },
     permPrefix: s.permPrefix,
@@ -2235,6 +2381,19 @@ function registerModuleMenu(ctx: WriteContext, s: ScaffoldSpec, menu: MenuSpec):
     icon: menu.icon,
     parentId: menu.parentId,
   }
+}
+
+/** "<title> (ID 1001, /biz/devices, buttons 10011–10015)", plus the business directory when it is created too */
+function describeMenus(entries: MenuEntry[], permPrefix: string): string {
+  const module = entries.find((e) => e.code === permPrefix)
+  const group = entries.find((e) => e.code !== permPrefix && e.menu_type === 'menu')
+  const text = module ? `${module.name} (ID ${module.id}, ${module.path}, buttons ${module.id * 10 + 1}–${module.id * 10 + 5})` : '-'
+  return group ? `${text}, in the new ${group.name} directory (ID ${group.id})` : text
+}
+
+/** Append the module's menu + button permissions to seed-rbac.ts and its names to the menu locales */
+function registerModuleMenu(ctx: WriteContext, s: ScaffoldSpec, menu: MenuSpec): void {
+  const request = menuRequest(s, menu)
   const seedPath = join(ctx.root, 'apps', 'api', 'scripts', 'seed-rbac.ts')
   let entries: MenuEntry[] | null = null
   updateFile(ctx, seedPath, (content) => {
@@ -2250,8 +2409,7 @@ function registerModuleMenu(ctx: WriteContext, s: ScaffoldSpec, menu: MenuSpec):
       return `${JSON.stringify(names, null, 2)}\n`
     })
   }
-  const module = planned.find((e) => e.code === s.permPrefix)
-  ctx.log(`  [menu] ${s.title} (ID ${module?.id}, buttons ${module ? `${module.id * 10 + 1}–${module.id * 10 + 5}` : '-'})`)
+  ctx.log(`  ${ctx.dryRun ? '[dry-run] would add menu' : '[menu]'} ${describeMenus(planned, s.permPrefix)}`)
 }
 
 /** "1 field" / "8 fields" */
@@ -2261,7 +2419,7 @@ const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
  * --validate-only: check a spec without generating anything; on success print what would be generated
  * (so an agent can confirm the plan before writing files)
  */
-export function validateOnly(spec: SpecFile, log: (line: string) => void = (l) => console.log(l)): number {
+export function validateOnly(spec: SpecFile, log: (line: string) => void = (l) => console.log(l), root: string = DEFAULT_ROOT): number {
   const errors = validateSpec(spec)
   if (errors.length > 0) {
     for (const error of errors) log(`❌ ${error}`)
@@ -2273,7 +2431,21 @@ export function validateOnly(spec: SpecFile, log: (line: string) => void = (l) =
   log(`   API: ${s.apiBase} (list / create / detail / update / delete / export / import template / import)`)
   log(`   Permissions: ${s.permPrefix} / _add / _edit / _delete / _export / _import`)
   log(`   Table: ${s.table}; search field: ${s.nameField}`)
-  log(spec.menu ? `   Menu: written to scripts/seed-rbac.ts (${spec.menu.parentId ? `under parent menu ${spec.menu.parentId}` : 'in the 业务管理 (Business) directory'})` : '   Menu: none (add "menu": {} to get one)')
+  if (!spec.menu) {
+    log('   Menu: none (add "menu": {} to get one)')
+    return 0
+  }
+  // Plan against the current seed-rbac.ts, so the preview can name the menu's place and ids
+  let seed: string | null = null
+  try {
+    seed = readFileSync(join(root, 'apps', 'api', 'scripts', 'seed-rbac.ts'), 'utf8')
+  } catch {
+    // no seed-rbac.ts to plan against: describe it without ids
+  }
+  const planned = seed === null ? null : planMenus(seed, menuRequest(s, spec.menu))
+  if (planned) log(`   Menu: ${describeMenus(planned, s.permPrefix)}; written to scripts/seed-rbac.ts`)
+  else if (seed !== null) log(`   Menu: ${s.permPrefix} is already in scripts/seed-rbac.ts; nothing to add`)
+  else log(`   Menu: written to scripts/seed-rbac.ts (${spec.menu.parentId ? `under parent menu ${spec.menu.parentId}` : 'in the 业务管理 (Business) directory'})`)
   return 0
 }
 

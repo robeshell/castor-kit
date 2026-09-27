@@ -315,9 +315,9 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
               existing.id,
             ],
           )
+          updated += 1
+          log(`  Updated menu: [${menu.code}] ${menu.name}`)
         }
-        updated += 1
-        log(`  Updated menu: [${menu.code}] ${menu.name}`)
         continue
       }
 
@@ -351,7 +351,8 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
   })
 
   if (added > 0 || updated > 0) {
-    log(`Menus synced: ${added} added, ${updated} updated\n`)
+    const unchanged = MENUS_DATA.length - added - updated
+    log(`Menus synced: ${added} added, ${updated} updated, ${unchanged} unchanged\n`)
   } else {
     log('Menus unchanged\n')
   }

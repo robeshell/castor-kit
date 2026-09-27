@@ -87,7 +87,15 @@ AI が追加で質問するのは、データモデルに取り返しのつか�
 
 ## pnpm scaffold
 
-`pnpm scaffold` はフィールド定義をもとに、バックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを一度に生成します。
+`pnpm scaffold` はバックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを一度に生成します。通常の入力は [spec ファイル](#spec-ファイル)（中国語のラベル、ルール、選択肢、メニュー）です。
+
+```bash
+pnpm scaffold -- --spec device.spec.json --validate-only   # 検証し、API・権限・テーブル・メニューをプレビュー
+pnpm scaffold -- --spec device.spec.json --dry-run         # 書き込むファイルを一覧表示（書き込みはしない）
+pnpm scaffold -- --spec device.spec.json                   # 生成
+```
+
+spec がなくてもフィールド一覧だけで生成できます（ラベルは英語の仮の名前、ルールやメニューはなし）。
 
 ```bash
 # 生成されるファイルをプレビューする（書き込みはしない）
@@ -151,7 +159,7 @@ scaffold は出力に権限コードのプレフィックス（Perm prefix）、
 | `datetime` | `timestamp`（文字列モード） | `FormDateTime` | |
 | `file` | `varchar(36)`。ファイルセンターのファイル ID を保存 | `FormFileUpload` | 一覧に「表示」リンク。保存時に参照を登録 |
 | `image` | `varchar(36)`。ファイルセンターのファイル ID を保存 | `FormImageUpload` | 一覧にサムネイル。保存時に参照を登録 |
-| `enum` | `varchar(50)`。選択肢の値を保存 | `FormSelect` | 固定の選択肢（`--spec` の `options` のみ）。一覧とエクスポートは選択肢の名前を表示し、インポートは名前・値のどちらも受け付ける |
+| `enum` | `varchar(50)`。選択肢の値を保存 | `FormSelect` | 固定の選択肢（`--spec` の `options` のみ）。一覧はこの項目で絞り込めて、選択肢の名前をバッジで表示し（色は選択肢の `tone`）、エクスポートは名前を表示し、インポートは名前・値のどちらも受け付ける |
 | `dict` | `varchar(100)`。辞書項目の値を保存 | `FormSelect` | 選択肢は「データ辞書」から（`--spec` の `dict` に辞書コード）。一覧は辞書のラベルを表示 |
 
 未知の型は `str` として扱われます。`id`、`created_at`、`updated_at` は自動で追加されます。
@@ -187,7 +195,7 @@ AI は業務上の説明から型を推測するので、あなたが指定す�
     { "name": "code", "type": "str50", "label": "设备编号", "required": true, "unique": true },
     { "name": "name", "type": "str", "label": "设备名称", "required": true },
     { "name": "status", "type": "enum", "label": "状态", "required": true, "default": "idle",
-      "options": [{ "value": "idle", "label": "闲置" }, { "value": "in_use", "label": "使用中" }] },
+      "options": [{ "value": "idle", "label": "闲置" }, { "value": "in_use", "label": "使用中", "tone": "success" }] },
     { "name": "category", "type": "dict", "label": "分类", "dict": "device_category" },
     { "name": "price", "type": "float", "label": "采购价格" }
   ],
@@ -208,6 +216,7 @@ pnpm scaffold -- --spec device.spec.json
 - `default`：列のデフォルト値。追加時に空ならこの値を使い、フォームにもあらかじめ入力されます
 - `label` / `title`：ページ、見出し、インポート・エクスポート、エラーに使う中国語。`i18n` はその英語・日本語（ないものはフィールド名で代用）
 - `menu`：メニューとボタン権限（追加・編集・削除・エクスポート・インポート）も `apps/api/scripts/seed-rbac.ts` に追加します。デフォルトでは最上位の「業務管理」（ID 1000、最初の生成時に作成。モジュールは 1001 から）の下に置き、`parentId` で別のディレクトリを指定できます。メニュー名の英語・日本語は `apps/web/src/locales/menus/` に書き込みます
+- `options[].tone`：一覧でのその選択肢のバッジの色（デフォルトは `neutral`。状態を表す項目では `success` / `warning` / `danger` など）
 - 生成される API テストに、必須・選択肢・一意・デフォルト値を確認する「フィールドルール」のケースが加わります
 
 ### 既知の制限

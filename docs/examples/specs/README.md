@@ -21,7 +21,7 @@ pnpm scaffold -- --spec docs/examples/specs/device.json --dry-run
 |---|---|---|
 | Device number, must not repeat (设备编号，不能重复) | `str50`, `required` + `unique` | Codes / numbers use `str50`; "must not repeat" = unique, and a device can't be without a number, so it is also required |
 | Name (名称) | `str`, `required` | Names use `str`; the record's main name is required, and it is also the list's search field |
-| Status (four values), default idle (状态) | `enum` + `options`, `default: "idle"`, `required` | The options are fixed and spelled out in the requirement → `enum`; option values are English, display names Chinese. A status with a default is also required, so it can't be cleared when editing |
+| Status (four values), default idle (状态) | `enum` + `options`, `default: "idle"`, `required`, option `tone`s | The options are fixed and spelled out in the requirement → `enum`; option values are English, display names Chinese. A status with a default is also required, so it can't be cleared when editing. The list shows options as badges: in use → `success`, under repair → `warning`, scrapped → `danger`, idle stays `neutral` (the default) |
 | Category, maintained by admins (分类) | `dict`, `dict: "device_category"` | The options will grow or shrink and admins maintain them → data dictionary; the dictionary is created under `系统管理 → 系统配置 → 数据字典` (System → System config → Data dictionary) |
 | Purchase price (采购价格) | `float` | Money |
 | Purchase date (采购日期) | `date` | Date only |

@@ -2,10 +2,12 @@ import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fas
 import { eq, inArray, like, or } from 'drizzle-orm'
 import { buildApp, SESSION_COOKIE_NAME } from '../src/app'
 import { generatePasswordHash } from '../src/common/password'
-import { loadConfig, type AppConfig } from '../src/config'
+import { loadConfig, loadEnvFiles, type AppConfig } from '../src/config'
 import { createDb, type DbHandle } from '../src/db/client'
 import { admin_users, login_logs, menus, operation_logs, role_depts, role_menus, roles, user_roles } from '../src/db/schema'
 
+// apps/api/.env.test (or .env.test in the repo root) can point a checkout at its own test database; the shell env wins
+loadEnvFiles('test')
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://localhost/castor_kit_test'
 
 export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {

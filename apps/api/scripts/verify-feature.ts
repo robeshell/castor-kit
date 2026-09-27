@@ -24,7 +24,8 @@
  *  14. Frontend Vitest passes (optional, skip with --skip-frontend-tests)
  *  15. Backend Vitest passes (optional, skip with --skip-api-tests; ~45s, needs the test DB)
  *
- * JSON output shape: { passed, module, checks: [{ name, passed, error?, skipped?, warn?, detail? }], summary }
+ * JSON output shape: { passed, complete, module, checks: [{ name, passed, error?, skipped?, byFlag?, warn?, detail? }], summary }
+ * (complete: no check was skipped by a --skip-* flag; byFlag: the flag that skipped the check)
  */
 
 import { spawnSync, type SpawnSyncOptions } from 'node:child_process'
@@ -45,6 +46,8 @@ export interface CheckResult {
   skipped?: boolean
   warn?: boolean
   detail?: string
+  /** The --skip-* flag that skipped this check (unlike a check that doesn't apply to the module) */
+  byFlag?: string
   [extra: string]: unknown
 }
 
@@ -531,7 +534,7 @@ export function runRbacSync(ctx: VerifyContext): CheckResult {
 
 /** Frontend build (vite build) */
 export function checkFrontendBuild(ctx: VerifyContext, skip: boolean): CheckResult {
-  if (skip) return { name: 'frontend_build', passed: true, skipped: true }
+  if (skip) return { name: 'frontend_build', passed: true, skipped: true, byFlag: '--skip-build' }
   const { code, output } = run([...bin(ctx.webDir, 'vite'), 'build'], ctx.webDir)
   if (code !== 0) return { name: 'frontend_build', passed: false, error: output.slice(-1000) }
   return { name: 'frontend_build', passed: true }
@@ -539,7 +542,7 @@ export function checkFrontendBuild(ctx: VerifyContext, skip: boolean): CheckResu
 
 /** Frontend Vitest tests */
 export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResult {
-  if (skip) return { name: 'frontend_tests', passed: true, skipped: true }
+  if (skip) return { name: 'frontend_tests', passed: true, skipped: true, byFlag: '--skip-frontend-tests' }
   const { code, output } = run([...bin(ctx.webDir, 'vitest'), 'run'], ctx.webDir)
   if (code !== 0) return { name: 'frontend_tests', passed: false, error: output.slice(-1000) }
   return { name: 'frontend_tests', passed: true }
@@ -547,7 +550,7 @@ export function checkFrontendTests(ctx: VerifyContext, skip: boolean): CheckResu
 
 /** Backend unit tests: new features often change seed / migration related tests, so the gate must cover them */
 export function checkApiTests(ctx: VerifyContext, skip: boolean): CheckResult {
-  if (skip) return { name: 'api_tests', passed: true, skipped: true }
+  if (skip) return { name: 'api_tests', passed: true, skipped: true, byFlag: '--skip-api-tests' }
   const { code, output } = run([...bin(ctx.apiDir, 'vitest'), 'run'], ctx.apiDir)
   if (code !== 0) return { name: 'api_tests', passed: false, error: output.slice(-1500) }
   return { name: 'api_tests', passed: true }
@@ -570,6 +573,8 @@ export interface VerifyOptions {
 
 export interface VerifyReport {
   passed: boolean
+  /** No check was skipped by a --skip-* flag (only a complete, passing run means the feature is ready to deliver) */
+  complete: boolean
   module: string | null
   checks: CheckResult[]
   summary: string
@@ -633,7 +638,7 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
   step('no_local_has_permission', () => checkNoLocalHasPermission(ctx))
   step('migration_chain', () => checkMigrationChain(ctx))
   if (options.skipDb) {
-    results.push({ name: 'migration_applied', passed: true, skipped: true })
+    results.push({ name: 'migration_applied', passed: true, skipped: true, byFlag: '--skip-db' })
   } else {
     progress('… migration_applied')
     const url = options.databaseUrl !== undefined ? options.databaseUrl : await resolveDatabaseUrl(ctx)
@@ -664,30 +669,46 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
 
   // Summary
   const passed = results.every((r) => r.passed)
-  const failures = results.filter((r) => !r.passed && !r.skipped)
   return {
     passed,
+    complete: !results.some((r) => r.byFlag),
     module: options.module ?? null,
     checks: results,
-    summary: `${results.length - failures.length}/${results.length} checks passed`,
+    summary: summarize(results),
   }
+}
+
+/** "13 passed, 3 skipped" / "8 passed, 3 skipped, 5 failed" */
+function summarize(results: CheckResult[]): string {
+  const failed = results.filter((r) => !r.passed && !r.skipped).length
+  const skipped = results.filter((r) => r.skipped).length
+  const parts = [`${results.length - failed - skipped} passed`]
+  if (skipped > 0) parts.push(`${skipped} skipped`)
+  if (failed > 0) parts.push(`${failed} failed`)
+  return parts.join(', ')
 }
 
 export function formatHuman(report: VerifyReport): string {
   const lines = ['== castor-kit feature verification ==', '']
   for (const r of report.checks) {
     const icon = r.passed ? (r.skipped ? '⏭️ ' : '✅') : r.skipped ? '⏭️ ' : '❌'
-    lines.push(`  ${icon} ${r.name.replace(/_/g, ' ')}`)
+    lines.push(`  ${icon} ${r.name.replace(/_/g, ' ')}${r.byFlag ? ` (${r.byFlag})` : ''}`)
     if (!r.passed && !r.skipped && r.error) lines.push(`      → ${r.error}`)
     else if (r.warn && r.detail) lines.push(`      ⚠️ ${r.detail}`)
+    // e.g. migration applied → "migrated to 0002_device (castor_kit)", which the delivery report quotes
+    else if (r.detail) lines.push(`      ${r.detail}`)
   }
   lines.push('')
   const failures = report.checks.filter((r) => !r.passed && !r.skipped)
-  lines.push(
-    report.passed
-      ? '✅ All checks passed. The feature is ready to deliver.'
-      : `❌ ${failures.length} ${failures.length === 1 ? 'check' : 'checks'} failed. Fix ${failures.length === 1 ? 'it' : 'them'} and run verify again.`,
-  )
+  const byFlag = report.checks.filter((r) => r.byFlag)
+  if (!report.passed) {
+    lines.push(`❌ ${failures.length} ${failures.length === 1 ? 'check' : 'checks'} failed. Fix ${failures.length === 1 ? 'it' : 'them'} and run verify again.`)
+  } else if (!report.complete) {
+    const flags = [...new Set(byFlag.map((r) => r.byFlag))].join(' ')
+    lines.push(`✅ The checks that ran passed, but ${byFlag.length} ${byFlag.length === 1 ? 'was' : 'were'} skipped (${flags}). Run verify without these flags before delivering.`)
+  } else {
+    lines.push('✅ All checks passed. The feature is ready to deliver.')
+  }
   return lines.join('\n')
 }
 

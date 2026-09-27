@@ -34,7 +34,7 @@ castor-kit の設定は 2 種類です。
 | `NODE_ENV` | 実行環境：`development` / `test` / `production`。それ以外の値は `development` として扱う | `development` |
 | `PORT` | 待ち受けポート | 開発 `5001`、テスト `5002`、本番 `5000` |
 | `DEV_DATABASE_URL` | 開発環境のデータベース接続 | `postgresql://localhost/castor_kit` |
-| `TEST_DATABASE_URL` | テスト環境のデータベース接続 | `postgresql://localhost/castor_kit_test` |
+| `TEST_DATABASE_URL` | テスト環境のデータベース接続。テストはシェルまたは `apps/api/.env.test` から読み込む | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 本番環境のデータベース接続 | `postgresql://localhost/castor_kit` |
 | `MIGRATIONS_DIR` | マイグレーションファイルのディレクトリ | `drizzle/` ディレクトリを上位に向かって自動で探索 |
 
@@ -183,7 +183,7 @@ AI チャット、AI プロンプト工房、AI データ検索、AI アシス�
 | 項目 | 値 |
 |---|---|
 | 開発ポート | `5173` |
-| プロキシ | `/api` → `http://localhost:5001`、`/ws` → `ws://localhost:5001` |
+| プロキシ | `/api` → `http://localhost:5001`、`/ws` → `ws://localhost:5001`（`API_PORT` があればそのポート。例：2 つ目のチェックアウトのバックエンドを `PORT=5011` で動かすときは `API_PORT=5011`） |
 | パスエイリアス | `@` → `apps/web/src` |
 
 本番環境では、フロントエンドのビルド成果物をバックエンドが直接配信し、リクエストは同一オリジンの `/api` に送られるため、追加の設定は不要です。

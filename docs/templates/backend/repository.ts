@@ -18,6 +18,12 @@ export class <Resource>Repository {
     return search ? ilike(<resource>s.name, `%${search}%`) : undefined
   }
 
+  // TODO: list filters the page sends (the list page template sends ?status=), exact match, '' = no filter; combine
+  // them in listPage with and(this.searchWhere(search), this.filterWhere(filters)) (what pnpm scaffold generates per enum field):
+  // private filterWhere(filters: { status: string }): SQL | undefined {
+  //   return filters.status ? eq(<resource>s.status, filters.status) : undefined
+  // }
+
   async listPage(page: number, perPage: number, search: string) {
     const where = this.searchWhere(search)
     const [totalRow] = await this.db.select({ n: count() }).from(<resource>s).where(where)

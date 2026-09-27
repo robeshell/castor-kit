@@ -66,6 +66,8 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 | `pnpm verify -- --module <name> --strict-docs` | 文档路径检查失败时阻断 |
 | `pnpm verify -- --module <name> --database-url <url>` | 指定检查迁移状态所用的数据库 |
 
+`--skip-*` 参数只用于调试：用它们跳过了检查时，结果会列出被跳过的项，不会报告「可以交付」（`--json` 中 `complete: false`）；交付前要不带这些参数再跑一次。
+
 `scaffold` 与 `verify` 都支持 `-h` / `--help` 打印用法。参数说明见 [AI 驱动开发](/zh/guide/ai-workflow)。
 
 ## OpenAPI

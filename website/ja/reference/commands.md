@@ -66,6 +66,8 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 | `pnpm verify -- --module <name> --strict-docs` | ドキュメントのパスチェックが失敗したときにブロック |
 | `pnpm verify -- --module <name> --database-url <url>` | マイグレーションの状態チェックに使うデータベースを指定 |
 
+`--skip-*` はデバッグ用です。これでチェックを飛ばした実行は、飛ばした項目を表示し「納品可能」とは報告しません（`--json` では `complete: false`）。納品前にはこれらを付けずにもう一度実行してください。
+
 `scaffold` と `verify` はどちらも `-h` / `--help` で使い方を表示できます。引数の説明は [AI 駆動開発](/ja/guide/ai-workflow) を参照してください。
 
 ## OpenAPI

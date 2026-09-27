@@ -311,7 +311,7 @@ describe('verify-feature 全局检查', () => {
 describe('verify-feature 汇总与 CLI', () => {
   it('verify()：JSON 结构、检查顺序、summary', async () => {
     const report = await verify({ root, module: 'ck_widget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
-    expect(Object.keys(report)).toEqual(['passed', 'module', 'checks', 'summary'])
+    expect(Object.keys(report)).toEqual(['passed', 'complete', 'module', 'checks', 'summary'])
     expect(report.module).toBe('ck_widget')
     expect(report.checks.map((c) => c.name)).toEqual([
       'typescript_compile',
@@ -332,12 +332,14 @@ describe('verify-feature 汇总与 CLI', () => {
       'api_tests',
     ])
     expect(report.passed).toBe(true)
-    expect(report.summary).toBe('16/16 checks passed')
-    expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true })
+    // Checks skipped by flags don't count as passed, and the run isn't complete
+    expect(report.summary).toBe('10 passed, 6 skipped')
+    expect(report.complete).toBe(false)
+    expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true, byFlag: '--skip-build' })
 
     const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(failing.passed).toBe(false)
-    expect(failing.summary).toBe('11/16 checks passed')
+    expect(failing.summary).toBe('4 passed, 7 skipped, 5 failed')
   })
 
   it('CLI --json：stdout 只有 JSON，失败时退出码 1；无 --module 时只跑全局检查', () => {
@@ -359,6 +361,9 @@ describe('verify-feature 汇总与 CLI', () => {
     const human = run(['--module', 'ck_widget', '--skip-build', '--skip-frontend-tests', '--skip-api-tests', '--skip-db', '--root', root])
     expect(human.status).toBe(0)
     expect(human.stdout).toContain('== castor-kit feature verification ==')
-    expect(human.stdout).toContain('✅ All checks passed. The feature is ready to deliver.')
+    // Skipping checks with flags is for debugging: the summary says so instead of "ready to deliver"
+    expect(human.stdout).toContain('  ⏭️  frontend build (--skip-build)')
+    expect(human.stdout).toContain('✅ The checks that ran passed, but 4 were skipped (--skip-db --skip-build --skip-frontend-tests --skip-api-tests). Run verify without these flags before delivering.')
+    expect(human.stdout).not.toContain('ready to deliver')
   }, 60_000)
 })

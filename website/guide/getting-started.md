@@ -119,7 +119,7 @@ In development, if `ADMIN_PASSWORD` is not set, the initial password is `admin12
 
 ### 6. Run tests (optional)
 
-Backend tests run against a real PostgreSQL test database (default `postgresql://localhost/castor_kit_test`, override with `TEST_DATABASE_URL`). Migrations are applied automatically before the tests start:
+Backend tests run against a real PostgreSQL test database (default `postgresql://localhost/castor_kit_test`; override with `TEST_DATABASE_URL` in the shell or in `apps/api/.env.test`, not `.env.development`). Migrations are applied automatically before the tests start:
 
 ```bash
 createdb castor_kit_test      # Or clone the dev database: createdb -T castor_kit castor_kit_test

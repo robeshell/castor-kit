@@ -280,6 +280,17 @@
           "maxLength": 50,
           "pattern": "^[^\"'`\\\\{}<>\\n\\r]+$",
           "description": "Chinese label shown to users, e.g. 使用中"
+        },
+        "tone": {
+          "enum": [
+            "neutral",
+            "brand",
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "description": "Badge colour of this option in the list (default neutral), for status-like fields: e.g. in use → success, under repair → warning, scrapped → danger"
         }
       }
     }

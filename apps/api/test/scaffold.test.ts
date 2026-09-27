@@ -21,6 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildSpec,
+  eventLabel,
   FIELD_TYPE_MAP,
   fieldSpec,
   genApiTest,
@@ -33,6 +34,7 @@ import {
   genRoutes,
   genService,
   labelOf,
+  overriddenTranslations,
   PAGE_LANGS,
   PAGE_TEXTS,
   pageTexts,
@@ -154,7 +156,9 @@ describe('scaffold 纯函数', () => {
     expect(service).toContain("await this.events?.emit('device_ledger.updated', dict)")
     expect(service).toContain("await this.events?.emit('device_ledger.deleted', { id: item.id })")
     const routes = genRoutes(spec)
-    expect(routes).toContain("'device_ledger.created': 'device_ledger 已新增'")
+    // The webhooks page shows the module title + the action (translated through the module's page locales)
+    expect(routes).toContain("'device_ledger.created': 'Device Ledger 已新增'")
+    expect(genRoutes(buildSpec('device_ledger', 'admin', [['title', 'str']], { title: '设备台账' }))).toContain("'device_ledger.deleted': '设备台账已删除'")
     expect(routes).toContain('new DeviceLedgerService(app.db, app.events)')
   })
 
@@ -258,13 +262,19 @@ describe('scaffold 纯函数', () => {
         expect(page).toContain("t('已勾选 {{count}} 条，将优先导出勾选数据。', { count: selectedKeys.length })")
         expect(page).toContain("t('导入成功：新增 {{created}} 条，更新 {{updated}} 条', { created: res?.created || 0, updated: res?.updated || 0 })")
 
-        // The repo's shared locales already translate every generic CRUD string: a real run writes no page locales
-        expect(genFrontendLocales(spec, shared), name).toBeNull()
+        // The repo's shared locales already translate every generic CRUD string: a real run writes only the module's
+        // own texts, the webhook event descriptions
+        const events = (['created', 'updated', 'deleted'] as const).map((action) => eventLabel(spec, action)).sort()
+        const fromShared = genFrontendLocales(spec, shared)!
+        expect(Object.keys(fromShared['en-US']).sort(), name).toEqual(events)
+        expect(Object.keys(fromShared['ja-JP']).sort(), name).toEqual(events)
+        expect(fromShared['en-US'][eventLabel(spec, 'created')]).toBe(`${toLabel(name)} created`)
+        expect(fromShared['ja-JP'][eventLabel(spec, 'deleted')]).toBe(`${toLabel(name)}が削除された`)
 
         // Without shared locales, the page locales carry every string; both languages have the same keys
         const own = genFrontendLocales(spec, {})!
-        expect(Object.keys(own['en-US']).sort()).toEqual(texts)
-        expect(Object.keys(own['ja-JP']).sort()).toEqual(texts)
+        expect(Object.keys(own['en-US']).sort()).toEqual([...texts, ...events].sort())
+        expect(Object.keys(own['ja-JP']).sort()).toEqual([...texts, ...events].sort())
 
         // The real scanner, with only the generated locales as catalog: no problems
         const file = join(tmp, `${name}.tsx`)
@@ -389,12 +399,15 @@ const DEVICE_SPEC: SpecFile = {
   fields: [
     { name: 'code', type: 'str20', label: '设备编号', required: true, unique: true },
     { name: 'name', type: 'str', label: '设备名称', required: true },
-    { name: 'status', type: 'enum', label: '设备状态', required: true, default: 'idle', options: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中' }] },
+    { name: 'status', type: 'enum', label: '设备状态', required: true, default: 'idle', options: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中', tone: 'success' }] },
     { name: 'category', type: 'dict', label: '设备分类', dict: 'device_category' },
     { name: 'price', type: 'float', label: '采购价格', default: 1999.5 },
     { name: 'serial_no', type: 'int', label: '序列号', unique: true },
     { name: 'active', type: 'bool', label: '在用', default: true },
     { name: 'photo', type: 'image', label: '设备照片' },
+    // Required without a default, empty (null) in a new form: the page narrows them before submitting
+    { name: 'weight', type: 'int', label: '重量', required: true },
+    { name: 'grade', type: 'enum', label: '等级', required: true, options: [{ value: 'a', label: '甲' }, { value: 'b', label: '乙' }] },
   ],
   menu: {},
   i18n: {
@@ -457,7 +470,7 @@ describe('scaffold --spec 纯函数', () => {
       validateSpec({
         name: 'ok',
         requried: true,
-        fields: [{ name: 'a', type: 'str', requried: true }, { name: 'b', type: 'enum', label: 'B', options: [{ value: 'x', label: 'X', color: 'red' }] }],
+        fields: [{ name: 'a', type: 'str', requried: true }, { name: 'b', type: 'enum', label: 'B', options: [{ value: 'x', label: 'X', color: 'red', tone: 'red' }] }],
         menu: { parent: 1 },
         i18n: { fr: {} },
       } as unknown as SpecFile),
@@ -466,7 +479,8 @@ describe('scaffold --spec 纯函数', () => {
       'Missing title: the Chinese name of the module (used for the page title, menu name and API docs), e.g. 设备台账',
       'Field a: unknown property requried (allowed: name / type / label / required / unique / default / options / dict)',
       'Field a: missing label (the Chinese name, used for table headers, forms and API docs)',
-      'Field b: unknown option property color (allowed: value / label)',
+      'Field b: unknown option property color (allowed: value / label / tone)',
+      'Field b: option tone must be one of neutral / brand / info / success / warning / danger',
       'Unknown menu property parent (allowed: parentId / icon)',
       'i18n supports only en-US / ja-JP, not fr',
     ])
@@ -541,7 +555,7 @@ describe('scaffold OpenAPI 条目', () => {
     expect(create.description).toContain('需要 system_ck_spec_device_add')
     const body = create.requestBody.content['application/json'].schema
     // Required without a default: must be sent, null rejected; status is required but has a default, so it may be left out
-    expect(body.required).toEqual(['code', 'name'])
+    expect(body.required).toEqual(['code', 'name', 'weight', 'grade'])
     expect(body.properties.code.type).toEqual(['string'])
     expect(body.properties.status).toMatchObject({ enum: ['idle', 'in_use', null], default: 'idle' })
     expect(body.properties.status.description).toContain('idle=闲置')
@@ -599,17 +613,28 @@ describe('spec 工具：JSON Schema 与示例', () => {
     expect(check({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'money', label: 'A' }] })).toContain('/fields/0/type enum')
   })
 
+  it('spec 译文与已有译文不同：保留已有译文（同一命名空间），并能列出被覆盖的条目', () => {
+    const s = buildSpec('ck_x', 'admin', [['name', 'str']], { title: '设备台账', i18n: { 'en-US': { 备注: 'Remark', 名称: 'Name' } } })
+    const catalogs = { 'en-US': { 备注: 'Note', 名称: 'Name' } }
+    expect(overriddenTranslations(s, catalogs)).toEqual([['en-US', '备注', 'Remark', 'Note']])
+  })
+
   it('--validate-only：有问题逐条列出并返回 1；有效时说明会生成什么，不写任何文件', () => {
     const lines: string[] = []
     expect(validateOnly({ ...DEVICE_SPEC, fields: [{ name: 'a', type: 'str' }] } as SpecFile, (l) => lines.push(l))).toBe(1)
     expect(lines[0]).toBe('❌ Field a: missing label (the Chinese name, used for table headers, forms and API docs)')
     const ok: string[] = []
     expect(validateOnly(DEVICE_SPEC, (l) => ok.push(l))).toBe(0)
-    expect(ok[0]).toBe('✅ Spec is valid: ck_spec_device (设备台账), 8 fields')
+    expect(ok[0]).toBe('✅ Spec is valid: ck_spec_device (设备台账), 10 fields')
     expect(ok.join('\n')).toContain('/api/admin/ck-spec-devices')
     const cli = scaffoldCli(['--spec', join(EXAMPLES, 'device.json'), '--validate-only'])
     expect(cli.code, cli.out).toBe(0)
     expect(cli.out).toContain('Permissions: system_device / _add / _edit / _delete / _export / _import')
+    // The preview names where the menu goes (planned against the current seed-rbac.ts), or that it is already there
+    expect(cli.out).toMatch(/Menu: (设备台账 \(ID \d+, \/biz\/devices, buttons \d+–\d+\)|system_device is already in scripts\/seed-rbac\.ts)/)
+    const planned: string[] = []
+    expect(validateOnly({ ...DEVICE_SPEC, name: 'ck_not_registered' }, (l) => planned.push(l))).toBe(0)
+    expect(planned.join('\n')).toMatch(/Menu: 设备台账 \(ID \d+, \/biz\/ck-not-registereds, buttons \d+–\d+\)/)
   })
 })
 
@@ -682,6 +707,11 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(readFileSync(join(root, 'docs/apifox-full.openapi.json'), 'utf8')).toBe(readFileSync(DOC, 'utf8'))
     expect(res.out).toContain('[dry-run] would update: apps/web/src/shared/api/openapi.d.ts')
     expect(existsSync(join(root, 'apps/web/src/shared/api/openapi.d.ts'))).toBe(false)
+    // The field list uses the --fields syntax; the run ends by saying nothing was written, without next steps
+    expect(res.out).toContain(`Fields: ${fields.split(',').join(', ')}`)
+    expect(res.out).toContain('✅ Dry run finished: nothing was written.')
+    expect(res.out).not.toContain('Scaffold generated')
+    expect(res.out).not.toContain('Next steps')
   })
 
   it('生成：文件 + 注册 + drizzle 迁移，生成代码通过 tsc', async () => {
@@ -779,10 +809,19 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain("  birthday: formatDate(record.birthday, ''),")
     expect(page).toContain("  visited_at: record.visited_at ?? '',")
 
-    // i18n: the shared locales cover every page string, so no page locales; the scanner passes in the copy
-    expect(res.out).toContain('[skip] page locales: every page string is translated in apps/web/src/locales')
-    expect(existsSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/locales'))).toBe(false)
+    // i18n: the shared locales cover every page string, so the page locales hold only the module's webhook event
+    // descriptions; the scanner passes in the copy
+    const pageLocale = JSON.parse(readFileSync(join(root, 'apps/web/src/modules/admin/pages/ck_scaffold_demo/locales/en-US.json'), 'utf8')) as Catalog
+    expect(pageLocale).toEqual({ 'Ck Scaffold Demo 已修改': 'Ck Scaffold Demo updated', 'Ck Scaffold Demo 已删除': 'Ck Scaffold Demo deleted', 'Ck Scaffold Demo 已新增': 'Ck Scaffold Demo created' })
     expect(scanInCopy(root, 'src/modules/admin/pages/ck_scaffold_demo')).toEqual({ problems: [], conflicts: [] })
+    // Table columns keep their content readable on narrow screens: short values don't wrap, free text has a floor
+    expect(page).toContain("    { key: 'phone', title: 'Phone', dataIndex: 'phone', className: 'whitespace-nowrap' },")
+    expect(page).toContain("    { key: 'name', title: 'Name', dataIndex: 'name', minWidth: 120 },")
+    expect(page).toContain("      minWidth: 160,\n      ellipsis: true,")
+    expect(page).toContain("      className: 'tabular-nums whitespace-nowrap',")
+    // Downloads are saved under the names the server gives them
+    expect(page).toContain('downloadBlobFile(blob, `ck_scaffold_demos_export.${type}`)')
+    expect(readFileSync(join(root, 'apps/api/src/modules/admin/ck-scaffold-demo/service.ts'), 'utf8')).toContain("'ck_scaffold_demos_export'")
 
     // Comments of every generated file are English
     for (const rel of [
@@ -885,7 +924,8 @@ describe('scaffold CLI（临时目录副本）', () => {
     const keys = Object.keys(locales['en-US']!)
     expect(Object.keys(locales['ja-JP']!)).toEqual(keys)
     expect(keys).toEqual([...keys].sort())
-    expect(keys).toEqual(pageTexts(readFileSync(join(root, pageDir, 'index.tsx'), 'utf8')))
+    const events = ['Ck Scaffold Cc 已新增', 'Ck Scaffold Cc 已修改', 'Ck Scaffold Cc 已删除']
+    expect(keys).toEqual([...pageTexts(readFileSync(join(root, pageDir, 'index.tsx'), 'utf8')), ...events].sort())
     expect(keys).toEqual(expect.arrayContaining(['是', '否', '确认删除该记录？', '已勾选 {{count}} 条，将优先导出勾选数据。']))
     // Shared locales restored: the page locales duplicate them with identical translations → no conflicts
     expect(scanInCopy(root, pageDir.replace('apps/web/', ''))).toEqual({ problems: [], conflicts: [] })
@@ -968,7 +1008,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     writeFileSync(specPath, JSON.stringify(DEVICE_SPEC))
     const res = scaffoldCli(['--spec', specPath, '--skip-migration', '--root', root])
     expect(res.code, res.out).toBe(0)
-    expect(res.out).toContain('[menu] 设备台账 (ID 1001, buttons 10011–10015)')
+    expect(res.out).toContain('[menu] 设备台账 (ID 1001, /biz/ck-spec-devices, buttons 10011–10015), in the new 业务管理 directory (ID 1000)')
     const read = (rel: string) => readFileSync(join(root, rel), 'utf8')
     // The module is documented per the OpenAPI rules straight away
     expect(res.out).toContain('[update] docs/apifox-full.openapi.json')
@@ -991,10 +1031,23 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(schema).toContain("  if (row.status !== undefined) body.status = FIELD_OPTIONS.status!.find((o) => o.label === row.status)?.value ?? row.status")
     expect(schema).toContain("  '设备编号': 'code',")
 
+    // Enum fields filter the list: query parameter → repository exact match, documented with the option values
+    const routesTs = read('apps/api/src/modules/admin/ck-spec-device/routes.ts')
+    expect(routesTs).toContain("    const filters = { status: queryString(request, 'status').trim(), grade: queryString(request, 'grade').trim() }")
+    expect(routesTs).toContain("return service.listItems(page, per_page, queryString(request, 'search').trim(), filters)")
+    const repoTs = read('apps/api/src/modules/admin/ck-spec-device/repository.ts')
+    expect(repoTs).toContain('    return and(filters.status ? eq(ck_spec_devices.status, filters.status) : undefined, filters.grade ? eq(ck_spec_devices.grade, filters.grade) : undefined)')
+    expect(repoTs).toContain('    const where = and(this.searchWhere(search), this.filterWhere(filters))')
+    expect(schema).toContain("export type CkSpecDeviceFilters = Record<'status' | 'grade', string>")
+    const listDoc = (JSON.parse(read('docs/apifox-full.openapi.json')) as { paths: Record<string, { get: { parameters: Array<{ name: string; schema: unknown }> } }> })
+      .paths['/api/admin/ck-spec-devices']!.get.parameters
+    expect(listDoc.find((p) => p.name === 'status')?.schema).toEqual({ type: 'string', enum: ['idle', 'in_use', ''] })
+
     const test = read('apps/api/test/admin-ck-spec-device.test.ts')
     expect(test).toContain("it('字段规则：必填、选项、唯一、默认值'")
     expect(test).toContain("toEqual([400, { error: '设备编号不能为空' }])")
     expect(test).toContain("toEqual([400, { error: '设备状态的值无效' }])")
+    expect(test).toContain('    const filteredStatus = (await s.inject({ method: \'GET\', url: `${BASE}?status=idle&per_page=200` })).json()')
     expect(test).toContain('serial_no: nextNumber(),')
 
     const pagePath = 'apps/web/src/modules/admin/pages/ck_spec_device/index.tsx'
@@ -1008,7 +1061,19 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain('  price: 1999.5,')
     // Enum form values are the option values; the options are keyed by the enum fields
     expect(page).toContain("  status: 'idle' | 'in_use' | null")
-    expect(page).toContain("const FIELD_OPTIONS: Record<'status', { value: string; label: string }[]> = {")
+    expect(page).toContain("const FIELD_OPTIONS: Record<'status' | 'grade', { value: string; label: string; tone?: StatusTone }[]> = {")
+    expect(page).toContain("  status: [{ value: 'idle', label: '闲置' }, { value: 'in_use', label: '使用中', tone: 'success' }],")
+    // Enum columns are badges in the option's tone (neutral when the spec gives none)
+    expect(page).toContain("import StatusBadge, { type StatusTone } from '@/shared/components/StatusBadge'")
+    expect(page).toContain("        const option = optionOf('status', value)")
+    expect(page).toContain("          <StatusBadge tone={option.tone ?? 'neutral'} dot>")
+    // Required fields that start empty (null) are narrowed before submit, so the body type-checks (see webTypeErrors below)
+    expect(page).toContain('const toBody = ({ weight, grade, ...rest }: FormValues): CkSpecDeviceBody | null =>')
+    expect(page).toContain('  weight === null || grade === null ? null : { ...rest, weight, grade }')
+    expect(page).toContain('        await createItem(body)')
+    // ... and a filter per enum field, sent with the search
+    expect(page).toContain('<FilterSelect value={filterValues.status} onChange={(value) => setFilterValues((prev) => ({ ...prev, status: value }))} options={FIELD_OPTIONS.status} placeholder="设备状态" />')
+    expect(page).toContain('    list.handleSearch({ search: search.trim(), ...filterValues })')
     const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', 'src/modules/admin/pages/ck_spec_device/index.tsx'], {
       cwd: WEB_DIR,
       input: page,
