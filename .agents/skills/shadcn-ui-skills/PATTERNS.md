@@ -1,6 +1,6 @@
 # Common patterns
 
-Complete runnable versions of every pattern: `apps/web/src/modules/admin/pages/users/index.jsx` (list / form / import and export), `docs/templates/frontend/list_page/index.tsx` (+ `api.ts`), `docs/templates/frontend/detail_page/index.tsx` (typed: `Row` from the API file, `FormValues`, `DataTableColumn<Row>[]`).
+Complete runnable versions of every pattern: `apps/web/src/modules/admin/pages/users/index.tsx` (list / form / import and export), `docs/templates/frontend/list_page/index.tsx` (+ `api.ts`), `docs/templates/frontend/detail_page/index.tsx` (typed: `Row` from the API file, `FormValues`, `DataTableColumn<Row>[]`).
 
 ## 1. CRUD list page skeleton
 

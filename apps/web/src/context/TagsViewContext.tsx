@@ -53,7 +53,7 @@ function readStored(): StoredTab[] {
 }
 
 export function TagsViewProvider({ children }: { children?: ReactNode }) {
-  const { menus } = useAuth()!
+  const { menus } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const flat = useMemo<FlatMenu[]>(() => flattenMenus(menus), [menus])
@@ -153,6 +153,9 @@ export function TagsViewProvider({ children }: { children?: ReactNode }) {
 }
 
 /** The tags view state; null outside <TagsViewProvider> */
-export function useTagsView(): TagsViewContextValue | null {
-  return useContext(TagsViewContext)
+/** The tab bar state; every caller sits inside <TagsViewProvider> */
+export function useTagsView(): TagsViewContextValue {
+  const value = useContext(TagsViewContext)
+  if (!value) throw new Error('useTagsView() must be used inside <TagsViewProvider>')
+  return value
 }

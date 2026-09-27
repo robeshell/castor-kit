@@ -5,16 +5,27 @@ import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types
 export type User = ApiItem<'/api/admin/users'>
 /** Result of saving one's own profile: `{ message, user }` with the same user shape as the list */
 export type UpdateProfileResult = ApiResponse<'/api/admin/profile', 'put'>
+/** Edit body: any subset of the create fields; `password` only when changing it */
+export type UserUpdateBody = ApiBody<'/api/admin/users/{user_id}', 'put'>
+/**
+ * Export request: ids (selected rows) or filters (the current query), fields, file_type.
+ * TODO(openapi): the backend reads the filters with field.text / field.id (userExportBody in
+ * apps/api/src/modules/admin/users/schema.ts), so `status` takes any text ('' = every status) and `dept_id` takes null;
+ * the doc types `status` as the enum and `dept_id` as a non-null number.
+ */
+export type UserExportBody = Omit<ApiBody<'/api/admin/users/export', 'post'>, 'filters'> & {
+  filters?: { search?: string | null; status?: string | null; dept_id?: number | null }
+}
 
 export const getUsers = (params?: ApiQuery<'/api/admin/users'>) =>
   request.get<unknown, ApiResponse<'/api/admin/users'>>('/admin/users', { params })
 export const createUser = (data: ApiBody<'/api/admin/users', 'post'>) =>
   request.post<unknown, ApiResponse<'/api/admin/users', 'post'>>('/admin/users', data)
-export const updateUser = (id: number, data: ApiBody<'/api/admin/users/{user_id}', 'put'>) =>
+export const updateUser = (id: number, data: UserUpdateBody) =>
   request.put<unknown, ApiResponse<'/api/admin/users/{user_id}', 'put'>>(`/admin/users/${id}`, data)
 export const deleteUser = (id: number) =>
   request.delete<unknown, ApiResponse<'/api/admin/users/{user_id}', 'delete'>>(`/admin/users/${id}`)
-export const exportUsers = (data: ApiBody<'/api/admin/users/export', 'post'>) =>
+export const exportUsers = (data: UserExportBody) =>
   request.post<unknown, Blob>('/admin/users/export', data, { responseType: 'blob' })
 export const downloadUsersTemplate = (fileType: ApiQuery<'/api/admin/users/template'>['file_type'] = 'csv') =>
   request.get<unknown, Blob>('/admin/users/template', {

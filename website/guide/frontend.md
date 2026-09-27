@@ -6,9 +6,9 @@ Reference implementations:
 
 | File | Use it as a reference for |
 |---|---|
-| `apps/web/src/modules/admin/pages/users/index.jsx` | Standard CRUD list page |
-| `apps/web/src/modules/admin/pages/dashboard/index.jsx` | Cards, charts, motion |
-| `apps/web/src/modules/admin/pages/profile/index.jsx` | Form page |
+| `apps/web/src/modules/admin/pages/users/index.tsx` | Standard CRUD list page |
+| `apps/web/src/modules/admin/pages/dashboard/index.tsx` | Cards, charts, motion |
+| `apps/web/src/modules/admin/pages/profile/index.tsx` | Form page |
 | `docs/templates/frontend/` | List page and detail page templates |
 
 ## Dynamic routing
@@ -20,7 +20,7 @@ There is no hand-written route table. `apps/web/src/App.jsx` scans every page wi
 
 | `component` value | File |
 |---|---|
-| `admin/users` | `modules/admin/pages/users/index.jsx` |
+| `admin/users` | `modules/admin/pages/users/index.tsx` |
 | `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.jsx` |
 | `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.jsx` |
 
@@ -82,7 +82,7 @@ export default function Customers() {
 }
 ```
 
-For the complete version, `apps/web/src/modules/admin/pages/users/index.jsx` is the source of truth.
+For the complete version, `apps/web/src/modules/admin/pages/users/index.tsx` is the source of truth.
 
 ## API calls
 

@@ -6,9 +6,9 @@
 
 | ファイル | 参考になる用途 |
 |---|---|
-| `apps/web/src/modules/admin/pages/users/index.jsx` | 標準的な CRUD 一覧ページ |
-| `apps/web/src/modules/admin/pages/dashboard/index.jsx` | カード、グラフ、アニメーション |
-| `apps/web/src/modules/admin/pages/profile/index.jsx` | フォームページ |
+| `apps/web/src/modules/admin/pages/users/index.tsx` | 標準的な CRUD 一覧ページ |
+| `apps/web/src/modules/admin/pages/dashboard/index.tsx` | カード、グラフ、アニメーション |
+| `apps/web/src/modules/admin/pages/profile/index.tsx` | フォームページ |
 | `docs/templates/frontend/` | 一覧ページと詳細ページのテンプレート |
 
 ## 動的ルーティング {#dynamic-routing}
@@ -20,7 +20,7 @@
 
 | `component` の値 | 対応するファイル |
 |---|---|
-| `admin/users` | `modules/admin/pages/users/index.jsx` |
+| `admin/users` | `modules/admin/pages/users/index.tsx` |
 | `component_center/admin/list_page` | `modules/component_center/pages/admin/list_page/index.jsx` |
 | `component_center/dataviz/dashboard_page` | `modules/component_center/pages/dataviz/dashboard_page/index.jsx` |
 
@@ -82,7 +82,7 @@ export default function Customers() {
 }
 ```
 
-完全な書き方は `apps/web/src/modules/admin/pages/users/index.jsx` を基準にしてください。
+完全な書き方は `apps/web/src/modules/admin/pages/users/index.tsx` を基準にしてください。
 
 ## API の呼び出し
 

@@ -47,8 +47,8 @@ Each item ships as its own PR and meets these requirements:
 | 2 | `components/ui` and AI Elements as TSX (`components.json` `tsx: true`), keeping the project's changes; `lib`, `i18n`, hooks, context | Done: typed in place against the upstream TSX (type-stripped output identical to the old JSX); changes from upstream listed in `docs/shadcn-changes.md` |
 | 3 | `shared/components` and the module API files; API types generated from `docs/apifox-full.openapi.json` (`src/shared/api/openapi.d.ts`, helpers `ApiItem` / `ApiResponse` / `ApiQuery` / `ApiBody`); fixed the doc where the types showed it disagreed with the backend | Done |
 | 4 | Scaffold: generated pages and API files, `docs/templates/frontend`, skills and AGENTS.md describe TSX | Done: `pnpm scaffold` writes `api/<name>.ts` (row / body types from the module's OpenAPI entries) and `index.tsx` (`FormValues` per field, `DataTableColumn<Row>[]`, no `any` or casts) and regenerates `openapi.d.ts` after writing the doc; the scaffold tests type-check the generated files with apps/web's tsc |
-| 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | Not started |
-| 6 | Idiomatic TypeScript cleanup (changes behavior, so its own PRs): context hooks (`useAuth`, `useTagsView`) throw outside their provider and return non-null values; drop defensive checks the types now guarantee (`x \|\| {}`, `typeof x === 'function'`) and dead branches; remove avoidable type assertions; one export / file-naming style (default vs named exports, `useXxx.ts` vs `use-xxx.ts`) | Not started |
+| 5 | Pages, module by module (auth, admin, component center); then remove `allowJs` and the JSX rules | In progress: auth and admin pages done; component center and `components/app` next |
+| 6 | Idiomatic TypeScript cleanup (changes behavior, so its own PRs): drop defensive checks the types now guarantee (`x \|\| {}`, `typeof x === 'function'`) and dead branches; remove avoidable type assertions; one export / file-naming style (default vs named exports, `useXxx.ts` vs `use-xxx.ts`) | Not started |
 
 **Acceptance per step**: `pnpm verify` green including the web typecheck; pages behave the same; no new `.jsx` in a converted layer.
 
@@ -60,7 +60,14 @@ Each item ships as its own PR and meets these requirements:
 - `code-highlighter` checks `name in GRAMMARS` on a plain object, so inherited keys like `constructor` count as languages (the failure is caught)
 - `useFormField` (shadcn upstream) checks `if (!fieldContext)`, which never fires because the context default is `{}`
 - `AuthContext` has a `data.menus` branch that the typed `my-menus` API shows is dead
+- Dashboard: the system status network tiles read `net_sent_mb` / `net_recv_mb`, but `GET /api/admin/component-center/devtools/perf-stats` returns `net_sent` / `net_recv` (cumulative MB since boot, labeled MB/s), so they always show 0.00; the `data && !data.error` check is dead (the interceptor rejects non-2xx)
+- Login logs: the failure reason column falls back to `row.fail_reason`, which the API never returns
+- `normalizeFileType` on roles / menus / logs accepted `'xls'` (the backend would send CSV under a `.xls` name); the dialogs never offer it, and the typed pages drop it
+- Dead code the types show: `scheduled_tasks` `openEdit` handles an object `request_headers` (the API returns a string); `value = []` defaults on the non-null `scopes` / `events` columns; the `isCancelled` / `isMfaRequired` guards are duplicated across pages (could live in `useReauth.ts`)
+- The OpenAPI doc is stricter than the backend in about ten request params / bodies (nullable `field.int` values such as `sort_order` and `timeout_seconds`, filters where `''` means "all", export `fields` / `file_type` read as free text); the API files keep local types marked `// TODO(openapi)` until the doc is reconciled
 - The OpenAPI doc types `user` in the `POST /api/admin/two-factor/enable` response as a free-form object, and tree `children` can't be recursive inline (the API files keep local node types)
+
+Done early (step 5 needed it): `useAuth()` / `useTagsView()` throw outside their provider and return non-null values. Every caller destructured the result, so a missing provider already threw; now the error says why.
 
 **Why steps 1-5 don't change behavior**: each converted file is checked by stripping its types and comparing with the old JS, so a regression can only come from the types themselves. Code that is correct but not idiomatic TypeScript is kept as it was and cleaned up in step 6, where behavior changes are reviewed on their own.
 

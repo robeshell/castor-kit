@@ -26,7 +26,7 @@
   "目录": "ディレクトリ",
   "确认删除该菜单？": "このメニューを削除しますか？",
   "组件": "コンポーネント",
-  "组件名需对应 src/modules/**/pages/**/index.jsx，例如 admin/users → /modules/admin/pages/users/index.jsx": "コンポーネント名は src/modules/**/pages/**/index.jsx に対応させてください（例：admin/users → /modules/admin/pages/users/index.jsx）",
+  "组件名需对应 src/modules/**/pages/**/index.tsx，例如 admin/users → /modules/admin/pages/users/index.tsx": "コンポーネント名は src/modules/**/pages/**/index.tsx に対応させてください（例：admin/users → /modules/admin/pages/users/index.tsx）",
   "编辑菜单": "メニューを編集",
   "菜单": "メニュー",
   "菜单导出字段": "メニューをエクスポート",

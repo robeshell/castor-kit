@@ -49,7 +49,7 @@
 ### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react; moving from JSX to TSX, see AGENTS.md "TypeScript (migration in progress)")
 - **Dynamic routing**: `App.jsx` resolves pages via `lib/page-modules.ts` (`import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`); `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/admin/kanban_page`)
 - **API client**: `apps/web/src/shared/api/request.ts` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
-- **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.jsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`
+- **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.tsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`
 - **Import / export**: reuse `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
 - **Styling**: only Tailwind semantic color classes (`bg-card` / `text-muted-foreground` / `bg-brand-soft` ...); the Ocean gradient is only an accent; no hard-coded hex colors; only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes, no other UI component libraries (antd, MUI, etc.)
 - **Frontend-only pages** (no backend CRUD API): creative/, devtools/websocket_page, devtools/perf_monitor_page, dataviz/heatmap_page, dataviz/realtime_chart_page
@@ -79,7 +79,7 @@ pnpm openapi:generate && pnpm openapi:apifox
 
 ## New feature checklist
 
-1. [ ] Read the related existing modules (see `apps/api/src/modules/admin/users/`, `apps/web/src/modules/admin/pages/users/index.jsx`)
+1. [ ] Read the related existing modules (see `apps/api/src/modules/admin/users/`, `apps/web/src/modules/admin/pages/users/index.tsx`)
 2. [ ] `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."`
 3. [ ] Backend: fill in the business logic in `db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts`
 4. [ ] Frontend: `pages/<subdir>/<page>/index.tsx` + `api/<page>.ts` (what scaffold generates; frontend-only pages need no api file): row type from the API file, `interface FormValues` + `useForm<FormValues>`, `DataTableColumn<Row>[]`, no `any` / casts (see AGENTS.md "TypeScript (migration in progress)")
