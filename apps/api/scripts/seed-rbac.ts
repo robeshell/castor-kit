@@ -277,23 +277,23 @@ async function findMenuByCode(client: Queryable, code: string): Promise<MenuRow 
 }
 
 async function clearRbacData(client: Queryable, log: (msg: string) => void): Promise<void> {
-  log('清空现有RBAC数据...')
+  log('Clearing existing RBAC data...')
   try {
     await inTransaction(client, async () => {
       await client.query('DELETE FROM user_roles')
-      log('  清空用户-角色关联')
+      log('  Cleared user-role links')
       await client.query('DELETE FROM role_menus')
-      log('  清空角色-菜单关联')
+      log('  Cleared role-menu links')
       await client.query('DELETE FROM admin_users')
-      log('  清空管理员账号')
+      log('  Cleared admin users')
       await client.query('DELETE FROM roles')
-      log('  清空角色')
+      log('  Cleared roles')
       await client.query('DELETE FROM menus')
-      log('  清空菜单')
+      log('  Cleared menus')
     })
-    log('数据清空完成\n')
+    log('Data cleared\n')
   } catch (err) {
-    log(`  清空失败: ${err instanceof Error ? err.message : String(err)}`)
+    log(`  Clearing failed: ${err instanceof Error ? err.message : String(err)}`)
     throw err
   }
 }
@@ -307,7 +307,7 @@ async function syncIdSequence(client: Queryable, tableName: 'menus', log: (msg: 
        false
      )`,
   )
-  log(`  已同步序列: ${tableName}.id`)
+  log(`  Synced sequence: ${tableName}.id`)
 }
 
 async function initMenus(client: Queryable, log: (msg: string) => void): Promise<{ added: number; updated: number }> {
@@ -315,7 +315,7 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
   let updated = 0
 
   await inTransaction(client, async () => {
-    log('初始化菜单数据...')
+    log('Seeding menus...')
     const { rows: idRows } = await client.query<{ id: number }>('SELECT id FROM menus')
     const existingIds = new Set(idRows.map((r) => r.id))
     // Fixed id in MENUS_DATA → the id the row really has. A menu whose fixed id was taken (e.g. by a menu added by hand) gets another
@@ -348,7 +348,7 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
           )
         }
         updated += 1
-        log(`  更新菜单: [${menu.code}] ${menu.name}`)
+        log(`  Updated menu: [${menu.code}] ${menu.name}`)
         continue
       }
 
@@ -377,14 +377,14 @@ async function initMenus(client: Queryable, log: (msg: string) => void): Promise
       actualId.set(entry.id, newId)
       added += 1
       existingIds.add(newId)
-      log(`  创建菜单: [${menu.code}] ${menu.name} (ID: ${newId})`)
+      log(`  Created menu: [${menu.code}] ${menu.name} (ID: ${newId})`)
     }
   })
 
   if (added > 0 || updated > 0) {
-    log(`菜单同步完成，新增 ${added} 项，更新 ${updated} 项\n`)
+    log(`Menus synced: ${added} added, ${updated} updated\n`)
   } else {
-    log('菜单无变更\n')
+    log('Menus unchanged\n')
   }
 
   // Works around the sequence not advancing after explicitly inserting fixed ids
@@ -397,7 +397,7 @@ async function refreshSuperAdminPermissions(
   client: Queryable,
   log: (msg: string) => void,
 ): Promise<{ roleId: number; menuCount: number }> {
-  log('刷新超级管理员权限...')
+  log('Refreshing super admin permissions...')
   return inTransaction(client, async () => {
     const { rows } = await client.query<{ id: number }>("SELECT id FROM roles WHERE code = 'super_admin' LIMIT 1")
     let roleId = rows[0]?.id
@@ -407,7 +407,7 @@ async function refreshSuperAdminPermissions(
         ['超级管理员', 'super_admin', '拥有所有权限的超级管理员'],
       )
       roleId = inserted.rows[0]!.id
-      log('  创建角色: 超级管理员')
+      log('  Created role: super_admin')
     }
 
     // admin_role.menus = all_menus: set the linked set to all menus (FKs guarantee no links point to deleted menus, so only missing ones need adding)
@@ -417,7 +417,7 @@ async function refreshSuperAdminPermissions(
     )
     const { rows: countRows } = await client.query<{ n: number }>('SELECT count(*)::int AS n FROM menus')
     const menuCount = countRows[0]?.n ?? 0
-    log(`  超级管理员刷新为 ${menuCount} 个菜单权限`)
+    log(`  super_admin now has ${menuCount} menu permissions`)
     return { roleId, menuCount }
   })
 }
@@ -429,7 +429,7 @@ async function initAdminUser(
   resetPassword: boolean,
   log: (msg: string) => void,
 ): Promise<boolean> {
-  log('初始化管理员账号...')
+  log('Seeding the admin user...')
   let created = false
   await inTransaction(client, async () => {
     const { rows } = await client.query<{ id: number; password_hash: string }>(
@@ -444,26 +444,30 @@ async function initAdminUser(
       )
       userId = inserted.rows[0]!.id
       created = true
-      log('  创建用户: admin')
-      log(`  初始密码: ${adminPassword}`)
+      log('  Created user: admin')
+      log(`  Initial password: ${adminPassword}`)
     } else if (resetPassword || !isPasswordHash(rows[0]!.password_hash)) {
       // A hash in another format can never verify, so nobody could sign in as admin: restore ADMIN_PASSWORD
       await client.query(`UPDATE admin_users SET password_hash = $2, updated_at = ${UTC_NOW} WHERE id = $1`, [
         userId,
         await generatePasswordHash(adminPassword),
       ])
-      log(resetPassword ? '  用户已存在: admin，已重置密码' : '  用户已存在: admin，密码哈希无法识别，已按 ADMIN_PASSWORD 重置')
+      log(
+        resetPassword
+          ? '  User exists: admin; password reset'
+          : '  User exists: admin; its password hash was unrecognized, so the password was reset to ADMIN_PASSWORD',
+      )
     } else {
-      log('  用户已存在: admin')
+      log('  User exists: admin')
     }
 
     const assigned = await client.query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [
       userId,
       roleId,
     ])
-    if (assigned.rowCount) log('  分配角色: 超级管理员')
+    if (assigned.rowCount) log('  Assigned role: super_admin')
   })
-  log('管理员账号初始化完成\n')
+  log('Admin user ready\n')
   return created
 }
 
@@ -475,31 +479,31 @@ export async function seedRbac(options: SeedRbacOptions): Promise<SeedRbacResult
   await client.connect()
   try {
     log('='.repeat(60))
-    log('RBAC系统同步')
+    log('RBAC sync')
     log(`${'='.repeat(60)}\n`)
 
     let menus: { added: number; updated: number }
     let role: { roleId: number; menuCount: number }
     if (incremental) {
-      log('模式: 增量同步\n')
+      log('Mode: incremental\n')
       menus = await initMenus(client, log)
       role = await refreshSuperAdminPermissions(client, log)
     } else {
-      log('模式: 全量重建\n')
+      log('Mode: full rebuild\n')
       await clearRbacData(client, log)
       menus = await initMenus(client, log)
-      log('初始化角色...')
+      log('Seeding roles...')
       role = await refreshSuperAdminPermissions(client, log)
-      log('角色初始化完成\n')
+      log('Roles ready\n')
     }
     const adminCreated = await initAdminUser(client, role.roleId, options.adminPassword, options.resetAdminPassword ?? false, log)
 
     log('='.repeat(60))
-    log('同步完成！')
+    log('Sync complete')
     log('='.repeat(60))
-    log('\n登录信息：')
-    log('  用户名: admin')
-    log(`  密码: ${options.adminPassword}`)
+    log('\nSign-in details:')
+    log('  Username: admin')
+    log(`  Password: ${options.adminPassword}`)
 
     return {
       menusAdded: menus.added,
@@ -535,7 +539,7 @@ if (isMain) {
   const config = loadConfig()
   seedRbac({ databaseUrl: config.databaseUrl, adminPassword: config.adminPassword, incremental, resetAdminPassword }).catch(
     (err: unknown) => {
-      console.error(`\n初始化失败: ${err instanceof Error ? err.message : String(err)}`)
+      console.error(`\nSeeding failed: ${err instanceof Error ? err.message : String(err)}`)
       if (err instanceof Error && err.stack) console.error(err.stack)
       process.exit(1)
     },

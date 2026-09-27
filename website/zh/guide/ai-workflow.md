@@ -79,7 +79,7 @@ AI 只展示业务层面的信息，等你确认或调整：
 
 ### 5. 验证门禁
 
-运行 `pnpm verify -- --module <name>`，失败项由 AI 修复后重新验证。全部通过后输出交付报告，报告中注明迁移版本（如“已迁移至 0001_customer”）。
+运行 `pnpm verify -- --module <name>`，失败项由 AI 修复后重新验证。全部通过后输出交付报告，报告中注明迁移版本（如“migrated to 0001_customer”）。
 
 ::: warning 迁移必须真实落库
 只生成迁移文件、只通过静态检查都不算完成。必须执行 `pnpm db:migrate`，用 `psql \d` 确认，并且 `pnpm verify` 的 `migration_applied` 检查通过。

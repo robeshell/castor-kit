@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: castor_kit
       POSTGRES_USER: castor_kit
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请设置 POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,11 +27,11 @@ services:
       - "${APP_PORT:-8080}:5000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://castor_kit:${POSTGRES_PASSWORD:?请设置 POSTGRES_PASSWORD}@db/castor_kit
-      SECRET_KEY: ${SECRET_KEY:?请设置 SECRET_KEY}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请设置 ADMIN_PASSWORD}
+      DATABASE_URL: postgresql://castor_kit:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db/castor_kit
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
       # Read-only account password (setup-once uses it to create castor_kit_ro for AI SQL)
-      POSTGRES_RO_PASSWORD: ${POSTGRES_RO_PASSWORD:?请设置 POSTGRES_RO_PASSWORD}
+      POSTGRES_RO_PASSWORD: ${POSTGRES_RO_PASSWORD:?POSTGRES_RO_PASSWORD is required}
       # Dedicated read-only connection for AI SQL (must point to the non-superuser read-only account; never fall back to the main superuser)
       AI_SQL_DATABASE_URL: postgresql://castor_kit_ro:${POSTGRES_RO_PASSWORD}@db/castor_kit
       # Scheduled tasks (with multiple replicas, set RUN_SCHEDULER_IN_WEB=false and let a dedicated worker service run them)

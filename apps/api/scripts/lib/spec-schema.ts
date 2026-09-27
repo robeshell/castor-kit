@@ -11,20 +11,20 @@ import { FIELD_TYPE_MAP, NAME_RE, RESERVED_FIELDS, SPEC_KEYS, UNIQUE_TYPES, UNSA
 
 /** What each field type is for (shown by editors; AGENTS.md "Field type inference" has the full table) */
 export const FIELD_TYPE_NOTES: Record<string, string> = {
-  str: '一般文本，最长 100（名称、标题、地址……）',
-  str50: '短文本，最长 50',
-  str20: '编码 / 电话 / 编号类短文本，最长 20',
-  str500: '长一些的单行文本，最长 500（链接、备注摘要）',
-  text: '不限长度的多行文本（描述、正文）',
-  int: '整数（数量、序号、年龄）',
-  float: '数值，最多 2 位小数（金额、价格、比例）；接口里以字符串返回',
-  bool: '是 / 否',
-  date: '日期 YYYY-MM-DD',
-  datetime: '日期时间',
-  file: '附件（文件中心的文件 ID）',
-  image: '图片（文件中心的文件 ID）',
-  enum: '少量、固定不变的选项（状态、类型）：必须写 options',
-  dict: '可由管理员维护的选项（分类、来源、行业）：必须写 dict（数据字典编码）',
+  str: 'General text, up to 100 characters (names, titles, addresses...)',
+  str50: 'Short text, up to 50 characters',
+  str20: 'Short codes, phone numbers and serial numbers, up to 20 characters',
+  str500: 'Longer single-line text, up to 500 characters (links, short notes)',
+  text: 'Multi-line text of any length (descriptions, body text)',
+  int: 'Integer (quantities, sequence numbers, ages)',
+  float: 'Number with up to 2 decimal places (amounts, prices, ratios); returned as a string by the API',
+  bool: 'Yes / no',
+  date: 'Date, YYYY-MM-DD',
+  datetime: 'Date and time',
+  file: 'Attachment (a file ID from the file center)',
+  image: 'Image (a file ID from the file center)',
+  enum: 'A few fixed options (status, type); options is required',
+  dict: 'Options that admins maintain (category, source, industry); dict (the data dictionary code) is required',
 }
 
 export function specJsonSchema(): Record<string, unknown> {
@@ -39,39 +39,40 @@ export function specJsonSchema(): Record<string, unknown> {
   })
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    title: 'castor-kit 模块规格（pnpm scaffold -- --spec <file>）',
+    title: 'castor-kit module spec (pnpm scaffold -- --spec <file>)',
     description:
-      '从一句业务需求推断出的模块规格。这里只做结构检查；唯一只用于文本和数字、默认值要符合字段类型等规则以 ' +
-      '`pnpm scaffold -- --spec <file> --validate-only` 为准。怎么推断见 AGENTS.md "From a one-line requirement to a spec"，示例见 docs/examples/specs/。',
+      'A module spec inferred from a one-line business requirement. This schema checks structure only; rules such as ' +
+      '"unique only for text and number fields" and "defaults must match the field type" are enforced by ' +
+      '`pnpm scaffold -- --spec <file> --validate-only`. How to infer a spec: AGENTS.md "From a one-line requirement to a spec"; examples: docs/examples/specs/.',
     type: 'object',
     additionalProperties: false,
     required: ['name', 'title', 'fields'],
     properties: {
-      $schema: { type: 'string', description: '编辑器提示用，指向本文件' },
+      $schema: { type: 'string', description: 'For editor hints; points to this file' },
       name: {
         type: 'string',
         pattern: NAME_RE.source,
         maxLength: 40,
-        description: '模块名，snake_case 单数英文（如 device、customer_order）；表名 = name + s，接口 = /api/admin/<kebab>s',
+        description: 'Module name, singular English in snake_case (e.g. device, customer_order); table = name + s, API = /api/admin/<kebab>s',
       },
-      domain: { enum: ['admin', 'component_center'], default: 'admin', description: '业务模块用 admin（默认）' },
-      title: text(50, '模块中文名：页面标题、菜单名、接口文档都用它，如「设备台账」'),
-      dataScope: { type: 'boolean', default: false, description: '数据按部门 / 创建人隔离（数据权限）时为 true' },
-      fields: { type: 'array', minItems: 1, maxItems: 50, items: { $ref: '#/$defs/field' }, description: '业务字段（id、created_at、updated_at 自动生成，不要写）' },
+      domain: { enum: ['admin', 'component_center'], default: 'admin', description: 'Business modules use admin (the default)' },
+      title: text(50, 'Chinese name of the module, used for the page title, menu name and API docs, e.g. 设备台账'),
+      dataScope: { type: 'boolean', default: false, description: 'true when rows are isolated by department / creator (data scope)' },
+      fields: { type: 'array', minItems: 1, maxItems: 50, items: { $ref: '#/$defs/field' }, description: 'Business fields (id, created_at and updated_at are generated automatically; leave them out)' },
       menu: {
         type: 'object',
         additionalProperties: false,
         properties: {
-          parentId: { type: 'integer', description: '父菜单 ID；缺省放在「业务管理」目录（ID 1000）' },
-          icon: { type: 'string', description: 'apps/web/src/lib/menu-icons.js 里的图标名' },
+          parentId: { type: 'integer', description: 'Parent menu ID; defaults to the 业务管理 (Business) directory (ID 1000)' },
+          icon: { type: 'string', description: 'An icon name from apps/web/src/lib/menu-icons.js' },
         },
-        description: '写了才会把菜单和按钮权限加进 scripts/seed-rbac.ts；新业务模块一般写 {}',
+        description: 'Only when present are the menu and button permissions added to scripts/seed-rbac.ts; new business modules usually use {}',
       },
       i18n: {
         type: 'object',
         additionalProperties: false,
         properties: Object.fromEntries(
-          SPEC_KEYS.i18n.map((lang) => [lang, { type: 'object', additionalProperties: { type: 'string' }, description: `中文 → ${lang} 译文（标题、字段名、选项名）` }]),
+          SPEC_KEYS.i18n.map((lang) => [lang, { type: 'object', additionalProperties: { type: 'string' }, description: `Chinese → ${lang} translations (title, field labels, option labels)` }]),
         ),
       },
     },
@@ -81,17 +82,17 @@ export function specJsonSchema(): Record<string, unknown> {
         additionalProperties: false,
         required: ['name', 'type', 'label'],
         properties: {
-          name: { type: 'string', pattern: NAME_RE.source, maxLength: 40, not: { enum: [...RESERVED_FIELDS] }, description: '字段名，snake_case 英文' },
+          name: { type: 'string', pattern: NAME_RE.source, maxLength: 40, not: { enum: [...RESERVED_FIELDS] }, description: 'Field name, English in snake_case' },
           type: {
             enum: types,
-            description: types.map((t) => `${t}：${FIELD_TYPE_NOTES[t] ?? ''}`).join('；'),
+            description: types.map((t) => `${t}: ${FIELD_TYPE_NOTES[t] ?? ''}`).join('; '),
           },
-          label: text(50, '字段中文名：表头、表单、导入模板和接口文档都用它'),
-          required: { type: 'boolean', description: '必填（NOT NULL，新增和编辑时校验）；文件 / 图片字段不能必填' },
-          unique: { type: 'boolean', description: `唯一（只用于 ${[...UNIQUE_TYPES].join(' / ')}）` },
-          default: { type: ['string', 'number', 'boolean', 'null'], description: '新增时的默认值，要符合字段类型（enum 写选项值）' },
-          options: { type: 'array', minItems: 1, items: { $ref: '#/$defs/option' }, description: 'enum 字段的选项' },
-          dict: { type: 'string', pattern: '^[A-Za-z0-9_.-]{1,100}$', description: 'dict 字段的数据字典编码（如 device_category）' },
+          label: text(50, 'Chinese name of the field, used for table headers, forms, the import template and API docs'),
+          required: { type: 'boolean', description: "Required (NOT NULL, checked on create and edit); file / image fields can't be required" },
+          unique: { type: 'boolean', description: `Unique (only for ${[...UNIQUE_TYPES].join(' / ')})` },
+          default: { type: ['string', 'number', 'boolean', 'null'], description: 'Default value on create; must match the field type (for enum, an option value)' },
+          options: { type: 'array', minItems: 1, items: { $ref: '#/$defs/option' }, description: 'Options of an enum field' },
+          dict: { type: 'string', pattern: '^[A-Za-z0-9_.-]{1,100}$', description: 'Data dictionary code of a dict field (e.g. device_category)' },
         },
         allOf: [
           { if: { properties: { type: { const: 'enum' } }, required: ['type'] }, then: { required: ['options'] } },
@@ -108,8 +109,8 @@ export function specJsonSchema(): Record<string, unknown> {
         additionalProperties: false,
         required: ['value', 'label'],
         properties: {
-          value: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,50}$', description: '存进数据库的值（英文，如 in_use）' },
-          label: text(50, '显示的中文名，如「使用中」'),
+          value: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,50}$', description: 'The value stored in the database (English, e.g. in_use)' },
+          label: text(50, 'Chinese label shown to users, e.g. 使用中'),
         },
       },
     },

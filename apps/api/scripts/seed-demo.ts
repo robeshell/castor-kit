@@ -174,15 +174,19 @@ export async function seedDemo(options: SeedDemoOptions): Promise<SeedDemoResult
     const users = await upsertUsers(client, depts, roles, password, options.resetPasswords ?? false)
     await client.query('COMMIT')
 
-    log(`部门 ${depts.size} 个、角色 ${roles.size} 个；新建用户 ${users.created} 个，更新 ${users.updated} 个`)
-    if (missing.size > 0) log(`⚠️  以下菜单编码不存在，先运行 pnpm seed:rbac -- --incremental：${[...missing].join(', ')}`)
-    log(options.resetPasswords ? `\n示例账号（密码均为：${password}）：` : `\n示例账号（新建账号的密码：${password}；已存在的账号保留原密码）：`)
+    log(`Departments: ${depts.size}, roles: ${roles.size}; users created: ${users.created}, updated: ${users.updated}`)
+    if (missing.size > 0) log(`⚠️  These menu codes do not exist; run pnpm seed:rbac -- --incremental first: ${[...missing].join(', ')}`)
+    log(
+      options.resetPasswords
+        ? `\nDemo accounts (password for all: ${password}):`
+        : `\nDemo accounts (password for new accounts: ${password}; existing accounts keep their password):`,
+    )
     for (const [username, nickname, deptCode, roleCode] of DEMO_USERS) {
       const dept = DEMO_DEPARTMENTS.find(([c]) => c === deptCode)![1]
       const role = DEMO_ROLES.find((r) => r.code === roleCode)!.name
       log(`  ${username.padEnd(12)} ${nickname}  ${dept} · ${role}`)
     }
-    log('\n部门主管能看到本部门及下级部门的用户，普通员工只能看到自己。')
+    log('\nDepartment managers see the users of their department and its sub-departments; staff see only themselves.')
     return {
       departments: depts.size,
       roles: roles.size,
@@ -213,7 +217,7 @@ if (isMain) {
   }
   const env = (process.env.NODE_ENV ?? 'development') as AppEnv
   if (env === 'production' && !values.force) {
-    console.error('❌ 生产环境不会写入示例数据；确实需要（例如公开演示站）请加 --force')
+    console.error('❌ Demo data is not written in production; if you really need it (e.g. a public demo site), add --force')
     process.exit(1)
   }
   loadEnvFiles(env)
@@ -223,7 +227,7 @@ if (isMain) {
     password: values.password || process.env.DEMO_USER_PASSWORD,
     resetPasswords: values['reset-passwords'],
   }).catch((err: unknown) => {
-    console.error(`\n示例数据写入失败: ${err instanceof Error ? err.message : String(err)}`)
+    console.error(`\nWriting demo data failed: ${err instanceof Error ? err.message : String(err)}`)
     process.exit(1)
   })
 }

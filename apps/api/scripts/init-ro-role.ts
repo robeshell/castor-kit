@@ -46,15 +46,15 @@ function databaseNameFromUrl(databaseUrl: string): string {
 export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRoleResult> {
   const log = options.log ?? console.log
   const role = options.roleName ?? RO_ROLE
-  if (!SAFE_ROLE_NAME.test(role)) throw new Error(`非法角色名: ${role}`)
+  if (!SAFE_ROLE_NAME.test(role)) throw new Error(`Invalid role name: ${role}`)
 
   const roPassword = options.roPassword.trim()
   if (!roPassword) {
-    log('未配置 POSTGRES_RO_PASSWORD，跳过 AI SQL 只读角色初始化')
+    log('POSTGRES_RO_PASSWORD is not set; skipping the read-only AI SQL role')
     return { skipped: true, granted: 0 }
   }
 
-  log(`初始化 AI SQL 只读角色: ${role} ...`)
+  log(`Setting up the read-only AI SQL role: ${role}...`)
 
   const client = new pg.Client({ connectionString: options.databaseUrl })
   await client.connect()
@@ -86,7 +86,7 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
       if (!isVisibleTable(tname)) continue
       // Table names come from information_schema and pass the allowlist check, so interpolation is safe
       if (!SAFE_TABLE_NAME.test(tname)) {
-        log(`  跳过非预期表名: ${tname}`)
+        log(`  Skipped unexpected table name: ${tname}`)
         continue
       }
       await client.query(`GRANT SELECT ON TABLE "${tname}" TO ${role}`)
@@ -100,11 +100,11 @@ export async function initRoRole(options: InitRoRoleOptions): Promise<InitRoRole
     }
 
     await client.query('COMMIT')
-    log(`完成：为 ${granted} 张业务表授予只读权限`)
+    log(`Done: granted read-only access to ${granted} business tables`)
     return { skipped: false, granted }
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {})
-    log(`初始化 AI SQL 只读角色失败: ${err instanceof Error ? err.message : String(err)}`)
+    log(`Setting up the read-only AI SQL role failed: ${err instanceof Error ? err.message : String(err)}`)
     throw err
   } finally {
     await client.end()

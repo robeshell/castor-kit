@@ -103,7 +103,7 @@ $ pnpm db:migrate
 $ pnpm verify -- --module equipment
   ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
   ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
-✅ 全部检查通过，功能可交付！
+✅ All checks passed. The feature is ready to deliver.
 ```
 
 AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发](website/zh/guide/ai-workflow.md)。

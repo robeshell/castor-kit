@@ -139,7 +139,7 @@ export function checkNoLocalHasPermission(ctx: VerifyContext): CheckResult {
     return {
       name: 'no_local_has_permission',
       passed: false,
-      error: `以下文件含有非法的 hasPermission 定义（应使用 src/common/auth.ts）：${JSON.stringify(offenders)}`,
+      error: `These files define their own hasPermission (import it from src/common/auth.ts instead): ${JSON.stringify(offenders)}`,
     }
   }
   return { name: 'no_local_has_permission', passed: true }
@@ -164,7 +164,7 @@ export function checkMigrationChain(ctx: VerifyContext): CheckResult {
   try {
     entries = (JSON.parse(readFileSync(journalPath, 'utf8')) as { entries?: JournalEntry[] }).entries ?? []
   } catch (err) {
-    return { name: 'migration_chain', passed: false, error: `_journal.json 解析失败：${(err as Error).message}` }
+    return { name: 'migration_chain', passed: false, error: `Could not parse _journal.json: ${(err as Error).message}` }
   }
   if (entries.length === 0) return { name: 'migration_chain', passed: true, skipped: true }
 
@@ -172,28 +172,28 @@ export function checkMigrationChain(ctx: VerifyContext): CheckResult {
   const tags = new Set<string>()
   let prevSnapshotId: string | null = null
   entries.forEach((e, i) => {
-    if (e.idx !== i) details.push(`第 ${i} 条的 idx=${e.idx}（应为 ${i}，journal 顺序被打乱或有缺号）`)
+    if (e.idx !== i) details.push(`entry ${i} has idx=${e.idx} (expected ${i}; the journal is out of order or has a gap)`)
     if (i > 0 && !(e.when > entries[i - 1]!.when)) {
-      details.push(`${e.tag} 的 when 不大于上一条（迁移器按时间戳判断是否已执行，会被跳过）`)
+      details.push(`${e.tag}: when is not later than the previous entry's (the migrator compares timestamps, so it would be skipped)`)
     }
-    if (tags.has(e.tag)) details.push(`tag 重复：${e.tag}`)
+    if (tags.has(e.tag)) details.push(`duplicate tag: ${e.tag}`)
     tags.add(e.tag)
-    if (!existsSync(join(dir, `${e.tag}.sql`))) details.push(`缺少 SQL 文件：drizzle/${e.tag}.sql`)
+    if (!existsSync(join(dir, `${e.tag}.sql`))) details.push(`missing SQL file: drizzle/${e.tag}.sql`)
 
     const snapshotPath = join(dir, 'meta', `${String(e.idx).padStart(4, '0')}_snapshot.json`)
     if (!existsSync(snapshotPath)) {
-      details.push(`缺少 snapshot：drizzle/meta/${String(e.idx).padStart(4, '0')}_snapshot.json`)
+      details.push(`missing snapshot: drizzle/meta/${String(e.idx).padStart(4, '0')}_snapshot.json`)
       prevSnapshotId = null
       return
     }
     try {
       const snap = JSON.parse(readFileSync(snapshotPath, 'utf8')) as { id?: string; prevId?: string }
       if (i > 0 && prevSnapshotId && snap.prevId !== prevSnapshotId) {
-        details.push(`${e.tag} 的 snapshot.prevId 不指向上一条（存在分叉：多个迁移基于同一祖先生成）`)
+        details.push(`${e.tag}: snapshot.prevId does not point to the previous entry (the chain forks: several migrations were generated from the same parent)`)
       }
       prevSnapshotId = snap.id ?? null
     } catch {
-      details.push(`snapshot 解析失败：${e.tag}`)
+      details.push(`could not parse the snapshot of ${e.tag}`)
       prevSnapshotId = null
     }
   })
@@ -202,10 +202,10 @@ export function checkMigrationChain(ctx: VerifyContext): CheckResult {
     .filter((f) => f.endsWith('.sql') && !tags.has(f.slice(0, -4)))
     .sort()
   if (orphans.length > 0) {
-    details.push(`drizzle/ 下有未登记到 journal 的 SQL（手写迁移会破坏 journal 链，请用 drizzle-kit generate）：${JSON.stringify(orphans)}`)
+    details.push(`SQL files in drizzle/ that are not in the journal (hand-written migrations break the chain; use drizzle-kit generate): ${JSON.stringify(orphans)}`)
   }
 
-  if (details.length > 0) return { name: 'migration_chain', passed: false, error: `迁移链异常：${details.join('；')}` }
+  if (details.length > 0) return { name: 'migration_chain', passed: false, error: `Broken migration chain: ${details.join('; ')}` }
   return { name: 'migration_chain', passed: true, head: entries[entries.length - 1]!.tag }
 }
 
@@ -239,13 +239,13 @@ export async function checkMigrationApplied(
   const name = 'migration_applied'
   const folder = join(ctx.apiDir, 'drizzle')
   if (!existsSync(join(folder, 'meta', '_journal.json'))) return { name, passed: true, skipped: true }
-  if (!databaseUrl) return { name, passed: false, error: '未配置数据库连接（DEV_DATABASE_URL / DATABASE_URL / TEST_DATABASE_URL），无法确认迁移是否落库' }
+  if (!databaseUrl) return { name, passed: false, error: 'No database connection configured (DEV_DATABASE_URL / DATABASE_URL / TEST_DATABASE_URL), so the migrations cannot be confirmed' }
 
   let migrations
   try {
     migrations = readMigrationFiles({ migrationsFolder: folder })
   } catch (err) {
-    return { name, passed: false, error: `读取迁移文件失败：${(err as Error).message}` }
+    return { name, passed: false, error: `Could not read the migration files: ${(err as Error).message}` }
   }
   const journal = (JSON.parse(readFileSync(join(folder, 'meta', '_journal.json'), 'utf8')) as { entries: JournalEntry[] }).entries
   const database = databaseUrl.replace(/^.*\//, '').replace(/\?.*$/, '')
@@ -254,7 +254,7 @@ export async function checkMigrationApplied(
   try {
     const { rows: reg } = await pool.query<{ t: string | null }>(`SELECT to_regclass('drizzle.__drizzle_migrations')::text AS t`)
     if (!reg[0]?.t) {
-      return { name, passed: false, error: `数据库 ${database} 尚未执行任何迁移（drizzle.__drizzle_migrations 不存在），请运行 pnpm db:migrate` }
+      return { name, passed: false, error: `No migrations have been applied to ${database} (drizzle.__drizzle_migrations does not exist); run pnpm db:migrate` }
     }
     const { rows } = await pool.query<{ hash: string }>('SELECT hash FROM drizzle.__drizzle_migrations')
     const applied = new Set(rows.map((r) => r.hash))
@@ -264,8 +264,8 @@ export async function checkMigrationApplied(
         name,
         passed: false,
         error:
-          `以下迁移尚未落库到 ${database}（或 SQL 在落库后被修改）：${pending.map((p) => p.tag).join(', ')}；` +
-          '请运行 pnpm db:migrate，并用 psql \\d <table> 确认',
+          `Migrations not applied to ${database} (or their SQL changed after they were applied): ${pending.map((p) => p.tag).join(', ')}; ` +
+          'run pnpm db:migrate and confirm with psql \\d <table>',
       }
     }
 
@@ -279,15 +279,15 @@ export async function checkMigrationApplied(
           if (!r[0]?.t) missing.push(table)
         }
         if (missing.length > 0) {
-          return { name, passed: false, error: `数据库 ${database} 中不存在表：${missing.join(', ')}（schema 已定义但没有生成/执行迁移）` }
+          return { name, passed: false, error: `Database ${database} is missing tables: ${missing.join(', ')} (defined in the schema, but no migration was generated or applied)` }
         }
         result.tables = found.tables
       }
     }
-    result.detail = `已迁移至 ${result.head}（${database}）`
+    result.detail = `migrated to ${result.head} (${database})`
     return result
   } catch (err) {
-    return { name, passed: false, error: `连接数据库 ${database} 失败：${(err as Error).message}` }
+    return { name, passed: false, error: `Could not connect to database ${database}: ${(err as Error).message}` }
   } finally {
     await pool.end().catch(() => {})
   }
@@ -306,8 +306,8 @@ export function checkOpenapiSync(ctx: VerifyContext, module?: string): CheckResu
 
   const { code, output } = run([...bin(ctx.apiDir, 'tsx'), 'scripts/generate-openapi.ts', '--dry-run', '--strict'], ctx.apiDir, 180_000)
   if (code === 0) return { name, passed: true }
-  const failing = /文档检查：(\d+) 个接口不符合规范/.exec(output)?.[1]
-  if (!failing) return { name, passed: false, error: `OpenAPI 生成脚本执行失败：${output.trim().slice(-500)}` }
+  const failing = /Docs check: (\d+) endpoints? do(?:es)? not follow the rules/.exec(output)?.[1]
+  if (!failing) return { name, passed: false, error: `The OpenAPI generation script failed: ${output.trim().slice(-500)}` }
 
   const ops = output.split('\n').filter((l) => /^(GET|POST|PUT|PATCH|DELETE) \/api\//.test(l))
   const slug = module?.replace(/_/g, '-')
@@ -317,9 +317,9 @@ export function checkOpenapiSync(ctx: VerifyContext, module?: string): CheckResu
     name,
     passed: false,
     error:
-      `${failing} 个接口的 OpenAPI 文档不符合 AGENTS.md "OpenAPI writing rules"${mine.length ? `（其中本模块 ${mine.length} 个）` : ''}：` +
-      `${shown.join('；')}${ops.length > shown.length ? '…' : ''}。` +
-      '运行 pnpm openapi:generate 补齐骨架，按规范补全后用 pnpm openapi:generate -- --strict 查看每个接口的具体问题',
+      `${failing} ${failing === '1' ? 'endpoint has' : 'endpoints have'} OpenAPI docs that do not follow AGENTS.md "OpenAPI writing rules"${mine.length ? ` (${mine.length} in this module)` : ''}: ` +
+      `${shown.join('; ')}${ops.length > shown.length ? '; ...' : ''}. ` +
+      'Run pnpm openapi:generate to add stubs, fill them in per the rules, then run pnpm openapi:generate -- --strict to see what is wrong with each endpoint',
   }
 }
 
@@ -364,7 +364,7 @@ export function checkDocPaths(ctx: VerifyContext, strict = false): CheckResult {
     }
   }
   if (missing.length === 0) return { name, passed: true, checked: checked.size }
-  const detail = `文档引用的路径不存在（${missing.length} 处）：${missing.slice(0, 20).join('；')}`
+  const detail = `Paths referenced in the docs do not exist (${missing.length}): ${missing.slice(0, 20).join('; ')}`
   return strict ? { name, passed: false, error: detail } : { name, passed: true, warn: true, detail }
 }
 
@@ -391,7 +391,7 @@ export function checkBackendFile(ctx: VerifyContext, module: string): CheckResul
     return {
       name: 'backend_file',
       passed: false,
-      error: `未找到后端 routes.ts，检查路径：${candidates.slice(0, 4).map((d) => rel(ctx, join(d, 'routes.ts'))).join(', ')}`,
+      error: `No backend routes.ts found; looked in: ${candidates.slice(0, 4).map((d) => rel(ctx, join(d, 'routes.ts'))).join(', ')}`,
     }
   }
   const missing = ['repository.ts', 'service.ts'].filter((f) => !existsSync(join(found, f)))
@@ -399,7 +399,7 @@ export function checkBackendFile(ctx: VerifyContext, module: string): CheckResul
     return {
       name: 'backend_file',
       passed: false,
-      error: `${rel(ctx, found)} 缺少 ${missing.join(' / ')}（分层：schema → repository → service → routes）`,
+      error: `${rel(ctx, found)} is missing ${missing.join(' / ')} (layers: schema → repository → service → routes)`,
     }
   }
   return { name: 'backend_file', passed: true, path: rel(ctx, found) }
@@ -419,7 +419,7 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
   return {
     name: 'frontend_page',
     passed: false,
-    error: `未找到前端页面文件 index.jsx，目录名应为 ${module} 或 ${singular} 或 ${module}_page`,
+    error: `No frontend page index.jsx found; its directory should be named ${module}, ${singular} or ${module}_page`,
   }
 }
 
@@ -439,7 +439,7 @@ export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResul
   return {
     name: 'frontend_api',
     passed: false,
-    error: `未找到前端 API 文件，检查路径：${candidates.slice(0, 3).map((p) => rel(ctx, p)).join(', ')}`,
+    error: `No frontend API file found; looked in: ${candidates.slice(0, 3).map((p) => rel(ctx, p)).join(', ')}`,
   }
 }
 
@@ -461,8 +461,8 @@ export function checkRouterRegistration(ctx: VerifyContext, module: string): Che
     name: 'router_registration',
     passed: false,
     error:
-      `router 中未注册 register${toPascal(module)}Routes / register${toPascal(singularOf(module))}Routes；` +
-      `已注册: ${all.length > 0 ? JSON.stringify(all) : '无'}。请在 src/modules/<domain>/router.ts 中调用`,
+      `No router calls register${toPascal(module)}Routes / register${toPascal(singularOf(module))}Routes; ` +
+      `registered: ${all.length > 0 ? JSON.stringify(all) : 'none'}. Call it in src/modules/<domain>/router.ts`,
   }
 }
 
@@ -471,7 +471,7 @@ export function checkSchemaRegistration(ctx: VerifyContext, module: string): Che
   const name = 'schema_registration'
   const found = findModuleTables(ctx, module)
   if (!found) {
-    return { name, passed: true, skipped: true, detail: `未找到 ${module} 对应的表定义文件（模块可能没有自己的表），跳过` }
+    return { name, passed: true, skipped: true, detail: `No table definition file found for ${module} (the module may have no tables of its own); skipped` }
   }
   const indexPath = join(ctx.srcDir, 'db', 'schema', 'index.ts')
   const spec = `./${relative(join(ctx.srcDir, 'db', 'schema'), found.file).replace(/\.ts$/, '')}`
@@ -481,14 +481,14 @@ export function checkSchemaRegistration(ctx: VerifyContext, module: string): Che
   return {
     name,
     passed: false,
-    error: `${rel(ctx, found.file)} 未在 src/db/schema/index.ts 导出，请添加 export * from '${spec}'`,
+    error: `${rel(ctx, found.file)} is not exported from src/db/schema/index.ts; add export * from '${spec}'`,
   }
 }
 
 /** RBAC seed: the menu data must contain the matching component path or permission code (exact match) */
 export function checkRbacSeed(ctx: VerifyContext, module: string): CheckResult {
   const seedFile = join(ctx.apiDir, 'scripts', 'seed-rbac.ts')
-  if (!existsSync(seedFile)) return { name: 'rbac_seed', passed: false, error: 'scripts/seed-rbac.ts 不存在' }
+  if (!existsSync(seedFile)) return { name: 'rbac_seed', passed: false, error: 'scripts/seed-rbac.ts does not exist' }
 
   // seed-rbac.ts and the data files it imports relatively
   const files = [seedFile]
@@ -512,8 +512,8 @@ export function checkRbacSeed(ctx: VerifyContext, module: string): CheckResult {
     name: 'rbac_seed',
     passed: false,
     error:
-      `种子数据中未找到 ${module} 的菜单（component 路径或 system_${module} / cc_${module} 权限码），` +
-      '请在 scripts/seed-rbac.ts 添加菜单/按钮后运行 pnpm seed:rbac -- --incremental',
+      `No menu for ${module} in the seed data (neither a component path nor a system_${module} / cc_${module} permission code); ` +
+      'add the menu and buttons to scripts/seed-rbac.ts, then run pnpm seed:rbac -- --incremental',
   }
 }
 
@@ -597,7 +597,7 @@ export function checkDataScopeFilter(ctx: VerifyContext, module: string): CheckR
   )
   const schemaPath = dir ? join(dir, 'schema.ts') : ''
   if (!dir || !existsSync(schemaPath) || !/export const DATA_SCOPE\b/.test(readFileSync(schemaPath, 'utf8'))) {
-    return { name, passed: true, skipped: true, detail: '模块未声明数据权限（schema.ts 没有 DATA_SCOPE）' }
+    return { name, passed: true, skipped: true, detail: 'The module declares no data scope (schema.ts has no DATA_SCOPE)' }
   }
   const repoPath = join(dir, 'repository.ts')
   const repo = existsSync(repoPath) ? readFileSync(repoPath, 'utf8') : ''
@@ -605,10 +605,10 @@ export function checkDataScopeFilter(ctx: VerifyContext, module: string): CheckR
     return {
       name,
       passed: false,
-      error: `${rel(ctx, schemaPath)} 声明了 DATA_SCOPE，但 ${rel(ctx, repoPath)} 没有用 dataScopeWhere 过滤查询（见 src/common/data-scope.ts）`,
+      error: `${rel(ctx, schemaPath)} declares DATA_SCOPE, but ${rel(ctx, repoPath)} does not filter its queries with dataScopeWhere (see src/common/data-scope.ts)`,
     }
   }
-  return { name, passed: true, detail: `${rel(ctx, repoPath)} 已按数据权限过滤` }
+  return { name, passed: true, detail: `${rel(ctx, repoPath)} filters by data scope` }
 }
 
 export async function verify(options: VerifyOptions = {}): Promise<VerifyReport> {
@@ -663,12 +663,12 @@ export async function verify(options: VerifyOptions = {}): Promise<VerifyReport>
     passed,
     module: options.module ?? null,
     checks: results,
-    summary: `${results.length - failures.length}/${results.length} 项通过`,
+    summary: `${results.length - failures.length}/${results.length} checks passed`,
   }
 }
 
 export function formatHuman(report: VerifyReport): string {
-  const lines = ['== castor-kit 功能验证 ==', '']
+  const lines = ['== castor-kit feature verification ==', '']
   for (const r of report.checks) {
     const icon = r.passed ? (r.skipped ? '⏭️ ' : '✅') : r.skipped ? '⏭️ ' : '❌'
     lines.push(`  ${icon} ${r.name.replace(/_/g, ' ')}`)
@@ -677,7 +677,11 @@ export function formatHuman(report: VerifyReport): string {
   }
   lines.push('')
   const failures = report.checks.filter((r) => !r.passed && !r.skipped)
-  lines.push(report.passed ? '✅ 全部检查通过，功能可交付！' : `❌ ${failures.length} 项检查未通过，请修复后重新验证。`)
+  lines.push(
+    report.passed
+      ? '✅ All checks passed. The feature is ready to deliver.'
+      : `❌ ${failures.length} ${failures.length === 1 ? 'check' : 'checks'} failed. Fix ${failures.length === 1 ? 'it' : 'them'} and run verify again.`,
+  )
   return lines.join('\n')
 }
 

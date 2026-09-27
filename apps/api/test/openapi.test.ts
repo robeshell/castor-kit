@@ -142,9 +142,9 @@ describe('generateOpenApi', () => {
     const log: string[] = []
     const dry = await generateOpenApi({ config: config(), docPath: file, dryRun: true, log: (m) => log.push(m) })
     expect(dry.added).toEqual([])
-    expect(log).toContain('补齐 0 个接口（均为骨架，需按 AGENTS.md "OpenAPI writing rules" 补全）')
-    expect(log.some((m) => m.startsWith('文档路径统计：总数 '))).toBe(true)
-    expect(log.some((m) => m.startsWith('已写回'))).toBe(false)
+    expect(log).toContain('Added 0 endpoints (stubs only; complete them per AGENTS.md "OpenAPI writing rules")')
+    expect(log.some((m) => m.startsWith('Doc paths: '))).toBe(true)
+    expect(log.some((m) => m.startsWith('Wrote '))).toBe(false)
 
     await generateOpenApi({ config: config(), docPath: file, log: () => {} })
     expect(readFileSync(file, 'utf8')).toBe(before)
@@ -164,11 +164,11 @@ describe('generateOpenApi', () => {
       ['/api/admin/users/{user_id}', ['DELETE', 'PUT']],
     ])
     expect(result.exitCode).toBe(1)
-    expect(log).toContain('补齐 4 个接口（均为骨架，需按 AGENTS.md "OpenAPI writing rules" 补全）')
+    expect(log).toContain('Added 4 endpoints (stubs only; complete them per AGENTS.md "OpenAPI writing rules")')
     expect(result.issues.filter((i) => i.rule === 'summary').map((i) => i.operation)).toEqual(
       expect.arrayContaining(['GET /api/admin/users', 'POST /api/admin/users', 'PUT /api/admin/users/{user_id}', 'DELETE /api/admin/users/{user_id}']),
     )
-    expect(log.at(-1)).toMatch(/^❌ --strict：\d+ 个接口不符合 AGENTS\.md "OpenAPI writing rules"/)
+    expect(log.at(-1)).toMatch(/^❌ --strict: \d+ endpoints? do(?:es)? not follow AGENTS\.md "OpenAPI writing rules"/)
 
     const written = JSON.parse(readFileSync(file, 'utf8')) as { paths: Record<string, unknown> }
     expect(written.paths['/api/admin/users/{user_id}']).toEqual(buildStubEntry('/api/admin/users/{user_id}', ['DELETE', 'PUT']))

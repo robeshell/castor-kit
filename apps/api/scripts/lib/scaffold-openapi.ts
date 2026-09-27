@@ -93,7 +93,7 @@ const errors = (...codes: Array<[string, string]>) => Object.fromEntries(codes.m
 
 /**
  * Summary text: parts joined with a space where Chinese meets Latin letters, so an English title (a module scaffolded
- * without a Chinese one) reads 「新增 Ck Device」 / 「Ck Device 列表」 rather than being glued to the Chinese
+ * without a Chinese one) reads "新增 Ck Device" / "Ck Device 列表" rather than being glued to the Chinese
  */
 function phrase(...parts: string[]): string {
   return parts.reduce((out, part) => {

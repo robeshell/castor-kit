@@ -116,11 +116,11 @@ describe('verify-feature 模块级检查', () => {
     expect(checkBackendFile(ctx, 'ck_half')).toEqual({
       name: 'backend_file',
       passed: false,
-      error: 'apps/api/src/modules/component-center/ck-half 缺少 repository.ts（分层：schema → repository → service → routes）',
+      error: 'apps/api/src/modules/component-center/ck-half is missing repository.ts (layers: schema → repository → service → routes)',
     })
     const missing = checkBackendFile(ctx, 'nope')
     expect(missing.passed).toBe(false)
-    expect(missing.error).toMatch(/^未找到后端 routes\.ts，检查路径：apps\/api\/src\/modules\/admin\/nope\/routes\.ts/)
+    expect(missing.error).toMatch(/^No backend routes\.ts found; looked in: apps\/api\/src\/modules\/admin\/nope\/routes\.ts/)
   })
 
   it('frontend_page / frontend_api', () => {
@@ -132,11 +132,11 @@ describe('verify-feature 模块级检查', () => {
     expect(checkFrontendPage(ctx, 'nope')).toEqual({
       name: 'frontend_page',
       passed: false,
-      error: '未找到前端页面文件 index.jsx，目录名应为 nope 或 nope 或 nope_page',
+      error: 'No frontend page index.jsx found; its directory should be named nope, nope or nope_page',
     })
     expect(checkFrontendApi(ctx, 'ck_widget')).toEqual({ name: 'frontend_api', passed: true, path: 'apps/web/src/modules/admin/api/ck_widget.js' })
     expect(checkFrontendApi(ctx, 'nope').error).toBe(
-      '未找到前端 API 文件，检查路径：apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/component_center/api/nope.js',
+      'No frontend API file found; looked in: apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/admin/api/nope.js, apps/web/src/modules/component_center/api/nope.js',
     )
   })
 
@@ -149,7 +149,7 @@ describe('verify-feature 模块级检查', () => {
     expect(checkRouterRegistration(ctx, 'users').passed).toBe(true) // users → registerUserRoutes (singular)
     const res = checkRouterRegistration(ctx, 'ck_gadget')
     expect(res.passed).toBe(false)
-    expect(res.error).toContain('router 中未注册 registerCkGadgetRoutes')
+    expect(res.error).toContain('No router calls registerCkGadgetRoutes')
     expect(res.error).toContain('"registerAdminRoutes","registerCkWidgetRoutes","registerUserRoutes"')
   })
 
@@ -163,7 +163,7 @@ describe('verify-feature 模块级检查', () => {
     expect(checkSchemaRegistration(ctx, 'ck_orphan')).toEqual({
       name: 'schema_registration',
       passed: false,
-      error: "apps/api/src/db/schema/admin/ck-orphan.ts 未在 src/db/schema/index.ts 导出，请添加 export * from './admin/ck-orphan'",
+      error: "apps/api/src/db/schema/admin/ck-orphan.ts is not exported from src/db/schema/index.ts; add export * from './admin/ck-orphan'",
     })
     // Table defined in a shared file (matched by pgTable table name)
     put('apps/api/src/db/schema/admin/rbac.ts', "export const roles = pgTable('roles', {})\n")
@@ -176,7 +176,7 @@ describe('verify-feature 模块级检查', () => {
     expect(checkRbacSeed(ctx, 'ck_widgets')).toEqual({ name: 'rbac_seed', passed: true })
     const res = checkRbacSeed(ctx, 'ck_gadget')
     expect(res.passed).toBe(false)
-    expect(res.error).toContain('种子数据中未找到 ck_gadget 的菜单')
+    expect(res.error).toContain('No menu for ck_gadget in the seed data')
 
     // Also recognized when the data is split into files that seed-rbac.ts imports relatively
     put('apps/api/scripts/rbac-data.ts', "export const EXTRA = [{ code: 'cc_ck_gadget', component: null }]\n")
@@ -184,7 +184,7 @@ describe('verify-feature 模块级检查', () => {
     expect(checkRbacSeed(ctx, 'ck_gadget').passed).toBe(true)
 
     rmSync(join(root, 'apps/api/scripts/seed-rbac.ts'))
-    expect(checkRbacSeed(ctx, 'ck_widget')).toEqual({ name: 'rbac_seed', passed: false, error: 'scripts/seed-rbac.ts 不存在' })
+    expect(checkRbacSeed(ctx, 'ck_widget')).toEqual({ name: 'rbac_seed', passed: false, error: 'scripts/seed-rbac.ts does not exist' })
     put(
       'apps/api/scripts/seed-rbac.ts',
       `export const MENUS_DATA = [\n  { id: 39, name: "部件", code: "system_ck_widget", component: "admin/ck_widget" },\n]\n`,
@@ -232,7 +232,7 @@ describe('verify-feature 全局检查', () => {
 
     // Fork: 0001's prevId doesn't point to the initial migration
     put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', 'someone-else'))
-    expect(checkMigrationChain(ctx).error).toContain('0001_a 的 snapshot.prevId 不指向上一条')
+    expect(checkMigrationChain(ctx).error).toContain('0001_a: snapshot.prevId does not point to the previous entry')
     put('apps/api/drizzle/meta/0001_snapshot.json', snapshot('s1', initialId))
 
     // Missing SQL + orphan SQL + timestamps out of order + gap in idx
@@ -241,11 +241,11 @@ describe('verify-feature 全局检查', () => {
     writeJournal([base, { idx: 2, when: base.when - 1, tag: '0001_a' }])
     const res = checkMigrationChain(ctx)
     expect(res.passed).toBe(false)
-    expect(res.error).toContain('缺少 SQL 文件：drizzle/0001_a.sql')
-    expect(res.error).toContain('未登记到 journal 的 SQL')
+    expect(res.error).toContain('missing SQL file: drizzle/0001_a.sql')
+    expect(res.error).toContain('not in the journal')
     expect(res.error).toContain('0009_handwritten.sql')
-    expect(res.error).toContain('0001_a 的 when 不大于上一条')
-    expect(res.error).toContain('第 1 条的 idx=2')
+    expect(res.error).toContain('0001_a: when is not later than the previous entry')
+    expect(res.error).toContain('entry 1 has idx=2')
 
     rmSync(join(root, 'apps/api/drizzle/0009_handwritten.sql'))
     rmSync(join(root, 'apps/api/drizzle/meta/0001_snapshot.json'))
@@ -255,12 +255,12 @@ describe('verify-feature 全局检查', () => {
   it('migration_applied：journal 全部落库通过；未执行的迁移 / 缺表 报错；连不上库报错', async () => {
     const ok = await checkMigrationApplied(ctx, undefined, TEST_DATABASE_URL)
     expect(ok).toMatchObject({ name: 'migration_applied', passed: true, head: '0000_init' })
-    expect(ok.detail).toMatch(/^已迁移至 0000_init（/)
+    expect(ok.detail).toMatch(/^migrated to 0000_init \(/)
 
     // Module table missing (schema defines ck_widgets, database doesn't have it)
     const noTable = await checkMigrationApplied(ctx, 'ck_widget', TEST_DATABASE_URL)
     expect(noTable.passed).toBe(false)
-    expect(noTable.error).toContain('中不存在表：ck_widgets')
+    expect(noTable.error).toContain('is missing tables: ck_widgets')
 
     // One migration was not applied
     const journalPath = join(root, 'apps/api/drizzle/meta/_journal.json')
@@ -270,7 +270,7 @@ describe('verify-feature 全局检查', () => {
     put('apps/api/drizzle/0001_ck_verify_pending.sql', 'SELECT 1;')
     const pending = await checkMigrationApplied(ctx, undefined, TEST_DATABASE_URL)
     expect(pending.passed).toBe(false)
-    expect(pending.error).toContain('以下迁移尚未落库')
+    expect(pending.error).toContain('Migrations not applied to')
     expect(pending.error).toContain('0001_ck_verify_pending')
     expect(pending.error).toContain('pnpm db:migrate')
     rmSync(join(root, 'apps/api/drizzle/0001_ck_verify_pending.sql'))
@@ -278,7 +278,7 @@ describe('verify-feature 全局检查', () => {
 
     const down = await checkMigrationApplied(ctx, undefined, 'postgresql://127.0.0.1:1/nope')
     expect(down.passed).toBe(false)
-    expect(down.error).toMatch(/^连接数据库 nope 失败/)
+    expect(down.error).toMatch(/^Could not connect to database nope:/)
     expect(await checkMigrationApplied(ctx, undefined, null)).toMatchObject({ passed: false })
   })
 
@@ -327,12 +327,12 @@ describe('verify-feature 汇总与 CLI', () => {
       'api_tests',
     ])
     expect(report.passed).toBe(true)
-    expect(report.summary).toBe('16/16 项通过')
+    expect(report.summary).toBe('16/16 checks passed')
     expect(report.checks.find((c) => c.name === 'frontend_build')).toEqual({ name: 'frontend_build', passed: true, skipped: true })
 
     const failing = await verify({ root, module: 'ck_gadget', skipBuild: true, skipFrontendTests: true, skipApiTests: true, skipDb: true })
     expect(failing.passed).toBe(false)
-    expect(failing.summary).toBe('11/16 项通过')
+    expect(failing.summary).toBe('11/16 checks passed')
   })
 
   it('CLI --json：stdout 只有 JSON，失败时退出码 1；无 --module 时只跑全局检查', () => {
@@ -353,7 +353,7 @@ describe('verify-feature 汇总与 CLI', () => {
 
     const human = run(['--module', 'ck_widget', '--skip-build', '--skip-frontend-tests', '--skip-api-tests', '--skip-db', '--root', root])
     expect(human.status).toBe(0)
-    expect(human.stdout).toContain('== castor-kit 功能验证 ==')
-    expect(human.stdout).toContain('✅ 全部检查通过，功能可交付！')
+    expect(human.stdout).toContain('== castor-kit feature verification ==')
+    expect(human.stdout).toContain('✅ All checks passed. The feature is ready to deliver.')
   }, 60_000)
 })

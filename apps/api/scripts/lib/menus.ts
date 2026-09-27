@@ -48,10 +48,10 @@ const BUTTONS = [
 /** The part of seed-rbac.ts holding MENUS_DATA: [start of the array body, index of its closing bracket] */
 function menusBlock(content: string): [number, number] {
   const start = content.indexOf('export const MENUS_DATA')
-  if (start < 0) throw new Error('seed-rbac.ts 中找不到 MENUS_DATA')
+  if (start < 0) throw new Error('MENUS_DATA not found in seed-rbac.ts')
   const open = content.indexOf('[', content.indexOf('=', start))
   const close = content.indexOf('\n]', open)
-  if (open < 0 || close < 0) throw new Error('seed-rbac.ts 的 MENUS_DATA 格式无法识别')
+  if (open < 0 || close < 0) throw new Error('Unrecognized MENUS_DATA format in seed-rbac.ts')
   return [open + 1, close]
 }
 
@@ -96,19 +96,19 @@ export function planMenus(content: string, request: MenuRequest): MenuEntry[] | 
     if (group) {
       parentId = group.id
     } else {
-      if (ids.has(BIZ_GROUP.id)) throw new Error(`菜单 ID ${BIZ_GROUP.id} 已被占用，无法创建「业务管理」目录`)
+      if (ids.has(BIZ_GROUP.id)) throw new Error(`Menu ID ${BIZ_GROUP.id} is already taken, so the 业务管理 (Business) directory can't be created`)
       const topSort = Math.max(0, ...menus.filter((m) => m.parent_id === null && m.code !== 'system').map((m) => m.sort_order))
       entries.push({ id: BIZ_GROUP.id, name: BIZ_GROUP.name, code: BIZ_GROUP.code, icon: BIZ_GROUP.icon, path: null, component: null, parent_id: null, sort_order: topSort + 1, menu_type: 'menu' })
       ids.add(BIZ_GROUP.id)
       parentId = BIZ_GROUP.id
     }
   } else if (!ids.has(parentId)) {
-    throw new Error(`父菜单 ${parentId} 不存在`)
+    throw new Error(`Parent menu ${parentId} doesn't exist`)
   }
 
   let id = 1001
   while (id <= 1999 && (ids.has(id) || BUTTONS.some((_, i) => ids.has(id * 10 + i + 1)))) id++
-  if (id > 1999) throw new Error('业务模块菜单 ID（1001–1999）已用完')
+  if (id > 1999) throw new Error('No business module menu IDs left (1001–1999)')
   const sort = Math.max(0, ...menus.filter((m) => m.parent_id === parentId).map((m) => m.sort_order)) + 1
   entries.push({
     id,

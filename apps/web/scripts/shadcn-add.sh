@@ -82,11 +82,11 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 if [[ ! -s "$TMP_DIR/port" ]]; then
-  echo "❌ 本地中转启动失败" >&2
+  echo "❌ Failed to start the local relay" >&2
   exit 1
 fi
 PORT="$(cat "$TMP_DIR/port")"
-echo "→ shadcn registry 中转：http://127.0.0.1:$PORT/r → $UPSTREAM" >&2
+echo "→ shadcn registry relay: http://127.0.0.1:$PORT/r → $UPSTREAM" >&2
 
 # Keep the original proxy for npx / pnpm package downloads (npm_config_*); the shadcn CLI itself no longer sees proxy vars
 ORIG_PROXY="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
@@ -118,10 +118,10 @@ done
 while IFS= read -r file; do
   if grep -qE "from ['\"]cn['\"]" "$file"; then
     sed -i.bak -E "s#from ['\"]cn['\"]#from \"@/lib/utils\"#" "$file" && rm -f "$file.bak"
-    echo "↺ $file：cn 改为从 @/lib/utils 导入" >&2
+    echo "↺ $file: cn now imported from @/lib/utils" >&2
   fi
 done < <(find "${OUT_DIRS[@]}" -type f \( -name '*.js' -o -name '*.jsx' \) -newer "$TMP_DIR/marker" 2>/dev/null)
 if [[ "$HAD_CN_DEP" == "0" ]] && grep -q '"cn":' package.json; then
-  echo "↺ 撤销误装的 npm 包 cn" >&2
+  echo "↺ Removing the wrongly installed npm package cn" >&2
   pnpm remove cn >/dev/null
 fi

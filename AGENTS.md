@@ -674,7 +674,7 @@ Step 5  Verification gate (mandatory, never skip)
 > 1. Before writing, record the current version: `psql -d castor_kit -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
 > 2. `pnpm db:migrate` to apply the changes
 > 3. For new tables / indexes / columns, confirm the objects really exist with `psql -d castor_kit -c '\d <table>'`
-> 4. The `migration_applied` step of `pnpm verify -- --module <name>` passes (it compares the journal with `drizzle.__drizzle_migrations` and confirms the module's table exists with `to_regclass`); its detail reads like `已迁移至 0001_customer（castor_kit）` ("migrated to 0001_customer (castor_kit)")
+> 4. The `migration_applied` step of `pnpm verify -- --module <name>` passes (it compares the journal with `drizzle.__drizzle_migrations` and confirms the module's table exists with `to_regclass`); its detail reads like `migrated to 0001_customer (castor_kit)`
 > 5. The delivery report states "migrated to <tag>" (the tag is the migration name under `apps/api/drizzle/`, e.g. `0001_customer`)
 
 **Delivery report format:**

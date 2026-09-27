@@ -38,13 +38,13 @@ export async function runSetupOnce(options: SetupOnceOptions): Promise<void> {
   await lockClient.connect()
   try {
     await lockClient.query(`SELECT pg_advisory_lock(${ADVISORY_LOCK_KEY})`)
-    log('[setup] 已获取初始化锁（并发安全）')
+    log('[setup] Acquired the setup lock (safe to run concurrently)')
 
-    log('[setup] 运行数据库迁移...')
+    log('[setup] Running database migrations...')
     await runMigrations(options.databaseUrl, log)
-    log('[setup] 数据库迁移完成')
+    log('[setup] Database migrations done')
 
-    log('[setup] 同步 RBAC 菜单与权限...')
+    log('[setup] Syncing RBAC menus and permissions...')
     await seedRbac({
       databaseUrl: options.databaseUrl,
       adminPassword: options.adminPassword,
@@ -52,7 +52,7 @@ export async function runSetupOnce(options: SetupOnceOptions): Promise<void> {
       log,
     })
 
-    log('[setup] 初始化 AI SQL 只读账号...')
+    log('[setup] Setting up the read-only AI SQL role...')
     await initRoRole({
       databaseUrl: options.databaseUrl,
       roPassword: options.roPassword,
@@ -61,14 +61,14 @@ export async function runSetupOnce(options: SetupOnceOptions): Promise<void> {
     })
 
     if (options.demo) {
-      log('[setup] 演示模式：检查是否需要恢复演示数据...')
+      log('[setup] Demo mode: checking whether the demo data is due for a reset...')
       await resetDemoIfDue({ databaseUrl: options.databaseUrl, resetHours: options.demo.resetHours, log })
     }
   } finally {
     // Closing the connection releases the session-level lock; unlock explicitly first, ignoring errors if the connection is already gone
     await lockClient.query(`SELECT pg_advisory_unlock(${ADVISORY_LOCK_KEY})`).catch(() => {})
     await lockClient.end().catch(() => {})
-    log('[setup] 初始化完成，已释放锁')
+    log('[setup] Setup complete; lock released')
   }
 }
 

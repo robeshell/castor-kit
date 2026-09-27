@@ -117,7 +117,8 @@ export default function TagsView() {
                           }}
                           className={cn(
                             'flex size-4 items-center justify-center rounded-sm transition-opacity hover:bg-foreground/10',
-                            active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                            // Always faintly visible: an invisible button still takes its 16px, which reads as uneven spacing
+                            active ? 'opacity-100' : 'opacity-40 group-hover:opacity-100',
                           )}
                         >
                           <X className="size-3" />
