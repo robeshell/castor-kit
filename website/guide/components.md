@@ -23,6 +23,24 @@ Group directory `patterns/`. All ten pages work on the same demo data through on
 
 The shared option lists (category and status labels and badge tones) are in `patterns/demo-record-options.ts`. How to use each shared component on its own is in [Components](#components).
 
+### Building a feature from a pattern {#from-a-pattern}
+
+`pnpm scaffold` always generates a standard list page. When a feature is better shown another way, generate the module as usual (backend, menu, migration, typed API file), then rebuild its page after the matching pattern page and add the backend pieces that pattern relies on:
+
+| The feature needs | Copy | Backend to add (see the [shared demo API](#shared-demo-api)) |
+|---|---|---|
+| Cards instead of rows | Card List | nothing beyond the scaffold endpoints |
+| Records nested by a parent | Tree List | a tree endpoint, a `parent_id` filter, reorder by `sort_order`, delete / move checks |
+| Totals above the list | Stats List | a stats endpoint that reads the list's filters |
+| A page per record with tabs | Detail Page | nothing beyond the scaffold endpoints |
+| A long create form in steps | Step Form | nothing beyond the scaffold endpoints |
+| User-defined extra fields | Dynamic Form | a jsonb column |
+| Cards moved between states | Kanban | a reorder endpoint with its own order column |
+| Date ranges on a timeline | Gantt Chart | date range and progress columns |
+| Sorting, inline edit, batch actions | Advanced Table | sortable fields, batch update / delete endpoints |
+
+[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) has the same table under "Page patterns (which page to copy)", with the service and repository functions to copy, so an AI agent picks the right page by itself: describe the feature ("a kanban of support tickets") and it starts from the kanban page.
+
 ### Shared demo API {#shared-demo-api}
 
 The ten pattern pages don't each have a backend. They share one module, `apps/api/src/modules/component-center/demo-record`, with one table, `demo_records`, under `/api/admin/component-center/demo-records`:

@@ -2,6 +2,25 @@
 
 Complete runnable versions of every pattern: `apps/web/src/modules/admin/pages/users/index.tsx` (list / form / import and export), `docs/templates/frontend/list_page/index.tsx` (+ `api.ts`), `docs/templates/frontend/detail_page/index.tsx` (typed: `Row` from the API file, `FormValues`, `DataTableColumn<Row>[]`).
 
+## 0. Which page to copy
+
+Each page pattern has a reference page in the component gallery (`apps/web/src/modules/component_center/pages/patterns/`, all on the shared demo API `/api/admin/component-center/demo-records`); the doc comment at the top of each page lists what to copy. The backend each one needs is in AGENTS.md "Page patterns (which page to copy)".
+
+| Pattern | Page | Key techniques |
+|---|---|---|
+| Standard list | `patterns/demo_record_page` | scaffold output + FilterSelect filters, a column subset, StatusBadge tones |
+| Card list | `patterns/card_list_page` | `useCrudList` + a card grid with `DataPagination`, Skeleton cards, EmptyState, cover via `fileUrl` with a fallback |
+| Tree list | `patterns/tree_list_page` | TreeView (server-side search) + children DataTable + breadcrumb, TreeSelect parent picker excluding descendants |
+| Stats list | `patterns/stats_list_page` | one filter state for the list and the stats request, StatCard row, Chart donut + stacked bar |
+| Detail page | `patterns/detail_page` | record id in the URL (`useSearchParams`), load by id with stale-response guard, SegmentedTabs sections |
+| Step form | `patterns/step_form_page` | one `useForm` across steps, `form.trigger(step.fields)` on Next, review step |
+| Dynamic form | `patterns/dynamic_form_page` | `useFieldArray` rows ↔ a jsonb `{ key: value }` object (`form.ts`) |
+| Kanban | `patterns/kanban_page` | @dnd-kit within / across columns, optimistic reorder with rollback |
+| Gantt | `patterns/gantt_page` | UTC day numbers, day / week scale, collapsible hierarchy, progress bars |
+| Advanced table | `patterns/advanced_table_page` | SortHeader → `sort_field` / `sort_dir`, inline row edit with undo, batch update / delete |
+
+Status / category options and their tones: `patterns/demo-record-options.ts`. One page per group of shared components (examples + props): `pages/components/<group>_page/`.
+
 ## 1. CRUD list page skeleton
 
 ```

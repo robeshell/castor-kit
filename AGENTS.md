@@ -437,7 +437,7 @@ export const importItems = (file: File) => {
 - **Component system**: shadcn/ui primitives (`@/components/ui/*`; the source lives in the repo and can be changed as needed) + shared business components (`@/shared/components/*`); icons come only from `lucide-react`
 - **Use only** `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes; don't add other UI libraries (antd, MUI, etc.)
 - **Forbidden**: hard-coded hex colors in pages (exceptions: shading inside canvas / WebGL and chart data colors; for charts, try `useChartColors` first), large inline styles for layout, emoji as icons
-- **Reference implementations**: `apps/web/src/modules/admin/pages/users/index.tsx` (standard CRUD list page), `apps/web/src/modules/admin/pages/dashboard/index.tsx` (cards / charts / motion), `apps/web/src/modules/admin/pages/profile/index.tsx` (form page); templates in `docs/templates/frontend/`
+- **Reference implementations**: one page per page pattern (card list, tree, stats, detail, step form, dynamic form, kanban, gantt, advanced table) in the gallery, see "Page patterns (which page to copy)"; how to use each shared component, see "Component showcase pages"; `apps/web/src/modules/admin/pages/users/index.tsx` (standard CRUD list page), `apps/web/src/modules/admin/pages/dashboard/index.tsx` (cards / charts / motion), `apps/web/src/modules/admin/pages/profile/index.tsx` (form page); templates in `docs/templates/frontend/`
 - **Docs first**: before implementing a shadcn component, check the official shadcn/ui docs (https://ui.shadcn.com/docs/components; prefer the shadcn MCP when available); the skill is at `.claude/skills/shadcn-ui-skills/SKILL.md`. When the docs conflict with the existing implementation in the repo, the repo wins (components in `components/ui` may have been adjusted to this project's tokens)
 
 **Page structure (list pages follow the users page):**
@@ -493,6 +493,25 @@ lib: `@/lib/utils` (`cn`), `@/lib/toast` (`toast.success / error / warning`, `to
 - Restrained motion: interactions 150-250ms ease-out; staggered list entrances, layoutId indicators, number rolls and overlay enter / exit are already provided by the shared components; `prefers-reduced-motion` is handled globally
 
 **Menu icons**: `menus.icon` stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.ts` resolves to a lucide component; new menus reuse names already in the mapping, and a new icon needs a new entry in the mapping.
+
+### Page patterns (which page to copy)
+
+组件示例中心 → 页面模板 (Page Patterns, menu 43) has one reference implementation per page pattern, all on the shared demo API `/api/admin/component-center/demo-records` (module `apps/api/src/modules/component-center/demo-record`). Pages are under `apps/web/src/modules/component_center/pages/patterns/`; the doc comment at the top of each `index.tsx` says when to use it and lists what to copy. Pick the row that matches the requirement:
+
+| The requirement sounds like | Pattern | Copy the page | Backend it needs (in `demo-record`) |
+|---|---|---|---|
+| Manage a list of records: filter, create / edit, delete, import / export | Standard list | `patterns/demo_record_page` (= `pnpm scaffold` output + filters, badges, a column subset) | the 8 scaffold endpoints |
+| Records recognised by a picture or a few badges (products, articles, templates) | Card list | `patterns/card_list_page` | the scaffold endpoints; an image field (file id) and a string-list field |
+| Records nested by a parent (categories, org units, breakdowns) | Tree list | `patterns/tree_list_page` | `GET …/tree` (`service.getTree`: server-side search keeping ancestors), `parent_id` filter with `root`, `PUT …/reorder` (`sort_order`), no delete while children exist, no cycles on move |
+| Totals / distributions above a list (revenue, counts by status) | Stats list | `patterns/stats_list_page` | `GET …/stats` (`repository.stats` + `service.getStats`) reading the same filters as the list (`repository.filterWhere`) |
+| One record with more than a row holds: header + tabs (overview, related records) | Detail page | `patterns/detail_page` | `GET …/{id}` and the list filtered by `parent_id` |
+| A long create form done in steps, reviewed before saving | Step form | `patterns/step_form_page` | `POST` only |
+| User-defined extra fields on a record (custom attributes) | Dynamic form | `patterns/dynamic_form_page` (+ `form.ts`, `FieldRowsEditor.tsx`) | a jsonb column (`extra`) validated as a flat `{ key: value }` object |
+| Records moving through fixed states, reordered by hand (tasks, tickets, leads) | Kanban | `patterns/kanban_page` | `PUT …/reorder` with `board_order` + `status` (`service.reorder`), an order column of its own |
+| Records with a date range and progress on a timeline (projects, releases) | Gantt | `patterns/gantt_page` | date range + progress columns, start ≤ end checked in the service (`checkDates`) |
+| Many rows edited quickly: sort, inline edit, batch actions | Advanced table | `patterns/advanced_table_page` | sort params checked against `SORT_FIELDS`, `POST …/batch-update` / `…/batch-delete` (`service.batchUpdate` / `batchDelete`) |
+
+Status / category labels and badge tones shared by the patterns are in `pages/patterns/demo-record-options.ts` (todo warning, in_progress info, done success, archived neutral). For a new feature that isn't a plain list: scaffold the module as usual (it generates the backend, RBAC entry, migration, typed API file and a standard list page), then rebuild the page following the pattern page, keeping the generated API file and adding the backend pieces from the last column with their tests and OpenAPI entries. How to use a single shared component is in the Components pages below.
 
 ### Component showcase pages (usage reference for shared components)
 
