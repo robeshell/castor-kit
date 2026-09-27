@@ -28,17 +28,7 @@ export function notFound(): ServiceError {
   return new ServiceError('资源不存在', 404)
 }
 
-/** JSON request body: non-objects (null / non-JSON / empty body) are treated as {} */
-export function jsonBody(request: FastifyRequest): Record<string, unknown> {
-  const body = request.body
-  if (body && typeof body === 'object' && !Array.isArray(body)) return body as Record<string, unknown>
-  return {}
-}
 
-/** Raw JSON request body value (may be an array / scalar / null) */
-export function rawJsonBody(request: FastifyRequest): unknown {
-  return request.body ?? null
-}
 
 /** Read a query param as a string: default when missing, first value when repeated */
 export function queryString(request: FastifyRequest, key: string, fallback = ''): string {

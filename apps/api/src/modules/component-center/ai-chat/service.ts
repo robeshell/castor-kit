@@ -78,9 +78,9 @@ export function chatErrorMessage(err: unknown, lang: Language): string {
 }
 
 
-/** A chat request's messages as UI messages; 400 when missing or malformed (shared with the AI assistant) */
-export async function parseChatMessages(raw: unknown): Promise<UIMessage[]> {
-  if (!Array.isArray(raw) || raw.length === 0) throw new ServiceError('消息不能为空', 400)
+/** A chat request's messages (a list, see schema.ts) as UI messages; 400 when empty or malformed (shared with the AI assistant) */
+export async function parseChatMessages(raw: unknown[]): Promise<UIMessage[]> {
+  if (raw.length === 0) throw new ServiceError('消息不能为空', 400)
   if (raw.length > MAX_MESSAGES) throw new ServiceError('对话太长，请清除上下文后再试', 400)
   const result = await safeValidateUIMessages({ messages: raw })
   if (!result.success) throw new ServiceError('消息格式不正确', 400)
@@ -115,8 +115,8 @@ export class AiChatService {
     await this.agent.destroy()
   }
 
-  /** The request's messages as UI messages; 400 when missing or malformed */
-  parseMessages(raw: unknown): Promise<UIMessage[]> {
+  /** The request's messages as UI messages; 400 when empty or malformed */
+  parseMessages(raw: unknown[]): Promise<UIMessage[]> {
     return parseChatMessages(raw)
   }
 

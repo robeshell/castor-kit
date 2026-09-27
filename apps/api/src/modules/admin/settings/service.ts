@@ -23,7 +23,6 @@ import type { Db } from '@/db/client'
 import { SettingsRepository } from './repository'
 
 const TEST_TIMEOUT_MS = 20_000
-const EMAIL_RE = /^[^\s@]+@[^\s@]+$/
 
 /** Short, single-line reason from an upstream error */
 function reasonOf(err: unknown): string {
@@ -46,12 +45,6 @@ export class SettingsService {
   async list() {
     const [items, fileCounts] = await Promise.all([this.store.describe(), this.repo.fileCountsByStorage()])
     return { items, file_counts: fileCounts }
-  }
-
-  private changesOf(values: unknown): SettingChanges {
-    if (values === undefined) return {}
-    if (!values || typeof values !== 'object' || Array.isArray(values)) throw new ServiceError('请提交要保存的设置', 400)
-    return values as SettingChanges
   }
 
   /** Validation errors of the store become 400s */
@@ -113,9 +106,7 @@ export class SettingsService {
   }
 
   /** Save the given { key: value } pairs (null resets a value); role codes in totp_required_roles must exist */
-  async update(values: unknown, userId: number | null, actor = 'unknown') {
-    if (values === undefined) throw new ServiceError('请提交要保存的设置', 400)
-    const changes = this.changesOf(values)
+  async update(changes: SettingChanges, userId: number | null, actor = 'unknown') {
     const required = changes['security.totp_required_roles']
     if (Array.isArray(required) && required.length > 0) {
       const codes = required.filter((c): c is string => typeof c === 'string')
@@ -131,20 +122,19 @@ export class SettingsService {
   }
 
   /** Settings as they would be with the draft applied */
-  private draft(values: unknown): Promise<Settings> {
-    return this.guard(async () => (await this.store.preview(this.changesOf(values))).settings)
+  private draft(values: SettingChanges): Promise<Settings> {
+    return this.guard(async () => (await this.store.preview(values)).settings)
   }
 
-  /** Send a test mail with the (draft) mail settings */
-  async testMail(values: unknown, to: unknown) {
-    if (typeof to !== 'string' || !EMAIL_RE.test(to.trim())) throw new ServiceError('请输入正确的邮箱地址', 400)
+  /** Send a test mail with the (draft) mail settings to `to` (an email address, checked by the route's schema) */
+  async testMail(values: SettingChanges, to: string) {
     const settings = await this.draft(values)
     await this.assertOutbound(settings, ['mail.smtp_host'])
     const mailer = createMailer(this.config, settings.mail, this.log)
     if (!mailer) throw new ServiceError('请先填写 SMTP 服务器', 400)
     try {
       await mailer.send({
-        to: to.trim(),
+        to,
         subject: 'castor-kit 测试邮件 / Test mail',
         text: '这是一封测试邮件，收到说明邮件设置可用。\n\nThis is a test mail: your mail settings work.',
       })
@@ -155,7 +145,7 @@ export class SettingsService {
   }
 
   /** Write, check and delete a small object with the (draft) storage settings */
-  async testStorage(values: unknown) {
+  async testStorage(values: SettingChanges) {
     const settings = await this.draft(values)
     if (settings.storage.driver === 's3') await this.assertOutbound(settings, ['storage.s3_endpoint'])
     const storage = new Storage(settings.storage, this.config.storageLocalDir, { quick: true })
@@ -172,7 +162,7 @@ export class SettingsService {
   }
 
   /** One tiny model call with the (draft) AI settings */
-  async testAi(values: unknown) {
+  async testAi(values: SettingChanges) {
     const settings = await this.draft(values)
     const { ai } = settings
     await this.assertOutbound(settings, ['ai.api_base'])

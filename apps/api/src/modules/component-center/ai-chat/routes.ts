@@ -13,7 +13,8 @@ import { Readable } from 'node:stream'
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import type { FastifyInstance } from 'fastify'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
-import { jsonBody } from '@/common/http'
+import { parseBody } from '@/common/validation'
+import { chatBody } from './schema'
 import { AiChatService } from './service'
 
 const PERMISSION = 'cc_ai_chat'
@@ -42,7 +43,7 @@ export async function registerAiChatRoutes(app: FastifyInstance): Promise<void> 
       }
 
       // The page (useChat) sends the conversation as UI messages: [{ id, role, parts }, …]
-      const messages = await service.parseMessages(jsonBody(request).messages)
+      const messages = await service.parseMessages(parseBody(chatBody, request.body).messages)
 
       const abort = new AbortController()
       reply.raw.on('close', () => {

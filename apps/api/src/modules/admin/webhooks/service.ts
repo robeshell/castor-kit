@@ -8,13 +8,12 @@ import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
 import { hostOfUrl, outboundHostReason } from '@/common/outbound'
 import { openSecret, sealSecret } from '@/common/secret-box'
-import { isValidSubscription, knownEvents, type EventBus } from '@/common/webhooks'
+import { knownEvents, type EventBus } from '@/common/webhooks'
 import type { AppConfig } from '@/config'
 import type { Db } from '@/db/client'
 import { webhookDeliveryToDict, webhookToDict, type Webhook } from '@/db/schema'
 import { WebhookRepository, type DeliveryStatus } from './repository'
-
-type Data = Record<string, unknown>
+import type { WebhookInput } from './schema'
 
 const newSecret = () => `whsec_${randomBytes(24).toString('base64url')}`
 
@@ -48,22 +47,10 @@ export class WebhookService {
     return row
   }
 
-  /** Normalized name / url / events / is_active; url must be http(s) and not reserved / internal */
-  private async validate(data: Data, current?: Webhook) {
-    const name = typeof data.name === 'string' ? data.name.trim() : (current?.name ?? '')
-    if (!name || name.length > 100) throw new ServiceError('请填写名称（最多 100 个字符）', 400)
-    const url = typeof data.url === 'string' ? data.url.trim() : (current?.url ?? '')
-    if (!/^https?:\/\/[^\s/]+/i.test(url) || url.length > 500 || !hostOfUrl(url)) throw new ServiceError('请填写正确的地址（http:// 或 https://）', 400)
+  /** The address's host must resolve to an allowed (not reserved / internal) address */
+  private async checkHost(url: string) {
     const reason = await outboundHostReason(hostOfUrl(url), this.config.settingsAllowPrivateNetwork)
     if (reason) throw new ServiceError(reason, 400)
-    const events = Array.isArray(data.events)
-      ? [...new Set(data.events.filter((e): e is string => typeof e === 'string').map((e) => e.trim()))]
-      : (current?.events ?? [])
-    if (events.length === 0) throw new ServiceError('请至少订阅一个事件', 400)
-    const unknown = events.filter((e) => !isValidSubscription(e))
-    if (unknown.length > 0) throw new ServiceError(`未知的事件：${unknown.join(', ')}`, 400)
-    const isActive = typeof data.is_active === 'boolean' ? data.is_active : (current?.is_active ?? true)
-    return { name, url, events, is_active: isActive }
   }
 
   private notify(title: string, hook: { name: string; url: string }, actor: string) {
@@ -71,16 +58,17 @@ export class WebhookService {
   }
 
   /** Create; the signing secret is returned with it (it can be viewed again later after confirming identity) */
-  async create(data: Data, userId: number, actor: string) {
-    const values = await this.validate(data)
+  async create(values: WebhookInput, userId: number, actor: string) {
+    await this.checkHost(values.url)
     const secret = newSecret()
     const row = await this.repo.insert({ ...values, secret: sealSecret(secret, this.config.secretKey), created_by: userId })
     await this.notify('新增了 Webhook', row, actor)
     return { item: webhookToDict(row), secret }
   }
 
-  async update(hook: Webhook, data: Data, actor: string) {
-    const values = await this.validate(data, hook)
+  async update(hook: Webhook, changes: Partial<WebhookInput>, actor: string) {
+    const values = { name: hook.name, url: hook.url, events: hook.events, is_active: hook.is_active, ...changes }
+    await this.checkHost(values.url)
     const row = (await this.repo.update(hook.id, values))!
     if (values.url !== hook.url) await this.notify('修改了 Webhook 地址', row, actor)
     return webhookToDict(row)

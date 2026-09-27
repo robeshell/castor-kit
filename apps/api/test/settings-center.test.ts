@@ -125,6 +125,13 @@ describe('settings center', () => {
     expect((await s.inject({ method: 'POST', url: '/api/admin/settings/test/mail', payload: { to: 'nope' } })).json()).toEqual({
       error: '请输入正确的邮箱地址',
     })
+    expect((await s.inject({ method: 'POST', url: '/api/admin/settings/test/mail', payload: {} })).json()).toEqual({ error: '请输入正确的邮箱地址' })
+    expect((await s.inject({ method: 'POST', url: '/api/admin/settings/test/mail', payload: { to: ['ops@example.com'] } })).json()).toEqual({
+      error: '收件邮箱的值无效',
+    })
+    expect((await s.inject({ method: 'POST', url: '/api/admin/settings/test/storage', payload: { values: [] } })).json()).toEqual({
+      error: '设置项的值无效',
+    })
 
     const objects = () => readdirSync(storageDir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).length
     const before = objects()

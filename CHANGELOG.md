@@ -36,6 +36,11 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- **Every request body is declared with `common/validation.ts`**: departments, API tokens, webhooks, password reset, two-step verification and re-authentication, system settings, AI chat and the AI assistant join the other modules; `jsonBody()` is gone. They take JSON types only. A value of the wrong type is 400 `<field>的值无效`: integers as numbers, text as strings, lists as arrays, objects as objects, and a non-object body is 400 `请求参数格式不正确`. Business checks (unique codes, parents and cycles, allowed scopes, outbound-address checks, the settings registry, AI message format) stay in the services.
+  - Edits change only the fields sent. A department's `status` or a webhook's `is_active` sent as null is rejected instead of switching the record back on.
+  - Department sort takes `up` / `down` exactly.
+  - Wrong-typed second-factor codes and passwords are rejected as input and no longer count as failed attempts.
+  - API token scopes are trimmed and de-duplicated.
 - **Files and the dashboard use the caller's time zone**: the web app sends its IANA time zone in an `X-Time-Zone` header on every request (API callers may send it too; missing or unknown means UTC).
   - Exported CSV / XLSX files write times as wall time in that zone (`formatDateTime()`, reading the zone from the request through `common/time-zone.ts`).
   - Scaffolded imports read time cells in that zone (`withZoneOffset()`), so an exported file imports back unchanged.

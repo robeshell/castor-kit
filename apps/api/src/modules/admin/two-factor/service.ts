@@ -17,10 +17,7 @@ import { hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, totpU
 import type { Db } from '@/db/client'
 import type { AdminUserWithRoles } from '@/db/schema'
 import { TwoFactorRepository } from './repository'
-
-type Data = Record<string, unknown>
-
-const str = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
+import type { CodeInput, EnableInput, PasswordInput } from './schema'
 
 export class TwoFactorService {
   private readonly repo: TwoFactorRepository
@@ -71,12 +68,12 @@ export class TwoFactorService {
   }
 
   /** Finish enrollment with the first code from the app; returns the recovery codes (only time they are shown) */
-  async enable(userId: number, data: Data) {
+  async enable(userId: number, data: EnableInput) {
     const row = await this.userOr404(userId)
     if (row.totp_enabled_at) throw new ServiceError('已开启两步验证，如需更换请先关闭', 400)
     const secret = row.totp_secret ? openSecret(row.totp_secret, this.secretKey) : null
     if (!secret) throw new ServiceError('请先获取绑定密钥', 400)
-    const step = matchTotpStep(secret, str(data.code))
+    const step = matchTotpStep(secret, data.code ?? '')
     if (step === null) throw new ServiceError('验证码错误', 400)
     const codes = newRecoveryCodes()
     await this.db.transaction(async (tx) => {
@@ -91,19 +88,18 @@ export class TwoFactorService {
    * Check a sign-in code: `code` (6 digits from the app) or `recovery_code`. False for a wrong, reused or missing code;
    * the caller logs the failure.
    */
-  async verify(userId: number, data: Data): Promise<boolean> {
+  async verify(userId: number, data: CodeInput): Promise<boolean> {
     const row = await this.userOr404(userId)
     if (!row.totp_enabled_at) return false
-    const recovery = str(data.recovery_code)
-    if (recovery) return this.repo.useRecoveryCode(userId, hashRecoveryCode(recovery))
+    if (data.recovery_code) return this.repo.useRecoveryCode(userId, hashRecoveryCode(data.recovery_code))
     const secret = row.totp_secret ? openSecret(row.totp_secret, this.secretKey) : null
     if (!secret) return false
-    const step = matchTotpStep(secret, str(data.code))
+    const step = matchTotpStep(secret, data.code ?? '')
     return step !== null && (await this.repo.claimStep(userId, step))
   }
 
   /** For re-verification: whether the password is right */
-  async passwordMatches(userId: number, password: unknown): Promise<boolean> {
+  async passwordMatches(userId: number, password: string | null): Promise<boolean> {
     const row = await this.userOr404(userId)
     return checkPasswordHash(row.password_hash, password)
   }
@@ -114,14 +110,14 @@ export class TwoFactorService {
     return Boolean(row.totp_enabled_at) && (await this.switchOn())
   }
 
-  private async assertPassword(userId: number, password: unknown) {
+  private async assertPassword(userId: number, password: string | null) {
     const row = await this.userOr404(userId)
     if (!(await checkPasswordHash(row.password_hash, password))) throw new ServiceError('密码错误', 400)
     return row
   }
 
   /** Turn off (password required); not allowed for roles that must use 2FA while the switch is on */
-  async disable(user: AdminUserWithRoles, data: Data) {
+  async disable(user: AdminUserWithRoles, data: PasswordInput) {
     const row = await this.assertPassword(user.id, data.password)
     if (!row.totp_enabled_at) throw new ServiceError('尚未开启两步验证', 400)
     const settings = await this.settings.get()
@@ -133,7 +129,7 @@ export class TwoFactorService {
   }
 
   /** New recovery codes (the old ones stop working); password required */
-  async regenerateRecoveryCodes(userId: number, data: Data) {
+  async regenerateRecoveryCodes(userId: number, data: PasswordInput) {
     const row = await this.assertPassword(userId, data.password)
     if (!row.totp_enabled_at) throw new ServiceError('尚未开启两步验证', 400)
     const codes = newRecoveryCodes()

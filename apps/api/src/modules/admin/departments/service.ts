@@ -9,28 +9,16 @@ import type { EventBus } from '@/common/webhooks'
 import { writeError } from '@/common/db-errors'
 import { ServiceError } from '@/common/errors'
 import { notFound } from '@/common/http'
+import { changedFields } from '@/common/validation'
 import type { Db } from '@/db/client'
 import { departmentToDict, type Department } from '@/db/schema'
 import { DepartmentRepository, type DepartmentValues } from './repository'
-import { isDeptStatus } from './schema'
-
-type Data = Record<string, unknown>
+import type { DepartmentInput } from './schema'
 
 export type DepartmentNode = ReturnType<typeof departmentToDict> & {
   leader_name: string | null
   user_count: number
   children: DepartmentNode[]
-}
-
-/** null / '' / undefined → null; integers (or integer strings) → number; anything else → NaN */
-function optionalInt(raw: unknown): number | null {
-  if (raw === null || raw === undefined || raw === '') return null
-  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^-?\d+$/.test(raw.trim()) ? Number(raw) : NaN
-  return Number.isSafeInteger(n) ? n : NaN
-}
-
-function text(raw: unknown): string {
-  return raw === null || raw === undefined ? '' : String(raw).trim()
 }
 
 export class DepartmentService {
@@ -108,65 +96,34 @@ export class DepartmentService {
     return departmentToDict(dept)
   }
 
-  /** Validate and normalize the writable fields present in data (all required on create) */
-  private async buildValues(data: Data, existing: Department | null): Promise<DepartmentValues> {
-    const values: DepartmentValues = {}
-    const creating = existing === null
-
-    if (creating || 'name' in data) {
-      const name = text(data.name)
-      if (!name) throw new ServiceError('部门名称不能为空', 400)
-      if (name.length > 100) throw new ServiceError('部门名称不能超过 100 个字符', 400)
-      values.name = name
+  /** The checks that need the database, for the fields present in values (the body is already parsed) */
+  private async checkReferences(values: Partial<DepartmentInput>, existing: Department | null): Promise<void> {
+    if (values.code !== undefined && (await this.repo.getByCode(values.code, existing?.id))) {
+      throw new ServiceError('部门编码已存在', 400)
     }
-    if (creating || 'code' in data) {
-      const code = text(data.code)
-      if (!code) throw new ServiceError('部门编码不能为空', 400)
-      if (code.length > 50) throw new ServiceError('部门编码不能超过 50 个字符', 400)
-      if (await this.repo.getByCode(code, existing?.id)) throw new ServiceError('部门编码已存在', 400)
-      values.code = code
-    }
-    if ('parent_id' in data) {
-      const parentId = optionalInt(data.parent_id)
-      if (Number.isNaN(parentId)) throw new ServiceError('上级部门不存在', 400)
-      if (parentId !== null) {
-        if (!(await this.repo.getById(parentId))) throw new ServiceError('上级部门不存在', 400)
-        if (existing && (await this.repo.wouldCreateCycle(existing.id, parentId))) {
-          throw new ServiceError('上级部门不能是自身或其下级部门', 400)
-        }
+    if (values.parent_id !== undefined && values.parent_id !== null) {
+      if (!(await this.repo.getById(values.parent_id))) throw new ServiceError('上级部门不存在', 400)
+      if (existing && (await this.repo.wouldCreateCycle(existing.id, values.parent_id))) {
+        throw new ServiceError('上级部门不能是自身或其下级部门', 400)
       }
-      values.parent_id = parentId
     }
-    if ('leader_id' in data) {
-      const leaderId = optionalInt(data.leader_id)
-      if (Number.isNaN(leaderId) || (leaderId !== null && (await this.repo.userNames([leaderId])).size === 0)) {
-        throw new ServiceError('负责人不存在', 400)
-      }
-      values.leader_id = leaderId
+    if (values.leader_id !== undefined && values.leader_id !== null && (await this.repo.userNames([values.leader_id])).size === 0) {
+      throw new ServiceError('负责人不存在', 400)
     }
-    if ('sort_order' in data) {
-      const order = optionalInt(data.sort_order) ?? 0
-      if (Number.isNaN(order) || order < 0) throw new ServiceError('排序必须是非负整数', 400)
-      values.sort_order = order
-    }
-    if ('status' in data) {
-      if (!isDeptStatus(data.status)) throw new ServiceError('状态取值不合法', 400)
-      values.status = data.status
-    }
-    return values
   }
 
-  async createItem(data: Data) {
-    const values = await this.buildValues(data, null)
-    const created = await this.inTx((repo) => repo.insert(values as DepartmentValues & Pick<Department, 'name' | 'code'>))
+  async createItem(values: DepartmentInput) {
+    await this.checkReferences(values, null)
+    const created = await this.inTx((repo) => repo.insert(values))
     const dict = departmentToDict(created)
     await this.events?.emit('department.created', dict)
     return dict
   }
 
-  async updateItem(dept: Department, data: Data) {
-    const values = await this.buildValues(data, dept)
-    await this.inTx((repo) => repo.update(dept.id, values))
+  async updateItem(dept: Department, values: Partial<DepartmentInput>) {
+    await this.checkReferences(values, dept)
+    const changes: DepartmentValues = changedFields(dept, values)
+    await this.inTx((repo) => repo.update(dept.id, changes))
     const dict = departmentToDict((await this.repo.getById(dept.id))!)
     await this.events?.emit('department.updated', dict)
     return dict
@@ -181,10 +138,7 @@ export class DepartmentService {
   }
 
   /** Move a department one place up or down among its siblings (renumbers sort_order in steps of 10) */
-  async sortItem(dept: Department, directionRaw: unknown) {
-    const direction = text(directionRaw).toLowerCase()
-    if (direction !== 'up' && direction !== 'down') throw new ServiceError('direction 参数必须是 up 或 down', 400)
-
+  async sortItem(dept: Department, direction: 'up' | 'down') {
     const siblings = await this.repo.listSiblings(dept.parent_id)
     const ids = siblings.map((d) => d.id)
     const idx = ids.indexOf(dept.id)
