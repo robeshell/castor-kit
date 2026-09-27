@@ -128,6 +128,7 @@ Menu IDs are hard-coded in `MENUS_DATA`, and `role_menus` references menus by ID
 | Component Gallery (`parent_id=3`) | 40–499 |
 | └ Page Patterns (ID 43): the directory's buttons | 431–435 |
 | └ Page Patterns pages (`parent_id=43`) | 4301–4399 (43 × 100 + n, since a directory with its own buttons can't also use 431–439 for pages) |
+| └ Components (ID 47): pages (`parent_id=47`) | 4701–4799 (47 × 100 + n, like Page Patterns); no buttons |
 | └ Data Visualization (`parent_id=41`) | 411–419 |
 | └ Free (the removed Admin Pages and 3D / Creative groups) | 40, 401–409; 42, 421–429 |
 | └ AI Apps (`parent_id=44`) | 441–449 |
