@@ -151,7 +151,7 @@ scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `comp
 | `datetime` | `timestamp`（字符串模式） | `FormDateTime` | |
 | `file` | `varchar(36)`，存文件中心的文件 ID | `FormFileUpload` | 列表显示「查看」链接；保存时自动登记引用 |
 | `image` | `varchar(36)`，存文件中心的文件 ID | `FormImageUpload` | 列表显示缩略图；保存时自动登记引用 |
-| `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表以徽标显示选项名称（颜色取选项的 `tone`），导出显示名称，导入时名称和值都接受 |
+| `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表可按它筛选，并以徽标显示选项名称（颜色取选项的 `tone`），导出显示名称，导入时名称和值都接受 |
 | `dict` | `varchar(100)`，存字典项的值 | `FormSelect` | 选项来自「数据字典」（`--spec` 写 `dict` 字典编码）；列表显示字典标签 |
 
 未知类型按 `str` 处理。`id`、`created_at`、`updated_at` 会自动添加。

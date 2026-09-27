@@ -263,6 +263,7 @@ export default function <Resource>Page() {
       {/* Filter bar */}
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
+        {/* The backend reads ?status= in routes.ts and filters in repository.ts (TODOs in docs/templates/backend) */}
         <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
       </FilterBar>
 

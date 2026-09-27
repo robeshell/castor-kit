@@ -151,7 +151,7 @@ scaffold prints the permission code prefix (Perm prefix), the menu `component` v
 | `datetime` | `timestamp` (string mode) | `FormDateTime` | |
 | `file` | `varchar(36)` holding a file-center id | `FormFileUpload` | "View" link in the list; the reference is registered on save |
 | `image` | `varchar(36)` holding a file-center id | `FormImageUpload` | Thumbnail in the list; the reference is registered on save |
-| `enum` | `varchar(50)` holding the option value | `FormSelect` | Fixed options (`options`, `--spec` only); the list shows the option name as a badge (colour from the option's `tone`), exports show the name, imports accept name or value |
+| `enum` | `varchar(50)` holding the option value | `FormSelect` | Fixed options (`options`, `--spec` only); the list filters on it and shows the option name as a badge (colour from the option's `tone`), exports show the name, imports accept name or value |
 | `dict` | `varchar(100)` holding the dictionary item value | `FormSelect` | Options from the Data dictionary (`dict` = dictionary code in `--spec`); the list shows the item label |
 
 Unknown types are treated as `str`. `id`, `created_at` and `updated_at` are added automatically.

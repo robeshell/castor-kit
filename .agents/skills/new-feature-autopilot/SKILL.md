@@ -67,7 +67,7 @@ What to infer (the spec and `--validate-only` settle all of it):
 - (--fields only) Menu path: admin domain `/system/<name-kebab>s` (e.g. `/system/suppliers`); component_center domain `/component-center/admin/<name-kebab>` (consistent with the sibling pages under `管理系统` (Admin system))
 - Menu order: last among its siblings; icon: reuse a name already in the mapping table in `apps/web/src/lib/menu-icons.ts`
 - Resource name: scaffold always appends `s` to the table name / API path, so think about the plural when choosing the name (`equipment` becomes `equipments`; use a countable noun such as `device` instead)
-- Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English; the list shows each option as a badge, so give status-like options a `tone` (`success` / `warning` / `danger`, default `neutral`)
+- Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English; the list gets a filter per enum field and shows each option as a badge, so give status-like options a `tone` (`success` / `warning` / `danger`, default `neutral`)
 - parent_id: the 业务管理 (Business) directory by default; spec `menu.parentId` when the PM names another place
 - Migration name (scaffold uses <name> by default)
 ```

@@ -151,7 +151,7 @@ scaffold は出力に権限コードのプレフィックス（Perm prefix）、
 | `datetime` | `timestamp`（文字列モード） | `FormDateTime` | |
 | `file` | `varchar(36)`。ファイルセンターのファイル ID を保存 | `FormFileUpload` | 一覧に「表示」リンク。保存時に参照を登録 |
 | `image` | `varchar(36)`。ファイルセンターのファイル ID を保存 | `FormImageUpload` | 一覧にサムネイル。保存時に参照を登録 |
-| `enum` | `varchar(50)`。選択肢の値を保存 | `FormSelect` | 固定の選択肢（`--spec` の `options` のみ）。一覧は選択肢の名前をバッジで表示し（色は選択肢の `tone`）、エクスポートは名前を表示し、インポートは名前・値のどちらも受け付ける |
+| `enum` | `varchar(50)`。選択肢の値を保存 | `FormSelect` | 固定の選択肢（`--spec` の `options` のみ）。一覧はこの項目で絞り込めて、選択肢の名前をバッジで表示し（色は選択肢の `tone`）、エクスポートは名前を表示し、インポートは名前・値のどちらも受け付ける |
 | `dict` | `varchar(100)`。辞書項目の値を保存 | `FormSelect` | 選択肢は「データ辞書」から（`--spec` の `dict` に辞書コード）。一覧は辞書のラベルを表示 |
 
 未知の型は `str` として扱われます。`id`、`created_at`、`updated_at` は自動で追加されます。

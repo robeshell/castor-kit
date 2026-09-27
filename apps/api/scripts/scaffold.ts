@@ -92,6 +92,11 @@ export const FIELD_TYPE_MAP: Record<string, FieldTypeSpec> = {
   dict: { column: 'varchar({ length: 100 })', builder: 'varchar', kind: 'text' },
 }
 
+/** Enum fields: the list filters on each of them (exact match) */
+export function enumFieldsOf(fields: Field[]): string[] {
+  return fields.filter(([, t]) => t === 'enum').map(([f]) => f)
+}
+
 /** Fields holding file-center ids (file / image types) */
 export function fileFieldsOf(fields: Field[]): string[] {
   return fields.filter(([, t]) => fieldSpec(t).kind === 'fileId').map(([f]) => f)
@@ -458,7 +463,11 @@ ${declarations.join('\n')}
 })
 
 export type ${s.pascal}Input = z.output<typeof ${s.camel}Body>
-
+${
+  enumFieldsOf(s.fields).length
+    ? `\n/** List filters: exact match on the enum fields ('' = no filter) */\nexport type ${s.pascal}Filters = Record<${enumFieldsOf(s.fields).map(q).join(' | ')}, string>\n`
+    : ''
+}
 /** Export request: the rows (ids; none = every row), the columns (fields; none = every column), the file type */
 export const ${s.camel}ExportBody = z.object({
   ids: field.ids('导出记录'),
@@ -526,11 +535,20 @@ export function genRepository(s: ScaffoldSpec): string {
     : `ilike(sql\`\${${s.table}.${s.nameField}}::text\`, \`%\${search}%\`)`
   const ds = s.dataScope
   const fileFields = fileFieldsOf(s.fields)
+  const enumFields = enumFieldsOf(s.fields)
   const refsOf = (row: string) => `{ ${fileFields.map((f) => `${key(f)}: ${row}.${f}`).join(', ')} }`
-  const ormImports = [...(ds ? ['and'] : []), 'count', 'desc', 'eq', 'ilike', 'inArray', ...(isText ? [] : ['sql']), 'type SQL']
+  const ormImports = [...(ds || enumFields.length ? ['and'] : []), 'count', 'desc', 'eq', 'ilike', 'inArray', ...(isText ? [] : ['sql']), 'type SQL']
   const t = s.table
   const scopeParam = ds ? ', scope: DataScope' : ''
-  const listWhere = ds ? 'and(this.searchWhere(search), this.scopeWhere(scope))' : 'this.searchWhere(search)'
+  const listWhere = `${ds || enumFields.length ? 'and(' : ''}this.searchWhere(search)${enumFields.length ? ', this.filterWhere(filters)' : ''}${ds ? ', this.scopeWhere(scope)' : ''}${ds || enumFields.length ? ')' : ''}`
+  const filterMethod = enumFields.length
+    ? `
+  /** List filters: exact match on each enum field that has a value */
+  private filterWhere(filters: ${s.pascal}Filters): SQL | undefined {
+    return and(${enumFields.map((f) => `filters.${f} ? eq(${t}.${f}, filters.${f}) : undefined`).join(', ')})
+  }
+`
+    : ''
   const exportWhere = ds
     ? `and(ids ? inArray(${t}.id, ids) : undefined, this.scopeWhere(scope))`
     : `ids ? inArray(${t}.id, ids) : undefined`
@@ -549,7 +567,7 @@ export function genRepository(s: ScaffoldSpec): string {
 
 import { ${ormImports.join(', ')} } from 'drizzle-orm'
 ${ds ? `import { dataScopeWhere, UNRESTRICTED, type DataScope } from '@/common/data-scope'\n` : ''}${fileFields.length ? `import { clearFileRefs, syncFileRefs } from '@/common/file-refs'\n` : ''}import type { Executor } from '@/db/client'
-import { ${s.table}, type ${s.pascal}, type New${s.pascal} } from '@/db/schema'
+import { ${s.table}, type ${s.pascal}, type New${s.pascal} } from '@/db/schema'${enumFields.length ? `\nimport type { ${s.pascal}Filters } from './schema'` : ''}
 
 export class ${s.pascal}Repository {
   constructor(private readonly db: Executor) {}
@@ -557,8 +575,8 @@ export class ${s.pascal}Repository {
   private searchWhere(search: string): SQL | undefined {
     return search ? ${searchExpr} : undefined
   }
-${scopeMethod}
-  async listPage(page: number, perPage: number, search: string${scopeParam}) {
+${filterMethod}${scopeMethod}
+  async listPage(page: number, perPage: number, search: string${enumFields.length ? `, filters: ${s.pascal}Filters` : ''}${scopeParam}) {
     const where = ${listWhere}
     const [totalRow] = await this.db.select({ n: count() }).from(${s.table}).where(where)
     const items = await this.db
@@ -613,6 +631,7 @@ export function genService(s: ScaffoldSpec): string {
   const ds = s.dataScope
   const scopeParam = ds ? ', scope: DataScope = UNRESTRICTED' : ''
   const scopeArg = ds ? ', scope' : ''
+  const filtered = enumFieldsOf(s.fields).length > 0
   const stampHelper = ds
     ? `
 /** Owner columns of a new row (data scope): the creator and their department */
@@ -643,7 +662,7 @@ import {
   rowToBody,
   ${s.camel}Body,
   type ${s.camel}ExportBody,
-  type ${s.pascal}Input,
+  type ${s.pascal}Input,${filtered ? `\n  type ${s.pascal}Filters,` : ''}
   type ErrorRow,
 } from './schema'
 ${stampHelper}
@@ -667,8 +686,8 @@ export class ${s.pascal}Service {
     }
   }
 
-  async listItems(page: number, perPage: number, search: string${scopeParam}) {
-    const { total, items } = await this.repo.listPage(page, perPage, search${scopeArg})
+  async listItems(page: number, perPage: number, search: string${filtered ? `, filters: ${s.pascal}Filters` : ''}${scopeParam}) {
+    const { total, items } = await this.repo.listPage(page, perPage, search${filtered ? ', filters' : ''}${scopeArg})
     return { items: items.map(${s.camel}ToDict), total, page, per_page: perPage }
   }
 
@@ -828,8 +847,12 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
     if (!(await hasMenuPermission(request, ${q(p)}))) {
       return reply.status(403).send({ error: '无权限' })
     }
-    const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
-    return service.listItems(page, per_page, queryString(request, 'search').trim()${scope})
+    const { page, per_page } = parsePagination(request.query as Record<string, unknown>)${
+      enumFieldsOf(s.fields).length
+        ? `\n    const filters = { ${enumFieldsOf(s.fields).map((f) => `${key(f)}: queryString(request, ${q(f)}).trim()`).join(', ')} }`
+        : ''
+    }
+    return service.listItems(page, per_page, queryString(request, 'search').trim()${enumFieldsOf(s.fields).length ? ', filters' : ''}${scope})
   })
 
   const create = routeBody(${s.camel}Body, 'create')
@@ -1107,6 +1130,16 @@ function genRulesTest(s: ScaffoldSpec): string {
         `    const bad${toPascal(f)} = await s.inject({ method: 'POST', url: BASE, payload: { ...sample('op-${f}'), ${key(f)}: 'not-an-option' } })`,
         `    expect([bad${toPascal(f)}.statusCode, bad${toPascal(f)}.json()]).toEqual([400, { error: ${q(`${label}的值无效`)} }])`,
       )
+      const value = meta.options?.[0]?.value
+      if (value !== undefined) {
+        lines.push(
+          `    // ${f}: the list filters on it (exact match)`,
+          `    await s.inject({ method: 'POST', url: BASE, payload: { ...sample('fl-${f}'), ${key(f)}: ${q(value)} } })`,
+          `    const filtered${toPascal(f)} = (await s.inject({ method: 'GET', url: \`\${BASE}?${f}=${value}&per_page=200\` })).json()`,
+          `    expect(filtered${toPascal(f)}.items.length).toBeGreaterThan(0)`,
+          `    expect(filtered${toPascal(f)}.items.every((row: { ${key(f)}: string | null }) => row.${f} === ${q(value)})).toBe(true)`,
+        )
+      }
     }
     if (meta.unique) {
       lines.push(
@@ -1231,6 +1264,7 @@ export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
   清空勾选: { 'en-US': 'Clear selection', 'ja-JP': '選択を解除' },
   暂无数据: { 'en-US': 'No data', 'ja-JP': 'データがありません' },
   换个关键词试试: { 'en-US': 'Try a different keyword', 'ja-JP': '別のキーワードでお試しください' },
+  换个筛选条件试试: { 'en-US': 'Try different filters', 'ja-JP': '別の条件でお試しください' },
   '点击右上角「新增」添加第一条数据': {
     'en-US': 'Click "Add" in the top right to add the first record',
     'ja-JP': '右上の「追加」から最初のデータを追加してください',
@@ -1508,7 +1542,7 @@ import ConfirmAction from '@/shared/components/ConfirmAction'
 import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
 import ExportDialog, { type ExportFieldOption, type ExportParams } from '@/shared/components/data-transfer/ExportDialog'
 import ImportDialog from '@/shared/components/data-transfer/ImportDialog'
-import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FilterBar${enumFields.length ? ', FilterSelect' : ''}, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { ${formComponents.join(', ')} } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
@@ -1537,6 +1571,8 @@ ${enumFields
   .join('\n')}
 }
 const optionOf = (field: keyof typeof FIELD_OPTIONS, value: string | null) => FIELD_OPTIONS[field].find((o) => o.value === value)
+/** List filters on the enum fields ('' = all) */
+const EMPTY_FILTERS: Record<keyof typeof FIELD_OPTIONS, string> = { ${enumFields.map((f) => `${key(f)}: ''`).join(', ')} }
 `
     : ''
 }${dictCodes.length ? `\n/** Dictionaries used by dict fields (System → Configuration → Data dictionary) */\nconst DICT_CODES = [${dictCodes.map(q).join(', ')}]\n` : ''}
@@ -1565,7 +1601,7 @@ export default function ${s.pascal}Page() {
     { defaultPerPage: 20 },
   )
   const { data, total, loading, page, perPage, filters, fetchData, handlePageChange } = list
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState('')${enumFields.length ? `\n  const [filterValues, setFilterValues] = useState(EMPTY_FILTERS)` : ''}
   const [selectedKeys, setSelectedKeys] = useState<number[]>([])
   const [editing, setEditing] = useState<Row | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -1622,10 +1658,10 @@ ${dictCodes.length ? '  const dicts = useDictOptions(DICT_CODES)\n' : ''}
 
   const runSearch = () => {
     setSelectedKeys([])
-    list.handleSearch({ search: search.trim() })
+    list.handleSearch({ search: search.trim()${enumFields.length ? ', ...filterValues' : ''} })
   }
   const reset = () => {
-    setSearch('')
+    setSearch('')${enumFields.length ? '\n    setFilterValues(EMPTY_FILTERS)' : ''}
     setSelectedKeys([])
     list.handleReset()
   }
@@ -1671,7 +1707,12 @@ ${columns.join('\n')}
       />
 
       <FilterBar onSearch={runSearch} onReset={reset}>
-        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
+        <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />${enumFields
+          .map(
+            (f) =>
+              `\n        <FilterSelect value={filterValues.${f}} onChange={(value) => setFilterValues((prev) => ({ ...prev, ${key(f)}: value }))} options={${optionsRef(f)}} placeholder="${labelOf(s, f)}" />`,
+          )
+          .join('')}
       </FilterBar>
 
       <AnimatePresence>
@@ -1708,7 +1749,11 @@ ${columns.join('\n')}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="暂无数据"
-        emptyDescription={filters.search ? '换个关键词试试' : '点击右上角「新增」添加第一条数据'}
+        emptyDescription={${
+          enumFields.length
+            ? `filters.search || ${enumFields.map((f) => `filters.${f}`).join(' || ')} ? '换个筛选条件试试'`
+            : `filters.search ? '换个关键词试试'`
+        } : '点击右上角「新增」添加第一条数据'}
       />
 
       <FormDialog

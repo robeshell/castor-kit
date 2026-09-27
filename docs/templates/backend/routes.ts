@@ -44,6 +44,8 @@ export async function register<Resource>Routes(app: FastifyInstance): Promise<vo
       return reply.status(403).send({ error: '无权限' })
     }
     const { page, per_page } = parsePagination(request.query as Record<string, unknown>)
+    // TODO: read the list filters the page sends and pass them down (see filterWhere in repository.ts), e.g.
+    // const filters = { status: queryString(request, 'status').trim() }; document them as query parameters in the OpenAPI doc
     return service.listItems(page, per_page, queryString(request, 'search').trim())
   })
 
