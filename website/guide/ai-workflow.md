@@ -1,142 +1,142 @@
-# AI 驱动开发
+# AI-driven workflow
 
-castor-kit 的目标是：你用自然语言描述业务需求，AI 编程工具自行推断技术细节，端到端交付符合项目规范的功能模块（数据表、接口、页面、权限、迁移），并通过验证门禁。
+The goal of castor-kit: you describe a business requirement in plain language, and your AI coding tool works out the technical details on its own, delivering a feature module end to end (table, API, page, permissions, migration) that follows the project's conventions and passes the verification gate.
 
-本页介绍这套流程依赖的四样东西：项目上下文 `AGENTS.md`、各 AI 工具的配置、代码骨架生成器 `pnpm scaffold` 和验证门禁 `pnpm verify`。
+This page covers the four pieces the workflow relies on: the project context in `AGENTS.md`, the per-tool AI configuration, the scaffold generator `pnpm scaffold`, and the verification gate `pnpm verify`.
 
-## AGENTS.md：唯一的项目上下文
+## AGENTS.md: the single project context
 
-仓库根目录的 `AGENTS.md` 是写给 AI 的完整项目说明，所有 AI 工具都以它为准。内容包括：
+`AGENTS.md` in the repo root is the complete project guide written for AI, and every AI tool treats it as the source of truth. It covers:
 
-- 技术栈、目录结构和命名规则
-- 后端分层规则、路由规范、权限检查写法、横切约定（时间、数值、错误、CSRF）
-- 前端动态路由、页面结构、公共组件、设计 tokens、多语言规则
-- 导入导出规范、RBAC 约定、菜单 ID 分配规则和当前菜单树
-- 字段类型推断表（业务描述 → 字段类型）
-- 反模式清单和标准交付流程
+- Tech stack, directory layout and naming rules
+- Backend layering rules, routing conventions, how to write permission checks, and cross-cutting conventions (time, numbers, errors, CSRF)
+- Frontend dynamic routing, page structure, shared components, design tokens and i18n rules
+- Import/export conventions, RBAC conventions, menu ID allocation rules and the current menu tree
+- The field-type inference table (business description → field type)
+- A list of anti-patterns and the standard delivery process
 
-各工具的专属配置文件只做补充，并都指回 `AGENTS.md`。修改项目约定时，应当先改 `AGENTS.md`。
+Each tool's own config file only adds to it and points back to `AGENTS.md`. When you change a project convention, change `AGENTS.md` first.
 
-更深入的架构说明在 `docs/architecture.md`，前端 UI 方案在 `docs/frontend-design-system.md`。
+Deeper architecture notes are in `docs/architecture.md`; the frontend UI approach is in `docs/frontend-design-system.md`.
 
-## 支持的 AI 工具
+## Supported AI tools
 
-| 工具 | 读取的文件 |
+| Tool | Files it reads |
 |---|---|
-| Claude Code | `CLAUDE.md`；技能在 `.claude/skills/`（`new-feature-autopilot`、`shadcn-ui-skills`） |
-| Codex CLI | `AGENTS.md`（自动读取）；技能在 `.agents/skills/` |
-| Cursor、Windsurf、GitHub Copilot 等 | `AGENTS.md`（这些工具都会自动读取） |
-| 文档站上的 AI | 官网 `/llms.txt`（入口索引，源文件 `website/public/llms.txt`） |
-| MCP 客户端 | `apps/mcp`，见下文 [MCP Server](#mcp-server) |
+| Claude Code | `CLAUDE.md`; skills in `.claude/skills/` (`new-feature-autopilot`, `shadcn-ui-skills`) |
+| Codex CLI | `AGENTS.md` (read automatically); skills in `.agents/skills/` |
+| Cursor, Windsurf, GitHub Copilot and others | `AGENTS.md` (they all read it automatically) |
+| AI reading the docs site | The site's `/llms.txt` (entry index; source `website/public/llms.txt`) |
+| MCP clients | `apps/mcp`; see [MCP Server](#mcp-server) below |
 
-`.claude/skills/` 与 `.agents/skills/` 的内容保持一致，后端测试 `skills-sync.test.ts` 会检查两者是否同步。
+`.claude/skills/` and `.agents/skills/` have the same content; the backend test `skills-sync.test.ts` checks that they stay in sync.
 
-## 新功能交付流程
+## Feature delivery process
 
-`new-feature-autopilot` 技能（Claude Code 中输入 `/new-feature-autopilot`，或直接说“做一个 XX 功能”）按以下五步执行。其他工具通过各自的规则文件遵循同样的流程。
+The `new-feature-autopilot` skill (type `/new-feature-autopilot` in Claude Code, or just say "build an XX feature") runs the five steps below. Other tools follow the same process through their own rule files.
 
-### 1. 读取上下文
+### 1. Read the context
 
-AI 读取 `AGENTS.md`、`docs/templates/` 下的代码骨架模板、现有的参考模块（后端 `apps/api/src/modules/admin/users/`，前端 `apps/web/src/modules/admin/pages/users/index.jsx`），以及 `apps/api/scripts/seed-rbac.ts` 中的菜单树。如果需求可以通过扩展已有模块实现，会优先扩展。
+The AI reads `AGENTS.md`, the code scaffold templates under `docs/templates/`, the existing reference modules (backend `apps/api/src/modules/admin/users/`, frontend `apps/web/src/modules/admin/pages/users/index.jsx`), and the menu tree in `apps/api/scripts/seed-rbac.ts`. If the requirement can be met by extending an existing module, it prefers that.
 
-### 2. 推断技术规格
+### 2. Infer the technical spec
 
-AI 在内部推断以下内容，不向你询问：
+The AI infers the following internally, without asking you:
 
-- 资源名和所属域（`admin` 或 `component_center`）
-- 接口路径，例如 `/api/admin/customer-orders`
-- 字段名与字段类型（依据下方的字段类型推断表）
-- 权限编码：`admin` 域为 `system_<name>`，`component_center` 域为 `cc_<name>`，按钮权限加 `_add` / `_edit` / `_delete` / `_export` / `_import`
-- 前端文件路径、菜单 ID、父菜单、迁移名称
+- The resource name and its domain (`admin` or `component_center`)
+- The API path, e.g. `/api/admin/customer-orders`
+- Field names and field types (based on the field-type inference table below)
+- Permission codes: `system_<name>` for the `admin` domain, `cc_<name>` for the `component_center` domain, with `_add` / `_edit` / `_delete` / `_export` / `_import` appended for button permissions
+- Frontend file paths, menu ID, parent menu, migration name
 
-### 3. 展示业务预览
+### 3. Show a business preview
 
-AI 只展示业务层面的信息，等你确认或调整：
+The AI shows only business-level information and waits for you to confirm or adjust:
 
 ```text
-客户管理
+Customers
 
-位置：系统管理 → 客户管理
-功能：列表查看、新增、编辑、删除、导入、导出
-字段：
-  · 客户名称（必填）
-  · 联系电话
-  · 状态
+Location: System → Customers
+Features: list, create, edit, delete, import, export
+Fields:
+  · Customer name (required)
+  · Phone
+  · Status
 
-确认这样做吗？或者需要调整什么？
+Shall I go ahead, or would you like to change anything?
 ```
 
-只有在数据模型存在不可逆的歧义、需要外部系统配置、或权限边界有安全影响时，AI 才会额外提问。
+The AI asks additional questions only when the data model has an ambiguity that would be irreversible, when external system configuration is needed, or when a permission boundary has security implications.
 
-### 4. 实现
+### 4. Implement
 
-1. `pnpm scaffold` 生成骨架（先 `--dry-run` 预览）。
-2. 按 `db/schema → schema → repository → service → routes` 顺序补充业务逻辑、中文表头和校验。
-3. 打磨前端页面：中文标签、表单校验、枚举字段、多语言译文。
-4. 在 `seed-rbac.ts` 添加菜单和按钮权限，运行 `pnpm seed:rbac -- --incremental`。
-5. 审查新生成的迁移 SQL，运行 `pnpm db:migrate`，并用 `psql -d <库名> -c '\d <表名>'` 确认表真实存在。
-6. 接口文档：`pnpm scaffold` 已把模块的接口写进 `docs/apifox-full.openapi.json`。改了生成的路由、字段或校验，或新增了路由时，按 `AGENTS.md`「OpenAPI 编写规范」照代码同步修改（必须，`pnpm verify` 会检查）。
+1. Generate the scaffold with `pnpm scaffold` (preview with `--dry-run` first).
+2. Fill in business logic, Chinese column headers and validation in the order `db/schema → schema → repository → service → routes`.
+3. Polish the frontend page: Chinese labels, form validation, enum fields, translations.
+4. Add the menu and button permissions to `seed-rbac.ts` and run `pnpm seed:rbac -- --incremental`.
+5. Review the newly generated migration SQL, run `pnpm db:migrate`, and confirm the table really exists with `psql -d <database> -c '\d <table>'`.
+6. API docs: `pnpm scaffold` has already written the module's endpoints into `docs/apifox-full.openapi.json`. If you change the generated routes, fields or validation, or add routes, update the entries from the code per `AGENTS.md` ("OpenAPI 编写规范") — required; `pnpm verify` checks it.
 
-### 5. 验证门禁
+### 5. Verification gate
 
-运行 `pnpm verify -- --module <name>`，失败项由 AI 修复后重新验证。全部通过后输出交付报告，报告中注明迁移版本（如“已迁移至 0001_customer”）。
+Run `pnpm verify -- --module <name>`. The AI fixes any failing checks and re-runs verification. Once everything passes, it outputs a delivery report that states the migration version (e.g. "已迁移至 0001_customer", i.e. "migrated to 0001_customer").
 
-::: warning 迁移必须真实落库
-只生成迁移文件、只通过静态检查都不算完成。必须执行 `pnpm db:migrate`，用 `psql \d` 确认，并且 `pnpm verify` 的 `migration_applied` 检查通过。
+::: warning Migrations must actually be applied
+Generating the migration file or passing static checks is not enough. You must run `pnpm db:migrate`, confirm with `psql \d`, and the `migration_applied` check of `pnpm verify` must pass.
 :::
 
 ## pnpm scaffold
 
-`pnpm scaffold` 根据字段定义一次生成后端模块、前端页面、接口测试和迁移。
+`pnpm scaffold` generates the backend module, frontend page, API tests and migration from a field definition in one go.
 
 ```bash
-# 预览将生成的文件，不写入
+# Preview the files to be generated without writing anything
 pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,status:str20" --dry-run
 
-# 正式生成
+# Generate for real
 pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,status:str20"
 ```
 
-### 参数
+### Options
 
-| 参数 | 说明 | 默认值 |
+| Option | Description | Default |
 |---|---|---|
-| `--name` | 资源名，snake_case，如 `customer_order` | 必填 |
-| `--domain` | 所属域：`admin` 或 `component_center` | `admin` |
-| `--fields` | 字段列表，格式 `字段:类型,字段:类型` | `name:str` |
-| `--spec` | 用 JSON 文件描述模块（代替 `--name` / `--fields`），能写中文标签、必填、唯一、默认值、选项和菜单，见下方 [spec 文件](#spec-文件) | — |
-| `--dry-run` | 只打印将要生成的内容，不写文件、不注册、不生成迁移 | 关闭 |
-| `--validate-only` | 配合 `--spec`：只校验规格并说明会生成的接口、权限、表和菜单，不写任何文件；有问题时逐条列出并以 1 退出 | 关闭 |
-| `--write-schema` | 按脚手架当前的字段类型等规则重新生成 `docs/spec.schema.json` | 关闭 |
-| `--skip-migration` | 不调用 drizzle-kit 生成迁移 | 关闭 |
-| `--data-scope` | 接入[数据权限](/guide/rbac#数据权限)：表上加 `dept_id` / `created_by`，列表、详情、修改、删除、导出按当前用户的数据范围过滤，新建时写入创建人与部门，并生成对应的接口测试 | 关闭 |
-| `-h` / `--help` | 打印用法 | — |
+| `--name` | Resource name in snake_case, e.g. `customer_order` | Required |
+| `--domain` | Domain: `admin` or `component_center` | `admin` |
+| `--fields` | Field list in the form `field:type,field:type` | `name:str` |
+| `--spec` | Describe the module in a JSON file instead of `--name` / `--fields`: Chinese labels, required, unique, defaults, options and the menu; see [Spec files](#spec-files) below | — |
+| `--dry-run` | Only print what would be generated; no files written, nothing registered, no migration | Off |
+| `--validate-only` | With `--spec`: only check the spec and say which endpoints, permissions, table and menu it would generate; writes nothing, lists problems and exits 1 if any | Off |
+| `--write-schema` | Regenerate `docs/spec.schema.json` from the scaffold's current field types and rules | Off |
+| `--skip-migration` | Don't call drizzle-kit to generate a migration | Off |
+| `--data-scope` | Adds [data scope](/guide/rbac#data-scope): `dept_id` / `created_by` columns, list / detail / edit / delete / export filtered by the caller's scope, creator and department stamped on create, plus matching API tests | Off |
+| `-h` / `--help` | Print usage | — |
 
-### 生成内容
+### What gets generated
 
-已存在的文件会被跳过，不会覆盖。
+Existing files are skipped, never overwritten.
 
-| 生成文件 | 说明 |
+| Generated file | Description |
 |---|---|
-| `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` | 表定义 + `toDict` |
-| `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts` | 后端四层 |
-| `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | 接口基础测试（增删改查、搜索、404、导出、导入模板、导入） |
-| `apps/web/src/modules/<module>/api/<name>.js` | 前端 API 调用 |
-| 前端列表页 `index.jsx` | `admin` 域在 `pages/<name>/`，`component_center` 域在 `pages/admin/<name>_page/` |
-| 页面 `locales/{en-US,ja-JP}.json` | 仅当页面有公共译文没覆盖的中文时生成 |
+| `apps/api/src/db/schema/<domain-dir>/<name-kebab>.ts` | Table definition + `toDict` |
+| `apps/api/src/modules/<domain-dir>/<name-kebab>/{schema,repository,service,routes}.ts` | The four backend layers |
+| `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | Basic API tests (CRUD, search, 404, export, import template, import) |
+| `apps/web/src/modules/<module>/api/<name>.js` | Frontend API client |
+| Frontend list page `index.jsx` | In `pages/<name>/` for the `admin` domain, `pages/admin/<name>_page/` for the `component_center` domain |
+| Page `locales/{en-US,ja-JP}.json` | Only generated when the page has Chinese text not covered by the shared translations |
 
-`<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 是把下划线换成连字符后的资源名。
+`<domain-dir>` is `admin` or `component-center`; `<name-kebab>` is the resource name with underscores replaced by hyphens.
 
-同时自动完成：
+It also automatically:
 
-- 在 `apps/api/src/db/schema/index.ts` 和 `apps/api/src/modules/<domain-dir>/router.ts` 注册
-- 执行 `drizzle-kit generate --name <name>` 生成迁移
+- Registers the module in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts`
+- Runs `drizzle-kit generate --name <name>` to generate the migration
 
-scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `component` 值和接口路径，添加菜单时直接使用。
+scaffold prints the permission code prefix (Perm prefix), the menu `component` value and the API path in its output; use them directly when adding the menu.
 
-### 字段类型
+### Field types
 
-| 类型 | Drizzle 列 | 表单组件 | 说明 |
+| Type | Drizzle column | Form component | Notes |
 |---|---|---|---|
 | `str` | `varchar(100)` | `FormInput` | |
 | `str20` | `varchar(20)` | `FormInput` | |
@@ -144,39 +144,39 @@ scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `comp
 | `str500` | `varchar(500)` | `FormInput` | |
 | `text` | `text` | `FormTextarea` | |
 | `int` | `integer` | `FormNumber` | |
-| `float` | `numeric(10, 2)` | `FormNumber` | 接口输出为字符串，如 `"12.50"` |
+| `float` | `numeric(10, 2)` | `FormNumber` | Returned by the API as a string, e.g. `"12.50"` |
 | `bool` | `boolean` | `FormSwitch` | |
-| `date` | `date`（字符串模式） | `FormDate` | `YYYY-MM-DD` |
-| `datetime` | `timestamp`（字符串模式） | `FormDateTime` | |
-| `file` | `varchar(36)`，存文件中心的文件 ID | `FormFileUpload` | 列表显示「查看」链接；保存时自动登记引用 |
-| `image` | `varchar(36)`，存文件中心的文件 ID | `FormImageUpload` | 列表显示缩略图；保存时自动登记引用 |
-| `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表与导出显示选项名称，导入时名称和值都接受 |
-| `dict` | `varchar(100)`，存字典项的值 | `FormSelect` | 选项来自「数据字典」（`--spec` 写 `dict` 字典编码）；列表显示字典标签 |
+| `date` | `date` (string mode) | `FormDate` | `YYYY-MM-DD` |
+| `datetime` | `timestamp` (string mode) | `FormDateTime` | |
+| `file` | `varchar(36)` holding a file-center id | `FormFileUpload` | "View" link in the list; the reference is registered on save |
+| `image` | `varchar(36)` holding a file-center id | `FormImageUpload` | Thumbnail in the list; the reference is registered on save |
+| `enum` | `varchar(50)` holding the option value | `FormSelect` | Fixed options (`options`, `--spec` only); the list and exports show the option name, imports accept name or value |
+| `dict` | `varchar(100)` holding the dictionary item value | `FormSelect` | Options from the Data dictionary (`dict` = dictionary code in `--spec`); the list shows the item label |
 
-未知类型按 `str` 处理。`id`、`created_at`、`updated_at` 会自动添加。
+Unknown types are treated as `str`. `id`, `created_at` and `updated_at` are added automatically.
 
-### 字段类型推断
+### Field-type inference
 
-AI 根据业务描述推断类型，你不需要指定：
+The AI infers types from the business description, so you don't have to specify them:
 
-| 业务描述关键词 | 类型 |
+| Keywords in the business description | Type |
 |---|---|
-| 名称、标题、姓名、邮箱 | `str` |
-| 编码、代码、编号 | `str50` |
-| 手机、电话、状态、类型、颜色 | `str20` |
-| URL、链接、地址（外部地址） | `str500` |
-| 图片、头像、封面、照片 | `image` |
-| 附件、文件、合同、扫描件 | `file` |
-| 描述、备注、简介、内容、正文、标签（JSON 字符串） | `text` |
-| 金额、价格、费用、成本 | `float` |
-| 数量、次数、进度、百分比、排序、权重 | `int` |
-| 日期（无时间） | `date` |
-| 时间 | `datetime` |
-| 是否、启用、禁用、开关 | `bool` |
+| name, title, person's name, email | `str` |
+| code, identifier, number (as in an ID or serial number) | `str50` |
+| mobile, phone, status, type, color | `str20` |
+| URL, link, address (external) | `str500` |
+| image, avatar, cover, photo | `image` |
+| attachment, file, contract, scan | `file` |
+| description, remarks, summary, content, body, tags (JSON string) | `text` |
+| amount, price, fee, cost | `float` |
+| quantity, count, progress, percentage, sort order, weight | `int` |
+| date (without time) | `date` |
+| time | `datetime` |
+| is/whether, enabled, disabled, toggle | `bool` |
 
-### spec 文件
+### Spec files
 
-`--spec` 读取一个 JSON 文件。AI 推断出规格后写成这样的文件再生成，中文标签、必填、唯一、默认值、选项和菜单一次到位：
+`--spec` reads a JSON file. The AI writes the inferred spec into such a file and generates from it, so Chinese labels, required / unique / defaults, options and the menu come out right the first time:
 
 ```json
 {
@@ -196,100 +196,100 @@ AI 根据业务描述推断类型，你不需要指定：
 ```
 
 ```bash
-pnpm scaffold -- --spec device.spec.json --validate-only   # 先校验，看清会生成什么
+pnpm scaffold -- --spec device.spec.json --validate-only   # check first and see what it would generate
 pnpm scaffold -- --spec device.spec.json
 ```
 
-- `title` 和每个字段的 `label` 必填；拼错的属性名（如 `requried`）直接报错，不会被悄悄忽略
-- 完整格式见 [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json)（在 JSON 里写 `"$schema": "<相对路径>/docs/spec.schema.json"`，编辑器就能补全和提示）；4 个「一句需求 → spec」示例及逐字段的推断理由见 [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs)
-- `required`：列加 `NOT NULL`，新增 / 编辑时为空返回 400「`<标签>不能为空`」，表单标出必填并校验；`image` / `file` 不能必填
-- `unique`：列加 `UNIQUE`，重复时返回 400；只用于文本和数字类型
-- `default`：列默认值，新增时留空就用它，表单也预先填好
-- `label` / `title`：页面、表头、导入导出和报错里的中文；`i18n` 是它们的英文、日文，没写的用字段名代替
-- `menu`：同时把菜单和按钮权限（新增 / 编辑 / 删除 / 导出 / 导入）写进 `apps/api/scripts/seed-rbac.ts`，默认挂在顶级目录「业务管理」下（ID 1000，第一次生成时创建；模块 ID 从 1001 起），`parentId` 可以指定其他目录；菜单的英文、日文名写进 `apps/web/src/locales/menus/`
-- 生成的接口测试多一条「字段规则」用例，覆盖必填、选项、唯一和默认值
+- `title` and every field's `label` are required; a misspelled key (such as `requried`) is an error instead of being ignored silently
+- The full format is in [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json) (add `"$schema": "<relative path>/docs/spec.schema.json"` to the JSON for editor completion and hints); four requirement → spec examples with the reasoning behind every field are in [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs)
+- `required`: the column is `NOT NULL`, an empty value on create / edit returns 400 `<label>不能为空`, and the form marks and checks it; `image` / `file` can't be required
+- `unique`: the column is `UNIQUE`, duplicates return 400; text and number types only
+- `default`: the column default, used when a new record leaves the field empty and prefilled in the form
+- `label` / `title`: the Chinese text of the page, headers, imports / exports and errors; `i18n` holds their English and Japanese (missing ones fall back to the field name)
+- `menu`: also adds the menu and button permissions (add / edit / delete / export / import) to `apps/api/scripts/seed-rbac.ts`, under the top-level 「业务管理」 (Business) group by default (ID 1000, created with the first module; modules from 1001); `parentId` picks another directory. Menu names in English and Japanese go to `apps/web/src/locales/menus/`
+- The generated API test gets a "field rules" case covering required, options, unique and defaults
 
-### 已知限制
+### Known limitations
 
-- 只用 `--fields` 时表达不了必填、唯一、默认值，标题和标签是英文占位——需要这些时用 `--spec`。
-- 表名固定为资源名加 `s`，接口路径同理。选资源名时要考虑复数形式。
-- 加了业务规则后，要同步维护生成的接口测试。
-- 后端报错里的字段名是中文标签，英文、日文界面下也显示中文标签。
+- With `--fields` alone there are no required / unique / default values and the title and labels are English placeholders — use `--spec` for those.
+- The table name is always the resource name plus `s`, and so is the API path. Keep the plural form in mind when choosing a resource name.
+- Once you add business rules, keep the generated API tests up to date.
+- Backend errors name fields by their Chinese label, in the English and Japanese UI as well.
 
-脚手架不可用时，可以照 `docs/templates/` 手写，替换规则见 `docs/templates/backend/README.md`。
+If the scaffold isn't available, you can write the files by hand from `docs/templates/`; the substitution rules are in `docs/templates/backend/README.md`.
 
 ## pnpm verify
 
-`pnpm verify` 是交付门禁，全部通过才算完成。
+`pnpm verify` is the delivery gate: work is done only when every check passes.
 
 ```bash
-pnpm verify -- --module customer                 # 全部检查
-pnpm verify -- --module customer --skip-build    # 跳过前端构建（调试时提速）
-pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout 只有 JSON）
+pnpm verify -- --module customer                 # All checks
+pnpm verify -- --module customer --skip-build    # Skip the frontend build (faster while debugging)
+pnpm verify -- --module customer --json          # Structured JSON output (stdout contains only JSON)
 ```
 
-### 检查项
+### Checks
 
-全局检查（每次都执行）：
+Global checks (always run):
 
-| 检查 | 内容 |
+| Check | What it checks |
 |---|---|
-| `typescript_compile` | `tsc --noEmit`，覆盖 `apps/api`（含 scripts、test）与 `apps/mcp` |
-| `no_local_has_permission` | routes 文件中不得自定义 `hasPermission` |
-| `migration_chain` | drizzle 迁移 journal 线性、快照链完整、每条记录都有 SQL、没有多余 SQL |
-| `migration_applied` | 对比 journal 与数据库中的 `drizzle.__drizzle_migrations`，并确认模块表存在 |
-| `openapi_sync` | OpenAPI 文档是否与路由同步（只警告） |
-| `docs_paths` | AI 上下文文档中引用的路径是否存在（默认只警告，`--strict-docs` 时阻断） |
+| `typescript_compile` | `tsc --noEmit` over `apps/api` (including scripts and test) and `apps/mcp` |
+| `no_local_has_permission` | Routes files must not define their own `hasPermission` |
+| `migration_chain` | The drizzle migration journal is linear, the snapshot chain is complete, every entry has SQL, and there is no stray SQL |
+| `migration_applied` | Compares the journal with `drizzle.__drizzle_migrations` in the database and confirms the module's table exists |
+| `openapi_sync` | Whether the OpenAPI document is in sync with the routes (warning only) |
+| `docs_paths` | Whether paths referenced in the AI context docs exist (warning only by default; blocking with `--strict-docs`) |
 
-模块检查（传入 `--module` 时执行）：
+Module checks (run when `--module` is passed):
 
-| 检查 | 内容 |
+| Check | What it checks |
 |---|---|
-| `backend_file` | 后端 routes / repository / service 文件存在 |
-| `data_scope_filter` | `schema.ts` 声明了 `DATA_SCOPE` 的模块，repository 必须用 `dataScopeWhere` 过滤；未声明时跳过 |
-| `frontend_page` | 前端页面文件存在 |
-| `frontend_api` | 前端 API 文件存在 |
-| `router_registration` | 路由已在 `src/router.ts` 或域 `router.ts` 注册 |
-| `schema_registration` | 表定义已在 `db/schema/index.ts` 注册 |
-| `rbac_seed` | `seed-rbac.ts` 中包含该模块的菜单或权限编码 |
+| `backend_file` | Backend routes / repository / service files exist |
+| `data_scope_filter` | A module whose `schema.ts` declares `DATA_SCOPE` must filter with `dataScopeWhere` in its repository; skipped otherwise |
+| `frontend_page` | The frontend page file exists |
+| `frontend_api` | The frontend API file exists |
+| `router_registration` | Routes are registered in `src/router.ts` or the domain `router.ts` |
+| `schema_registration` | The table definition is registered in `db/schema/index.ts` |
+| `rbac_seed` | `seed-rbac.ts` contains the module's menu or permission codes |
 
-构建与测试（可跳过）：
+Build and tests (can be skipped):
 
-| 检查 | 内容 | 跳过参数 |
+| Check | What it checks | Skip flag |
 |---|---|---|
-| `frontend_build` | 前端 Vite 构建 | `--skip-build` |
-| `frontend_tests` | 前端 Vitest | `--skip-frontend-tests` |
-| `api_tests` | 后端 Vitest（需要测试库） | `--skip-api-tests` |
+| `frontend_build` | Frontend Vite build | `--skip-build` |
+| `frontend_tests` | Frontend Vitest | `--skip-frontend-tests` |
+| `api_tests` | Backend Vitest (needs the test database) | `--skip-api-tests` |
 
-### 其他参数
+### Other options
 
-| 参数 | 说明 |
+| Option | Description |
 |---|---|
-| `--skip-db` | 跳过 `migration_applied`（不连接数据库） |
-| `--run-rbac-sync` | 额外执行一次 `seed:rbac --incremental`（检查项 `rbac_sync`） |
-| `--database-url <url>` | 指定 `migration_applied` 使用的数据库连接 |
-| `--strict-docs` | `docs_paths` 失败时阻断 |
+| `--skip-db` | Skip `migration_applied` (no database connection) |
+| `--run-rbac-sync` | Also run `seed:rbac --incremental` once (check `rbac_sync`) |
+| `--database-url <url>` | Database connection used by `migration_applied` |
+| `--strict-docs` | Make `docs_paths` failures blocking |
 
-调试过程中可以用跳过参数提速，交付前必须完整跑一次。
+Use the skip flags to speed things up while debugging, but run the full gate once before delivering.
 
 ## MCP Server
 
-`apps/mcp` 把工具链暴露为 MCP 工具，MCP 客户端（如 Claude Desktop）不需要命令行也能走完整的开发流程。
+`apps/mcp` exposes the toolchain as MCP tools, so MCP clients (such as Claude Desktop) can run the full development flow without a command line.
 
-| 工具 | 作用 |
+| Tool | Purpose |
 |---|---|
-| `get_project_context` | 返回 `AGENTS.md` 全文和当前模块结构，实现新功能前调用 |
-| `get_menu_tree` | 返回数据库中的菜单树，用于确定 `parent_id` 和可用 ID |
-| `get_spec_guide` | 返回 spec 的 JSON Schema 和「需求 → spec」示例，写 spec 前调用 |
-| `validate_spec` | 校验 spec（参数 `spec`），说明会生成什么；不写文件 |
-| `scaffold_feature` | 调用 `pnpm scaffold`：传 `spec`（推荐），或 `name`、`domain`、`fields`；`dry_run` 只预览 |
-| `check_openapi` | 按 OpenAPI 编写规范检查接口文档，列出不合规的接口 |
-| `run_verify` | 调用 `pnpm verify --json` 并返回结果（参数 `module`、`skip_build`） |
-| `init_rbac` | 调用 `pnpm seed:rbac -- --incremental` |
-| `run_migration` | 执行 `db:generate` + `db:migrate`（参数 `message` 作为迁移描述） |
-| `list_templates` | 列出 `docs/templates/` 下的模板 |
+| `get_project_context` | Returns the full text of `AGENTS.md` and the current module structure; call it before implementing a new feature |
+| `get_menu_tree` | Returns the menu tree from the database, for picking `parent_id` and a free ID |
+| `get_spec_guide` | Returns the spec JSON Schema and the requirement → spec examples; call it before writing a spec |
+| `validate_spec` | Checks a spec (parameter `spec`) and says what it would generate; writes nothing |
+| `scaffold_feature` | Calls `pnpm scaffold` with `spec` (recommended) or `name`, `domain`, `fields`; `dry_run` only previews |
+| `check_openapi` | Checks the API document against the OpenAPI rules and lists the operations that break them |
+| `run_verify` | Calls `pnpm verify --json` and returns the result (parameters `module`, `skip_build`) |
+| `init_rbac` | Calls `pnpm seed:rbac -- --incremental` |
+| `run_migration` | Runs `db:generate` + `db:migrate` (parameter `message` is used as the migration description) |
+| `list_templates` | Lists the templates under `docs/templates/` |
 
-Claude Desktop 配置示例（`claude_desktop_config.json`）：
+Example Claude Desktop config (`claude_desktop_config.json`):
 
 ```json
 {
@@ -302,18 +302,18 @@ Claude Desktop 配置示例（`claude_desktop_config.json`）：
 }
 ```
 
-也可以先构建再用 node 直接运行：
+Or build it first and run it directly with node:
 
 ```bash
 pnpm --filter @castor-kit/mcp build
 node /path/to/castor-kit/apps/mcp/dist/index.js
 ```
 
-MCP Server 默认以自身所在位置推算仓库根目录，可用环境变量 `CASTOR_KIT_ROOT` 覆盖。
+By default the MCP Server derives the repo root from its own location; override it with the `CASTOR_KIT_ROOT` environment variable.
 
-## 相关页面
+## Related pages
 
-- [后端开发](/guide/backend)：分层与接口规范
-- [前端开发](/guide/frontend)：页面结构与公共组件
-- [权限 RBAC](/guide/rbac)：菜单与按钮权限
-- [命令速查](/reference/commands)
+- [Backend](/guide/backend): layering and API conventions
+- [Frontend](/guide/frontend): page structure and shared components
+- [Permissions (RBAC)](/guide/rbac): menu and button permissions
+- [Commands](/reference/commands)

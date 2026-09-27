@@ -1,5 +1,5 @@
 /**
- * OpenAPI document rules (AGENTS.md, "OpenAPI 编写规范" section): every registered /api route is documented completely enough
+ * OpenAPI document rules (AGENTS.md, "OpenAPI writing rules" section): every registered /api route is documented completely enough
  * for a person, an external client or the AI assistant to call it without reading the code.
  *
  * Used by test/openapi-doc.test.ts (the gate), `pnpm openapi:generate -- --strict` and `pnpm verify`.

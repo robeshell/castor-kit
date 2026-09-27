@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- English first, for a global audience:
+  - The developer specs are written in English: `AGENTS.md`, `CLAUDE.md`, `docs/`, the `new-feature-autopilot` and `shadcn-ui-skills` skills, and the MCP server's tool descriptions. UI copy is still written in Chinese as the i18n key (`t('中文原文')`), with English and Japanese translations.
+  - The docs site's default language is English, at the root (`/guide/…`). Chinese moved to `/zh/`; Japanese stays at `/ja/`. Old `/en/…` links redirect to the same page at its new address.
 - Repository root tidied:
   - The Docker setup wizard is `bash scripts/setup.sh`; the image entry point moved to `scripts/docker-entrypoint.sh`.
   - The Chinese README is `README.zh-CN.md`.

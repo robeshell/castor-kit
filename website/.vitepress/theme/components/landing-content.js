@@ -3,11 +3,11 @@
  * The terminal script mirrors the real flow (autopilot → scaffold → migrate → seed:rbac → verify gate names).
  */
 
-const SCAFFOLD = 'pnpm scaffold -- --name equipment --domain admin --fields "name:str,code:str50,status:str20,purchase_date:date,owner:str"'
+const SCAFFOLD = 'pnpm scaffold -- --spec equipment.spec.json'
 
 export const CONTENT = {
   'zh-CN': {
-    prefix: '',
+    prefix: '/zh',
     hero: {
       eyebrow: '开源免费 · MIT 协议',
       title: ['开箱即用的管理后台', '新功能，一句话生成'],
@@ -47,12 +47,12 @@ export const CONTENT = {
         ['info', '理解需求：新建表 equipments，5 个字段，加一个「设备台账」菜单'],
         ['cmd', SCAFFOLD],
         ['ok', '已生成数据表、后端接口、前端页面和测试'],
-        ['cmd', 'pnpm db:migrate'],
-        ['ok', '数据库已更新'],
         ['cmd', 'pnpm seed:rbac -- --incremental'],
         ['ok', '菜单和按钮权限已添加'],
+        ['cmd', 'pnpm db:migrate'],
+        ['ok', '数据库已更新'],
         ['cmd', 'pnpm verify -- --module equipment'],
-        ['gate', 'typescript_compile · migration_chain · router_registration · rbac_sync · api_tests · frontend_tests · frontend_build'],
+        ['gate', 'typescript compile · migration chain · openapi sync · router registration · rbac seed · api tests · frontend tests · frontend build'],
         ['done', '全部检查通过，可以上线'],
       ],
     },
@@ -78,7 +78,7 @@ export const CONTENT = {
   },
 
   'en-US': {
-    prefix: '/en',
+    prefix: '',
     hero: {
       eyebrow: 'Open source · MIT',
       title: ['A ready-made admin panel.', 'New features? Just ask.'],
@@ -118,12 +118,12 @@ export const CONTENT = {
         ['info', 'Got it: new table equipments, 5 fields, an "Equipment" menu'],
         ['cmd', SCAFFOLD],
         ['ok', 'Generated the table, API, page and tests'],
-        ['cmd', 'pnpm db:migrate'],
-        ['ok', 'Database updated'],
         ['cmd', 'pnpm seed:rbac -- --incremental'],
         ['ok', 'Menu and button permissions added'],
+        ['cmd', 'pnpm db:migrate'],
+        ['ok', 'Database updated'],
         ['cmd', 'pnpm verify -- --module equipment'],
-        ['gate', 'typescript_compile · migration_chain · router_registration · rbac_sync · api_tests · frontend_tests · frontend_build'],
+        ['gate', 'typescript compile · migration chain · openapi sync · router registration · rbac seed · api tests · frontend tests · frontend build'],
         ['done', 'All checks passed, ready to ship'],
       ],
     },
@@ -189,12 +189,12 @@ export const CONTENT = {
         ['info', '了解：テーブル equipments（5 フィールド）と「設備台帳」メニューを追加'],
         ['cmd', SCAFFOLD],
         ['ok', 'テーブル、API、画面、テストを生成'],
-        ['cmd', 'pnpm db:migrate'],
-        ['ok', 'データベースを更新'],
         ['cmd', 'pnpm seed:rbac -- --incremental'],
         ['ok', 'メニューとボタン権限を追加'],
+        ['cmd', 'pnpm db:migrate'],
+        ['ok', 'データベースを更新'],
         ['cmd', 'pnpm verify -- --module equipment'],
-        ['gate', 'typescript_compile · migration_chain · router_registration · rbac_sync · api_tests · frontend_tests · frontend_build'],
+        ['gate', 'typescript compile · migration chain · openapi sync · router registration · rbac seed · api tests · frontend tests · frontend build'],
         ['done', 'すべてのチェックに合格、リリース可能'],
       ],
     },

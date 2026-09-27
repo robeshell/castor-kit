@@ -1,154 +1,154 @@
 # castor-kit — Agent Context
 
-> **通用上下文文档**，适用于所有 AI 工具（Claude Code、Cursor、Windsurf、GitHub Copilot、Codex CLI、MCP Client 等）。
-> 实现任何新功能前必须完整阅读本文件。AI 应从本文件自行推断所有技术决策，无需向 PM 询问技术细节。
+> **Shared context document** for every AI tool (Claude Code, Cursor, Windsurf, GitHub Copilot, Codex CLI, MCP clients, and so on).
+> Read this whole file before implementing any new feature. AI should infer every technical decision from this file on its own, without asking the PM about technical details.
 >
-> 本文件是所有 AI 工具共用的项目上下文（Codex、Cursor、Windsurf、GitHub Copilot 等直接读取）；Claude Code 另读 `CLAUDE.md`。技能在 `.claude/skills/`，`.agents/skills/` 是它的镜像。
-> 架构说明：`docs/architecture.md`（技术栈、分层与反模式、横切约定、迁移、工具链、部署、设计决定）。
-> 功能路线图：`docs/roadmap.md`（计划中的新功能及其数据模型、接口、验收标准；实现其中任何一项前先读对应章节，完成后更新状态）。
-> 前端 UI 方案：`docs/frontend-design-system.md`（shadcn/ui + Tailwind CSS v4 + motion 的设计 tokens 与公共组件约定）。
+> This file is the project context shared by all AI tools (Codex, Cursor, Windsurf, GitHub Copilot and others read it directly); Claude Code also reads `CLAUDE.md`. Skills live in `.claude/skills/`, mirrored in `.agents/skills/`.
+> Architecture: `docs/architecture.md` (tech stack, layers and anti-patterns, cross-cutting conventions, migrations, tooling, deployment, design decisions).
+> Roadmap: `docs/roadmap.md` (planned features with their data models, APIs and acceptance criteria; read the matching section before implementing any of them, and update its status when done).
+> Frontend UI: `docs/frontend-design-system.md` (design tokens and shared-component conventions for shadcn/ui + Tailwind CSS v4 + motion).
 
 ---
 
-## 项目定位
+## Project overview
 
-**Node.js/TypeScript + React + RBAC 的 AI-First 脚手架。**
+**An AI-first Node.js/TypeScript + React + RBAC scaffold.**
 
-目标：PM 用自然语言描述业务意图 → AI Agent 自动推断技术决策 → 展示业务预览供确认 → 端到端交付符合规范的新功能模块（数据表、接口、页面、权限、迁移）。
+Goal: the PM describes business intent in natural language → the AI agent infers the technical decisions → shows a business preview for confirmation → delivers a complete, convention-compliant feature module end to end (tables, APIs, pages, permissions, migration).
 
-castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizzle + PostgreSQL），前端 `apps/web`（React 19 + **shadcn/ui + Tailwind CSS v4 + motion**，见 `docs/frontend-design-system.md`），`apps/mcp` 把 scaffold / verify / seed / 迁移等工具链暴露给 MCP Client。整体架构与设计决定见 `docs/architecture.md`。
+castor-kit is a pnpm monorepo: the backend `apps/api` (Fastify 5 + Zod + Drizzle + PostgreSQL), the frontend `apps/web` (React 19 + **shadcn/ui + Tailwind CSS v4 + motion**, see `docs/frontend-design-system.md`), and `apps/mcp`, which exposes the scaffold / verify / seed / migration tooling to MCP clients. Overall architecture and design decisions: `docs/architecture.md`.
 
 ---
 
-## 从一句需求到 spec（新增业务模块先看这里）
+## From a one-line requirement to a spec (start here for new modules)
 
-「做一个 XX 管理 / XX 台账」这类需求，做法是把一句话推断成一份模块规格（spec），交给脚手架一次生成全套代码。
+For requests like "build an XX management page / an XX ledger", infer a module specification (spec) from the one-line request and hand it to the scaffold, which generates the whole set of code in one go.
 
-1. 把需求写成 spec JSON：格式见 `docs/spec.schema.json`；4 个带逐字段推断理由的完整示例在 `docs/examples/specs/`
-2. `pnpm scaffold -- --spec <文件> --validate-only`：校验，并列出会生成的接口、权限、表和菜单；有问题按提示逐条改
-3. 向 PM 展示业务预览（字段、选项、必填），确认后 `pnpm scaffold -- --spec <文件>`：一次生成表、接口、接口测试、页面、菜单与按钮权限、OpenAPI 文档和迁移
-4. 补业务逻辑 → `pnpm seed:rbac -- --incremental` → `pnpm db:migrate` → `psql \d` 实证 → `pnpm verify -- --module <name>`
+1. Write the requirement as a spec JSON: the format is `docs/spec.schema.json`; `docs/examples/specs/` has 4 complete examples with the reasoning behind every field
+2. `pnpm scaffold -- --spec <file> --validate-only`: validates the spec and lists the APIs, permissions, tables and menus it would generate; fix any problems one by one as reported
+3. Show the PM a business preview (fields, options, required fields); after confirmation, `pnpm scaffold -- --spec <file>` generates the table, APIs, API tests, page, menu and button permissions, OpenAPI docs and migration in one run
+4. Add the business logic → `pnpm seed:rbac -- --incremental` → `pnpm db:migrate` → confirm with `psql \d` → `pnpm verify -- --module <name>`
 
-用 MCP 时对应：`get_spec_guide` → `validate_spec` → `scaffold_feature`（传 `spec`）→ `run_verify` / `check_openapi`。
+With MCP the equivalent is: `get_spec_guide` → `validate_spec` → `scaffold_feature` (pass `spec`) → `run_verify` / `check_openapi`.
 
-推断要点（字段类型见下文「字段类型推断规则」）：
+Inference guidelines (field types: see "Field type inference" below):
 
-- `name`：英文单数 snake_case（`device`、`customer_order`）；`title`：中文模块名，必填；每个字段都要有中文 `label`（表头、表单、导入模板、接口文档都用它）
-- 选项固定、写死在需求里（状态、类型、等级）→ `enum` + `options`（`value` 英文、`label` 中文）；选项会增减、要管理员维护（分类、来源、行业）→ `dict` + 数据字典编码
-- `required`：需求点名「必填 / 不能为空」的字段；有默认值的状态字段也设必填（编辑时不能清空）；文件 / 图片字段不能必填
-- `unique`：需求说「不能重复 / 唯一」，只用于文本和数字字段；`default`：需求说「默认 …」才写，值要符合类型（`enum` 写选项值）
-- `dataScope: true`：需求说「只能看到自己 / 本部门的 …」；`menu: {}`：新业务模块都要菜单（放进「业务管理」）
-- 记录的主名称字段叫 `name` 或 `title`（列表搜索、导入必填列用它）；不要写 `id` / `created_at` / `updated_at`（自动生成）
-- 超出脚手架的部分（表间关联、审批流、计算字段、跨字段校验）：先生成单表模块，再按下文分层规则手写
+- `name`: English, singular, snake_case (`device`, `customer_order`); `title`: the module's Chinese name, required; every field needs a Chinese `label` (used by table headers, forms, import templates and the API docs). Chinese is the i18n source key for all of these
+- Options that are fixed and spelled out in the requirement (status, type, level) → `enum` + `options` (`value` in English, `label` in Chinese); options that grow or shrink and are maintained by admins (category, source, industry) → `dict` + a data dictionary code
+- `required`: fields the requirement calls "required / must not be empty"; status fields with a default are also required (they can't be cleared when editing); file / image fields can't be required
+- `unique`: only when the requirement says "must not repeat / unique", and only for text and number fields; `default`: only when the requirement says "defaults to ...", and the value must match the type (for `enum`, use an option value)
+- `dataScope: true`: when the requirement says "users only see their own / their department's ..."; `menu: {}`: every new business module needs a menu (it goes under `业务管理` (Business))
+- The record's main name field is called `name` or `title` (list search and the required import column use it); don't declare `id` / `created_at` / `updated_at` (generated automatically)
+- Anything beyond the scaffold (relations between tables, approval flows, computed fields, cross-field validation): generate the single-table module first, then write the rest by hand following the layering rules below
 
-## 技术栈
+## Tech stack
 
-| 层 | 技术 | 版本 |
+| Layer | Technology | Version |
 |---|---|---|
-| 运行时 | Node + TypeScript（strict） | Node 22（`.nvmrc`），TypeScript 5 |
-| 包管理 | pnpm workspaces（monorepo） | pnpm 11 |
-| 后端框架 | Fastify + `fastify-type-provider-zod` | 5.x |
-| 校验 / 类型 | Zod | 4.x |
-| ORM / 迁移 | Drizzle ORM + drizzle-kit | 0.45 / 0.31 |
-| 数据库 | PostgreSQL（`pg` 驱动） | 14+ |
-| 日志 | pino（Fastify 内置） | - |
-| 会话 | `@fastify/secure-session`（cookie `castor_session`） | - |
-| 其他插件 | `@fastify/cors` / `compress` / `static` / `multipart` / `websocket` / `swagger` | - |
-| 导入 / 导出 | `csv-parse` + `exceljs`（**只支持 csv / xlsx，`.xls` 已不支持**） | - |
-| 测试 | Vitest + 真实 PostgreSQL | - |
-| 前端框架 | React + Vite + React Router + Axios（JavaScript / JSX） | 19 / 5 / 7 |
-| UI 组件 | shadcn/ui（new-york 风格，Radix 原语，源码在 `apps/web/src/components/ui/`，JSX） | - |
-| 样式 | Tailwind CSS v4（`@tailwindcss/vite`）+ CSS 变量主题（亮 / 暗，`apps/web/src/index.css`） | 4.x |
-| 动效 | `motion`（`motion/react`）+ `tw-animate-css`（弹层进出） | - |
-| 图标 | `lucide-react` | - |
-| 表格 / 表单 / 提示 | `@tanstack/react-table`（封装为 DataTable）/ `react-hook-form` / `sonner` | - |
-| 日期 / 命令面板 | `react-day-picker` + `date-fns` / `cmdk`（⌘K） | - |
-| 图表 | ECharts 6，按需引入：页面用 `@/shared/components/Chart`，图表类型 / 组件在 `@/lib/echarts` 注册（新用到的在那里加上），不要直接引 `echarts` / `echarts-for-react`；主题色取自 `@/lib/chart-theme` | - |
+| Runtime | Node + TypeScript (strict) | Node 22 (`.nvmrc`), TypeScript 5 |
+| Package manager | pnpm workspaces (monorepo) | pnpm 11 |
+| Backend framework | Fastify + `fastify-type-provider-zod` | 5.x |
+| Validation / types | Zod | 4.x |
+| ORM / migrations | Drizzle ORM + drizzle-kit | 0.45 / 0.31 |
+| Database | PostgreSQL (`pg` driver) | 14+ |
+| Logging | pino (built into Fastify) | - |
+| Sessions | `@fastify/secure-session` (cookie `castor_session`) | - |
+| Other plugins | `@fastify/cors` / `compress` / `static` / `multipart` / `websocket` / `swagger` | - |
+| Import / export | `csv-parse` + `exceljs` (**csv / xlsx only; `.xls` is not supported**) | - |
+| Testing | Vitest + a real PostgreSQL | - |
+| Frontend framework | React + Vite + React Router + Axios (JavaScript / JSX) | 19 / 5 / 7 |
+| UI components | shadcn/ui (new-york style, Radix primitives, source in `apps/web/src/components/ui/`, JSX) | - |
+| Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS-variable themes (light / dark, `apps/web/src/index.css`) | 4.x |
+| Motion | `motion` (`motion/react`) + `tw-animate-css` (overlay enter / exit) | - |
+| Icons | `lucide-react` | - |
+| Tables / forms / toasts | `@tanstack/react-table` (wrapped as DataTable) / `react-hook-form` / `sonner` | - |
+| Dates / command palette | `react-day-picker` + `date-fns` / `cmdk` (⌘K) | - |
+| Charts | ECharts 6, imported on demand: pages use `@/shared/components/Chart`; chart types / components are registered in `@/lib/echarts` (add new ones there); don't import `echarts` / `echarts-for-react` directly; theme colors come from `@/lib/chart-theme` | - |
 | 3D | Three.js | 0.176 |
-| 代码编辑器 | @monaco-editor/react | - |
-| 富文本 | react-quill-new（React 19 兼容） | - |
-| 拖拽 | @dnd-kit/core + @dnd-kit/sortable | - |
+| Code editor | @monaco-editor/react | - |
+| Rich text | react-quill-new (React 19 compatible) | - |
+| Drag and drop | @dnd-kit/core + @dnd-kit/sortable | - |
 | MCP | `@modelcontextprotocol/sdk` | 1.x |
 
-**开发环境：**
-- 端口：api 5001、web 5173（Vite proxy 把 `/api`、`/ws` 转发到 5001）；测试环境 5002；生产 5000
-- 数据库：`postgresql://localhost/castor_kit`（写在 `apps/api/.env.development` 的 `DEV_DATABASE_URL`，未设置时也是它）
-- 本地配置：`apps/api/.env.development`（参考 `apps/api/.env.example`，已被 gitignore；仓库根目录的 `.env.<NODE_ENV>` 也会被读取）
-- 默认账号：`admin` / `admin123`
-- 测试库：`createdb -T castor_kit castor_kit_test`（克隆）或 `createdb castor_kit_test`（空库，测试会自动执行迁移）；`pnpm test`
+**Development environment:**
+- Ports: api 5001, web 5173 (the Vite proxy forwards `/api` and `/ws` to 5001); tests 5002; production 5000
+- Database: `postgresql://localhost/castor_kit` (set as `DEV_DATABASE_URL` in `apps/api/.env.development`; also the default when unset)
+- Local config: `apps/api/.env.development` (see `apps/api/.env.example`; gitignored; `.env.<NODE_ENV>` in the repo root is read too)
+- Default account: `admin` / `admin123`
+- Test database: `createdb -T castor_kit castor_kit_test` (clone) or `createdb castor_kit_test` (empty; the tests run the migrations automatically); `pnpm test`
 
 ---
 
-## 目录结构
+## Directory layout
 
 ```
 castor-kit/
-├── package.json                       # pnpm workspaces 根（所有 pnpm 命令在根目录执行）
+├── package.json                       # pnpm workspaces root (run every pnpm command from the root)
 ├── pnpm-workspace.yaml
-├── AGENTS.md / CLAUDE.md               # AI 工具共用的项目上下文 / Claude Code 补充
+├── AGENTS.md / CLAUDE.md               # project context shared by AI tools / Claude Code additions
 ├── apps/
-│   ├── api/                           # @castor-kit/api —— Fastify 后端
+│   ├── api/                           # @castor-kit/api — Fastify backend
 │   │   ├── src/
-│   │   │   ├── main.ts                # web 进程入口
-│   │   │   ├── worker.ts              # 独立调度器进程入口
-│   │   │   ├── app.ts                 # buildApp()：插件 / 路由 / 错误处理 / 静态资源 / SPA
-│   │   │   ├── config.ts              # 多环境配置（Zod 校验，生产 fail-closed）
-│   │   │   ├── router.ts              # 一级路由装配（新增域在这里注册）
-│   │   │   ├── common/                # 横切能力
+│   │   │   ├── main.ts                # web process entry
+│   │   │   ├── worker.ts              # standalone scheduler process entry
+│   │   │   ├── app.ts                 # buildApp(): plugins / routes / error handling / static assets / SPA
+│   │   │   ├── config.ts              # per-environment config (Zod-validated, fail-closed in production)
+│   │   │   ├── router.ts              # top-level route assembly (register new domains here)
+│   │   │   ├── common/                # cross-cutting code
 │   │   │   │   ├── auth.ts            # loginRequired / hasMenuPermission / hasAnyMenuPermission / menuPermissionRequired
-│   │   │   │   ├── rbac.ts            # 纯函数：isSuperAdmin / 菜单编码收集
-│   │   │   │   ├── data-scope.ts      # 数据权限：resolveDataScope / dataScopeWhere / currentActor
-│   │   │   │   ├── csrf.ts            # 双提交校验
-│   │   │   │   ├── errors.ts          # ServiceError + 统一错误处理器
+│   │   │   │   ├── rbac.ts            # pure functions: isSuperAdmin / menu code collection
+│   │   │   │   ├── data-scope.ts      # data scope: resolveDataScope / dataScopeWhere / currentActor
+│   │   │   │   ├── csrf.ts            # double-submit check
+│   │   │   │   ├── errors.ts          # ServiceError + the global error handler
 │   │   │   │   ├── http.ts            # intParam / parseIntParam / queryString / getUploadedFile
-│   │   │   │   ├── pagination.ts      # parsePagination（MAX_PER_PAGE=200，默认 20）
-│   │   │   │   ├── serialize.ts       # toIso() 等，统一时间输出格式
-│   │   │   │   ├── tabular.ts         # csv/xlsx 读写 + 公式注入防护 + 5MB 上限
-│   │   │   │   ├── request-meta.ts    # clientIp / userAgent / safePayload（脱敏）
-│   │   │   │   ├── password.ts        # scrypt 密码哈希（PHC 格式）
-│   │   │   │   ├── password-policy.ts # 密码规则（来自系统设置）
-│   │   │   │   ├── session.ts         # 服务端会话：isSignedIn / createSession / revokeSessions
-│   │   │   │   ├── settings.ts        # 系统设置注册表 + SettingsStore（app.settings）
-│   │   │   │   ├── rate-limit.ts      # 按 IP 限流 + 登录类接口的 authRateLimit
-│   │   │   │   ├── totp.ts / secret-box.ts # 两步验证 TOTP、AES-256-GCM 加密小密钥
-│   │   │   │   ├── mailer.ts          # 邮件（smtp / log / none）
-│   │   │   │   └── scheduler/         # 定时任务 runner（租约模型）+ cron 匹配器 + SSRF 防护
+│   │   │   │   ├── pagination.ts      # parsePagination (MAX_PER_PAGE=200, default 20)
+│   │   │   │   ├── serialize.ts       # toIso() etc., one time output format
+│   │   │   │   ├── tabular.ts         # csv/xlsx read/write + formula-injection guard + 5MB cap
+│   │   │   │   ├── request-meta.ts    # clientIp / userAgent / safePayload (redaction)
+│   │   │   │   ├── password.ts        # scrypt password hashing (PHC format)
+│   │   │   │   ├── password-policy.ts # password rules (from system settings)
+│   │   │   │   ├── session.ts         # server-side sessions: isSignedIn / createSession / revokeSessions
+│   │   │   │   ├── settings.ts        # system settings registry + SettingsStore (app.settings)
+│   │   │   │   ├── rate-limit.ts      # per-IP rate limiting + authRateLimit for login-type endpoints
+│   │   │   │   ├── totp.ts / secret-box.ts # two-factor TOTP, AES-256-GCM encryption for small secrets
+│   │   │   │   ├── mailer.ts          # email (smtp / log / none)
+│   │   │   │   └── scheduler/         # scheduled task runner (lease model) + cron matcher + SSRF guard
 │   │   │   ├── db/
-│   │   │   │   ├── client.ts          # pg Pool + drizzle 实例 + 类型解析器
-│   │   │   │   ├── readonly.ts        # AI SQL 专用只读 Pool
-│   │   │   │   ├── migrate.ts         # 迁移执行器（drizzle-orm migrator）
-│   │   │   │   ├── migrate-cli.ts     # pnpm db:migrate 入口
-│   │   │   │   └── schema/            # ← model 层：Drizzle 表定义 + toDict
+│   │   │   │   ├── client.ts          # pg Pool + drizzle instance + type parsers
+│   │   │   │   ├── readonly.ts        # read-only Pool for AI SQL
+│   │   │   │   ├── migrate.ts         # migration runner (drizzle-orm migrator)
+│   │   │   │   ├── migrate-cli.ts     # pnpm db:migrate entry
+│   │   │   │   └── schema/            # ← model layer: Drizzle table definitions + toDict
 │   │   │   │       ├── columns.ts     # createdAt() / updatedAt()
 │   │   │   │       ├── admin/         # rbac / audit-logs / dicts / scheduled-task / notification / announcement
 │   │   │   │       ├── component-center/
-│   │   │   │       └── index.ts       # 汇总导出（新增表在这里注册）
+│   │   │   │       └── index.ts       # combined exports (register new tables here)
 │   │   │   └── modules/
-│   │   │       ├── admin/             # 系统管理域
-│   │   │       │   ├── router.ts      # 域内路由装配
+│   │   │       ├── admin/             # system administration domain
+│   │   │       │   ├── router.ts      # domain route assembly
 │   │   │       │   └── users/         # {schema,repository,service,routes}.ts
 │   │   │       │   └── auth/ roles/ menu/ logs/ dicts/ scheduled-task/ notification/ announcement/ dashboard/
 │   │   │       │       sessions/ settings/ two-factor/ password-reset/ departments/ files/
-│   │   │       └── component-center/  # 组件示例中心域
+│   │   │       └── component-center/  # component gallery domain
 │   │   │           ├── router.ts
 │   │   │           └── list-page/ stats-list-page/ card-list-page/ tree-list-page/ dynamic-form-page/
 │   │   │               kanban/ detail-tabs/ gantt/ advanced-table/ traffic-flow/
 │   │   │               ai-chat/ ai-prompt/ ai-sql/ devtools/
-│   │   ├── drizzle/                   # SQL 迁移 + meta/_journal.json（drizzle-kit 生成）
-│   │   ├── scripts/                   # 工具链：scaffold / verify-feature / seed-rbac / setup-once /
-│   │   │                              #         init-ro-role / generate-openapi / import-apifox
-│   │   ├── test/                      # Vitest（真实 PostgreSQL）
+│   │   ├── drizzle/                   # SQL migrations + meta/_journal.json (generated by drizzle-kit)
+│   │   ├── scripts/                   # tooling: scaffold / verify-feature / seed-rbac / setup-once /
+│   │   │                              #          init-ro-role / generate-openapi / import-apifox
+│   │   ├── test/                      # Vitest (real PostgreSQL)
 │   │   └── drizzle.config.ts
-│   ├── web/                           # @castor-kit/web —— React 19 + shadcn/ui + Tailwind v4（JSX）
-│   │   ├── components.json            # shadcn CLI 配置（new-york / zinc / lucide / 别名）
-│   │   ├── scripts/shadcn-add.sh      # 经本地中转执行 npx shadcn@latest add（见「新增 shadcn 原子组件」）
+│   ├── web/                           # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (JSX)
+│   │   ├── components.json            # shadcn CLI config (new-york / zinc / lucide / aliases)
+│   │   ├── scripts/shadcn-add.sh      # runs npx shadcn@latest add through a local relay (see "Adding shadcn/ui primitives")
 │   │   └── src/
-│   │       ├── App.jsx                # 动态路由（import.meta.glob）
-│   │       ├── index.css              # Tailwind v4 入口 + 设计 tokens（亮 / 暗）+ 品牌渐变工具类
-│   │       ├── context/               # AuthContext / ThemeContext（html.dark 切换）
+│   │       ├── App.jsx                # dynamic routing (import.meta.glob)
+│   │       ├── index.css              # Tailwind v4 entry + design tokens (light / dark) + brand gradient utilities
+│   │       ├── context/               # AuthContext / ThemeContext (toggles html.dark)
 │   │       ├── components/
-│   │       │   ├── ui/                # shadcn 原子组件（button / input / dialog / sheet / table / select / …）
-│   │       │   └── app/               # 应用外壳：AppLayout / AppSidebar / TopBar / CommandMenu / ThemeToggle / …
+│   │       │   ├── ui/                # shadcn primitives (button / input / dialog / sheet / table / select / ...)
+│   │       │   └── app/               # app shell: AppLayout / AppSidebar / TopBar / CommandMenu / ThemeToggle / ...
 │   │       ├── lib/                   # utils(cn) / toast / format / motion / chart-theme / menu-icons
 │   │       ├── modules/
 │   │       │   ├── admin/{pages,api}/
@@ -156,52 +156,52 @@ castor-kit/
 │   │       │       ├── pages/{admin,dataviz,creative,ai,editor,devtools}/
 │   │       │       └── api/
 │   │       └── shared/
-│   │           ├── api/request.js     # Axios 实例（baseURL='/api', withCredentials, CSRF 头）
+│   │           ├── api/request.js     # Axios instance (baseURL='/api', withCredentials, CSRF header)
 │   │           ├── utils/file.js      # downloadBlobFile
 │   │           ├── hooks/             # useCrudList / useIsMobile / useDebouncedValue
-│   │           └── components/        # 业务公共组件：PageHeader / DataTable / Filters / FormDialog / FormFields /
-│   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ …
-│   └── mcp/                           # @castor-kit/mcp —— MCP Server（src/index.ts）
+│   │           └── components/        # shared business components: PageHeader / DataTable / Filters / FormDialog / FormFields /
+│   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ ...
+│   └── mcp/                           # @castor-kit/mcp — MCP server (src/index.ts)
 ├── docs/
-│   ├── architecture.md                # 架构说明
-│   ├── frontend-design-system.md      # 前端设计系统（shadcn/ui）
-│   ├── apifox-full.openapi.json       # OpenAPI 文档（写法见「OpenAPI 编写规范」）
-│   ├── spec.schema.json               # scaffold --spec 规格的 JSON Schema（pnpm scaffold -- --write-schema 生成）
-│   ├── examples/specs/                # 「一句需求 → spec」示例（README.md 写逐字段推断理由）
-│   └── templates/                     # 代码骨架模板（AI 临摹用）
-│       ├── backend/                   # db-schema / schema / repository / service / routes（.ts）+ README.md
+│   ├── architecture.md                # architecture
+│   ├── frontend-design-system.md      # frontend design system (shadcn/ui)
+│   ├── apifox-full.openapi.json       # OpenAPI document (see "OpenAPI writing rules")
+│   ├── spec.schema.json               # JSON Schema for scaffold --spec specs (generated by pnpm scaffold -- --write-schema)
+│   ├── examples/specs/                # "one-line requirement → spec" examples (README.md explains each field's reasoning)
+│   └── templates/                     # code skeleton templates (for AI to copy)
+│       ├── backend/                   # db-schema / schema / repository / service / routes (.ts) + README.md
 │       └── frontend/                  # list_page / detail_page
-├── website/                           # VitePress 文档站（独立 npm 项目，不在 pnpm workspace 内）
-├── scripts/                           # setup.sh（Docker 一键安装）、docker-entrypoint.sh（镜像入口）
+├── website/                           # VitePress docs site (standalone npm project, not in the pnpm workspace)
+├── scripts/                           # setup.sh (one-step Docker install), docker-entrypoint.sh (image entry point)
 └── Dockerfile / docker-compose.yml / render.yaml
 ```
 
-> 命名：后端目录与文件名一律小写连字符（`component-center`、`scheduled-task`、`customer-order.ts`）；表名、前端目录、菜单 `component` 保持下划线（`component_center/admin/list_page`），与数据库和前端路由保持一致。
+> Naming: backend directories and file names are lowercase and hyphenated (`component-center`, `scheduled-task`, `customer-order.ts`); table names, frontend directories and the menu `component` keep underscores (`component_center/admin/list_page`) to match the database and the frontend routes.
 
 ---
 
-## 后端架构约定
+## Backend conventions
 
-### 分层规则（严格执行）
+### Layering (strict)
 
 ```
 db/schema/<domain>/<name>.ts → modules/<domain>/<name>/{schema,repository,service,routes}.ts
   → modules/<domain>/router.ts → src/router.ts
 ```
 
-| 层 | 文件 | 职责 | 禁止 |
+| Layer | File | Responsibility | Forbidden |
 |---|---|---|---|
-| model | `db/schema/<domain>/<name>.ts` | Drizzle `pgTable(...)` 表定义 + `xxxToDict()` 序列化 | 业务逻辑 |
-| schema | `modules/<domain>/<name>/schema.ts` | Zod 请求 schema、`EXPORT_FIELD_MAP` / `IMPORT_HEADER_MAP` | 数据库操作 |
-| repository | `modules/<domain>/<name>/repository.ts` | 纯 DB 读写（Drizzle 查询） | 业务逻辑、HTTP |
-| service | `modules/<domain>/<name>/service.ts` | 业务逻辑，出错抛 `ServiceError(message, status, payload)` | 碰 `reply` / `session` 等 HTTP 对象 |
-| routes | `modules/<domain>/<name>/routes.ts` | Fastify 路由 + 权限检查 + 调 service | 直接写 SQL |
-| 域装配 | `modules/<domain>/router.ts` | `await registerXxxRoutes(app)` | — |
-| 一级装配 | `src/router.ts` + `db/schema/index.ts` | 注册域 / 导出表 | — |
+| model | `db/schema/<domain>/<name>.ts` | Drizzle `pgTable(...)` table definition + `xxxToDict()` serialization | Business logic |
+| schema | `modules/<domain>/<name>/schema.ts` | Zod request schemas, `EXPORT_FIELD_MAP` / `IMPORT_HEADER_MAP` | Database access |
+| repository | `modules/<domain>/<name>/repository.ts` | Pure DB reads and writes (Drizzle queries) | Business logic, HTTP |
+| service | `modules/<domain>/<name>/service.ts` | Business logic; throws `ServiceError(message, status, payload)` on errors | Touching HTTP objects such as `reply` / `session` |
+| routes | `modules/<domain>/<name>/routes.ts` | Fastify routes + permission checks + calling the service | Writing SQL directly |
+| Domain assembly | `modules/<domain>/router.ts` | `await registerXxxRoutes(app)` | — |
+| Top-level assembly | `src/router.ts` + `db/schema/index.ts` | Register domains / export tables | — |
 
-路径别名：后端 `@/*` → `apps/api/src/*`（如 `@/common/auth`）；前端 `@` → `apps/web/src`（如 `@/shared/api/request`）。
+Path aliases: backend `@/*` → `apps/api/src/*` (e.g. `@/common/auth`); frontend `@` → `apps/web/src` (e.g. `@/shared/api/request`).
 
-**表定义写法（model 层）：**
+**Table definitions (model layer):**
 ```ts
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core'
 import { toIso } from '@/common/serialize'
@@ -210,7 +210,7 @@ import { createdAt, updatedAt } from '../columns'
 export const customers = pgTable('customers', {
   id: serial().primaryKey().notNull(),
   name: varchar({ length: 100 }).notNull(),
-  created_at: createdAt(),   // 应用侧默认 timezone('utc', now())，库里没有 DEFAULT
+  created_at: createdAt(),   // app-side default timezone('utc', now()); no DEFAULT in the database
   updated_at: updatedAt(),
 })
 
@@ -221,7 +221,7 @@ export function customerToDict(item: Customer) {
 }
 ```
 
-**路由写法（routes 层）：**
+**Routes (routes layer):**
 ```ts
 export async function registerCustomerRoutes(app: FastifyInstance): Promise<void> {
   const service = new CustomerService(app.db)
@@ -230,56 +230,56 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 }
 ```
 
-### API 路由规范
+### API route rules
 
 ```
-所有路由前缀：/api/admin/
-标准 CRUD（资源名用连字符复数，如 customer_order → /api/admin/customer-orders）：
-  GET    /api/admin/<resource>s              列表（page, per_page, search）→ { items, total, page, per_page }
-  POST   /api/admin/<resource>s              新建（201）
-  GET    /api/admin/<resource>s/<id>         详情（按需）
-  PUT    /api/admin/<resource>s/<id>         编辑
-  DELETE /api/admin/<resource>s/<id>         删除
-  POST   /api/admin/<resource>s/export       导出（responseType: blob）
-  GET    /api/admin/<resource>s/template     下载导入模板（file_type=csv|xlsx）
-  POST   /api/admin/<resource>s/import       导入（multipart/form-data，字段名 file）
-错误响应：{ error: string, ...payload }；5xx 一律「服务器内部错误，请稍后重试」
-输入问题一律 400：请求体用 Zod 声明（@/common/validation 的 field.*，路由里权限检查之后 parseBody / parsePatch），类型不对 →「<字段>的值无效」；
-  唯一 / 业务规则在 service 里校验并给出中文提示；形状不对（如该是对象却是数组）抛 invalidInput()（@/common/errors）；
-  事务 catch 里 throw writeError(err)（@/common/db-errors：业务错误原样、数据库拒绝的输入 400、其余 500）；
-  真正的服务器错误用 internalError(err)（@/common/errors），不要手写 new ServiceError(…, 500)（test/conventions.test.ts 检查）
+Prefix for every route: /api/admin/
+Standard CRUD (resource names are hyphenated plurals, e.g. customer_order → /api/admin/customer-orders):
+  GET    /api/admin/<resource>s              list (page, per_page, search) → { items, total, page, per_page }
+  POST   /api/admin/<resource>s              create (201)
+  GET    /api/admin/<resource>s/<id>         detail (when needed)
+  PUT    /api/admin/<resource>s/<id>         update
+  DELETE /api/admin/<resource>s/<id>         delete
+  POST   /api/admin/<resource>s/export       export (responseType: blob)
+  GET    /api/admin/<resource>s/template     download the import template (file_type=csv|xlsx)
+  POST   /api/admin/<resource>s/import       import (multipart/form-data, field name file)
+Error response: { error: string, ...payload }; every 5xx returns "服务器内部错误，请稍后重试" (internal server error, try again later)
+Every input problem is a 400: declare the request body with Zod (field.* from @/common/validation; in the route, parseBody / parsePatch after the permission check); a wrong type → "<label>的值无效" (<label> has an invalid value);
+  uniqueness / business rules are checked in the service, with a Chinese message; a wrong shape (e.g. an array where an object belongs) throws invalidInput() (@/common/errors);
+  in a transaction's catch, throw writeError(err) (@/common/db-errors: business errors pass through, input the database rejects becomes 400, everything else 500);
+  real server errors use internalError(err) (@/common/errors); never write new ServiceError(..., 500) by hand (checked by test/conventions.test.ts)
 ```
 
-- 带 id 的路由：路径用 `intParam('item_id')` 生成（只匹配数字），**先做权限检查（403）再 `service.getOr404(id)`（404）**：没有权限的人不能靠 404 / 403 的差别试探某个 id 是否存在；有权限但不在数据权限范围内的记录同样返回 404。`test/conventions.test.ts` 会检查所有路由、后端模板和 scaffold 生成的路由
-- 请求体：在 `schema.ts` 用 `z.object({ name: field.requiredText('名称', '名称不能为空'), sort_order: field.int('排序', 0), … })` 声明，路由在权限检查之后调用 `parseBody(schema, request.body)`（新建，缺省字段取默认值）/ `parsePatch(schema, request.body)`（编辑，只含请求里出现的字段），service 拿到的是已校验、有类型的值（样板：`modules/admin/dicts`）。`pnpm scaffold` 生成的模块也是这套写法（导入行经 `rowToBody` 转成请求体形状，走同一份声明）。只收 JSON 原生类型：文本是字符串（去首尾空白），整数是 number，布尔是 true / false，不做 `'1'` → 1 之类的隐式转换。需要登录或权限的路由不要用 `schema: { body }`——它在登录与权限检查之前执行，会把 401 / 403 变成 400（登录这类无需登录的接口可以用）
-- 用 JavaScript / Node 的标准做法：`JSON.stringify` / `JSON.parse`、`new URL()`、请求体用 Zod 声明（`common/validation.ts`），不要自己模仿其他语言或框架的行为（真值判断、字符串格式化、日期解析等）
-- 查询参数用 `queryString(request, key)`，分页用 `parsePagination(request.query)`；查询参数和导入单元格永远是文本，用 `@/common/validation` 的 `parseYesNo` / `parseIntText` / `parseNumberText` 解析
+- Routes with an id: build the path with `intParam('item_id')` (matches digits only). **Check permissions first (403), then `service.getOr404(id)` (404)**: someone without permission must not be able to probe whether an id exists through the 404 / 403 difference; records the user has permission for but that fall outside their data scope also return 404. `test/conventions.test.ts` checks every route, the backend templates and scaffold-generated routes
+- Request bodies: declare them in `schema.ts` with `z.object({ name: field.requiredText('名称', '名称不能为空'), sort_order: field.int('排序', 0), … })` (the arguments are the field's Chinese label and message: "name", "name must not be empty", "sort order"). After the permission check, the route calls `parseBody(schema, request.body)` (create; missing fields take their defaults) / `parsePatch(schema, request.body)` (update; only the fields present in the request), so the service receives validated, typed values (reference: `modules/admin/dicts`). Modules generated by `pnpm scaffold` use the same pattern (import rows are turned into request-body shape by `rowToBody` and go through the same declaration). Only native JSON types are accepted: text is a string (trimmed), integers are numbers, booleans are true / false; no implicit conversions like `'1'` → 1. Don't use `schema: { body }` on routes that require login or permissions: it runs before the login and permission checks and turns 401 / 403 into 400 (fine for endpoints that don't need login, such as login itself)
+- Use the standard JavaScript / Node way: `JSON.stringify` / `JSON.parse`, `new URL()`, request bodies declared with Zod (`common/validation.ts`); don't imitate the behavior of other languages or frameworks (truthiness, string formatting, date parsing, etc.)
+- Read query parameters with `queryString(request, key)` and pagination with `parsePagination(request.query)`; query parameters and import cells are always text, so parse them with `parseYesNo` / `parseIntText` / `parseNumberText` from `@/common/validation`
 
-### OpenAPI 编写规范
+### OpenAPI writing rules
 
-`docs/apifox-full.openapi.json` 是接口的唯一说明书：外部调用方、Apifox 和 **AI 小助手**（它靠这份文档找接口、决定传哪些字段）都只读它。每个已注册的 `/api` 路由 + 方法都必须有一份完整的文档，`test/openapi-doc.test.ts` 与 `pnpm verify` 的 `openapi_sync` 按下面的规则检查（实现：`apps/api/scripts/lib/openapi-lint.ts`），不合规即失败。
+`docs/apifox-full.openapi.json` is the single reference for the API: external callers, Apifox and the **AI assistant** (which uses this document to find endpoints and decide which fields to send) read only this file. Every registered `/api` route + method must have a complete entry. `test/openapi-doc.test.ts` and the `openapi_sync` step of `pnpm verify` check the rules below (implementation: `apps/api/scripts/lib/openapi-lint.ts`) and fail on any violation.
 
-| 项 | 要求 |
+| Item | Requirement |
 |---|---|
-| 路径键 | 与路由同名的 OpenAPI 写法：`intParam('user_id')` → `/api/admin/users/{user_id}`；一个路径只写一份；路径参数写成 `{x}`，不带类型前缀 |
-| 方法 | 小写（`get` / `post` / `put` / `patch` / `delete`） |
-| `summary` | 简短的中文动作：「新增部门」「部门列表」「导出公告」「下载导入模板」；不写方法和路径，不夹英文标识符（`创建users` 这类自动生成的不合格） |
-| `description` | 中文：所需权限（「需要 system_users_add」/「需要以下之一：…」/「登录即可」/「公开，无需登录」）、是否按数据权限过滤、值得知道的行为（副作用、事件、关键校验、404 的含义） |
-| `tags` + `x-apifox-folder` | 恰好一个标签，且已在文档顶层 `tags` 声明；系统管理类用「后台-<模块>」+「后台/系统管理/<模块>」，组件示例用「示例-<菜单名>」+「后台/组件示例中心/<菜单名>」 |
-| `security` | 需要登录：`[{ "cookieAuth": [] }, { "bearerAuth": [] }]`；拒绝 API Token 的接口（`API_TOKEN_DENIED`：账号安全、系统设置等）只写 `[{ "cookieAuth": [] }]`；公开接口：`[]` |
-| `parameters` | 每个路径参数（`in: path`、`required: true`、`schema`，`intParam` 的写 `integer`）；路由读取的每个查询参数（`schema` + 中文说明，取值受限的写 `enum`） |
-| `requestBody` | `post` / `put` / `patch` 读请求体时必须有 schema：每个字段的类型、中文说明、`enum` / `maxLength` / `minimum`，`required` 只列代码里真正会拒绝的字段；可空写 `["string", "null"]`；上传用 `multipart/form-data`，文件字段 `file`（`format: binary`）。不读请求体的写 `"x-no-body": true` |
-| `responses` | 真实的成功状态码（200 / 201 / 204），非 204 必须有 `content.schema`：列表 `{ items, total, page, per_page }`，单条为 `xxxToDict()` 的字段；文件下载写实际的媒体类型 + `format: binary`；列出可能的错误码（需要登录的接口必须有 401，另按实际写 400 / 403 / 404 / 413 / 429） |
+| Path key | The OpenAPI form of the route path: `intParam('user_id')` → `/api/admin/users/{user_id}`; one entry per path; path parameters are written `{x}` without a type prefix |
+| Method | Lowercase (`get` / `post` / `put` / `patch` / `delete`) |
+| `summary` | A short action in Chinese: `新增部门` (create department), `部门列表` (department list), `导出公告` (export announcements), `下载导入模板` (download import template); no method or path, no English identifiers mixed in (auto-generated ones like `创建users` don't pass) |
+| `description` | In Chinese: the required permission (`需要 system_users_add` / `需要以下之一：…` / `登录即可` / `公开，无需登录`, i.e. "requires system_users_add" / "requires one of: ..." / "any signed-in user" / "public, no login"), whether results are filtered by data scope, and behavior worth knowing (side effects, events, key validations, what a 404 means) |
+| `tags` + `x-apifox-folder` | Exactly one tag, declared in the document's top-level `tags`; system administration uses `后台-<module>` + `后台/系统管理/<module>`, the component gallery uses `示例-<menu name>` + `后台/组件示例中心/<menu name>` |
+| `security` | Login required: `[{ "cookieAuth": [] }, { "bearerAuth": [] }]`; endpoints that refuse API tokens (`API_TOKEN_DENIED`: account security, system settings, etc.) only `[{ "cookieAuth": [] }]`; public endpoints: `[]` |
+| `parameters` | Every path parameter (`in: path`, `required: true`, `schema`; `integer` for `intParam`); every query parameter the route reads (`schema` + a Chinese description; `enum` when the values are restricted) |
+| `requestBody` | Required for `post` / `put` / `patch` that read a body: each field's type, Chinese description, `enum` / `maxLength` / `minimum`; `required` lists only the fields the code actually rejects; nullable is `["string", "null"]`; uploads use `multipart/form-data` with the file field `file` (`format: binary`). Operations that don't read a body set `"x-no-body": true` |
+| `responses` | The real success status (200 / 201 / 204); anything but 204 needs `content.schema`: lists are `{ items, total, page, per_page }`, single records use the fields of `xxxToDict()`; file downloads use the actual media type + `format: binary`; list the possible error codes (401 is mandatory for endpoints that require login; add 400 / 403 / 404 / 413 / 429 as they actually occur) |
 
-- 只写代码里真实存在的字段和规则，不要编；拿不准就去读 `routes.ts` / `service.ts` / `schema.ts`
-- 参照写法：`/api/admin/departments`、`/api/admin/sessions`、`/api/admin/files` 下的条目
-- `pnpm scaffold` 生成模块时已按上表写好它的 8 个接口（`scripts/lib/scaffold-openapi.ts`），生成后直接合规；手改了生成的路由、字段或校验时同步改文档
-- 另外新增或修改路由后：`pnpm openapi:generate`（为缺文档的路由 + 方法补骨架）→ 按上表补全 → `pnpm openapi:generate -- --strict`（逐个列出不合规的接口和原因，全部合规才退出 0）
+- Document only fields and rules that really exist in the code, never invent them; when unsure, read `routes.ts` / `service.ts` / `schema.ts`
+- Reference entries: those under `/api/admin/departments`, `/api/admin/sessions` and `/api/admin/files`
+- `pnpm scaffold` already writes the module's 8 endpoints to this standard (`scripts/lib/scaffold-openapi.ts`), so they pass right after generation; when you hand-edit the generated routes, fields or validation, update the docs to match
+- After adding or changing any other route: `pnpm openapi:generate` (adds skeletons for undocumented route + method pairs) → complete them per the table above → `pnpm openapi:generate -- --strict` (lists every non-compliant endpoint with the reason; exits 0 only when all comply)
 
-### 权限检查规范
+### Permission checks
 
 ```ts
-// ✅ 正确
+// ✅ Correct
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 
 app.get('/api/admin/customers', { preHandler: loginRequired }, async (request, reply) => {
@@ -289,61 +289,65 @@ app.get('/api/admin/customers', { preHandler: loginRequired }, async (request, r
   ...
 })
 
-// 也可用 preHandler 形式：{ preHandler: [loginRequired, menuPermissionRequired('system_customer')] }
-// 多个编码任一满足：await hasAnyMenuPermission(request, 'a', 'b')
+// The preHandler form also works: { preHandler: [loginRequired, menuPermissionRequired('system_customer')] }
+// Any one of several codes: await hasAnyMenuPermission(request, 'a', 'b')
 
-// ❌ 禁止：routes.ts 内自定义权限函数
-function hasPermission(code: string) { ... }   // 绝对禁止（verify 的 no_local_has_permission 会拦截）
+// ❌ Forbidden: a custom permission function inside routes.ts
+function hasPermission(code: string) { ... }   // never do this (blocked by verify's no_local_has_permission)
 ```
 
-`hasMenuPermission` 是异步函数，第一个参数是 `request`（当前用户按请求缓存），忘记 `await` 会让判断恒为真。
+`hasMenuPermission` is async and takes `request` as its first argument (the current user is cached per request). Forgetting `await` makes the check always true.
 
-### 权限编码规则
+`'无权限'` above is the standard 403 message ("no permission").
+
+### Permission codes
 
 ```
-菜单权限：  <domain>_<resource>              system_users（admin 域前缀 system_，component_center 域前缀 cc_）
-按钮权限：  <domain>_<resource>_add          system_users_add
-           <domain>_<resource>_edit
-           <domain>_<resource>_delete
-           <domain>_<resource>_export        （标准列表页必有）
-           <domain>_<resource>_import        （标准列表页必有）
+Menu permission:    <domain>_<resource>              system_users (admin domain prefix system_, component_center domain prefix cc_)
+Button permissions: <domain>_<resource>_add          system_users_add
+                    <domain>_<resource>_edit
+                    <domain>_<resource>_delete
+                    <domain>_<resource>_export        (required on standard list pages)
+                    <domain>_<resource>_import        (required on standard list pages)
 ```
 
-> 组件示例中心的页面一律 `cc_<分组>_<页面>`（如 `cc_admin_kanban_page`），系统管理一律 `system_<页面>`；scaffold 生成的模块用它输出的 Perm prefix（`<域前缀>_<name>`）。
+> Component gallery pages always use `cc_<group>_<page>` (e.g. `cc_admin_kanban_page`), system administration always uses `system_<page>`; modules generated by scaffold use the Perm prefix it prints (`<domain prefix>_<name>`).
 
-### 新增域注册
+### Registering a new domain
 
-新增业务域时必须同时更新：
-1. `src/router.ts` — `await registerXxxRoutes(app)`（域内再建 `modules/<domain>/router.ts`）
+A new business domain must update both of:
+1. `src/router.ts` — `await registerXxxRoutes(app)` (and create `modules/<domain>/router.ts` inside the domain)
 2. `db/schema/index.ts` — `export * from './<domain>/<name>'`
 
-在已有域（admin / component_center）内新增模块时，`pnpm scaffold` 会自动完成两处注册（`db/schema/index.ts` + `modules/<domain>/router.ts`）；手写时照 `docs/templates/backend/README.md` 操作。
+When adding a module to an existing domain (admin / component_center), `pnpm scaffold` does both registrations automatically (`db/schema/index.ts` + `modules/<domain>/router.ts`); when writing by hand, follow `docs/templates/backend/README.md`.
 
-### 横切约定（详见 `docs/architecture.md`「横切约定」）
+### Cross-cutting conventions
 
-- **时间**：列是 `timestamp`（无时区）存 UTC，pg `timestamp`/`date` 保留文本不经过 JS `Date`；输出一律 `toIso()`（ISO 8601 UTC：`YYYY-MM-DDTHH:mm:ss.ffffffZ`，6 位小数 + `Z`）。请求里的时间用 `field.dateTime`：带时区（`Z` / `±HH:MM`）的换算成 UTC，不带时区的按 UTC。前端用 `@/lib/format` 按浏览器时区显示。给人看的时间按调用方时区：前端每个请求带 `X-Time-Zone`（浏览器的 IANA 时区），导出列里的时间用 `formatDateTime()`（`common/serialize.ts`，按当前请求的时区输出墙上时间），导入文件里的时间先 `withZoneOffset()`（`common/time-zone.ts`）再交给 `field.dateTime`；首页统计的「今天」也按这个时区算。**禁止** `Date#toISOString()`（只有毫秒）
-- **数值**：`numeric` 列保持字符串（如 `"12.50"`），`toDict()` 里不要 `parseFloat`
-- **请求校验**：请求 schema 一律宽松（`.passthrough()` / `z.record(...)` + 全可选），归一化逻辑在 service 里做；收紧校验是独立任务
-- **错误**：service 抛 `ServiceError`，全局错误处理器转成 `{ error, ...payload }`；`/api/*` 下 404/405/500 均返回 JSON
-- **操作日志**：由 logs 模块注册的全局 `onResponse` hook 集中写 `operation_logs`，不要在 service 里散写
-- **文件**：上传 / 存储统一走文件中心（`modules/admin/files` + `common/storage/`，驱动 `local` / `s3`，见 `STORAGE_*` 环境变量）。前端用 `@/shared/api/files` 的 `uploadFile` 和 `upload/*` 组件（表单里用 `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload`）；业务表里存文件 ID（或头像这类存 `/api/admin/files/<id>` 地址），写入时在同一事务里调用 `common/file-refs.ts` 的 `syncFileRefs(tx, 表名, 行 id, { 字段: 值 })`、删除时 `clearFileRefs`，否则文件会在上传 24 小时后被当作孤儿清理。scaffold 的 `file` / `image` 类型已自动处理
-- **数据权限**：角色的 `data_scope`（`all` / `dept_and_children` / `dept` / `self` / `custom`）决定能看到哪些行。routes 里 `await resolveDataScope(request)` 取范围，repository 里 `and(..., dataScopeWhere(scope, { deptColumn, ownerColumn }))` 过滤（repository 不碰 `request`）；超出范围的详情 / 修改 / 删除一律 404。受控模块在 `schema.ts` 导出 `DATA_SCOPE`，`verify` 的 `data_scope_filter` 会检查 repository 是否用了 `dataScopeWhere`。新模块需要时用 `pnpm scaffold ... --data-scope` 生成（加 `dept_id` / `created_by`，新建时写入 `currentActor`）。用户管理已接入（部门列 `dept_id`，本人列 `id`）
-- **CSRF**：`/api/*` 的写请求需带 `X-CSRF-Token`（前端 request.js 已自动处理），登录接口豁免
-- **API Token**：带 `Authorization: Bearer ck_…` 的请求由 `common/api-token.ts` 认证（不读 cookie、不校验 CSRF），`request.apiToken` 有值；`hasMenuPermission` 先比 token 的 scopes 再看超级管理员，所以业务代码照常用它即可。账号与安全类接口在 `API_TOKEN_DENIED` 里统一拒绝——新增这类接口（改密码、密钥、会话等）时要把路径加进去
-- **Webhook 事件**：service 在写操作的事务提交**之后**调用 `this.events?.emit('<模块>.created' | '.updated' | '.deleted', 数据)`（`created` / `updated` 发 `xxxToDict` 结果，`deleted` 发 `{ id }`），routes 里 `declareEvents({ ... })` 登记事件名与中文说明，构造 service 时传 `app.events`。`emit` 不会抛错，不要 `await` 它来决定业务结果。scaffold 生成的模块已自动处理
-- **公开演示（`DEMO_MODE`）**：`common/demo.ts` 的白名单之外的写请求一律 403——目前只放行登录 / 登出、`/api/admin/component-center/*`、上传文件（`POST /api/admin/files`，组件示例的图片 / 附件要用）、通知已读；新增的业务域在演示环境默认只读，需要演示可写时把路径加进 `DEMO_WRITABLE`，并在 `src/demo/fixtures.ts` 补示例数据（恢复逻辑见 `src/demo/reset.ts`）
+Details: docs/architecture.md "Cross-cutting conventions".
+
+- **Times**: columns are `timestamp` (without time zone) storing UTC; pg `timestamp`/`date` values stay as text and never go through JS `Date`; output always uses `toIso()` (ISO 8601 UTC: `YYYY-MM-DDTHH:mm:ss.ffffffZ`, 6 fractional digits + `Z`). Times in requests use `field.dateTime`: values with a zone (`Z` / `±HH:MM`) are converted to UTC, values without one are taken as UTC. The frontend displays times in the browser's time zone via `@/lib/format`. Times meant for people follow the caller's time zone: the frontend sends `X-Time-Zone` (the browser's IANA zone) with every request; time columns in exports use `formatDateTime()` (`common/serialize.ts`, which outputs wall-clock time in the current request's zone); times in import files go through `withZoneOffset()` (`common/time-zone.ts`) before `field.dateTime`; "today" in the home page statistics is also computed in this zone. **Never** use `Date#toISOString()` (milliseconds only)
+- **Numbers**: `numeric` columns stay strings (e.g. `"12.50"`); don't `parseFloat` them in `toDict()`
+- **Request validation**: request schemas are always lenient (`.passthrough()` / `z.record(...)` + everything optional); normalization happens in the service; tightening validation is a separate task
+- **Errors**: services throw `ServiceError`; the global error handler turns it into `{ error, ...payload }`; 404/405/500 under `/api/*` all return JSON
+- **Operation log**: written centrally to `operation_logs` by a global `onResponse` hook registered by the logs module; don't write log entries from services
+- **Files**: uploads and storage all go through the file center (`modules/admin/files` + `common/storage/`, drivers `local` / `s3`, see the `STORAGE_*` env vars). The frontend uses `uploadFile` from `@/shared/api/files` and the `upload/*` components (in forms, `FormFileUpload` / `FormImageUpload` / `FormAvatarUpload`). Business tables store the file ID (or, for things like avatars, the `/api/admin/files/<id>` URL). When writing, call `syncFileRefs(tx, tableName, rowId, { field: value })` from `common/file-refs.ts` in the same transaction, and `clearFileRefs` when deleting; otherwise the file is treated as an orphan and cleaned up 24 hours after upload. The scaffold's `file` / `image` types handle this automatically
+- **Data scope**: a role's `data_scope` (`all` / `dept_and_children` / `dept` / `self` / `custom`) decides which rows it can see. In routes, `await resolveDataScope(request)` gets the scope; in the repository, filter with `and(..., dataScopeWhere(scope, { deptColumn, ownerColumn }))` (the repository never touches `request`); detail / update / delete outside the scope always return 404. Scoped modules export `DATA_SCOPE` from `schema.ts`, and verify's `data_scope_filter` checks that the repository uses `dataScopeWhere`. New modules that need it are generated with `pnpm scaffold ... --data-scope` (adds `dept_id` / `created_by`, filled from `currentActor` on create). User management already uses it (department column `dept_id`, owner column `id`)
+- **CSRF**: write requests under `/api/*` must send `X-CSRF-Token` (the frontend's request.js handles this); the login endpoint is exempt
+- **API tokens**: requests with `Authorization: Bearer ck_…` are authenticated by `common/api-token.ts` (no cookie read, no CSRF check), and `request.apiToken` is set; `hasMenuPermission` checks the token's scopes before the super admin rule, so business code just uses it as usual. Account and security endpoints are refused centrally through `API_TOKEN_DENIED`; when you add such an endpoint (password change, secrets, sessions, etc.), add its path there
+- **Webhook events**: **after** a write's transaction commits, the service calls `this.events?.emit('<module>.created' | '.updated' | '.deleted', data)` (`created` / `updated` send the `xxxToDict` result, `deleted` sends `{ id }`); routes register event names with Chinese descriptions via `declareEvents({ ... })`, and pass `app.events` when constructing the service. `emit` never throws; don't `await` it to decide a business outcome. Scaffold-generated modules handle this automatically
+- **Public demo (`DEMO_MODE`)**: write requests outside the allowlist in `common/demo.ts` all get 403. Currently allowed: login / logout, `/api/admin/component-center/*`, file uploads (`POST /api/admin/files`, needed by the gallery's images / attachments), and marking notifications read. New business domains are read-only in the demo by default; to make one writable there, add its path to `DEMO_WRITABLE` and add sample data in `src/demo/fixtures.ts` (reset logic: `src/demo/reset.ts`)
 
 ---
 
-## 前端架构约定
+## Frontend conventions
 
-前端由动态路由（`App.jsx`）、API 层（`shared/api/request.js`）、`AuthContext`、`useCrudList` 与各页面组成；UI 体系见 `docs/frontend-design-system.md`：**shadcn/ui + Tailwind CSS v4 + motion + lucide-react**，语言为 JavaScript（JSX），文案中文。
+The frontend consists of dynamic routing (`App.jsx`), the API layer (`shared/api/request.js`), `AuthContext`, `useCrudList` and the pages. The UI system is described in `docs/frontend-design-system.md`: **shadcn/ui + Tailwind CSS v4 + motion + lucide-react**, written in JavaScript (JSX), with UI copy in Chinese (the i18n source key).
 
-### 动态路由机制
+### Dynamic routing
 
-`apps/web/src/App.jsx` 使用 `import.meta.glob('./modules/**/pages/**/index.jsx')` 扫描页面。
+`apps/web/src/App.jsx` scans pages with `import.meta.glob('./modules/**/pages/**/index.jsx')`.
 
-**菜单 `component` 字段格式：** `<module>/<subdir>/<page_name>`
+**Menu `component` field format:** `<module>/<subdir>/<page_name>`
 
 ```
 admin/users                              → modules/admin/pages/users/index.jsx
@@ -351,19 +355,19 @@ component_center/admin/list_page         → modules/component_center/pages/admi
 component_center/dataviz/dashboard_page  → modules/component_center/pages/dataviz/dashboard_page/index.jsx
 ```
 
-### 文件位置规则
+### File locations
 
 ```
-apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.jsx   ← 页面组件
-apps/web/src/modules/<module>/api/<page_name>.js                      ← API 调用层
+apps/web/src/modules/<module>/pages/<subdir>/<page_name>/index.jsx   ← page component
+apps/web/src/modules/<module>/api/<page_name>.js                      ← API call layer
 ```
 
-scaffold 生成位置：admin 域 → `pages/<name>/index.jsx`；component_center 域 → `pages/admin/<name>_page/index.jsx`。
+Where scaffold puts pages: admin domain → `pages/<name>/index.jsx`; component_center domain → `pages/admin/<name>_page/index.jsx`.
 
-### API 调用规范
+### Calling the API
 
 ```javascript
-// ✅ 必须使用共享 request 实例（vite 已配置 @ → src/ alias）
+// ✅ Always use the shared request instance (vite has the @ → src/ alias configured)
 import request from '@/shared/api/request'
 
 const BASE = '/admin/<resource>s'
@@ -373,12 +377,12 @@ export const createItem = (data) => request.post(BASE, data)
 export const updateItem = (id, data) => request.put(`${BASE}/${id}`, data)
 export const deleteItem = (id) => request.delete(`${BASE}/${id}`)
 
-// 导出（responseType: 'blob'）
+// Export (responseType: 'blob')
 export const exportItems = (data) => request.post(`${BASE}/export`, data, { responseType: 'blob' })
-// 下载导入模板
+// Download the import template
 export const downloadTemplate = (fileType = 'xlsx') =>
   request.get(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
-// 导入（multipart/form-data）
+// Import (multipart/form-data)
 export const importItems = (file) => {
   const formData = new FormData()
   formData.append('file', file)
@@ -386,390 +390,390 @@ export const importItems = (file) => {
 }
 ```
 
-- 响应拦截器已 unwrap：直接用 `res.items` / `res.total`，**不要** `res.data.items`
-- 401 自动跳转登录页；写请求自动带 CSRF 头
+- The response interceptor already unwraps: use `res.items` / `res.total` directly, **not** `res.data.items`
+- 401 redirects to the login page automatically; write requests carry the CSRF header automatically
 
-### UI 组件规范
+### UI components
 
-- **组件体系**：shadcn/ui 原子组件（`@/components/ui/*`，源码在仓库里，可按需改）+ 业务公共组件（`@/shared/components/*`）；图标只用 `lucide-react`
-- **只用** `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类；不引入其他 UI 组件库（antd、MUI 等）
-- **禁止**：页面里写死十六进制颜色（例外：canvas / WebGL 内部着色、图表数据色——图表先用 `useChartColors`）、大段 inline style 做布局、emoji 当图标
-- **参考实现**：`apps/web/src/modules/admin/pages/users/index.jsx`（标准 CRUD 列表页）、`apps/web/src/modules/admin/pages/dashboard/index.jsx`（卡片 / 图表 / 动效）、`apps/web/src/modules/admin/pages/profile/index.jsx`（表单页）；模板见 `docs/templates/frontend/`
-- **文档优先**：实现 shadcn 组件前先查 shadcn/ui 官方文档（https://ui.shadcn.com/docs/components ，有 shadcn MCP 时优先用它）；技能说明见 `.claude/skills/shadcn-ui-skills/SKILL.md`。文档与仓库现有实现冲突时以仓库为准（`components/ui` 里的组件可能已按本项目 tokens 调整过）
+- **Component system**: shadcn/ui primitives (`@/components/ui/*`; the source lives in the repo and can be changed as needed) + shared business components (`@/shared/components/*`); icons come only from `lucide-react`
+- **Use only** `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes; don't add other UI libraries (antd, MUI, etc.)
+- **Forbidden**: hard-coded hex colors in pages (exceptions: shading inside canvas / WebGL and chart data colors; for charts, try `useChartColors` first), large inline styles for layout, emoji as icons
+- **Reference implementations**: `apps/web/src/modules/admin/pages/users/index.jsx` (standard CRUD list page), `apps/web/src/modules/admin/pages/dashboard/index.jsx` (cards / charts / motion), `apps/web/src/modules/admin/pages/profile/index.jsx` (form page); templates in `docs/templates/frontend/`
+- **Docs first**: before implementing a shadcn component, check the official shadcn/ui docs (https://ui.shadcn.com/docs/components; prefer the shadcn MCP when available); the skill is at `.claude/skills/shadcn-ui-skills/SKILL.md`. When the docs conflict with the existing implementation in the repo, the repo wins (components in `components/ui` may have been adjusted to this project's tokens)
 
-**页面结构（列表页照 users 页）：**
+**Page structure (list pages follow the users page):**
 
 ```
-PageHeader（标题 + 右侧操作：导入 / 导出 outline，新增 variant="brand"，每页最多一个 brand 按钮；标题下不写功能介绍）
-→ FilterBar（SearchInput / FilterSelect，查询 + 重置）
-→ DataTable（分页 page/perPage/total、勾选 selectable、行操作 ghost 按钮 + ConfirmAction 删除）
-→ FormDialog / FormSheet（react-hook-form + FormFields，提交失败 toast.apiError 后 throw 保持弹窗）
-→ ImportDialog / ExportDialog（csv / xlsx）
-分区用 Panel；状态用 StatusBadge；空态用 EmptyState；反馈统一 toast（@/lib/toast）
+PageHeader (title + actions on the right: import / export as outline, create as variant="brand"; at most one brand button per page; no feature description under the title)
+→ FilterBar (SearchInput / FilterSelect, search + reset)
+→ DataTable (pagination page/perPage/total, selectable rows, row actions as ghost buttons + ConfirmAction for delete)
+→ FormDialog / FormSheet (react-hook-form + FormFields; on submit failure call toast.apiError, then throw to keep the dialog open)
+→ ImportDialog / ExportDialog (csv / xlsx)
+Sections use Panel; status uses StatusBadge; empty states use EmptyState; all feedback goes through toast (@/lib/toast)
 ```
 
-**公共组件速查（`apps/web/src/shared/components/`）：**
+**Shared components at a glance (`apps/web/src/shared/components/`):**
 
-| 组件 | 用途 |
+| Component | Purpose |
 |---|---|
-| `PageHeader` / `Panel` | 页头（title / actions；description 只放数据类信息，如「4 列 · 8 张卡片」）/ 卡片分区（`padded={false}` 贴边） |
-| `DataTable` + `DataPagination` | 列定义 `{ key, title, dataIndex, width, align, className, ellipsis, render(value, row, index) }`；`pagination={{ page, perPage, total, onChange }}`；`selectable` / `selectedKeys` / `onSelectionChange`；`loading` 骨架与空态内置 |
-| `Filters`：`FilterBar` / `SearchInput` / `FilterSelect` | 筛选栏；`FilterSelect` 的 `''` 表示全部；防抖用 `@/shared/hooks/useDebouncedValue` |
-| `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | 新建编辑弹窗 / 侧边抽屉 / 只读详情抽屉 / 键值列表 |
-| `FormFields`：`FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormCustom` / `FormGrid` | react-hook-form 字段：`<FormInput control={form.control} name="x" label="…" rules={{ required: '请输入…' }} />` |
-| `ConfirmAction` / `RowActions` | 危险操作二次确认（替代 Popconfirm）/ 行操作 |
-| `StatusBadge` | `tone`: neutral / brand / info / success / warning / danger，`dot`，`variant="plain"` |
-| `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | 空态 / 带滑动指示条的分段标签 / 树 / 指标卡 |
-| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | 值格式 `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
-| `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | 导入 / 导出弹窗（`open` / `onOpenChange`） |
-| `upload/FileUpload` / `upload/ImageUpload` | 上传（fileList 条目 `{ uid, name, url, status, response }`） |
+| `PageHeader` / `Panel` | Page header (title / actions; description only for data facts, such as `4 列 · 8 张卡片` ("4 columns · 8 cards")) / card section (`padded={false}` for edge-to-edge) |
+| `DataTable` + `DataPagination` | Column definition `{ key, title, dataIndex, width, align, className, ellipsis, render(value, row, index) }`; `pagination={{ page, perPage, total, onChange }}`; `selectable` / `selectedKeys` / `onSelectionChange`; `loading` skeleton and empty state built in |
+| `Filters`: `FilterBar` / `SearchInput` / `FilterSelect` | Filter bar; `''` in `FilterSelect` means all; debounce with `@/shared/hooks/useDebouncedValue` |
+| `FormDialog` / `FormSheet` / `DetailSheet` / `DescriptionList` | Create / edit dialog / side sheet / read-only detail sheet / key-value list |
+| `FormFields`: `FormInput` / `FormTextarea` / `FormNumber` / `FormSelect` / `FormMultiSelect` / `FormSwitch` / `FormRadioGroup` / `FormCheckboxGroup` / `FormDate` / `FormDateTime` / `FormTags` / `FormCustom` / `FormGrid` | react-hook-form fields: `<FormInput control={form.control} name="x" label="…" rules={{ required: '请输入…' }} />` (`请输入…` = "please enter ...") |
+| `ConfirmAction` / `RowActions` | Confirmation for dangerous actions (replaces Popconfirm) / row actions |
+| `StatusBadge` | `tone`: neutral / brand / info / success / warning / danger, `dot`, `variant="plain"` |
+| `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | Empty state / segmented tabs with a sliding indicator / tree / metric card |
+| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | Value format `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
+| `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | Import / export dialogs (`open` / `onOpenChange`) |
+| `upload/FileUpload` / `upload/ImageUpload` | Upload (fileList entries `{ uid, name, url, status, response }`) |
 
-lib：`@/lib/utils`（`cn`）、`@/lib/toast`（`toast.success / error / warning`、`toast.apiError(err, fallback)`）、`@/lib/format`（`formatDate / formatDateTime / formatNumber / formatRelative`）、`@/lib/motion`（`fadeUp / stagger / pageTransition / layoutSpring`）、`@/lib/chart-theme`（`useChartColors` 等，ECharts 必须用它取主题色）、`@/lib/menu-icons`。
+lib: `@/lib/utils` (`cn`), `@/lib/toast` (`toast.success / error / warning`, `toast.apiError(err, fallback)`), `@/lib/format` (`formatDate / formatDateTime / formatNumber / formatRelative`), `@/lib/motion` (`fadeUp / stagger / pageTransition / layoutSpring`), `@/lib/chart-theme` (`useChartColors` etc.; ECharts must take theme colors from it), `@/lib/menu-icons`.
 
-**字段类型 → 表单组件 / 表格列（scaffold 按此生成）：**
+**Field type → form component / table column (scaffold generates these):**
 
-| scaffold 类型 | 表单组件 | 表格列渲染 | 默认值 |
+| scaffold type | Form component | Table column rendering | Default |
 |---|---|---|---|
-| `str` / `str20` / `str50` / `str500` | `FormInput` | 原样 | `''` |
+| `str` / `str20` / `str50` / `str500` | `FormInput` | As is | `''` |
 | `text` | `FormTextarea` | `ellipsis: true` | `''` |
-| `int` / `float` | `FormNumber`（`step={1}` / `step={0.01}`） | 右对齐 + `tabular-nums` | `null` |
-| `bool` | `FormSwitch` | `StatusBadge`（是 / 否） | `false` |
-| `date` | `FormDate` | `formatDate` | `''`（编辑回填 `formatDate(v, '')`） |
-| `datetime` | `FormDateTime` | `formatDateTime` | `''`（编辑回填接口原值 `v ?? ''`，选择器按本地时区显示、提交带时区偏移的 ISO 时间） |
-| `file` / `image` | `FormFileUpload` / `FormImageUpload` | 「查看」链接 / 缩略图（`fileUrl(id)`） | `null` |
-| 枚举 / 状态（手写） | `FormSelect` / `FormRadioGroup` | `StatusBadge` + tone 映射 | - |
+| `int` / `float` | `FormNumber` (`step={1}` / `step={0.01}`) | Right-aligned + `tabular-nums` | `null` |
+| `bool` | `FormSwitch` | `StatusBadge` (是 / 否, yes / no) | `false` |
+| `date` | `FormDate` | `formatDate` | `''` (edit form fills `formatDate(v, '')`) |
+| `datetime` | `FormDateTime` | `formatDateTime` | `''` (edit form fills the API value as is, `v ?? ''`; the picker shows local time and submits an ISO time with a zone offset) |
+| `file` / `image` | `FormFileUpload` / `FormImageUpload` | "View" link / thumbnail (`fileUrl(id)`) | `null` |
+| Enum / status (hand-written) | `FormSelect` / `FormRadioGroup` | `StatusBadge` + tone mapping | - |
 
-**设计 tokens 与动效**（详见 `docs/frontend-design-system.md` §2）：
+**Design tokens and motion** (details: `docs/frontend-design-system.md` §2):
 
-- 颜色一律用语义类：`bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`；只用语义类，暗色模式（`<html class="dark">`）天然正确
-- 强调色可由用户在顶栏「外观设置」切换（预设见 `src/lib/appearance.js`，默认 Ocean；`index.css` 的 `[data-accent]` 预设只定义 `--brand-from/via/to`，`--primary`、`--ring`、图表色、`brand-soft/glow/shadow` 都由这三个派生）。页面里一律用 `primary` / `brand-*` 语义类，不要写死某个强调色，否则切换后不跟随。导航模式（侧边栏 / 顶部 / 混合）、侧边栏样式、内容宽度也在同一面板，由 `AppLayout` 处理，页面无需关心
-- 标签栏（默认开启，外观设置可关）：打开过的页面以标签保留，状态在 `src/context/TagsViewContext.jsx`。开启时每个标签页用 React `<Activity>` 保活：切走时页面 state（筛选、分页、表单输入）保留，但 effect 会被清理、切回时重新执行（`useEffect` 里的请求会重新拉一次数据，定时器 / 轮询 / WebSocket 在隐藏期间自动停止）。所以页面的副作用必须写在 effect 里并正确清理，不要在模块级或渲染中启动定时器
-- 中性灰为底，强调色（默认 Ocean 渐变 blue → sky → cyan）只做点缀：`bg-brand-gradient`（装饰）/ `bg-brand-gradient-strong`（承载白字）/ `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow`（只用于小块装饰，不铺在内容区大背景上，浅色下像污渍）；不用紫色
-- 间距用 Tailwind（`space-y-4` / `gap-4`），数字 `tabular-nums`；移动端（<768px）不能横向撑破（表格容器横向滚动）
-- 动效克制：交互 150–250ms ease-out；列表错峰入场、指示条 layoutId、数字滚动、弹层进出已由公共组件提供；`prefers-reduced-motion` 已全局处理
+- Colors always use semantic classes: `bg-background` / `bg-card` / `text-foreground` / `text-muted-foreground` / `border` / `bg-muted` / `text-primary` / `bg-brand-soft` / `text-success` / `bg-success-soft` / `text-warning` / `text-danger` / `bg-danger-soft` / `text-info`; with semantic classes only, dark mode (`<html class="dark">`) is correct for free
+- Users can switch the accent color under Appearance settings in the top bar (presets in `src/lib/appearance.js`, default Ocean; the `[data-accent]` presets in `index.css` only define `--brand-from/via/to`, and `--primary`, `--ring`, chart colors and `brand-soft/glow/shadow` are all derived from those three). Pages always use the `primary` / `brand-*` semantic classes; never hard-code a particular accent color, or it won't follow the switch. Navigation mode (sidebar / top / mixed), sidebar style and content width live in the same panel and are handled by `AppLayout`; pages don't need to care
+- Tab bar (on by default, can be turned off in Appearance settings): opened pages stay as tabs, with state in `src/context/TagsViewContext.jsx`. When it's on, each tab page is kept alive with React `<Activity>`: switching away keeps the page state (filters, pagination, form input), but effects are cleaned up and run again on return (requests in `useEffect` fetch again; timers / polling / WebSockets stop while hidden). So page side effects must live in effects with proper cleanup; never start timers at module level or during render
+- Neutral gray is the base; the accent (default Ocean gradient blue → sky → cyan) is only an accent: `bg-brand-gradient` (decoration) / `bg-brand-gradient-strong` (carries white text) / `text-brand-gradient` / `border-brand-gradient` / `shadow-brand` / `bg-brand-glow` (only for small decorations, never as a large background behind content; in light mode it looks like a stain); no purple
+- Spacing with Tailwind (`space-y-4` / `gap-4`), numbers with `tabular-nums`; on mobile (<768px) nothing may overflow horizontally (table containers scroll horizontally)
+- Restrained motion: interactions 150-250ms ease-out; staggered list entrances, layoutId indicators, number rolls and overlay enter / exit are already provided by the shared components; `prefers-reduced-motion` is handled globally
 
-**菜单图标**：`menus.icon` 存 lucide 图标名（如 `Users`、`Settings`），由 `apps/web/src/lib/menu-icons.js` 解析成 lucide 组件；新增菜单沿用映射表里已有的名字，需要新图标时在映射表补一条。
+**Menu icons**: `menus.icon` stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.js` resolves to a lucide component; new menus reuse names already in the mapping, and a new icon needs a new entry in the mapping.
 
-### 多语言（i18n）与代码注释
+### Internationalization (i18n) and code comments
 
-界面支持简体中文 / English / 日本語，**中文原文就是翻译 key**（设计见 `apps/web/src/i18n/index.js`、`apps/api/src/common/i18n.ts`）。
+The UI supports Simplified Chinese / English / Japanese, and **the Chinese source text is the translation key** (design in `apps/web/src/i18n/index.js` and `apps/api/src/common/i18n.ts`).
 
-- **前端**：`const { t } = useTranslation()`，写 `t('保存')`、`t('共 {{count}} 条', { count })`。英文 / 日文写在**页面目录下** `locales/en-US.json`、`locales/ja-JP.json`（「中文 → 译文」，两份 key 相同）；公共文案在 `src/locales/`，菜单名按菜单 code 在 `src/locales/menus/`。
-  - 传给公共组件的字符串属性（PageHeader / Panel 标题、DataTable 列 title、FormFields 的 label / placeholder / options / rules 文案、FilterSelect / SegmentedTabs / StatusBadge / StatCard / RowActions / ConfirmAction / FormDialog 等）由组件自动翻译，直接写中文、补译文即可；`toast.success('固定中文')` 也会自动翻译。
-  - 必须包 `t()`：JSX 里直接写的中文、原生元素的 aria-label / title / placeholder、带变量的文案（不要用中文模板字符串）、图表坐标轴 / 图例等其他显示渠道。
-  - 演示内容（示例数据、示例文档）不翻译，用 `// i18n-ignore-next-line` 或文件级 `i18n-ignore-file` 标出。
-  - 检查：`node apps/web/scripts/i18n-scan.mjs <目录>` 必须 0 问题（前端测试 `test/i18n.test.js` 会对全部页面执行）。
-- **后端**：继续抛中文报错（`new ServiceError('用户名已存在')`），响应钩子按请求头 `Accept-Language` 翻译 `error` / `message` / 导入错误行 `reason`；新增文案要在 `apps/api/src/i18n/messages.ts` 登记英日译文（带变量的放 `PATTERNS`），`test/i18n-messages.test.ts` 会拦下漏登记的。导入导出文件的表头保持中文。
-- **代码注释一律英文**（前端、后端、脚本、测试、scaffold 生成的代码）。界面文案仍写中文原文作为 key。
+- **Frontend**: `const { t } = useTranslation()`, then `t('保存')` ("Save") or `t('共 {{count}} 条', { count })` ("{{count}} items in total"). English / Japanese go in the **page's own directory**, `locales/en-US.json` and `locales/ja-JP.json` ("Chinese → translation"; both files have the same keys); shared copy lives in `src/locales/`, and menu names, keyed by menu code, in `src/locales/menus/`.
+  - String props passed to shared components (PageHeader / Panel titles, DataTable column titles, FormFields label / placeholder / options / rules messages, FilterSelect / SegmentedTabs / StatusBadge / StatCard / RowActions / ConfirmAction / FormDialog, etc.) are translated by the component: write the Chinese and add the translations. `toast.success('固定中文')` (a fixed Chinese string) is translated automatically too.
+  - Must be wrapped in `t()`: Chinese written directly in JSX, aria-label / title / placeholder on native elements, copy with variables (don't use Chinese template strings), and other display channels such as chart axes / legends.
+  - Demo content (sample data, sample documents) isn't translated; mark it with `// i18n-ignore-next-line` or the file-level `i18n-ignore-file`.
+  - Check: `node apps/web/scripts/i18n-scan.mjs <dir>` must report 0 problems (the frontend test `test/i18n.test.js` runs it on every page).
+- **Backend**: keep throwing Chinese errors (`new ServiceError('用户名已存在')`, "username already exists"); a response hook translates `error` / `message` / the `reason` of import error rows according to the `Accept-Language` request header. Register English and Japanese translations for new messages in `apps/api/src/i18n/messages.ts` (messages with variables go in `PATTERNS`); `test/i18n-messages.test.ts` catches missing ones. Headers in import / export files stay in Chinese.
+- **Code comments are always in English** (frontend, backend, scripts, tests, scaffold-generated code). UI copy is still written in Chinese as the key.
 
-### 新增 shadcn 原子组件
+### Adding shadcn/ui primitives
 
-组件源码直接进仓库（`apps/web/src/components/ui/`，配置 `apps/web/components.json`）。本机 shadcn CLI（node）直连 ui.shadcn.com 会失败，统一用中转脚本：
+Component source goes straight into the repo (`apps/web/src/components/ui/`, config `apps/web/components.json`). On this machine the shadcn CLI (node) can't reach ui.shadcn.com directly, so always use the relay script:
 
 ```bash
-apps/web/scripts/shadcn-add.sh hover-card           # 启动本地中转 → REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add … → 关闭中转
-apps/web/scripts/shadcn-add.sh --view badge         # 只查看 registry 内容，不写文件
-apps/web/scripts/shadcn-add.sh badge -o -y          # 覆盖已有文件（会丢掉本地改动，先确认）
+apps/web/scripts/shadcn-add.sh hover-card           # start a local relay → REGISTRY_URL=http://127.0.0.1:<port>/r npx shadcn@latest add ... → stop the relay
+apps/web/scripts/shadcn-add.sh --view badge         # only view the registry content, write no files
+apps/web/scripts/shadcn-add.sh badge -o -y          # overwrite existing files (loses local changes; confirm first)
 ```
 
-脚本会清掉 `HTTP(S)_PROXY` 再执行 CLI（npm 包下载仍经 `npm_config_proxy` 走原代理），并把 registry 源码里的 `import { cn } from "cn"` 改回 `@/lib/utils`、撤掉误装的 `cn` 包。新增后检查 `git diff apps/web/package.json`，并确认组件只用语义色类；聚焦样式改成项目统一的 `ring-2` + `ring-ring/20`（shadcn 默认的 `ring-[3px]` / `ring-ring/50` 太粗，`apps/web/test/focus-ring.test.js` 会拦截）。
+The script clears `HTTP(S)_PROXY` before running the CLI (npm package downloads still use the original proxy via `npm_config_proxy`), rewrites `import { cn } from "cn"` in the registry source back to `@/lib/utils`, and removes the `cn` package if it was installed by mistake. After adding, check `git diff apps/web/package.json` and make sure the component only uses semantic color classes; change focus styles to the project's `ring-2` + `ring-ring/20` (shadcn's default `ring-[3px]` / `ring-ring/50` is too heavy; `apps/web/test/focus-ring.test.js` catches it).
 
-### 新增 AI Elements 组件
+### Adding AI Elements components
 
-AI 界面用 Vercel 的 AI Elements（`apps/web/src/components/ai-elements/`，清单与用法见 `.claude/skills/shadcn-ui-skills/COMPONENTS.md`）。中转脚本只转发 ui.shadcn.com，所以先用 curl 把组件的 registry JSON 下载到本地，再把本地文件交给脚本（依赖的 shadcn 原子组件仍经中转解析；`yes n` 回答「不覆盖已有文件」，保住项目改过的 `components/ui/*`）：
+AI interfaces use Vercel's AI Elements (`apps/web/src/components/ai-elements/`; list and usage in `.claude/skills/shadcn-ui-skills/COMPONENTS.md`). The relay script only forwards ui.shadcn.com, so first download the component's registry JSON with curl, then pass the local file to the script (the shadcn primitives it depends on are still resolved through the relay; `yes n` answers "don't overwrite existing files", which protects the project's modified `components/ui/*`):
 
 ```bash
 curl -sSo /tmp/el-reasoning.json https://elements.ai-sdk.dev/api/registry/reasoning.json
 yes n | apps/web/scripts/shadcn-add.sh /tmp/el-reasoning.json -y
 ```
 
-CLI 会按 `components.json`（`tsx: false`）转成 JSX。装完检查新依赖体积（`npx vite build` 前后对比），组件里的英文文案改成 `t('中文')` 或由调用方传入；registry 里引用其他 AI Elements 组件的完整 URL 依赖也要先下载到本地再装。
+The CLI converts to JSX according to `components.json` (`tsx: false`). After installing, check the size of new dependencies (compare `npx vite build` before and after); change English copy in the components to `t('中文')` or have the caller pass it in; dependencies in the registry that point to other AI Elements components by full URL must also be downloaded locally before installing.
 
-### 纯前端页面（无后端 API）
+### Frontend-only pages (no backend API)
 
 ```
 component_center/creative/*
-component_center/devtools/websocket_page      （WebSocket /ws/devtools 由后端提供）
-component_center/devtools/perf_monitor_page   （指标来自 /ws/devtools）
+component_center/devtools/websocket_page      (WebSocket /ws/devtools is served by the backend)
+component_center/devtools/perf_monitor_page   (metrics come from /ws/devtools)
 component_center/dataviz/heatmap_page
 component_center/dataviz/realtime_chart_page
 ```
 
 ---
 
-## 导入导出规范
+## Import and export rules
 
-**后端**（`apps/api/src/common/tabular.ts`）
-- 支持格式：`SUPPORTED_TABLE_FILE_TYPES = ['csv', 'xlsx']`。**`.xls` 已不支持**：上传 `.xls` 返回 `400 {error:'不支持 .xls 格式，请另存为 .xlsx 后重新上传'}`；导出 / 模板的 `file_type=xls` 按默认值处理
-- 工具函数：
-  - `buildTable(headers, rows, baseFilename, fileType)` → 表格载荷（csv 带 BOM）；`sendTable(reply, table)` → 设置 `Content-Type` / `Content-Disposition` 并发送
-  - `readTableFile(file)` → `{ fieldnames, rows, fileType }`（rows 带行号，5MB 上限，csv 自动去 BOM）
-  - `normalizeTableFileType(raw, fallback)` → 标准化文件类型；`sanitizeFormula()` 做公式注入防护
-  - 上传文件用 `getUploadedFile(request)`（`@/common/http`）
-- 在 `modules/<domain>/<name>/schema.ts` 定义 `EXPORT_FIELD_MAP`（字段 → 中文表头，值取 toDict 的同名字段；需要转换时写成 `[中文表头, 取值函数]`，如枚举显示中文）和 `IMPORT_HEADER_MAP`（中文表头 → 字段）
-- 导入整批一个事务：有错误行时抛 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` 整体回滚
-- 路由：`POST /export`、`GET /template`、`POST /import`（挂在资源路径下）；权限编码：导出 `<perm>_export`，下载模板与导入都是 `<perm>_import`——不要用查看权限或 `_edit` 代替（能看的人不一定能导出，能编辑的人不一定能批量写入）
-- 日志（登录日志 / 操作日志）只能导出、不提供导入：审计记录不能被文件补写
-- 参考实现：`apps/api/src/modules/admin/users/`
+**Backend** (`apps/api/src/common/tabular.ts`)
+- Supported formats: `SUPPORTED_TABLE_FILE_TYPES = ['csv', 'xlsx']`. **`.xls` is not supported**: uploading `.xls` returns `400 {error:'不支持 .xls 格式，请另存为 .xlsx 后重新上传'}` (".xls isn't supported, save as .xlsx and upload again"); `file_type=xls` for export / template falls back to the default
+- Helpers:
+  - `buildTable(headers, rows, baseFilename, fileType)` → table payload (csv with BOM); `sendTable(reply, table)` → sets `Content-Type` / `Content-Disposition` and sends it
+  - `readTableFile(file)` → `{ fieldnames, rows, fileType }` (rows carry line numbers, 5MB cap, csv BOM stripped automatically)
+  - `normalizeTableFileType(raw, fallback)` → normalizes the file type; `sanitizeFormula()` guards against formula injection
+  - Read uploaded files with `getUploadedFile(request)` (`@/common/http`)
+- In `modules/<domain>/<name>/schema.ts`, define `EXPORT_FIELD_MAP` (field → Chinese header; the value comes from the same-named field of toDict; when it needs converting, write `[Chinese header, getter function]`, e.g. to show an enum's Chinese label) and `IMPORT_HEADER_MAP` (Chinese header → field)
+- An import is one transaction for the whole batch: if any row has errors, throw `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` ("import failed, some rows have errors") and roll everything back
+- Routes: `POST /export`, `GET /template`, `POST /import` (under the resource path); permission codes: export is `<perm>_export`, template download and import are both `<perm>_import`. Don't substitute the view permission or `_edit` (someone who can view can't necessarily export, and someone who can edit can't necessarily write in bulk)
+- Logs (login log / operation log) can only be exported, never imported: audit records must not be written from files
+- Reference implementation: `apps/api/src/modules/admin/users/`
 
-**前端**
-- 导出弹窗：`@/shared/components/data-transfer/ExportDialog`（`open` / `onOpenChange` / `fieldOptions` / `ruleHint` / `onConfirm({ fields, fileType })`）
-- 导入弹窗：`@/shared/components/data-transfer/ImportDialog`（`onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)`；格式只有 CSV / XLSX，错误行可下载）
-- 下载：`import { downloadBlobFile } from '@/shared/utils/file'`
-- 参考实现：`apps/web/src/modules/admin/pages/users/index.jsx`（勾选优先导出 + 模板下载 + 导入结果提示）
+**Frontend**
+- Export dialog: `@/shared/components/data-transfer/ExportDialog` (`open` / `onOpenChange` / `fieldOptions` / `ruleHint` / `onConfirm({ fields, fileType })`)
+- Import dialog: `@/shared/components/data-transfer/ImportDialog` (`onDownloadTemplate(fileType)` / `onImport(file)` / `onImported(res)`; CSV / XLSX only; error rows can be downloaded)
+- Download: `import { downloadBlobFile } from '@/shared/utils/file'`
+- Reference implementation: `apps/web/src/modules/admin/pages/users/index.jsx` (exports the selected rows first + template download + import result message)
 
 ---
 
-## RBAC 约定
+## RBAC conventions
 
-### 数据结构
-
-```
-menus 表：
-  menu_type = 'menu'    → 页面菜单（显示在侧边栏）
-  menu_type = 'button'  → 按钮权限（不显示在侧边栏）
-
-role_menus：角色-菜单 多对多（复合主键）
-user_roles：用户-角色 多对多（复合主键）
-```
-
-### 超级管理员
-
-`code = 'super_admin'` 的角色拥有所有权限：`hasMenuPermission` 直接放行；`seed-rbac` 每次都会把全部菜单授予它。注意 `GET /api/admin/my-menus` 没有 super_admin 短路，按角色实际授予的菜单返回。
-
-保护（roles / users service 里强制，界面同步禁用）：超级管理员角色不能删除、编码不能改、数据范围固定 `all`、菜单固定全部；只有超级管理员能授予 / 移除这个角色、能编辑 / 停用 / 删除超级管理员账号；不能移除自己的这个角色；最后一个启用中的超级管理员不能被停用 / 删除 / 移除角色。锁死后的恢复：`pnpm seed:rbac -- --incremental` 会重建角色并把 `admin` 挂回去。
-
-### 菜单变更流程
-
-1. 在 `apps/api/scripts/seed-rbac.ts` 的 `MENUS_DATA`（唯一事实源）中添加 / 修改菜单条目和按钮权限
-2. 运行 `pnpm seed:rbac -- --incremental`
-3. `--incremental` 按 `code` upsert，只新增 / 更新、**不删除**已有记录，并刷新超级管理员权限；插入后同步 `menus` 序列
-4. 删除菜单需手动执行 SQL：`DELETE FROM menus WHERE id = xxx`
-5. **不带 `--incremental` 是全量重建**（清空 user_roles / role_menus / admin_users / roles / menus），只用于空库初始化
-
-### 菜单 ID 分配规则
+### Data model
 
 ```
-系统管理分组（parent_id=2）：  ID 201-209（组织权限 201 / 安全审计 202 / 系统配置 203 / 内容消息 204）
-系统管理页面（parent_id=分组）：ID 21-39；新页面从 2001 开始（页面挂在分组下，不直接挂 2）
-组件示例中心（parent_id=3）：  ID 40-499
-  管理系统（parent_id=40）：   ID 401-409
-  数据可视化（parent_id=41）： ID 411-419
-  3D/创意（parent_id=42）：    ID 421-429
-  AI 应用（parent_id=44）：    ID 441-449
-  编辑器（parent_id=45）：     ID 451-459
-  工具类（parent_id=46）：     ID 461-469
-新业务域菜单：                  从 1000 开始（ID 1000 = 「业务管理」目录 code `biz`，scaffold --spec 第一次登记菜单时创建；生成的模块 1001–1999，按钮 = ID × 10 + 1…5）
+menus table:
+  menu_type = 'menu'    → page menu (shown in the sidebar)
+  menu_type = 'button'  → button permission (not shown in the sidebar)
+
+role_menus: role-menu many-to-many (composite primary key)
+user_roles: user-role many-to-many (composite primary key)
 ```
 
-> **取 ID 前先查实际占用**，不要按「区间里的下一个数」推算：
+### Super admin
+
+The role with `code = 'super_admin'` has every permission: `hasMenuPermission` lets it through directly, and `seed-rbac` grants it all menus on every run. Note that `GET /api/admin/my-menus` has no super_admin shortcut; it returns the menus actually granted to the roles.
+
+Protections (enforced in the roles / users services, with the UI disabled to match): the super admin role can't be deleted, its code can't change, its data scope is fixed at `all` and its menus are fixed at all; only super admins can grant / remove this role and edit / disable / delete super admin accounts; you can't remove this role from yourself; the last enabled super admin can't be disabled / deleted / lose the role. Recovery after a lockout: `pnpm seed:rbac -- --incremental` rebuilds the role and attaches it to `admin` again.
+
+### Changing menus
+
+1. Add / change the menu entries and button permissions in `MENUS_DATA` (the single source of truth) in `apps/api/scripts/seed-rbac.ts`
+2. Run `pnpm seed:rbac -- --incremental`
+3. `--incremental` upserts by `code`: it only inserts / updates, **never deletes** existing records, and refreshes the super admin's permissions; after inserting it syncs the `menus` sequence
+4. Deleting a menu takes manual SQL: `DELETE FROM menus WHERE id = xxx`
+5. **Without `--incremental` it's a full rebuild** (clears user_roles / role_menus / admin_users / roles / menus); use it only to initialize an empty database
+
+### Menu ID allocation
+
+```
+System groups (parent_id=2):                  ID 201-209 (组织权限 [Organization] 201 / 安全审计 [Security & Audit] 202 / 系统配置 [Configuration] 203 / 内容消息 [Content & Messages] 204)
+System pages (parent_id=its group):           ID 21-39; new pages start at 2001 (pages hang under a group, never directly under 2)
+Component gallery (parent_id=3):              ID 40-499
+  管理系统 [Admin Pages] (parent_id=40):          ID 401-409
+  数据可视化 [Data Visualization] (parent_id=41): ID 411-419
+  3D/创意 [3D / Creative] (parent_id=42):         ID 421-429
+  AI 应用 [AI Apps] (parent_id=44):               ID 441-449
+  编辑器 [Editors] (parent_id=45):                ID 451-459
+  工具类 [Engineering Tools] (parent_id=46):      ID 461-469
+New business domain menus:                    from 1000 (ID 1000 = the 业务管理 [Business] directory, code `biz`, created the first time scaffold --spec registers a menu; generated modules 1001-1999, buttons = ID × 10 + 1...5)
+```
+
+> **Check which IDs are actually taken before picking one**; don't assume "the next number in the range":
 > ```bash
 > grep -oE "id: [0-9]+" apps/api/scripts/seed-rbac.ts | awk '{print $2}' | sort -n | uniq
 > ```
 
-> 新菜单严格遵循上述区间。按钮权限 ID 在 `MENUS_DATA` 中写死，规则为「菜单 ID × 10 + 序号」（如用户管理 21 → 211 新增 / 212 编辑 / 213 删除 / 214 导出 / 215 导入 / 216 启用停用；拖拽看板 401 → 4011…）。
+> New menus stay strictly within the ranges above. Button permission IDs are hard-coded in `MENUS_DATA` as "menu ID × 10 + sequence number" (e.g. 用户管理 (Users) 21 → 211 add / 212 edit / 213 delete / 214 export / 215 import / 216 enable-disable; kanban board 401 → 4011...).
 
 ---
 
-## 字段类型推断规则
+## Field type inference
 
-AI 根据业务描述自动推断，**无需 PM 指定技术类型**。scaffold 类型键用于 `pnpm scaffold -- --fields "name:str,phone:str20"`；Drizzle 写法用于 `db/schema/<domain>/<name>.ts`（映射见 `apps/api/scripts/scaffold.ts` 的 `FIELD_TYPE_MAP`）。
+AI infers types from the business description; **the PM never specifies technical types**. The scaffold type keys are for `pnpm scaffold -- --fields "name:str,phone:str20"`; the Drizzle column is what goes in `db/schema/<domain>/<name>.ts` (mapping: `FIELD_TYPE_MAP` in `apps/api/scripts/scaffold.ts`).
 
-| 业务描述关键词 | scaffold 类型 | Drizzle 写法 | 备注 |
+| Keywords in the business description | scaffold type | Drizzle column | Notes |
 |---|---|---|---|
-| 名称、标题、姓名、名字 | `str` | `varchar({ length: 100 })` | - |
-| 编码、代码、code、编号 | `str50` | `varchar({ length: 50 })` | - |
-| 描述、备注、简介、说明 | `text` | `text()` | - |
-| 手机、电话、phone | `str20` | `varchar({ length: 20 })` | - |
-| 邮箱、email | `str` | `varchar({ length: 100 })` | - |
-| 状态、类型、等级（选项固定） | `enum`（spec 写 `options`） | `varchar({ length: 50 })` | 存英文值、显示中文；只用 `--fields` 时退回 `str20` |
-| 分类、来源、行业（选项会增减） | `dict`（spec 写 `dict` 字典编码） | `varchar({ length: 100 })` | 选项在「数据字典」里维护 |
-| 金额、价格、费用、成本 | `float` | `numeric({ precision: 10, scale: 2 })` | 输出为字符串 |
-| 数量、次数、个数 | `int` | `integer()` | - |
-| 进度、百分比、完成度 | `int` | `integer()` | 0-100 |
-| 日期（无时间） | `date` | `date({ mode: 'string' })` | `YYYY-MM-DD` 文本 |
-| 时间 | `datetime` | `timestamp({ mode: 'string' })` | 输出走 `toIso()` |
-| 创建时间、更新时间 | （自动） | `createdAt()` / `updatedAt()` | scaffold 自动添加 |
-| 是否、启用、禁用、开关 | `bool` | `boolean()` | 手写时加 `.$default(() => true)` |
-| 排序、权重、优先级数字 | `int` | `integer()` | 手写时加 `.$default(() => 0)` |
-| 颜色、color | `str20` | `varchar({ length: 20 })` | - |
-| URL、链接、地址（外部） | `str500` | `varchar({ length: 500 })` | - |
-| 图片、头像、封面、照片 | `image` | `varchar({ length: 36 })` | 存文件中心的文件 ID，保存时自动登记引用 |
-| 附件、文件、合同、扫描件 | `file` | `varchar({ length: 36 })` | 同上 |
-| 内容、正文、详情 | `text` | `text()` | 富文本 |
-| 标签、tags | `text` | `text()` | JSON 字符串 |
+| name, title, person's name (名称, 标题, 姓名, 名字) | `str` | `varchar({ length: 100 })` | - |
+| code, number/ID (编码, 代码, code, 编号) | `str50` | `varchar({ length: 50 })` | - |
+| description, remarks, summary, notes (描述, 备注, 简介, 说明) | `text` | `text()` | - |
+| mobile, phone (手机, 电话, phone) | `str20` | `varchar({ length: 20 })` | - |
+| email (邮箱, email) | `str` | `varchar({ length: 100 })` | - |
+| status, type, level with fixed options (状态, 类型, 等级) | `enum` (`options` in the spec) | `varchar({ length: 50 })` | Stores the English value, shows the Chinese label; falls back to `str20` with `--fields` only |
+| category, source, industry with changing options (分类, 来源, 行业) | `dict` (`dict` dictionary code in the spec) | `varchar({ length: 100 })` | Options are maintained in 数据字典 (Dictionaries) |
+| amount, price, fee, cost (金额, 价格, 费用, 成本) | `float` | `numeric({ precision: 10, scale: 2 })` | Output as a string |
+| quantity, count, number of (数量, 次数, 个数) | `int` | `integer()` | - |
+| progress, percentage, completion (进度, 百分比, 完成度) | `int` | `integer()` | 0-100 |
+| date without time (日期) | `date` | `date({ mode: 'string' })` | `YYYY-MM-DD` text |
+| time (时间) | `datetime` | `timestamp({ mode: 'string' })` | Output via `toIso()` |
+| created at, updated at (创建时间, 更新时间) | (automatic) | `createdAt()` / `updatedAt()` | Added by scaffold automatically |
+| whether, enabled, disabled, switch (是否, 启用, 禁用, 开关) | `bool` | `boolean()` | Add `.$default(() => true)` when writing by hand |
+| sort order, weight, numeric priority (排序, 权重, 优先级数字) | `int` | `integer()` | Add `.$default(() => 0)` when writing by hand |
+| color (颜色, color) | `str20` | `varchar({ length: 20 })` | - |
+| URL, link, external address (URL, 链接, 地址) | `str500` | `varchar({ length: 500 })` | - |
+| image, avatar, cover, photo (图片, 头像, 封面, 照片) | `image` | `varchar({ length: 36 })` | Stores the file center's file ID; the reference is registered automatically on save |
+| attachment, file, contract, scan (附件, 文件, 合同, 扫描件) | `file` | `varchar({ length: 36 })` | Same as above |
+| content, body, details (内容, 正文, 详情) | `text` | `text()` | Rich text |
+| tags (标签, tags) | `text` | `text()` | JSON string |
 
-**scaffold 优先用 `--spec`**（详见 `new-feature-autopilot` 技能 4a）：把推断出的规格写成 JSON 文件，`pnpm scaffold -- --spec <文件>` 一次生成中文标题 / 标签、必填、唯一、默认值、固定选项（`enum`，存英文值显示中文）、数据字典（`dict`）和菜单（`menu`：自动写进 `seed-rbac.ts` 的「业务管理」目录与菜单译文），生成的接口测试多一条字段规则用例；spec 先经 `validateSpec` 校验（中文 `title` 与字段 `label` 必填，拼错的属性名直接报错，字段名、类型、选项、字典、默认值与类型是否匹配，标题 / 标签不能含引号、花括号、尖括号等）；`--validate-only` 只校验不生成；格式见 `docs/spec.schema.json`（由 `pnpm scaffold -- --write-schema` 从脚手架代码生成），示例见 `docs/examples/specs/`。只用 `--fields` 时没有这些，标签是英文占位。表名在资源名后固定加 `s`。scaffold 同时生成接口基础测试 `apps/api/test/<admin|cc>-<name>.test.ts`，加业务规则后要同步维护。
-
----
-
-## 反模式清单（❌ 禁止）
-
-```
-❌ routes.ts 内自定义 hasPermission()（必须 import 自 @/common/auth）
-❌ routes.ts 内直接调用 db.select()/sql``（必须经 repository）
-❌ db/schema 内写业务逻辑（只放 pgTable + toDict）
-❌ 直接 Date#toISOString() 输出时间（必须用 @/common/serialize 的 toIso）
-❌ toDict() 里把 numeric 转成数字（保持字符串）
-❌ 前端引入其他 UI 组件库（antd、MUI 等）：只用 @/components/ui/*、@/shared/components/*、lucide-react 与 Tailwind 语义色类
-❌ 前端写死十六进制颜色、大段 inline style 布局（用 Tailwind 语义类）
-❌ 页面各写一套表格 / 弹窗 / 确认框（必须复用 DataTable / FormDialog / ConfirmAction / ImportDialog / ExportDialog）
-❌ 前端用 fetch/XMLHttpRequest 写请求（必须用 @/shared/api/request）
-❌ 硬编码菜单 ID（先查菜单树取下一个可用 ID）
-❌ 新增域不在 src/router.ts + db/schema/index.ts 注册
-❌ 迁移 SQL 手写而不经 drizzle-kit generate（破坏 journal 链）
-❌ 迁移只生成不落库，或不用 psql \d 实证就声明完成
-❌ 跳过 verify-feature 门禁直接声明完成
-❌ 新接口只留 openapi:generate 生成的骨架，或 summary / 字段是编的（按「OpenAPI 编写规范」照代码写）
-❌ 前端页面不放在 modules/<module>/pages/<subdir>/<page>/index.jsx（动态路由失效）
-❌ 在导入导出里重新支持 .xls（已决定只支持 csv / xlsx）
-❌ 向 PM 询问路由路径、权限编码、字段类型等技术细节（AI 应自行推断）
-```
+**Prefer `--spec` for scaffold** (see step 4a of the `new-feature-autopilot` skill): write the inferred spec as a JSON file, and `pnpm scaffold -- --spec <file>` generates in one run the Chinese title / labels, required, unique, defaults, fixed options (`enum`, stores the English value and shows the Chinese label), data dictionaries (`dict`) and the menu (`menu`: written automatically into the 业务管理 (Business) directory in `seed-rbac.ts`, with menu translations); the generated API test gets an extra field-rules case. The spec is first checked by `validateSpec` (the Chinese `title` and each field's `label` are required; misspelled property names are errors; it checks field names, types, options, dictionaries, and whether defaults match their types; titles / labels can't contain quotes, braces, angle brackets and the like). `--validate-only` validates without generating. The format is `docs/spec.schema.json` (generated from the scaffold code by `pnpm scaffold -- --write-schema`); examples are in `docs/examples/specs/`. With `--fields` alone you get none of this, and labels are English placeholders. The table name is always the resource name plus `s`. Scaffold also generates the basic API test `apps/api/test/<admin|cc>-<name>.test.ts`; keep it up to date when you add business rules.
 
 ---
 
-## 交付流程（每次新功能严格执行）
+## Anti-patterns (❌ forbidden)
 
 ```
-Step 1  读取上下文
-        → 阅读本文件（AGENTS.md）
-        → 阅读 docs/templates/ 中的代码骨架模板（backend/README.md 有替换规则）
-        → 查看现有相似模块了解命名规范（后端参考 modules/admin/users/，前端参考 apps/web/src/modules/admin/pages/users/index.jsx）
-        → 查询当前菜单树（apps/api/scripts/seed-rbac.ts 的 MENUS_DATA），确定 parent_id 和下一个可用 ID
+❌ A custom hasPermission() inside routes.ts (always import from @/common/auth)
+❌ Calling db.select()/sql`` directly inside routes.ts (always go through the repository)
+❌ Business logic in db/schema (only pgTable + toDict)
+❌ Outputting times with Date#toISOString() directly (always use toIso from @/common/serialize)
+❌ Converting numeric to a number in toDict() (keep it a string)
+❌ Adding other UI libraries to the frontend (antd, MUI, etc.): use only @/components/ui/*, @/shared/components/*, lucide-react and Tailwind semantic color classes
+❌ Hard-coded hex colors or large inline-style layouts in the frontend (use Tailwind semantic classes)
+❌ Each page writing its own table / dialog / confirmation (always reuse DataTable / FormDialog / ConfirmAction / ImportDialog / ExportDialog)
+❌ Frontend requests via fetch/XMLHttpRequest (always use @/shared/api/request)
+❌ Hard-coded menu IDs (check the menu tree for the next free ID first)
+❌ A new domain not registered in src/router.ts + db/schema/index.ts
+❌ Hand-written migration SQL instead of drizzle-kit generate (breaks the journal chain)
+❌ A migration generated but not applied, or declared done without confirming with psql \d
+❌ Declaring done without passing the verify-feature gate
+❌ New endpoints left with only the openapi:generate skeleton, or with an invented summary / fields (write them from the code per "OpenAPI writing rules")
+❌ Frontend pages not placed at modules/<module>/pages/<subdir>/<page>/index.jsx (dynamic routing won't find them)
+❌ Re-adding .xls support to import / export (decided: csv / xlsx only)
+❌ Asking the PM about technical details such as route paths, permission codes or field types (AI infers them)
+```
 
-Step 2  生成内部 Spec（AI 内部文档，PM 不直接看）
-        → 推断：API 路径、字段类型与长度、权限编码、文件路径、菜单 ID、迁移名称
+---
 
-Step 3  展示业务预览（给 PM 确认）
-        仅展示业务层面信息：
-        · 功能名称和位置（在哪个菜单下）
-        · 字段列表（中文名，必填标注）
-        · 可执行操作（增删改查、导入导出等）
-        · 等待确认或调整；如有调整回到 Step 2
+## Delivery process (every new feature)
 
-Step 4  执行实现
+```
+Step 1  Read the context
+        → Read this file (AGENTS.md)
+        → Read the code skeleton templates in docs/templates/ (backend/README.md has the substitution rules)
+        → Look at similar existing modules for naming (backend: modules/admin/users/, frontend: apps/web/src/modules/admin/pages/users/index.jsx)
+        → Check the current menu tree (MENUS_DATA in apps/api/scripts/seed-rbac.ts) to pick the parent_id and the next free ID
+
+Step 2  Write the internal spec (an AI-internal document; the PM doesn't read it)
+        → Infer: API paths, field types and lengths, permission codes, file paths, menu IDs, migration name
+
+Step 3  Show the business preview (for the PM to confirm)
+        Show business-level information only:
+        · Feature name and location (which menu it lives under)
+        · Field list (Chinese names, required fields marked)
+        · Available actions (create / read / update / delete, import / export, etc.)
+        · Wait for confirmation or changes; on changes, go back to Step 2
+
+Step 4  Implement
         → pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."
-          （生成 db/schema + modules 四个文件 + 前端 api/页面，自动注册 router.ts 与 db/schema/index.ts，
-            并自动执行 drizzle-kit generate --name <name> 生成迁移）
-        → 按 db/schema → schema → repository → service → routes 顺序填充业务逻辑与中文表头
-        → 若之后又改了表结构：pnpm db:generate --name <描述>（注意这里没有 --）
-        → 在 seed-rbac.ts 添加菜单 + 按钮权限（_add/_edit/_delete/_export/_import），运行 pnpm seed:rbac -- --incremental
-        → 审查 apps/api/drizzle/ 下新生成的 SQL，运行 pnpm db:migrate
-        → 在本文件「当前菜单树」补上新菜单
-        → 接口文档：scaffold 已写好模块的 8 个接口；手改了生成的路由 / 字段 / 校验或新增了路由时，照代码同步修改（新增路由先 pnpm openapi:generate 补骨架），
-          pnpm openapi:generate -- --strict 通过（必须项：verify 的 openapi_sync 与 API 测试都会拦截）
+          (generates db/schema + the four module files + the frontend api/page, registers router.ts and db/schema/index.ts automatically,
+            and runs drizzle-kit generate --name <name> to create the migration)
+        → Fill in the business logic and Chinese headers in the order db/schema → schema → repository → service → routes
+        → If you change the table structure afterwards: pnpm db:generate --name <description> (note: no -- here)
+        → Add the menu + button permissions (_add/_edit/_delete/_export/_import) to seed-rbac.ts and run pnpm seed:rbac -- --incremental
+        → Review the newly generated SQL under apps/api/drizzle/ and run pnpm db:migrate
+        → Add the new menu to "Current menu tree" in this file
+        → API docs: scaffold has already written the module's 8 endpoints; if you hand-edited the generated routes / fields / validation or added routes, update the docs from the code (for new routes, run pnpm openapi:generate first to add skeletons),
+          until pnpm openapi:generate -- --strict passes (mandatory: verify's openapi_sync and the API tests both block on it)
 
-Step 5  验证门禁（强制，不得跳过）
-        → pnpm verify -- --module <name>（含前端构建与前后端单元测试；调试中途可 --skip-build / --skip-api-tests）
-        → 如有失败项，自动修复后重新验证
-        → 全部通过后输出交付报告
+Step 5  Verification gate (mandatory, never skip)
+        → pnpm verify -- --module <name> (includes the frontend build and frontend + backend unit tests; while debugging you can use --skip-build / --skip-api-tests)
+        → If anything fails, fix it and verify again
+        → Once everything passes, output the delivery report
 ```
 
-> **迁移必须落库（强制）**：生成 / 修改迁移后，仅靠静态检查（verify 的 `migration_chain`）**不算完成**。必须实际执行并确认：
-> 0. 库名以 `apps/api/.env.development` 的 `DEV_DATABASE_URL` 为准（本地默认 `castor_kit`，下面的命令按实际库名替换）
-> 1. 写操作前记录当前版本：`psql -d castor_kit -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
-> 2. `pnpm db:migrate` 应用变更
-> 3. 涉及新表 / 索引 / 字段时，用 `psql -d castor_kit -c '\d <table>'` 确认对象真实存在
-> 4. `pnpm verify -- --module <name>` 的 `migration_applied` 项通过（它会比对 journal 与 `drizzle.__drizzle_migrations`，并用 `to_regclass` 确认模块表存在），其 detail 形如「已迁移至 0001_customer（castor_kit）」
-> 5. 交付报告中注明「已迁移至 <tag>」（tag 即 `apps/api/drizzle/` 下的迁移名，如 `0001_customer`）
+> **Migrations must be applied to the database (mandatory)**: after generating / changing a migration, static checks alone (verify's `migration_chain`) **don't count as done**. You must actually run it and confirm:
+> 0. The database name comes from `DEV_DATABASE_URL` in `apps/api/.env.development` (the local default is `castor_kit`; substitute the real name in the commands below)
+> 1. Before writing, record the current version: `psql -d castor_kit -c 'SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id'`
+> 2. `pnpm db:migrate` to apply the changes
+> 3. For new tables / indexes / columns, confirm the objects really exist with `psql -d castor_kit -c '\d <table>'`
+> 4. The `migration_applied` step of `pnpm verify -- --module <name>` passes (it compares the journal with `drizzle.__drizzle_migrations` and confirms the module's table exists with `to_regclass`); its detail reads like `已迁移至 0001_customer（castor_kit）` ("migrated to 0001_customer (castor_kit)")
+> 5. The delivery report states "migrated to <tag>" (the tag is the migration name under `apps/api/drizzle/`, e.g. `0001_customer`)
 
-**交付报告格式：**
+**Delivery report format:**
 ```
-✅ 功能交付完成：<功能名>
+✅ Feature delivered: <feature name>
 
-变更文件：
-  后端：apps/api/src/db/schema/<domain>/<name>.ts
-        apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
-        apps/api/src/db/schema/index.ts、apps/api/src/modules/<domain>/router.ts（注册）
-        apps/api/test/<admin|cc>-<name>.test.ts（接口测试，已按业务规则更新）
-  前端：apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
-        apps/web/src/modules/<module>/api/<name>.js
-  RBAC：apps/api/scripts/seed-rbac.ts（已运行 --incremental）
-  迁移：apps/api/drizzle/<tag>.sql —— 已迁移至 <tag>（psql \d <table> 已确认）
-  门禁：pnpm verify -- --module <name> 全部通过（含前后端单元测试）
+Changed files:
+  Backend:  apps/api/src/db/schema/<domain>/<name>.ts
+            apps/api/src/modules/<domain>/<name>/{schema,repository,service,routes}.ts
+            apps/api/src/db/schema/index.ts, apps/api/src/modules/<domain>/router.ts (registration)
+            apps/api/test/<admin|cc>-<name>.test.ts (API tests, updated for the business rules)
+  Frontend: apps/web/src/modules/<module>/pages/<subdir>/<page>/index.jsx
+            apps/web/src/modules/<module>/api/<name>.js
+  RBAC:     apps/api/scripts/seed-rbac.ts (--incremental has been run)
+  Migration: apps/api/drizzle/<tag>.sql — migrated to <tag> (confirmed with psql \d <table>)
+  Gate:     pnpm verify -- --module <name> all passed (including frontend + backend unit tests)
 
-用户下一步操作：
-  1. 刷新页面，在 <位置> 找到 <功能名>
-  2. （其他环境部署时）pnpm db:migrate && pnpm seed:rbac -- --incremental
+Next steps for the user:
+  1. Refresh the page and find <feature name> under <location>
+  2. (When deploying to another environment) pnpm db:migrate && pnpm seed:rbac -- --incremental
 ```
 
 ---
 
-## 文档站与开源规范文件
+## Docs site and community files
 
-- 文档站与官网在 `website/`（VitePress，独立 npm 项目，不在 pnpm workspace 内）：中文是根语言（`website/guide/…`），英文 `website/en/`、日文 `website/ja/`，三种语言页面一一对应；首页是 `.vitepress/theme/components/Landing.vue`，文案在 `landing-content.js`
-- 落地页与 README 的界面图都是真实截图（`website/public/screenshots/`、`.github/assets/screenshot-*.webp`），由 `npm --prefix website run screenshots` 在 `pnpm dev` 运行时自动截取（会提示输入 admin 密码）；界面外观有明显变化时重新截图
-- 功能行为、命令、环境变量有变化时，同一个 PR 里同步更新三种语言的文档；本地预览 `npm --prefix website run dev`，提交前 `npm --prefix website run build`（会检查死链）
-- 文档站由 `.github/workflows/docs.yml` 发布到 GitHub Pages（https://robeshell.github.io/castor-kit/）：`website/` 的改动合入 main 后自动部署，PR 只构建检查
-- 仓库根目录的 `README.md`（英文）/ `README.zh-CN.md` / `README.ja.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 面向外部贡献者；用户可见的变化记到 `CHANGELOG.md` 的 `[Unreleased]`
+- The docs site and project website are in `website/` (VitePress, a standalone npm project, not in the pnpm workspace): English is the root language (`website/guide/…`), Chinese is at `website/zh/` and Japanese at `website/ja/`, and the pages of the three languages correspond one to one; the landing page is `.vitepress/theme/components/Landing.vue`, with its copy in `landing-content.js`
+- The UI images on the landing page and in the READMEs are real screenshots (`website/public/screenshots/`, `.github/assets/screenshot-*.webp`), captured automatically by `npm --prefix website run screenshots` while `pnpm dev` is running (it prompts for the admin password); take new screenshots when the UI's look changes noticeably
+- When feature behavior, commands or environment variables change, update the docs in all three languages in the same PR; preview locally with `npm --prefix website run dev`, and run `npm --prefix website run build` before committing (it checks for dead links)
+- The docs site is published to GitHub Pages (https://robeshell.github.io/castor-kit/) by `.github/workflows/docs.yml`: changes to `website/` deploy automatically once merged into main; PRs only run the build check
+- `README.md` (English) / `README.zh-CN.md` / `README.ja.md`, `CONTRIBUTING.md`, `SECURITY.md` and `CHANGELOG.md` in the repo root are for outside contributors; record user-visible changes under `[Unreleased]` in `CHANGELOG.md`
 
-## 常用命令速查
+## Command reference
 
-所有命令在仓库根目录执行。castor-kit 自己的脚本（scaffold / verify / seed:rbac / openapi:*）参数前的 `--` 可写可不写；**`pnpm db:generate` 后面不能写 `--`**（drizzle-kit 不认识）。
+Run every command from the repo root. For castor-kit's own scripts (scaffold / verify / seed:rbac / openapi:*), the `--` before the arguments is optional; **`pnpm db:generate` must not be followed by `--`** (drizzle-kit doesn't understand it).
 
 ```bash
-# 安装 / 启动
+# Install / start
 pnpm install
 pnpm dev                     # api(5001) + web(5173)
-pnpm dev:api                 # 只起后端（tsx watch）
-pnpm dev:web                 # 只起前端（vite）
-pnpm --filter @castor-kit/api worker   # 独立调度器进程（RUN_SCHEDULER_IN_WEB=false 时）
+pnpm dev:api                 # backend only (tsx watch)
+pnpm dev:web                 # frontend only (vite)
+pnpm --filter @castor-kit/api worker   # standalone scheduler process (when RUN_SCHEDULER_IN_WEB=false)
 
-# 质量
-pnpm typecheck               # tsc --noEmit（api / mcp）
-pnpm test                    # vitest（需要 castor_kit_test 库）+ web 单测
+# Quality
+pnpm typecheck               # tsc --noEmit (api / mcp)
+pnpm test                    # vitest (needs the castor_kit_test database) + web unit tests
 pnpm lint
 pnpm build                   # web(vite) + api(tsup) + mcp
 
-# 数据库迁移（Drizzle）
-pnpm db:generate --name <描述>          # drizzle-kit generate，生成 apps/api/drizzle/<nnnn>_<描述>.sql
-pnpm db:migrate                         # 应用迁移（记录在 drizzle.__drizzle_migrations）
-psql -d castor_kit -c '\d <table>'       # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
+# Database migrations (Drizzle)
+pnpm db:generate --name <description>   # drizzle-kit generate, creates apps/api/drizzle/<nnnn>_<description>.sql
+pnpm db:migrate                         # apply migrations (recorded in drizzle.__drizzle_migrations)
+psql -d castor_kit -c '\d <table>'       # confirm it's in the database (database name from DEV_DATABASE_URL in apps/api/.env.development)
 
-# RBAC（菜单变更后必跑）
-pnpm seed:rbac -- --incremental         # 增量 upsert，不删除
-pnpm seed:rbac                          # 全量重建（仅空库初始化）
-pnpm seed:demo                          # 示例部门 / 角色（部门主管、普通员工）/ 用户，体验数据权限；生产环境需 --force
+# RBAC (run after every menu change)
+pnpm seed:rbac -- --incremental         # incremental upsert, no deletes
+pnpm seed:rbac                          # full rebuild (empty-database initialization only)
+pnpm seed:demo                          # sample departments / roles (department head, regular staff) / users to try data scopes; needs --force in production
 
-# 一次性初始化（迁移 + RBAC 增量 + AI SQL 只读账号，advisory lock 保证并发安全）
+# One-time initialization (migrations + incremental RBAC + AI SQL read-only account; an advisory lock makes it safe to run concurrently)
 pnpm setup-once
-pnpm --filter @castor-kit/api init-ro-role   # 单独创建只读账号 castor_kit_ro（需 POSTGRES_RO_PASSWORD）
+pnpm --filter @castor-kit/api init-ro-role   # create only the read-only account castor_kit_ro (needs POSTGRES_RO_PASSWORD)
 
-# 验证门禁
-pnpm verify -- --module <name>                 # 全部检查（含 vite build）
-pnpm verify -- --module <name> --skip-build    # 跳过前端构建
-pnpm verify -- --module <name> --json          # 结构化 JSON（stdout 只有 JSON，供 AI/MCP 读取）
-#   其他参数：--skip-frontend-tests --skip-api-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
+# Verification gate
+pnpm verify -- --module <name>                 # every check (including vite build)
+pnpm verify -- --module <name> --skip-build    # skip the frontend build
+pnpm verify -- --module <name> --json          # structured JSON (stdout is JSON only, for AI/MCP)
+#   other flags: --skip-frontend-tests --skip-api-tests --skip-db --strict-docs --run-rbac-sync --database-url <url>
 
-# 代码骨架生成
+# Code skeleton generation
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
-pnpm scaffold -- --name <name> --domain component_center --fields "..." --dry-run   # 只打印不写文件
-pnpm scaffold -- --name <name> --domain admin --fields "..." --data-scope         # 接入数据权限（dept_id / created_by）
-#   --domain 只能是 admin 或 component_center；--skip-migration 不调用 drizzle-kit
+pnpm scaffold -- --name <name> --domain component_center --fields "..." --dry-run   # print only, write no files
+pnpm scaffold -- --name <name> --domain admin --fields "..." --data-scope         # add data scope (dept_id / created_by)
+#   --domain must be admin or component_center; --skip-migration skips drizzle-kit
 
 # OpenAPI
-pnpm openapi:generate                    # 为缺文档的路由 + 方法补骨架（写回 docs/apifox-full.openapi.json）并检查规范
-pnpm openapi:generate -- --strict        # 逐个列出不符合「OpenAPI 编写规范」的接口，有则非 0 退出（--dry-run：不写回）
-pnpm openapi:apifox                      # 推送到 Apifox（APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN，或 --project-id / --access-token）
+pnpm openapi:generate                    # add skeletons for undocumented route + method pairs (written back to docs/apifox-full.openapi.json) and check the rules
+pnpm openapi:generate -- --strict        # list every endpoint that breaks "OpenAPI writing rules"; non-zero exit if any (--dry-run: don't write back)
+pnpm openapi:apifox                      # push to Apifox (APIFOX_PROJECT_ID / APIFOX_ACCESS_TOKEN, or --project-id / --access-token)
 
-# MCP Server
+# MCP server
 pnpm mcp
 ```
 
-**执行前先问用户**（AI 工具自动执行命令时同样适用）：
+**Ask the user before running** (this also applies when AI tools run commands on their own):
 
-- `pnpm seed:rbac`（不带 `--incremental` 是全量重建，会清空账号 / 角色 / 菜单）
-- 删除或手改 `apps/api/drizzle/` 下已应用的迁移文件（破坏 journal 链）
-- `DELETE FROM ...` / `DROP ...`（直接删除数据或对象）
+- `pnpm seed:rbac` (without `--incremental` it's a full rebuild that wipes accounts / roles / menus)
+- Deleting or hand-editing already-applied migration files under `apps/api/drizzle/` (breaks the journal chain)
+- `DELETE FROM ...` / `DROP ...` (deletes data or objects directly)
 - `git push` / `git reset --hard`
 
 ---
 
-## MCP Server
+## MCP server
 
-`apps/mcp/src/index.ts` 把工具链暴露为 MCP 协议，工具：`get_project_context` / `get_menu_tree` / `get_spec_guide`（spec 的 JSON Schema 与需求 → spec 示例）/ `validate_spec` / `scaffold_feature`（传 `spec` 或简写的 `name` + `fields`）/ `check_openapi` / `run_verify` / `init_rbac` / `run_migration` / `list_templates`。
+`apps/mcp/src/index.ts` exposes the tooling over the MCP protocol. Tools: `get_project_context` / `get_menu_tree` / `get_spec_guide` (the spec's JSON Schema and requirement → spec examples) / `validate_spec` / `scaffold_feature` (pass `spec`, or the short form `name` + `fields`) / `check_openapi` / `run_verify` / `init_rbac` / `run_migration` / `list_templates`.
 
-Claude Desktop 配置（`claude_desktop_config.json`）：
+Claude Desktop config (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
@@ -777,86 +781,86 @@ Claude Desktop 配置（`claude_desktop_config.json`）：
   }
 }
 ```
-也可 `pnpm --filter @castor-kit/mcp build` 后用 `node apps/mcp/dist/index.js`；仓库根目录可用环境变量 `CASTOR_KIT_ROOT` 覆盖。
+You can also run `pnpm --filter @castor-kit/mcp build` and then use `node apps/mcp/dist/index.js`; the repo root can be overridden with the `CASTOR_KIT_ROOT` environment variable.
 
 ---
 
-## 当前菜单树（ID 参考）
+## Current menu tree (ID reference)
 
-> 唯一事实源：`apps/api/scripts/seed-rbac.ts`（菜单 + 按钮权限）。新增功能菜单后同步补到下面；有出入时以 seed-rbac.ts 为准。
+> Single source of truth: `apps/api/scripts/seed-rbac.ts` (menus + button permissions). Add new feature menus below as you create them; if the two disagree, seed-rbac.ts wins. Menu names are the Chinese data stored in `menus` (the English names in brackets come from `apps/web/src/locales/menus/en-US.json`).
 
 ```
-ID=1   首页 (dashboard) → /dashboard → admin/dashboard
-ID=2   系统管理 (system)
-  ID=201 组织权限 (system_group_org)
-    ID=21  用户管理 → /system/users → admin/users
-    ID=22  角色权限 → /system/roles → admin/roles
-    ID=26  部门管理 → /system/departments → admin/departments
-  ID=202 安全审计 (system_group_security)
-    ID=28  在线用户 → /system/sessions → admin/sessions（按钮 281 强制下线 system_sessions_revoke）
-    ID=24  日志管理 → /system/logs → admin/logs
-    ID=38  API Token → /system/api-tokens → admin/api_tokens（按钮 381 吊销 system_api_tokens_revoke）
-  ID=203 系统配置 (system_group_config)
-    ID=29  系统设置 → /system/settings → admin/settings（按钮 291 编辑 system_settings_edit）
-    ID=23  菜单管理 → /system/menus → admin/menus
-    ID=25  数据字典 → /system/dicts → admin/dicts
-    ID=32  定时任务 → /system/scheduled-tasks → admin/scheduled_tasks
-    ID=39  Webhook → /system/webhooks → admin/webhooks（按钮 391 新增 / 392 编辑 / 393 删除 system_webhooks_*）
-  ID=204 内容消息 (system_group_content)
-    ID=27  文件管理 → /system/files → admin/files
-    ID=30  消息通知 → /system/notifications → admin/notifications
-    ID=31  公告管理 → /system/announcements → admin/announcement_page
-ID=3   组件示例中心 (component_center)
-  ID=40  管理系统 (cc_admin)
-    ID=401 列表页 (cc_admin_list) → /component-center/list-page → component_center/admin/list_page
-    ID=402 统计列表页 (cc_admin_stats_list) → /component-center/stats-list-page → component_center/admin/stats_list_page
-    ID=403 卡片列表页 (cc_admin_card_list) → /component-center/card-list-page → component_center/admin/card_list_page
-    ID=404 树形列表页 (cc_admin_tree_list) → /component-center/tree-list-page → component_center/admin/tree_list_page
-    ID=405 动态表单页 (cc_admin_dynamic_form) → /component-center/dynamic-form-page → component_center/admin/dynamic_form_page
-    ID=406 拖拽看板页 (cc_admin_kanban) → /component-center/admin/kanban → component_center/admin/kanban_page
-    ID=407 详情标签页 (cc_admin_detail_tabs) → /component-center/admin/detail-tabs → component_center/admin/detail_tabs_page
-    ID=408 甘特图页 (cc_admin_gantt) → /component-center/admin/gantt → component_center/admin/gantt_page
-    ID=409 高级表格页 (cc_admin_advanced_table) → /component-center/admin/advanced-table → component_center/admin/advanced_table_page
-  ID=41  数据可视化 (cc_dataviz)
-    ID=411 实时折线图 → /component-center/dataviz/realtime-chart → component_center/dataviz/realtime_chart_page
-    ID=412 热力日历图 → /component-center/dataviz/heatmap → component_center/dataviz/heatmap_page
-    ID=413 流量转化分析 (cc_dataviz_traffic_flow) → /component-center/dataviz/traffic-flow → component_center/dataviz/traffic_flow_page
-    ID=414 数据大屏 (cc_dataviz_dashboard) → /component-center/dashboard-page → component_center/dataviz/dashboard_page
-  ID=42  3D / 创意 (cc_3d)
-    ID=421 粒子连线动画 → /component-center/creative/particle → component_center/creative/particle_canvas_page
-    ID=422 CSS 3D 卡片 → /component-center/creative/css-3d → component_center/creative/css_3d_page
-    ID=423 Three.js 地球 → /component-center/creative/globe → component_center/creative/threejs_globe_page
-    ID=424 粒子形态变换 → /component-center/creative/morphing → component_center/creative/morphing_particles_page
-  ID=44  AI 应用 (cc_ai)
-    ID=441 AI 对话 → /component-center/ai/chat → component_center/ai/ai_chat_page
-    ID=442 AI 提示词工坊 → /component-center/ai/prompt → component_center/ai/ai_prompt_page
-    ID=443 AI 数据查询 → /component-center/ai/sql → component_center/ai/ai_sql_page
-  ID=45  编辑器 / 低代码 (cc_editor)
-    ID=451 富文本编辑器 → /component-center/editor/rich-text → component_center/editor/rich_text_page
-    ID=452 代码编辑器 → /component-center/editor/code → component_center/editor/code_editor_page
-    ID=453 JSON 编辑器 → /component-center/editor/json → component_center/editor/json_editor_page
-    ID=454 Markdown 预览 → /component-center/editor/markdown → component_center/editor/markdown_page
-  ID=46  工程 / 工具类 (cc_devtools)
-    ID=461 拖拽布局 → /component-center/devtools/drag-layout → component_center/devtools/drag_layout_page
-    ID=462 虚拟滚动列表 → /component-center/devtools/virtual-scroll → component_center/devtools/virtual_scroll_page
-    ID=463 WebSocket 通信 → /component-center/devtools/websocket → component_center/devtools/websocket_page
-    ID=464 性能监控面板 → /component-center/devtools/perf-monitor → component_center/devtools/perf_monitor_page
+ID=1   首页 [Home] (dashboard) → /dashboard → admin/dashboard
+ID=2   系统管理 [System] (system)
+  ID=201 组织权限 [Organization] (system_group_org)
+    ID=21  用户管理 [Users] → /system/users → admin/users
+    ID=22  角色权限 [Roles] → /system/roles → admin/roles
+    ID=26  部门管理 [Departments] → /system/departments → admin/departments
+  ID=202 安全审计 [Security & Audit] (system_group_security)
+    ID=28  在线用户 [Online Users] → /system/sessions → admin/sessions (button 281 force sign-out: system_sessions_revoke)
+    ID=24  日志管理 [Logs] → /system/logs → admin/logs
+    ID=38  API Token → /system/api-tokens → admin/api_tokens (button 381 revoke: system_api_tokens_revoke)
+  ID=203 系统配置 [Configuration] (system_group_config)
+    ID=29  系统设置 [System Settings] → /system/settings → admin/settings (button 291 edit: system_settings_edit)
+    ID=23  菜单管理 [Menus] → /system/menus → admin/menus
+    ID=25  数据字典 [Dictionaries] → /system/dicts → admin/dicts
+    ID=32  定时任务 [Scheduled Tasks] → /system/scheduled-tasks → admin/scheduled_tasks
+    ID=39  Webhook → /system/webhooks → admin/webhooks (buttons 391 add / 392 edit / 393 delete: system_webhooks_*)
+  ID=204 内容消息 [Content & Messages] (system_group_content)
+    ID=27  文件管理 [Files] → /system/files → admin/files
+    ID=30  消息通知 [Notifications] → /system/notifications → admin/notifications
+    ID=31  公告管理 [Announcements] → /system/announcements → admin/announcement_page
+ID=3   组件示例中心 [Component Gallery] (component_center)
+  ID=40  管理系统 [Admin Pages] (cc_admin)
+    ID=401 列表页 [List Page] (cc_admin_list) → /component-center/list-page → component_center/admin/list_page
+    ID=402 统计列表页 [Stats List Page] (cc_admin_stats_list) → /component-center/stats-list-page → component_center/admin/stats_list_page
+    ID=403 卡片列表页 [Card List Page] (cc_admin_card_list) → /component-center/card-list-page → component_center/admin/card_list_page
+    ID=404 树形列表页 [Tree List Page] (cc_admin_tree_list) → /component-center/tree-list-page → component_center/admin/tree_list_page
+    ID=405 动态表单页 [Dynamic Form Page] (cc_admin_dynamic_form) → /component-center/dynamic-form-page → component_center/admin/dynamic_form_page
+    ID=406 拖拽看板页 [Kanban Board] (cc_admin_kanban) → /component-center/admin/kanban → component_center/admin/kanban_page
+    ID=407 详情标签页 [Detail Tabs] (cc_admin_detail_tabs) → /component-center/admin/detail-tabs → component_center/admin/detail_tabs_page
+    ID=408 甘特图页 [Gantt Chart] (cc_admin_gantt) → /component-center/admin/gantt → component_center/admin/gantt_page
+    ID=409 高级表格页 [Advanced Table] (cc_admin_advanced_table) → /component-center/admin/advanced-table → component_center/admin/advanced_table_page
+  ID=41  数据可视化 [Data Visualization] (cc_dataviz)
+    ID=411 实时折线图 [Real-time Line Chart] → /component-center/dataviz/realtime-chart → component_center/dataviz/realtime_chart_page
+    ID=412 热力日历图 [Calendar Heatmap] → /component-center/dataviz/heatmap → component_center/dataviz/heatmap_page
+    ID=413 流量转化分析 [Traffic Flow] (cc_dataviz_traffic_flow) → /component-center/dataviz/traffic-flow → component_center/dataviz/traffic_flow_page
+    ID=414 数据大屏 [Data Dashboard] (cc_dataviz_dashboard) → /component-center/dashboard-page → component_center/dataviz/dashboard_page
+  ID=42  3D / 创意 [3D / Creative] (cc_3d)
+    ID=421 粒子连线动画 [Particle Network] → /component-center/creative/particle → component_center/creative/particle_canvas_page
+    ID=422 CSS 3D 卡片 [CSS 3D Cards] → /component-center/creative/css-3d → component_center/creative/css_3d_page
+    ID=423 Three.js 地球 [Three.js Globe] → /component-center/creative/globe → component_center/creative/threejs_globe_page
+    ID=424 粒子形态变换 [Particle Morphing] → /component-center/creative/morphing → component_center/creative/morphing_particles_page
+  ID=44  AI 应用 [AI Apps] (cc_ai)
+    ID=441 AI 对话 [AI Chat] → /component-center/ai/chat → component_center/ai/ai_chat_page
+    ID=442 AI 提示词工坊 [AI Prompt Studio] → /component-center/ai/prompt → component_center/ai/ai_prompt_page
+    ID=443 AI 数据查询 [AI Data Query] → /component-center/ai/sql → component_center/ai/ai_sql_page
+  ID=45  编辑器 / 低代码 [Editors / Low-code] (cc_editor)
+    ID=451 富文本编辑器 [Rich Text Editor] → /component-center/editor/rich-text → component_center/editor/rich_text_page
+    ID=452 代码编辑器 [Code Editor] → /component-center/editor/code → component_center/editor/code_editor_page
+    ID=453 JSON 编辑器 [JSON Editor] → /component-center/editor/json → component_center/editor/json_editor_page
+    ID=454 Markdown 预览 [Markdown Preview] → /component-center/editor/markdown → component_center/editor/markdown_page
+  ID=46  工程 / 工具类 [Engineering Tools] (cc_devtools)
+    ID=461 拖拽布局 [Drag Layout] → /component-center/devtools/drag-layout → component_center/devtools/drag_layout_page
+    ID=462 虚拟滚动列表 [Virtual Scroll List] → /component-center/devtools/virtual-scroll → component_center/devtools/virtual_scroll_page
+    ID=463 WebSocket 通信 [WebSocket] → /component-center/devtools/websocket → component_center/devtools/websocket_page
+    ID=464 性能监控面板 [Performance Monitor] → /component-center/devtools/perf-monitor → component_center/devtools/perf_monitor_page
 ```
 
 ---
 
-## 已拍板的决定（不要再问）
+## Settled decisions (don't reopen)
 
-- 项目名 `castor-kit`；命名一律小写连字符，不用驼峰、不用 Stack 后缀
-- 后端：Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino；不用 NestJS
-- 前端：React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX，文案中文），UI 体系见 `docs/frontend-design-system.md`
-- `.xls` 不支持，只支持 csv / xlsx
-- 密码哈希用 scrypt，存成 PHC 字符串 `$scrypt$ln=15,r=8,p=3$<盐>$<哈希>`（`common/password.ts`，异步；参数写在字符串里，调高参数后旧哈希照样能校验）
-- 会话：服务端会话表 `sessions` 是唯一事实源（可列出、可强制下线、改密码 / 停用 / 重置密码即失效）；`@fastify/secure-session` 的 cookie `castor_session` 只装 `{ sid, csrf_token }`，密钥用 HKDF 从 `SECRET_KEY` 派生。判断登录一律用 `common/session.ts` 的 `isSignedIn(request)`，不要读 cookie 字段
-- 配置分两层：服务启动前就要用的（数据库地址、`SECRET_KEY`、端口、调度器开关等）放环境变量；其余一律进系统设置（`common/settings.ts` 注册表 + `system_settings` 表）——功能开关、安全参数、邮件、文件存储、上传限制、AI 模型、网站地址。密钥类（`type: 'secret'`）用 `secret-box` 加密存储、从不回显；注册表项可声明 `env`，该环境变量非空时锁定取值（页面只读），变量名同时登记在 `common/settings-env.ts`。新功能需要配置时加注册表项，不要再加只能改环境变量的配置；读取用 `app.settings.get()`（热路径 `peek()`），邮件 / 存储这类客户端通过 `MailerProvider` / `StorageProvider` 按当前设置重建。改设置的接口（保存与测试）必须先过 `requireRecentAuth(request)`（10 分钟内登录或 `/api/admin/reauth` 验证过身份），保存后通知所有超级管理员；会让服务器主动连接的地址类设置要在保存和测试时过 `common/outbound.ts` 的检查（保留地址始终拒绝，内网看 `SETTINGS_ALLOW_PRIVATE_NETWORK`）
-- 时间字段不经过 JS `Date`：pg 类型 1114/1082 保留文本，`toIso()` 把空格换 `T`、小数秒右补 0 到 6 位（pg 文本输出会去掉末尾 0）、末尾加 `Z`；写库用 `utcNow()`（`timezone('utc', now())`），应用侧生成的当前时间用 `utcNowIso()`（接口）/ `utcNowText()`（写库）
-- cron 匹配器自研，标准 5 段语义：日与周同时受限时取 OR（与 Vixie cron 一致）
-- 请求 schema `.passthrough()` + 全可选，归一化逻辑在 service 里做
-- 操作日志用全局 `onResponse` hook 集中写，不散到 service
-- AI 小助手（`modules/admin/assistant`）的工具一律经 `app.inject` 带着当前用户的 cookie / CSRF 调用自己的接口，权限、数据权限、演示模式限制和操作日志都由原接口负责；不要给它加直连数据库或绕过路由的工具。写操作必须 `needsApproval`（审批请求用 `SECRET_KEY` 派生的密钥签名）；账号安全、系统设置、导入导出等不开放的接口登记在 `catalog.ts` 的 `ASSISTANT_DENIED`
-- 运行环境由 `NODE_ENV` 决定；生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 拒绝启动
+- The project name is `castor-kit`; names are always lowercase and hyphenated, no camelCase, no Stack suffix
+- Backend: Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino; no NestJS
+- Frontend: React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (JSX, UI copy in Chinese as the i18n key); UI system in `docs/frontend-design-system.md`
+- `.xls` is not supported; csv / xlsx only
+- Passwords are hashed with scrypt and stored as a PHC string `$scrypt$ln=15,r=8,p=3$<salt>$<hash>` (`common/password.ts`, async; the parameters are in the string, so old hashes still verify after the parameters are raised)
+- Sessions: the server-side `sessions` table is the single source of truth (can be listed and force-revoked; a password change / account disable / password reset invalidates them); the `@fastify/secure-session` cookie `castor_session` only holds `{ sid, csrf_token }`, with its key derived from `SECRET_KEY` via HKDF. Always check sign-in with `isSignedIn(request)` from `common/session.ts`; never read cookie fields
+- Configuration has two tiers: whatever is needed before the server starts (database URL, `SECRET_KEY`, ports, scheduler switch, etc.) goes in environment variables; everything else goes in system settings (the `common/settings.ts` registry + the `system_settings` table): feature switches, security parameters, email, file storage, upload limits, AI models, site URL. Secrets (`type: 'secret'`) are stored encrypted with `secret-box` and never echoed back; a registry entry can declare `env`, and when that environment variable is non-empty it locks the value (read-only in the UI); the variable names are also registered in `common/settings-env.ts`. When a new feature needs configuration, add a registry entry; don't add more env-only settings. Read settings with `app.settings.get()` (`peek()` on hot paths); clients such as email / storage are rebuilt from the current settings through `MailerProvider` / `StorageProvider`. Endpoints that change settings (save and test) must first pass `requireRecentAuth(request)` (signed in, or verified via `/api/admin/reauth`, within the last 10 minutes), and saving notifies every super admin; address-type settings that make the server connect out must pass the `common/outbound.ts` check on save and test (reserved addresses are always refused; private networks depend on `SETTINGS_ALLOW_PRIVATE_NETWORK`)
+- Time fields never go through JS `Date`: pg types 1114/1082 stay as text; `toIso()` replaces the space with `T`, right-pads fractional seconds with 0 to 6 digits (pg's text output drops trailing zeros) and appends `Z`; database writes use `utcNow()` (`timezone('utc', now())`), and the current time generated in the app uses `utcNowIso()` (API) / `utcNowText()` (database writes)
+- The cron matcher is our own, with standard 5-field semantics: when both day-of-month and day-of-week are restricted, they are ORed (as in Vixie cron)
+- Request schemas are `.passthrough()` + all optional; normalization happens in the service
+- The operation log is written centrally by the global `onResponse` hook, not scattered across services
+- The AI assistant's tools (`modules/admin/assistant`) always call our own API via `app.inject` with the current user's cookie / CSRF, so permissions, data scope, demo-mode restrictions and the operation log are all handled by the original endpoints; don't give it tools that access the database directly or bypass the routes. Write operations must use `needsApproval` (approval requests are signed with a key derived from `SECRET_KEY`); endpoints it can't use, such as account security, system settings and import / export, are listed in `ASSISTANT_DENIED` in `catalog.ts`
+- The runtime environment is set by `NODE_ENV`; in production, a missing `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` refuses to start

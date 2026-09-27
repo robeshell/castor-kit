@@ -1,10 +1,10 @@
-# 后端开发
+# Backend
 
-后端位于 `apps/api`，技术栈是 Fastify 5 + Zod + Drizzle ORM + PostgreSQL，语言为 TypeScript（strict）。本页介绍分层规则、接口规范、权限检查、错误处理、数据库迁移和导入导出。
+The backend lives in `apps/api` and is built with Fastify 5 + Zod + Drizzle ORM + PostgreSQL, written in TypeScript (strict). This page covers the layering rules, API conventions, permission checks, error handling, database migrations and import/export.
 
-新功能建议先用 `pnpm scaffold` 生成骨架（见 [AI 驱动开发](/guide/ai-workflow#pnpm-scaffold)），再按本页的规则补充业务逻辑。参考实现是 `apps/api/src/modules/admin/users/`。
+For a new feature, start by generating the scaffold with `pnpm scaffold` (see [AI-driven workflow](/guide/ai-workflow#pnpm-scaffold)), then fill in the business logic following the rules on this page. The reference implementation is `apps/api/src/modules/admin/users/`.
 
-## 分层
+## Layers
 
 ```text
 db/schema/<domain>/<name>.ts
@@ -13,19 +13,19 @@ db/schema/<domain>/<name>.ts
   → src/router.ts
 ```
 
-| 层 | 文件 | 职责 | 禁止 |
+| Layer | File | Responsibility | Not allowed |
 |---|---|---|---|
-| model | `db/schema/<domain>/<name>.ts` | Drizzle `pgTable(...)` 表定义 + `xxxToDict()` 序列化 | 业务逻辑 |
-| schema | `modules/<domain>/<name>/schema.ts` | 请求 schema、导入导出字段映射 `EXPORT_FIELD_MAP` / `IMPORT_HEADER_MAP` | 数据库操作 |
-| repository | `modules/<domain>/<name>/repository.ts` | 纯数据库读写（Drizzle 查询） | 业务逻辑、HTTP |
-| service | `modules/<domain>/<name>/service.ts` | 业务逻辑，出错抛 `ServiceError` | 使用 `reply`、`session` 等 HTTP 对象 |
-| routes | `modules/<domain>/<name>/routes.ts` | Fastify 路由 + 权限检查 + 调用 service | 直接写 SQL |
-| 域装配 | `modules/<domain>/router.ts` | `await registerXxxRoutes(app)` | — |
-| 一级装配 | `src/router.ts` + `db/schema/index.ts` | 注册业务域、导出表定义 | — |
+| model | `db/schema/<domain>/<name>.ts` | Drizzle `pgTable(...)` table definition + `xxxToDict()` serializer | Business logic |
+| schema | `modules/<domain>/<name>/schema.ts` | Request schemas, import/export field maps `EXPORT_FIELD_MAP` / `IMPORT_HEADER_MAP` | Database access |
+| repository | `modules/<domain>/<name>/repository.ts` | Pure database reads and writes (Drizzle queries) | Business logic, HTTP |
+| service | `modules/<domain>/<name>/service.ts` | Business logic; throws `ServiceError` on errors | Using HTTP objects such as `reply` or `session` |
+| routes | `modules/<domain>/<name>/routes.ts` | Fastify routes + permission checks + service calls | Writing SQL directly |
+| Domain wiring | `modules/<domain>/router.ts` | `await registerXxxRoutes(app)` | — |
+| Top-level wiring | `src/router.ts` + `db/schema/index.ts` | Registers business domains, exports table definitions | — |
 
-路径别名：后端 `@/*` 指向 `apps/api/src/*`，例如 `@/common/auth`。
+Path alias: on the backend, `@/*` points to `apps/api/src/*`, e.g. `@/common/auth`.
 
-### 表定义
+### Table definitions
 
 ```ts
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core'
@@ -51,55 +51,55 @@ export function customerToDict(item: Customer) {
 }
 ```
 
-### 注册
+### Registration
 
-- 在已有域（`admin`、`component_center`）内新增模块时，`pnpm scaffold` 会自动注册到 `db/schema/index.ts` 和 `modules/<domain>/router.ts`。
-- 新增业务域时，需要手动：在 `src/router.ts` 调用该域的注册函数，并在 `db/schema/index.ts` 中 `export * from './<domain>/<name>'`。
+- When you add a module to an existing domain (`admin`, `component_center`), `pnpm scaffold` registers it in `db/schema/index.ts` and `modules/<domain>/router.ts` automatically.
+- When you add a new business domain, do it by hand: call the domain's register function in `src/router.ts`, and add `export * from './<domain>/<name>'` to `db/schema/index.ts`.
 
-## 接口规范
+## API conventions
 
-所有业务接口挂在 `/api/admin/` 下。资源名用连字符复数，例如 `customer_order` 对应 `/api/admin/customer-orders`。
+All business APIs are mounted under `/api/admin/`. Resource names are hyphenated and plural; for example, `customer_order` maps to `/api/admin/customer-orders`.
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/admin/<resource>s` | 列表，参数 `page`、`per_page`、`search` |
-| `POST` | `/api/admin/<resource>s` | 新建，返回 201 |
-| `GET` | `/api/admin/<resource>s/<id>` | 详情（按需） |
-| `PUT` | `/api/admin/<resource>s/<id>` | 编辑 |
-| `DELETE` | `/api/admin/<resource>s/<id>` | 删除 |
-| `POST` | `/api/admin/<resource>s/export` | 导出 |
-| `GET` | `/api/admin/<resource>s/template` | 下载导入模板，参数 `file_type=csv\|xlsx` |
-| `POST` | `/api/admin/<resource>s/import` | 导入，`multipart/form-data`，字段名 `file` |
+| `GET` | `/api/admin/<resource>s` | List; parameters `page`, `per_page`, `search` |
+| `POST` | `/api/admin/<resource>s` | Create; returns 201 |
+| `GET` | `/api/admin/<resource>s/<id>` | Detail (when needed) |
+| `PUT` | `/api/admin/<resource>s/<id>` | Update |
+| `DELETE` | `/api/admin/<resource>s/<id>` | Delete |
+| `POST` | `/api/admin/<resource>s/export` | Export |
+| `GET` | `/api/admin/<resource>s/template` | Download the import template; parameter `file_type=csv\|xlsx` |
+| `POST` | `/api/admin/<resource>s/import` | Import; `multipart/form-data`, field name `file` |
 
-### 响应格式
+### Response format
 
-- 列表：`{ items, total, page, per_page }`
-- 错误：`{ error: string, ...payload }`
-- 5xx 一律返回“服务器内部错误，请稍后重试”，不透传内部信息，堆栈写入日志
-- `/api/*` 下的 404、405、500 都返回 JSON，不会落到前端的 `index.html`
+- List: `{ items, total, page, per_page }`
+- Error: `{ error: string, ...payload }`
+- Every 5xx returns "服务器内部错误，请稍后重试" ("Internal server error. Please try again later.") without leaking internal details; the stack trace goes to the log
+- 404, 405 and 500 under `/api/*` all return JSON and never fall through to the frontend's `index.html`
 
-### 请求处理工具
+### Request helpers
 
-| 工具 | 来源 | 用途 |
+| Helper | Source | Purpose |
 |---|---|---|
-| `intParam('item_id')` | `@/common/http` | 生成只匹配数字的路径参数 |
-| `parseIntParam(value)` | `@/common/http` | 解析路径参数 |
-| `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | 按 Zod 声明校验请求体（新建取默认值 / 编辑只含传入字段），只收 JSON 原生类型，类型不对 → 400`<字段>的值无效`；在权限检查之后调用 |
-| `queryString(request, key)` | `@/common/http` | 读取查询参数 |
-| `getUploadedFile(request)` | `@/common/http` | 读取上传文件 |
-| `parsePagination(query)` | `@/common/pagination` | 分页参数，默认 20 条，上限 200 |
+| `intParam('item_id')` | `@/common/http` | Builds a path parameter that only matches digits |
+| `parseIntParam(value)` | `@/common/http` | Parses a path parameter |
+| `parseBody(schema, request.body)` / `parsePatch(…)` + `field.*` | `@/common/validation` | Validates the body against a Zod declaration (create fills defaults / update keeps only the fields sent); JSON types only, a wrong type → 400`<field>的值无效`; call it after the permission check |
+| `queryString(request, key)` | `@/common/http` | Reads a query parameter |
+| `getUploadedFile(request)` | `@/common/http` | Reads an uploaded file |
+| `parsePagination(query)` | `@/common/pagination` | Pagination parameters; default 20 per page, max 200 |
 
-### 横切约定
+### Cross-cutting conventions
 
-- **时间**：`timestamp` / `date` 列以文本读取，不经过 JS `Date`；输出一律用 `toIso()`，格式为 ISO 8601 的 UTC 时间 `YYYY-MM-DDTHH:mm:ss.ffffffZ`。请求里的时间带时区的会换算成 UTC，不带时区的按 UTC 处理；前端按浏览器时区显示。导出文件、导入文件里的时间和首页统计的日期按请求头 `X-Time-Zone`（前端自动带上浏览器时区）计算：导出列用 `formatDateTime()`，导入的时间单元格先 `withZoneOffset()`。禁止使用 `Date#toISOString()`（只有毫秒精度）。
-- **数值**：`numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里不要转成数字。
-- **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由在权限检查之后 `parseBody` / `parsePatch`。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块同样如此，导入行经 `rowToBody` 转成请求体形状后走同一份声明。
-- **操作日志**：由 logs 模块注册的全局 `onResponse` 钩子统一写入 `operation_logs`，不要在 service 里手写。
-- **CSRF**：`/api/*` 下的写请求需要带 `X-CSRF-Token` 头，前端的 `request.js` 已自动处理，登录接口豁免。
+- **Time**: `timestamp` / `date` columns are read as text and never pass through a JS `Date`. Always output them with `toIso()`: ISO 8601 in UTC, `YYYY-MM-DDTHH:mm:ss.ffffffZ`. Times in requests are converted to UTC when they carry an offset and taken as UTC when they don't; the web app shows them in the browser's time zone. Times in exported and imported files and the dashboard's days follow the `X-Time-Zone` request header (the web app sends the browser's zone): export columns use `formatDateTime()`, and import cells go through `withZoneOffset()` first. Never use `Date#toISOString()` (milliseconds only).
+- **Numbers**: `numeric` columns are output as strings (e.g. `"12.50"`); don't convert them to numbers in `toDict()`.
+- **Request body validation**: declare the body in `schema.ts` with `field.*` from `@/common/validation`; the route calls `parseBody` / `parsePatch` after the permission check. JSON types only (text is a trimmed string, integers are numbers, booleans are true / false); extra fields are ignored and a wrong type is a 400. Modules generated by `pnpm scaffold` are declared the same way; import rows are turned into the body shape by `rowToBody` and checked by the same declaration.
+- **Operation logs**: a global `onResponse` hook registered by the logs module writes to `operation_logs`; don't write logs by hand in services.
+- **CSRF**: write requests under `/api/*` must send an `X-CSRF-Token` header. The frontend's `request.js` handles this automatically; the login endpoint is exempt.
 
-## 权限检查
+## Permission checks
 
-权限函数统一从 `@/common/auth` 导入：
+Always import the permission functions from `@/common/auth`:
 
 ```ts
 import type { FastifyInstance } from 'fastify'
@@ -130,23 +130,23 @@ export async function registerCustomerRoutes(app: FastifyInstance): Promise<void
 }
 ```
 
-| 函数 | 说明 |
+| Function | Description |
 |---|---|
-| `loginRequired` | preHandler，未登录返回 401 |
-| `hasMenuPermission(request, code)` | 是否拥有某个菜单或按钮权限，**异步**，必须 `await` |
-| `hasAnyMenuPermission(request, ...codes)` | 满足任一编码即可 |
-| `menuPermissionRequired(code)` | preHandler 形式：`{ preHandler: [loginRequired, menuPermissionRequired('system_customer')] }` |
+| `loginRequired` | preHandler; returns 401 when not signed in |
+| `hasMenuPermission(request, code)` | Whether the user has a given menu or button permission. **Async**, so you must `await` it |
+| `hasAnyMenuPermission(request, ...codes)` | Passes if any of the codes match |
+| `menuPermissionRequired(code)` | preHandler form: `{ preHandler: [loginRequired, menuPermissionRequired('system_customer')] }` |
 
-::: danger 常见错误
-- 忘记 `await hasMenuPermission(...)`：Promise 恒为真值，权限检查失效。
-- 在 routes 文件里自定义 `hasPermission` 函数：`pnpm verify` 的 `no_local_has_permission` 会拦截。
+::: danger Common mistakes
+- Forgetting to `await hasMenuPermission(...)`: a Promise is always truthy, so the permission check does nothing.
+- Defining your own `hasPermission` function in a routes file: the `no_local_has_permission` check of `pnpm verify` catches this.
 :::
 
-权限编码规则和菜单配置见 [权限 RBAC](/guide/rbac)。
+For permission code rules and menu setup, see [Permissions (RBAC)](/guide/rbac).
 
-## 错误处理
+## Error handling
 
-service 层遇到业务错误时抛出 `ServiceError`：
+When the service layer hits a business error, it throws a `ServiceError`:
 
 ```ts
 import { ServiceError } from '@/common/errors'
@@ -155,117 +155,117 @@ throw new ServiceError('客户名称已存在', 400)
 throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })
 ```
 
-全局错误处理器会把它转成 `{ error: message, ...payload }`，状态码取第二个参数（默认 400）。状态码 ≥ 500 时，返回给前端的文案会被替换为通用的服务器错误提示。
+The global error handler turns it into `{ error: message, ...payload }`, using the second argument as the status code (default 400). For status codes ≥ 500, the message sent to the frontend is replaced with a generic server error message.
 
-其他错误：
+Other errors:
 
-| 情况 | 响应 |
+| Case | Response |
 |---|---|
-| Zod 请求校验失败 | 400，`error` 为第一条校验消息 |
-| 请求体字段类型不对（模块用 `apps/api/src/common/validation.ts` 声明请求体） | 400，`<字段>的值无效`，如“排序的值无效” |
-| 结构不对的请求值（service 抛 `invalidInput()`，见 `apps/api/src/common/errors.ts`） | 400，“请求参数格式不正确” |
-| 数据库因请求里的值拒绝写入 | 400，见下文 |
-| 未知异常 | 500，“服务器内部错误，请稍后重试” |
-| 未匹配的 `/api/*` GET 请求 | 404 JSON |
-| 未匹配的其他方法 | 405 `{ error: '请求方法不允许' }` |
+| Zod request validation fails | 400; `error` is the first validation message |
+| A body field of the wrong type (modules declare their bodies with `apps/api/src/common/validation.ts`) | 400, `<field>的值无效` (e.g. "排序的值无效", translated for en-US / ja-JP requests) |
+| A request value of the wrong shape (the service throws `invalidInput()`, see `apps/api/src/common/errors.ts`) | 400, "请求参数格式不正确" ("Invalid request parameters") |
+| The database rejects a value from the request | 400, see below |
+| Unknown exception | 500, "服务器内部错误，请稍后重试" ("Internal server error. Please try again later.") |
+| Unmatched `/api/*` GET request | 404 JSON |
+| Unmatched other methods | 405 `{ error: '请求方法不允许' }` ("Method not allowed") |
 
-报错文案写中文即可，后端会按请求头 `Accept-Language` 翻译成英文或日文。新文案要登记译文，见 [多语言](/guide/i18n#后端报错翻译)。
+Write error messages in Chinese; the backend translates them into English or Japanese based on the `Accept-Language` request header. New messages need registered translations; see [Internationalization](/guide/i18n#translating-backend-errors).
 
-### 数据库约束错误映射
+### Database constraint error mapping
 
-全局错误处理器会调用 `apps/api/src/common/db-errors.ts` 的 `dbConstraintError()`，把由请求里的值引起的数据库错误转成 400；service 在事务里捕获错误时用 `writeError(err)`（业务错误原样、数据库拒绝的输入 400、其余 500），真正的服务器错误用 `internalError(err)`，不要手写 `new ServiceError(…, 500)`；scaffold 生成的 service 和 `docs/templates/backend/service.ts` 模板已经这样做，`test/conventions.test.ts` 会检查。原则是调用方的输入问题一律 4xx，只有服务器自身的问题才是 500：
+The global error handler calls `dbConstraintError()` from `apps/api/src/common/db-errors.ts`, which turns database errors caused by the request's values into a 400; services that catch a failed write throw `writeError(err)` (business errors as they are, input the database rejects → 400, anything else → 500), and real server failures use `internalError(err)` — never a hand-written `new ServiceError(…, 500)`. The scaffolded services and the `docs/templates/backend/service.ts` template already do this, and `test/conventions.test.ts` checks it. The rule: the caller's input problems are 4xx, only the server's own problems are 500:
 
-| PostgreSQL 错误码 | 返回文案 |
+| PostgreSQL error code | Message returned (English UI) |
 |---|---|
-| `23505` 唯一约束 | 数据重复：唯一字段的值已存在 |
-| `23502` 非空约束 | 必填字段不能为空 |
-| `23503` 外键约束 | 关联的数据不存在或仍被引用 |
-| `23514` 检查约束 | 数据不符合约束条件 |
-| `22001` | 字段长度超出限制 |
-| `22003` | 数值超出范围 |
-| `22007` | 日期时间格式不正确 |
-| `22008` | 日期时间超出范围 |
-| `22P02` | 字段格式不正确 |
+| `23505` unique constraint | Duplicate data: a unique field value already exists |
+| `23502` not-null constraint | Required fields cannot be empty |
+| `23503` foreign key constraint | Related data does not exist or is still referenced |
+| `23514` check constraint | Data violates a constraint |
+| `22001` | A field exceeds its maximum length |
+| `22003` | A number is out of range |
+| `22007` | Invalid date/time format |
+| `22008` | Date/time out of range |
+| `22P02` | Invalid field format |
 
-其他数据库错误按 500 处理。这意味着在表定义上加 `.notNull()` 或 `.unique()` 后，不需要额外代码就能得到合理的 400 提示。需要带字段名的提示（如“客户编码已存在”）时，在 service 里先查重再写库。
+Other database errors are treated as 500. This means that once you add `.notNull()` or `.unique()` to a table definition, you get a sensible 400 message with no extra code. When you need a message that names the field (such as "客户编码已存在", "customer code already exists"), check for duplicates in the service before writing.
 
-## 数据库迁移
+## Database migrations
 
-表定义在 `apps/api/src/db/schema/**`，迁移由 drizzle-kit 生成到 `apps/api/drizzle/`，执行记录保存在数据库的 `drizzle.__drizzle_migrations` 表中。
+Table definitions live in `apps/api/src/db/schema/**`. drizzle-kit generates migrations into `apps/api/drizzle/`, and applied migrations are recorded in the `drizzle.__drizzle_migrations` table in the database.
 
-### 流程
+### Workflow
 
 ```bash
-# 1. 修改 db/schema 中的表定义后，生成迁移
+# 1. After changing a table definition in db/schema, generate a migration
 pnpm db:generate --name add_customer_phone
 
-# 2. 审查 apps/api/drizzle/ 下新生成的 SQL
+# 2. Review the newly generated SQL under apps/api/drizzle/
 
-# 3. 应用迁移
+# 3. Apply the migration
 pnpm db:migrate
 
-# 4. 确认表结构真实落库（库名以 apps/api/.env.development 的 DEV_DATABASE_URL 为准）
+# 4. Confirm the table structure is really in the database (database name per DEV_DATABASE_URL in apps/api/.env.development)
 psql -d castor_kit -c '\d customers'
 ```
 
-::: warning pnpm db:generate 后面不能写 --
-`pnpm db:generate --name <描述>` 直接把参数传给 drizzle-kit，drizzle-kit 不认识 `--`。castor-kit 自己的脚本（scaffold、verify、seed:rbac、openapi:generate）参数前的 `--` 可写可不写。
+::: warning No -- after pnpm db:generate
+`pnpm db:generate --name <description>` passes its arguments straight to drizzle-kit, which doesn't understand `--`. For castor-kit's own scripts (scaffold, verify, seed:rbac, openapi:generate), the `--` before arguments is optional.
 :::
 
-### 规则
+### Rules
 
-- 不要手写迁移 SQL，否则会破坏 journal 链（`pnpm verify` 的 `migration_chain` 会检查）。
-- 迁移必须真实执行并用 `psql \d` 确认，`pnpm verify` 的 `migration_applied` 会对比 journal 与数据库记录。
-- scaffold 会自动生成新表的迁移。之后再改表结构，用 `pnpm db:generate --name <描述>` 生成增量迁移。
-- 在其他环境部署时执行 `pnpm db:migrate && pnpm seed:rbac -- --incremental`；Docker 部署时容器启动会自动完成，见 [部署指南](/deploy/)。
+- Don't write migration SQL by hand; it breaks the journal chain (checked by the `migration_chain` check of `pnpm verify`).
+- Migrations must actually be applied and confirmed with `psql \d`; the `migration_applied` check of `pnpm verify` compares the journal with the database records.
+- scaffold generates the migration for a new table automatically. For later schema changes, generate an incremental migration with `pnpm db:generate --name <description>`.
+- When deploying to another environment, run `pnpm db:migrate && pnpm seed:rbac -- --incremental`. With Docker, the container does this automatically on start; see the [Deployment guide](/deploy/).
 
-## 导入导出
+## Import and export
 
-导入导出只支持 **csv 和 xlsx**。上传 `.xls` 会返回 400，提示另存为 `.xlsx`。
+Import and export support **csv and xlsx only**. Uploading an `.xls` file returns 400 with a message asking you to save it as `.xlsx`.
 
-### 工具函数（`@/common/tabular`）
+### Helpers (`@/common/tabular`)
 
-| 函数 | 说明 |
+| Function | Description |
 |---|---|
-| `buildTable(headers, rows, baseFilename, fileType)` | 构建表格文件载荷，csv 带 BOM |
-| `sendTable(reply, table)` | 设置 `Content-Type`、`Content-Disposition` 并发送 |
-| `readTableFile(file)` | 读取上传文件，返回 `{ fieldnames, rows, fileType }`，5MB 上限，rows 带行号 |
-| `normalizeTableFileType(raw, fallback)` | 标准化文件类型 |
-| `sanitizeFormula()` | 公式注入防护 |
+| `buildTable(headers, rows, baseFilename, fileType)` | Builds the table file payload; csv includes a BOM |
+| `sendTable(reply, table)` | Sets `Content-Type` and `Content-Disposition` and sends the file |
+| `readTableFile(file)` | Reads an uploaded file and returns `{ fieldnames, rows, fileType }`; 5MB limit; rows include row numbers |
+| `normalizeTableFileType(raw, fallback)` | Normalizes the file type |
+| `sanitizeFormula()` | Formula-injection protection |
 
-### 字段映射
+### Field maps
 
-在模块的 `schema.ts` 中定义：
+Define them in the module's `schema.ts`:
 
-- `EXPORT_FIELD_MAP`：字段 → 中文表头。需要转换时写成 `[中文表头, 取值函数]`，例如把枚举代码显示为中文。
-- `IMPORT_HEADER_MAP`：中文表头 → 字段。
+- `EXPORT_FIELD_MAP`: field → Chinese column header. When the value needs converting, use `[Chinese header, getter function]`, for example to display an enum code as Chinese.
+- `IMPORT_HEADER_MAP`: Chinese column header → field.
 
-导入导出文件的表头保持中文，不随界面语言变化。
+Column headers in import/export files stay in Chinese regardless of the UI language.
 
-### 导入事务
+### Import transactions
 
-整批导入在一个事务中完成。存在错误行时抛出 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })`，整批回滚。前端的导入弹窗会展示错误行并支持下载。
+A whole import batch runs in a single transaction. If any row has errors, it throws `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` and the whole batch is rolled back. The frontend import dialog shows the error rows and lets you download them.
 
-### 权限
+### Permissions
 
-导出对应的按钮权限编码为 `<perm>_export`，下载导入模板和导入都用 `<perm>_import`，不要用查看权限或 `_edit` 代替。前端组件见 [前端开发](/guide/frontend#导入导出)。
+Export is gated by the `<perm>_export` button permission; downloading the import template and importing are both gated by `<perm>_import`. Don't reuse the view permission or `_edit` for them. For the frontend components, see [Frontend](/guide/frontend#import-and-export).
 
 ## OpenAPI
 
 ```bash
-pnpm openapi:generate              # 为缺文档的路由 + 方法补骨架，并检查规范
-pnpm openapi:generate -- --strict  # 逐个列出不合规的接口和原因，有则非 0 退出（加 --dry-run 不写回）
-pnpm openapi:apifox                # 推送到 Apifox
+pnpm openapi:generate              # Add skeletons for undocumented routes + methods, then check the rules
+pnpm openapi:generate -- --strict  # List every operation that breaks the rules and why; non-zero exit if any (add --dry-run to skip writing)
+pnpm openapi:apifox                # Push to Apifox
 ```
 
-`docs/apifox-full.openapi.json` 是接口的唯一说明书，外部调用方、Apifox 和 [AI 小助手](/guide/assistant) 都只读它，所以每个已注册的 `/api` 接口都必须写完整：中文 summary、description（所需权限、数据权限、关键行为）、一个分组标签和 Apifox 目录、路径和查询参数、请求体字段（不读请求体的写 `"x-no-body": true`）、成功响应的结构和可能的错误码。完整规则见仓库里 `AGENTS.md` 的「OpenAPI 编写规范」，由 API 测试和 `pnpm verify` 强制检查，不合规就不通过。`pnpm scaffold` 生成模块时会把它的接口直接写成合规的条目；`openapi:generate` 只为缺文档的接口补骨架，骨架本身通不过检查，需要照着代码补全。推送到 Apifox 需要 `APIFOX_PROJECT_ID` 和 `APIFOX_ACCESS_TOKEN`，见 [配置项](/reference/configuration)。
+`docs/apifox-full.openapi.json` is the one description of the API: external callers, Apifox and the [AI assistant](/guide/assistant) all rely on it, so every registered `/api` operation must be complete: a Chinese summary, a description (required permission, data scope, notable behavior), one tag and Apifox folder, path and query parameters, request body fields (`"x-no-body": true` when there is no body), and the success response structure plus possible error codes. The full rules are in the repository's `AGENTS.md` ("OpenAPI 编写规范"); the API tests and `pnpm verify` enforce them. `pnpm scaffold` writes compliant entries for a new module's endpoints; `openapi:generate` only adds skeletons for undocumented operations, and a skeleton fails the check until it is written up from the code. Pushing to Apifox requires `APIFOX_PROJECT_ID` and `APIFOX_ACCESS_TOKEN`; see [Configuration](/reference/configuration).
 
-## 测试
+## Testing
 
-后端测试使用 Vitest 并连接真实的 PostgreSQL 测试库，路由测试通过 `app.inject()` 发起请求，每个模块一个测试文件（`admin-*.test.ts`、`cc-*.test.ts`）。
+Backend tests use Vitest against a real PostgreSQL test database. Route tests send requests through `app.inject()`, with one test file per module (`admin-*.test.ts`, `cc-*.test.ts`).
 
 ```bash
 pnpm --filter @castor-kit/api test
 ```
 
-测试库的准备见 [快速开始](/guide/getting-started) 的“运行测试”一节。
+To set up the test database, see the "Run tests" step in [Quick start](/guide/getting-started#_6-run-tests-optional).

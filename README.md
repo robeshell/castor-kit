@@ -19,7 +19,7 @@ Describe a new page, and AI generates the table, API and UI — then checks that
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-**[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castor-kit/en/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
+**[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castor-kit/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
@@ -73,7 +73,7 @@ The setup wizard asks for an admin password and a port (default `5000`). Then op
 
 **Try it:** [https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com) — sign in with one click (free instance: the first visit after a while can take ~30 s to wake up).
 
-**Deploy your own demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/en/deploy/index.md).
+**Deploy your own demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/deploy/index.md).
 
 <details>
 <summary><b>Local development</b> (Node.js 22+, pnpm, PostgreSQL 14+)</summary>
@@ -106,7 +106,7 @@ $ pnpm verify -- --module equipment
 ✅ 全部检查通过，功能可交付！
 ```
 
-The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workflow](website/en/guide/ai-workflow.md) for details.
+The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workflow](website/guide/ai-workflow.md) for details.
 
 ## Tech stack
 
@@ -136,12 +136,12 @@ AGENTS.md     conventions shared by people and AI tools
 
 | Section | Pages |
 |---|---|
-| Getting started | [Introduction](website/en/guide/index.md) · [Quick start](website/en/guide/getting-started.md) · [Project structure](website/en/guide/project-structure.md) |
-| Development | [AI workflow](website/en/guide/ai-workflow.md) · [Backend](website/en/guide/backend.md) · [Frontend](website/en/guide/frontend.md) |
-| Topics | [Permissions](website/en/guide/rbac.md) · [i18n](website/en/guide/i18n.md) · [Theme & layout](website/en/guide/appearance.md) |
-| Reference | [Commands](website/en/reference/commands.md) · [Configuration](website/en/reference/configuration.md) · [Deployment](website/en/deploy/index.md) |
+| Getting started | [Introduction](website/guide/index.md) · [Quick start](website/guide/getting-started.md) · [Project structure](website/guide/project-structure.md) |
+| Development | [AI workflow](website/guide/ai-workflow.md) · [Backend](website/guide/backend.md) · [Frontend](website/guide/frontend.md) |
+| Topics | [Permissions](website/guide/rbac.md) · [i18n](website/guide/i18n.md) · [Theme & layout](website/guide/appearance.md) |
+| Reference | [Commands](website/reference/commands.md) · [Configuration](website/reference/configuration.md) · [Deployment](website/deploy/index.md) |
 
-Read it online at **[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/en/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
+Read it online at **[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
 
 ## Contributing
 

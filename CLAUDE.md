@@ -1,89 +1,89 @@
-# castor-kit — Claude Code 专属补充
+# castor-kit — Claude Code additions
 
-> **主文档**：`AGENTS.md`（工具无关的完整项目上下文：架构、分层、命名、字段类型推断、反模式、交付流程、菜单树）+ `docs/architecture.md`（架构说明：技术栈、横切约定、迁移、部署、设计决定）；路线图上的功能先读 `docs/roadmap.md` 对应章节。
-> 开始任何实现前先读这两个文件；涉及前端 UI 时再读 `docs/frontend-design-system.md`（shadcn/ui 体系）。本文件只放 Claude Code 专属的补充内容。
+> **Main docs**: `AGENTS.md` (tool-agnostic project context: architecture, layering, naming, field type inference, anti-patterns, delivery process, menu tree) + `docs/architecture.md` (architecture: tech stack, cross-cutting conventions, migrations, deployment, design decisions). For features on the roadmap, first read the matching section of `docs/roadmap.md`.
+> Read these two files before starting any implementation; for frontend UI work, also read `docs/frontend-design-system.md` (the shadcn/ui system). This file holds only what is specific to Claude Code.
 
-## 规则
+## Rules
 
-- 命名一律小写连字符（`castor-kit`、`@castor-kit/api`），不用驼峰
-- shadcn/ui 组件实现前优先查阅 shadcn 官方文档 / registry（可用 shadcn MCP）；新增原子组件用 `npx shadcn@latest add`（本机需经 REGISTRY_URL 中转，直接跑 `apps/web/scripts/shadcn-add.sh <组件>`，见 AGENTS.md「新增 shadcn 原子组件」）
-- 迁移必须真实落库并用 `psql \d` 验证，静态检查不算完成
-- **代码注释一律英文**；界面支持中 / 英 / 日三语：前端写 `t('中文原文')`，译文放页面目录 `locales/en-US.json`、`ja-JP.json`，后端新报错在 `apps/api/src/i18n/messages.ts` 登记译文（详见 AGENTS.md「多语言（i18n）与代码注释」）
+- Names are always lowercase and hyphenated (`castor-kit`, `@castor-kit/api`), never camelCase
+- Before implementing a shadcn/ui component, check the official shadcn docs / registry first (use the shadcn MCP if available); add new primitives with `npx shadcn@latest add` (on this machine it has to go through a REGISTRY_URL relay, so run `apps/web/scripts/shadcn-add.sh <component>` directly; see AGENTS.md "Adding shadcn/ui primitives")
+- Migrations must actually be applied to the database and checked with `psql \d`; static checks don't count as done
+- **Code comments are always in English**; the UI supports Chinese / English / Japanese: in the frontend write `t('中文原文')` (the Chinese source text is the i18n key) and put translations in the page directory's `locales/en-US.json` and `ja-JP.json`; register translations for new backend errors in `apps/api/src/i18n/messages.ts` (see AGENTS.md "Internationalization (i18n) and code comments")
 
 ---
 
-## Claude Code 专属补充
+## Claude Code specifics
 
 ### Skills
 
-- `/new-feature-autopilot`（`.claude/skills/new-feature-autopilot/SKILL.md`）：PM 说“做 XX 功能 / 加一个 XX 页面”时使用，流程：
-  1. 读取 AGENTS.md + docs/templates/
-  2. 自动推断技术规格（不向用户询问技术细节）
-  3. 展示**业务预览**供确认
-  4. `pnpm scaffold` → 填业务 → `seed-rbac` 增量 → `pnpm db:migrate` → `psql \d` 实证
-  5. `pnpm verify -- --module <name>` 门禁全绿（含前后端单元测试）后输出交付报告（注明「已迁移至 <tag>」）
-- `shadcn-ui-skills`（`.claude/skills/shadcn-ui-skills/SKILL.md`）：shadcn/ui 组件清单、castor-kit 公共组件用法、设计 tokens、动效规范、常见模式与禁止事项
+- `/new-feature-autopilot` (`.claude/skills/new-feature-autopilot/SKILL.md`): use when a PM says "build feature XX / add an XX page". Flow:
+  1. Read AGENTS.md + docs/templates/
+  2. Infer the technical spec automatically (don't ask the user about technical details)
+  3. Show a **business preview** for confirmation
+  4. `pnpm scaffold` → fill in the business logic → incremental `seed-rbac` → `pnpm db:migrate` → prove it with `psql \d`
+  5. Once the `pnpm verify -- --module <name>` gate is all green (including frontend and backend unit tests), output the delivery report (stating "migrated to <tag>")
+- `shadcn-ui-skills` (`.claude/skills/shadcn-ui-skills/SKILL.md`): shadcn/ui component list, how to use castor-kit's shared components, design tokens, motion rules, common patterns and things not to do
 
-### 文档优先规则
+### Docs first
 
-- 实现 shadcn/ui 组件前，先查官方文档（https://ui.shadcn.com/docs/components ）或 registry（`apps/web/scripts/shadcn-add.sh --view <组件>`），有 shadcn MCP 时优先用它
-- 如文档与现有实现冲突，以仓库现有实现为准（`apps/web/src/components/ui/` 已按本项目 tokens 调整过）
+- Before implementing a shadcn/ui component, check the official docs (https://ui.shadcn.com/docs/components ) or the registry (`apps/web/scripts/shadcn-add.sh --view <component>`); prefer the shadcn MCP when available
+- If the docs conflict with the existing implementation, the repo wins (`apps/web/src/components/ui/` has been adjusted to this project's tokens)
 
-### 本地预览
+### Local preview
 
-`.claude/launch.json` 已配置 `api`（`pnpm --filter @castor-kit/api dev`，5001）与 `web`（`pnpm --filter @castor-kit/web dev`，5173）两个 dev server，浏览器验证页面时直接用它们启动。
+`.claude/launch.json` defines two dev servers, `api` (`pnpm --filter @castor-kit/api dev`, 5001) and `web` (`pnpm --filter @castor-kit/web dev`, 5173); start them from there when checking pages in the browser.
 
 ---
 
-## 关键约定速查（详见 AGENTS.md）
+## Key conventions at a glance (details in AGENTS.md)
 
-### 后端（apps/api）
-- **分层**：`db/schema/<domain>/<name>.ts` → `modules/<domain>/<name>/{schema,repository,service,routes}.ts` → `modules/<domain>/router.ts` → `src/router.ts`
-- **API 路由前缀**：`/api/admin/...`；列表响应 `{ items, total, page, per_page }`，错误响应 `{ error, ...payload }`
-- **权限检查**：`import { hasMenuPermission, loginRequired } from '@/common/auth'`，`await hasMenuPermission(request, 'system_xxx')`；也有 `hasAnyMenuPermission` / `menuPermissionRequired(code)`
-  - 不允许在 routes 文件内自定义 `hasPermission`
-- **model 层**：Drizzle `pgTable` + `xxxToDict()`；时间列 `createdAt()/updatedAt()`，输出 `toIso()`（ISO 8601 UTC，带 `Z`），numeric 保持字符串
-- **新增域**：需在 `src/router.ts` + `db/schema/index.ts` 中注册（已有域内新增模块由 scaffold 自动注册）
-- **导入导出**：`common/tabular.ts`（`buildTable` / `sendTable` / `readTableFile`），只支持 csv / xlsx
+### Backend (apps/api)
+- **Layering**: `db/schema/<domain>/<name>.ts` → `modules/<domain>/<name>/{schema,repository,service,routes}.ts` → `modules/<domain>/router.ts` → `src/router.ts`
+- **API route prefix**: `/api/admin/...`; list responses are `{ items, total, page, per_page }`, error responses are `{ error, ...payload }`
+- **Permission checks**: `import { hasMenuPermission, loginRequired } from '@/common/auth'`, `await hasMenuPermission(request, 'system_xxx')`; `hasAnyMenuPermission` / `menuPermissionRequired(code)` also exist
+  - Defining your own `hasPermission` inside a routes file is not allowed
+- **Model layer**: Drizzle `pgTable` + `xxxToDict()`; time columns use `createdAt()/updatedAt()` and are output with `toIso()` (ISO 8601 UTC, with `Z`); numeric stays a string
+- **New domain**: register it in `src/router.ts` + `db/schema/index.ts` (new modules inside an existing domain are registered by scaffold automatically)
+- **Import / export**: `common/tabular.ts` (`buildTable` / `sendTable` / `readTableFile`), csv / xlsx only
 
-### 前端（apps/web，shadcn/ui + Tailwind CSS v4 + motion + lucide-react，JSX）
-- **动态路由**：`App.jsx` 用 `import.meta.glob('./modules/**/pages/**/index.jsx')` 扫描；`menu.component` 值格式 `<module>/<subdir>/<page>`（如 `component_center/admin/kanban_page`）
-- **API client**：`apps/web/src/shared/api/request.js`（拦截 401 自动跳登录页、自动带 CSRF 头、响应已 unwrap）
-- **页面结构**：照 `apps/web/src/modules/admin/pages/users/index.jsx`——PageHeader → FilterBar → DataTable → FormDialog（react-hook-form + FormFields）→ ImportDialog / ExportDialog，删除用 ConfirmAction，反馈用 `@/lib/toast`
-- **导入导出**：复用 `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
-- **样式**：只用 Tailwind 语义色类（`bg-card` / `text-muted-foreground` / `bg-brand-soft` …），Ocean 渐变只做点缀，禁止写死十六进制颜色；只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类，不引入其他 UI 组件库（antd、MUI 等）
-- **纯前端页面**（无后端 CRUD API）：creative/、devtools/websocket_page、devtools/perf_monitor_page、dataviz/heatmap_page、dataviz/realtime_chart_page
+### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react, JSX)
+- **Dynamic routing**: `App.jsx` scans `import.meta.glob('./modules/**/pages/**/index.jsx')`; `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/admin/kanban_page`)
+- **API client**: `apps/web/src/shared/api/request.js` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
+- **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.jsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`
+- **Import / export**: reuse `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`
+- **Styling**: only Tailwind semantic color classes (`bg-card` / `text-muted-foreground` / `bg-brand-soft` ...); the Ocean gradient is only an accent; no hard-coded hex colors; only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes, no other UI component libraries (antd, MUI, etc.)
+- **Frontend-only pages** (no backend CRUD API): creative/, devtools/websocket_page, devtools/perf_monitor_page, dataviz/heatmap_page, dataviz/realtime_chart_page
 
 ### RBAC
-- 菜单结构：`menus` 表，`menu_type = 'menu'|'button'`；`role_menus` / `user_roles` 多对多
-- **超级管理员**：code=`super_admin`，权限判定直接放行（`my-menus` 除外）
-- 唯一事实源：`apps/api/scripts/seed-rbac.ts`；每次菜单/权限变更后必须运行 `pnpm seed:rbac -- --incremental`
+- Menu structure: `menus` table, `menu_type = 'menu'|'button'`; `role_menus` / `user_roles` are many-to-many
+- **Super admin**: code=`super_admin`, permission checks always pass (except `my-menus`)
+- Single source of truth: `apps/api/scripts/seed-rbac.ts`; after every menu / permission change you must run `pnpm seed:rbac -- --incremental`
 
 ---
 
-## 常用命令
+## Common commands
 
 ```bash
 pnpm dev                                   # api(5001) + web(5173)
-pnpm db:generate --name <描述>              # 生成迁移（注意：这里不能写 --）
-pnpm db:migrate                            # 应用迁移
-psql -d castor_kit -c '\d <table>'          # 实证落库（库名取 apps/api/.env.development 的 DEV_DATABASE_URL）
-pnpm seed:rbac -- --incremental            # RBAC 增量同步
+pnpm db:generate --name <description>      # generate a migration (note: no -- here)
+pnpm db:migrate                            # apply migrations
+psql -d castor_kit -c '\d <table>'          # prove it hit the DB (DB name from DEV_DATABASE_URL in apps/api/.env.development)
+pnpm seed:rbac -- --incremental            # incremental RBAC sync
 pnpm scaffold -- --name <name> --domain admin --fields "name:str,status:str20"
-pnpm verify -- --module <name>             # 功能验证门禁（--skip-build 跳过前端构建，--json 结构化输出）
+pnpm verify -- --module <name>             # feature verification gate (--skip-build skips the frontend build, --json for structured output)
 pnpm typecheck && pnpm test
 pnpm openapi:generate && pnpm openapi:apifox
 ```
 
 ---
 
-## 新功能开发 Checklist
+## New feature checklist
 
-1. [ ] 阅读相关现有模块（参考 `apps/api/src/modules/admin/users/`、`apps/web/src/modules/admin/pages/users/index.jsx`）
+1. [ ] Read the related existing modules (see `apps/api/src/modules/admin/users/`, `apps/web/src/modules/admin/pages/users/index.jsx`)
 2. [ ] `pnpm scaffold -- --name <name> --domain <admin|component_center> --fields "..."`
-3. [ ] 后端：`db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts` 填充业务
-4. [ ] 前端：`pages/<subdir>/<page>/index.jsx` + `api/<page>.js`（纯前端页面无需 api 文件）
-5. [ ] RBAC：在 `seed-rbac.ts` 中添加菜单 + 按钮权限条目，运行 `pnpm seed:rbac -- --incremental`
-6. [ ] 迁移：审查 `apps/api/drizzle/` 新 SQL → `pnpm db:migrate` → `psql \d` 确认
-7. [ ] OpenAPI：scaffold 已写好模块接口；改了生成的路由 / 字段或新增路由时按 AGENTS.md「OpenAPI 编写规范」同步修改，`pnpm openapi:generate -- --strict` 通过
-8. [ ] 门禁：`pnpm verify -- --module <name>` 全部通过（含前后端单元测试）
+3. [ ] Backend: fill in the business logic in `db/schema` → `schema.ts` → `repository.ts` → `service.ts` → `routes.ts`
+4. [ ] Frontend: `pages/<subdir>/<page>/index.jsx` + `api/<page>.js` (frontend-only pages need no api file)
+5. [ ] RBAC: add the menu + button permission entries in `seed-rbac.ts`, run `pnpm seed:rbac -- --incremental`
+6. [ ] Migration: review the new SQL in `apps/api/drizzle/` → `pnpm db:migrate` → confirm with `psql \d`
+7. [ ] OpenAPI: scaffold has already written the module's endpoints; if you changed the generated routes / fields or added routes, update the doc following AGENTS.md "OpenAPI writing rules" until `pnpm openapi:generate -- --strict` passes
+8. [ ] Gate: `pnpm verify -- --module <name>` passes completely (including frontend and backend unit tests)

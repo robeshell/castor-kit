@@ -5,7 +5,7 @@ const REPO = 'https://github.com/robeshell/castor-kit'
 const SITE = 'https://robeshell.github.io/castor-kit'
 
 /**
- * One page tree, three languages. `prefix` is '' for the root (Chinese) locale and '/en' / '/ja' otherwise;
+ * One page tree, three languages. `prefix` is '' for the root (English) locale and '/zh' / '/ja' otherwise;
  * `t` maps each page to its title in that language.
  */
 function localeTheme(prefix, t) {
@@ -123,18 +123,18 @@ export default defineConfig({
 
   locales: {
     root: {
-      label: '简体中文',
-      lang: 'zh-CN',
-      title: 'castor-kit',
-      description: '开箱即用的管理后台，新功能一句话生成：告诉 AI 你要什么，它生成数据表、接口和页面，并自动检查。',
-      themeConfig: localeTheme('', zh),
-    },
-    en: {
       label: 'English',
       lang: 'en-US',
       title: 'castor-kit',
       description: 'A ready-made admin panel where AI builds new features: describe a page, get the table, API and UI, checked automatically.',
-      themeConfig: localeTheme('/en', en),
+      themeConfig: localeTheme('', en),
+    },
+    zh: {
+      label: '简体中文',
+      lang: 'zh-CN',
+      title: 'castor-kit',
+      description: '开箱即用的管理后台，新功能一句话生成：告诉 AI 你要什么，它生成数据表、接口和页面，并自动检查。',
+      themeConfig: localeTheme('/zh', zh),
     },
     ja: {
       label: '日本語',
@@ -154,7 +154,7 @@ export default defineConfig({
       provider: 'local',
       options: {
         locales: {
-          root: { translations: { button: { buttonText: '搜索文档' }, modal: { noResultsText: '没有找到结果', footer: { selectText: '选择', navigateText: '切换', closeText: '关闭' } } } },
+          zh: { translations: { button: { buttonText: '搜索文档' }, modal: { noResultsText: '没有找到结果', footer: { selectText: '选择', navigateText: '切换', closeText: '关闭' } } } },
           ja: { translations: { button: { buttonText: '検索' }, modal: { noResultsText: '結果が見つかりません', footer: { selectText: '選択', navigateText: '移動', closeText: '閉じる' } } } },
         },
       },

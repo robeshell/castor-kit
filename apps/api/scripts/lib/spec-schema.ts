@@ -9,7 +9,7 @@
 
 import { FIELD_TYPE_MAP, NAME_RE, RESERVED_FIELDS, SPEC_KEYS, UNIQUE_TYPES, UNSAFE_TEXT } from '../scaffold'
 
-/** What each field type is for (shown by editors; AGENTS.md "字段类型推断规则" has the full table) */
+/** What each field type is for (shown by editors; AGENTS.md "Field type inference" has the full table) */
 export const FIELD_TYPE_NOTES: Record<string, string> = {
   str: '一般文本，最长 100（名称、标题、地址……）',
   str50: '短文本，最长 50',
@@ -42,7 +42,7 @@ export function specJsonSchema(): Record<string, unknown> {
     title: 'castor-kit 模块规格（pnpm scaffold -- --spec <file>）',
     description:
       '从一句业务需求推断出的模块规格。这里只做结构检查；唯一只用于文本和数字、默认值要符合字段类型等规则以 ' +
-      '`pnpm scaffold -- --spec <file> --validate-only` 为准。怎么推断见 AGENTS.md「从一句需求到 spec」，示例见 docs/examples/specs/。',
+      '`pnpm scaffold -- --spec <file> --validate-only` 为准。怎么推断见 AGENTS.md "From a one-line requirement to a spec"，示例见 docs/examples/specs/。',
     type: 'object',
     additionalProperties: false,
     required: ['name', 'title', 'fields'],

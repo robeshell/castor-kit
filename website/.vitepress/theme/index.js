@@ -15,5 +15,12 @@ export default {
     }),
   enhanceApp({ app }) {
     app.component('Landing', Landing)
+    // English moved from /en/ to the site root: send old /en/ links to the same page at its new address
+    if (typeof window !== 'undefined') {
+      const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+      const legacyEnglish = new RegExp(`^${base}/en(?=/|$)`)
+      const { pathname, search, hash } = window.location
+      if (legacyEnglish.test(pathname)) window.location.replace(pathname.replace(legacyEnglish, base) + search + hash)
+    }
   },
 }

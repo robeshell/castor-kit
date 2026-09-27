@@ -1,74 +1,74 @@
-# castor-kit 前端设计系统
+# castor-kit frontend design system
 
-> `apps/web` 的 UI 体系：shadcn/ui + Tailwind CSS v4 + motion + lucide-react（JSX）。视觉方向：简洁、动效丝滑、偏英文 SaaS 风格（Linear / Vercel / Stripe），
-> 中性灰为底，**Ocean 渐变（blue → sky → cyan）**作为默认强调色，渐变只做点缀。强调色可在「外观设置」切换为其他预设（`src/lib/appearance.js`），所有强调色 token 由 `--brand-from/via/to` 派生。
-> 组件用法、常见页面模式与禁止事项见 `.claude/skills/shadcn-ui-skills/`；项目约定见 `AGENTS.md`「前端架构约定」。
+> The UI system of `apps/web`: shadcn/ui + Tailwind CSS v4 + motion + lucide-react (JSX). Visual direction: clean, with smooth motion, in the style of English-language SaaS products (Linear / Vercel / Stripe),
+> on a neutral gray base, with the **Ocean gradient (blue → sky → cyan)** as the default accent color; the gradient is only an accent. The accent can be switched to other presets in the Appearance menu (`src/lib/appearance.js`), and every accent token is derived from `--brand-from/via/to`.
+> Component usage, common page patterns and things not to do are in `.claude/skills/shadcn-ui-skills/`; project conventions are in `AGENTS.md` "Frontend conventions".
 
-## 1. 技术栈
+## 1. Tech stack
 
-| 关注点 | 选型 |
+| Concern | Choice |
 |---|---|
-| React | React 19（JavaScript / JSX） |
-| 样式 | Tailwind CSS v4（`@tailwindcss/vite`）+ CSS 变量主题（亮/暗） |
-| 组件 | shadcn/ui（new-york，Radix），源码在 `src/components/ui/`，JSX |
-| 动效 | `motion`（页面切换、列表错峰入场、layoutId 指示条、数字滚动）+ `tw-animate-css`（弹层进出） |
-| 图标 | `lucide-react`；菜单表存 lucide 图标名（如 `Users`、`Settings`），经 `lib/menu-icons.js` 解析 |
-| 表格 | 公共组件 `DataTable`（分页、选择、空态、骨架） |
-| 表单 | `react-hook-form`（shadcn Form 模式）+ `FormFields` |
-| 提示 | `sonner`（统一 `toast`） |
-| 命令面板 | `cmdk`（⌘K：跳转菜单、切换主题、退出登录） |
-| 日期 | `react-day-picker` + `date-fns`（Calendar + Popover） |
-| 字体 | Geist / Geist Mono（`@fontsource-variable`，本地打包，不走 CDN）+ 中文回退 PingFang SC / Microsoft YaHei |
-| 其他 | echarts、three、monaco、dnd-kit、react-grid-layout、react-window、react-markdown、react-quill-new（富文本） |
+| React | React 19 (JavaScript / JSX) |
+| Styling | Tailwind CSS v4 (`@tailwindcss/vite`) + CSS variable themes (light / dark) |
+| Components | shadcn/ui (new-york, Radix), source in `src/components/ui/`, JSX |
+| Motion | `motion` (page transitions, staggered list entrances, layoutId indicators, number counters) + `tw-animate-css` (overlay enter / exit) |
+| Icons | `lucide-react`; the menu table stores lucide icon names (e.g. `Users`, `Settings`), resolved by `lib/menu-icons.js` |
+| Tables | shared `DataTable` component (pagination, selection, empty state, skeleton) |
+| Forms | `react-hook-form` (shadcn Form pattern) + `FormFields` |
+| Notifications | `sonner` (the shared `toast`) |
+| Command palette | `cmdk` (⌘K: jump to a menu, switch theme, sign out) |
+| Dates | `react-day-picker` + `date-fns` (Calendar + Popover) |
+| Fonts | Geist / Geist Mono (`@fontsource-variable`, bundled locally, no CDN) + Chinese fallbacks PingFang SC / Microsoft YaHei |
+| Other | echarts, three, monaco, dnd-kit, react-grid-layout, react-window, react-markdown, react-quill-new (rich text) |
 
-## 2. 设计 tokens
+## 2. Design tokens
 
-tokens 定义在 `apps/web/src/index.css`（`:root` 亮色、`.dark` 暗色，`@theme inline` 暴露给 Tailwind）。页面只用语义色类（`bg-card`、`text-muted-foreground`、`bg-brand-soft` …），不写死十六进制颜色。
+Tokens are defined in `apps/web/src/index.css` (`:root` for light, `.dark` for dark, exposed to Tailwind via `@theme inline`). Pages use only semantic color classes (`bg-card`, `text-muted-foreground`, `bg-brand-soft` ...) and never hard-code hex colors.
 
-- 中性色：纯中性灰（不带蓝紫色偏，否则配蓝色强调会显脏）；内容区纯白 `#ffffff`、侧栏冷调浅灰 `#f7f8fa`，卡片 1px 发丝边（`--border #ebebeb`）+ 极浅投影，不用重阴影；圆角 10–14px。
-- 强调色（Ocean）：`--primary` 取 `--brand-from`（默认 `#2563eb`），渐变 `--brand-gradient: linear-gradient(135deg, brand-from, brand-via 55%, brand-to)`（默认 #2563eb → #0284c7 → #22d3ee）；
-  带文字的元素用两段深渐变 `--brand-gradient-strong`（brand-from → brand-via），保证白字对比度。
-- 渐变只用于：Logo、主按钮（带柔和辉光）、Tab 指示条、进度条、图表线与面积、在线头像环。内容区不铺大面积柔光/渐变底（浅色下会像污渍）；同一屏除主按钮外尽量不再出现第二处渐变。
-- 数据可视化：按天计数用柱状图；稀疏数据不画趋势线（Sparkline 有效点 <2 自动不渲染）；失败状态用小号红色状态码提示，不整块染红。
-- 状态：成功 green、警告 amber、危险 red（`--success` / `--warning` / `--danger` 及对应 `-soft` 浅底）；徽章用浅底深字。
-- 文案：不写没用的描述。页面标题下不放介绍语；描述只在带信息时写（数据、当前对象、约束与后果、快捷键、空状态下一步），复述标题 / 功能介绍 / 技术栈 / 宣传语一律不写。
-- 加载态：一律用 `<Skeleton>`（已内置 200ms 延迟淡入 + 扫光，秒回时不出现），不要手写 `animate-pulse`；骨架形状对齐真实内容（表格用 DataTable 自带行骨架、指标卡传 `loading`），不要用 0 或「共 0 条」冒充加载中；页面代码加载由 AppLayout 的 Suspense 统一处理，页面内不要再包 Suspense。
-- 多语言：简体中文 / English / 日本語，中文原文即 key；顶栏与登录页右上角切换，选择记在 localStorage，请求带 `Accept-Language`。约定见 AGENTS.md「多语言（i18n）与代码注释」。
-- 字号：正文 13–14px，标题 24–26px / 600，数字 `tabular-nums`。
-- 动效：交互 150–250ms ease-out；弹层 spring 曲线 `cubic-bezier(.32,.72,0,1)`；尊重 `prefers-reduced-motion`。
-- 暗色：同一套 token 暗色版，`<html class="dark">` 切换。
+- Neutrals: pure neutral grays (no blue / purple tint, which looks dirty next to a blue accent); the content area is pure white `#ffffff`, the sidebar a cool light gray `#f7f8fa`; cards have a 1px hairline border (`--border #ebebeb`) + a very light shadow, no heavy shadows; corner radius 10–14px.
+- Accent (Ocean): `--primary` takes `--brand-from` (default `#2563eb`); the gradient is `--brand-gradient: linear-gradient(135deg, brand-from, brand-via 55%, brand-to)` (default #2563eb → #0284c7 → #22d3ee);
+  elements that carry text use the two-stop darker gradient `--brand-gradient-strong` (brand-from → brand-via) to keep white text readable.
+- Gradients are used only for: the logo, the primary button (with a soft glow), tab indicators, progress bars, chart lines and areas, and the online avatar ring. Don't lay large soft glows / gradient backgrounds over the content area (in light mode they look like stains); apart from the primary button, avoid a second gradient on the same screen.
+- Data visualization: use bar charts for daily counts; don't draw trend lines for sparse data (Sparkline renders nothing with fewer than 2 valid points); show failure states with a small red status code instead of coloring the whole block red.
+- Status: success green, warning amber, danger red (`--success` / `--warning` / `--danger` and the matching `-soft` light backgrounds); badges use dark text on a light background.
+- Copy: don't write useless descriptions. No intro text under the page title; write a description only when it carries information (data, the current object, constraints and consequences, shortcuts, the next step in an empty state); never restate the title, introduce the feature or tech stack, or write marketing lines.
+- Loading states: always use `<Skeleton>` (it has a built-in 200ms delayed fade-in + shimmer, so it doesn't appear for instant responses); don't hand-write `animate-pulse`; match the skeleton's shape to the real content (tables use DataTable's built-in row skeletons, stat cards take `loading`); don't fake loading with 0 or `共 0 条` ("0 items"); page code loading is handled centrally by AppLayout's Suspense, so don't wrap pages in another Suspense.
+- Languages: Simplified Chinese / English / Japanese, with the Chinese source text as the key; switch from the top bar or the top-right corner of the login page; the choice is stored in localStorage and requests send `Accept-Language`. Conventions are in AGENTS.md "Internationalization (i18n) and code comments".
+- Font sizes: body 13–14px, titles 24–26px / 600, numbers use `tabular-nums`.
+- Motion: interactions 150–250ms ease-out; overlays use the spring curve `cubic-bezier(.32,.72,0,1)`; respect `prefers-reduced-motion`.
+- Dark mode: a dark version of the same tokens, toggled with `<html class="dark">`.
 
-## 3. 目录结构
+## 3. Directory layout
 
 ```
 apps/web/src/
 ├── components/
-│   ├── ui/                 # shadcn 原子组件（button、input、dialog、sheet、table、select、…）
-│   └── app/                # 应用外壳：AppLayout、AppSidebar、TopBar、TopNav、TagsView、CommandMenu、ThemeToggle、
-│                           #           AppearanceMenu、LanguageSwitcher、NotificationBell、UserMenu、StatusPages、PrivateRoute
+│   ├── ui/                 # shadcn primitives (button, input, dialog, sheet, table, select, ...)
+│   └── app/                # app shell: AppLayout, AppSidebar, TopBar, TopNav, TagsView, CommandMenu, ThemeToggle,
+│                           #            AppearanceMenu, LanguageSwitcher, NotificationBell, UserMenu, StatusPages, PrivateRoute
 ├── shared/
-│   ├── components/         # 业务通用：PageHeader、Filters、DataTable、RowActions、ConfirmAction、FormDialog、FormFields、
-│   │                       #           data-transfer/（ImportDialog、ExportDialog）、upload/、StatusBadge、EmptyState、
-│   │                       #           TreeView、CheckableTree、TreeSelect、StatCard、Panel、SegmentedTabs …
-│   ├── hooks/              # useCrudList、useIsMobile、useDebouncedValue、useDictOptions …
-│   └── api/request.js      # axios 封装（CSRF、401 跳转、响应 unwrap）
-├── lib/                    # utils(cn)、toast、menu-icons、motion 预设、format(日期/数字)、appearance、chart-theme
-├── context/                # AuthContext、ThemeContext（html.dark）、TagsViewContext
-├── i18n/                   # i18next 初始化与日期 locale
-└── modules/**/pages/**/index.jsx   # 页面（由 App.jsx 的 import.meta.glob 动态路由）
+│   ├── components/         # shared business components: PageHeader, Filters, DataTable, RowActions, ConfirmAction, FormDialog, FormFields,
+│   │                       #            data-transfer/ (ImportDialog, ExportDialog), upload/, StatusBadge, EmptyState,
+│   │                       #            TreeView, CheckableTree, TreeSelect, StatCard, Panel, SegmentedTabs ...
+│   ├── hooks/              # useCrudList, useIsMobile, useDebouncedValue, useDictOptions ...
+│   └── api/request.js      # axios wrapper (CSRF, 401 redirect, response unwrap)
+├── lib/                    # utils(cn), toast, menu-icons, motion presets, format (dates / numbers), appearance, chart-theme
+├── context/                # AuthContext, ThemeContext (html.dark), TagsViewContext
+├── i18n/                   # i18next setup and date locales
+└── modules/**/pages/**/index.jsx   # pages (dynamically routed by import.meta.glob in App.jsx)
 ```
 
-## 4. 公共组件约定（页面必须复用，不各写一套）
+## 4. Shared component conventions (pages must reuse them, not build their own)
 
-组件都在 `apps/web/src/shared/components/`，完整用法见 `.claude/skills/shadcn-ui-skills/COMPONENTS.md`。
+The components live in `apps/web/src/shared/components/`; full usage is in `.claude/skills/shadcn-ui-skills/COMPONENTS.md`.
 
-- `PageHeader`：标题 + 右侧操作区（description 只放数据类信息）。
-- `Filters`（`FilterBar` / `SearchInput` / `FilterSelect`）：搜索框 + 筛选项 + 查询/重置。
-- `DataTable`：列定义 `{ key, title, dataIndex, render, … }`；`loading` 骨架、空态、分页（total/page/perPage）、行选择。
-- `FormDialog` / `FormSheet` + `FormFields`：新建/编辑表单容器（react-hook-form），提交 loading、错误提示。
-- `ConfirmAction`：删除等危险操作的确认弹层；`RowActions`：行操作。
-- `data-transfer/ImportDialog` / `ExportDialog`：导入导出，只支持 csv/xlsx。
-- `useAuth().hasPermission(code)`：按钮权限（`@/context/AuthContext`）。
-- `toast.success / toast.error / toast.apiError`（`@/lib/toast`）：统一反馈；后端 `{error}` 文案直接展示。
+- `PageHeader`: title + action area on the right (description only for data-type information).
+- `Filters` (`FilterBar` / `SearchInput` / `FilterSelect`): search box + filters + search / reset.
+- `DataTable`: column definitions `{ key, title, dataIndex, render, ... }`; `loading` skeleton, empty state, pagination (total/page/perPage), row selection.
+- `FormDialog` / `FormSheet` + `FormFields`: create / edit form containers (react-hook-form), with submit loading state and error messages.
+- `ConfirmAction`: confirmation popover for dangerous actions such as delete; `RowActions`: row actions.
+- `data-transfer/ImportDialog` / `ExportDialog`: import and export, csv/xlsx only.
+- `useAuth().hasPermission(code)`: button permissions (`@/context/AuthContext`).
+- `toast.success / toast.error / toast.apiError` (`@/lib/toast`): shared feedback; the backend's `{error}` message is shown as is.
 
-只用 `@/components/ui/*`、`@/shared/components/*`、lucide-react 与 Tailwind 语义色类；不引入其他 UI 组件库（antd、MUI 等）。
+Use only `@/components/ui/*`, `@/shared/components/*`, lucide-react and Tailwind semantic color classes; don't add other UI component libraries (antd, MUI, etc.).

@@ -23,7 +23,7 @@ const SWATCH = {
 
 const view = ref('dashboard')
 const theme = computed(() => (isDark.value ? 'dark' : 'light'))
-const shotLang = computed(() => (['zh-CN', 'en-US', 'ja-JP'].includes(lang.value) ? lang.value : 'zh-CN'))
+const shotLang = computed(() => (['zh-CN', 'en-US', 'ja-JP'].includes(lang.value) ? lang.value : 'en-US'))
 const mainSrc = computed(() => withBase(`/screenshots/${shotLang.value}/${view.value}-${theme.value}.webp`))
 const accentSrc = (accent) => withBase(`/screenshots/accent/${accent}-${theme.value}.webp`)
 const alt = computed(() => `castor-kit — ${props.t.views[view.value]}`)

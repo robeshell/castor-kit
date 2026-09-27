@@ -1,6 +1,6 @@
 /**
  * OpenAPI entries for a scaffolded module — written into docs/apifox-full.openapi.json by `pnpm scaffold`, so a new
- * module passes the document check (scripts/lib/openapi-lint.ts, AGENTS.md "OpenAPI 编写规范") without hand-written docs.
+ * module passes the document check (scripts/lib/openapi-lint.ts, AGENTS.md "OpenAPI writing rules") without hand-written docs.
  *
  * The entries describe exactly what genRoutes / genService / genModuleSchema generate: the eight routes, their
  * permission codes, the field types and rules from the spec (required, unique, default, options, dictionary), the

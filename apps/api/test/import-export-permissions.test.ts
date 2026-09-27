@@ -1,5 +1,5 @@
 /**
- * Import / export button permissions across modules (AGENTS.md "导入导出规范"):
+ * Import / export button permissions across modules (AGENTS.md "Import and export rules"):
  * export needs `<perm>_export`; the import template and import need `<perm>_import`.
  * The view permission and `_add` / `_edit` / `_delete` grant none of them.
  */
