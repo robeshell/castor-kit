@@ -8,6 +8,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # runtime (DATA_DIR default: apps/api/data)
 /apps/*/data/

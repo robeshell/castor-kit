@@ -21,10 +21,10 @@ castor-kit/
 │   └── templates/            # 代码骨架模板（backend/、frontend/）
 ├── website/                  # 本文档站（VitePress，独立 npm 项目，不在 pnpm workspace 内）
 ├── AGENTS.md                 # 所有 AI 工具共用的项目上下文
-├── CLAUDE.md / CODEX.md / llms.txt / .windsurfrules
-├── .claude/ .agents/ .cursor/ .github/   # 各 AI 工具的配置与技能，.github 另含 CI
-├── Dockerfile / docker-compose.yml / docker-entrypoint.sh
-└── setup.sh                  # Docker 一键安装向导
+├── CLAUDE.md                 # Claude Code 专属补充
+├── .claude/ .agents/ .github/   # AI 技能（.agents 是 .claude/skills 的镜像）；.github 含 CI 与 issue 模板
+├── scripts/                  # setup.sh（Docker 一键安装向导）、docker-entrypoint.sh（镜像入口）
+└── Dockerfile / docker-compose.yml / render.yaml
 ```
 
 AI 相关文件的用途见 [AI 驱动开发](/guide/ai-workflow#支持的-ai-工具)。

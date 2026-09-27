@@ -74,8 +74,9 @@ castor-kit/
 │   ├── templates/{backend,frontend}/   # 代码骨架模板（AI 临摹用）
 │   └── apifox-full.openapi.json        # OpenAPI 文档
 ├── website/                        # VitePress 文档站（独立 npm 项目）
-├── Dockerfile / docker-compose.yml / docker-entrypoint.sh / setup.sh
-└── AGENTS.md / CLAUDE.md / CODEX.md / llms.txt / …   # AI 上下文文档
+├── scripts/                        # setup.sh / docker-entrypoint.sh
+├── Dockerfile / docker-compose.yml / render.yaml
+└── AGENTS.md / CLAUDE.md           # AI 上下文文档
 ```
 
 **为什么 model 层集中放在 `db/schema/`，其余三层按功能文件夹放？** Drizzle 需要一个统一的 schema 导出给 drizzle-kit；而 repository / service / routes 按功能就近放置，AI 生成一个新功能时只需在一个目录下创建 4 个文件 + 1 个 schema 文件，比按层分散到 5 个目录更不容易漏。
@@ -218,7 +219,7 @@ castor-kit/
 ### 4.15 配置
 - `config.ts` 用 Zod 校验环境变量，运行环境由 `NODE_ENV` 决定（development / test / production）；启动时加载 `.env.<NODE_ENV>`（`apps/api/` 优先，其次仓库根目录；已有环境变量不覆盖）。
 - 生产环境缺 `SECRET_KEY` / `ADMIN_PASSWORD` / `AI_SQL_DATABASE_URL` 即抛错退出（fail-closed）。
-- 其余变量：`DATABASE_URL / DEV_DATABASE_URL / CORS_ORIGINS / COOKIE_SECURE / SESSION_* / LOGIN_* / TASK_SCHEDULER_* / RUN_SCHEDULER_IN_WEB / ENABLE_TASK_SCHEDULER / AI_API_* / AI_SQL_* / BODY_LIMIT / DATA_DIR / APIFOX_*`，示例见 `.env.example`。
+- 其余变量：`DATABASE_URL / DEV_DATABASE_URL / CORS_ORIGINS / COOKIE_SECURE / SESSION_* / LOGIN_* / TASK_SCHEDULER_* / RUN_SCHEDULER_IN_WEB / ENABLE_TASK_SCHEDULER / AI_API_* / AI_SQL_* / BODY_LIMIT / DATA_DIR / APIFOX_*`，示例见 `.env.production.example`（本地开发用 `apps/api/.env.example`）。
 - 端口：开发 5001、测试 5002、生产 5000；Vite dev server 5173，把 `/api`、`/ws` 代理到 5001。
 
 ### 4.16 开放接口（API Token 与 Webhook）
@@ -279,10 +280,10 @@ castor-kit/
 
 ### 8.1 部署
 - **Dockerfile**：两阶段——`node:22-bookworm-slim` 构建 web（vite）与 api（tsup），`pnpm deploy --prod` 裁剪生产依赖 → 运行镜像 `node:22-bookworm-slim`，非 root `uid 10001`，`HEALTHCHECK curl /health`。
-- **docker-entrypoint.sh**：`node dist/setup-once.js`（迁移 + RBAC 增量 + 只读账号）→ `node dist/main.js`。
+- **scripts/docker-entrypoint.sh**（镜像里是 `./docker-entrypoint.sh`）：`node dist/setup-once.js`（迁移 + RBAC 增量 + 只读账号）→ `node dist/main.js`。
 - **docker-compose.yml**：`db`（postgres）+ `app`；`NODE_ENV=production`；数据库与运行时数据（`DATA_DIR`，含上传文件）两个卷，卷名可用 `COMPOSE_DB_VOLUME` / `COMPOSE_DATA_VOLUME` 覆盖（例如指向已有的卷）。
 - **进程模型**：默认单进程；需要多核时用多副本 + `RUN_SCHEDULER_IN_WEB=false` + 单独 worker 服务。
-- **setup.sh**：生成 `.env.production`（随机密钥）并用 compose 启动。
+- **scripts/setup.sh**：生成 `.env.production`（随机密钥）并用 compose 启动。
 - **CI**（`.github/workflows/ci.yml`）：`pnpm install` → lint → typecheck → 空库 `setup-once` → api vitest（pg service）→ `pnpm verify --skip-build` → web 单测 → `vite build`。不做自动部署（部署在服务器上手动 `git pull && docker compose --env-file .env.production up -d --build`）；文档站（`website/`）由 `.github/workflows/docs.yml` 构建，合入 main 后发布到 GitHub Pages。
 
 ### 8.2 测试策略

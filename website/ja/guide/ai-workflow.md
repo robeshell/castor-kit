@@ -24,11 +24,9 @@ castor-kit が目指すのは、業務要件を自然言語で伝えるだけで
 | ツール | 読み込むファイル |
 |---|---|
 | Claude Code | `CLAUDE.md`。スキルは `.claude/skills/`（`new-feature-autopilot`、`shadcn-ui-skills`） |
-| Codex CLI | `AGENTS.md`（自動で読み込み）+ `CODEX.md`。スキルは `.agents/skills/` |
-| Cursor | `.cursor/rules/castor-kit-always.mdc`（常に有効）、`.cursor/rules/new-feature-autopilot.mdc` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Windsurf | `.windsurfrules` |
-| その他のツール | `llms.txt`（エントリーとなる索引） |
+| Codex CLI | `AGENTS.md`（自動で読み込み）。スキルは `.agents/skills/` |
+| Cursor、Windsurf、GitHub Copilot など | `AGENTS.md`（いずれも自動で読み込み） |
+| ドキュメントサイトを読む AI | サイトの `/llms.txt`（エントリーとなる索引。ソースは `website/public/llms.txt`） |
 | MCP クライアント | `apps/mcp`。後述の [MCP Server](#mcp-server) を参照 |
 
 `.claude/skills/` と `.agents/skills/` の内容は同一に保たれており、バックエンドのテスト `skills-sync.test.ts` が両者の同期をチェックします。

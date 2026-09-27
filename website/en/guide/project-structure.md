@@ -21,10 +21,10 @@ castor-kit/
 │   └── templates/            # Code scaffold templates (backend/, frontend/)
 ├── website/                  # This docs site (VitePress; a standalone npm project, not in the pnpm workspace)
 ├── AGENTS.md                 # Shared project context for all AI tools
-├── CLAUDE.md / CODEX.md / llms.txt / .windsurfrules
-├── .claude/ .agents/ .cursor/ .github/   # Config and skills for each AI tool; .github also holds CI
-├── Dockerfile / docker-compose.yml / docker-entrypoint.sh
-└── setup.sh                  # One-command Docker setup wizard
+├── CLAUDE.md                 # Claude Code additions
+├── .claude/ .agents/ .github/   # AI skills (.agents mirrors .claude/skills); .github holds CI and issue templates
+├── scripts/                  # setup.sh (one-command Docker setup), docker-entrypoint.sh (image entry point)
+└── Dockerfile / docker-compose.yml / render.yaml
 ```
 
 For what each AI-related file does, see [AI-driven workflow](/en/guide/ai-workflow#supported-ai-tools).

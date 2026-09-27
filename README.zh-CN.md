@@ -64,7 +64,7 @@ castor-kit 是一个开源的管理后台：今天就能直接用，以后可以
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 安装向导会让你设置管理员密码和端口（默认 `5000`）。完成后打开 `http://localhost:5000`，用 `admin` 登录。

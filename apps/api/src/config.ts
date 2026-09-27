@@ -157,7 +157,7 @@ function required(name: string, value: string | undefined, env: AppEnv, devFallb
   const trimmed = (value ?? '').trim()
   if (trimmed) return trimmed
   if (env === 'production') {
-    throw new Error(`生产环境必须设置 ${name}，请使用 setup.sh 生成 .env.production`)
+    throw new Error(`生产环境必须设置 ${name}，请使用 scripts/setup.sh 生成 .env.production`)
   }
   return devFallback
 }

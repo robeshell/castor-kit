@@ -97,7 +97,7 @@ Run from the repo root. Compose commands need `--env-file .env.production`.
 
 | Command | Description |
 |---|---|
-| `bash setup.sh` | Interactive wizard: generates `.env.production`, then builds and starts |
+| `bash scripts/setup.sh` | Interactive wizard: generates `.env.production`, then builds and starts |
 | `docker compose --env-file .env.production up -d --build` | Build the image and start (also used after code updates) |
 | `docker compose --env-file .env.production logs -f app` | Follow the app logs |
 | `docker compose --env-file .env.production ps` | Show service status |

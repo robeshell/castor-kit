@@ -1,8 +1,11 @@
 #!/bin/bash
 # castor-kit one-step installer
-# Usage: bash setup.sh
+# Usage: bash scripts/setup.sh (from any directory)
 
 set -e
+
+# Work from the repository root: .env.production and docker-compose.yml live there
+cd "$(dirname "$0")/.."
 
 # ── Colors ────────────────────────────────────────────────────
 GREEN=$'\033[0;32m'
@@ -96,7 +99,7 @@ if [ -z "$SKIP_CONFIG" ]; then
     # Write the config file
     cat > .env.production <<EOF
 # castor-kit 生产环境配置
-# 此文件由 setup.sh 自动生成，请勿手动修改 SECRET_KEY
+# 此文件由 scripts/setup.sh 自动生成，请勿手动修改 SECRET_KEY
 
 NODE_ENV=production
 SECRET_KEY=${SECRET_KEY}

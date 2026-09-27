@@ -17,7 +17,7 @@ castor-kit 的配置分两类：
 | 文件 | 用途 | 是否提交 |
 |---|---|---|
 | `apps/api/.env.example` | 本地开发示例 | 是 |
-| `.env.example`（根目录） | 全部变量的说明示例 | 是 |
+| `.env.production.example`（根目录） | 全部变量的说明示例（Docker / 生产部署参考） | 是 |
 | `apps/api/.env.development` | 本地开发配置 | 否（gitignore） |
 | `.env.production`（根目录） | Docker 部署配置，由 `setup.sh` 生成 | 否（gitignore） |
 

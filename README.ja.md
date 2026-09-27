@@ -17,7 +17,7 @@
 ![i18n](https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22d3ee)](CONTRIBUTING.md)
 
-[English](README.md) · [简体中文](README_CN.md) · **日本語**
+[English](README.md) · [简体中文](README.zh-CN.md) · **日本語**
 
 **[ライブデモ](https://castor-kit-demo.onrender.com)** · [ドキュメント](https://robeshell.github.io/castor-kit/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
 
@@ -64,7 +64,7 @@ castor-kit はオープンソースの管理画面です。今日そのまま使
 ```bash
 git clone https://github.com/robeshell/castor-kit.git
 cd castor-kit
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 セットアップウィザードで管理者パスワードとポート（既定は `5000`）を設定します。完了したら `http://localhost:5000` を開き、`admin` でサインインしてください。

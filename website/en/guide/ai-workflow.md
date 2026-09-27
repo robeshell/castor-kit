@@ -24,11 +24,9 @@ Deeper architecture notes are in `docs/architecture.md`; the frontend UI approac
 | Tool | Files it reads |
 |---|---|
 | Claude Code | `CLAUDE.md`; skills in `.claude/skills/` (`new-feature-autopilot`, `shadcn-ui-skills`) |
-| Codex CLI | `AGENTS.md` (read automatically) + `CODEX.md`; skills in `.agents/skills/` |
-| Cursor | `.cursor/rules/castor-kit-always.mdc` (always applied), `.cursor/rules/new-feature-autopilot.mdc` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Windsurf | `.windsurfrules` |
-| Other tools | `llms.txt` (entry index) |
+| Codex CLI | `AGENTS.md` (read automatically); skills in `.agents/skills/` |
+| Cursor, Windsurf, GitHub Copilot and others | `AGENTS.md` (they all read it automatically) |
+| AI reading the docs site | The site's `/llms.txt` (entry index; source `website/public/llms.txt`) |
 | MCP clients | `apps/mcp`; see [MCP Server](#mcp-server) below |
 
 `.claude/skills/` and `.agents/skills/` have the same content; the backend test `skills-sync.test.ts` checks that they stay in sync.

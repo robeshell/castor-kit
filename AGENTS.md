@@ -3,7 +3,7 @@
 > **通用上下文文档**，适用于所有 AI 工具（Claude Code、Cursor、Windsurf、GitHub Copilot、Codex CLI、MCP Client 等）。
 > 实现任何新功能前必须完整阅读本文件。AI 应从本文件自行推断所有技术决策，无需向 PM 询问技术细节。
 >
-> 各工具专属配置：`CLAUDE.md`（Claude Code）| `CODEX.md`（Codex CLI）| `.cursor/rules/`（Cursor）| `.github/copilot-instructions.md`（Copilot）| `.windsurfrules`（Windsurf）| `llms.txt`（入口索引）
+> 本文件是所有 AI 工具共用的项目上下文（Codex、Cursor、Windsurf、GitHub Copilot 等直接读取）；Claude Code 另读 `CLAUDE.md`。技能在 `.claude/skills/`，`.agents/skills/` 是它的镜像。
 > 架构说明：`docs/architecture.md`（技术栈、分层与反模式、横切约定、迁移、工具链、部署、设计决定）。
 > 功能路线图：`docs/roadmap.md`（计划中的新功能及其数据模型、接口、验收标准；实现其中任何一项前先读对应章节，完成后更新状态）。
 > 前端 UI 方案：`docs/frontend-design-system.md`（shadcn/ui + Tailwind CSS v4 + motion 的设计 tokens 与公共组件约定）。
@@ -85,7 +85,7 @@ castor-kit 是一个 pnpm monorepo：后端 `apps/api`（Fastify 5 + Zod + Drizz
 castor-kit/
 ├── package.json                       # pnpm workspaces 根（所有 pnpm 命令在根目录执行）
 ├── pnpm-workspace.yaml
-├── AGENTS.md / CLAUDE.md / CODEX.md / llms.txt / .windsurfrules / .cursor/ / .github/copilot-instructions.md
+├── AGENTS.md / CLAUDE.md               # AI 工具共用的项目上下文 / Claude Code 补充
 ├── apps/
 │   ├── api/                           # @castor-kit/api —— Fastify 后端
 │   │   ├── src/
@@ -172,7 +172,8 @@ castor-kit/
 │       ├── backend/                   # db-schema / schema / repository / service / routes（.ts）+ README.md
 │       └── frontend/                  # list_page / detail_page
 ├── website/                           # VitePress 文档站（独立 npm 项目，不在 pnpm workspace 内）
-└── Dockerfile / docker-compose.yml / docker-entrypoint.sh / setup.sh
+├── scripts/                           # setup.sh（Docker 一键安装）、docker-entrypoint.sh（镜像入口）
+└── Dockerfile / docker-compose.yml / render.yaml
 ```
 
 > 命名：后端目录与文件名一律小写连字符（`component-center`、`scheduled-task`、`customer-order.ts`）；表名、前端目录、菜单 `component` 保持下划线（`component_center/admin/list_page`），与数据库和前端路由保持一致。
@@ -700,7 +701,7 @@ Step 5  验证门禁（强制，不得跳过）
 - 落地页与 README 的界面图都是真实截图（`website/public/screenshots/`、`.github/assets/screenshot-*.webp`），由 `npm --prefix website run screenshots` 在 `pnpm dev` 运行时自动截取（会提示输入 admin 密码）；界面外观有明显变化时重新截图
 - 功能行为、命令、环境变量有变化时，同一个 PR 里同步更新三种语言的文档；本地预览 `npm --prefix website run dev`，提交前 `npm --prefix website run build`（会检查死链）
 - 文档站由 `.github/workflows/docs.yml` 发布到 GitHub Pages（https://robeshell.github.io/castor-kit/）：`website/` 的改动合入 main 后自动部署，PR 只构建检查
-- 仓库根目录的 `README.md`（英文）/ `README_CN.md` / `README.ja.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 面向外部贡献者；用户可见的变化记到 `CHANGELOG.md` 的 `[Unreleased]`
+- 仓库根目录的 `README.md`（英文）/ `README.zh-CN.md` / `README.ja.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 面向外部贡献者；用户可见的变化记到 `CHANGELOG.md` 的 `[Unreleased]`
 
 ## 常用命令速查
 
@@ -754,6 +755,13 @@ pnpm openapi:apifox                      # 推送到 Apifox（APIFOX_PROJECT_ID 
 # MCP Server
 pnpm mcp
 ```
+
+**执行前先问用户**（AI 工具自动执行命令时同样适用）：
+
+- `pnpm seed:rbac`（不带 `--incremental` 是全量重建，会清空账号 / 角色 / 菜单）
+- 删除或手改 `apps/api/drizzle/` 下已应用的迁移文件（破坏 journal 链）
+- `DELETE FROM ...` / `DROP ...`（直接删除数据或对象）
+- `git push` / `git reset --hard`
 
 ---
 

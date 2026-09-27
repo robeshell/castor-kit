@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- Repository root tidied:
+  - The Docker setup wizard is `bash scripts/setup.sh`; the image entry point moved to `scripts/docker-entrypoint.sh`.
+  - The Chinese README is `README.zh-CN.md`.
+  - The root env reference is `.env.production.example`; local development still uses `apps/api/.env.example`.
+  - `llms.txt` is served by the docs site at `/llms.txt`.
+  - AI tools read one shared `AGENTS.md`, plus `CLAUDE.md` for Claude Code. The per-tool copies (`CODEX.md`, `.windsurfrules`, `.cursor/rules/`, `.github/copilot-instructions.md`) are gone.
 - The component gallery's map heatmap is replaced by **Traffic flow** (`/component-center/dataviz/traffic-flow`, permission `cc_dataviz_traffic_flow`):
   - a Sankey diagram of visits from source to landing page to outcome, and a conversion funnel;
   - mock data from `GET /api/admin/component-center/dataviz/traffic-flow/data`.

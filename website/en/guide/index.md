@@ -32,7 +32,7 @@ Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form
 - **Theme and layout**: light / dark mode, 6 accent colors, 3 navigation modes, and a tabs bar with page keep-alive. See [Theme & layout](/en/guide/appearance).
 - **Import and export**: list pages come with CSV / XLSX import and export as standard, with formula-injection protection and all-or-nothing transactional imports.
 - **Scheduled tasks**: a scheduler built on database leases that is safe to run with multiple replicas, plus a management page.
-- **Docker deployment**: `bash setup.sh` generates the config and starts PostgreSQL and the app; migrations and RBAC sync run automatically on container start. See the [Deployment guide](/en/deploy/).
+- **Docker deployment**: `bash scripts/setup.sh` generates the config and starts PostgreSQL and the app; migrations and RBAC sync run automatically on container start. See the [Deployment guide](/en/deploy/).
 
 ## How it differs from other scaffolds
 

@@ -21,10 +21,10 @@ castor-kit/
 │   └── templates/            # コード骨格のテンプレート（backend/、frontend/）
 ├── website/                  # このドキュメントサイト（VitePress。独立した npm プロジェクトで、pnpm ワークスペースには含まれない）
 ├── AGENTS.md                 # すべての AI ツールが共有するプロジェクトコンテキスト
-├── CLAUDE.md / CODEX.md / llms.txt / .windsurfrules
-├── .claude/ .agents/ .cursor/ .github/   # 各 AI ツールの設定とスキル。.github には CI も含む
-├── Dockerfile / docker-compose.yml / docker-entrypoint.sh
-└── setup.sh                  # Docker のワンステップセットアップウィザード
+├── CLAUDE.md                 # Claude Code 用の補足
+├── .claude/ .agents/ .github/   # AI スキル（.agents は .claude/skills のミラー）。.github には CI と issue テンプレート
+├── scripts/                  # setup.sh（Docker のワンステップセットアップ）、docker-entrypoint.sh（イメージのエントリーポイント）
+└── Dockerfile / docker-compose.yml / render.yaml
 ```
 
 AI 関連ファイルの用途は [AI 駆動開発](/ja/guide/ai-workflow#対応している-ai-ツール) を参照してください。
