@@ -2,9 +2,10 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { EChartsOption } from 'echarts'
 import ReactECharts from '@/shared/components/Chart'
 import { motion } from 'motion/react'
-import { AlertTriangle, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Pause, Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { chartBase, hexToRgba, useChartColors, type ChartColors } from '@/lib/chart-theme'
 import { cn } from '@/lib/utils'
@@ -234,12 +235,16 @@ export default function PerfMonitorPage() {
   const [navTiming] = useState(readNavTiming)
   const [resources] = useState(readResources)
   const [fps, setFps] = useState(60)
+  // Live updates can be paused (WCAG 2.2.2: content that updates on its own needs a pause control)
+  const [running, setRunning] = useState(true)
   const fpsCounter = useRef(0)
   const fpsLast = useRef(0)
   const rafRef = useRef(0)
 
   // FPS counter
   useEffect(() => {
+    if (!running) return
+    fpsCounter.current = 0
     fpsLast.current = performance.now()
     const loop = (now: number) => {
       fpsCounter.current++
@@ -252,10 +257,11 @@ export default function PerfMonitorPage() {
     }
     rafRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [])
+  }, [running])
 
   // Poll backend performance data
   useEffect(() => {
+    if (!running) return
     let active = true
     const poll = async () => {
       try {
@@ -278,7 +284,7 @@ export default function PerfMonitorPage() {
       active = false
       clearInterval(timer)
     }
-  }, [])
+  }, [running])
 
   const fpsLevel = fps >= 55 ? 'success' : fps >= 30 ? 'warning' : 'danger'
 
@@ -287,11 +293,17 @@ export default function PerfMonitorPage() {
       <PageHeader
         title="性能监控面板"
         actions={
-          data ? (
-            <StatusBadge tone="success" variant="plain" dot>
-              <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString(i18n.language, { hour12: false })}</span> {t('更新')}
-            </StatusBadge>
-          ) : null
+          <>
+            {data ? (
+              <StatusBadge tone={running ? 'success' : 'neutral'} variant="plain" dot>
+                <span className="tabular-nums">{new Date(data.ts).toLocaleTimeString(i18n.language, { hour12: false })}</span> {t('更新')}
+              </StatusBadge>
+            ) : null}
+            <Button size="sm" variant={running ? 'outline' : 'brand'} onClick={() => setRunning((r) => !r)}>
+              {running ? <Pause /> : <Play />}
+              {running ? t('暂停') : t('继续')}
+            </Button>
+          </>
         }
       />
 

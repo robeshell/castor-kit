@@ -42,5 +42,7 @@
   "连接失败": "Connection failed",
   "问问 AI": "Ask AI",
   "页面模板": "Page patterns",
-  "项": "items"
+  "项": "items",
+  "暂停自动刷新": "Pause auto-refresh",
+  "继续自动刷新": "Resume auto-refresh"
 }

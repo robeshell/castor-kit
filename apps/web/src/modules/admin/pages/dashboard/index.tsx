@@ -14,7 +14,9 @@ import {
   FileText,
   LayoutGrid,
   ListTree,
+  Pause,
   PenLine,
+  Play,
   ShieldCheck,
   Sparkles,
   Users,
@@ -91,8 +93,11 @@ function SystemHealth() {
   const { t } = useTranslation()
   const [stats, setStats] = useState<PerfStats | null>(null)
   const [online, setOnline] = useState(true)
+  // Auto-refresh can be paused (WCAG 2.2.2: content that updates on its own needs a pause control)
+  const [running, setRunning] = useState(true)
 
   useEffect(() => {
+    if (!running) return
     let alive = true
     const poll = async () => {
       try {
@@ -111,20 +116,30 @@ function SystemHealth() {
       alive = false
       clearInterval(timer)
     }
-  }, [])
+  }, [running])
 
   return (
     <Panel
       title="系统状态"
       actions={
-        !stats && online ? null : (
-          <span className={cn('flex items-center gap-1.5 text-xs', online ? 'text-success' : 'text-muted-foreground')}>
-            <span className={cn('relative flex size-1.5 rounded-full', online ? 'bg-success' : 'bg-muted-foreground')}>
-              {online ? <span className="bg-success absolute inset-0 animate-ping rounded-full opacity-60" /> : null}
+        <div className="flex items-center gap-1">
+          {!stats && online ? null : (
+            <span className={cn('flex items-center gap-1.5 text-xs', online ? 'text-success' : 'text-muted-foreground')}>
+              <span className={cn('relative flex size-1.5 rounded-full', online ? 'bg-success' : 'bg-muted-foreground')}>
+                {online && running ? <span className="bg-success absolute inset-0 animate-ping rounded-full opacity-60" /> : null}
+              </span>
+              {online ? t('运行正常') : t('连接失败')}
             </span>
-            {online ? t('运行正常') : t('连接失败')}
-          </span>
-        )
+          )}
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={running ? t('暂停自动刷新') : t('继续自动刷新')}
+            onClick={() => setRunning((r) => !r)}
+          >
+            {running ? <Pause /> : <Play />}
+          </Button>
+        </div>
       }
       className="h-full"
     >
