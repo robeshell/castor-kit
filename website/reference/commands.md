@@ -3,7 +3,7 @@
 Run all `pnpm` commands from the repo root.
 
 ::: tip About the -- before arguments
-For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), the `--` before arguments is optional. **Don't put `--` after `pnpm db:generate`**: its arguments go straight to drizzle-kit, which doesn't understand `--`.
+For Castor's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), the `--` before arguments is optional. **Don't put `--` after `pnpm db:generate`**: its arguments go straight to drizzle-kit, which doesn't understand `--`.
 :::
 
 ## Development
@@ -14,9 +14,9 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 | `pnpm dev` | Start the backend (5001) and frontend (5173) together |
 | `pnpm dev:api` | Start the backend only (hot reload via `tsx watch`) |
 | `pnpm dev:web` | Start the frontend only (Vite) |
-| `pnpm --filter @castor-kit/api worker` | Start the standalone scheduler process |
+| `pnpm --filter @castorjs/api worker` | Start the standalone scheduler process |
 | `pnpm build` | Build all apps: frontend (Vite), backend (tsup), MCP Server |
-| `pnpm --filter @castor-kit/web preview` | Preview the frontend build |
+| `pnpm --filter @castorjs/web preview` | Preview the frontend build |
 
 ## Quality checks
 
@@ -24,11 +24,11 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 |---|---|
 | `pnpm typecheck` | TypeScript type check (`apps/api`, `apps/mcp`, `apps/web` including its tests) |
 | `pnpm test` | Run all tests (the backend needs the test database `castor_kit_test`) |
-| `pnpm --filter @castor-kit/api test` | Run backend tests only |
-| `pnpm --filter @castor-kit/web test` | Run frontend tests only |
-| `pnpm --filter @castor-kit/web test:watch` | Frontend tests in watch mode |
+| `pnpm --filter @castorjs/api test` | Run backend tests only |
+| `pnpm --filter @castorjs/web test` | Run frontend tests only |
+| `pnpm --filter @castorjs/web test:watch` | Frontend tests in watch mode |
 | `pnpm lint` | Backend ESLint |
-| `pnpm --filter @castor-kit/web lint` | Frontend ESLint |
+| `pnpm --filter @castorjs/web lint` | Frontend ESLint |
 | `node apps/web/scripts/i18n-scan.mjs [dir]` | Scan for untranslated text; `dir` is relative to `apps/web`; scans all of `src` if omitted |
 
 ## Database
@@ -39,7 +39,7 @@ For castor-kit's own scripts (`scaffold`, `verify`, `seed:rbac`, `openapi:*`), t
 | `pnpm db:migrate` | Apply migrations |
 | `psql -d <database> -c '\d <table>'` | Confirm the table structure is really in the database |
 | `pnpm setup-once` | Migrations + incremental RBAC sync + AI SQL read-only account; guarded by an advisory lock and safe to re-run |
-| `pnpm --filter @castor-kit/api init-ro-role` | Create only the AI SQL read-only account `castor_kit_ro` (needs `POSTGRES_RO_PASSWORD`) |
+| `pnpm --filter @castorjs/api init-ro-role` | Create only the AI SQL read-only account `castor_kit_ro` (needs `POSTGRES_RO_PASSWORD`) |
 
 ## RBAC
 
@@ -84,7 +84,7 @@ Both `scaffold` and `verify` print their usage with `-h` / `--help`. For the opt
 | Command | Description |
 |---|---|
 | `pnpm mcp` | Start the MCP Server (stdio) |
-| `pnpm --filter @castor-kit/mcp build` | Build into `apps/mcp/dist/` |
+| `pnpm --filter @castorjs/mcp build` | Build into `apps/mcp/dist/` |
 
 ## Frontend components
 

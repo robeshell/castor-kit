@@ -1,4 +1,4 @@
-# castor-kit — Agent Context
+# Castor — Agent Context
 
 > **Shared context document** for every AI tool (Claude Code, Cursor, Windsurf, GitHub Copilot, Codex CLI, MCP clients, and so on).
 > Read this whole file before implementing any new feature. AI should infer every technical decision from this file on its own, without asking the PM about technical details.
@@ -16,7 +16,7 @@
 
 Goal: the PM describes business intent in natural language → the AI agent infers the technical decisions → shows a business preview for confirmation → delivers a complete, convention-compliant feature module end to end (tables, APIs, pages, permissions, migration).
 
-castor-kit is a pnpm monorepo: the backend `apps/api` (Fastify 5 + Zod + Drizzle + PostgreSQL), the frontend `apps/web` (React 19 + **shadcn/ui + Tailwind CSS v4 + motion**, see `docs/frontend-design-system.md`), and `apps/mcp`, which exposes the scaffold / verify / seed / migration tooling to MCP clients. Overall architecture and design decisions: `docs/architecture.md`.
+Castor is a pnpm monorepo: the backend `apps/api` (Fastify 5 + Zod + Drizzle + PostgreSQL), the frontend `apps/web` (React 19 + **shadcn/ui + Tailwind CSS v4 + motion**, see `docs/frontend-design-system.md`), and `apps/mcp`, which exposes the scaffold / verify / seed / migration tooling to MCP clients. Overall architecture and design decisions: `docs/architecture.md`.
 
 ---
 
@@ -75,19 +75,19 @@ Inference guidelines (field types: see "Field type inference" below):
 - Local config: `apps/api/.env.development` (see `apps/api/.env.example`; gitignored; `.env.<NODE_ENV>` in the repo root is read too). A fresh checkout or git worktree has none, so it silently uses the default `castor_kit` database
 - Default account: `admin` / `admin123`
 - Test database: `createdb -T castor_kit castor_kit_test` (clone) or `createdb castor_kit_test` (empty; the tests run the migrations automatically); `pnpm test`. The tests read `TEST_DATABASE_URL` from the shell or `apps/api/.env.test`, never from `.env.development`
-- A second checkout (e.g. a git worktree) beside a running one: its own databases (`createdb castor_kit_wt && pg_dump castor_kit | psql -q -d castor_kit_wt`, `createdb castor_kit_wt_test`), `DEV_DATABASE_URL` + `PORT=5011` in its `apps/api/.env.development`, `TEST_DATABASE_URL` in its `apps/api/.env.test`, and the web dev server started with `API_PORT=5011 pnpm --filter @castor-kit/web dev --port 5183` (the Vite proxy's target port)
+- A second checkout (e.g. a git worktree) beside a running one: its own databases (`createdb castor_kit_wt && pg_dump castor_kit | psql -q -d castor_kit_wt`, `createdb castor_kit_wt_test`), `DEV_DATABASE_URL` + `PORT=5011` in its `apps/api/.env.development`, `TEST_DATABASE_URL` in its `apps/api/.env.test`, and the web dev server started with `API_PORT=5011 pnpm --filter @castorjs/web dev --port 5183` (the Vite proxy's target port)
 
 ---
 
 ## Directory layout
 
 ```
-castor-kit/
+castorjs/
 ├── package.json                       # pnpm workspaces root (run every pnpm command from the root)
 ├── pnpm-workspace.yaml
 ├── AGENTS.md / CLAUDE.md               # project context shared by AI tools / Claude Code additions
 ├── apps/
-│   ├── api/                           # @castor-kit/api — Fastify backend
+│   ├── api/                           # @castorjs/api — Fastify backend
 │   │   ├── src/
 │   │   │   ├── main.ts                # web process entry
 │   │   │   ├── worker.ts              # standalone scheduler process entry
@@ -138,7 +138,7 @@ castor-kit/
 │   │   │                              #          init-ro-role / generate-openapi / import-apifox
 │   │   ├── test/                      # Vitest (real PostgreSQL)
 │   │   └── drizzle.config.ts
-│   ├── web/                           # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (TypeScript)
+│   ├── web/                           # @castorjs/web — React 19 + shadcn/ui + Tailwind v4 (TypeScript)
 │   │   ├── components.json            # shadcn CLI config (new-york / zinc / lucide / aliases)
 │   │   ├── scripts/shadcn-add.sh      # runs npx shadcn@latest add through a local relay (see "Adding shadcn/ui primitives")
 │   │   └── src/
@@ -163,7 +163,7 @@ castor-kit/
 │   │           ├── hooks/             # useCrudList / useIsMobile / useDebouncedValue
 │   │           └── components/        # shared business components: PageHeader / DataTable / Filters / FormDialog / FormFields /
 │   │                                  #   ConfirmAction / StatusBadge / data-transfer/{ImportDialog,ExportDialog} / upload/ ...
-│   └── mcp/                           # @castor-kit/mcp — MCP server (src/index.ts)
+│   └── mcp/                           # @castorjs/mcp — MCP server (src/index.ts)
 ├── docs/
 │   ├── architecture.md                # architecture
 │   ├── frontend-design-system.md      # frontend design system (shadcn/ui)
@@ -798,12 +798,12 @@ Next steps for the user:
 - The docs site and project website are in `website/` (VitePress, a standalone npm project, not in the pnpm workspace): English is the root language (`website/guide/…`), Chinese is at `website/zh/` and Japanese at `website/ja/`, and the pages of the three languages correspond one to one; the landing page is `.vitepress/theme/components/Landing.vue`, with its copy in `landing-content.js`
 - The UI images on the landing page and in the READMEs are real screenshots (`website/public/screenshots/`, `.github/assets/screenshot-*.webp`), captured automatically by `npm --prefix website run screenshots` while `pnpm dev` is running (it prompts for the admin password); take new screenshots when the UI's look changes noticeably
 - When feature behavior, commands or environment variables change, update the docs in all three languages in the same PR; preview locally with `npm --prefix website run dev`, and run `npm --prefix website run build` before committing (it checks for dead links)
-- The docs site is published to GitHub Pages (https://robeshell.github.io/castor-kit/) by `.github/workflows/docs.yml`: changes to `website/` deploy automatically once merged into main; PRs only run the build check
+- The docs site is published to GitHub Pages (https://robeshell.github.io/castorjs/) by `.github/workflows/docs.yml`: changes to `website/` deploy automatically once merged into main; PRs only run the build check
 - `README.md` (English) / `README.zh-CN.md` / `README.ja.md`, `CONTRIBUTING.md`, `SECURITY.md` and `CHANGELOG.md` in the repo root are for outside contributors; record user-visible changes under `[Unreleased]` in `CHANGELOG.md`
 
 ## Command reference
 
-Run every command from the repo root. For castor-kit's own scripts (scaffold / verify / seed:rbac / openapi:*), the `--` before the arguments is optional; **`pnpm db:generate` must not be followed by `--`** (drizzle-kit doesn't understand it).
+Run every command from the repo root. For Castor's own scripts (scaffold / verify / seed:rbac / openapi:*), the `--` before the arguments is optional; **`pnpm db:generate` must not be followed by `--`** (drizzle-kit doesn't understand it).
 
 ```bash
 # Install / start
@@ -811,7 +811,7 @@ pnpm install
 pnpm dev                     # api(5001) + web(5173)
 pnpm dev:api                 # backend only (tsx watch)
 pnpm dev:web                 # frontend only (vite)
-pnpm --filter @castor-kit/api worker   # standalone scheduler process (when RUN_SCHEDULER_IN_WEB=false)
+pnpm --filter @castorjs/api worker   # standalone scheduler process (when RUN_SCHEDULER_IN_WEB=false)
 
 # Quality
 pnpm typecheck               # tsc --noEmit (api / mcp / web, web's tests and Vite configs included)
@@ -831,7 +831,7 @@ pnpm seed:demo                          # sample departments / roles (department
 
 # One-time initialization (migrations + incremental RBAC + AI SQL read-only account; an advisory lock makes it safe to run concurrently)
 pnpm setup-once
-pnpm --filter @castor-kit/api init-ro-role   # create only the read-only account castor_kit_ro (needs POSTGRES_RO_PASSWORD)
+pnpm --filter @castorjs/api init-ro-role   # create only the read-only account castor_kit_ro (needs POSTGRES_RO_PASSWORD)
 
 # Verification gate
 pnpm verify -- --module <name>                 # every check (including vite build)
@@ -874,11 +874,11 @@ Claude Desktop config (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "castor-kit": { "command": "pnpm", "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"] }
+    "castor": { "command": "pnpm", "args": ["--dir", "/path/to/castorjs", "-s", "mcp"] }
   }
 }
 ```
-You can also run `pnpm --filter @castor-kit/mcp build` and then use `node apps/mcp/dist/index.js`; the repo root can be overridden with the `CASTOR_KIT_ROOT` environment variable.
+You can also run `pnpm --filter @castorjs/mcp build` and then use `node apps/mcp/dist/index.js`; the repo root can be overridden with the `CASTOR_KIT_ROOT` environment variable.
 
 ---
 
@@ -956,7 +956,7 @@ ID=3   组件示例中心 [Component Gallery] (component_center)
 
 ## Settled decisions (don't reopen)
 
-- The project name is `castor-kit`; names are always lowercase and hyphenated, no camelCase, no Stack suffix
+- The product is called Castor; the repository and packages are `castorjs` / `@castorjs/*`. Names are always lowercase and hyphenated, no camelCase, no Stack suffix
 - Backend: Node 22 + TypeScript + Fastify 5 + Zod + Drizzle + pg + pino; no NestJS
 - Frontend: React 19 + Vite + shadcn/ui + Tailwind CSS v4 + motion + lucide-react (TypeScript; UI copy in Chinese as the i18n key); UI system in `docs/frontend-design-system.md`
 - `.xls` is not supported; csv / xlsx only

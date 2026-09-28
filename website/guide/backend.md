@@ -211,7 +211,7 @@ psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning No -- after pnpm db:generate
-`pnpm db:generate --name <description>` passes its arguments straight to drizzle-kit, which doesn't understand `--`. For castor-kit's own scripts (scaffold, verify, seed:rbac, openapi:generate), the `--` before arguments is optional.
+`pnpm db:generate --name <description>` passes its arguments straight to drizzle-kit, which doesn't understand `--`. For Castor's own scripts (scaffold, verify, seed:rbac, openapi:generate), the `--` before arguments is optional.
 :::
 
 ### Rules
@@ -267,7 +267,7 @@ pnpm openapi:apifox                # Push to Apifox
 Backend tests use Vitest against a real PostgreSQL test database. Route tests send requests through `app.inject()`, with one test file per module (`admin-*.test.ts`, `cc-*.test.ts`).
 
 ```bash
-pnpm --filter @castor-kit/api test
+pnpm --filter @castorjs/api test
 ```
 
 To set up the test database, see the "Run tests" step in [Quick start](/guide/getting-started#_6-run-tests-optional).

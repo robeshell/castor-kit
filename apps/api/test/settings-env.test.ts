@@ -51,8 +51,8 @@ describe('settings pinned by environment variables', () => {
     })
   })
 
-  it('APP_NAME：默认 castor-kit，去空白；未配置发件人和账号时，默认发件人用它', () => {
-    expect(fromEnv({}).config.appName).toBe('castor-kit')
+  it('APP_NAME：默认 Castor，去空白；未配置发件人和账号时，默认发件人用它', () => {
+    expect(fromEnv({}).config.appName).toBe('Castor')
     const { config, settings } = fromEnv({ APP_NAME: '  Acme Admin ', SMTP_HOST: 'smtp.example.com' })
     expect(config.appName).toBe('Acme Admin')
     expect(settings.mail.from).toBe('Acme Admin <noreply@localhost>')

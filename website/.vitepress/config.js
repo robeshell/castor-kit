@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitepress'
 
-const REPO = 'https://github.com/robeshell/castor-kit'
+const REPO = 'https://github.com/robeshell/castorjs'
 // Published by .github/workflows/docs.yml to GitHub Pages
-const SITE = 'https://robeshell.github.io/castor-kit'
+const SITE = 'https://robeshell.github.io/castorjs'
 
 /**
  * One page tree, three languages. `prefix` is '' for the root (English) locale and '/zh' / '/ja' otherwise;
@@ -106,15 +106,15 @@ const ja = {
 }
 
 export default defineConfig({
-  title: 'castor-kit',
-  base: '/castor-kit/',
+  title: 'Castor',
+  base: '/castorjs/',
   cleanUrls: true,
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/castor-kit/castor-logo.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/castorjs/castor-logo.png' }],
     ['meta', { name: 'theme-color', content: '#2563eb' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:site_name', content: 'castor-kit' }],
+    ['meta', { property: 'og:site_name', content: 'Castor' }],
     ['meta', { property: 'og:image', content: `${SITE}/og.png` }],
     ['meta', { property: 'og:image:width', content: '1280' }],
     ['meta', { property: 'og:image:height', content: '640' }],
@@ -126,21 +126,21 @@ export default defineConfig({
     root: {
       label: 'English',
       lang: 'en-US',
-      title: 'castor-kit',
+      title: 'Castor',
       description: 'A ready-made admin panel where AI builds new features: describe a page, get the table, API and UI, checked automatically.',
       themeConfig: localeTheme('', en),
     },
     zh: {
       label: '简体中文',
       lang: 'zh-CN',
-      title: 'castor-kit',
+      title: 'Castor',
       description: '开箱即用的管理后台，新功能一句话生成：告诉 AI 你要什么，它生成数据表、接口和页面，并自动检查。',
       themeConfig: localeTheme('/zh', zh),
     },
     ja: {
       label: '日本語',
       lang: 'ja-JP',
-      title: 'castor-kit',
+      title: 'Castor',
       description: 'すぐ使える管理画面。要件を伝えれば、AI がテーブル・API・画面を作り、自動でチェックします。',
       themeConfig: localeTheme('/ja', ja),
     },
@@ -162,7 +162,7 @@ export default defineConfig({
     },
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2026-present castor-kit contributors',
+      copyright: 'Copyright © 2026-present Castor contributors',
     },
   },
 })

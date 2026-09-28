@@ -1,6 +1,6 @@
 # Changes to upstream components
 
-`apps/web/src/components/ui/` comes from shadcn/ui (new-york-v4) and `apps/web/src/components/ai-elements/` from Vercel's AI Elements. Both were added with their CLIs and are kept close to upstream. This is the full list of castor-kit's changes. When you re-add or update a component (`apps/web/scripts/shadcn-add.sh <name> -o` overwrites it), apply its entries again, and keep this list in sync when you change a component.
+`apps/web/src/components/ui/` comes from shadcn/ui (new-york-v4) and `apps/web/src/components/ai-elements/` from Vercel's AI Elements. Both were added with their CLIs and are kept close to upstream. This is the full list of Castor's changes. When you re-add or update a component (`apps/web/scripts/shadcn-add.sh <name> -o` overwrites it), apply its entries again, and keep this list in sync when you change a component.
 
 Compared on 2026-09-27 against `https://ui.shadcn.com/r/styles/new-york-v4/<name>.json` and `https://elements.ai-sdk.dev/api/registry/<name>.json`, ignoring formatting, quote style, import paths (`@/components/ui/*`, `@/lib/utils`) and `"use client"`.
 
@@ -35,9 +35,9 @@ Unchanged from upstream: alert, alert-dialog, avatar, breadcrumb, button-group, 
 
 | File | Change |
 |---|---|
-| message | Code blocks use castor-kit's `code-highlighter` instead of `@streamdown/code` (common languages only, grammars loaded on demand; `@streamdown/code` bundles 200+ Shiki grammars, about 10 MB of build output); the `@streamdown/math` and `@streamdown/mermaid` plugins are left out for bundle size |
-| code-highlighter.ts | castor-kit only: implements Streamdown's `CodeHighlighterPlugin` |
-| streamdown-translations.ts | castor-kit only: i18n labels for Streamdown's built-in buttons |
+| message | Code blocks use Castor's `code-highlighter` instead of `@streamdown/code` (common languages only, grammars loaded on demand; `@streamdown/code` bundles 200+ Shiki grammars, about 10 MB of build output); the `@streamdown/math` and `@streamdown/mermaid` plugins are left out for bundle size |
+| code-highlighter.ts | Castor only: implements Streamdown's `CodeHighlighterPlugin` |
+| streamdown-translations.ts | Castor only: i18n labels for Streamdown's built-in buttons |
 | conversation | `Conversation` passes `initial` / `resize` as `"instant"` instead of `"smooth"` under `prefers-reduced-motion` (`useReducedMotion` from `motion/react`) |
 
 Unchanged from upstream: confirmation, prompt-input, suggestion. Their English default copy ("No messages yet", "What would you like to know?", "Submit", ...) is still upstream's; the callers (`AssistantWidget`, the AI chat page) pass translated `t()` copy for the parts they use.

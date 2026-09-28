@@ -1,5 +1,5 @@
 /**
- * castor-kit: code highlighting for Streamdown (MessageResponse), in place of @streamdown/code.
+ * Castor: code highlighting for Streamdown (MessageResponse), in place of @streamdown/code.
  *
  * @streamdown/code bundles every Shiki grammar (200+ files, ~10 MB of build output). This plugin keeps the same
  * interface but only knows the languages below; each grammar is loaded the first time a code block uses it, and

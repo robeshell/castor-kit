@@ -1,10 +1,10 @@
 {
-  "name": "@castor-kit/mcp",
+  "name": "@castorjs/mcp",
   "private": true,
   "version": "0.3.0",
   "type": "module",
   "bin": {
-    "castor-kit-mcp": "./dist/index.js"
+    "castor-mcp": "./dist/index.js"
   },
   "scripts": {
     "start": "tsx src/index.ts",

@@ -26,7 +26,7 @@ import { getCsrfToken } from '@/shared/api/request'
 const API = '/api/admin/component-center/ai/chat/stream'
 
 // content is the Chinese source text; it is translated with t() when rendered
-const WELCOME: UIMessage & { parts: [TextUIPart] } = { id: 'welcome', role: 'assistant', parts: [{ type: 'text', text: '你好！我是 castor-kit AI 助手。\n\n请从下方选择提示词，或直接输入你的问题。' }] }
+const WELCOME: UIMessage & { parts: [TextUIPart] } = { id: 'welcome', role: 'assistant', parts: [{ type: 'text', text: '你好！我是 Castor AI 助手。\n\n请从下方选择提示词，或直接输入你的问题。' }] }
 
 /**
  * The chat request goes through useChat's own fetch: attach the CSRF header (writes need it) and the UI language

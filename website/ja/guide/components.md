@@ -39,7 +39,7 @@
 | タイムライン上の期間 | ガントチャート | 期間と進捗の列 |
 | ソート、インライン編集、一括操作 | 高度なテーブル | ソート可能な項目、一括更新 / 削除 API |
 
-[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) の「Page patterns (which page to copy)」に同じ表があり、参照すべき service と repository の関数も載っているので、AI エージェントは自分で正しいページを選びます。機能を説明すれば（「サポートチケットのカンバン」など）、カンバンのページから作り始めます。
+[AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) の「Page patterns (which page to copy)」に同じ表があり、参照すべき service と repository の関数も載っているので、AI エージェントは自分で正しいページを選びます。機能を説明すれば（「サポートチケットのカンバン」など）、カンバンのページから作り始めます。
 
 ### 共有のデモ API {#shared-demo-api}
 
@@ -77,7 +77,7 @@
 | Markdown | `/component-center/components/markdown` | `MarkdownView` |
 | 条件ビルダー | `/component-center/components/condition-builder` | `ConditionBuilder`：フィールド / 演算子 / 値からなる条件を AND / OR で組み合わせ、条件グループも追加できる。値はプレーンな JSON で、そのまま保存したり API に送ったりできる（サンプル：テーブルのデータの絞り込み、フォームでのクエリ保存、1 階層のみと読み取り専用） |
 
-各ページは `components/<グループ>_page/` にあります。サンプルはそれぞれ `examples/` 配下の独立したファイルで、ページはこれを 2 回インポートします。1 回はライブプレビュー用のコンポーネントとして、もう 1 回は下に表示するソースを取得するために Vite の `?raw` 付きでインポートするので、プレビューとコードが食い違うことはありません。プロパティの表はページの `props.ts` にあります。レイアウト用の部品（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）は `apps/web/src/modules/component_center/showcase/` にあります。ページやサンプルを追加するときは、[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) の「Component showcase pages」の節に従ってください。サンプルのファイルが 2 通りの方法でインポートされていないと、テストが失敗します。
+各ページは `components/<グループ>_page/` にあります。サンプルはそれぞれ `examples/` 配下の独立したファイルで、ページはこれを 2 回インポートします。1 回はライブプレビュー用のコンポーネントとして、もう 1 回は下に表示するソースを取得するために Vite の `?raw` 付きでインポートするので、プレビューとコードが食い違うことはありません。プロパティの表はページの `props.ts` にあります。レイアウト用の部品（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）は `apps/web/src/modules/component_center/showcase/` にあります。ページやサンプルを追加するときは、[AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) の「Component showcase pages」の節に従ってください。サンプルのファイルが 2 通りの方法でインポートされていないと、テストが失敗します。
 
 ## データ可視化
 

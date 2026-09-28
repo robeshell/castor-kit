@@ -1,13 +1,13 @@
 # プロジェクトを始める
 
-castor-kit はインストールして使うライブラリではなく、出発点です。あなたの製品は、castor-kit のあるリリースをコピーして始まり、そこから育っていくリポジトリになります。このページでは、リポジトリの作成、製品名の設定、コンポーネント例の非表示、本番公開、そして castor-kit の新しいリリースの取り込み方を説明します。
+Castor はインストールして使うライブラリではなく、出発点です。あなたの製品は、Castor のあるリリースをコピーして始まり、そこから育っていくリポジトリになります。このページでは、リポジトリの作成、製品名の設定、コンポーネント例の非表示、本番公開、そして Castor の新しいリリースの取り込み方を説明します。
 
 ## 1. リポジトリを作る
 
-リリースのタグから始め、castor-kit を 2 つ目のリモートとして残しておくと、後のリリースをマージできます。
+リリースのタグから始め、Castor を 2 つ目のリモートとして残しておくと、後のリリースをマージできます。
 
 ```bash
-git clone --branch v0.3.0 https://github.com/robeshell/castor-kit.git my-app
+git clone --branch v0.3.0 https://github.com/robeshell/castorjs.git my-app
 cd my-app
 git switch -c main
 git remote rename origin upstream
@@ -30,7 +30,7 @@ git push -u origin main
 
 次のものは「castor」を含んでいても変更しないでください。
 
-- 内部パッケージ名 `@castor-kit/*`：スクリプトや `pnpm --filter` コマンドが使っており、ユーザーには見えません。
+- 内部パッケージ名 `@castorjs/*`：スクリプトや `pnpm --filter` コマンドが使っており、ユーザーには見えません。
 - セッション Cookie 名と鍵導出のラベル（`castor-kit-session`、`castor-kit-secret-box` など）：変更すると全員がログアウトされ、保存済みの秘密情報（SMTP / S3 / AI の鍵）が復号できなくなります。
 - Webhook のヘッダー `X-Castor-Event` / `X-Castor-Signature` など：受信側がこれで検証しています。
 
@@ -56,7 +56,7 @@ git push -u origin main
 
 機能を説明して AI エージェントに `/new-feature-autopilot` を実行させるか、spec を自分で書いて `pnpm scaffold -- --spec` を実行します。[AI 駆動開発](/ja/guide/ai-workflow)を参照してください。単純な一覧ではないページは、コンポーネント例の対応するページテンプレートに倣って作ります（[コンポーネント例](/ja/guide/components#from-a-pattern)を参照）。
 
-## 6. castor-kit の新しいリリースを取り込む
+## 6. Castor の新しいリリースを取り込む
 
 ```bash
 git fetch upstream --tags

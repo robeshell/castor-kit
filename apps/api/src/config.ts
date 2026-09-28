@@ -24,7 +24,7 @@ export interface AppConfig {
   env: AppEnv
   /**
    * APP_NAME: the product name the server shows (authenticator apps, mails, the AI assistant, logs); default
-   * castor-kit. The frontend's is VITE_APP_NAME
+   * Castor. The frontend's is VITE_APP_NAME
    */
   appName: string
   isProduction: boolean
@@ -213,7 +213,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 
   return {
     env,
-    appName: parsed.APP_NAME.trim() || 'castor-kit',
+    appName: parsed.APP_NAME.trim() || 'Castor',
     isProduction: env === 'production',
     port: parsed.PORT ? Number(parsed.PORT) : defaultPort,
     databaseUrl,

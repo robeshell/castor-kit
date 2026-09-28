@@ -1,4 +1,4 @@
-# Contributing to castor-kit
+# Contributing to Castor
 
 Thanks for taking the time to contribute! This guide covers how to set up the project, the conventions we follow, and what a good pull request looks like.
 
@@ -18,8 +18,8 @@ Security issues should **not** be reported publicly; see [SECURITY.md](SECURITY.
 Requirements: Node.js 22+, pnpm (`corepack enable`), PostgreSQL 14+.
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 pnpm install
 cp apps/api/.env.example apps/api/.env.development   # set DEV_DATABASE_URL
 createdb castor_kit
@@ -40,7 +40,7 @@ Docs site: `npm --prefix website install && npm --prefix website run dev`.
 - **Frontend**: follow the standard page structure (PageHeader → FilterBar → DataTable → FormDialog); use semantic Tailwind color classes only, never hard-coded colors.
 - **i18n**: UI text is written as `t('中文原文')`, with translations in the page's `locales/en-US.json` and `locales/ja-JP.json`; new API error messages are registered in `apps/api/src/i18n/messages.ts`.
 - **Code comments are in English.** Chinese is only allowed inside quoted strings.
-- **Naming**: lowercase, hyphen-separated for packages and files (`castor-kit`, `@castor-kit/api`).
+- **Naming**: lowercase, hyphen-separated for packages and files (`castorjs`, `@castorjs/api`).
 
 New feature modules should start from the scaffold rather than by hand:
 
@@ -57,7 +57,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm verify -- --skip-build        # repository-wide delivery gate
-pnpm --filter @castor-kit/web build
+pnpm --filter @castorjs/web build
 ```
 
 If your change adds or modifies a feature module, run the gate for that module as well:

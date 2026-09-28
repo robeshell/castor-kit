@@ -1,9 +1,9 @@
 // i18n-ignore-file: sample Markdown document is demo content, not UI copy
 
 /** Sample Markdown document loaded into the editor */
-export const INITIAL_MARKDOWN = `# castor-kit 项目文档
+export const INITIAL_MARKDOWN = `# Castor 项目文档
 
-> **castor-kit** 是一款基于 Node.js + Fastify + React + RBAC 的 **AI-First 脚手架**，让 PM 用自然语言描述需求，Agent 端到端实现。
+> **Castor** 是一款基于 Node.js + Fastify + React + RBAC 的 **AI-First 脚手架**，让 PM 用自然语言描述需求，Agent 端到端实现。
 
 ## 技术栈
 
@@ -60,7 +60,7 @@ export async function chatWithAi(prompt: string): Promise<string> {
 
 \`\`\`bash
 # 1. 克隆项目
-git clone https://github.com/your-org/castor-kit.git && cd castor-kit
+git clone https://github.com/your-org/castorjs.git && cd castorjs
 
 # 2. 安装依赖（Node 22 + pnpm）
 pnpm install
@@ -78,7 +78,7 @@ pnpm dev
 ## 目录结构
 
 \`\`\`
-castor-kit/
+castorjs/
 ├── apps/
 │   ├── api/            # 后端：Fastify + Drizzle（src/modules/<域>/<模块>）
 │   ├── web/            # 前端：React + Vite + shadcn/ui
@@ -97,6 +97,6 @@ castor-kit/
 
 ---
 
-*本文档由 castor-kit 团队维护，最后更新于 2026-09-25*
+*本文档由 Castor 团队维护，最后更新于 2026-09-25*
 `
 

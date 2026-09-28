@@ -2,7 +2,7 @@
  * The s3 driver against a real S3-compatible service (MinIO, R2, AWS ...). Skipped unless S3_TEST_ENDPOINT is set:
  *
  *   S3_TEST_ENDPOINT=http://127.0.0.1:9000 S3_TEST_ACCESS_KEY=... S3_TEST_SECRET_KEY=... \
- *     pnpm --filter @castor-kit/api exec vitest run test/files-s3-live.test.ts
+ *     pnpm --filter @castorjs/api exec vitest run test/files-s3-live.test.ts
  *
  * Creates (and afterwards empties and removes) a throwaway bucket unless S3_TEST_BUCKET names an existing one.
  */

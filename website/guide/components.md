@@ -39,7 +39,7 @@ The shared option lists (category and status labels and badge tones) are in `pat
 | Date ranges on a timeline | Gantt Chart | date range and progress columns |
 | Sorting, inline edit, batch actions | Advanced Table | sortable fields, batch update / delete endpoints |
 
-[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) has the same table under "Page patterns (which page to copy)", with the service and repository functions to copy, so an AI agent picks the right page by itself: describe the feature ("a kanban of support tickets") and it starts from the kanban page.
+[AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) has the same table under "Page patterns (which page to copy)", with the service and repository functions to copy, so an AI agent picks the right page by itself: describe the feature ("a kanban of support tickets") and it starts from the kanban page.
 
 ### Shared demo API {#shared-demo-api}
 
@@ -77,7 +77,7 @@ Group directory `components/`. Where the page patterns show whole pages, these p
 | Markdown | `/component-center/components/markdown` | `MarkdownView` |
 | Condition Builder | `/component-center/components/condition-builder` | `ConditionBuilder`: field / operator / value conditions combined with AND / OR, plus condition groups; its value is plain JSON to save or send to an API (examples: filtering table rows, saving a query in a form, single-level and read-only) |
 
-Each page lives in `components/<group>_page/`: every example is its own file under `examples/`, imported by the page twice, once as a component for the live preview and once with Vite's `?raw` for the source shown under it, so the preview and the code can't drift; the props tables are in the page's `props.ts`. The layout pieces (`ShowcasePage`, `ShowcaseSection`, `Example`, `PropsTable`, `CodeBlock`) are in `apps/web/src/modules/component_center/showcase/`. To add a page or an example, follow "Component showcase pages" in [AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md); a test fails when an example file isn't wired both ways.
+Each page lives in `components/<group>_page/`: every example is its own file under `examples/`, imported by the page twice, once as a component for the live preview and once with Vite's `?raw` for the source shown under it, so the preview and the code can't drift; the props tables are in the page's `props.ts`. The layout pieces (`ShowcasePage`, `ShowcaseSection`, `Example`, `PropsTable`, `CodeBlock`) are in `apps/web/src/modules/component_center/showcase/`. To add a page or an example, follow "Component showcase pages" in [AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md); a test fails when an example file isn't wired both ways.
 
 ## Data Visualization
 

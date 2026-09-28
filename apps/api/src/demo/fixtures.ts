@@ -685,7 +685,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
   ['notifications', [
     {
       "id": 1,
-      "title": "欢迎使用 castor-kit",
+      "title": "欢迎使用 Castor",
       "content": "系统已成功部署，所有功能已就绪，欢迎开始使用！",
       "noti_type": "success",
       "link": "/dashboard",
@@ -723,7 +723,7 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
   ['announcements', [
     {
       "id": 1,
-      "title": "欢迎体验 castor-kit 演示环境",
+      "title": "欢迎体验 Castor 演示环境",
       "content": "这是公开演示环境：系统管理为只读，组件示例里的数据可以随意增删改，所有数据每 24 小时自动恢复。",
       "announce_type": "system",
       "status": "published",

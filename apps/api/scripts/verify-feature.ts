@@ -1,5 +1,5 @@
 /**
- * castor-kit feature verification gate
+ * Castor feature verification gate
  *
  * Usage:
  *   pnpm verify -- --module customer
@@ -689,7 +689,7 @@ function summarize(results: CheckResult[]): string {
 }
 
 export function formatHuman(report: VerifyReport): string {
-  const lines = ['== castor-kit feature verification ==', '']
+  const lines = ['== Castor feature verification ==', '']
   for (const r of report.checks) {
     const icon = r.passed ? (r.skipped ? '⏭️ ' : '✅') : r.skipped ? '⏭️ ' : '❌'
     lines.push(`  ${icon} ${r.name.replace(/_/g, ' ')}${r.byFlag ? ` (${r.byFlag})` : ''}`)

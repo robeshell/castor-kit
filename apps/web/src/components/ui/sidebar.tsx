@@ -160,7 +160,7 @@ function Sidebar({
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
-  /** castor-kit: title / description of the mobile sheet (screen readers only), translated by the caller */
+  /** Castor: title / description of the mobile sheet (screen readers only), translated by the caller */
   mobileTitle?: string
   mobileDescription?: string
 }) {
@@ -260,7 +260,7 @@ function SidebarTrigger({
   label = "Toggle Sidebar",
   ...props
 }: React.ComponentProps<typeof Button> & {
-  /** castor-kit: accessible name, translated by the caller */
+  /** Castor: accessible name, translated by the caller */
   label?: string
 }) {
   const { toggleSidebar } = useSidebar()
@@ -289,7 +289,7 @@ function SidebarRail({
   label = "Toggle Sidebar",
   ...props
 }: React.ComponentProps<"button"> & {
-  /** castor-kit: accessible name and tooltip, translated by the caller */
+  /** Castor: accessible name and tooltip, translated by the caller */
   label?: string
 }) {
   const { toggleSidebar } = useSidebar()
@@ -320,7 +320,7 @@ function SidebarInset({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  // castor-kit: a <div>, not <main>; the inset also holds the top bar, so the app shell puts <main> around the page area
+  // Castor: a <div>, not <main>; the inset also holds the top bar, so the app shell puts <main> around the page area
   return (
     <div
       data-slot="sidebar-inset"

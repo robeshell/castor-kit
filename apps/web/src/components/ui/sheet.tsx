@@ -53,7 +53,7 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
-  /** castor-kit: accessible name of the close button, translated by the caller */
+  /** Castor: accessible name of the close button, translated by the caller */
   closeLabel?: string
 }) {
   return (

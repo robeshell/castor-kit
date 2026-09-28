@@ -1,6 +1,6 @@
 # 配置项
 
-castor-kit 的配置分两类：
+Castor 的配置分两类：
 
 - **环境变量**：服务启动、连上数据库之前就要用到的（数据库地址、`SECRET_KEY`、端口等），由 `apps/api/src/config.ts` 用 Zod 校验；Docker 部署时由 `docker-compose.yml` 注入。见本页「后端（API）」一节
 - **系统设置**：邮件、文件存储、上传限制、AI 模型、网站地址、登录锁定，以及两步验证等安全开关，登录后在「系统管理 → 系统配置 → 系统设置」页面修改，保存后几秒内生效，不用重启。这些也可以用环境变量锁定，见 [系统设置里的配置](#系统设置里的配置)
@@ -33,7 +33,7 @@ castor-kit 的配置分两类：
 |---|---|---|
 | `NODE_ENV` | 运行环境：`development` / `test` / `production`，其他值按 `development` 处理 | `development` |
 | `PORT` | 监听端口 | 开发 `5001`、测试 `5002`、生产 `5000` |
-| `APP_NAME` | 服务端显示的产品名：身份验证器 App 里的发行方、默认发件人与测试邮件标题、AI 助手的自我介绍、启动日志。前端的名称是 `apps/web/src/lib/brand.ts` 里的 `APP_NAME`（见[开始一个项目](/zh/guide/new-project)） | `castor-kit` |
+| `APP_NAME` | 服务端显示的产品名：身份验证器 App 里的发行方、默认发件人与测试邮件标题、AI 助手的自我介绍、启动日志。前端的名称是 `apps/web/src/lib/brand.ts` 里的 `APP_NAME`（见[开始一个项目](/zh/guide/new-project)） | `Castor` |
 | `DEV_DATABASE_URL` | 开发环境数据库连接 | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | 测试环境数据库连接；测试从 shell 或 `apps/api/.env.test` 读取 | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 生产环境数据库连接 | `postgresql://localhost/castor_kit` |
@@ -138,7 +138,7 @@ AI 模型（接口地址、API Key、模型名）在系统设置里配置，见�
 | 端口 | `SMTP_PORT` | `587` |
 | 加密方式：自动 / SSL/TLS / STARTTLS（自动 = 465 端口用 SSL/TLS） | `SMTP_SECURE`（`true` = SSL/TLS，`false` = STARTTLS） | 自动 |
 | 账号 / 密码 | `SMTP_USER` / `SMTP_PASSWORD` | 空 |
-| 发件人，如 `castor-kit <noreply@example.com>` | `MAIL_FROM` | 账号 |
+| 发件人，如 `Castor <noreply@example.com>` | `MAIL_FROM` | 账号 |
 
 邮件找回密码需要 SMTP 服务器和网站地址都填好才能打开，见 [账号安全与系统设置](/zh/guide/security#找回密码)。
 

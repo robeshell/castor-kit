@@ -39,7 +39,7 @@ export function specJsonSchema(): Record<string, unknown> {
   })
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    title: 'castor-kit module spec (pnpm scaffold -- --spec <file>)',
+    title: 'Castor module spec (pnpm scaffold -- --spec <file>)',
     description:
       'A module spec inferred from a one-line business requirement. This schema checks structure only; rules such as ' +
       '"unique only for text and number fields" and "defaults must match the field type" are enforced by ' +

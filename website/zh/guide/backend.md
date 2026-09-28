@@ -211,7 +211,7 @@ psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning pnpm db:generate 后面不能写 --
-`pnpm db:generate --name <描述>` 直接把参数传给 drizzle-kit，drizzle-kit 不认识 `--`。castor-kit 自己的脚本（scaffold、verify、seed:rbac、openapi:generate）参数前的 `--` 可写可不写。
+`pnpm db:generate --name <描述>` 直接把参数传给 drizzle-kit，drizzle-kit 不认识 `--`。Castor 自己的脚本（scaffold、verify、seed:rbac、openapi:generate）参数前的 `--` 可写可不写。
 :::
 
 ### 规则
@@ -267,7 +267,7 @@ pnpm openapi:apifox                # 推送到 Apifox
 后端测试使用 Vitest 并连接真实的 PostgreSQL 测试库，路由测试通过 `app.inject()` 发起请求，每个模块一个测试文件（`admin-*.test.ts`、`cc-*.test.ts`）。
 
 ```bash
-pnpm --filter @castor-kit/api test
+pnpm --filter @castorjs/api test
 ```
 
 测试库的准备见 [快速开始](/zh/guide/getting-started) 的“运行测试”一节。

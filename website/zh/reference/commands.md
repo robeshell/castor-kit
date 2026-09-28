@@ -3,7 +3,7 @@
 所有 `pnpm` 命令都在仓库根目录执行。
 
 ::: tip 关于参数前的 --
-castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参数前的 `--` 可写可不写。**`pnpm db:generate` 后面不能写 `--`**，因为参数会直接交给 drizzle-kit，它不认识 `--`。
+Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参数前的 `--` 可写可不写。**`pnpm db:generate` 后面不能写 `--`**，因为参数会直接交给 drizzle-kit，它不认识 `--`。
 :::
 
 ## 开发
@@ -14,9 +14,9 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 | `pnpm dev` | 同时启动后端（5001）和前端（5173） |
 | `pnpm dev:api` | 只启动后端（`tsx watch` 热重载） |
 | `pnpm dev:web` | 只启动前端（Vite） |
-| `pnpm --filter @castor-kit/api worker` | 启动独立的定时任务调度进程 |
+| `pnpm --filter @castorjs/api worker` | 启动独立的定时任务调度进程 |
 | `pnpm build` | 构建全部应用：前端（Vite）、后端（tsup）、MCP Server |
-| `pnpm --filter @castor-kit/web preview` | 预览前端构建产物 |
+| `pnpm --filter @castorjs/web preview` | 预览前端构建产物 |
 
 ## 质量检查
 
@@ -24,11 +24,11 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 |---|---|
 | `pnpm typecheck` | TypeScript 类型检查（`apps/api`、`apps/mcp`、`apps/web`，含前端测试） |
 | `pnpm test` | 运行全部测试（后端需要测试库 `castor_kit_test`） |
-| `pnpm --filter @castor-kit/api test` | 只运行后端测试 |
-| `pnpm --filter @castor-kit/web test` | 只运行前端测试 |
-| `pnpm --filter @castor-kit/web test:watch` | 前端测试监听模式 |
+| `pnpm --filter @castorjs/api test` | 只运行后端测试 |
+| `pnpm --filter @castorjs/web test` | 只运行前端测试 |
+| `pnpm --filter @castorjs/web test:watch` | 前端测试监听模式 |
 | `pnpm lint` | 后端 ESLint |
-| `pnpm --filter @castor-kit/web lint` | 前端 ESLint |
+| `pnpm --filter @castorjs/web lint` | 前端 ESLint |
 | `node apps/web/scripts/i18n-scan.mjs [目录]` | 扫描未翻译文案，目录相对 `apps/web`，省略时扫描整个 `src` |
 
 ## 数据库
@@ -39,7 +39,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 | `pnpm db:migrate` | 应用迁移 |
 | `psql -d <库名> -c '\d <表名>'` | 确认表结构已真实落库 |
 | `pnpm setup-once` | 迁移 + RBAC 增量同步 + AI SQL 只读账号，带 advisory lock，可重复执行 |
-| `pnpm --filter @castor-kit/api init-ro-role` | 单独创建 AI SQL 只读账号 `castor_kit_ro`（需要 `POSTGRES_RO_PASSWORD`） |
+| `pnpm --filter @castorjs/api init-ro-role` | 单独创建 AI SQL 只读账号 `castor_kit_ro`（需要 `POSTGRES_RO_PASSWORD`） |
 
 ## RBAC
 
@@ -84,7 +84,7 @@ castor-kit 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`�
 | 命令 | 说明 |
 |---|---|
 | `pnpm mcp` | 启动 MCP Server（stdio） |
-| `pnpm --filter @castor-kit/mcp build` | 构建到 `apps/mcp/dist/` |
+| `pnpm --filter @castorjs/mcp build` | 构建到 `apps/mcp/dist/` |
 
 ## 前端组件
 

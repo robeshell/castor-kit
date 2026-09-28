@@ -6,7 +6,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--filter",
-        "@castor-kit/api",
+        "@castorjs/api",
         "dev"
       ],
       "port": 5001
@@ -16,7 +16,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--filter",
-        "@castor-kit/web",
+        "@castorjs/web",
         "dev"
       ],
       "port": 5173

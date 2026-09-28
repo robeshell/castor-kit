@@ -98,7 +98,7 @@ describe('two-step verification: enrollment from the profile', () => {
     await c.login()
     expect((await c.inject({ url: '/api/admin/two-factor' })).json()).toMatchObject({ available: true, enabled: false, required: false })
     const setup = (await post(c, '/api/admin/two-factor/setup')).json()
-    expect(setup.otpauth_url).toContain(`otpauth://totp/castor-kit:${FIXTURE_USER}?`)
+    expect(setup.otpauth_url).toContain(`otpauth://totp/Castor:${FIXTURE_USER}?`)
     expect(setup.otpauth_url).toContain(`secret=${setup.secret}`)
     const [row] = await handle.db.select().from(admin_users).where(eq(admin_users.id, fixture.userId))
     expect(row!.totp_secret).not.toContain(setup.secret)

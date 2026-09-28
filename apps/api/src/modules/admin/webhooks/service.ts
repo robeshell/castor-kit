@@ -93,7 +93,7 @@ export class WebhookService {
 
   /** Send a `ping` event now and report the outcome */
   async test(hook: Webhook) {
-    const delivery = await this.events.sendNow(hook.id, 'ping', { message: 'castor-kit webhook test', webhook: { id: hook.id, name: hook.name } })
+    const delivery = await this.events.sendNow(hook.id, 'ping', { message: 'Castor webhook test', webhook: { id: hook.id, name: hook.name } })
     return webhookDeliveryToDict(delivery)
   }
 

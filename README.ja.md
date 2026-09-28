@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
-  <img src=".github/assets/wordmark-light.svg" alt="castor-kit" height="110">
+  <img src=".github/assets/wordmark-light.svg" alt="Castor" height="110">
 </picture>
 
 ### すぐ使える管理画面。新機能は AI におまかせ。
@@ -10,7 +10,7 @@
 ユーザー、ロール、権限、メニュー、ログなどの基本機能は実装済み。<br>
 新しい画面は要件を伝えるだけで、AI がテーブル・API・画面を作り、動作まで自動でチェックします。
 
-[![CI](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/robeshell/castorjs/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castorjs/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 ![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
@@ -19,20 +19,20 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **日本語**
 
-**[ライブデモ](https://castor-kit-demo.onrender.com)** · [ドキュメント](https://robeshell.github.io/castor-kit/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
+**[ライブデモ](https://castor-kit-demo.onrender.com)** · [ドキュメント](https://robeshell.github.io/castorjs/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
 
 <br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-ja-dark.webp">
-  <img src=".github/assets/screenshot-ja-light.webp" alt="castor-kit 管理画面" width="900">
+  <img src=".github/assets/screenshot-ja-light.webp" alt="Castor 管理画面" width="900">
 </picture>
 
 </div>
 
-## castor-kit とは？
+## Castor とは？
 
-castor-kit はオープンソースの管理画面です。今日そのまま使えて、明日からは AI で機能を増やせます。
+Castor はオープンソースの管理画面です。今日そのまま使えて、明日からは AI で機能を増やせます。
 
 - **すぐに使える**：ログイン、ユーザー、ロール、ボタン単位の権限、メニュー、ログ、データ辞書、定期タスク、通知、お知らせを実装済み。洗練された UI で、ライト / ダークに対応。
 - **AI で拡張する前提の設計**：開発ルールを AI コーディングツール（Claude Code、Cursor、Copilot、Codex CLI など）がそのまま従える形で記述。要件を一文で伝えれば、テーブル・API・画面・権限ができあがり、自動チェックを通って完成します。
@@ -62,14 +62,14 @@ castor-kit はオープンソースの管理画面です。今日そのまま使
 **Docker を使う**（推奨、必要なのは Docker だけ）：
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 
 セットアップウィザードで管理者パスワードとポート（既定は `5000`）を設定します。完了したら `http://localhost:5000` を開き、`admin` でサインインしてください。
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
 
 **試してみる**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)。ログイン画面からワンクリックでログインできます（無料インスタンスのため、しばらくアクセスがないと最初の表示に 30 秒ほどかかります）。
 
@@ -141,7 +141,7 @@ AGENTS.md     人と AI ツールが共有する開発ルール
 | トピック | [権限](website/ja/guide/rbac.md) · [多言語対応](website/ja/guide/i18n.md) · [テーマとレイアウト](website/ja/guide/appearance.md) |
 | リファレンス | [コマンド一覧](website/ja/reference/commands.md) · [設定](website/ja/reference/configuration.md) · [デプロイ](website/ja/deploy/index.md) |
 
-オンラインで読む：**[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/ja/)**。ローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
+オンラインで読む：**[robeshell.github.io/castorjs](https://robeshell.github.io/castorjs/ja/)**。ローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
 
 ## コントリビュート
 
@@ -149,7 +149,7 @@ Issue と Pull Request を歓迎します。まず[コントリビューショ�
 
 ## ライセンス
 
-[MIT](LICENSE) © castor-kit contributors
+[MIT](LICENSE) © Castor contributors
 
 <div align="center">
 <br>

@@ -1,6 +1,6 @@
 # AI 駆動開発
 
-castor-kit が目指すのは、業務要件を自然言語で伝えるだけで、AI コーディングツールが技術的な詳細を自ら推測し、プロジェクトの規約に沿った機能モジュール（テーブル、API、画面、権限、マイグレーション）をエンドツーエンドで納品し、検証ゲートを通過させることです。
+Castor が目指すのは、業務要件を自然言語で伝えるだけで、AI コーディングツールが技術的な詳細を自ら推測し、プロジェクトの規約に沿った機能モジュール（テーブル、API、画面、権限、マイグレーション）をエンドツーエンドで納品し、検証ゲートを通過させることです。
 
 このページでは、この流れを支える 4 つの要素を紹介します。プロジェクトコンテキスト `AGENTS.md`、各 AI ツールの設定、コード骨格ジェネレーター `pnpm scaffold`、検証ゲート `pnpm verify` です。
 
@@ -210,7 +210,7 @@ pnpm scaffold -- --spec device.spec.json
 ```
 
 - `title` と各フィールドの `label` は必須です。綴りを間違えたキー（`requried` など）は黙って無視されず、エラーになります
-- 完全な形式は [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json) にあります（JSON に `"$schema": "<相対パス>/docs/spec.schema.json"` を書くとエディターで補完・ヒントが効きます）。「要件 → spec」の例 4 つとフィールドごとの推論理由は [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs) にあります
+- 完全な形式は [`docs/spec.schema.json`](https://github.com/robeshell/castorjs/blob/main/docs/spec.schema.json) にあります（JSON に `"$schema": "<相対パス>/docs/spec.schema.json"` を書くとエディターで補完・ヒントが効きます）。「要件 → spec」の例 4 つとフィールドごとの推論理由は [`docs/examples/specs/`](https://github.com/robeshell/castorjs/tree/main/docs/examples/specs) にあります
 - `required`：列に `NOT NULL`。追加・編集時に空なら 400「`<ラベル>不能为空`」を返し、フォームでも必須として検証します。`image` / `file` は必須にできません
 - `unique`：列に `UNIQUE`。重複すると 400 を返します。テキストと数値の型のみ
 - `default`：列のデフォルト値。追加時に空ならこの値を使い、フォームにもあらかじめ入力されます
@@ -304,9 +304,9 @@ Claude Desktop の設定例（`claude_desktop_config.json`）：
 ```json
 {
   "mcpServers": {
-    "castor-kit": {
+    "castor": {
       "command": "pnpm",
-      "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
+      "args": ["--dir", "/path/to/castorjs", "-s", "mcp"]
     }
   }
 }
@@ -315,8 +315,8 @@ Claude Desktop の設定例（`claude_desktop_config.json`）：
 先にビルドしてから node で直接実行することもできます。
 
 ```bash
-pnpm --filter @castor-kit/mcp build
-node /path/to/castor-kit/apps/mcp/dist/index.js
+pnpm --filter @castorjs/mcp build
+node /path/to/castorjs/apps/mcp/dist/index.js
 ```
 
 MCP Server はデフォルトで自身の配置場所からリポジトリのルートを推定します。環境変数 `CASTOR_KIT_ROOT` で上書きできます。

@@ -12,7 +12,7 @@ export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://
 
 export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
-    ...loadConfig({ NODE_ENV: 'test', TEST_DATABASE_URL, WEB_DIST_DIR: '/nonexistent-castor-kit-dist', RATE_LIMIT_ENABLED: 'false' }),
+    ...loadConfig({ NODE_ENV: 'test', TEST_DATABASE_URL, WEB_DIST_DIR: '/nonexistent-castor-dist', RATE_LIMIT_ENABLED: 'false' }),
     ...overrides,
   }
 }
@@ -84,7 +84,7 @@ export async function createFixture(handle: DbHandle): Promise<Fixture> {
   const [user] = await db.insert(admin_users).values({ username: FIXTURE_USER, password_hash: passwordHash }).returning()
   const [role] = await db
     .insert(roles)
-    .values({ name: '测试角色', code: `${FIXTURE_PREFIX}role`, description: 'castor-kit 测试夹具' })
+    .values({ name: '测试角色', code: `${FIXTURE_PREFIX}role`, description: 'Castor 测试夹具' })
     .returning()
   const [root] = await db
     .insert(menus)

@@ -1,6 +1,6 @@
 ---
 name: new-feature-autopilot
-description: PM gives feature intent in natural language; execute end-to-end implementation for castor-kit (Fastify + Drizzle + React/shadcn-ui) without requiring structured requirement docs.
+description: PM gives feature intent in natural language; execute end-to-end implementation for Castor (Fastify + Drizzle + React/shadcn-ui) without requiring structured requirement docs.
 ---
 
 # New Feature Autopilot

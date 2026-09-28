@@ -1,6 +1,6 @@
 # 設定
 
-castor-kit の設定は 2 種類です。
+Castor の設定は 2 種類です。
 
 - **環境変数**：サーバーがデータベースに接続する前に必要なもの（データベース URL、`SECRET_KEY`、ポートなど）。`apps/api/src/config.ts` が Zod で検証し、Docker では `docker-compose.yml` が注入します。本ページの「バックエンド（API）」を参照
 - **システム設定**：メール、ファイル保存、アップロード制限、AI モデル、サイトの URL、ログインのロック、2段階認証などのセキュリティ設定。ログイン後に「システム管理 → システム構成 → システム設定」で変更でき、再起動なしで数秒以内に反映されます。環境変数で固定することもできます。[システム設定で行う設定](#settings-page)を参照
@@ -33,7 +33,7 @@ castor-kit の設定は 2 種類です。
 |---|---|---|
 | `NODE_ENV` | 実行環境：`development` / `test` / `production`。それ以外の値は `development` として扱う | `development` |
 | `PORT` | 待ち受けポート | 開発 `5001`、テスト `5002`、本番 `5000` |
-| `APP_NAME` | サーバーが表示する製品名：認証アプリの発行者、既定の送信者とテストメールの件名、AI アシスタントの自己紹介、起動ログ。Web 側の名前は `apps/web/src/lib/brand.ts` の `APP_NAME`（[プロジェクトを始める](/ja/guide/new-project)を参照） | `castor-kit` |
+| `APP_NAME` | サーバーが表示する製品名：認証アプリの発行者、既定の送信者とテストメールの件名、AI アシスタントの自己紹介、起動ログ。Web 側の名前は `apps/web/src/lib/brand.ts` の `APP_NAME`（[プロジェクトを始める](/ja/guide/new-project)を参照） | `Castor` |
 | `DEV_DATABASE_URL` | 開発環境のデータベース接続 | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | テスト環境のデータベース接続。テストはシェルまたは `apps/api/.env.test` から読み込む | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 本番環境のデータベース接続 | `postgresql://localhost/castor_kit` |
@@ -137,7 +137,7 @@ AI モデル（API の URL、キー、モデル名）はシステム設定で設
 | ポート | `SMTP_PORT` | `587` |
 | 暗号化方式：自動 / SSL/TLS / STARTTLS（自動 = 465 番ポートは SSL/TLS） | `SMTP_SECURE`（`true` = SSL/TLS、`false` = STARTTLS） | 自動 |
 | アカウント / パスワード | `SMTP_USER` / `SMTP_PASSWORD` | 空 |
-| 差出人（例：`castor-kit <noreply@example.com>`） | `MAIL_FROM` | アカウント |
+| 差出人（例：`Castor <noreply@example.com>`） | `MAIL_FROM` | アカウント |
 
 メールによるパスワード再設定は、SMTP サーバーとサイトの URL を設定してから有効にできます。[アカウントセキュリティとシステム設定](/ja/guide/security#password-reset)を参照してください。
 

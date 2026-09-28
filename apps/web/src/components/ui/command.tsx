@@ -40,7 +40,7 @@ function CommandDialog({
   description?: string
   className?: string
   showCloseButton?: boolean
-  /** castor-kit: accessible name of the close button (see DialogContent) */
+  /** Castor: accessible name of the close button (see DialogContent) */
   closeLabel?: string
 }) {
   return (
@@ -50,7 +50,7 @@ function CommandDialog({
         showCloseButton={showCloseButton}
         closeLabel={closeLabel}
       >
-        {/* castor-kit: inside the content, so the hidden title isn't left on the page while the dialog is closed */}
+        {/* Castor: inside the content, so the hidden title isn't left on the page while the dialog is closed */}
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

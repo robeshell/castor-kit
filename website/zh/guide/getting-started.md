@@ -1,6 +1,6 @@
 # 快速开始
 
-castor-kit 有两种运行方式：
+Castor 有两种运行方式：
 
 | 方式 | 适用场景 | 环境要求 |
 |---|---|---|
@@ -12,8 +12,8 @@ castor-kit 有两种运行方式：
 ### 1. 克隆仓库并运行安装向导
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 
@@ -146,7 +146,7 @@ AI_MODEL=<模型名>
 开发环境下 web 进程默认不启动定时任务调度器。需要让任务按 cron 执行时，二选一：
 
 - 在 `apps/api/.env.development` 中设置 `RUN_SCHEDULER_IN_WEB=true`
-- 另开终端运行独立调度进程：`pnpm --filter @castor-kit/api worker`
+- 另开终端运行独立调度进程：`pnpm --filter @castorjs/api worker`
 
 ## 下一步
 

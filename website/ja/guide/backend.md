@@ -211,7 +211,7 @@ psql -d castor_kit -c '\d customers'
 ```
 
 ::: warning pnpm db:generate の後ろに -- を書かないこと
-`pnpm db:generate --name <説明>` は引数をそのまま drizzle-kit に渡しますが、drizzle-kit は `--` を認識しません。castor-kit 独自のスクリプト（scaffold、verify、seed:rbac、openapi:generate）では、引数の前の `--` はあってもなくてもかまいません。
+`pnpm db:generate --name <説明>` は引数をそのまま drizzle-kit に渡しますが、drizzle-kit は `--` を認識しません。Castor 独自のスクリプト（scaffold、verify、seed:rbac、openapi:generate）では、引数の前の `--` はあってもなくてもかまいません。
 :::
 
 ### ルール
@@ -267,7 +267,7 @@ pnpm openapi:apifox                # Apifox にプッシュ
 バックエンドのテストは Vitest を使い、実際の PostgreSQL テスト用データベースに接続します。ルートのテストは `app.inject()` でリクエストを送り、モジュールごとに 1 つのテストファイル（`admin-*.test.ts`、`cc-*.test.ts`）を用意します。
 
 ```bash
-pnpm --filter @castor-kit/api test
+pnpm --filter @castorjs/api test
 ```
 
 テスト用データベースの準備は、[クイックスタート](/ja/guide/getting-started) の「テストを実行する」の節を参照してください。

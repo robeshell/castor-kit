@@ -65,7 +65,7 @@ const MARK = { info: '›', ok: '✓', gate: '✓', done: '●' }
   <div ref="root" class="term">
     <div class="bar">
       <i /><i /><i />
-      <span class="title">castor-kit — AI</span>
+      <span class="title">Castor — AI</span>
       <button type="button" class="replay" :disabled="running" aria-label="Replay" @click="play">↻</button>
     </div>
     <div class="body">

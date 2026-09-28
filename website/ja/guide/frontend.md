@@ -221,7 +221,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # registry の内容を表示�
 ## テストとチェック
 
 ```bash
-pnpm --filter @castor-kit/web test     # フロントエンドの Vitest
-pnpm --filter @castor-kit/web lint     # フロントエンドの ESLint
+pnpm --filter @castorjs/web test     # フロントエンドの Vitest
+pnpm --filter @castorjs/web lint     # フロントエンドの ESLint
 node apps/web/scripts/i18n-scan.mjs src/modules/admin/pages/users   # 特定のページディレクトリの未翻訳の文言をスキャン
 ```
