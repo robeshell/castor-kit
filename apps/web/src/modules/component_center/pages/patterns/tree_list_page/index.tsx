@@ -491,6 +491,7 @@ export default function TreeListPage() {
                 />
               ) : (
                 <TreeView
+                  aria-label="树形列表"
                   nodes={treeNodes}
                   selectedKey={parentId ?? undefined}
                   expandedKeys={debouncedSearch ? searchExpanded : (expandedKeys ?? [])}

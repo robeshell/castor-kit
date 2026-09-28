@@ -52,7 +52,7 @@ export default function ControlledExpand() {
           {t('只展开第一层')}
         </Button>
       </div>
-      <TreeView nodes={REGIONS} expandedKeys={expanded} onExpandedChange={setExpanded} className="rounded-lg border p-1.5" />
+      <TreeView aria-label="地区" nodes={REGIONS} expandedKeys={expanded} onExpandedChange={setExpanded} className="rounded-lg border p-1.5" />
       <p className="text-muted-foreground text-xs">
         expandedKeys: <code className="font-mono">{JSON.stringify(expanded)}</code>
       </p>

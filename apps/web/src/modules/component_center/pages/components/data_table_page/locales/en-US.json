@@ -68,7 +68,6 @@
   "显示勾选列": "Shows the checkbox column",
   "选中行的 key（受控）": "Keys of the selected rows (controlled)",
   "勾选变化时调用，传入新的 key 列表": "Called when the selection changes, with the new list of keys",
-  "点击行；传了之后行显示手型光标": "Row click; when set, rows show a pointer cursor",
   "按行追加 class": "Extra classes per row",
   "空状态标题（中文原文，组件内翻译）": "Empty state title (Chinese source text, translated by the component)",
   "空状态说明，写下一步做什么": "Empty state description: say what to do next",
@@ -95,5 +94,8 @@
   "「更多」菜单里的图标": "Icon in the \"More\" menu",
   "红色文字": "Red text",
   "显示但不可点击": "Visible but not clickable",
-  "这一行不显示该操作": "Leaves the action out for this row"
+  "这一行不显示该操作": "Leaves the action out for this row",
+  "点击行；传了之后行显示手型光标，主列里放一个按钮供键盘和读屏使用": "Row click; when set, rows show a pointer cursor and the primary column holds a button for keyboard and screen-reader users",
+  "页面当前打开的那一行（如主从表的主行），读屏报 aria-current；样式仍用 rowClassName": "The row the page has open (e.g. the master row of a master-detail view), announced with aria-current; style it with rowClassName",
+  "配合 onRowClick：行按钮放在这一列（默认第一列）；选能说出这一行是谁的列，且列里没有别的控件": "With onRowClick: the column that holds the row button (default: the first). Pick one that names the row and has no other controls"
 }

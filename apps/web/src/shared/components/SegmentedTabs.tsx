@@ -43,6 +43,7 @@ export default function SegmentedTabs<V extends string | number = string>({
             <button
               key={item.value}
               type="button"
+              aria-pressed={active}
               onClick={() => onChange?.(item.value)}
               className={cn(
                 'relative rounded-md px-2.5 py-1 transition-colors',
@@ -71,6 +72,7 @@ export default function SegmentedTabs<V extends string | number = string>({
           <button
             key={item.value}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange?.(item.value)}
             className={cn(
               'relative flex h-9 items-center gap-1.5 text-[13px] transition-colors',

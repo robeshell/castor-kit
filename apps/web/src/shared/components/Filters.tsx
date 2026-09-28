@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { RotateCcw, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,30 +58,35 @@ export interface SearchInputProps {
   onSubmit?: () => void
   /** Chinese source text (translated here) */
   placeholder?: string
+  /** Accessible name (Chinese source text, translated here); defaults to the placeholder */
+  label?: string
   className?: string
 }
 
 /** Search box: Enter triggers onSubmit; has a clear button */
-export function SearchInput({ value, onChange, onSubmit, placeholder = '搜索', className }: SearchInputProps) {
+export function SearchInput({ value, onChange, onSubmit, placeholder = '搜索', label, className }: SearchInputProps) {
   const tx = useTx()
   return (
     <div className={cn('relative w-full sm:w-60', className)}>
       <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
       <Input
+        type="search"
+        aria-label={tx(label ?? placeholder)}
         value={value ?? ''}
         onChange={(e) => onChange?.(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSubmit?.()
         }}
         placeholder={tx(placeholder)}
-        className="h-8 pr-7 pl-8 text-[13px]"
+        // The native clear button is hidden: the one below works the same in every browser
+        className="h-8 pr-7 pl-8 text-[13px] [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value ? (
         <button
           type="button"
           aria-label={tx('清空')}
           onClick={() => onChange?.('')}
-          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded"
         >
           <X className="size-3.5" />
         </button>
@@ -104,16 +109,23 @@ export interface FilterSelectProps {
   placeholder?: string
   /** Label of the "all" item, instead of '全部' + placeholder */
   allLabel?: string
+  /** Accessible name (Chinese source text, translated here); defaults to the placeholder */
+  label?: string
   className?: string
 }
 
-export function FilterSelect({ value, onChange, options = [], placeholder = '全部', allLabel, className }: FilterSelectProps) {
+export function FilterSelect({ value, onChange, options = [], placeholder = '全部', allLabel, label, className }: FilterSelectProps) {
   const tx = useTx()
+  const labelId = useId()
   const current = value === '' || value === undefined || value === null ? ALL : String(value)
   const allText = allLabel ? tx(allLabel) : placeholder === '全部' ? tx('全部') : tx('全部{{name}}', { name: tx(placeholder) })
   return (
     <Select value={current} onValueChange={(next) => onChange?.(next === ALL ? '' : next)}>
-      <SelectTrigger size="sm" className={cn('h-8 w-36 text-[13px]', className)}>
+      {/* The trigger shows only the value: the filter's name comes from this label (a combobox announces its value itself) */}
+      <span id={labelId} className="sr-only">
+        {tx(label ?? placeholder)}
+      </span>
+      <SelectTrigger aria-labelledby={labelId} size="sm" className={cn('h-8 w-36 text-[13px]', className)}>
         <SelectValue placeholder={tx(placeholder)} />
       </SelectTrigger>
       <SelectContent>

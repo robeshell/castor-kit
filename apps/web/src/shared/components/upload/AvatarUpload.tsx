@@ -90,7 +90,7 @@ export default function AvatarUpload({ value, onChange, name, maxSizeMB, disable
         <UserAvatar src={value || undefined} name={name} className="size-14" fallbackClassName="text-lg" />
         {uploading ? (
           <div className="bg-background/70 absolute inset-0 flex items-center justify-center rounded-full">
-            {percent ? <span className="text-[11px] font-medium tabular-nums">{percent}%</span> : <Spinner />}
+            {percent ? <span className="text-[11px] font-medium tabular-nums">{percent}%</span> : <Spinner label={tx('上传中')} />}
           </div>
         ) : null}
       </div>

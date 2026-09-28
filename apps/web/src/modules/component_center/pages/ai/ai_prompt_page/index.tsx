@@ -322,6 +322,7 @@ export default function AiPromptPage() {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder={t('搜索模板名称...')}
+              aria-label={t('搜索模板名称')}
               className="h-8 pr-7 pl-8 text-[13px]"
             />
             {searchText ? (
@@ -431,6 +432,7 @@ export default function AiPromptPage() {
                               value={varValues[v] || ''}
                               onChange={(e) => setRawVarValues((prev) => ({ ...prev, [v]: e.target.value }))}
                               placeholder={t('填写 {{name}} 的值...', { name: v })}
+                              aria-label={t('{{name}} 的值', { name: v })}
                               className="h-8 flex-1 text-[13px]"
                             />
                           </div>

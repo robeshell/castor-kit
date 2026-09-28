@@ -228,7 +228,7 @@ export default function JsonEditorPage() {
               theme={monacoTheme}
               value={jsonText}
               onChange={handleEditorChange}
-              loading={<Spinner className="text-muted-foreground" />}
+              loading={<Spinner label={t('加载中')} className="text-muted-foreground" />}
               options={{
                 fontSize: 13,
                 fontFamily: 'Geist Mono Variable, ui-monospace, SFMono-Regular, Menlo, monospace',

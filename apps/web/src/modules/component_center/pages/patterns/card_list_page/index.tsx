@@ -145,9 +145,9 @@ function ItemCard({ record, canEdit, canDelete, onEdit, onDelete }: ItemCardProp
         </div>
 
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-medium" title={name}>
+          <h2 className="truncate text-sm font-medium" title={name}>
             {name}
-          </h3>
+          </h2>
           {record.description ? <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{record.description}</p> : null}
         </div>
 

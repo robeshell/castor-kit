@@ -73,6 +73,7 @@ export default function CheckablePermissions() {
           </Button>
         </div>
         <CheckableTree
+          aria-label="权限"
           tree={PERMISSIONS}
           value={value}
           onChange={setValue}

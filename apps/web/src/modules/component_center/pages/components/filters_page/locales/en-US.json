@@ -65,5 +65,7 @@
   "文字（中文原文，组件内翻译）": "Text (Chinese source text, translated by the component)",
   "文字后的数量徽标（只在 underline 样式显示）": "Count badge after the text (underline style only)",
   "占位文字（中文原文，组件内翻译）": "Placeholder (Chinese source text, translated by the component)",
-  "筛选项名称，「全部」项显示为「全部」+ 名称": "The filter's name; the \"All\" item reads \"All\" + name"
+  "筛选项名称，「全部」项显示为「全部」+ 名称": "The filter's name; the \"All\" item reads \"All\" + name",
+  "无障碍名称（中文原文，组件内翻译），默认用 placeholder": "Accessible name (Chinese source text, translated inside); defaults to placeholder",
+  "无障碍名称（中文原文，组件内翻译），默认用 placeholder；当前值由下拉框自己报出": "Accessible name (Chinese source text, translated inside); defaults to placeholder. The select announces its current value itself"
 }

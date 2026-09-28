@@ -181,6 +181,7 @@ function CreateTokenDialog({ open, onOpenChange, onCreated }: CreateTokenDialogP
               </div>
             ) : tree.length > 0 ? (
               <CheckableTree
+                aria-label="权限"
                 tree={tree}
                 value={checked}
                 onChange={setChecked}

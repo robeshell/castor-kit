@@ -12,7 +12,8 @@ export const STAT_CARD_PROPS: readonly PropDoc[] = [
   { name: 'hint', type: 'ReactNode', description: '底部一行说明，没有趋势时用它解释数字' },
   { name: 'icon', type: 'ComponentType<{ className?: string }>', description: '标签前的图标（lucide 图标组件）' },
   { name: 'loading', type: 'boolean', default: 'false', description: '数字和变化标记显示骨架，不要用 0 占位' },
-  { name: 'onClick', type: 'MouseEventHandler<HTMLDivElement>', description: '点击卡片；传了之后显示手型光标' },
+  { name: 'onClick', type: 'MouseEventHandler<HTMLButtonElement>', description: '点击卡片；传了之后卡片是一个按钮（可聚焦，Enter / 空格触发）' },
+  { name: 'selected', type: 'boolean', description: '和 onClick 一起用：当前选中的卡片（读屏报“已按下”；样式用 className 标出）' },
   { name: 'className', type: 'string', description: '卡片的 class' },
 ]
 
@@ -34,6 +35,8 @@ export const SPARKLINE_PROPS: readonly PropDoc[] = [
 /** Chart (ChartProps in shared/components/Chart.tsx: echarts-for-react's props, option typed as EChartsOption) */
 export const CHART_PROPS: readonly PropDoc[] = [
   { name: 'option', type: 'EChartsOption', description: 'ECharts 配置；颜色从 useChartColors / chartBase 取，跟随主题色和暗色模式' },
+  { name: 'summary', type: 'string', description: '必填。图表的文字说明（已翻译）：展示什么、关键数字（合计、最大值、当前值），用同一份数据算出；读屏读它而不是画布' },
+  { name: 'patterns', type: 'boolean', default: 'false', description: '系列除了颜色再加上图案填充，不看颜色也能区分；饼图、漏斗、桑基图和多系列柱状 / 折线图打开，单系列和热力图不用' },
   { name: 'style', type: 'CSSProperties', default: '{ height: 300 }', description: '只设高度，宽度跟随容器' },
   { name: 'className', type: 'string', description: '容器的 class' },
   { name: 'notMerge', type: 'boolean', default: 'false', description: '新配置整体替换旧配置，而不是合并（数据条数会变时用）' },

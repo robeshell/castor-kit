@@ -16,14 +16,19 @@ Compared on 2026-09-27 against `https://ui.shadcn.com/r/styles/new-york-v4/<name
 |---|---|
 | button | `duration-150` and `active:scale-[0.98]` press feedback on every variant; an extra `brand` variant (`bg-brand-gradient-strong text-white shadow-brand hover:brightness-110`) for the page's one primary action |
 | checkbox | Indeterminate state: `data-[state=indeterminate]` styles like checked, and the indicator shows `MinusIcon` when `checked === "indeterminate"` |
+| command | `CommandDialog` takes `closeLabel` and passes it to `DialogContent`; its sr-only `DialogHeader` sits inside `DialogContent` (upstream renders it outside, so the title stays on the page, outside any landmark, while the dialog is closed) |
+| dialog | `DialogContent` takes `closeLabel` (default `"Close"`): the close button's screen-reader text, translated by the caller |
 | form | `FormMessage` translates the error with `i18n.t(...)`: validation messages are Chinese source text used as i18n keys |
+| sheet | `SheetContent` takes `closeLabel` (default `"Close"`), like `DialogContent` |
 | skeleton | Base `bg-foreground/[0.06] dark:bg-foreground/[0.08]` instead of `bg-accent`; a shimmer sweep (`after:animate-shimmer`) instead of `animate-pulse`; fades in after a short delay (`animate-skeleton-in`) so fast loads don't flash |
-| sidebar | `useIsMobile` from `@/shared/hooks/use-mobile` (a `useSyncExternalStore` implementation); `SidebarMenuSkeleton` picks its random width with a lazy `useState` instead of `useMemo` (react-hooks purity rule); `SidebarInset` renders a `<div>` instead of `<main>` (it also holds the top bar; `AppLayout` puts `<main id="main">` around the page area) |
+| sidebar | `useIsMobile` from `@/shared/hooks/use-mobile` (a `useSyncExternalStore` implementation); `SidebarMenuSkeleton` picks its random width with a lazy `useState` instead of `useMemo` (react-hooks purity rule); `Sidebar` takes `mobileTitle` / `mobileDescription`, `SidebarTrigger` and `SidebarRail` take `label` (the English defaults stay, callers pass translations); `SidebarInset` renders a `<div>` instead of `<main>` (it also holds the top bar; `AppLayout` puts `<main id="main">` around the page area) |
 | sonner | Theme from `@/context/ThemeContext` (`light` / `dark`) instead of `next-themes` |
+| slider | `aria-label` / `aria-labelledby` given to `Slider` go to each thumb (the focusable `role="slider"`) instead of the root |
+| spinner | Decorative (`aria-hidden`) unless a `label` prop is given, then `role="status"` + `aria-label={label}` (upstream: always `role="status" aria-label="Loading"`, which repeats inside labelled buttons and is English only) |
 
 Added during the TSX conversion: exported props types `ButtonProps`, `BadgeProps`, `AlertProps`, `ButtonGroupProps` and `CalendarProps`.
 
-Unchanged from upstream: alert, alert-dialog, avatar, breadcrumb, button-group, card, collapsible, command, context-menu, dialog, drawer, dropdown-menu, empty, field, hover-card, kbd, label, pagination, popover, progress, separator, sheet, spinner, table, tooltip.
+Unchanged from upstream: alert, alert-dialog, avatar, breadcrumb, button-group, card, collapsible, context-menu, drawer, dropdown-menu, empty, field, hover-card, kbd, label, pagination, popover, progress, separator, table, tooltip.
 
 ## AI Elements
 

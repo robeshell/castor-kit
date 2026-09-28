@@ -146,6 +146,31 @@ export default function TrafficFlowPage() {
     }
   }, [c, data.funnel, t])
 
+  // Text alternatives for screen readers: the largest source of the flow, the funnel's first and last stage
+  const sourceTotals = SOURCES.map((id) => ({ id, value: data.links.filter((l) => l.source === id).reduce((a, l) => a + l.value, 0) }))
+  const sourceSum = sourceTotals.reduce((a, s) => a + s.value, 0)
+  const topSource = sourceTotals.reduce((a, b) => (b.value > a.value ? b : a))
+  const sankeySummary = sourceSum
+    ? t('流量流向桑基图，{{count}} 个来源共 {{total}} 次访问，最大的来源是{{name}}，占 {{share}}%', {
+        count: sourceTotals.filter((s) => s.value > 0).length,
+        total: formatNumber(sourceSum),
+        name: label(topSource.id),
+        share: ((topSource.value / sourceSum) * 100).toFixed(0),
+      })
+    : t('流量流向桑基图，暂无数据')
+  const firstStage = data.funnel[0]
+  const lastStage = data.funnel.at(-1)
+  const funnelSummary =
+    firstStage && lastStage
+      ? t('转化漏斗，从{{first}} {{firstValue}} 到{{last}} {{lastValue}}，整体转化率 {{rate}}%', {
+          first: t(STAGE_LABELS[firstStage.stage] ?? firstStage.stage),
+          firstValue: formatNumber(firstStage.value),
+          last: t(STAGE_LABELS[lastStage.stage] ?? lastStage.stage),
+          lastValue: formatNumber(lastStage.value),
+          rate: firstStage.value ? ((lastStage.value / firstStage.value) * 100).toFixed(1) : '0',
+        })
+      : t('转化漏斗，暂无数据')
+
   const chartHeight = isMobile ? 360 : 460
   const empty = loading && data.links.length === 0
 
@@ -185,7 +210,7 @@ export default function TrafficFlowPage() {
           {empty ? (
             <Skeleton className="w-full rounded-lg" style={{ height: chartHeight }} />
           ) : (
-            <ReactECharts option={sankeyOption} style={{ height: chartHeight }} opts={{ renderer: 'canvas' }} notMerge />
+            <ReactECharts option={sankeyOption} summary={sankeySummary} patterns style={{ height: chartHeight }} opts={{ renderer: 'canvas' }} notMerge />
           )}
         </Panel>
 
@@ -193,7 +218,7 @@ export default function TrafficFlowPage() {
           {empty ? (
             <Skeleton className="w-full rounded-lg" style={{ height: chartHeight }} />
           ) : (
-            <ReactECharts option={funnelOption} style={{ height: chartHeight }} opts={{ renderer: 'canvas' }} notMerge />
+            <ReactECharts option={funnelOption} summary={funnelSummary} patterns style={{ height: chartHeight }} opts={{ renderer: 'canvas' }} notMerge />
           )}
         </Panel>
       </div>

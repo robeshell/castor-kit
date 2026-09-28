@@ -1,7 +1,7 @@
-import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
+import { useId, useMemo, useState, type ComponentType, type KeyboardEvent, type ReactNode } from 'react'
 import type { EChartsOption } from 'echarts'
 import { AnimatePresence, motion } from 'motion/react'
-import GridLayout, { useContainerWidth, type GridLayoutProps, type Layout } from 'react-grid-layout'
+import GridLayout, { cloneLayout, getLayoutItem, moveElement, useContainerWidth, verticalCompactor, type GridLayoutProps, type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import ReactECharts from '@/shared/components/Chart'
@@ -30,7 +30,47 @@ const DEFAULT_LAYOUT: Layout = [
   { i: 'sys-log', x: 0, y: 6, w: 3, h: 4 },
 ]
 
-const GRID_CONFIG: GridLayoutProps['gridConfig'] = { cols: 12, rowHeight: 80, margin: [12, 12], containerPadding: [0, 0] }
+const COLS = 12
+const GRID_CONFIG: GridLayoutProps['gridConfig'] = { cols: COLS, rowHeight: 80, margin: [12, 12], containerPadding: [0, 0] }
+const MIN_W = 2
+
+const ARROWS: Partial<Record<string, [number, number]>> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
+
+/**
+ * Keyboard counterpart of dragging / resizing one card: an arrow moves it one cell, Shift + arrow resizes it.
+ * Vertical moves go as far as needed for the card to actually change place (the compactor pulls cards back up),
+ * the same as dragging it past its neighbour. Returns null when nothing can change.
+ */
+function nudgeLayout(layout: Layout, id: string, dx: number, dy: number, resize: boolean): Layout | null {
+  const item = getLayoutItem(layout, id)
+  if (!item) return null
+  if (resize) {
+    const w = Math.min(Math.max(item.w + dx, MIN_W), COLS - item.x)
+    const h = Math.max(item.h + dy, 1)
+    if (w === item.w && h === item.h) return null
+    const next = cloneLayout(layout).map((l) => (l.i === id ? { ...l, w, h } : l))
+    return verticalCompactor.compact(next, COLS)
+  }
+  if (dx !== 0) {
+    const x = Math.min(Math.max(item.x + dx, 0), COLS - item.w)
+    if (x === item.x) return null
+    const next = cloneLayout(layout)
+    const target = getLayoutItem(next, id)
+    return target ? verticalCompactor.compact(moveElement(next, target, x, target.y, true, false, 'vertical', COLS), COLS) : null
+  }
+  const limit = Math.max(...layout.map((l) => l.y + l.h))
+  for (let step = 1; step <= limit; step += 1) {
+    const y = item.y + dy * step
+    if (y < 0) return null
+    const next = cloneLayout(layout)
+    const target = getLayoutItem(next, id)
+    if (!target) return null
+    const moved = verticalCompactor.compact(moveElement(next, target, target.x, y, true, false, 'vertical', COLS), COLS)
+    const after = getLayoutItem(moved, id)
+    if (after && after.y !== item.y) return moved
+  }
+  return null
+}
 
 // ── Static data ──────────────────────────────────────────────────────────
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -124,11 +164,21 @@ interface GridItemProps {
   /** Chinese source text, translated here */
   title: string
   isEditing: boolean
+  /** Arrow keys on the grip: move (resize with Shift) by one cell */
+  onNudge: (dx: number, dy: number, resize: boolean) => void
+  /** id of the keyboard instructions */
+  hintId: string
   children: ReactNode
 }
 
-function GridItem({ title, isEditing, children }: GridItemProps) {
+function GridItem({ title, isEditing, onNudge, hintId, children }: GridItemProps) {
   const { t } = useTranslation()
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const delta = ARROWS[e.key]
+    if (!delta) return
+    e.preventDefault()
+    onNudge(delta[0], delta[1], e.shiftKey)
+  }
   return (
     <div
       className={cn(
@@ -143,7 +193,17 @@ function GridItem({ title, isEditing, children }: GridItemProps) {
         )}
       >
         <span className="truncate text-[13px] font-medium">{t(title)}</span>
-        {isEditing ? <GripVertical className="text-muted-foreground size-4" /> : null}
+        {isEditing ? (
+          <button
+            type="button"
+            aria-label={t('移动或调整：{{title}}', { title: t(title) })}
+            aria-describedby={hintId}
+            onKeyDown={onKeyDown}
+            className="text-muted-foreground hover:text-foreground -mr-1.5 flex size-6 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <GripVertical className="size-4" />
+          </button>
+        ) : null}
       </div>
       <div className="min-h-0 flex-1 overflow-hidden p-2">{children}</div>
     </div>
@@ -176,7 +236,14 @@ function LineChartWidget() {
       ],
     }
   }, [c, t])
-  return <ReactECharts option={option} style={{ height: '100%', width: '100%' }} notMerge />
+  // Text alternative for screen readers: the yearly total and the best month
+  const peak = Math.max(...SALES)
+  const summary = t('月度销售额折线图，全年共 {{total}}，最高是 {{month}}，{{max}}', {
+    total: SALES.reduce((a, b) => a + b, 0),
+    month: MONTHS[SALES.indexOf(peak)] ?? '',
+    max: peak,
+  })
+  return <ReactECharts option={option} summary={summary} style={{ height: '100%', width: '100%' }} notMerge />
 }
 
 function PieChartWidget() {
@@ -211,7 +278,10 @@ function PieChartWidget() {
       ],
     }
   }, [c, t])
-  return <ReactECharts option={option} style={{ height: '100%', width: '100%' }} notMerge />
+  // Text alternative for screen readers: the largest region and its share (the data is already in percent)
+  const largest = SHARE.reduce((a, b) => (b.value > a.value ? b : a))
+  const summary = t('市场份额环形图，{{count}} 个区域，最大的是{{name}}，占 {{share}}%', { count: SHARE.length, name: largest.name, share: largest.value })
+  return <ReactECharts option={option} summary={summary} patterns style={{ height: '100%', width: '100%' }} notMerge />
 }
 
 function StatCardsWidget() {
@@ -286,6 +356,9 @@ export default function DragLayoutPage() {
   const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true })
   const [isEditing, setIsEditing] = useState(false)
   const [layout, setLayout] = useState(readSavedLayout)
+  const hintId = useId()
+  /** Where the last keyboard move / resize put the card (read out by the live region) */
+  const [announcement, setAnnouncement] = useState('')
 
   const handleLayoutChange = (newLayout: Layout) => {
     setLayout(newLayout)
@@ -294,6 +367,16 @@ export default function DragLayoutPage() {
     } catch {
       /* ignore */
     }
+  }
+
+  const nudge = (id: string, title: string, dx: number, dy: number, resize: boolean) => {
+    const next = nudgeLayout(layout, id, dx, dy, resize)
+    const item = next && getLayoutItem(next, id)
+    if (!next || !item) return
+    handleLayoutChange(next)
+    setAnnouncement(
+      t('{{title}}：第 {{col}} 列，第 {{row}} 行，宽 {{w}} 格，高 {{h}} 格', { title: t(title), col: item.x + 1, row: item.y + 1, w: item.w, h: item.h }),
+    )
   }
 
   const handleReset = () => {
@@ -335,11 +418,17 @@ export default function DragLayoutPage() {
           >
             <div className="bg-brand-soft text-primary flex items-center gap-2 rounded-lg px-3 py-2 text-xs">
               <Info className="size-3.5 shrink-0" />
-              {t('编辑模式已开启 · 拖拽卡片标题栏移动位置，拖拽卡片右下角调整大小，布局会自动保存至本地')}
+              <span id={hintId}>
+                {t('编辑模式已开启 · 拖拽卡片标题栏移动位置，拖拽卡片右下角调整大小；键盘：聚焦标题栏的拖动按钮，方向键移动，Shift + 方向键调整大小。布局会自动保存至本地')}
+              </span>
             </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
 
       {/* On narrow screens the grid keeps a minimum width and the wrapper scrolls horizontally */}
       <div className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -360,7 +449,7 @@ export default function DragLayoutPage() {
                 const { title, Component } = meta
                 return (
                   <div key={i}>
-                    <GridItem title={title} isEditing={isEditing}>
+                    <GridItem title={title} isEditing={isEditing} hintId={hintId} onNudge={(dx, dy, resize) => nudge(i, title, dx, dy, resize)}>
                       <Component />
                     </GridItem>
                   </div>

@@ -16,6 +16,7 @@
   "今日订单": "Orders today",
   "元": "CNY",
   "全年订单趋势对比": "Order trend: this year vs last year",
+  "全年订单趋势折线图，本年共 {{thisYear}} 单，去年 {{lastYear}} 单；本年最高在{{month}}，{{max}} 单": "Line chart of orders by month: {{thisYear}} this year vs {{lastYear}} last year; this year peaked in {{month}} with {{max}}",
   "其他来源": "Other sources",
   "区域": "Region",
   "单": "orders",
@@ -35,10 +36,12 @@
   "本季度累计": "Quarter to date",
   "本年": "This year",
   "流量来源分布": "Traffic sources",
+  "流量来源分布环形图，{{count}} 个来源，最多的是{{name}}，占 {{share}}%": "Donut chart of traffic sources: {{count}} sources, largest is {{name}} at {{share}}%",
   "直接访问": "Direct",
   "社交媒体": "Social media",
   "系统": "System",
   "系统延迟": "System latency",
   "订单量": "Orders",
-  "近 7 日订单量": "Orders in the last 7 days"
+  "近 7 日订单量": "Orders in the last 7 days",
+  "近 7 日订单量柱状图，共 {{total}} 单，最多的是{{day}}，{{max}} 单；周末用另一种颜色": "Bar chart of orders in the last 7 days: {{total}} in total, busiest is {{day}} with {{max}}; weekends in a second color"
 }

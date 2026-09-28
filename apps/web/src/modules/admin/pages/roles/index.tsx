@@ -95,7 +95,13 @@ function MenuTreeChecklist({ tree, value, onChange }: MenuTreeChecklistProps) {
   // Subscribe to language changes: menuLabel reads i18n directly
   useTranslation()
   return (
-    <CheckableTree tree={tree} value={value} onChange={onChange} renderText={(node) => menuLabel({ code: node.code, name: node.label })} />
+    <CheckableTree
+      aria-label="菜单权限"
+      tree={tree}
+      value={value}
+      onChange={onChange}
+      renderText={(node) => menuLabel({ code: node.code, name: node.label })}
+    />
   )
 }
 
@@ -417,7 +423,7 @@ export default function Roles() {
             </div>
             <div className="max-h-56 overflow-auto rounded-lg border p-1.5">
               {deptTree.length > 0 ? (
-                <CheckableTree tree={deptTree} value={checkedDepts} onChange={setCheckedDepts} />
+                <CheckableTree aria-label="可见部门" tree={deptTree} value={checkedDepts} onChange={setCheckedDepts} />
               ) : (
                 <p className="text-muted-foreground px-2 py-3 text-[13px]">{t('还没有部门，先到「部门管理」添加')}</p>
               )}

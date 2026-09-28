@@ -27,6 +27,7 @@ export default function ForgotPasswordStep({ onBack }: ForgotPasswordStepProps) 
     const value = email.trim()
     if (!/^[^\s@]+@[^\s@]+$/.test(value)) {
       setError(t('请输入正确的邮箱地址'))
+      document.getElementById('reset-email')?.focus()
       return
     }
     setSubmitting(true)
@@ -87,10 +88,15 @@ export default function ForgotPasswordStep({ onBack }: ForgotPasswordStepProps) 
               }}
               placeholder="name@example.com"
               aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'reset-email-error' : undefined}
               className="h-10 pl-9"
             />
           </div>
-          {error ? <p className="text-destructive text-xs">{error}</p> : null}
+          {error ? (
+            <p id="reset-email-error" role="alert" className="text-destructive text-xs">
+              {error}
+            </p>
+          ) : null}
         </div>
         <Button type="submit" variant="brand" className="h-10 w-full" disabled={submitting}>
           {submitting ? <Spinner /> : null}

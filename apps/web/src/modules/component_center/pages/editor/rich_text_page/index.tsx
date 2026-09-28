@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { Code2, Copy, Eraser, Keyboard } from 'lucide-react'
@@ -22,6 +22,23 @@ const MODULES = {
     ['clean'],
   ],
 }
+
+// Accessible names of the toolbar controls (Quill labels its buttons in English and its pickers not at all)
+const TOOLBAR_NAMES: [selector: string, name: string][] = [
+  ['.ql-header .ql-picker-label', '标题级别'],
+  ['.ql-color .ql-picker-label', '文字颜色'],
+  ['.ql-background .ql-picker-label', '背景色'],
+  ['button.ql-bold', '加粗'],
+  ['button.ql-italic', '斜体'],
+  ['button.ql-underline', '下划线'],
+  ['button.ql-strike', '删除线'],
+  ['button.ql-list[value="ordered"]', '有序列表'],
+  ['button.ql-list[value="bullet"]', '无序列表'],
+  ['button.ql-blockquote', '引用块'],
+  ['button.ql-code-block', '代码块'],
+  ['button.ql-link', '链接'],
+  ['button.ql-clean', '清除格式'],
+]
 
 // Quill 2: ordered and bullet lists are both the list format (there is no separate bullet format)
 const FORMATS = ['header', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'list', 'blockquote', 'code-block', 'link']
@@ -60,6 +77,15 @@ export default function RichTextPage() {
   const { t } = useTranslation()
   const [value, setValue] = useState(INITIAL_CONTENT)
   const [htmlOpen, setHtmlOpen] = useState(false)
+  const editorRef = useRef<HTMLDivElement>(null)
+  // Name the toolbar controls in the current language (Quill renders the toolbar itself, so set it on its DOM)
+  useEffect(() => {
+    const root = editorRef.current
+    if (!root) return
+    for (const [selector, name] of TOOLBAR_NAMES) {
+      root.querySelectorAll(selector).forEach((el) => el.setAttribute('aria-label', t(name)))
+    }
+  }, [t])
 
   const wordCount = useMemo(() => countWords(value), [value])
   // Translated labels as CSS strings, e.g. { '--rt-label-save': '"Save"' }
@@ -99,7 +125,7 @@ export default function RichTextPage() {
       />
 
       <Panel padded={false}>
-        <div className="rt-editor" style={quillLabels}>
+        <div ref={editorRef} className="rt-editor" style={quillLabels}>
           <ReactQuill theme="snow" value={value} onChange={setValue} modules={MODULES} formats={FORMATS} bounds=".rt-editor" placeholder={t('开始输入内容…')} />
         </div>
         <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2.5 text-xs">
@@ -114,7 +140,7 @@ export default function RichTextPage() {
       </Panel>
 
       <Dialog open={htmlOpen} onOpenChange={setHtmlOpen}>
-        <DialogContent className="sm:max-w-[680px]">
+        <DialogContent closeLabel={t('关闭')} className="sm:max-w-[680px]">
           <DialogHeader>
             <DialogTitle>{t('HTML 源码')}</DialogTitle>
             <DialogDescription>{t('编辑器当前内容对应的 HTML')}</DialogDescription>

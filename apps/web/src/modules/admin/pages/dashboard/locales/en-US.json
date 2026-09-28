@@ -36,6 +36,8 @@
   "菜单数量": "Menus",
   "角色权限": "Roles",
   "运行正常": "Healthy",
+  "近 7 天操作日志柱状图，共 {{count}} 条，最多的一天是 {{day}}，{{max}} 条": "Bar chart of operation logs in the last 7 days: {{count}} in total, busiest day {{day}} with {{max}}",
+  "近 7 天操作日志柱状图，暂无记录": "Bar chart of operation logs in the last 7 days: no logs yet",
   "近 7 天操作日志，共 {{count}} 条": "Operation logs over the last 7 days: {{count}} in total",
   "连接失败": "Connection failed",
   "问问 AI": "Ask AI",

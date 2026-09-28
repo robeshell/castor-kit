@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EChartsOption } from 'echarts'
 import { chartBase, useChartColors } from '@/lib/chart-theme'
+import { formatNumber } from '@/lib/format'
 import Chart from '@/shared/components/Chart'
 
 const CHANNELS = [
@@ -39,11 +40,23 @@ export default function PieChart() {
     }
   }, [c, t])
 
+  // Text alternative for screen readers: the total and the largest slice with its share
+  const total = CHANNELS.reduce((sum, ch) => sum + ch.value, 0)
+  const largest = CHANNELS.reduce((a, b) => (b.value > a.value ? b : a))
+  const summary = t('访问来源环形图，共 {{total}} 次访问，最多的是{{name}}，占 {{share}}%', {
+    total: formatNumber(total),
+    name: t(largest.name),
+    share: Math.round((largest.value / total) * 100),
+  })
+
   return (
     <div className="space-y-2">
       {/* onEvents binds echarts events by name; the handler gets echarts' event params */}
+      {/* patterns: decal fills, so the slices can be told apart without color */}
       <Chart
         option={option}
+        summary={summary}
+        patterns
         style={{ height: 280 }}
         onEvents={{ click: (params: { name: string }) => setPicked(params.name) }}
       />

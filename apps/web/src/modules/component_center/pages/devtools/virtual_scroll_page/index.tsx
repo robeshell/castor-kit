@@ -208,6 +208,7 @@ export default function VirtualScrollPage() {
               inputMode="numeric"
               min={1}
               max={filteredData.length}
+              aria-label={t('跳转到的行号')}
               value={jumpIndex}
               onChange={(e) => setJumpIndex(Number(e.target.value) || 1)}
               onKeyDown={(e) => {

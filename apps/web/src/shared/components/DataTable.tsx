@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import EmptyState from '@/shared/components/EmptyState'
+import { useIsScrollable } from '@/shared/hooks/useIsScrollable'
 
 /**
  * Data table. Column definitions:
@@ -20,7 +21,7 @@ import EmptyState from '@/shared/components/EmptyState'
  *   data / columns / rowKey (default 'id') / loading
  *   pagination = { page, perPage, total, onChange(page) }   // omit to hide pagination
  *   selectable + selectedKeys + onSelectionChange(keys, rows)
- *   onRowClick(row) / rowClassName(row) / emptyTitle / emptyDescription / emptyAction
+ *   onRowClick(row) / isRowActive(row) / rowClassName(row) / emptyTitle / emptyDescription / emptyAction
  *   bordered (default true: outer card border) / dense (compact row height)
  */
 /** A row's identity: React key and the selection value */
@@ -39,6 +40,11 @@ interface DataTableColumnBase {
   headerClassName?: string
   /** Single line with an ellipsis (a string cell gets the full text as its title) */
   ellipsis?: boolean
+  /**
+   * With onRowClick: this column's cell holds the row's button (keyboard and screen-reader access to the row click).
+   * Default: the first column. Pick a column that names the row (name, title, code) and has no controls of its own.
+   */
+  primary?: boolean
 }
 
 /** A column that reads `row[dataIndex]`: render gets that field's value */
@@ -84,7 +90,10 @@ export interface DataTableProps<Row extends object = Record<string, unknown>, TK
   selectable?: boolean
   selectedKeys?: readonly TKey[]
   onSelectionChange?: (keys: TKey[], rows: NoInfer<Row>[]) => void
+  /** Row click (the whole row for the pointer; a button in the primary column for the keyboard) */
   onRowClick?: (row: NoInfer<Row>, index: number) => void
+  /** The row the page shows as current (e.g. the master row whose details are open): announced as aria-current */
+  isRowActive?: (row: NoInfer<Row>, index: number) => boolean
   rowClassName?: (row: NoInfer<Row>, index: number) => string | undefined
   /** Chinese source text (translated here) or a node */
   emptyTitle?: ReactNode
@@ -115,6 +124,7 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
   selectedKeys = [],
   onSelectionChange,
   onRowClick,
+  isRowActive,
   rowClassName,
   emptyTitle = '暂无数据',
   emptyDescription,
@@ -153,13 +163,25 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
     onSelectionChange(next, data.filter((r, i) => next.includes(getKey(r, i))))
   }
 
+  const [scrollRef, scrollable] = useIsScrollable<HTMLDivElement>()
   const rowHeight = dense ? 'h-10' : 'h-12'
+  const primaryIndex = Math.max(
+    0,
+    columns.findIndex((col: ErasedColumn<Row>) => col.primary),
+  )
   const skeletonRows = Math.min(Math.max(pagination?.perPage || 8, 5), 10)
 
   return (
     <div className={cn(bordered && 'surface-card', 'overflow-hidden', className)}>
-      <div className="overflow-x-auto">
-        <table className="w-full caption-bottom text-[13px]" style={minWidth ? { minWidth } : undefined}>
+      {/* Focusable while it scrolls sideways, so the keyboard can scroll it too */}
+      <div
+        ref={scrollRef}
+        tabIndex={scrollable ? 0 : undefined}
+        role={scrollable ? 'region' : undefined}
+        aria-label={scrollable ? tx('表格（可横向滚动）') : undefined}
+        className="focus-visible:outline-ring overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2"
+      >
+        <table aria-busy={loading || undefined} className="w-full caption-bottom text-[13px]" style={minWidth ? { minWidth } : undefined}>
           <thead>
             <tr className="bg-muted/40 border-b">
               {selectable ? (
@@ -182,7 +204,7 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                     col.headerClassName,
                   )}
                 >
-                  {tx(col.title)}
+                  {col.title ? tx(col.title) : col.key === 'actions' ? <span className="sr-only">{tx('操作')}</span> : null}
                 </th>
               ))}
             </tr>
@@ -206,6 +228,7 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
               : data.map((row, index) => {
                   const key = getKey(row, index)
                   const selected = keySet.has(key)
+                  const active = isRowActive?.(row, index) ?? false
                   return (
                     <tr
                       key={key}
@@ -234,6 +257,8 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                         const value = col.dataIndex ? row[col.dataIndex] : undefined
                         // Without render the raw value is shown: the column's field has to hold something renderable
                         const content = col.render ? col.render(value, row, index) : (value as ReactNode)
+                        const empty = content === null || content === undefined || content === ''
+                        const shown = empty ? <span className="text-muted-foreground/60">-</span> : content
                         return (
                           <td
                             key={col.key || col.dataIndex || j}
@@ -246,10 +271,20 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                             )}
                             title={col.ellipsis && typeof content === 'string' ? content : undefined}
                           >
-                            {content === null || content === undefined || content === '' ? (
-                              <span className="text-muted-foreground/60">-</span>
+                            {onRowClick && j === primaryIndex ? (
+                              // No handler of its own: Enter / Space click it, and the click bubbles to the row's onClick
+                              <button
+                                type="button"
+                                aria-current={active || undefined}
+                                className={cn(
+                                  'focus-visible:outline-ring w-full cursor-pointer rounded-sm [text-align:inherit] focus-visible:outline-2 focus-visible:outline-offset-2',
+                                  col.ellipsis && 'truncate',
+                                )}
+                              >
+                                {shown}
+                              </button>
                             ) : (
-                              content
+                              shown
                             )}
                           </td>
                         )
@@ -304,7 +339,8 @@ export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, lo
   const to = Math.min(page * size, total)
   return (
     <div className={cn('flex items-center justify-between gap-3 border-t px-3 py-2.5 text-xs', className)}>
-      <span className="text-muted-foreground tabular-nums">
+      {/* A stable live region: the range is announced after a page change or a new search */}
+      <span role="status" className="text-muted-foreground tabular-nums">
         {loading ? '\u00a0' : total === 0 ? t('共 0 条') : t('第 {{from}}–{{to}} 条，共 {{total}} 条', { from, to, total })}
       </span>
       <div className="flex items-center gap-1">
@@ -327,6 +363,8 @@ export function DataPagination({ page = 1, perPage = 20, total = 0, onChange, lo
             <button
               key={p}
               type="button"
+              aria-label={t('第 {{page}} 页', { page: p })}
+              aria-current={p === page ? 'page' : undefined}
               onClick={() => onChange?.(p)}
               className={cn(
                 'h-7 min-w-7 rounded-md px-1.5 tabular-nums transition-colors',

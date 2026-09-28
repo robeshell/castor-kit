@@ -10,6 +10,7 @@
   "{{count}} 列_one": "{{count}} column",
   "{{count}} 行": "{{count}} rows",
   "{{count}} 行_one": "{{count}} row",
+  "{{y}} 按 {{x}} 的柱状图，共 {{count}} 项，最大的是 {{name}}：{{max}}": "Bar chart of {{y}} by {{x}}: {{count}} items, largest is {{name}} with {{max}}",
   "仅允许只读查询 · Ctrl / ⌘ + Enter 执行": "Read-only queries only · Ctrl / ⌘ + Enter to run",
   "共 {{count}} 张表": "{{count}} tables",
   "共 {{count}} 张表_one": "{{count}} table",
@@ -32,6 +33,7 @@
   "获取数据库结构失败": "Failed to load the database schema",
   "表格": "Table",
   "表结构": "Schema",
+  "要查询的问题": "What to query",
   "请求失败": "Request failed",
   "请输入问题": "Enter a question",
   "重新执行": "Run again"

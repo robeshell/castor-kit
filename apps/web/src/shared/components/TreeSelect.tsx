@@ -117,39 +117,42 @@ export default function TreeSelect<Id extends TreeKey>({
     setOpen(false)
   }
 
+  const showClear = hasValue && clearable && !disabled
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      {/* The clear button is a sibling of the trigger: a control inside a button is unreachable by keyboard */}
+      <div className={cn('relative w-full', className)}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          // A combobox isn't named by its content: standalone (no id for a <label>, no aria-*), the placeholder names it
+          aria-label={triggerProps.id || triggerProps['aria-labelledby'] ? undefined : tx(placeholder)}
           disabled={disabled}
           {...triggerProps}
-          className={cn('h-9 w-full justify-between px-3 font-normal', !hasValue && 'text-muted-foreground', className)}
+          className={cn('h-9 w-full justify-between px-3 font-normal', showClear && 'pr-14', !hasValue && 'text-muted-foreground')}
         >
-          <span className="min-w-0 truncate">{hasValue ? current?.path || `#${value}` : tx(placeholder)}</span>
-          <span className="flex shrink-0 items-center gap-1">
-            {hasValue && clearable && !disabled ? (
-              <span
-                role="button"
-                tabIndex={-1}
-                aria-label={tx('清空')}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onChange?.(null)
-                }}
-                className="text-muted-foreground hover:text-foreground rounded p-0.5"
-              >
-                <X className="size-3.5" />
-              </span>
-            ) : null}
-            <ChevronsUpDown className="text-muted-foreground size-3.5" />
+          <span className="min-w-0 truncate" title={hasValue ? current?.path : undefined}>
+            {hasValue ? current?.path || `#${value}` : tx(placeholder)}
           </span>
+          <ChevronsUpDown className="text-muted-foreground size-3.5 shrink-0" />
         </Button>
       </PopoverTrigger>
+      {showClear ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label={tx('清空')}
+          onClick={() => onChange?.(null)}
+          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-7 -translate-y-1/2"
+        >
+          <X />
+        </Button>
+      ) : null}
+      </div>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
         <Command>
           <CommandInput placeholder={tx(searchPlaceholder)} className="h-9 text-[13px]" />

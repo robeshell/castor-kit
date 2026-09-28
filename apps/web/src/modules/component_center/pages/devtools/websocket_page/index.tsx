@@ -244,6 +244,15 @@ export default function WebSocketPage() {
     }
   }, [c, rateData, t])
 
+  // Text alternative for screen readers: the latest rate and the peak (updates every second)
+  const rateSummary = rateData.values.length
+    ? t('消息速率折线图，最近 {{count}} 秒，当前 {{value}} 条/秒，最高 {{max}} 条/秒', {
+        count: rateData.values.length,
+        value: rateData.values.at(-1) ?? 0,
+        max: Math.max(...rateData.values),
+      })
+    : t('消息速率折线图，连接后开始记录')
+
   const meta = STATUS_META[status]
   const connected = status === 'connected'
 
@@ -308,6 +317,7 @@ export default function WebSocketPage() {
                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
               }}
               placeholder={connected ? t('发送自定义消息（服务端会 echo 回来）...') : t('请先连接')}
+              aria-label={t('消息内容')}
               disabled={!connected}
               className="h-9 flex-1"
             />
@@ -321,7 +331,7 @@ export default function WebSocketPage() {
         {/* Right column */}
         <div className="space-y-4">
           <Panel title="消息速率（条/秒）" description={t('最近 {{count}} 秒', { count: MAX_PTS })}>
-            <ReactECharts option={chartOption} style={{ height: 150 }} opts={{ renderer: 'canvas' }} />
+            <ReactECharts option={chartOption} summary={rateSummary} style={{ height: 150 }} opts={{ renderer: 'canvas' }} />
           </Panel>
 
           <Panel title="消息格式说明">

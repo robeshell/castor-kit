@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EChartsOption } from 'echarts'
 import { brandArea, brandLine, chartBase, useChartColors } from '@/lib/chart-theme'
+import { formatNumber } from '@/lib/format'
 import Chart from '@/shared/components/Chart'
 import Panel from '@/shared/components/Panel'
 import SegmentedTabs from '@/shared/components/SegmentedTabs'
@@ -56,6 +57,19 @@ export default function LineAndBarChart() {
     }
   }, [c, range, t])
 
+  // summary is the text alternative screen readers read instead of the canvas: what the chart shows plus its key
+  // numbers, computed from the same data and translated
+  const visits = VISITS[range]
+  const peak = Math.max(...visits)
+  const summary = t('访问量与订单数图表，{{from}} 至 {{to}}，共 {{visits}} 次访问、{{orders}} 笔订单，访问最多的一天是 {{day}}（{{peak}} 次）', {
+    from: DAYS[range][0],
+    to: DAYS[range].at(-1),
+    visits: formatNumber(visits.reduce((a, b) => a + b, 0)),
+    orders: formatNumber(ORDERS[range].reduce((a, b) => a + b, 0)),
+    day: DAYS[range][visits.indexOf(peak)],
+    peak: formatNumber(peak),
+  })
+
   return (
     <Panel
       title="访问与订单"
@@ -71,8 +85,9 @@ export default function LineAndBarChart() {
         />
       }
     >
-      {/* Only a height: the width follows the container and the chart resizes with it */}
-      <Chart option={option} style={{ height: 260 }} notMerge />
+      {/* Only a height: the width follows the container and the chart resizes with it. patterns adds decal fills so the
+          two series can be told apart without color */}
+      <Chart option={option} summary={summary} patterns style={{ height: 260 }} notMerge />
     </Panel>
   )
 }

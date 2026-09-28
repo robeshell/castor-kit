@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type FormEvent } from 'react'
+import { useRef, useState, type ComponentProps, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, Sparkles, User, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,8 @@ function IconInput({ icon: Icon, invalid, className, ...props }: IconInputProps)
   return (
     <div className="relative">
       <Icon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-      <Input aria-invalid={invalid} className={cn('h-10 pl-9', className)} {...props} />
+      {/* An invalid field points at its error text, `<id>-error` */}
+      <Input aria-invalid={invalid} aria-describedby={invalid && props.id ? `${props.id}-error` : undefined} className={cn('h-10 pl-9', className)} {...props} />
     </div>
   )
 }
@@ -56,6 +57,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
+  const usernameRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
   /** password | verify | setup | codes | forgot */
   const [step, setStep] = useState<Step>('password')
   /** Enrollment during sign-in: the user and recovery codes, shown before entering the app */
@@ -87,6 +90,8 @@ export default function Login() {
       await finish(data.user)
     } catch (err) {
       toast.apiError(err, '登录失败')
+      // Wrong credentials: back to the password, ready to retype
+      passwordRef.current?.select()
     } finally {
       setSubmitting(false)
     }
@@ -106,6 +111,9 @@ export default function Login() {
     if (!username.trim()) nextErrors.username = t('请输入用户名')
     if (!password) nextErrors.password = t('请输入密码')
     setErrors(nextErrors)
+    // Focus the first field that needs fixing; its error is read with it
+    if (nextErrors.username) usernameRef.current?.focus()
+    else if (nextErrors.password) passwordRef.current?.focus()
     if (Object.keys(nextErrors).length) return
     signIn(username, password)
   }
@@ -128,6 +136,7 @@ export default function Login() {
             {t('用户名')}
           </Label>
           <IconInput
+            ref={usernameRef}
             id="username"
             icon={User}
             autoComplete="username"
@@ -137,7 +146,11 @@ export default function Login() {
             placeholder="admin"
             invalid={Boolean(errors.username)}
           />
-          {errors.username ? <p className="text-destructive text-xs">{errors.username}</p> : null}
+          {errors.username ? (
+            <p id="username-error" className="text-destructive text-xs">
+              {errors.username}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-1.5">
@@ -153,6 +166,7 @@ export default function Login() {
           </div>
           <div className="relative">
             <IconInput
+              ref={passwordRef}
               id="password"
               icon={LockKeyhole}
               type={showPassword ? 'text' : 'password'}
@@ -172,7 +186,11 @@ export default function Login() {
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
-          {errors.password ? <p className="text-destructive text-xs">{errors.password}</p> : null}
+          {errors.password ? (
+            <p id="password-error" className="text-destructive text-xs">
+              {errors.password}
+            </p>
+          ) : null}
         </div>
 
         <Button type="submit" variant="brand" disabled={submitting} className="group mt-2 h-10 w-full">

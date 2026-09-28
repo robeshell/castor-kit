@@ -6,6 +6,7 @@ import { Gauge, RefreshCw, ShoppingCart, UserPlus, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { brandArea, brandLine, chartBase, hexToRgba, useChartColors, type ChartColors } from '@/lib/chart-theme'
+import { formatNumber } from '@/lib/format'
 import { toast } from '@/lib/toast'
 import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
 import PageHeader from '@/shared/components/PageHeader'
@@ -122,6 +123,14 @@ function BarChartCard({ c }: ChartCardProps) {
     }
   }, [c, t])
 
+  // Text alternative for screen readers: the weekly total and the busiest day
+  const peak = WEEK_DAYS.reduce((a, b) => (b.value > a.value ? b : a))
+  const summary = t('近 7 日订单量柱状图，共 {{total}} 单，最多的是{{day}}，{{max}} 单；周末用另一种颜色', {
+    total: formatNumber(WEEK_DAYS.reduce((sum, d) => sum + d.value, 0)),
+    day: t(peak.label),
+    max: formatNumber(peak.value),
+  })
+
   return (
     <Panel
       title="近 7 日订单量"
@@ -139,7 +148,7 @@ function BarChartCard({ c }: ChartCardProps) {
       }
       className="h-full"
     >
-      <ReactECharts option={option} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
+      <ReactECharts option={option} summary={summary} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
     </Panel>
   )
 }
@@ -192,9 +201,13 @@ function PieChartCard({ c }: ChartCardProps) {
     }
   }, [c, t])
 
+  // Text alternative for screen readers: the largest source and its share (the data is already in percent)
+  const largest = PIE_DATA.reduce((a, b) => (b.value > a.value ? b : a))
+  const summary = t('流量来源分布环形图，{{count}} 个来源，最多的是{{name}}，占 {{share}}%', { count: PIE_DATA.length, name: t(largest.name), share: largest.value })
+
   return (
     <Panel title="流量来源分布" className="h-full">
-      <ReactECharts option={option} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
+      <ReactECharts option={option} summary={summary} patterns style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
     </Panel>
   )
 }
@@ -248,9 +261,18 @@ function LineChartCard({ c }: ChartCardProps) {
     }
   }, [c, t])
 
+  // Text alternative for screen readers: both yearly totals and this year's peak month
+  const peak = Math.max(...THIS_YEAR)
+  const summary = t('全年订单趋势折线图，本年共 {{thisYear}} 单，去年 {{lastYear}} 单；本年最高在{{month}}，{{max}} 单', {
+    thisYear: formatNumber(THIS_YEAR.reduce((a, b) => a + b, 0)),
+    lastYear: formatNumber(LAST_YEAR.reduce((a, b) => a + b, 0)),
+    month: t(MONTHS[THIS_YEAR.indexOf(peak)] ?? ''),
+    max: formatNumber(peak),
+  })
+
   return (
     <Panel title="全年订单趋势对比" className="h-full">
-      <ReactECharts option={option} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
+      <ReactECharts option={option} summary={summary} patterns style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
     </Panel>
   )
 }

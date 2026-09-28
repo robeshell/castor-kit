@@ -51,7 +51,8 @@ function LabeledSelect<V extends string>({ label, value, onChange, options }: La
   const { t } = useTranslation()
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger size="sm" className="h-8 w-[180px] text-[13px]">
+      {/* The visible label sits inside the trigger, which a combobox doesn't take its name from */}
+      <SelectTrigger size="sm" aria-label={t(label)} className="h-8 w-[180px] text-[13px]">
         <span className="text-muted-foreground text-xs">{t(label)}</span>
         <SelectValue />
       </SelectTrigger>
@@ -159,7 +160,7 @@ export default function CodeEditorPage() {
           value={code}
           onChange={(val) => setCode(val || '')}
           onMount={handleEditorMount}
-          loading={<Spinner className="text-muted-foreground" />}
+          loading={<Spinner label={t('加载中')} className="text-muted-foreground" />}
           options={{
             fontSize: 14,
             lineHeight: 22,

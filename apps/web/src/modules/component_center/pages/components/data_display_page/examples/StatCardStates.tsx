@@ -34,7 +34,7 @@ export default function StatCardStates() {
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         {METRICS.map((m) => (
-          // onClick makes the card clickable (pointer cursor); the selected card gets a ring through className
+          // onClick makes the card a button; selected announces the chosen one, and className gives it a ring
           <StatCard
             key={m.key}
             label={m.label}
@@ -42,6 +42,7 @@ export default function StatCardStates() {
             icon={m.icon}
             loading={loading}
             onClick={() => setActive(m.key)}
+            selected={active === m.key}
             className={cn(active === m.key && 'ring-primary/40 ring-2')}
           />
         ))}

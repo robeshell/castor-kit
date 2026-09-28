@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ArrowLeft, KeyRound, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -26,11 +26,16 @@ export default function TwoFactorStep({ onSuccess, onBack }: TwoFactorStepProps)
   const [recoveryCode, setRecoveryCode] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const errorId = useId()
 
   const submit = async (value?: string) => {
     if (submitting) return
     const payload: { code: string } | { recovery_code: string } = mode === 'code' ? { code: value ?? code } : { recovery_code: recoveryCode.trim() }
-    if ('code' in payload ? payload.code.length !== 6 : !payload.recovery_code) return
+    // The button stays enabled: an incomplete code says what's missing instead of doing nothing
+    if ('code' in payload ? payload.code.length !== 6 : !payload.recovery_code) {
+      setError(mode === 'code' ? t('请输入 6 位验证码') : t('请输入恢复码'))
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -73,6 +78,7 @@ export default function TwoFactorStep({ onSuccess, onBack }: TwoFactorStepProps)
             onComplete={submit}
             disabled={submitting}
             invalid={Boolean(error)}
+            describedBy={error ? errorId : undefined}
           />
         ) : (
           <Input
@@ -87,15 +93,20 @@ export default function TwoFactorStep({ onSuccess, onBack }: TwoFactorStepProps)
             spellCheck={false}
             aria-label={t('恢复码')}
             aria-invalid={Boolean(error)}
+            aria-describedby={error ? errorId : undefined}
             className="h-10 text-center font-mono tracking-wider"
           />
         )}
-        {error ? <p className="text-destructive text-center text-xs">{error}</p> : null}
+        {error ? (
+          <p id={errorId} role="alert" className="text-destructive text-center text-xs">
+            {error}
+          </p>
+        ) : null}
         <Button
           type="submit"
           variant="brand"
           className="h-10 w-full"
-          disabled={submitting || (mode === 'code' ? code.length !== 6 : !recoveryCode.trim())}
+          disabled={submitting}
         >
           {submitting ? <Spinner /> : null}
           {t('验证')}

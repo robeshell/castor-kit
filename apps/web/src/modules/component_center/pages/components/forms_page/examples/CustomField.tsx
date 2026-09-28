@@ -1,4 +1,5 @@
 import { useForm, useWatch } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Form, FormControl } from '@/components/ui/form'
 import { Slider } from '@/components/ui/slider'
 import { FormCustom } from '@/shared/components/FormFields'
@@ -18,6 +19,7 @@ const CADENCE_ITEMS: SegmentedTabItem<Cadence>[] = [
 ]
 
 export default function CustomField() {
+  const { t } = useTranslation()
   const form = useForm<FormValues>({ mode: 'onChange', defaultValues: { progress: 40, cadence: 'weekly' } })
   const values = useWatch({ control: form.control })
 
@@ -36,7 +38,8 @@ export default function CustomField() {
               <div className="flex items-center gap-3">
                 {/* FormControl links the label and the error message to the control (id / aria-*) */}
                 <FormControl>
-                  <Slider value={[value]} onValueChange={(next) => onChange(next[0] ?? 0)} max={100} step={5} className="flex-1" />
+                  {/* The slider's thumb is what gets focus: name it (FormControl's id lands on the slider's root) */}
+                  <Slider aria-label={t('完成度')} value={[value]} onValueChange={(next) => onChange(next[0] ?? 0)} max={100} step={5} className="flex-1" />
                 </FormControl>
                 <span className="w-10 text-right text-sm tabular-nums">{value}%</span>
               </div>

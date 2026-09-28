@@ -209,7 +209,18 @@ function ActivityChart({ stats }: ActivityChartProps) {
     }
   }, [c, stats, t])
 
-  const total = (stats?.week_log_counts || []).reduce((a, b) => a + b, 0)
+  const counts = stats?.week_log_counts ?? []
+  const total = counts.reduce((a, b) => a + b, 0)
+  const max = Math.max(0, ...counts)
+  // Text alternative for screen readers: the total and the busiest day
+  const summary =
+    total > 0
+      ? t('近 7 天操作日志柱状图，共 {{count}} 条，最多的一天是 {{day}}，{{max}} 条', {
+          count: total,
+          day: stats?.week_labels?.[counts.indexOf(max)] ?? '',
+          max,
+        })
+      : t('近 7 天操作日志柱状图，暂无记录')
   return (
     <Panel
       title="系统活跃度"
@@ -218,7 +229,7 @@ function ActivityChart({ stats }: ActivityChartProps) {
       className="h-full"
     >
       {stats ? (
-        <ReactECharts option={option} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
+        <ReactECharts option={option} summary={summary} style={{ height: 248 }} notMerge opts={{ renderer: 'svg' }} />
       ) : (
         <Skeleton className="h-[248px] w-full" />
       )}

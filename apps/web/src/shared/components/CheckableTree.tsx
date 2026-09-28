@@ -67,6 +67,9 @@ export interface CheckableTreeProps<N extends TreeNode = TreeNode> {
   onChange?: (keys: N['key'][]) => void
   /** Label text (default node.label) */
   renderText?: (node: N) => ReactNode
+  /** Accessible name of the tree (Chinese source text, translated by TreeView) */
+  'aria-label'?: string
+  'aria-labelledby'?: string
   className?: string
 }
 
@@ -75,9 +78,10 @@ export interface CheckableTreeProps<N extends TreeNode = TreeNode> {
  * - tree: TreeView nodes ({ key, label, children? }); value / onChange: the checked keys (fully checked parents included)
  * - renderText(node): label text (default node.label)
  */
-export default function CheckableTree<N extends TreeNode>({ tree, value = [], onChange, renderText, className }: CheckableTreeProps<N>) {
+export default function CheckableTree<N extends TreeNode>({ tree, value = [], onChange, renderText, className, ...labelProps }: CheckableTreeProps<N>) {
   const checked = useMemo(() => recomputeUp(tree, expandDown(tree, new Set(value))), [tree, value])
   const isIndeterminate = (node: N) => !checked.has(node.key) && collectDescendants(node).some((k) => checked.has(k))
+  const stateOf = (node: N): CheckState => (checked.has(node.key) ? 'checked' : isIndeterminate(node) ? 'indeterminate' : 'unchecked')
 
   const toggle = (node: N) => {
     const next = new Set(checked)
@@ -89,13 +93,19 @@ export default function CheckableTree<N extends TreeNode>({ tree, value = [], on
 
   return (
     <TreeView
+      {...labelProps}
       nodes={tree}
       defaultExpandAll
       onSelect={toggle}
+      // The row (treeitem) carries the checked state; Space / Enter toggles it
+      checkedState={(node) => {
+        const state = stateOf(node)
+        return state === 'indeterminate' ? 'mixed' : state === 'checked'
+      }}
       className={className}
       renderLabel={(node) => (
-        <span className="flex items-center gap-2" role="checkbox" aria-checked={checked.has(node.key) ? true : isIndeterminate(node) ? 'mixed' : false}>
-          <CheckMark state={checked.has(node.key) ? 'checked' : isIndeterminate(node) ? 'indeterminate' : 'unchecked'} />
+        <span className="flex items-center gap-2">
+          <CheckMark state={stateOf(node)} />
           <span className="truncate">{renderText ? renderText(node) : node.label}</span>
         </span>
       )}

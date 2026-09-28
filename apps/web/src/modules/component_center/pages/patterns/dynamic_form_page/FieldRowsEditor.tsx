@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { useFieldArray, useWatch, type ControllerRenderProps, type UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
@@ -21,31 +22,41 @@ const GRID = 'sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)_minmax(0,4fr)_32px]'
 
 const isFieldType = (value: string): value is FieldType => FIELD_TYPES.some((type) => type === value)
 
-interface ValueInputProps {
+/** What FormControl passes on (the control's id, its description / error and invalid state) */
+type ControlProps = Pick<ComponentProps<'button'>, 'id' | 'aria-describedby' | 'aria-invalid'>
+
+interface ValueInputProps extends ControlProps {
   type: FieldType
   field: ControllerRenderProps<FormValues, `fields.${number}.value`>
-  invalid: boolean
 }
 
 /** The value control follows the row's type; every control reads and writes the row's text value */
-function ValueInput({ type, field, invalid }: ValueInputProps) {
+function ValueInput({ type, field: { ref, ...field }, ...control }: ValueInputProps) {
   const { t } = useTranslation()
   if (type === 'boolean') {
     return (
       <div className="flex h-9 items-center px-1">
-        <Switch checked={field.value === 'true'} onCheckedChange={(checked) => field.onChange(checked ? 'true' : 'false')} aria-label={t('字段值')} />
+        <Switch
+          {...control}
+          ref={ref}
+          checked={field.value === 'true'}
+          onCheckedChange={(checked) => field.onChange(checked ? 'true' : 'false')}
+          aria-label={t('字段值')}
+        />
       </div>
     )
   }
   if (type === 'date') {
-    return <DatePicker value={field.value} onChange={(value) => field.onChange(value || '')} />
+    return <DatePicker {...control} ref={ref} value={field.value} onChange={(value) => field.onChange(value || '')} aria-label={t('字段值')} />
   }
   return (
     <Input
       {...field}
+      {...control}
+      ref={ref}
       inputMode={type === 'number' ? 'decimal' : undefined}
       placeholder={t(type === 'number' ? '数字' : '字段值')}
-      aria-invalid={invalid || undefined}
+      aria-label={t('字段值')}
       className={cn('h-9', type === 'number' && 'font-mono tabular-nums')}
     />
   )
@@ -74,10 +85,10 @@ function FieldRow({ index, count, form, onRemove }: FieldRowProps) {
           // Renaming this row can fix (or cause) a duplicate in another row; react-hook-form runs deps after the first submit
           deps: Array.from({ length: count }, (_, i) => `fields.${i}.key` as const).filter((_, i) => i !== index),
         }}
-        render={({ field, fieldState }) => (
+        render={({ field }) => (
           <FormItem className="gap-1">
             <FormControl>
-              <Input {...field} placeholder={t('字段名')} aria-invalid={fieldState.invalid || undefined} className="h-9" />
+              <Input {...field} placeholder={t('字段名')} aria-label={t('字段名')} className="h-9" />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -121,12 +132,10 @@ function FieldRow({ index, count, form, onRemove }: FieldRowProps) {
         rules={{
           validate: (value) => (type === 'number' && value.trim() !== '' && !Number.isFinite(Number(value)) ? '请输入有效数字' : true),
         }}
-        render={({ field, fieldState }) => (
+        render={({ field }) => (
           <FormItem className="gap-1">
             <FormControl>
-              <div>
-                <ValueInput type={type} field={field} invalid={fieldState.invalid} />
-              </div>
+              <ValueInput type={type} field={field} />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>

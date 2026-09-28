@@ -71,7 +71,7 @@ function MenuLeaf({ menu, activeId, onNavigate }: MenuLeafProps) {
         tooltip={menuLabel(menu)}
         className={cn(ITEM, 'relative z-0 data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-foreground')}
       >
-        <Link to={menu.path || '#'} onClick={onNavigate} {...prefetchOn(menu)}>
+        <Link to={menu.path || '#'} aria-current={active ? 'page' : undefined} onClick={onNavigate} {...prefetchOn(menu)}>
           {active ? <ActivePill /> : null}
           {createElement(resolveMenuIcon(menu), { className: cn(active && 'text-primary') })}
           <span>{menuLabel(menu)}</span>
@@ -115,7 +115,7 @@ function MenuBranch({ menu, activeId, openIds, toggleOpen, onNavigate }: MenuBra
                     isActive={active}
                     className={cn(ITEM, 'relative z-0 pr-2.5 pl-[9px] data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-foreground')}
                   >
-                    <Link to={child.path || '#'} onClick={onNavigate} {...prefetchOn(child)}>
+                    <Link to={child.path || '#'} aria-current={active ? 'page' : undefined} onClick={onNavigate} {...prefetchOn(child)}>
                       {active ? <ActivePill /> : null}
                       <span>{menuLabel(child)}</span>
                     </Link>
@@ -178,7 +178,9 @@ export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarP
   const groupRoots = section === HOME_SECTION ? [] : roots.filter((m) => visibleChildren(m).length > 0 && (!section || m.id === section))
 
   return (
-    <Sidebar collapsible="icon" variant={variant}>
+    <Sidebar collapsible="icon" variant={variant} mobileTitle={t('侧边栏')} mobileDescription={t('主导航菜单')}>
+      {/* One landmark for the whole sidebar: home link, menu and the account menu */}
+      <nav aria-label={t('主导航')} className="flex min-h-0 flex-1 flex-col">
       <SidebarHeader className="px-2 pt-3 pb-1">
         <Link
           to="/"
@@ -187,7 +189,6 @@ export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarP
           <BrandMark className="group-data-[collapsible=icon]:[&>div:last-child]:hidden" />
         </Link>
       </SidebarHeader>
-      <nav aria-label={t('主导航')} className="flex min-h-0 flex-1 flex-col">
       <SidebarContent>
         {leafRoots.length > 0 ? (
           <SidebarGroup>
@@ -222,11 +223,11 @@ export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarP
           </SidebarGroup>
         ))}
       </SidebarContent>
-      </nav>
       <SidebarFooter className="p-2">
         <UserMenu />
       </SidebarFooter>
-      <SidebarRail />
+      </nav>
+      <SidebarRail label={t('切换侧边栏')} />
     </Sidebar>
   )
 }

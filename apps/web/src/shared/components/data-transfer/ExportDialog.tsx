@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useTx } from '@/i18n'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { useReturnFocus } from '@/shared/hooks/useReturnFocus'
 
 /** A field that can be exported: value is the field name sent to the API, label its Chinese source text */
 export interface ExportFieldOption {
@@ -73,11 +74,13 @@ export default function ExportDialog({
   defaultFileType = 'xlsx',
   onConfirm,
 }: ExportDialogProps) {
+  const tx = useTx()
+  const returnFocus = useReturnFocus(open)
   // State lives in ExportBody: closing unmounts it, and reopening re-initializes from the default fields
   const [busy, setBusy] = useState(false)
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange?.(next)}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent closeLabel={tx('关闭')} className="sm:max-w-[520px]" onCloseAutoFocus={returnFocus}>
         <ExportBody
           title={title}
           ruleHint={ruleHint}
@@ -136,6 +139,7 @@ function ExportBody({ title, ruleHint, fieldOptions, defaultFields, fileTypeOpti
               <button
                 key={opt.value}
                 type="button"
+                aria-pressed={fileType === opt.value}
                 onClick={() => setFileType(opt.value)}
                 className={cn(
                   'flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-[13px] transition-all',

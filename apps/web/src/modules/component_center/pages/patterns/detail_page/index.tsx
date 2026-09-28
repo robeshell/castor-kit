@@ -167,7 +167,7 @@ function Overview({ record, parent, onOpen }: OverviewProps) {
           <span className="text-muted-foreground">{t('进度')}</span>
           <span className="font-medium tabular-nums">{record.progress ?? 0}%</span>
         </div>
-        <Progress value={record.progress ?? 0} />
+        <Progress value={record.progress ?? 0} aria-label={t('进度')} />
       </div>
       <DescriptionList
         columns={2}

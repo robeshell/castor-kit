@@ -61,7 +61,12 @@ function MenuItems({ menus, activeId, activePath, depth = 0 }: MenuItemsProps): 
     }
     return (
       <DropdownMenuItem key={menu.id} asChild className={cn(menu.id === activeId && 'font-medium')}>
-        <Link to={menu.path || '#'} onPointerEnter={() => prefetchPage(menu.component)} onFocus={() => prefetchPage(menu.component)}>
+        <Link
+          to={menu.path || '#'}
+          aria-current={menu.id === activeId ? 'page' : undefined}
+          onPointerEnter={() => prefetchPage(menu.component)}
+          onFocus={() => prefetchPage(menu.component)}
+        >
           {icon}
           {menuLabel(menu)}
         </Link>
@@ -100,7 +105,7 @@ export default function TopNav({ mode = 'full', className }: TopNavProps) {
 
         if (children.length === 0) {
           return (
-            <Link key={root.id} to={root.path || '#'} className={tabClass(isActive)}>
+            <Link key={root.id} to={root.path || '#'} aria-current={root.id === active?.id ? 'page' : undefined} className={tabClass(isActive)}>
               {isActive ? <TabPill /> : null}
               {icon}
               {menuLabel(root)}

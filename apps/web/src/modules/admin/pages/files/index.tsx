@@ -225,7 +225,7 @@ export default function Files() {
       />
 
       <Dialog open={uploadOpen} onOpenChange={closeUpload}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent closeLabel={t('关闭')} className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('上传文件')}</DialogTitle>
             <DialogDescription>{t('未被任何记录使用的文件会在上传 24 小时后自动清理。')}</DialogDescription>

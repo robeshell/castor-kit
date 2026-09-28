@@ -13,6 +13,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { downloadErrorRowsCsv } from '@/shared/utils/file'
 import type { ImportErrorRow } from '@/shared/utils/file'
+import { useReturnFocus } from '@/shared/hooks/useReturnFocus'
 
 /** Success body of every `POST …/import` endpoint */
 export interface ImportResult {
@@ -94,11 +95,13 @@ export default function ImportDialog({
   templateFormatOptions = DEFAULT_TEMPLATE_OPTIONS,
   defaultTemplateFormat = 'xlsx',
 }: ImportDialogProps) {
+  const tx = useTx()
+  const returnFocus = useReturnFocus(open)
   // State lives in ImportBody: Radix unmounts DialogContent on close, so reopening starts fresh
   const [busy, setBusy] = useState(false)
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange?.(next)}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent closeLabel={tx('关闭')} className="sm:max-w-[560px]" onCloseAutoFocus={returnFocus}>
         <ImportBody
           title={title}
           targetLabel={targetLabel}
@@ -298,15 +301,23 @@ function ImportBody({
           ) : null}
         </AnimatePresence>
 
+        {/* Always rendered, so the outcome is announced when it appears (the boxes below are for the eyes) */}
+        <p role="status" className="sr-only">
+          {result
+            ? t('导入完成：新增 {{created}} 条，更新 {{updated}} 条', { created: result.created || 0, updated: result.updated || 0 })
+            : errorRows.length > 0
+              ? t('共 {{count}} 行数据有误，未导入任何数据', { count: errorRows.length })
+              : ''}
+        </p>
         {result ? (
-          <div className="bg-success-soft text-success flex items-center gap-2 rounded-lg px-3 py-2.5 text-[13px]">
+          <div aria-hidden className="bg-success-soft text-success flex items-center gap-2 rounded-lg px-3 py-2.5 text-[13px]">
             <CircleCheck className="size-4" />
             {t('导入完成：新增 {{created}} 条，更新 {{updated}} 条', { created: result.created || 0, updated: result.updated || 0 })}
           </div>
         ) : null}
         {!result && errorRows.length > 0 ? (
           <div className="bg-danger-soft flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px]">
-            <span className="text-danger flex items-center gap-2">
+            <span aria-hidden className="text-danger flex items-center gap-2">
               <TriangleAlert className="size-4" />
               {t('共 {{count}} 行数据有误，未导入任何数据', { count: errorRows.length })}
             </span>
