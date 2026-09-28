@@ -313,7 +313,7 @@ export default function AiSqlPage() {
               }}
               spellCheck={false}
               aria-label={t('SQL 编辑区')}
-              className="bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/20 min-h-[110px] w-full resize-y rounded-lg border px-3 py-2.5 font-mono text-[13px] leading-relaxed outline-none focus-visible:ring-2"
+              className="bg-muted/40 min-h-[110px] w-full resize-y rounded-lg border px-3 py-2.5 font-mono text-[13px] leading-relaxed focus-visible:border-ring focus-visible:outline-1 focus-visible:outline-ring"
             />
             <p className="text-muted-foreground mt-1.5 text-xs">{t('仅允许只读查询 · Ctrl / ⌘ + Enter 执行')}</p>
           </Panel>

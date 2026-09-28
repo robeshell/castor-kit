@@ -274,5 +274,8 @@
   "为空": "Is empty",
   "不为空": "Is not empty",
   "早于": "Before",
-  "晚于": "After"
+  "晚于": "After",
+  "主导航": "Main navigation",
+  "跳到主内容": "Skip to main content",
+  "栏目导航": "Sections"
 }

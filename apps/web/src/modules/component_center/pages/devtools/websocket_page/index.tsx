@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import type { EChartsOption } from 'echarts'
 import ReactECharts from '@/shared/components/Chart'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { ArrowDown, ArrowUp, CircleCheck, CircleX, Plug, PlugZap, Radio, Send, Unplug } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -119,6 +119,7 @@ export default function WebSocketPage() {
   const rateCounter = useRef(0)
   const rateTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const logRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
   const seqRef = useRef(0)
 
   // System messages keep the Chinese source text plus params and are translated when rendered
@@ -202,8 +203,8 @@ export default function WebSocketPage() {
   // Smoothly scroll to the bottom when new messages arrive
   useEffect(() => {
     const el = logRef.current
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [messages, reduceMotion])
 
   useEffect(
     () => () => {

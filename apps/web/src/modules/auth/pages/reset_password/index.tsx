@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CircleCheck, KeyRound, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useDocumentTitle } from '@/lib/document-title'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Spinner } from '@/components/ui/spinner'
@@ -44,6 +45,7 @@ export default function ResetPassword() {
   const submitting = form.formState.isSubmitting
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  useDocumentTitle(t('重置密码'))
 
   const submit = form.handleSubmit(async (values) => {
     setError('')

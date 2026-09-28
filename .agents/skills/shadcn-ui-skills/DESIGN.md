@@ -10,7 +10,7 @@ Tokens are defined in `apps/web/src/index.css` (`:root` for light, `.dark` for d
 | Page / card / overlay background | `bg-background` / `bg-card` / `bg-popover` |
 | Body / secondary text | `text-foreground` / `text-muted-foreground` |
 | Border / input border / focus ring | `border` (default color is `--border`) / `border-input` / `ring-ring` |
-| Focus style (shared) | `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20` (use `focus-within:` on outer containers). shadcn's default `ring-[3px]` + `ring-ring/50` is too thick with the brand color; change it to this after installing a new component |
+| Focus style (shared) | Controls: `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`; bordered text fields: `focus-visible:border-ring focus-visible:outline-1 focus-visible:outline-ring` (border + outline = one 2px perimeter; `focus-within:` on outer containers). Always a solid outline in the full `ring` color: it measures ≥ 3:1 on every surface and, unlike a box-shadow `ring-*`, survives Windows forced-colors mode. Never a bare `outline-none`, never a translucent `ring-ring/20` halo as the only cue, never shadcn's `ring-[3px]` + `ring-ring/50` (`apps/web/test/focus-ring.test.ts` rejects all three); convert a newly added component's focus classes to this |
 | Subtle backgrounds (hover, placeholders) | `bg-muted` / `bg-accent` / `hover:bg-muted/60` |
 | Brand color | `text-primary` / `bg-primary` / `bg-brand-soft` (light background for selected state) |
 | Status | `text-success` `bg-success-soft` / `text-warning` `bg-warning-soft` / `text-danger` `bg-danger-soft` / `text-info` `bg-info-soft` |
@@ -55,7 +55,7 @@ A page has only a handful of gradient elements: 1 primary button + a few indicat
 | Number counters | `CountUp` / `StatCard` |
 | Conditionally shown notice bars | `AnimatePresence` + `height: 0 → 'auto'` (see the selection notice bar on the users page) |
 
-Principle: motion serves state changes; no pointless loops / bounces; `prefers-reduced-motion` is handled globally for CSS animations, and motion animations stay short.
+Principle: motion serves state changes; no pointless loops / bounces. `prefers-reduced-motion` is handled globally: a CSS rule in `index.css` for CSS animations and `<MotionConfig reducedMotion="user">` in `App.tsx` for `motion` components. Code that drives values itself (`animate()` on a motion value, `scrollIntoView` / `scrollTo` with `behavior: 'smooth'`) checks `useReducedMotion()` and jumps instead.
 
 ## Charts (ECharts)
 

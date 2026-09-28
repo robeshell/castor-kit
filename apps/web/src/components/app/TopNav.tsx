@@ -21,7 +21,7 @@ import { findActiveMenu, firstPage, flattenMenus, isNavVisible, sectionOf, visib
 import { useTranslation } from 'react-i18next'
 
 const TAB =
-  'relative z-0 flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-[13px] whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4 [&_svg]:shrink-0'
+  'relative z-0 flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-[13px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&_svg]:size-4 [&_svg]:shrink-0'
 
 function TabPill() {
   // Same sliding selection background as the sidebar, keyed separately so the two never animate into each other
@@ -81,7 +81,7 @@ export interface TopNavProps {
 }
 
 export default function TopNav({ mode = 'full', className }: TopNavProps) {
-  useTranslation() // re-render menu names when the language switches
+  const { t } = useTranslation() // also re-renders menu names when the language switches
   const { menus } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -92,7 +92,7 @@ export default function TopNav({ mode = 'full', className }: TopNavProps) {
   const roots = menus.filter(isNavVisible)
 
   return (
-    <nav className={cn('flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]', className)}>
+    <nav aria-label={mode === 'full' ? t('主导航') : t('栏目导航')} className={cn('flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]', className)}>
       {roots.map((root) => {
         const children = visibleChildren(root)
         const isActive = activePath.has(root.id)

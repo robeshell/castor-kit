@@ -315,7 +315,7 @@ function SortableCard({ card, today, draggable, onEdit, onDelete }: SortableCard
       // Read-only cards (no edit permission) are not focusable drag handles
       {...(draggable ? { ...attributes, ...listeners, 'aria-roledescription': t('可拖拽卡片') } : {})}
       className={cn(
-        'group/card focus-visible:ring-ring/20 relative rounded-lg outline-none select-none focus-visible:ring-2',
+        'group/card relative rounded-lg select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         draggable && 'cursor-grab touch-manipulation',
         isDragging && 'z-10',
       )}
@@ -424,7 +424,7 @@ function CollapsedColumn({ column, count, onExpand }: CollapsedColumnProps) {
       onClick={onExpand}
       aria-label={t('展开「{{name}}」', { name: t(column.label) })}
       className={cn(
-        'bg-muted/55 dark:bg-muted/35 text-muted-foreground hover:text-foreground focus-visible:ring-ring/20 flex min-h-40 w-11 shrink-0 flex-col items-center gap-2 rounded-xl py-3 outline-none transition-[background-color,box-shadow,color] duration-200 focus-visible:ring-2',
+        'bg-muted/55 dark:bg-muted/35 text-muted-foreground hover:text-foreground flex min-h-40 w-11 shrink-0 flex-col items-center gap-2 rounded-xl py-3 transition-[background-color,box-shadow,color] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         isOver && 'bg-brand-soft text-primary ring-primary/30 ring-1 ring-inset',
       )}
     >

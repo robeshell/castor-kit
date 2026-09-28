@@ -1,5 +1,5 @@
 import { useEffect, useId, type ComponentType, type MouseEventHandler, type ReactNode } from 'react'
-import { animate, motion, useMotionValue, useTransform } from 'motion/react'
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
@@ -11,16 +11,22 @@ export interface CountUpProps {
   className?: string
 }
 
-/** Rolling number (reduced motion for animations is handled by global CSS; here we use motion's value interpolation) */
+/** Rolling number; under prefers-reduced-motion it shows the final value at once (MotionConfig doesn't cover animate() on a motion value) */
 export function CountUp({ value = 0, decimals = 0, className }: CountUpProps) {
+  const reduceMotion = useReducedMotion()
   const mv = useMotionValue(0)
   const text = useTransform(mv, (v) =>
     v.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }),
   )
   useEffect(() => {
-    const controls = animate(mv, Number(value) || 0, { duration: 0.9, ease: [0.2, 0.8, 0.2, 1] })
+    const target = Number(value) || 0
+    if (reduceMotion) {
+      mv.jump(target)
+      return undefined
+    }
+    const controls = animate(mv, target, { duration: 0.9, ease: [0.2, 0.8, 0.2, 1] })
     return () => controls.stop()
-  }, [mv, value])
+  }, [mv, value, reduceMotion])
   return <motion.span className={cn('tabular-nums', className)}>{text}</motion.span>
 }
 
@@ -34,6 +40,7 @@ export interface SparklineProps {
 /** Mini trend line (gradient area) */
 export function Sparkline({ points = [], width = 96, height = 32, className }: SparklineProps) {
   const id = useId().replace(/:/g, '')
+  const reduceMotion = useReducedMotion()
   // With fewer than 2 valid points it would just draw a flat line + a spike at the end; better not to draw it
   if (points.filter((p) => p > 0).length < 2) return null
   const max = Math.max(...points)
@@ -61,7 +68,7 @@ export function Sparkline({ points = [], width = 96, height = 32, className }: S
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        initial={{ pathLength: 0 }}
+        initial={reduceMotion ? false : { pathLength: 0 }}
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
       />

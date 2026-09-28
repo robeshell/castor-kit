@@ -16,6 +16,7 @@ import ForgotPasswordStep from '@/modules/auth/pages/login/ForgotPasswordStep'
 import TwoFactorStep from '@/modules/auth/pages/login/TwoFactorStep'
 import { useAppInfo, type AppInfo } from '@/shared/hooks/useAppInfo'
 import { useTranslation } from 'react-i18next'
+import { useDocumentTitle } from '@/lib/document-title'
 
 interface IconInputProps extends ComponentProps<typeof Input> {
   icon: LucideIcon
@@ -62,6 +63,8 @@ export default function Login() {
   const appInfo = useAppInfo()
   const demoAccount = appInfo?.demo_mode ? appInfo.demo_account : null
   const canResetPassword = Boolean(appInfo?.security?.password_reset_enabled)
+
+  useDocumentTitle(t('登录'))
 
   if (!loading && user) return <Navigate to="/" replace />
 

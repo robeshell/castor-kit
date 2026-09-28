@@ -4,6 +4,7 @@ import { ArrowLeft, Compass, LayoutDashboard, ShieldAlert, type LucideIcon } fro
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTranslation } from 'react-i18next'
+import { useDocumentTitle } from '@/lib/document-title'
 
 /** A status code in large type, or an icon when there is no code */
 type ShellProps = { title: string; description: string; children?: ReactNode } & (
@@ -12,6 +13,7 @@ type ShellProps = { title: string; description: string; children?: ReactNode } &
 )
 
 function Shell({ icon: Icon, code, title, description, children }: ShellProps) {
+  useDocumentTitle(title)
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
       {Icon ? (
