@@ -5,21 +5,20 @@
   <img src=".github/assets/wordmark-light.svg" alt="Castor" height="110">
 </picture>
 
-### 开箱即用的管理后台，新功能一句话生成
+### 面向 AI 的 Node.js + React 管理后台框架
 
-用户、角色、权限、菜单、日志这些后台必备功能已经做好。<br>
-要加新页面，告诉 AI 你要什么，它会生成数据表、接口和页面，并自动检查能否正常运行。
+今天就能上线的后台系统，也是 AI 能安全扩展的代码库：<br>
+描述一个功能，数据表、接口、页面、权限和测试一并生成，交付前自动检查。
 
 [![CI](https://github.com/robeshell/castorjs/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castorjs/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/robeshell/castorjs?color=2563eb)](https://github.com/robeshell/castorjs/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 ![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
-![i18n](https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-22d3ee)](CONTRIBUTING.md)
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md)
 
-**[在线演示](https://castor.wenworks.app)** · [文档](https://castor.wenworks.dev/zh/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
+**[文档](https://castor.wenworks.dev/zh/)** · **[在线演示](https://castor.wenworks.app)** · [快速开始](#快速开始) · [AI 工作流](#ai-工作流) · [更新日志](CHANGELOG.md)
 
 <br>
 
@@ -30,36 +29,30 @@
 
 </div>
 
-## Castor 是什么？
+## 为什么选择 Castor
 
-Castor 是一个开源的管理后台：今天就能直接用，以后可以让 AI 帮你加功能。
+多数后台模板只做到第一屏。Castor 把内部系统第一天就需要的东西做齐了（身份、权限、审计、文件、集成），并让之后的上百个功能都能按同一套方式构建，不管是开发者写还是 AI 写。
 
-- **开箱即用**：登录、用户、角色、按钮级权限、菜单、日志、数据字典、定时任务、消息通知、公告都已做好，界面精致，支持浅色和深色。
-- **为 AI 扩展而设计**：项目的开发规范写成了 AI 编程工具（Claude Code、Cursor、Copilot、Codex CLI 等）能直接遵循的文档。说一句需求，就能得到数据表、接口、页面和权限，并经过自动检查才算完成。
+- **完整的基础能力。** 支持两步验证的账号体系、细到按钮的角色权限、按部门的数据范围、审计日志、文件中心、定时任务、API 令牌和 Webhook，界面支持三种语言。
+- **为 AI 智能体而设计。** 约定写在 [`AGENTS.md`](AGENTS.md) 里，基于规格的脚手架一次生成完整模块，交付闸门（类型、迁移、OpenAPI、权限、测试、构建）决定功能是否完成。适用于 Claude Code、Cursor、Copilot、Codex 以及任何会读仓库的智能体。
+- **可直接照抄的参考实现。** 10 种页面模式（列表、树、看板、甘特图、分步表单……）和 11 个组件展示页，附带完整源码，生成的代码照着成熟示例写，而不是靠猜。
+- **代码完全归你。** 从头到尾都是普通 TypeScript，SQL 迁移可审查，没有专有运行时，MIT 许可。改名、隐藏示例，然后在上面做你的产品。
 
-## 功能
+## 功能一览
 
-<table>
-  <tr>
-    <td width="33%"><b>权限管理</b><br>用户、角色、菜单，细到每个按钮。</td>
-    <td width="33%"><b>AI 就绪</b><br>一句话生成数据表、接口、页面和权限。</td>
-    <td width="33%"><b>自动检查</b><br>16 项检查：类型、迁移、路由、权限、测试、构建。</td>
-  </tr>
-  <tr>
-    <td><b>主题与布局</b><br>六种主题色、三种布局、深浅色、标签栏。</td>
-    <td><b>中英日三语</b><br>界面和报错信息都能切换语言。</td>
-    <td><b>导入导出</b><br>每个表格都能导入导出 Excel、CSV，逐行校验。</td>
-  </tr>
-  <tr>
-    <td><b>35+ 示例页面</b><br>页面模板、带源码的组件展示、数据大屏、AI 对话、编辑器等。</td>
-    <td><b>清晰的架构</b><br>分层明确、TypeScript 严格模式、可审查的 SQL 迁移。</td>
-    <td><b>一条命令部署</b><br>Docker Compose 一键启动数据库和整个系统。</td>
-  </tr>
-</table>
+| 领域 | 内容 |
+|---|---|
+| **身份与权限** | 服务端会话登录、两步验证（TOTP + 恢复码）、密码策略与重置、登录锁定和限流；角色、菜单和按钮级权限；按部门的数据范围 |
+| **运维** | 操作日志与登录日志、在线会话、通知与公告、数据字典、按 cron 调度的 HTTP 任务、文件中心（本地或 S3 兼容存储）及引用追踪 |
+| **集成** | 可限定范围的个人 API 令牌、带签名和重试的 Webhook 及投递日志、与代码保持同步的 OpenAPI 3 文档 |
+| **AI** | 全局助手：回答问题，经用户批准后通过 API 执行操作；AI 对话、提示词工作室、自然语言查询 SQL 等示例，使用你自己的模型服务 |
+| **界面** | 基于 Tailwind CSS v4 的 shadcn/ui，亮色和暗色主题，六种强调色，三种导航布局，支持键盘和读屏器，中文 / 英文 / 日文 |
+| **数据工具** | 每个列表都支持 Excel 和 CSV 导入导出，逐行校验并生成错误报告 |
+| **部署** | Docker Compose，启动时自动执行迁移和权限同步；生产配置缺项即拒绝启动；提供公开演示用的 Render + Neon 蓝图 |
 
 ## 快速开始
 
-**用 Docker**（推荐，只需要安装 Docker）：
+**Docker**（只需要 Docker）：
 
 ```bash
 git clone https://github.com/robeshell/castorjs.git
@@ -67,85 +60,73 @@ cd castorjs
 bash scripts/setup.sh
 ```
 
-安装向导会让你设置管理员密码和端口（默认 `5000`）。完成后打开 `http://localhost:5000`，用 `admin` 登录。
+安装向导会询问管理员密码和端口（默认 `5000`）。打开 `http://localhost:5000`，用 `admin` 登录。
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
-
-**在线体验**：[https://castor.wenworks.app](https://castor.wenworks.app)，登录页一键登录（免费实例闲置后首次访问需要约 30 秒唤醒）。
-
-**部署你自己的演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/zh/deploy/index.md)。
-
-<details>
-<summary><b>本地开发</b>（Node.js 22+、pnpm、PostgreSQL 14+）</summary>
+**本地开发**（Node.js 22+、pnpm、PostgreSQL 14+）：
 
 ```bash
 pnpm install
 cp apps/api/.env.example apps/api/.env.development   # 设置 DEV_DATABASE_URL
 createdb castor_kit
-pnpm db:migrate
-pnpm seed:rbac
-pnpm dev                                              # API :5001 · 前端 :5173
-# 打开 http://localhost:5173，用 admin / admin123 登录
+pnpm db:migrate && pnpm seed:rbac
+pnpm dev                                              # API :5001 · web :5173
 ```
 
-</details>
+打开 `http://localhost:5173`，用 `admin` / `admin123` 登录。
 
-## 用 AI 做一个功能
+**在 Render + Neon 上部署公开演示**（免费套餐，数据每天重置）：[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs) · [指南](https://castor.wenworks.dev/zh/deploy/)
 
-1. **告诉 AI 你要什么**：「做一个设备台账：名称、编号、状态、采购日期、负责人。」
-2. **确认预览**：AI 自己推断字段类型、数据表、菜单和权限，给你一份业务预览确认。
-3. **生成并检查**：AI 依次运行脚手架、数据库迁移、权限同步，最后跑交付检查：
+要基于 Castor 做产品？先看 [开始一个新项目](https://castor.wenworks.dev/zh/guide/new-project)：命名、隐藏示例、上线，以及合并后续版本。
+
+## AI 工作流
+
+1. **向智能体描述功能**：*“做一个设备台账：名称、编号、分类、状态、采购日期、负责人，支持导入导出。”*
+2. **确认业务预览。** 智能体写出模块规格（字段、类型、选项、菜单、权限），用业务语言告诉你将要做什么。
+3. **智能体构建并验证。** 它运行脚手架、执行迁移、同步权限，然后跑交付闸门：
 
 ```text
-$ pnpm scaffold -- --spec equipment.spec.json   # AI 根据你的描述写出的 spec
-$ pnpm seed:rbac -- --incremental
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json
+$ pnpm db:migrate && pnpm seed:rbac -- --incremental
 $ pnpm verify -- --module equipment
-  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
-  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+  ✅ typescript compile   ✅ migration chain   ✅ openapi sync     ✅ router registration
+  ✅ rbac seed            ✅ api tests         ✅ frontend tests   ✅ frontend build
+  … 16 checks in total
 ✅ All checks passed. The feature is ready to deliver.
 ```
 
-AI 遵循的规则都在 [`AGENTS.md`](AGENTS.md) 里，详见 [AI 驱动开发](website/zh/guide/ai-workflow.md)。
+普通列表以外的页面，智能体会从示例中心复制对应的页面模式。详见 [AI 工作流](https://castor.wenworks.dev/zh/guide/ai-workflow)。
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|---|
-| **后端** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **前端** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
-| **数据与图表** | TanStack Table · react-hook-form · ECharts 6 |
-| **工具链** | pnpm workspaces · Vitest · ESLint · MCP Server · Docker Compose |
-
-<details>
-<summary><b>目录结构</b></summary>
+| 后端 | Node.js 22、TypeScript、Fastify 5、Zod 4、Drizzle ORM、PostgreSQL |
+| 前端 | React 19、TypeScript、Vite、React Router 7、shadcn/ui、Tailwind CSS v4、Motion、i18next |
+| 数据与图表 | TanStack Table、react-hook-form、ECharts 6 |
+| 工具链 | pnpm workspaces、Vitest、ESLint、面向智能体的 MCP 服务、Docker Compose |
 
 ```text
-apps/
-  api/        Fastify 接口：db/schema → modules/<domain>/<name>/{schema,repository,service,routes}.ts
-  web/        React 应用：modules/<module>/pages/**、公共组件、多语言文案
-  mcp/        MCP Server，提供 scaffold / verify / seed / 迁移工具
-docs/         架构说明和脚手架模板
-website/      文档与官网（VitePress）
-AGENTS.md     人和 AI 工具共同遵循的开发规范
+apps/api     Fastify API：db/schema → modules/<domain>/<name>/{schema,repository,service,routes}
+apps/web     React 应用：modules/<module>/pages、共享组件、语言包
+apps/mcp     MCP 服务，提供脚手架、验证、权限同步和 OpenAPI 工具
+docs/        架构说明、脚手架模板、路线图
+website/     文档站（VitePress）
+AGENTS.md    人和智能体共同遵循的约定
 ```
 
-</details>
+## 项目状态
+
+Castor 处于 1.0 之前，迭代很快。版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)，迁移只追加不修改，每个版本都在 [更新日志](CHANGELOG.md) 里写明升级步骤。后续计划见 [路线图](docs/roadmap.md)。
 
 ## 文档
 
-| 分类 | 页面 |
-|---|---|
-| 入门 | [介绍](website/zh/guide/index.md) · [快速开始](website/zh/guide/getting-started.md) · [开始一个项目](website/zh/guide/new-project.md) · [项目结构](website/zh/guide/project-structure.md) |
-| 开发 | [AI 驱动开发](website/zh/guide/ai-workflow.md) · [后端开发](website/zh/guide/backend.md) · [前端开发](website/zh/guide/frontend.md) |
-| 专题 | [权限 RBAC](website/zh/guide/rbac.md) · [多语言](website/zh/guide/i18n.md) · [主题与布局](website/zh/guide/appearance.md) |
-| 参考 | [命令速查](website/zh/reference/commands.md) · [配置项](website/zh/reference/configuration.md) · [部署指南](website/zh/deploy/index.md) |
-
-在线阅读：**[castor.wenworks.dev](https://castor.wenworks.dev/zh/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
+- **指南：** [介绍](https://castor.wenworks.dev/zh/guide/) · [快速开始](https://castor.wenworks.dev/zh/guide/getting-started) · [开始一个新项目](https://castor.wenworks.dev/zh/guide/new-project) · [AI 工作流](https://castor.wenworks.dev/zh/guide/ai-workflow) · [后端](https://castor.wenworks.dev/zh/guide/backend) · [前端](https://castor.wenworks.dev/zh/guide/frontend)
+- **专题：** [权限](https://castor.wenworks.dev/zh/guide/rbac) · [安全](https://castor.wenworks.dev/zh/guide/security) · [开放 API](https://castor.wenworks.dev/zh/guide/open-api) · [AI 助手](https://castor.wenworks.dev/zh/guide/assistant) · [国际化](https://castor.wenworks.dev/zh/guide/i18n)
+- **参考：** [命令](https://castor.wenworks.dev/zh/reference/commands) · [配置](https://castor.wenworks.dev/zh/reference/configuration) · [部署](https://castor.wenworks.dev/zh/deploy/)
 
 ## 参与贡献
 
-欢迎提交 Issue 和 Pull Request，请先阅读[贡献指南](CONTRIBUTING.md)和[行为准则](CODE_OF_CONDUCT.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。重要变更记录在[更新日志](CHANGELOG.md)。
+欢迎贡献。请先阅读 [贡献指南](CONTRIBUTING.md) 和 [行为准则](CODE_OF_CONDUCT.md)；安全漏洞请按 [SECURITY.md](SECURITY.md) 私下报告。
 
 ## 许可证
 
@@ -153,5 +134,5 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 
 <div align="center">
 <br>
-<sub><i>Castor</i> 是河狸的拉丁名。河狸是自然界的工程师，一根一根木头，搭起整座水坝。</sub>
+<sub><i>Castor</i> 是河狸的拉丁学名，大自然的工程师。</sub>
 </div>

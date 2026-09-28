@@ -5,61 +5,54 @@
   <img src=".github/assets/wordmark-light.svg" alt="Castor" height="110">
 </picture>
 
-### A ready-made admin panel. New features? Just ask AI.
+### The AI-first admin framework for Node.js and React
 
-Users, roles, permissions, menus and logs are already built.<br>
-Describe a new page, and AI generates the table, API and UI — then checks that it all works.
+A production-ready back office you can ship today, and a codebase AI agents extend safely:<br>
+describe a feature, and it arrives with its table, API, UI, permissions and tests, checked before delivery.
 
 [![CI](https://github.com/robeshell/castorjs/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castorjs/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/robeshell/castorjs?color=2563eb)](https://github.com/robeshell/castorjs/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 ![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
-![i18n](https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-22d3ee)](CONTRIBUTING.md)
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-**[Live demo](https://castor.wenworks.app)** · [Documentation](https://castor.wenworks.dev/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
+**[Documentation](https://castor.wenworks.dev)** · **[Live demo](https://castor.wenworks.app)** · [Quick start](#quick-start) · [How it works](#how-the-ai-workflow-works) · [Changelog](CHANGELOG.md)
 
 <br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-dark.webp">
-  <img src=".github/assets/screenshot-light.webp" alt="Castor admin UI" width="900">
+  <img src=".github/assets/screenshot-light.webp" alt="The Castor admin console" width="900">
 </picture>
 
 </div>
 
-## What is Castor?
+## Why Castor
 
-Castor is an open-source admin panel you can run today and extend with AI tomorrow.
+Most admin templates stop at the first screen. Castor covers what an internal system needs on day one (identity, access control, auditing, files, integrations) and makes the next hundred features predictable to build, whether a developer or an AI agent writes them.
 
-- **Out of the box** — sign-in, users, roles, button-level permissions, menus, logs, dictionaries, scheduled tasks, notifications and announcements, in a polished UI with light and dark themes.
-- **Built to be extended by AI** — the project's rules are written for AI coding tools (Claude Code, Cursor, Copilot, Codex CLI and more). Ask for a new page and you get the database table, API, UI and permissions, with automated checks before it's done.
+- **Complete foundation.** Accounts with two-step verification, role-based access down to individual buttons, department data scopes, audit logs, a file center, scheduled jobs, API tokens and webhooks, in three languages.
+- **Built for AI agents.** Conventions live in [`AGENTS.md`](AGENTS.md), a spec-driven scaffold generates whole modules, and a verification gate (types, migrations, OpenAPI, permissions, tests, build) decides when a feature is done. Works with Claude Code, Cursor, Copilot, Codex and any agent that reads the repository.
+- **Reference implementations to copy.** Ten page patterns (lists, trees, kanban, gantt, wizards…) and eleven component showcases with their exact source, so generated code follows proven examples instead of guessing.
+- **Yours to own.** Plain TypeScript end to end, SQL migrations you can review, no proprietary runtime, MIT licensed. Rename it, hide the examples and build your product on it.
 
-## Features
+## Capabilities
 
-<table>
-  <tr>
-    <td width="33%"><b>Permissions</b><br>Users, roles and menus, down to each button.</td>
-    <td width="33%"><b>AI-ready</b><br>One sentence becomes a table, API, page and permissions.</td>
-    <td width="33%"><b>Automated checks</b><br>16 checks: types, migrations, routes, RBAC, tests, build.</td>
-  </tr>
-  <tr>
-    <td><b>Themes & layouts</b><br>Six accent colors, three layouts, light and dark, tabs bar.</td>
-    <td><b>Three languages</b><br>Chinese, English and Japanese UI and error messages.</td>
-    <td><b>Import & export</b><br>Excel and CSV for every table, with row-level validation.</td>
-  </tr>
-  <tr>
-    <td><b>35+ example pages</b><br>Page patterns, component showcases with source, dashboards, AI chat, editors and more.</td>
-    <td><b>Clean architecture</b><br>Clear layers, strict TypeScript, reviewable SQL migrations.</td>
-    <td><b>One-command deploy</b><br>Docker Compose starts the database and the whole app.</td>
-  </tr>
-</table>
+| Area | What you get |
+|---|---|
+| **Identity & access** | Sign-in with server-side sessions, two-step verification (TOTP + recovery codes), password policy and reset, sign-in lockout and rate limits; roles, menus and button-level permissions; data scopes by department |
+| **Operations** | Audit and sign-in logs, online sessions, notifications and announcements, data dictionary, cron-scheduled HTTP jobs, a file center (local or S3-compatible) with reference tracking |
+| **Integration** | Scoped personal API tokens, signed webhooks with retries and a delivery log, an OpenAPI 3 document kept in sync with the code |
+| **AI** | A global assistant that answers questions and acts through the API with user approval; AI chat, prompt studio and natural-language SQL examples on your own model provider |
+| **Interface** | shadcn/ui on Tailwind CSS v4, light and dark themes, six accent colors, three navigation layouts, keyboard and screen-reader support, Chinese / English / Japanese |
+| **Data tooling** | Excel and CSV import and export on every list, with row-level validation and error reports |
+| **Deployment** | Docker Compose with migrations and permission sync on start, fail-closed production config, a Render + Neon blueprint for public demos |
 
 ## Quick start
 
-**With Docker** (recommended — only Docker is required):
+**Docker** (only Docker required):
 
 ```bash
 git clone https://github.com/robeshell/castorjs.git
@@ -67,85 +60,73 @@ cd castorjs
 bash scripts/setup.sh
 ```
 
-The setup wizard asks for an admin password and a port (default `5000`). Then open `http://localhost:5000` and sign in as `admin`.
+The setup wizard asks for an admin password and a port (default `5000`). Open `http://localhost:5000` and sign in as `admin`.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
-
-**Try it:** [https://castor.wenworks.app](https://castor.wenworks.app) — sign in with one click (free instance: the first visit after a while can take ~30 s to wake up).
-
-**Deploy your own demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/deploy/index.md).
-
-<details>
-<summary><b>Local development</b> (Node.js 22+, pnpm, PostgreSQL 14+)</summary>
+**Local development** (Node.js 22+, pnpm, PostgreSQL 14+):
 
 ```bash
 pnpm install
 cp apps/api/.env.example apps/api/.env.development   # set DEV_DATABASE_URL
 createdb castor_kit
-pnpm db:migrate
-pnpm seed:rbac
+pnpm db:migrate && pnpm seed:rbac
 pnpm dev                                              # API :5001 · web :5173
-# open http://localhost:5173 and sign in as admin / admin123
 ```
 
-</details>
+Sign in at `http://localhost:5173` as `admin` / `admin123`.
 
-## Build a feature with AI
+**Public demo on Render + Neon** (free plans, data resets daily): [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs) · [guide](https://castor.wenworks.dev/deploy/)
 
-1. **Describe it** to your AI tool: *"Build an Equipment registry: name, code, status, purchase date, owner."*
-2. **Confirm the preview.** The AI works out field types, the table, the menu and permissions, and shows you a plain business summary.
-3. **It builds and checks.** The AI runs the scaffold, migration and permission sync, then the delivery gate:
+Building a product on Castor? Start with [Starting a project](https://castor.wenworks.dev/guide/new-project): naming, hiding the examples, going live and taking later releases.
+
+## How the AI workflow works
+
+1. **Describe the feature** to your agent: *"An equipment registry: name, code, category, status, purchase date and owner, with import and export."*
+2. **Review the business preview.** The agent writes a module spec (fields, types, options, menu, permissions) and shows you what will be built in plain terms.
+3. **The agent builds and verifies.** It scaffolds the module, applies the migration, syncs permissions and runs the delivery gate:
 
 ```text
-$ pnpm scaffold -- --spec equipment.spec.json   # the spec the AI wrote from your description
-$ pnpm seed:rbac -- --incremental
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json
+$ pnpm db:migrate && pnpm seed:rbac -- --incremental
 $ pnpm verify -- --module equipment
-  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
-  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+  ✅ typescript compile   ✅ migration chain   ✅ openapi sync     ✅ router registration
+  ✅ rbac seed            ✅ api tests         ✅ frontend tests   ✅ frontend build
+  … 16 checks in total
 ✅ All checks passed. The feature is ready to deliver.
 ```
 
-The rules the AI follows live in [`AGENTS.md`](AGENTS.md). See [AI-driven workflow](website/guide/ai-workflow.md) for details.
+For pages beyond a plain list, the agent copies the matching page pattern from the gallery. Details: [AI workflow](https://castor.wenworks.dev/guide/ai-workflow).
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| **Backend** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **Frontend** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
-| **Data & charts** | TanStack Table · react-hook-form · ECharts 6 |
-| **Tooling** | pnpm workspaces · Vitest · ESLint · MCP server · Docker Compose |
-
-<details>
-<summary><b>Project structure</b></summary>
+| Backend | Node.js 22, TypeScript, Fastify 5, Zod 4, Drizzle ORM, PostgreSQL |
+| Frontend | React 19, TypeScript, Vite, React Router 7, shadcn/ui, Tailwind CSS v4, Motion, i18next |
+| Data & charts | TanStack Table, react-hook-form, ECharts 6 |
+| Tooling | pnpm workspaces, Vitest, ESLint, an MCP server for agents, Docker Compose |
 
 ```text
-apps/
-  api/        Fastify API: db/schema → modules/<domain>/<name>/{schema,repository,service,routes}.ts
-  web/        React app: modules/<module>/pages/**, shared components, locales
-  mcp/        MCP server exposing scaffold / verify / seed / migration tools
-docs/         architecture notes and scaffold templates
-website/      documentation and landing site (VitePress)
-AGENTS.md     conventions shared by people and AI tools
+apps/api     Fastify API: db/schema → modules/<domain>/<name>/{schema,repository,service,routes}
+apps/web     React app: modules/<module>/pages, shared components, locales
+apps/mcp     MCP server exposing scaffold, verify, RBAC sync and OpenAPI tools
+docs/        architecture, scaffold templates, roadmap
+website/     documentation site (VitePress)
+AGENTS.md    the conventions people and agents follow
 ```
 
-</details>
+## Project status
+
+Castor is pre-1.0 and moving quickly. Releases follow [semantic versioning](https://semver.org), migrations are append-only, and every release notes its upgrade steps in the [changelog](CHANGELOG.md). Planned work is tracked in the [roadmap](docs/roadmap.md).
 
 ## Documentation
 
-| Section | Pages |
-|---|---|
-| Getting started | [Introduction](website/guide/index.md) · [Quick start](website/guide/getting-started.md) · [Starting a project](website/guide/new-project.md) · [Project structure](website/guide/project-structure.md) |
-| Development | [AI workflow](website/guide/ai-workflow.md) · [Backend](website/guide/backend.md) · [Frontend](website/guide/frontend.md) |
-| Topics | [Permissions](website/guide/rbac.md) · [i18n](website/guide/i18n.md) · [Theme & layout](website/guide/appearance.md) |
-| Reference | [Commands](website/reference/commands.md) · [Configuration](website/reference/configuration.md) · [Deployment](website/deploy/index.md) |
-
-Read it online at **[castor.wenworks.dev](https://castor.wenworks.dev/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
+- **Guide:** [Introduction](https://castor.wenworks.dev/guide/) · [Quick start](https://castor.wenworks.dev/guide/getting-started) · [Starting a project](https://castor.wenworks.dev/guide/new-project) · [AI workflow](https://castor.wenworks.dev/guide/ai-workflow) · [Backend](https://castor.wenworks.dev/guide/backend) · [Frontend](https://castor.wenworks.dev/guide/frontend)
+- **Topics:** [Permissions](https://castor.wenworks.dev/guide/rbac) · [Security](https://castor.wenworks.dev/guide/security) · [Open API](https://castor.wenworks.dev/guide/open-api) · [AI assistant](https://castor.wenworks.dev/guide/assistant) · [i18n](https://castor.wenworks.dev/guide/i18n)
+- **Reference:** [Commands](https://castor.wenworks.dev/reference/commands) · [Configuration](https://castor.wenworks.dev/reference/configuration) · [Deployment](https://castor.wenworks.dev/deploy/)
 
 ## Contributing
 
-Issues and pull requests are welcome — please read the [contributing guide](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md) first. Report security issues privately as described in [SECURITY.md](SECURITY.md). Notable changes are listed in the [changelog](CHANGELOG.md).
+Contributions are welcome. Read the [contributing guide](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md) first, and report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
@@ -153,5 +134,5 @@ Issues and pull requests are welcome — please read the [contributing guide](CO
 
 <div align="center">
 <br>
-<sub><i>Castor</i> is the Latin name for the beaver — nature's engineer, building a whole dam one log at a time.</sub>
+<sub><i>Castor</i> is the Latin name of the beaver, nature's engineer.</sub>
 </div>

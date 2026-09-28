@@ -5,21 +5,20 @@
   <img src=".github/assets/wordmark-light.svg" alt="Castor" height="110">
 </picture>
 
-### すぐ使える管理画面。新機能は AI におまかせ。
+### Node.js と React のための AI ファースト管理画面フレームワーク
 
-ユーザー、ロール、権限、メニュー、ログなどの基本機能は実装済み。<br>
-新しい画面は要件を伝えるだけで、AI がテーブル・API・画面を作り、動作まで自動でチェックします。
+今日から運用できる管理画面であり、AI エージェントが安全に拡張できるコードベースです。<br>
+機能を説明すると、テーブル・API・画面・権限・テストがまとめて生成され、納品前に自動でチェックされます。
 
 [![CI](https://github.com/robeshell/castorjs/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castorjs/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/robeshell/castorjs?color=2563eb)](https://github.com/robeshell/castorjs/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 ![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
-![i18n](https://img.shields.io/badge/i18n-zh%20%C2%B7%20en%20%C2%B7%20ja-0284c7)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-22d3ee)](CONTRIBUTING.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **日本語**
 
-**[ライブデモ](https://castor.wenworks.app)** · [ドキュメント](https://castor.wenworks.dev/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
+**[ドキュメント](https://castor.wenworks.dev/ja/)** · **[ライブデモ](https://castor.wenworks.app)** · [クイックスタート](#クイックスタート) · [AI ワークフロー](#ai-ワークフロー) · [変更履歴](CHANGELOG.md)
 
 <br>
 
@@ -30,36 +29,30 @@
 
 </div>
 
-## Castor とは？
+## Castor を選ぶ理由
 
-Castor はオープンソースの管理画面です。今日そのまま使えて、明日からは AI で機能を増やせます。
+多くの管理画面テンプレートは最初の画面で終わります。Castor は社内システムに初日から必要なもの（認証、アクセス制御、監査、ファイル、連携）をそろえ、その後に続く何百もの機能を、開発者が書いても AI エージェントが書いても同じやり方で作れるようにします。
 
-- **すぐに使える**：ログイン、ユーザー、ロール、ボタン単位の権限、メニュー、ログ、データ辞書、定期タスク、通知、お知らせを実装済み。洗練された UI で、ライト / ダークに対応。
-- **AI で拡張する前提の設計**：開発ルールを AI コーディングツール（Claude Code、Cursor、Copilot、Codex CLI など）がそのまま従える形で記述。要件を一文で伝えれば、テーブル・API・画面・権限ができあがり、自動チェックを通って完成します。
+- **完全な基盤。** 2 段階認証付きのアカウント、ボタン単位のロール権限、部署ごとのデータ範囲、監査ログ、ファイルセンター、スケジュールジョブ、API トークンと Webhook。UI は 3 言語に対応。
+- **AI エージェントのための設計。** 規約は [`AGENTS.md`](AGENTS.md) にまとまり、仕様駆動のスキャフォールドがモジュール全体を生成し、納品ゲート（型、マイグレーション、OpenAPI、権限、テスト、ビルド）が機能の完成を判定します。Claude Code、Cursor、Copilot、Codex など、リポジトリを読めるエージェントで使えます。
+- **そのまま手本にできる実装。** 10 種類のページパターン（一覧、ツリー、カンバン、ガント、ステップフォームなど）と 11 のコンポーネントショーケースをソース付きで収録。生成コードは推測ではなく実績ある例に従います。
+- **コードはすべてあなたのもの。** 最初から最後まで素の TypeScript、レビューできる SQL マイグレーション、独自ランタイムなし、MIT ライセンス。名前を変え、サンプルを隠し、その上にプロダクトを作れます。
 
 ## 機能
 
-<table>
-  <tr>
-    <td width="33%"><b>権限管理</b><br>ユーザー、ロール、メニュー、ボタン単位まで。</td>
-    <td width="33%"><b>AI 対応</b><br>一文からテーブル、API、画面、権限を生成。</td>
-    <td width="33%"><b>自動チェック</b><br>型、マイグレーション、ルート、権限、テスト、ビルドの 16 項目。</td>
-  </tr>
-  <tr>
-    <td><b>テーマとレイアウト</b><br>6 色のテーマ、3 種類のレイアウト、ライト / ダーク、タブバー。</td>
-    <td><b>3 言語対応</b><br>画面もエラーメッセージも中・英・日で表示。</td>
-    <td><b>インポート / エクスポート</b><br>すべての表で Excel と CSV に対応、行単位で検証。</td>
-  </tr>
-  <tr>
-    <td><b>35 以上のサンプル画面</b><br>ページテンプレート、ソース付きコンポーネント展示、ダッシュボード、AI チャット、エディターなど。</td>
-    <td><b>きれいな構成</b><br>明確なレイヤー、strict な TypeScript、レビューできる SQL マイグレーション。</td>
-    <td><b>コマンド 1 つでデプロイ</b><br>Docker Compose でデータベースからアプリまで起動。</td>
-  </tr>
-</table>
+| 分野 | 内容 |
+|---|---|
+| **認証と権限** | サーバーサイドセッションのサインイン、2 段階認証（TOTP + リカバリーコード）、パスワードポリシーとリセット、サインインのロックアウトとレート制限。ロール、メニュー、ボタン単位の権限。部署ごとのデータ範囲 |
+| **運用** | 操作ログとサインインログ、オンラインセッション、通知とお知らせ、データ辞書、cron で実行する HTTP ジョブ、参照追跡付きのファイルセンター（ローカルまたは S3 互換） |
+| **連携** | スコープ付きの個人 API トークン、署名とリトライ付きの Webhook と配信ログ、コードと同期した OpenAPI 3 ドキュメント |
+| **AI** | 質問に答え、ユーザーの承認を得て API 経由で操作するグローバルアシスタント。AI チャット、プロンプトスタジオ、自然言語 SQL などのサンプルを、ご自身のモデルプロバイダーで利用 |
+| **インターフェース** | Tailwind CSS v4 ベースの shadcn/ui、ライト / ダークテーマ、6 つのアクセントカラー、3 つのナビゲーションレイアウト、キーボードとスクリーンリーダー対応、中国語 / 英語 / 日本語 |
+| **データツール** | すべての一覧で Excel / CSV のインポートとエクスポート。行単位の検証とエラーレポート付き |
+| **デプロイ** | 起動時にマイグレーションと権限同期を行う Docker Compose、設定不足なら起動しない本番構成、公開デモ用の Render + Neon ブループリント |
 
 ## クイックスタート
 
-**Docker を使う**（推奨、必要なのは Docker だけ）：
+**Docker**（必要なのは Docker だけ）：
 
 ```bash
 git clone https://github.com/robeshell/castorjs.git
@@ -67,85 +60,73 @@ cd castorjs
 bash scripts/setup.sh
 ```
 
-セットアップウィザードで管理者パスワードとポート（既定は `5000`）を設定します。完了したら `http://localhost:5000` を開き、`admin` でサインインしてください。
+セットアップウィザードが管理者パスワードとポート（既定は `5000`）を尋ねます。`http://localhost:5000` を開き、`admin` でサインインしてください。
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
-
-**試してみる**：[https://castor.wenworks.app](https://castor.wenworks.app)。ログイン画面からワンクリックでログインできます（無料インスタンスのため、しばらくアクセスがないと最初の表示に 30 秒ほどかかります）。
-
-**自分のデモをデプロイ**：ワンクリックで Render にデプロイし、データベースは Neon の無料プランを使います（システム管理は読み取り専用、データは毎日リセット）。手順は [Render + Neon](website/ja/deploy/index.md) を参照してください。
-
-<details>
-<summary><b>ローカル開発</b>（Node.js 22 以上、pnpm、PostgreSQL 14 以上）</summary>
+**ローカル開発**（Node.js 22+、pnpm、PostgreSQL 14+）：
 
 ```bash
 pnpm install
 cp apps/api/.env.example apps/api/.env.development   # DEV_DATABASE_URL を設定
 createdb castor_kit
-pnpm db:migrate
-pnpm seed:rbac
-pnpm dev                                              # API :5001 · Web :5173
-# http://localhost:5173 を開き、admin / admin123 でサインイン
+pnpm db:migrate && pnpm seed:rbac
+pnpm dev                                              # API :5001 · web :5173
 ```
 
-</details>
+`http://localhost:5173` を開き、`admin` / `admin123` でサインインします。
 
-## AI で機能を作る
+**Render + Neon で公開デモをデプロイ**（無料プラン、データは毎日リセット）：[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs) · [ガイド](https://castor.wenworks.dev/ja/deploy/)
 
-1. **AI に伝える**：「設備台帳を作って。名称、コード、状態、購入日、担当者。」
-2. **プレビューを確認**：AI がフィールド型、テーブル、メニュー、権限を判断し、業務の言葉でまとめたプレビューを見せます。
-3. **生成とチェック**：AI がスキャフォールド、マイグレーション、権限の同期を実行し、最後に納品チェックを走らせます。
+Castor でプロダクトを作るなら、まず [新しいプロジェクトを始める](https://castor.wenworks.dev/ja/guide/new-project) を読んでください。命名、サンプルの非表示、本番公開、以降のリリースの取り込みを説明しています。
+
+## AI ワークフロー
+
+1. **エージェントに機能を説明する**：*「設備台帳を作って。名称、コード、分類、状態、購入日、担当者。インポートとエクスポートも。」*
+2. **業務プレビューを確認する。** エージェントがモジュール仕様（フィールド、型、選択肢、メニュー、権限）を書き、何を作るかを業務の言葉で示します。
+3. **エージェントが構築して検証する。** スキャフォールド、マイグレーション、権限同期を実行し、納品ゲートを通します：
 
 ```text
-$ pnpm scaffold -- --spec equipment.spec.json   # 説明から AI が書いた spec
-$ pnpm seed:rbac -- --incremental
-$ pnpm db:migrate
+$ pnpm scaffold -- --spec equipment.spec.json
+$ pnpm db:migrate && pnpm seed:rbac -- --incremental
 $ pnpm verify -- --module equipment
-  ✅ typescript compile  ✅ migration chain  ✅ openapi sync  ✅ router registration
-  ✅ rbac seed  ✅ api tests  ✅ frontend tests  ✅ frontend build
+  ✅ typescript compile   ✅ migration chain   ✅ openapi sync     ✅ router registration
+  ✅ rbac seed            ✅ api tests         ✅ frontend tests   ✅ frontend build
+  … 16 checks in total
 ✅ All checks passed. The feature is ready to deliver.
 ```
 
-AI が従うルールは [`AGENTS.md`](AGENTS.md) にあります。詳しくは [AI 駆動開発](website/ja/guide/ai-workflow.md) を参照してください。
+単純な一覧以外のページでは、エージェントがギャラリーから対応するページパターンをコピーします。詳しくは [AI ワークフロー](https://castor.wenworks.dev/ja/guide/ai-workflow) を参照してください。
 
 ## 技術スタック
 
 | レイヤー | 技術 |
 |---|---|
-| **バックエンド** | Node.js 22 · TypeScript · Fastify 5 · Zod 4 · Drizzle ORM · PostgreSQL |
-| **フロントエンド** | React 19 · TypeScript · Vite · React Router 7 · shadcn/ui · Tailwind CSS v4 · Motion · i18next |
-| **データとチャート** | TanStack Table · react-hook-form · ECharts 6 |
-| **ツール** | pnpm workspaces · Vitest · ESLint · MCP サーバー · Docker Compose |
-
-<details>
-<summary><b>ディレクトリ構成</b></summary>
+| バックエンド | Node.js 22、TypeScript、Fastify 5、Zod 4、Drizzle ORM、PostgreSQL |
+| フロントエンド | React 19、TypeScript、Vite、React Router 7、shadcn/ui、Tailwind CSS v4、Motion、i18next |
+| データとチャート | TanStack Table、react-hook-form、ECharts 6 |
+| ツール | pnpm workspaces、Vitest、ESLint、エージェント向け MCP サーバー、Docker Compose |
 
 ```text
-apps/
-  api/        Fastify API：db/schema → modules/<domain>/<name>/{schema,repository,service,routes}.ts
-  web/        React アプリ：modules/<module>/pages/**、共通コンポーネント、翻訳ファイル
-  mcp/        scaffold / verify / seed / マイグレーションを提供する MCP サーバー
-docs/         アーキテクチャ資料とスキャフォールドのテンプレート
-website/      ドキュメントとランディングサイト（VitePress）
-AGENTS.md     人と AI ツールが共有する開発ルール
+apps/api     Fastify API：db/schema → modules/<domain>/<name>/{schema,repository,service,routes}
+apps/web     React アプリ：modules/<module>/pages、共通コンポーネント、ロケール
+apps/mcp     スキャフォールド、検証、権限同期、OpenAPI のツールを提供する MCP サーバー
+docs/        アーキテクチャ、スキャフォールドのテンプレート、ロードマップ
+website/     ドキュメントサイト（VitePress）
+AGENTS.md    人とエージェントが従う規約
 ```
 
-</details>
+## プロジェクトの状況
+
+Castor は 1.0 以前で、開発が活発に進んでいます。リリースは [セマンティックバージョニング](https://semver.org/lang/ja/) に従い、マイグレーションは追記のみ。各リリースのアップグレード手順は [変更履歴](CHANGELOG.md) に記載しています。今後の予定は [ロードマップ](docs/roadmap.md) を参照してください。
 
 ## ドキュメント
 
-| カテゴリ | ページ |
-|---|---|
-| はじめに | [概要](website/ja/guide/index.md) · [クイックスタート](website/ja/guide/getting-started.md) · [プロジェクトを始める](website/ja/guide/new-project.md) · [プロジェクト構成](website/ja/guide/project-structure.md) |
-| 開発 | [AI 駆動開発](website/ja/guide/ai-workflow.md) · [バックエンド](website/ja/guide/backend.md) · [フロントエンド](website/ja/guide/frontend.md) |
-| トピック | [権限](website/ja/guide/rbac.md) · [多言語対応](website/ja/guide/i18n.md) · [テーマとレイアウト](website/ja/guide/appearance.md) |
-| リファレンス | [コマンド一覧](website/ja/reference/commands.md) · [設定](website/ja/reference/configuration.md) · [デプロイ](website/ja/deploy/index.md) |
-
-オンラインで読む：**[castor.wenworks.dev](https://castor.wenworks.dev/ja/)**。ローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
+- **ガイド：** [はじめに](https://castor.wenworks.dev/ja/guide/) · [クイックスタート](https://castor.wenworks.dev/ja/guide/getting-started) · [新しいプロジェクトを始める](https://castor.wenworks.dev/ja/guide/new-project) · [AI ワークフロー](https://castor.wenworks.dev/ja/guide/ai-workflow) · [バックエンド](https://castor.wenworks.dev/ja/guide/backend) · [フロントエンド](https://castor.wenworks.dev/ja/guide/frontend)
+- **トピック：** [権限](https://castor.wenworks.dev/ja/guide/rbac) · [セキュリティ](https://castor.wenworks.dev/ja/guide/security) · [オープン API](https://castor.wenworks.dev/ja/guide/open-api) · [AI アシスタント](https://castor.wenworks.dev/ja/guide/assistant) · [国際化](https://castor.wenworks.dev/ja/guide/i18n)
+- **リファレンス：** [コマンド](https://castor.wenworks.dev/ja/reference/commands) · [設定](https://castor.wenworks.dev/ja/reference/configuration) · [デプロイ](https://castor.wenworks.dev/ja/deploy/)
 
 ## コントリビュート
 
-Issue と Pull Request を歓迎します。まず[コントリビューションガイド](CONTRIBUTING.md)と[行動規範](CODE_OF_CONDUCT.md)をお読みください。セキュリティ上の問題は [SECURITY.md](SECURITY.md) の手順で非公開に報告してください。主な変更は[変更履歴](CHANGELOG.md)に記録しています。
+コントリビュートを歓迎します。まず [コントリビューションガイド](CONTRIBUTING.md) と [行動規範](CODE_OF_CONDUCT.md) をお読みください。脆弱性は [SECURITY.md](SECURITY.md) の手順に従って非公開で報告してください。
 
 ## ライセンス
 
@@ -153,5 +134,5 @@ Issue と Pull Request を歓迎します。まず[コントリビューショ�
 
 <div align="center">
 <br>
-<sub><i>Castor</i> はビーバーのラテン名。ビーバーは自然界のエンジニアで、丸太を一本ずつ積み上げてダムを築きます。</sub>
+<sub><i>Castor</i> はビーバーのラテン名。自然界のエンジニアです。</sub>
 </div>
