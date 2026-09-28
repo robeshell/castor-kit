@@ -19,7 +19,7 @@ Describe a new page, and AI generates the table, API and UI — then checks that
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-**[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castorjs/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
+**[Live demo](https://castor.wenworks.app)** · [Documentation](https://castor.wenworks.dev/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
@@ -71,7 +71,7 @@ The setup wizard asks for an admin password and a port (default `5000`). Then op
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
 
-**Try it:** [https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com) — sign in with one click (free instance: the first visit after a while can take ~30 s to wake up).
+**Try it:** [https://castor.wenworks.app](https://castor.wenworks.app) — sign in with one click (free instance: the first visit after a while can take ~30 s to wake up).
 
 **Deploy your own demo** — one click deploys a demo to Render with a free Neon database (read-only system settings, data resets daily). See [Render + Neon](website/deploy/index.md).
 
@@ -141,7 +141,7 @@ AGENTS.md     conventions shared by people and AI tools
 | Topics | [Permissions](website/guide/rbac.md) · [i18n](website/guide/i18n.md) · [Theme & layout](website/guide/appearance.md) |
 | Reference | [Commands](website/reference/commands.md) · [Configuration](website/reference/configuration.md) · [Deployment](website/deploy/index.md) |
 
-Read it online at **[robeshell.github.io/castorjs](https://robeshell.github.io/castorjs/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
+Read it online at **[castor.wenworks.dev](https://castor.wenworks.dev/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
 
 ## Contributing
 

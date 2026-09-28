@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 const REPO = 'https://github.com/robeshell/castorjs'
 // Published by .github/workflows/docs.yml to GitHub Pages
-const SITE = 'https://robeshell.github.io/castorjs'
+const SITE = 'https://castor.wenworks.dev'
 
 /**
  * One page tree, three languages. `prefix` is '' for the root (English) locale and '/zh' / '/ja' otherwise;
@@ -107,11 +107,11 @@ const ja = {
 
 export default defineConfig({
   title: 'Castor',
-  base: '/castorjs/',
+  base: '/',
   cleanUrls: true,
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/castorjs/castor-logo.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/castor-logo.png' }],
     ['meta', { name: 'theme-color', content: '#2563eb' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'Castor' }],

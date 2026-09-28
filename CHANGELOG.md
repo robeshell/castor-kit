@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Changed
 
+- The docs site moves to https://castor.wenworks.dev (links to `robeshell.github.io/castorjs/…` redirect there) and the public demo to https://castor.wenworks.app (the old `castor-kit-demo.onrender.com` address keeps working).
 - The wordmark is written "Castor", the way the name is written in text, in the app, the docs site and the README (it was a lowercase "castor" in 0.4.0).
 
 ## [0.4.0] - 2026-09-28

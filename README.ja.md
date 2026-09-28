@@ -19,7 +19,7 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **日本語**
 
-**[ライブデモ](https://castor-kit-demo.onrender.com)** · [ドキュメント](https://robeshell.github.io/castorjs/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
+**[ライブデモ](https://castor.wenworks.app)** · [ドキュメント](https://castor.wenworks.dev/ja/) · [クイックスタート](#クイックスタート) · [AI で機能を作る](#ai-で機能を作る) · [コントリビュート](CONTRIBUTING.md)
 
 <br>
 
@@ -71,7 +71,7 @@ bash scripts/setup.sh
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
 
-**試してみる**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)。ログイン画面からワンクリックでログインできます（無料インスタンスのため、しばらくアクセスがないと最初の表示に 30 秒ほどかかります）。
+**試してみる**：[https://castor.wenworks.app](https://castor.wenworks.app)。ログイン画面からワンクリックでログインできます（無料インスタンスのため、しばらくアクセスがないと最初の表示に 30 秒ほどかかります）。
 
 **自分のデモをデプロイ**：ワンクリックで Render にデプロイし、データベースは Neon の無料プランを使います（システム管理は読み取り専用、データは毎日リセット）。手順は [Render + Neon](website/ja/deploy/index.md) を参照してください。
 
@@ -141,7 +141,7 @@ AGENTS.md     人と AI ツールが共有する開発ルール
 | トピック | [権限](website/ja/guide/rbac.md) · [多言語対応](website/ja/guide/i18n.md) · [テーマとレイアウト](website/ja/guide/appearance.md) |
 | リファレンス | [コマンド一覧](website/ja/reference/commands.md) · [設定](website/ja/reference/configuration.md) · [デプロイ](website/ja/deploy/index.md) |
 
-オンラインで読む：**[robeshell.github.io/castorjs](https://robeshell.github.io/castorjs/ja/)**。ローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
+オンラインで読む：**[castor.wenworks.dev](https://castor.wenworks.dev/ja/)**。ローカルで見るには：`npm --prefix website install && npm --prefix website run dev`。
 
 ## コントリビュート
 
