@@ -47,9 +47,9 @@ export function prefetchPage(componentName: unknown): Promise<unknown> {
 }
 
 /**
- * Pages that are cheap to fetch ahead of time: the system pages and the component gallery's admin pages (tens of KB).
- * Charts, 3D, editors and dev tools are fetched on hover / focus only.
+ * Pages that are cheap to fetch ahead of time: the system pages and the component gallery's page patterns (tens of
+ * KB). Charts, editors, dev tools and the component showcases are fetched on hover / focus only.
  */
 export function isLightPage(componentName: unknown): boolean {
-  return typeof componentName === 'string' && /^(admin|component_center\/admin)\//.test(componentName.trim())
+  return typeof componentName === 'string' && /^(admin|component_center\/patterns)\//.test(componentName.trim())
 }

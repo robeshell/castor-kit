@@ -1,5 +1,5 @@
 {
-  "例如：admin/users、component_center/list_page": "e.g. admin/users, component_center/list_page",
+  "例如：admin/users、component_center/patterns/kanban_page": "e.g. admin/users, component_center/patterns/kanban_page",
   "全部展开": "Expand all",
   "全部收起": "Collapse all",
   "动态路由模式下，菜单的路径和组件名都需要配置": "With dynamic routing, a menu needs both a path and a component",

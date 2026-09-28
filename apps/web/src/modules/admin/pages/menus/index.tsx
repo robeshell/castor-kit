@@ -483,7 +483,7 @@ export default function Menus() {
           control={form.control}
           name="component"
           label="组件"
-          placeholder="例如：admin/users、component_center/list_page"
+          placeholder="例如：admin/users、component_center/patterns/kanban_page"
           inputClassName="font-mono"
         />
         <FormGrid>

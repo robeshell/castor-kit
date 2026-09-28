@@ -11,6 +11,7 @@ import {
   FIXTURE_USER,
   loginSession,
   openTestDb,
+  scopedSession,
   type AuthedSession,
 } from './helpers'
 
@@ -111,5 +112,17 @@ describe('dashboard', () => {
   it('未登录 → 401', async () => {
     const res = await app.inject({ url: '/api/admin/dashboard/stats' })
     expect([res.statusCode, res.json()]).toEqual([401, { error: '未授权访问', redirect: '/login' }])
+  })
+
+  it('系统状态：只需登录，不需要组件示例中心的权限；未登录 → 401', async () => {
+    // A role with no gallery menu (the performance monitor's cc_devtools_perf_monitor is not granted)
+    const plain = await scopedSession(app, handle, { name: 'dash_system', codes: [], dataScope: 'all' })
+    const res = await plain.inject({ url: '/api/admin/dashboard/system' })
+    expect(res.statusCode, res.body).toBe(200)
+    const body = res.json()
+    for (const key of ['cpu', 'mem_used', 'mem_total', 'mem_pct', 'disk_used', 'disk_total', 'disk_pct', 'net_sent', 'net_recv', 'ts']) {
+      expect(typeof body[key], key).toBe('number')
+    }
+    expect((await app.inject({ url: '/api/admin/dashboard/system' })).statusCode).toBe(401)
   })
 })

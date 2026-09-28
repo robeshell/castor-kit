@@ -15,7 +15,8 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { WebSocket } from 'ws'
 import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { isSignedIn } from '@/common/session'
-import { metricMessage, systemSnapshot, warmUp } from './service'
+import { systemSnapshot, warmUp } from '@/common/system-stats'
+import { metricMessage } from './service'
 
 const PERMISSION = 'cc_devtools_perf_monitor'
 const NORMAL_CLOSURE = 1000
