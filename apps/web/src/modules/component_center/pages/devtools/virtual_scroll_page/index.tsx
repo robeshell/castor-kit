@@ -10,6 +10,7 @@ import { SearchInput } from '@/shared/components/Filters'
 import PageHeader from '@/shared/components/PageHeader'
 import StatusBadge, { type StatusTone } from '@/shared/components/StatusBadge'
 import { useIsMobile } from '@/shared/hooks/useIsMobile'
+import { useIsScrollable } from '@/shared/hooks/useIsScrollable'
 
 // Column widths
 const COLUMNS = [
@@ -151,6 +152,7 @@ function useDebounce<T>(initialValue: T, delay: number): [T, (v: T) => void] {
 // ── Page ────────────────────────────────────────────────────────────
 export default function VirtualScrollPage() {
   const { t } = useTranslation()
+  const [scrollRef, scrollable] = useIsScrollable<HTMLDivElement>()
   const isMobile = useIsMobile()
   // Generate the data (once)
   const [{ data: ALL_DATA, elapsed }] = useState(generateData)
@@ -225,7 +227,7 @@ export default function VirtualScrollPage() {
         </div>
 
         {/* Header + virtual list (scrolls horizontally on narrow screens) */}
-        <div className="overflow-x-auto">
+        <div ref={scrollRef} tabIndex={scrollable ? 0 : undefined} role={scrollable ? 'region' : undefined} aria-label={scrollable ? t('表格（可横向滚动）') : undefined} className="overflow-x-auto focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2">
           <div className="min-w-[760px]">
             <TableHeader />
             {filteredData.length === 0 ? (
@@ -237,6 +239,10 @@ export default function VirtualScrollPage() {
                 rowCount={filteredData.length}
                 rowHeight={ROW_HEIGHT}
                 rowProps={{ itemData: filteredData }}
+                // The list scrolls itself: focusable so the keyboard can scroll it
+                tabIndex={0}
+                aria-label={t('虚拟滚动列表')}
+                className="focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
                 style={{ height: listHeight }}
               />
             )}

@@ -141,6 +141,11 @@
   color: var(--foreground);
   background: transparent;
 }
+/* The code block is a tab stop (it scrolls sideways): the shared focus outline, inset so the rounded box doesn't clip it */
+.md-prose .md-code-block pre:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
 .md-prose .md-code-block pre code {
   font-family: inherit;
 }

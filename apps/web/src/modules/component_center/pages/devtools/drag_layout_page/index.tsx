@@ -323,8 +323,10 @@ function ProgressWidget() {
 }
 
 function SysLogWidget() {
+  const { t } = useTranslation()
   return (
-    <div className="h-full overflow-y-auto">
+    // Scrolls: focusable so the keyboard can scroll it
+    <div tabIndex={0} role="region" aria-label={t('系统日志')} className="h-full overflow-y-auto focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2">
       {LOG_DATA.map((log) => {
         const meta = LOG_LEVEL[log.level]
         return (

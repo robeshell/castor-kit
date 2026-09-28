@@ -288,7 +288,7 @@ export default function WebSocketPage() {
         {/* Message log */}
         <section className="surface-card flex h-[420px] flex-col overflow-hidden md:h-[560px]">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="text-sm font-medium">{t('消息日志')}</h3>
+            <h2 className="text-sm font-medium">{t('消息日志')}</h2>
             <div className="text-muted-foreground flex gap-4 text-xs">
               <span className="flex items-center gap-1">
                 <ArrowUp className="text-primary size-3" />
