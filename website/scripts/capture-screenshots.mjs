@@ -10,7 +10,7 @@
  * Output (WebP):
  *   website/public/screenshots/<lang>/<view>-<theme>.webp   views: dashboard, list, appearance, top-nav, login
  *   website/public/screenshots/accent/<accent>-<theme>.webp  the dashboard in each accent (English UI)
- *   .github/assets/screenshot-<theme>.webp                  README hero (English dashboard)
+ *   .github/assets/screenshot[-zh|-ja]-<theme>.webp         README heroes (the dashboard in each language)
  */
 import { mkdir, writeFile, copyFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -30,6 +30,8 @@ const VIEWPORT = { width: 1440, height: 900 }
 const APPEARANCE = { accent: 'ocean', navMode: 'sidebar', sidebarVariant: 'sidebar', contentWidth: 'fluid', tagsView: true }
 // Pages opened before the shot so the tabs bar looks like real use
 const WARM_UP = ['/system/users', '/system/logs']
+// README hero file suffix per language (README.md / README.zh-CN.md / README.ja.md)
+const README_HERO = { 'en-US': '', 'zh-CN': '-zh', 'ja-JP': '-ja' }
 // Label of the appearance button in each language (aria-label)
 const APPEARANCE_LABEL = { 'zh-CN': '外观设置', 'en-US': 'Appearance', 'ja-JP': '外観設定' }
 
@@ -148,7 +150,9 @@ async function main() {
       await shot(page, join(OUT, 'accent', `${accent}-${theme}.webp`))
       await context.close()
     }
-    await copyFile(join(OUT, 'en-US', `dashboard-${theme}.webp`), join(ROOT, '.github', 'assets', `screenshot-${theme}.webp`))
+    for (const [lang, suffix] of Object.entries(README_HERO)) {
+      await copyFile(join(OUT, lang, `dashboard-${theme}.webp`), join(ROOT, '.github', 'assets', `screenshot${suffix}-${theme}.webp`))
+    }
   }
 
   await browser.close()
