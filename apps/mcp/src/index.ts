@@ -285,7 +285,7 @@ export function migrationName(message: string): string {
 // ─── Server ───────────────────────────────────────────────────────────────────
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: 'castor-kit', version: '0.2.0' })
+  const server = new McpServer({ name: 'castor-kit', version: '0.3.0' })
 
   server.registerTool(
     'get_project_context',

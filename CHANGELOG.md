@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-28
+
+Reference implementations and a checked interface: the component gallery is rebuilt as the pages developers and AI agents copy from, a whole-app interface audit is fixed (accessibility, color, layout, copy), and a project can now start from a release with its own name and the gallery hidden.
+
+### Highlights
+
+- **A gallery to copy from.** Ten page patterns (standard / card / tree / stats list, detail, step form, dynamic form, kanban, gantt, advanced table) on one shared demo backend, eleven component showcase pages (live examples with their exact source and key props) and the new `ConditionBuilder`; AGENTS.md, the skills and the docs site say which page to copy for a requirement.
+- **Interface audit fixed.** Visible focus everywhere (including Windows high contrast), names and keyboard paths for every control, reduced motion honored, route titles and landmarks, text alternatives for all charts, measured color tokens (234 text / focus pairs across 6 accents × light / dark, none below threshold), pinned row actions, full text for truncated values, errors that say how to recover; axe reports no serious or critical issue on any page.
+- **Ready for your own project.** A [Starting a project](https://robeshell.github.io/castor-kit/guide/new-project) guide (repository from a release tag, naming, going live, taking later releases including migrations), `APP_NAME` to name the product, and a gallery that nothing else depends on and one line hides.
+- **The AI workflow, dogfooded.** Building a module end to end with `/new-feature-autopilot` fixed two dozen rough edges in `pnpm scaffold`, `pnpm verify`, `pnpm db:migrate`, `seed:rbac` and the docs.
+
+### Upgrading from 0.2.0
+
+- `pnpm db:migrate` (Docker: on start). `0003` / `0004` add `demo_records`; `0005` drops the twelve tables of the old gallery pages (demo data only) and deletes their menus (40, 401–409).
+- `pnpm seed:rbac -- --incremental` (Docker: on start) adds the 页面模板 (43, 4301–4310) and 组件 (47, 4701–4711) menus and renames the `_add` buttons 新增… → 新建….
+- Color tokens (`apps/web/src/index.css`): the light status text steps, `--muted-foreground` and `--destructive` (now the danger red) changed, and each accent preset gained `--brand-primary` (text, links, focus; `--primary` / `--ring` use it), `--brand-strong-from/to` (gradients under white text) and `--primary-hover`. A project with its own presets defines those too.
+- Focus: controls use `focus-visible:outline-*` with `--ring`, and `test/focus-ring.test.ts` now rejects a bare `outline-none` and translucent focus rings in your own components as well.
+- `Chart` requires a `summary` (its accessible name); `DataTable` gained `pin: 'end'` for actions columns, `primary`, `isRowActive`, `filtered` / `onClearFilters` and new empty states; `FilterSelect` / `SearchInput` take a `label`.
+- The dashboard's system status reads `GET /api/admin/dashboard/system`; `pnpm scaffold --domain component_center` modules use `/api/admin/component-center/<name>s` and register under 页面模板.
+
 ### Added
 
 - **Shared demo data for the component gallery's page patterns** (`docs/roadmap.md` "Component gallery redesign", step 2): table `demo_records` (migrations `0003_demo_record`, `0004_demo_record_board_order`) and the API `/api/admin/component-center/demo-records` — list with filters (search, category, status, owner, enabled, parent / `root`, start-date range) and sorting (`sort_field` + `sort_dir`), `tree`, `stats` (count, amount / quantity sums, counts per status and category, same filters), CRUD, `batch-update`, `batch-delete`, `reorder` (each entry changes only what it carries: `board_order` + status for kanban moves, `sort_order` + parent for tree drags, so the two orders never disturb each other; cycle-checked), import / export / template. A record with children can't be deleted (400); a batch delete may take a parent together with all of its children. Demo fixtures: a three-level project tree of 24 rows.
@@ -24,7 +44,14 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
-Found by building a module end to end with `/new-feature-autopilot` (friction log in the PR):
+- **Interface audit** (2026-09-28, all 52 pages; #84–#89): visible focus outlines on every control (a 1.3:1 translucent ring before) that survive Windows high contrast; reduced motion for `motion/react` (`MotionConfig reducedMotion="user"`); per-route document titles, `<main>` focus on navigation, `nav` landmarks and a skip link; accessible names for filters, pickers, tree / table rows and settings fields; keyboard paths for trees (APG tree), table row clicks, tag close, clear buttons, the drag layout and kanban cards (localized dnd-kit announcements); chart text alternatives (`summary` + ECharts aria / decals); focus return after dialogs; sign-in errors linked to their fields; error toasts that stay until dismissed; translated names for close / sidebar / loading / toasts / date picker; measured color tokens (status text, muted text, one red, accent split, hue separation, fixed chart palette); pinned actions columns and full text for truncated values; actionable network and validation errors; no clipping at 320px; 16px inputs on iOS; one create verb (新建) and clearer empty states.
+- `pnpm scaffold --domain component_center` writes the page to `pages/patterns/<name>_page/` (menu component `component_center/patterns/<name>_page`), next to the gallery's page patterns, instead of the removed `pages/admin/` group.
+- Pages that update on their own can be paused: the perf monitor (every second) and the dashboard's system status (every 3 s); the step form moves focus to each step's heading and to the first invalid field; the advanced table's inline edit focuses the name input, saves on Enter, cancels on Escape and returns focus to the row's Edit button.
+- `pnpm scaffold --domain component_center`: the API lives under the gallery prefix (`/api/admin/component-center/<name>s`, writable in demo mode like the other gallery APIs), and a spec `menu` registers the page under 组件示例中心 → 页面模板 (IDs 4301–4399, path `/component-center/patterns/<name>`) instead of 业务管理.
+- The dashboard's system status only worked for users holding the gallery's performance-monitor permission (it polled `/api/admin/component-center/devtools/perf-stats`); it now reads `GET /api/admin/dashboard/system` (login only). The gallery is no longer needed by the rest of the app: the chat helpers the AI assistant shares moved to `common/ai-chat.ts`, the system metrics to `common/system-stats.ts`, the business-table rule of the read-only role (used by `setup-once` / `init-ro-role`) to `common/sql-visibility.ts`, and the dashboard shows its gallery shortcuts, "Ask AI" and "Audit logs" only when those pages are in the user's menus. Page prefetching matches the page patterns again (it still named the removed `component_center/admin` group), and the AI chat's system prompt lists the current 36 gallery pages.
+- The public demo's notification fixtures no longer include two leftover test rows ("test", "csrf ok").
+
+Found by building a module end to end with `/new-feature-autopilot` (friction log in #79):
 
 - `pnpm scaffold`: each enum field gets a list filter (`FilterSelect` on the page, an exact-match query parameter on the list route, documented with the option values, checked in the generated API test); the backend templates show where the list page template's `status` filter is read. Enum columns are `StatusBadge`s, coloured by an optional `tone` per spec option; list columns keep short values on one line and give free text a minimum width, so narrow screens scroll the table instead of squeezing a column to one character (and ellipsis columns no longer collapse); webhook events are described with the module title ("设备台账已新增") and translated in the module's page locales; downloads are saved under the names the server gives them. `--validate-only` and `--dry-run` name the menu ID and path, `--dry-run` reports the same writes as a real run and ends with "nothing was written", the field list is printed in the `--fields` syntax, and a spec translation that loses to an existing one gets a `[note]`.
 - `pnpm scaffold`: a spec with a required number / option field and no default (e.g. `docs/examples/specs/expense.json`) generated a page that failed `tsc` (the empty form value is `null`, the create body isn't nullable); the page now narrows those fields in a generated `toBody()` before submitting. Its `--fields` next steps and AGENTS.md "Changing menus" mention the menu names in `apps/web/src/locales/menus/`, which the web i18n test requires.
@@ -32,11 +59,6 @@ Found by building a module end to end with `/new-feature-autopilot` (friction lo
 - `pnpm db:migrate` prints in English how many migrations it applied and which one the database is at; `pnpm seed:rbac -- --incremental` lists only menus that changed.
 - The tests read `TEST_DATABASE_URL` from `apps/api/.env.test` as well as the shell, and the Vite dev proxy takes `API_PORT`, so a second checkout can run beside the first with its own databases and ports.
 - AGENTS.md, CLAUDE.md and the autopilot skill lead with the spec flow (`--spec` → `--validate-only` → generate), no longer describe request schemas as `.passthrough()`, and explain a checkout without `apps/api/.env.development`.
-- `pnpm scaffold --domain component_center` writes the page to `pages/patterns/<name>_page/` (menu component `component_center/patterns/<name>_page`), next to the gallery's page patterns, instead of the removed `pages/admin/` group.
-- Pages that update on their own can be paused: the perf monitor (every second) and the dashboard's system status (every 3 s); the step form moves focus to each step's heading and to the first invalid field; the advanced table's inline edit focuses the name input, saves on Enter, cancels on Escape and returns focus to the row's Edit button.
-- `pnpm scaffold --domain component_center`: the API lives under the gallery prefix (`/api/admin/component-center/<name>s`, writable in demo mode like the other gallery APIs), and a spec `menu` registers the page under 组件示例中心 → 页面模板 (IDs 4301–4399, path `/component-center/patterns/<name>`) instead of 业务管理.
-- The dashboard's system status only worked for users holding the gallery's performance-monitor permission (it polled `/api/admin/component-center/devtools/perf-stats`); it now reads `GET /api/admin/dashboard/system` (login only). The gallery is no longer needed by the rest of the app: the chat helpers the AI assistant shares moved to `common/ai-chat.ts`, the system metrics to `common/system-stats.ts`, the business-table rule of the read-only role (used by `setup-once` / `init-ro-role`) to `common/sql-visibility.ts`, and the dashboard shows its gallery shortcuts, "Ask AI" and "Audit logs" only when those pages are in the user's menus. Page prefetching matches the page patterns again (it still named the removed `component_center/admin` group), and the AI chat's system prompt lists the current 36 gallery pages.
-- The public demo's notification fixtures no longer include two leftover test rows ("test", "csrf ok").
 
 ## [0.2.0] - 2026-09-27
 
@@ -126,6 +148,7 @@ First public release: an AI-first admin framework on Node.js + TypeScript (Fasti
 - Docker image with migrations and RBAC sync on start; a public demo mode (read-only system management, one-click sign-in, data reset on a schedule) and a Render + Neon blueprint.
 - Documentation site (VitePress) in Chinese, English and Japanese; MIT license and community files.
 
-[Unreleased]: https://github.com/robeshell/castor-kit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/robeshell/castor-kit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/robeshell/castor-kit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/robeshell/castor-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/robeshell/castor-kit/releases/tag/v0.1.0
