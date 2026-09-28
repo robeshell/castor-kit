@@ -21,6 +21,7 @@
   "虚拟滚动列表": "Virtual scroll list",
   "虚拟滚动窗口高度 {{height}}px，每行高度 {{rowHeight}}px，可视区约 {{min}}~{{max}} 行": "Viewport height {{height}}px, row height {{rowHeight}}px, about {{min}}–{{max}} rows visible",
   "行": "row",
+  "表格（可横向滚动）": "Table (scrolls sideways)",
   "试用期": "Probation",
   "跳转": "Jump",
   "跳转到的行号": "Row to jump to",

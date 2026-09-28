@@ -58,7 +58,8 @@ function CodeBlock({ children }: { children?: ReactNode }) {
         <span className="text-muted-foreground font-mono text-[11px] lowercase">{language || 'text'}</span>
         <CopyButton text={text} />
       </div>
-      <pre>{children}</pre>
+      {/* Long lines scroll sideways: focusable so the keyboard can scroll them */}
+      <pre tabIndex={0}>{children}</pre>
     </div>
   )
 }
