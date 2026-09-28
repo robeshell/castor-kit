@@ -31,6 +31,7 @@ Found by building a module end to end with `/new-feature-autopilot` (friction lo
 - The tests read `TEST_DATABASE_URL` from `apps/api/.env.test` as well as the shell, and the Vite dev proxy takes `API_PORT`, so a second checkout can run beside the first with its own databases and ports.
 - AGENTS.md, CLAUDE.md and the autopilot skill lead with the spec flow (`--spec` → `--validate-only` → generate), no longer describe request schemas as `.passthrough()`, and explain a checkout without `apps/api/.env.development`.
 - `pnpm scaffold --domain component_center` writes the page to `pages/patterns/<name>_page/` (menu component `component_center/patterns/<name>_page`), next to the gallery's page patterns, instead of the removed `pages/admin/` group.
+- Pages that update on their own can be paused: the perf monitor (every second) and the dashboard's system status (every 3 s); the step form moves focus to each step's heading and to the first invalid field; the advanced table's inline edit focuses the name input, saves on Enter, cancels on Escape and returns focus to the row's Edit button.
 
 ## [0.2.0] - 2026-09-27
 

@@ -8,12 +8,13 @@
  *   so paging, the status tabs and reset keep or clear them with the other filters; only columns the API can sort by
  *   (SORT_FIELDS in the module's schema.ts) get a sort button.
  * - inline row editing: one row at a time switches its cells to inputs (a local draft), saved with updateItem; the
- *   values before the last save are kept so it can be undone.
+ *   values before the last save are kept so it can be undone. Editing focuses the name input, Enter in an input saves,
+ *   Escape cancels, and focus returns to the row's Edit button afterwards (the buttons it swaps with unmount).
  * - row selection + batch actions: batchUpdate (status / owner / enabled) and batchDelete on the selected ids.
  * - column visibility: a DropdownMenu of checkbox items; the actions column is always shown.
  * Buttons are gated by the cc_patterns_edit / cc_patterns_delete permissions (no permission → no selection column).
  */
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'motion/react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -157,10 +158,11 @@ interface NumberCellProps {
   max?: number
   label: string
   onChange: (value: number) => void
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void
 }
 
 /** Integer input of an editing row (blank → 0) */
-function NumberCell({ value, min, max, label, onChange }: NumberCellProps) {
+function NumberCell({ value, min, max, label, onChange, onKeyDown }: NumberCellProps) {
   const { t } = useTranslation()
   return (
     <Input
@@ -171,6 +173,7 @@ function NumberCell({ value, min, max, label, onChange }: NumberCellProps) {
       value={value}
       aria-label={t(label)}
       onChange={(e) => onChange(e.target.value === '' ? 0 : Math.trunc(Number(e.target.value)))}
+      onKeyDown={onKeyDown}
       className="h-8 w-20 px-2 text-[13px] tabular-nums"
     />
   )
@@ -233,12 +236,27 @@ export default function AdvancedTablePage() {
   // ── Inline editing ──────────────────────────────────────────────────────────
   const patchDraft = (patch: Partial<InlineDraft>) => setEditing((prev) => prev && { ...prev, draft: { ...prev.draft, ...patch } })
 
+  // Save / Cancel replace the Edit button (and back), so focus is put back on the row's Edit button by hand
+  const editButtons = useRef(new Map<number, HTMLButtonElement>())
+  const refocusEditOf = useRef<number | null>(null)
+  useEffect(() => {
+    if (editing || refocusEditOf.current === null) return
+    editButtons.current.get(refocusEditOf.current)?.focus()
+    refocusEditOf.current = null
+  }, [editing])
+
+  const cancelEdit = () => {
+    if (editing) refocusEditOf.current = editing.id
+    setEditing(null)
+  }
+
   const saveEdit = async (record: Row) => {
     if (!editing) return
     setSaving(true)
     try {
       await updateItem(record.id, editing.draft)
       setLastEdit({ id: record.id, values: toDraft(record) })
+      refocusEditOf.current = record.id
       setEditing(null)
       toast.success('保存成功')
       fetchData()
@@ -246,6 +264,17 @@ export default function AdvancedTablePage() {
       toast.apiError(err, '保存失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  /** Enter in a row input saves, Escape cancels */
+  const handleEditKey = (e: KeyboardEvent<HTMLInputElement>, record: Row) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      cancelEdit()
+    } else if (e.key === 'Enter' && !e.nativeEvent.isComposing && !saving) {
+      e.preventDefault()
+      saveEdit(record)
     }
   }
 
@@ -335,7 +364,14 @@ export default function AdvancedTablePage() {
       render: (value, record) => {
         const draft = draftOf(record)
         return draft ? (
-          <Input value={draft.name} aria-label={t('名称')} onChange={(e) => patchDraft({ name: e.target.value })} className="h-8 text-[13px]" />
+          <Input
+            autoFocus
+            value={draft.name}
+            aria-label={t('名称')}
+            onChange={(e) => patchDraft({ name: e.target.value })}
+            onKeyDown={(e) => handleEditKey(e, record)}
+            className="h-8 text-[13px]"
+          />
         ) : (
           <span className="font-medium">{value}</span>
         )
@@ -389,7 +425,13 @@ export default function AdvancedTablePage() {
       render: (value, record) => {
         const draft = draftOf(record)
         return draft ? (
-          <Input value={draft.owner} aria-label={t('负责人')} onChange={(e) => patchDraft({ owner: e.target.value })} className="h-8 text-[13px]" />
+          <Input
+            value={draft.owner}
+            aria-label={t('负责人')}
+            onChange={(e) => patchDraft({ owner: e.target.value })}
+            onKeyDown={(e) => handleEditKey(e, record)}
+            className="h-8 text-[13px]"
+          />
         ) : (
           value || '-'
         )
@@ -403,7 +445,14 @@ export default function AdvancedTablePage() {
       className: 'tabular-nums',
       render: (value, record) => {
         const draft = draftOf(record)
-        return draft ? <NumberCell value={draft.priority} label="优先级" onChange={(priority) => patchDraft({ priority })} /> : value
+        return draft ? (
+          <NumberCell
+            value={draft.priority}
+            label="优先级"
+            onChange={(priority) => patchDraft({ priority })}
+            onKeyDown={(e) => handleEditKey(e, record)}
+          />
+        ) : value
       },
     },
     progress: {
@@ -412,7 +461,18 @@ export default function AdvancedTablePage() {
       width: 140,
       render: (value, record) => {
         const draft = draftOf(record)
-        if (draft) return <NumberCell value={draft.progress} min={0} max={100} label="进度" onChange={(progress) => patchDraft({ progress })} />
+        if (draft) {
+          return (
+            <NumberCell
+              value={draft.progress}
+              min={0}
+              max={100}
+              label="进度"
+              onChange={(progress) => patchDraft({ progress })}
+              onKeyDown={(e) => handleEditKey(e, record)}
+            />
+          )
+        }
         const pct = Math.max(0, Math.min(100, value ?? 0))
         return (
           <div className="flex items-center gap-2">
@@ -480,14 +540,23 @@ export default function AdvancedTablePage() {
               {saving ? <Spinner /> : null}
               {t('保存')}
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 px-2" disabled={saving} onClick={() => setEditing(null)}>
+            <Button size="sm" variant="ghost" className="h-7 px-2" disabled={saving} onClick={cancelEdit}>
               {t('取消')}
             </Button>
           </div>
         ) : (
           <div className="flex justify-end gap-0.5">
             {canEdit ? (
-              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditing({ id: record.id, draft: toDraft(record) })}>
+              <Button
+                ref={(el) => {
+                  if (el) editButtons.current.set(record.id, el)
+                  else editButtons.current.delete(record.id)
+                }}
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setEditing({ id: record.id, draft: toDraft(record) })}
+              >
                 {t('编辑')}
               </Button>
             ) : null}

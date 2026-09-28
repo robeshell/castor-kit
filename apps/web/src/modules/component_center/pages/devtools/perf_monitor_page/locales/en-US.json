@@ -27,5 +27,7 @@
   "资源": "Resource",
   "轻微卡顿": "Slight stutter",
   "页面加载时序": "Page load timing",
-  "页面帧率": "Page frame rate"
+  "页面帧率": "Page frame rate",
+  "暂停": "Pause",
+  "继续": "Resume"
 }

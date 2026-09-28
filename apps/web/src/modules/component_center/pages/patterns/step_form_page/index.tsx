@@ -9,16 +9,19 @@
  * What to copy:
  *   - one useForm<FormValues> for the whole wizard; every step stays mounted (only the current one is shown), so
  *     values and rules carry across steps and the final submit validates the whole form
- *   - "Next" validates only the current step's fields (`form.trigger(step.fields)`); a failed submit jumps back to the
- *     first step with an error; Enter in an input means Next before the last step
+ *   - "Next" validates only the current step's fields (`form.trigger(step.fields, { shouldFocus: true })`); a failed
+ *     submit jumps back to the first step with an error and focuses the invalid field; Enter in an input means Next
+ *     before the last step
+ *   - focus follows the wizard: every step change focuses that step's (visually hidden) heading, so screen readers
+ *     announce "step N of M" and the next Tab reaches the step's first field; the success state focuses its heading
  *   - cross-field rules in the form (end date not before start date, as the API checks), API errors via toast.apiError
  *   - a review step (DescriptionList, each group with a link back to its step), then createItem and a success state
  *     with links to the new record's detail page and to the standard list
  *   - the page is gated by cc_patterns_add (without it the form is not shown)
  */
-import { useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { useForm, useWatch, type Control } from 'react-hook-form'
+import { useForm, useWatch, type Control, type FieldErrors } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheck, Lock } from 'lucide-react'
@@ -165,32 +168,56 @@ export default function StepFormPage() {
   const form = useForm<FormValues>({ defaultValues: EMPTY_VALUES, mode: 'onTouched' })
   const submitting = form.formState.isSubmitting
 
-  const next = async () => {
-    const fields = STEPS[step]?.fields ?? []
-    if (await form.trigger(fields)) setStep(Math.min(step + 1, LAST))
+  // Where focus goes after the next step change: the step's heading, or an invalid field on that step
+  const focusAfterStep = useRef<'heading' | keyof FormValues | null>(null)
+  const headingRefs = useRef<(HTMLHeadingElement | null)[]>([])
+  const successRef = useRef<HTMLHeadingElement>(null)
+
+  const goTo = (index: number, focus: 'heading' | keyof FormValues = 'heading') => {
+    focusAfterStep.current = focus
+    setStep(index)
   }
 
-  const submit = form.handleSubmit(
-    async (values) => {
-      try {
-        setCreated(await createItem(values))
-        toast.success('创建成功')
-      } catch (err) {
-        // e.g. a duplicate code (400): the message comes from the API; the wizard stays on the review step
-        toast.apiError(err, '创建失败')
-      }
-    },
-    (errors) => {
-      // Whole-form validation failed: go back to the first step with an invalid field
-      const index = STEPS.findIndex((s) => s.fields.some((f) => errors[f]))
-      if (index >= 0) setStep(index)
-    },
-  )
+  // Runs after the new step is shown (hidden steps can't take focus)
+  useEffect(() => {
+    const target = focusAfterStep.current
+    focusAfterStep.current = null
+    if (target === 'heading') headingRefs.current[step]?.focus()
+    else if (target) form.setFocus(target)
+  }, [step, form])
+
+  useEffect(() => {
+    if (created) successRef.current?.focus()
+  }, [created])
+
+  const next = async () => {
+    const fields = STEPS[step]?.fields ?? []
+    if (await form.trigger(fields, { shouldFocus: true })) goTo(Math.min(step + 1, LAST))
+  }
+
+  const create = async (values: FormValues) => {
+    try {
+      setCreated(await createItem(values))
+      toast.success('创建成功')
+    } catch (err) {
+      // e.g. a duplicate code (400): the message comes from the API; the wizard stays on the review step
+      toast.apiError(err, '创建失败')
+    }
+  }
+
+  // Whole-form validation failed: go back to the first step with an invalid field and focus that field
+  const showFirstError = (errors: FieldErrors<FormValues>) => {
+    const index = STEPS.findIndex((s) => s.fields.some((f) => errors[f]))
+    const field = STEPS[index]?.fields.find((f) => errors[f])
+    if (index < 0 || !field) return
+    if (index === step) form.setFocus(field)
+    else goTo(index, field)
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (step < LAST) next()
-    else submit(e)
+    else form.handleSubmit(create, showFirstError)(e)
   }
 
   // Before the last step, Enter in an input means Next (controls that use Enter themselves, like the tag input, prevent it)
@@ -204,9 +231,22 @@ export default function StepFormPage() {
 
   const restart = () => {
     form.reset(EMPTY_VALUES)
-    setStep(0)
     setCreated(null)
+    goTo(0)
   }
+
+  /** Visually hidden heading of a step; focused on every step change */
+  const stepHeading = (index: number) => (
+    <h2
+      ref={(el) => {
+        headingRefs.current[index] = el
+      }}
+      tabIndex={-1}
+      className="sr-only"
+    >
+      {t('第 {{current}} 步，共 {{total}} 步：{{title}}', { current: index + 1, total: STEPS.length, title: t(STEPS[index]?.title ?? '') })}
+    </h2>
+  )
 
   return (
     <div>
@@ -224,7 +264,9 @@ export default function StepFormPage() {
                 <span className="bg-success-soft text-success mb-4 flex size-12 items-center justify-center rounded-full">
                   <CircleCheck className="size-6" />
                 </span>
-                <h2 className="text-base font-semibold">{t('创建成功')}</h2>
+                <h2 ref={successRef} tabIndex={-1} className="text-base font-semibold focus:outline-none">
+                  {t('创建成功')}
+                </h2>
                 <p className="text-muted-foreground mt-1 text-[13px]">{t('「{{name}}」（{{code}}）已创建', { name: created.name, code: created.code })}</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   <Button asChild size="sm">
@@ -250,6 +292,7 @@ export default function StepFormPage() {
                 <div className="px-6 py-6">
                   {/* Every step stays mounted (hidden when not current) so its values and rules stay registered */}
                   <div className={cn(step === 0 ? 'animate-in fade-in-0 slide-in-from-right-2 space-y-4 duration-200' : 'hidden')}>
+                    {stepHeading(0)}
                     <FormGrid>
                       <FormInput control={form.control} name="name" label="名称" rules={{ required: '请输入名称' }} />
                       <FormInput control={form.control} name="code" label="编码" placeholder="例如：REC-001" rules={{ required: '请输入编码' }} />
@@ -268,6 +311,7 @@ export default function StepFormPage() {
                     />
                   </div>
                   <div className={cn(step === 1 ? 'animate-in fade-in-0 slide-in-from-right-2 duration-200' : 'hidden')}>
+                    {stepHeading(1)}
                     <FormGrid>
                       <FormDate control={form.control} name="start_date" label="开始日期" />
                       <FormDate
@@ -305,7 +349,8 @@ export default function StepFormPage() {
                     </FormGrid>
                   </div>
                   <div className={cn(step === LAST ? 'animate-in fade-in-0 slide-in-from-right-2 duration-200' : 'hidden')}>
-                    <Review control={form.control} onEdit={setStep} />
+                    {stepHeading(LAST)}
+                    <Review control={form.control} onEdit={(index) => goTo(index)} />
                   </div>
                 </div>
                 <div className="flex items-center gap-2 border-t px-6 py-4">
@@ -313,7 +358,7 @@ export default function StepFormPage() {
                     {t('第 {{current}} 步，共 {{total}} 步', { current: step + 1, total: STEPS.length })}
                   </span>
                   {step > 0 ? (
-                    <Button type="button" variant="outline" size="sm" disabled={submitting} onClick={() => setStep(step - 1)}>
+                    <Button type="button" variant="outline" size="sm" disabled={submitting} onClick={() => goTo(step - 1)}>
                       {t('上一步')}
                     </Button>
                   ) : null}

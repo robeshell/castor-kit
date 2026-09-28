@@ -51,5 +51,6 @@
   "进度范围 0–100": "Progress must be 0–100",
   "进行中": "In progress",
   "金额": "Amount",
-  "金额不能小于 0": "Amount can't be negative"
+  "金额不能小于 0": "Amount can't be negative",
+  "第 {{current}} 步，共 {{total}} 步：{{title}}": "Step {{current}} of {{total}}: {{title}}"
 }
