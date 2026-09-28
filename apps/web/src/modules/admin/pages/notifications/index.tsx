@@ -229,6 +229,7 @@ export default function Notifications() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 132,
@@ -285,8 +286,16 @@ export default function Notifications() {
         minWidth={820}
         rowClassName={(record) => (!record.is_read ? 'bg-brand-soft/40' : undefined)}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle={readFilter === 'false' ? '没有未读通知' : '暂无通知'}
-        emptyDescription={readFilter === 'all' ? '点击右上角「新建通知」发送一条' : undefined}
+        filtered={readFilter !== 'all'}
+        onClearFilters={() => handleSearch({ is_read: 'all' })}
+        emptyTitle="还没有通知"
+        emptyDescription="发给你的通知和全局通知会出现在这里"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建通知')}
+          </Button>
+        }
       />
 
       <FormDialog open={formOpen} onOpenChange={setFormOpen} title="新建通知" form={form} onSubmit={submit}>

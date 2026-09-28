@@ -34,7 +34,7 @@
   "全部展开": "Expand all",
   "全部收起": "Collapse all",
   "只展开第一层": "First level only",
-  "新建文件": "New file",
+  "新建文件": "Add file",
   "删除这一项？": "Delete this item?",
   "文件夹「{{name}}」和里面的文件会一起删除。": "The folder \"{{name}}\" is deleted together with its files.",
   "已删除": "Deleted",

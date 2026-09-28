@@ -1,5 +1,5 @@
 {
-  "数据表格": "Data Table",
+  "数据表格": "Data table",
   "列表页的表格：带类型的列定义、自定义单元格、行选择、受控分页，内置加载骨架和空状态。行操作用 RowActions，危险操作用 ConfirmAction 确认。不带排序和固定表头：排序交给接口的查询参数，长列表用分页。": "The table of list pages: typed column definitions, custom cells, row selection and controlled pagination, with a loading skeleton and an empty state built in. Row actions use RowActions; dangerous actions are confirmed with ConfirmAction. There is no sorting and no sticky header: sort through the API's query parameters, and page long lists.",
   "基础用法": "Basics",
   "给列数组标注 DataTableColumn<Row>[]，dataIndex 只能是行的字段。没有 render 的列直接显示值，空值显示 -。": "Annotate the columns array as DataTableColumn<Row>[] so dataIndex can only be a field of the row. A column without render shows the value as is; empty values show -.",
@@ -71,7 +71,6 @@
   "按行追加 class": "Extra classes per row",
   "空状态标题（中文原文，组件内翻译）": "Empty state title (Chinese source text, translated by the component)",
   "空状态说明，写下一步做什么": "Empty state description: say what to do next",
-  "空状态里的按钮": "A button in the empty state",
   "外层卡片边框；放在 Panel 里时设为 false": "Outer card border; set to false inside a Panel",
   "紧凑行高": "Compact row height",
   "表格最小宽度，容器更窄时横向滚动": "Table min width; narrower containers scroll horizontally",
@@ -97,5 +96,9 @@
   "这一行不显示该操作": "Leaves the action out for this row",
   "点击行；传了之后行显示手型光标，主列里放一个按钮供键盘和读屏使用": "Row click; when set, rows show a pointer cursor and the primary column holds a button for keyboard and screen-reader users",
   "页面当前打开的那一行（如主从表的主行），读屏报 aria-current；样式仍用 rowClassName": "The row the page has open (e.g. the master row of a master-detail view), announced with aria-current; style it with rowClassName",
-  "配合 onRowClick：行按钮放在这一列（默认第一列）；选能说出这一行是谁的列，且列里没有别的控件": "With onRowClick: the column that holds the row button (default: the first). Pick one that names the row and has no other controls"
+  "配合 onRowClick：行按钮放在这一列（默认第一列）；选能说出这一行是谁的列，且列里没有别的控件": "With onRowClick: the column that holds the row button (default: the first). Pick one that names the row and has no other controls",
+  "还没有数据时空状态里的下一步，通常是新建按钮": "The next step in the empty state when there is no data yet, usually the add button",
+  "搜索或筛选正在缩小列表：为空时显示“没有符合条件的记录”和清除筛选按钮，而不是还没有数据的空状态": "Search or filters are narrowing the list: an empty result shows \"No records match\" and a clear-filters button instead of the no-data empty state",
+  "清除搜索和筛选（通常就是 FilterBar 的重置）": "Clears the search and filters (usually the FilterBar's reset)",
+  "表格横向滚动时固定在右侧，窄屏也能点到行操作；每个操作列都用它": "Sticks to the right edge while the table scrolls sideways, so row actions stay in reach on narrow screens; use it for every actions column"
 }

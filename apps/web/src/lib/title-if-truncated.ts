@@ -11,3 +11,16 @@ export function titleIfTruncated(e: MouseEvent<HTMLElement>): void {
   if (clipped) el.title = el.textContent?.trim() ?? ''
   else el.removeAttribute('title')
 }
+
+/**
+ * onMouseEnter handler for a container (a table cell) whose content may hold clipped text anywhere inside: when any
+ * part is cut off, the whole visible text (line breaks between blocks kept) becomes the container's native tooltip.
+ */
+export function titleIfAnyTruncated(e: MouseEvent<HTMLElement>): void {
+  const el = e.currentTarget
+  const clipped = [el, ...el.querySelectorAll<HTMLElement>('*')].some(
+    (node) => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== 'visible',
+  )
+  if (clipped) el.title = el.innerText.trim()
+  else el.removeAttribute('title')
+}

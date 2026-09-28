@@ -18,6 +18,7 @@ import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
 import type { TreeNode } from '@/shared/components/TreeView'
 import { isReauthCancelled, useReauth } from '@/shared/hooks/useReauth'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 const EXPIRY_OPTIONS = [
   { label: '30 天', value: '30' },
@@ -280,11 +281,11 @@ export default function ApiTokensPanel() {
                 </div>
                 <div className="min-w-0 flex-1 leading-tight">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[13px] font-medium">{token.name}</span>
+                    <span className="truncate text-[13px] font-medium" onMouseEnter={titleIfTruncated}>{token.name}</span>
                     <code className="text-muted-foreground shrink-0 font-mono text-xs">{token.token_prefix}…</code>
                     {expired ? <StatusBadge tone="neutral">{t('已过期')}</StatusBadge> : null}
                   </div>
-                  <div className="text-muted-foreground mt-1 truncate text-xs tabular-nums">
+                  <div className="text-muted-foreground mt-1 truncate text-xs tabular-nums" onMouseEnter={titleIfTruncated}>
                     <span title={token.scopes.map((code) => menuLabel({ code, name: code })).join('、')}>
                       {t('{{count}} 项权限', { count: token.scopes.length })}
                     </span>

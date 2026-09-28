@@ -115,6 +115,7 @@ export default function Sessions() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 96,
@@ -157,7 +158,9 @@ export default function Sessions() {
         minWidth={920}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="没有在线的会话"
-        emptyDescription={filters.search ? '换个关键词试试' : undefined}
+        filtered={Boolean(filters.search)}
+        onClearFilters={reset}
+        emptyDescription="用户登录后，会话会出现在这里"
       />
     </div>
   )

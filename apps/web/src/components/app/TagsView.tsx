@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { STATIC_TITLES, findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
 import { useTagsView, type Tab } from '@/context/TagsViewContext'
 import { useTranslation } from 'react-i18next'
+import { useOverflowFade } from '@/shared/hooks/useOverflowFade'
 
 /** The actions shared by the right-click menu of a tab and the menu at the end of the bar */
 interface TabActionsProps {
@@ -70,6 +71,8 @@ export default function TagsView() {
   const flat = flattenMenus(menus)
   const activeRef = useRef<HTMLAnchorElement>(null)
   const reduceMotion = useReducedMotion()
+  // Tabs that don't fit scroll sideways with no scrollbar: fade the side that has more
+  const [fadeRef, fade] = useOverflowFade<HTMLElement>()
 
   // Keep the active tab visible when the bar overflows
   useEffect(() => {
@@ -80,7 +83,7 @@ export default function TagsView() {
 
   return (
     <div className="bg-background hidden h-10 shrink-0 items-center gap-2 border-b pr-2 pl-3 md:flex md:pl-4">
-      <nav aria-label={t('已打开的页面')} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+      <nav ref={fadeRef} style={fade} aria-label={t('已打开的页面')} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
         <AnimatePresence initial={false}>
           {tabs.map((tab) => {
             const menu = findActiveMenu(flat, tab.path)

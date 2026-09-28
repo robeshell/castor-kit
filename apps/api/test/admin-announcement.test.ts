@@ -96,7 +96,7 @@ describe('announcement', () => {
       [{ title: `${P}x`, content: { a: 1 } }, '内容的值无效'],
       [{ title: `${P}x`, publish_at: 'garbage' }, '发布时间的值无效'],
       [{ title: `${P}x`, publish_at: '2026-02-30 10:00' }, '发布时间的值无效'],
-      [{ title: `${P}${'x'.repeat(100)}` }, '字段长度超出限制'],
+      [{ title: `${P}${'x'.repeat(100)}` }, '有字段超出了长度上限，请缩短后再保存'],
     ]
     for (const [bad, error] of cases) {
       const res = await post(bad)
@@ -223,7 +223,7 @@ describe('announcement', () => {
       reason: '标题不能为空',
       row: { 标题: '', 公告类型: 'system', 状态: 'draft', 是否置顶: '', 排序权重: '', 内容: '' },
     })
-    expect(body.error_rows[1].reason).toBe('字段长度超出限制')
+    expect(body.error_rows[1].reason).toBe('有字段超出了长度上限，请缩短后再保存')
     expect(await handle.db.select().from(announcements).where(like(announcements.title, `${P}导入%`))).toEqual([])
 
     const ok = await s.inject({ method: 'POST', url: '/api/admin/announcements/import', ...multipartFile('a.csv', `${header}${row1}${row2}`) })

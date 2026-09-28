@@ -306,7 +306,7 @@ describe('i18n messages coverage', () => {
       '缺少权限: ${…}', // template in a conditional
       '请求体格式错误', // const message = cond ? … : …
       '服务器内部错误，请稍后重试', // imported constant
-      '数据重复：唯一字段的值已存在', // CONST_MAP[code]
+      '已有记录使用了相同的值，请换一个值后再保存', // CONST_MAP[code]
       '请填写完整信息', // const error = validate…(); new ServiceError(error)
       '只允许 SELECT 查询语句', // const [safe, reason] = isSafeSql(sql)
       'Cron 表达式不能为空', // err.message after instanceof ScheduledTaskSchemaError

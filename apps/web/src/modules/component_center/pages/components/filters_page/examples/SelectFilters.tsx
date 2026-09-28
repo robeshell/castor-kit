@@ -31,8 +31,8 @@ export default function SelectFilters() {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {/* placeholder names the "all" item: '状态' → 「全部状态」 */}
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
-        <FilterSelect value={priority} onChange={setPriority} options={PRIORITY_OPTIONS} placeholder="优先级" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
+        <FilterSelect value={priority} onChange={setPriority} options={PRIORITY_OPTIONS} placeholder="优先级" allLabel="全部优先级" />
         {/* allLabel replaces that text; className sets the width */}
         <FilterSelect value={region} onChange={setRegion} options={REGION_OPTIONS} placeholder="地区" allLabel="所有地区" className="w-40" />
       </div>

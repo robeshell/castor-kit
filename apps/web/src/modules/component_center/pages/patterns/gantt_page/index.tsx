@@ -468,7 +468,7 @@ export default function GanttPage() {
           canAdd ? (
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增')}
+              {t('新建')}
             </Button>
           ) : null
         }
@@ -513,7 +513,7 @@ export default function GanttPage() {
           <EmptyState
             icon={CalendarRange}
             title="暂无数据"
-            description={canAdd ? '点击右上角「新增」添加第一条数据' : undefined}
+            description={canAdd ? '点击右上角「新建」添加第一条数据' : undefined}
           />
         ) : (
           <div ref={scrollRef} className="overflow-x-auto border-t">
@@ -659,7 +659,7 @@ export default function GanttPage() {
         )}
       </Panel>
 
-      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新增'} form={form} onSubmit={submit}>
+      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新建'} form={form} onSubmit={submit}>
         <FormInput control={form.control} name="name" label="名称" rules={{ required: '此项必填' }} />
         <FormTreeSelect
           control={form.control}

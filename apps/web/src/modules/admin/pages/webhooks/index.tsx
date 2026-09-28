@@ -268,6 +268,7 @@ export default function Webhooks() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 260,
@@ -332,7 +333,7 @@ export default function Webhooks() {
             {canAdd ? (
               <Button variant="brand" size="sm" onClick={() => openForm()}>
                 <Plus />
-                {t('新增 Webhook')}
+                {t('新建 Webhook')}
               </Button>
             ) : null}
           </>
@@ -345,12 +346,20 @@ export default function Webhooks() {
         minWidth={880}
         emptyTitle="还没有 Webhook"
         emptyDescription="新增后，用户、角色、部门等数据变动时会推送到你填写的地址"
+        emptyAction={
+          canAdd ? (
+            <Button size="sm" onClick={() => openForm()}>
+              <Plus />
+              {t('新建 Webhook')}
+            </Button>
+          ) : null
+        }
       />
 
       <FormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editing ? '编辑 Webhook' : '新增 Webhook'}
+        title={editing ? '编辑 Webhook' : '新建 Webhook'}
         form={form}
         onSubmit={save}
       >

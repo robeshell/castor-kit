@@ -19,6 +19,7 @@ import { layoutSpring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { findActiveMenu, firstPage, flattenMenus, isNavVisible, sectionOf, visibleChildren } from '@/components/app/menu-tree'
 import { useTranslation } from 'react-i18next'
+import { useOverflowFade } from '@/shared/hooks/useOverflowFade'
 
 const TAB =
   'relative z-0 flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-[13px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&_svg]:size-4 [&_svg]:shrink-0'
@@ -95,9 +96,11 @@ export default function TopNav({ mode = 'full', className }: TopNavProps) {
   const activePath = useMemo(() => new Set(active ? [...active.parents.map((p) => p.id), active.id] : []), [active])
   const section = sectionOf(active)
   const roots = menus.filter(isNavVisible)
+  // Menus that don't fit scroll sideways with no scrollbar: fade the side that has more
+  const [fadeRef, fade] = useOverflowFade<HTMLElement>()
 
   return (
-    <nav aria-label={mode === 'full' ? t('主导航') : t('栏目导航')} className={cn('flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]', className)}>
+    <nav ref={fadeRef} style={fade} aria-label={mode === 'full' ? t('主导航') : t('栏目导航')} className={cn('flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]', className)}>
       {roots.map((root) => {
         const children = visibleChildren(root)
         const isActive = activePath.has(root.id)

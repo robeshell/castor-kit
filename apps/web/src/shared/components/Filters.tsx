@@ -13,7 +13,7 @@ const ALL = '__all__'
  * List filter bar: filter controls on the left, search / reset on the right.
  *   <FilterBar onSearch={search} onReset={reset}>
  *     <SearchInput value={kw} onChange={setKw} onSubmit={search} placeholder="搜索用户名" />
- *     <FilterSelect value={status} onChange={setStatus} options={STATUS} placeholder="状态" />
+ *     <FilterSelect value={status} onChange={setStatus} options={STATUS} placeholder="状态" allLabel="全部状态" />
  *   </FilterBar>
  * String props (placeholder, option labels) are translated here, so pages can pass the Chinese source text.
  */
@@ -125,7 +125,7 @@ export function FilterSelect({ value, onChange, options = [], placeholder = '全
       <span id={labelId} className="sr-only">
         {tx(label ?? placeholder)}
       </span>
-      <SelectTrigger aria-labelledby={labelId} size="sm" className={cn('h-8 w-36 text-[13px]', className)}>
+      <SelectTrigger aria-labelledby={labelId} size="sm" className={cn('h-8 w-auto max-w-60 min-w-36 text-[13px]', className)}>
         <SelectValue placeholder={tx(placeholder)} />
       </SelectTrigger>
       <SelectContent>

@@ -10,6 +10,7 @@
   "名称": "Name",
   "名称 / 编码": "Name or code",
   "启用": "Enabled",
+  "在「标准列表」新建的示例记录会出现在这里": "Sample records added in Standard list appear here",
   "将删除已勾选的 {{count}} 条记录，删除后不可恢复。": "{{count}} selected records will be deleted. This can't be undone.",
   "将删除已勾选的 {{count}} 条记录，删除后不可恢复。_one": "{{count}} selected record will be deleted. This can't be undone.",
   "已删除 {{count}} 条记录": "{{count}} records deleted",
@@ -27,7 +28,6 @@
   "待办": "To do",
   "批量删除失败": "Bulk delete failed",
   "批量更新失败": "Bulk update failed",
-  "换个筛选条件试试": "Try different filters",
   "撤销上次编辑": "Undo last edit",
   "撤销失败": "Undo failed",
   "是否启用": "Enabled",
@@ -43,8 +43,9 @@
   "设计": "Design",
   "负责人": "Owner",
   "运营": "Operations",
+  "还没有记录": "No records yet",
   "进度": "Progress",
   "进行中": "In progress",
   "金额": "Amount",
-  "高级表格": "Advanced Table"
+  "高级表格": "Advanced table"
 }

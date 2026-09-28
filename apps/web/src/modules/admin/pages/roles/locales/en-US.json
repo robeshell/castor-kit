@@ -18,8 +18,6 @@
   "本部门": "Own department",
   "本部门及下级": "Own department and below",
   "模板下载成功": "Template downloaded",
-  "没有找到角色": "No roles found",
-  "点击右上角「新建角色」添加第一个角色": "Click \"Add role\" in the top right to create the first role",
   "确认删除该角色？": "Delete this role?",
   "编辑角色": "Edit role",
   "自定义 {{count}} 个部门": "{{count}} custom departments",
@@ -28,11 +26,13 @@
   "菜单名称": "Menu names",
   "菜单权限": "Menu permissions",
   "菜单编码": "Menu codes",
+  "角色决定用户能看到哪些菜单、能做哪些操作": "Roles decide which menus users see and what they can do",
   "角色导出字段": "Export roles",
   "角色管理": "Roles",
   "请输入角色名称": "Enter a role name",
   "请输入角色编码": "Enter a role code",
   "超级管理员始终拥有全部菜单权限，不能修改": "Super admins always have every menu permission; this can't be changed",
   "超级管理员始终能看到全部数据": "Super admins always see all data",
+  "还没有角色": "No roles yet",
   "还没有部门，先到「部门管理」添加": "No departments yet. Add some under Departments first."
 }

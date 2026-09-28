@@ -56,7 +56,7 @@ export default function InstantFilters() {
         extra={<span className="text-muted-foreground text-xs tabular-nums">{t('共 {{count}} 条', { count: rows.length })}</span>}
       >
         <SearchInput value={keyword} onChange={setKeyword} placeholder="搜索名称" />
-        <FilterSelect value={plan} onChange={setPlan} options={PLAN_OPTIONS} placeholder="套餐" />
+        <FilterSelect value={plan} onChange={setPlan} options={PLAN_OPTIONS} placeholder="套餐" allLabel="全部套餐" />
       </FilterBar>
       <DataTable columns={columns} data={rows} dense />
     </div>

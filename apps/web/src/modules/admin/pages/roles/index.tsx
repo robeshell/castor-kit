@@ -306,6 +306,7 @@ export default function Roles() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 132,
@@ -385,8 +386,16 @@ export default function Roles() {
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         minWidth={960}
-        emptyTitle="没有找到角色"
-        emptyDescription={querySearch ? '换个关键词试试' : '点击右上角「新建角色」添加第一个角色'}
+        filtered={Boolean(querySearch)}
+        onClearFilters={reset}
+        emptyTitle="还没有角色"
+        emptyDescription="角色决定用户能看到哪些菜单、能做哪些操作"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建角色')}
+          </Button>
+        }
       />
 
       <FormDialog

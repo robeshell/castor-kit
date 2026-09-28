@@ -19,9 +19,7 @@
   "显示": "Visible",
   "有子菜单时无法删除": "A menu with submenus can't be deleted",
   "树形": "Tree",
-  "没有找到菜单": "No menus found",
   "添加子项": "Add child",
-  "点击右上角「新建菜单」添加第一个菜单": "Click \"Add menu\" in the top right to create the first menu",
   "父级编码": "Parent code",
   "父菜单": "Parent menu",
   "目录": "Directory",
@@ -32,7 +30,9 @@
   "菜单": "Menu",
   "菜单导出字段": "Export menus",
   "菜单管理": "Menus",
+  "菜单组成侧边导航，按钮级菜单用于控制操作权限": "Menus make up the side navigation; button-level menus control permissions for actions",
   "请输入菜单名称": "Enter a menu name",
   "请输入菜单编码": "Enter a menu code",
-  "路径": "Path"
+  "路径": "Path",
+  "还没有菜单": "No menus yet"
 }

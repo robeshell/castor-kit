@@ -95,7 +95,7 @@ export default function AppearanceMenu() {
           <Palette className="size-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="w-80 space-y-5 p-4">
+      <PopoverContent align="end" sideOffset={8} collisionPadding={8} className="w-[min(20rem,calc(100vw-1rem))] space-y-5 p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">{t('外观设置')}</span>
           <Button

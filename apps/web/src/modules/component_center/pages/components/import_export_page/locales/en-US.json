@@ -1,5 +1,5 @@
 {
-  "导入导出": "Import / Export",
+  "导入导出": "Import / export",
   "列表页的批量导入和导出，只支持 CSV 和 XLSX。ImportDialog 负责下载模板、选择文件、显示结果；接口返回错误行时整批不导入，对话框列出失败行数并提供失败明细下载，页面不用处理。ExportDialog 负责选择字段和文件格式，范围（勾选的行还是全部）由页面通过 ruleHint 说明、在请求里传 ids。下面的例子用模拟的接口，不会真的导入或导出数据。": "Bulk import and export for list pages, CSV and XLSX only. ImportDialog downloads the template, picks the file and shows the result; when the API reports bad rows nothing is imported, and the dialog shows how many rows failed and offers the details as a download, with nothing for the page to handle. ExportDialog picks the fields and the file format; the page states the scope (the selected rows or everything) through ruleHint and sends ids in the request. The examples below use mock APIs and don't really import or export anything.",
   "导入成功": "Import succeeded",
   "onImport 返回 Promise，resolve { message, created, updated } 后对话框显示新增和更新的条数，onImported 里提示并刷新列表。选一个 CSV 或 XLSX 文件试试。": "onImport returns a Promise; once it resolves with { message, created, updated } the dialog shows how many rows were added and updated, and onImported reports it and reloads the list. Try it with any CSV or XLSX file.",

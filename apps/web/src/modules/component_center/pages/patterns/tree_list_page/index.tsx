@@ -370,6 +370,7 @@ export default function TreeListPage() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 150,
@@ -570,7 +571,7 @@ export default function TreeListPage() {
 
           <FilterBar onSearch={runSearch} onReset={resetFilters}>
             <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="名称 / 编码" />
-            <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
+            <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
           </FilterBar>
 
           <DataTable
@@ -579,10 +580,12 @@ export default function TreeListPage() {
             loading={loading}
             pagination={{ page, perPage, total, onChange: handlePageChange }}
             minWidth={820}
-            emptyTitle={hasFilters ? '没有符合条件的记录' : current ? '该记录暂无下级' : '暂无数据'}
+            filtered={hasFilters}
+            onClearFilters={resetFilters}
+            emptyTitle={current ? '该记录暂无下级' : '还没有记录'}
             emptyAction={
-              canAdd && !hasFilters ? (
-                <Button variant="outline" size="sm" onClick={() => openCreate(parentId)}>
+              canAdd ? (
+                <Button size="sm" onClick={() => openCreate(parentId)}>
                   <Plus />
                   {t(current ? '新建下级' : '新建记录')}
                 </Button>

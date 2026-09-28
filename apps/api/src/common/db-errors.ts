@@ -11,18 +11,34 @@ interface PgErrorLike {
   code: string
   constraint?: string
   column?: string
+  /** e.g. `Key (username)=(admin) already exists.` on a unique violation */
+  detail?: string
 }
 
+/** Each message says what went wrong and what to do; the unique / not-null ones name the column when pg reports it */
 const MESSAGES: Record<string, string> = {
-  '23505': '数据重复：唯一字段的值已存在',
-  '23502': '必填字段不能为空',
-  '23503': '关联的数据不存在或仍被引用',
-  '23514': '数据不符合约束条件',
-  '22001': '字段长度超出限制',
-  '22003': '数值超出范围',
-  '22007': '日期时间格式不正确',
-  '22008': '日期时间超出范围',
-  '22P02': '字段格式不正确',
+  '23505': '已有记录使用了相同的值，请换一个值后再保存',
+  '23502': '有必填字段没有填写，请补全后再保存',
+  '23503': '关联的数据不存在，或这条数据仍被其他数据使用，请检查关联后重试',
+  '23514': '有字段的值不在允许的范围内，请检查后再保存',
+  '22001': '有字段超出了长度上限，请缩短后再保存',
+  '22003': '有数字超出了允许的范围，请检查后再保存',
+  '22007': '有日期时间的格式不正确，请检查后再保存',
+  '22008': '有日期时间超出了允许的范围，请检查后再保存',
+  '22P02': '有字段的格式不正确（例如数字字段里填了文字），请检查后再保存',
+}
+
+/** The column(s) of a unique violation, from pg's detail text */
+const uniqueColumns = (detail: string | undefined) => detail?.match(/^Key \((.+?)\)=/)?.[1]
+
+/** The message for a pg error, naming the field when pg says which one */
+function messageFor(pg: PgErrorLike): string | undefined {
+  if (pg.code === '23505') {
+    const columns = uniqueColumns(pg.detail)
+    if (columns) return `字段「${columns}」的值已被使用，请换一个值后再保存`
+  }
+  if (pg.code === '23502' && pg.column) return `必填字段「${pg.column}」没有填写，请补全后再保存`
+  return MESSAGES[pg.code]
 }
 
 /** Walk the drizzle-wrapped cause chain to find the pg error (carrying a 5-char SQLSTATE code) */
@@ -39,7 +55,7 @@ export function findPgError(err: unknown): PgErrorLike | null {
 /** DB errors attributable to input data → ServiceError(400); otherwise null */
 export function dbConstraintError(err: unknown): ServiceError | null {
   const pg = findPgError(err)
-  const message = pg ? MESSAGES[pg.code] : undefined
+  const message = pg ? messageFor(pg) : undefined
   return message ? new ServiceError(message, 400) : null
 }
 

@@ -1,5 +1,5 @@
 {
-  "AI 提示词工坊": "AI Prompt Studio",
+  "AI 提示词工坊": "AI prompt studio",
   "{{count}} 个变量": "{{count}} variables",
   "{{count}} 个变量_one": "{{count}} variable",
   "{{count}} 字符": "{{count}} characters",
@@ -21,8 +21,8 @@
   "搜索模板名称": "Search template names",
   "搜索模板名称...": "Search templates...",
   "数据": "Data",
-  "新建": "New",
-  "新建模板": "New template",
+  "新建": "Add",
+  "新建模板": "Add template",
   "无匹配模板": "No matching templates",
   "暂无模板，点击「新建」创建": "No templates yet. Click \"New\" to create one.",
   "未填写的变量会高亮显示": "Variables without a value are highlighted",

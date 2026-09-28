@@ -303,6 +303,25 @@ describe('keyboard and names', () => {
     expect(screen.getByRole('combobox', { name: '状态' })).toHaveTextContent('全部状态')
   })
 
+  it('DataTable empty states: no data yet shows its action; no matches offers to clear the filters', async () => {
+    const onClear = vi.fn()
+    const { rerender } = render(<DataTable columns={COLUMNS} data={[]} emptyTitle="还没有记录" emptyAction={<button type="button">新建</button>} />)
+    expect(screen.getByText('还没有记录')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '新建' })).toBeInTheDocument()
+    rerender(<DataTable columns={COLUMNS} data={[]} emptyTitle="还没有记录" filtered onClearFilters={onClear} />)
+    expect(screen.getByText('没有符合条件的记录')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '清除筛选' }))
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
+
+  it('DataTable pinned column cells are sticky', () => {
+    const columns: DataTableColumn<Row>[] = [...COLUMNS, { key: 'actions', pin: 'end', title: '', render: () => 'x' }]
+    render(<DataTable columns={columns} data={ROWS} />)
+    const header = screen.getAllByRole('columnheader').at(-1)
+    expect(header).toHaveClass('sticky', 'end-0')
+    expect(header).toHaveTextContent('操作')
+  })
+
   it('SearchInput is a named search box', () => {
     render(<SearchInput value="" onChange={vi.fn()} placeholder="搜索用户名" />)
     expect(screen.getByRole('searchbox', { name: '搜索用户名' })).toBeInTheDocument()

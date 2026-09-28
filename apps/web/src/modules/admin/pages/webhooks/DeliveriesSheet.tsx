@@ -13,6 +13,7 @@ import { DataPagination } from '@/shared/components/DataTable'
 import { FilterSelect } from '@/shared/components/Filters'
 import { DescriptionList, DetailSheet } from '@/shared/components/FormDialog'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 const PER_PAGE = 20
 
@@ -97,7 +98,7 @@ function DeliveryRow({ delivery, canRedeliver, onRedelivered }: DeliveryRowProps
         className="hover:bg-muted/50 flex w-full items-center gap-3 px-3.5 py-2.5 text-left"
       >
         <DeliveryStatus status={delivery.status} attempts={delivery.attempts} />
-        <code className="min-w-0 flex-1 truncate font-mono text-xs">{delivery.event}</code>
+        <code className="min-w-0 flex-1 truncate font-mono text-xs" onMouseEnter={titleIfTruncated}>{delivery.event}</code>
         <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
           {delivery.response_code ? `HTTP ${delivery.response_code}` : null}
         </span>
@@ -212,7 +213,7 @@ export default function DeliveriesSheet({ hook, onOpenChange, canRedeliver, onCh
   return (
     <DetailSheet open onOpenChange={onOpenChange} title="投递记录" description={hook.name} width={600}>
       <div className="mb-3 flex items-center gap-2">
-        <FilterSelect value={status} onChange={(next) => load(1, toStatusFilter(next))} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={(next) => load(1, toStatusFilter(next))} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
         <Button variant="outline" size="sm" className="ml-auto h-8" onClick={() => load()}>
           <RefreshCw />
           {t('刷新')}

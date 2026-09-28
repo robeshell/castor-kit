@@ -1151,7 +1151,7 @@ function genRulesTest(s: ScaffoldSpec): string {
         `    // ${f}: unique`,
         `    const first${toPascal(f)} = (await s.inject({ method: 'POST', url: BASE, payload: sample('uq1-${f}') })).json()`,
         `    const dup${toPascal(f)} = await s.inject({ method: 'POST', url: BASE, payload: { ...sample('uq2-${f}'), ${key(f)}: first${toPascal(f)}.${f} } })`,
-        `    expect([dup${toPascal(f)}.statusCode, dup${toPascal(f)}.json()]).toEqual([400, { error: '数据重复：唯一字段的值已存在' }])`,
+        `    expect([dup${toPascal(f)}.statusCode, dup${toPascal(f)}.json()]).toEqual([400, { error: '字段「${f}」的值已被使用，请换一个值后再保存' }])`,
       )
     }
     const fallback = defaultLiteral(t, meta.default)
@@ -1260,7 +1260,7 @@ export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
   '删除后不可恢复。': { 'en-US': "This can't be undone.", 'ja-JP': '削除すると元に戻せません。' },
   导入: { 'en-US': 'Import', 'ja-JP': 'インポート' },
   导出: { 'en-US': 'Export', 'ja-JP': 'エクスポート' },
-  新增: { 'en-US': 'Add', 'ja-JP': '追加' },
+  新建: { 'en-US': 'Add', 'ja-JP': '追加' },
   '搜索…': { 'en-US': 'Search…', 'ja-JP': '検索…' },
   '已勾选 <0>{{count}}</0> 条，导出时将优先导出勾选数据': {
     'en-US': '<0>{{count}}</0> selected. Export will use the selected rows.',
@@ -1270,7 +1270,7 @@ export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
   暂无数据: { 'en-US': 'No data', 'ja-JP': 'データがありません' },
   换个关键词试试: { 'en-US': 'Try a different keyword', 'ja-JP': '別のキーワードでお試しください' },
   换个筛选条件试试: { 'en-US': 'Try different filters', 'ja-JP': '別の条件でお試しください' },
-  '点击右上角「新增」添加第一条数据': {
+  '点击右上角「新建」添加第一条数据': {
     'en-US': 'Click "Add" in the top right to add the first record',
     'ja-JP': '右上の「追加」から最初のデータを追加してください',
   },
@@ -1504,6 +1504,7 @@ const toBody = ({ ${narrowed.map(key).join(', ')}, ...rest }: FormValues): ${s.p
     `    },`,
     `    {`,
     `      key: 'actions',`,
+    `      pin: 'end',`,
     `      title: '',`,
     `      align: 'right',`,
     `      width: 132,`,
@@ -1720,7 +1721,7 @@ ${columns.join('\n')}
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增')}
+              {t('新建')}
             </Button>
           </>
         }
@@ -1773,13 +1774,13 @@ ${columns.join('\n')}
           enumFields.length
             ? `filters.search || ${enumFields.map((f) => `filters.${f}`).join(' || ')} ? '换个筛选条件试试'`
             : `filters.search ? '换个关键词试试'`
-        } : '点击右上角「新增」添加第一条数据'}
+        } : '点击右上角「新建」添加第一条数据'}
       />
 
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        title={editing ? '编辑' : '新增'}
+        title={editing ? '编辑' : '新建'}
         form={form}
         onSubmit={submit}
       >

@@ -288,8 +288,10 @@ export default function Logs() {
           onSelectionChange={setLoginSelectedKeys}
           minWidth={960}
           pagination={{ page: loginList.page, perPage: loginList.perPage, total: loginList.total, onChange: loginList.handlePageChange }}
-          emptyTitle="暂无登录日志"
-          emptyDescription={loginList.filters.username || loginList.filters.status ? '换个筛选条件试试' : undefined}
+          filtered={Boolean(loginList.filters.username || loginList.filters.status)}
+          onClearFilters={handleLoginReset}
+          emptyTitle="还没有登录日志"
+          emptyDescription="每次登录，无论成功还是失败，都会记录在这里"
         />
       </div>
 
@@ -317,8 +319,10 @@ export default function Logs() {
           onSelectionChange={setOpSelectedKeys}
           minWidth={1080}
           pagination={{ page: opList.page, perPage: opList.perPage, total: opList.total, onChange: opList.handlePageChange }}
-          emptyTitle="暂无操作日志"
-          emptyDescription={opList.filters.username || opList.filters.module ? '换个筛选条件试试' : undefined}
+          filtered={Boolean(opList.filters.username || opList.filters.module)}
+          onClearFilters={handleOpReset}
+          emptyTitle="还没有操作日志"
+          emptyDescription="新建、修改、删除等操作会自动记录在这里"
         />
       </div>
 

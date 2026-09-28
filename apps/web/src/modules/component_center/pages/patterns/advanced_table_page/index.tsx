@@ -469,6 +469,7 @@ export default function AdvancedTablePage() {
     ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({ ...columnDefs[c.key], key: c.key })),
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 140,
@@ -639,8 +640,10 @@ export default function AdvancedTablePage() {
         onSelectionChange={setSelectedKeys}
         rowClassName={(record) => (draftOf(record) ? 'bg-brand-soft/60 hover:bg-brand-soft/60' : undefined)}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="暂无数据"
-        emptyDescription={filters.search || filters.category || statusTab ? '换个筛选条件试试' : undefined}
+        filtered={Boolean(filters.search || filters.category || statusTab)}
+        onClearFilters={reset}
+        emptyTitle="还没有记录"
+        emptyDescription="在「标准列表」新建的示例记录会出现在这里"
       />
 
       <FormDialog

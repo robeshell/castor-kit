@@ -315,9 +315,9 @@ export default function CardListPage() {
 
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="名称 / 编码" />
-        <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" className="w-[calc(50%-4px)] sm:w-32" />
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" className="w-[calc(50%-4px)] sm:w-32" />
-        <FilterSelect value={isActive} onChange={setIsActive} options={ENABLED_OPTIONS} placeholder="是否启用" className="w-[calc(50%-4px)] sm:w-32" />
+        <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" className="w-[calc(50%-4px)] sm:w-32" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" className="w-[calc(50%-4px)] sm:w-32" />
+        <FilterSelect value={isActive} onChange={setIsActive} options={ENABLED_OPTIONS} placeholder="是否启用" allLabel="启用与停用" className="w-[calc(50%-4px)] sm:w-32" />
       </FilterBar>
 
       {/* First load: skeleton cards; a reload keeps the cards and dims them instead */}

@@ -129,7 +129,7 @@ describe('menus 新增', () => {
       [{ is_visible: 0 }, '是否显示的值无效'],
       [{ description: { a: 1 } }, '描述的值无效'],
       [{ menu_type: 'zzz' }, '菜单类型只能是 directory、menu 或 button'],
-      [{ parent_id: 99999999 }, '关联的数据不存在或仍被引用'],
+      [{ parent_id: 99999999 }, '关联的数据不存在，或这条数据仍被其他数据使用，请检查关联后重试'],
     ]
     for (const [extra, error] of cases) {
       const res = await post('/api/admin/menus', { name: 'x', code: `${P}bad`, ...extra })

@@ -53,12 +53,17 @@ function applyAccent(accent: Accent) {
   document.documentElement.dataset.accent = accent
 }
 
-/** Briefly enable a global color transition while switching and remove it afterwards, so normal hover transitions aren't slowed down */
-function withColorTransition(apply: () => void) {
+/**
+ * Switch in one frame: turn every transition off while the theme / accent changes, so hover and color transitions
+ * don't animate hundreds of elements through half-mixed colors; they come back on the next frame
+ */
+function withoutTransitions(apply: () => void) {
   const root = document.documentElement
-  root.classList.add('theme-transition')
+  root.classList.add('theme-switching')
   apply()
-  window.setTimeout(() => root.classList.remove('theme-transition'), 320)
+  // Flush the new styles while transitions are off, then restore them
+  void window.getComputedStyle(root).color
+  window.requestAnimationFrame(() => root.classList.remove('theme-switching'))
 }
 
 export function ThemeProvider({ children }: { children?: ReactNode }) {
@@ -85,7 +90,7 @@ export function ThemeProvider({ children }: { children?: ReactNode }) {
   useEffect(() => saveAppearance(appearance), [appearance])
 
   const setTheme = useCallback((next: Theme) => {
-    withColorTransition(() => applyTheme(next))
+    withoutTransitions(() => applyTheme(next))
     setThemeState(next)
   }, [])
 
@@ -95,7 +100,7 @@ export function ThemeProvider({ children }: { children?: ReactNode }) {
   const setAppearance = useCallback(
     (patch: Partial<Appearance>) => {
       const { accent } = patch
-      if (accent && accent !== appearance.accent) withColorTransition(() => applyAccent(accent))
+      if (accent && accent !== appearance.accent) withoutTransitions(() => applyAccent(accent))
       setAppearanceState((prev) => ({ ...prev, ...patch }))
     },
     [appearance.accent],

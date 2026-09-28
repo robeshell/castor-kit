@@ -29,7 +29,7 @@ export const FILTER_SELECT_PROPS: readonly PropDoc[] = [
   { name: 'placeholder', type: 'string', default: "'全部'", description: '筛选项名称，「全部」项显示为「全部」+ 名称' },
   { name: 'allLabel', type: 'string', description: '「全部」项的文字，替代默认的「全部」+ 名称' },
   { name: 'label', type: 'string', description: '无障碍名称（中文原文，组件内翻译），默认用 placeholder；当前值由下拉框自己报出' },
-  { name: 'className', type: 'string', description: '触发器的 class，用来改宽度（默认 w-36）' },
+  { name: 'className', type: 'string', description: '触发器的 class，用来改宽度（默认随内容在 min-w-36 与 max-w-60 之间）' },
 ]
 
 /** SegmentedTabs (SegmentedTabsProps<V> in shared/components/SegmentedTabs.tsx) */

@@ -39,7 +39,7 @@ export const TOAST_PROPS: readonly PropDoc[] = [
   { name: 'toast.success / error / warning / info', type: '(message, options?) => id', description: '字符串消息自动翻译；带变量的文字先用 t() 拼好' },
   { name: 'toast', type: '(message, options?) => id', description: '没有图标的普通消息' },
   // i18n-ignore-next-line: the default value shown as code
-  { name: 'toast.apiError', type: '(err, fallback?) => id', default: "'操作失败，请稍后重试'", description: '显示接口返回的 { error }，没有时显示兜底文案' },
+  { name: 'toast.apiError', type: '(err, fallback?) => id', default: "'操作没有完成，请重试；如果一直失败，请联系管理员。'", description: '显示接口返回的 { error }；没有时显示兜底文案，自定义兜底（如「保存失败」）下面会补一句下一步怎么做' },
   { name: 'toast.promise', type: '(promise, { loading, success, error })', description: 'sonner 原样透出：文字不会自动翻译，需要自己用 t()' },
   { name: 'errorMessage', type: '(err, fallback?) => string', description: '取出接口错误文字（已翻译），用于页面内显示错误' },
   { name: 'options', type: 'ExternalToast', description: 'sonner 选项（description、duration、action 等），不会自动翻译' },

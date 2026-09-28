@@ -24,6 +24,7 @@ import { usePageTrail } from '@/components/app/usePageTrail'
 import LanguageSwitcher from '@/components/app/LanguageSwitcher'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 
 /**
@@ -70,9 +71,9 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
               <BreadcrumbSeparator className={index === 0 ? 'hidden sm:block' : undefined} />
               <BreadcrumbItem className={item.current ? 'min-w-0' : 'hidden shrink-0 whitespace-nowrap md:inline-flex'}>
                 {item.current ? (
-                  <BreadcrumbPage className="truncate">{item.name}</BreadcrumbPage>
+                  <BreadcrumbPage className="truncate" onMouseEnter={titleIfTruncated}>{item.name}</BreadcrumbPage>
                 ) : (
-                  <span className="truncate">{item.name}</span>
+                  <span className="truncate" onMouseEnter={titleIfTruncated}>{item.name}</span>
                 )}
               </BreadcrumbItem>
             </Fragment>

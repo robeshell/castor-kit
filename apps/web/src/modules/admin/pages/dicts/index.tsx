@@ -152,6 +152,8 @@ export default function Dicts() {
   const [itemData, setItemData] = useState<DictItem[]>([])
   const [itemLoading, setItemLoading] = useState(false)
   const [itemSearch, setItemSearch] = useState('')
+  // The item search the list was last loaded with (itemSearch is the input's live value)
+  const [itemQuery, setItemQuery] = useState('')
 
   const [typeFormOpen, setTypeFormOpen] = useState(false)
   const [typeEditing, setTypeEditing] = useState<DictType | null>(null)
@@ -171,6 +173,7 @@ export default function Dicts() {
   if (itemsTypeId !== typeId) {
     setItemsTypeId(typeId)
     setItemSearch('')
+    setItemQuery('')
     setItemData([])
     setItemLoading(Boolean(typeId))
   }
@@ -198,6 +201,7 @@ export default function Dicts() {
       return
     }
     setItemLoading(true)
+    setItemQuery(search)
     getDictItems(dictTypeId, { search })
       .then((res) => setItemData(res.items))
       .catch(() => toast.error('加载字典项失败'))
@@ -354,6 +358,7 @@ export default function Dicts() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 112,
@@ -414,6 +419,7 @@ export default function Dicts() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 112,
@@ -464,8 +470,16 @@ export default function Dicts() {
             isRowActive={(row) => row.id === typeId}
             rowClassName={(row) => (row.id === typeId ? 'bg-brand-soft hover:bg-brand-soft' : undefined)}
             pagination={{ page: typeList.page, perPage: typeList.perPage, total: typeList.total, onChange: typeList.handlePageChange }}
-            emptyTitle="暂无字典类型"
-            emptyDescription={typeList.filters.search ? '换个关键词试试' : '点击右上角「新建字典类型」开始'}
+            filtered={Boolean(typeList.filters.search)}
+            onClearFilters={handleTypeReset}
+            emptyTitle="还没有字典类型"
+            emptyDescription="每个字典类型下维护一组可选的标签和值"
+            emptyAction={
+              <Button size="sm" onClick={openCreateType}>
+                <Plus />
+                {t('新建字典类型')}
+              </Button>
+            }
           />
         </Panel>
 
@@ -518,8 +532,16 @@ export default function Dicts() {
                 loading={itemLoading}
                 dense
                 minWidth={760}
-                emptyTitle="该字典类型暂无字典项"
-                emptyDescription="点击右上角「新建」添加字典项，或批量导入"
+                filtered={Boolean(itemQuery)}
+                onClearFilters={handleItemReset}
+                emptyTitle="还没有字典项"
+                emptyDescription="逐条新建，或批量导入"
+                emptyAction={
+                  <Button size="sm" onClick={openCreateItem}>
+                    <Plus />
+                    {t('新建字典项')}
+                  </Button>
+                }
               />
             </>
           ) : (

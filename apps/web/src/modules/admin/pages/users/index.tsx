@@ -329,6 +329,7 @@ export default function Users() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 172,
@@ -411,7 +412,7 @@ export default function Users() {
           aria-label={t('按部门筛选')}
           className="h-8 w-full text-[13px] sm:w-44"
         />
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
       </FilterBar>
 
       <AnimatePresence>
@@ -448,8 +449,16 @@ export default function Users() {
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="没有找到用户"
-        emptyDescription={filters.search || filters.status || filters.dept_id ? '换个关键词试试' : '点击右上角「新建用户」添加第一个账号'}
+        filtered={Boolean(filters.search || filters.status || filters.dept_id)}
+        onClearFilters={reset}
+        emptyTitle="还没有用户"
+        emptyDescription="新建的账号可以分配部门和角色"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建用户')}
+          </Button>
+        }
       />
 
       <FormDialog

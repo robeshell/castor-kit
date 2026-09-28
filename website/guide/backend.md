@@ -179,17 +179,17 @@ The global error handler calls `dbConstraintError()` from `apps/api/src/common/d
 
 | PostgreSQL error code | Message returned (English UI) |
 |---|---|
-| `23505` unique constraint | Duplicate data: a unique field value already exists |
-| `23502` not-null constraint | Required fields cannot be empty |
-| `23503` foreign key constraint | Related data does not exist or is still referenced |
-| `23514` check constraint | Data violates a constraint |
-| `22001` | A field exceeds its maximum length |
-| `22003` | A number is out of range |
-| `22007` | Invalid date/time format |
-| `22008` | Date/time out of range |
-| `22P02` | Invalid field format |
+| `23505` unique constraint | That code is already in use. Choose a different one and save again. (names the column from pg's detail; without it: Another record already uses that value. Change it and save again.) |
+| `23502` not-null constraint | The required field name is empty. Fill it in and save again. (names the column; without it: A required field is empty. Fill it in and save again.) |
+| `23503` foreign key constraint | The related record doesn't exist, or this record is still used by other records. Check the related records and try again. |
+| `23514` check constraint | A value isn't in the allowed range. Check it and save again. |
+| `22001` | A field is too long. Shorten it and save again. |
+| `22003` | A number is out of the allowed range. Check it and save again. |
+| `22007` | A date or time is in the wrong format. Check it and save again. |
+| `22008` | A date or time is out of the allowed range. Check it and save again. |
+| `22P02` | A field is in the wrong format (for example, text in a number field). Check it and save again. |
 
-Other database errors are treated as 500. This means that once you add `.notNull()` or `.unique()` to a table definition, you get a sensible 400 message with no extra code. When you need a message that names the field (such as "客户编码已存在", "customer code already exists"), check for duplicates in the service before writing.
+Other database errors are treated as 500. This means that once you add `.notNull()` or `.unique()` to a table definition, you get a sensible 400 message with no extra code. Unique and not-null violations name the database column; when the message should use the field's label instead (such as "客户编码已存在", "customer code already exists"), check for duplicates in the service before writing.
 
 ## Database migrations
 
