@@ -53,7 +53,7 @@ export function specJsonSchema(): Record<string, unknown> {
         type: 'string',
         pattern: NAME_RE.source,
         maxLength: 40,
-        description: 'Module name, singular English in snake_case (e.g. device, customer_order); table = name + s, API = /api/admin/<kebab>s',
+        description: 'Module name, singular English in snake_case (e.g. device, customer_order); table = name + s, API = /api/admin/<kebab>s (component_center: /api/admin/component-center/<kebab>s)',
       },
       domain: { enum: ['admin', 'component_center'], default: 'admin', description: 'Business modules use admin (the default)' },
       title: text(50, 'Chinese name of the module, used for the page title, menu name and API docs, e.g. 设备台账'),
@@ -63,7 +63,11 @@ export function specJsonSchema(): Record<string, unknown> {
         type: 'object',
         additionalProperties: false,
         properties: {
-          parentId: { type: 'integer', description: 'Parent menu ID; defaults to the 业务管理 (Business) directory (ID 1000)' },
+          parentId: {
+            type: 'integer',
+            description:
+              "Parent menu ID; defaults to the 业务管理 (Business) directory (ID 1000) for admin, the gallery's 页面模板 (Page patterns) directory (ID 43) for component_center",
+          },
           icon: { type: 'string', description: 'An icon name from apps/web/src/lib/menu-icons.ts' },
         },
         description: 'Only when present are the menu and button permissions added to scripts/seed-rbac.ts; new business modules usually use {}',

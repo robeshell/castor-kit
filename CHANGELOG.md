@@ -32,6 +32,7 @@ Found by building a module end to end with `/new-feature-autopilot` (friction lo
 - AGENTS.md, CLAUDE.md and the autopilot skill lead with the spec flow (`--spec` → `--validate-only` → generate), no longer describe request schemas as `.passthrough()`, and explain a checkout without `apps/api/.env.development`.
 - `pnpm scaffold --domain component_center` writes the page to `pages/patterns/<name>_page/` (menu component `component_center/patterns/<name>_page`), next to the gallery's page patterns, instead of the removed `pages/admin/` group.
 - Pages that update on their own can be paused: the perf monitor (every second) and the dashboard's system status (every 3 s); the step form moves focus to each step's heading and to the first invalid field; the advanced table's inline edit focuses the name input, saves on Enter, cancels on Escape and returns focus to the row's Edit button.
+- `pnpm scaffold --domain component_center`: the API lives under the gallery prefix (`/api/admin/component-center/<name>s`, writable in demo mode like the other gallery APIs), and a spec `menu` registers the page under 组件示例中心 → 页面模板 (IDs 4301–4399, path `/component-center/patterns/<name>`) instead of 业务管理.
 
 ## [0.2.0] - 2026-09-27
 

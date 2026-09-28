@@ -55,7 +55,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFi
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
-import { insertMenus, menuNames, planMenus, type MenuEntry, type MenuRequest } from './lib/menus'
+import { ADMIN_PLACEMENT, GALLERY_PLACEMENT, insertMenus, menuNames, planMenus, type MenuEntry, type MenuRequest } from './lib/menus'
 import { applyScaffoldOpenApi } from './lib/scaffold-openapi'
 import { specSchemaText } from './lib/spec-schema'
 import { printUsage } from './lib/usage'
@@ -139,7 +139,8 @@ export interface FieldMeta {
 
 /** Menu registration in scripts/seed-rbac.ts (spec `menu`) */
 export interface MenuSpec {
-  /** Parent menu id; default: the business group (code biz, created on first use) */
+  /** Parent menu id; default: the business group (code biz, created on first use) for admin, the gallery's Page
+   * patterns directory (code cc_patterns) for component_center */
   parentId?: number
   /** Icon name from apps/web/src/lib/menu-icons.ts */
   icon?: string
@@ -286,7 +287,8 @@ export function buildSpec(
     pageDir,
     permPrefix: `${domainPrefix}_${name}`,
     menuComponent: `${webModule}/${pageDir}`,
-    apiBase: `/api/admin/${toKebab(name)}s`,
+    // component_center modules live under the gallery's prefix (writable in demo mode, like the other gallery APIs)
+    apiBase: domain === 'admin' ? `/api/admin/${toKebab(name)}s` : `/api/admin/component-center/${toKebab(name)}s`,
     nameField,
     exportFields: fields,
     importFields: importFields.length > 0 ? importFields : [[nameField, 'str']],
@@ -1307,7 +1309,7 @@ export type ${s.pascal}ExportBody = ApiBody<${sub('export')}, 'post'>
 /** File type of exports and the import template */
 export type ${s.pascal}FileType = NonNullable<ApiQuery<${sub('template')}>['file_type']>
 
-const BASE = '/admin/${s.kebab}s'
+const BASE = ${q(s.apiBase.replace(/^\/api/, ''))}
 
 export const getItems = (params?: ApiQuery<${list}>) => request.get<unknown, ApiResponse<${list}>>(BASE, { params })
 export const createItem = (data: ${s.pascal}Body) => request.post<unknown, ApiResponse<${list}, 'post'>>(BASE, data)
@@ -2412,9 +2414,11 @@ function menuRequest(s: ScaffoldSpec, menu: MenuSpec): MenuRequest {
     titles: { 'en-US': s.i18n['en-US']?.[s.title] || toLabel(s.name), 'ja-JP': s.i18n['ja-JP']?.[s.title] || toLabel(s.name) },
     permPrefix: s.permPrefix,
     component: s.menuComponent,
-    path: `/biz/${s.kebab}s`,
+    // Gallery paths are /component-center/<group>/<page-kebab>, like the sibling pages
+    path: s.domain === 'admin' ? `/biz/${s.kebab}s` : `/component-center/patterns/${s.kebab}`,
     icon: menu.icon,
     parentId: menu.parentId,
+    placement: s.domain === 'admin' ? ADMIN_PLACEMENT : GALLERY_PLACEMENT,
   }
 }
 
@@ -2480,7 +2484,14 @@ export function validateOnly(spec: SpecFile, log: (line: string) => void = (l) =
   const planned = seed === null ? null : planMenus(seed, menuRequest(s, spec.menu))
   if (planned) log(`   Menu: ${describeMenus(planned, s.permPrefix)}; written to scripts/seed-rbac.ts`)
   else if (seed !== null) log(`   Menu: ${s.permPrefix} is already in scripts/seed-rbac.ts; nothing to add`)
-  else log(`   Menu: written to scripts/seed-rbac.ts (${spec.menu.parentId ? `under parent menu ${spec.menu.parentId}` : 'in the 业务管理 (Business) directory'})`)
+  else {
+    const where = spec.menu.parentId
+      ? `under parent menu ${spec.menu.parentId}`
+      : s.domain === 'admin'
+        ? 'in the 业务管理 (Business) directory'
+        : 'in the 页面模板 (Page patterns) directory'
+    log(`   Menu: written to scripts/seed-rbac.ts (${where})`)
+  }
   return 0
 }
 

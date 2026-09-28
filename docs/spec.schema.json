@@ -18,7 +18,7 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*$",
       "maxLength": 40,
-      "description": "Module name, singular English in snake_case (e.g. device, customer_order); table = name + s, API = /api/admin/<kebab>s"
+      "description": "Module name, singular English in snake_case (e.g. device, customer_order); table = name + s, API = /api/admin/<kebab>s (component_center: /api/admin/component-center/<kebab>s)"
     },
     "domain": {
       "enum": [
@@ -55,7 +55,7 @@
       "properties": {
         "parentId": {
           "type": "integer",
-          "description": "Parent menu ID; defaults to the 业务管理 (Business) directory (ID 1000)"
+          "description": "Parent menu ID; defaults to the 业务管理 (Business) directory (ID 1000) for admin, the gallery's 页面模板 (Page patterns) directory (ID 43) for component_center"
         },
         "icon": {
           "type": "string",
