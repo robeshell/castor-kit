@@ -221,7 +221,7 @@ apps/web/scripts/shadcn-add.sh --view badge      # 只查看 registry 内容，�
 ## 测试与检查
 
 ```bash
-pnpm --filter @castor-kit/web test     # 前端 Vitest
-pnpm --filter @castor-kit/web lint     # 前端 ESLint
+pnpm --filter @castorjs/web test     # 前端 Vitest
+pnpm --filter @castorjs/web lint     # 前端 ESLint
 node apps/web/scripts/i18n-scan.mjs src/modules/admin/pages/users   # 扫描某个页面目录的未翻译文案
 ```

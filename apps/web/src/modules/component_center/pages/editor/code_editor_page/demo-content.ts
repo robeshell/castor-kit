@@ -1,7 +1,7 @@
 // i18n-ignore-file: sample source code is demo content, not UI copy
 
 /** Sample code loaded into the editor */
-export const INITIAL_CODE = `// castor-kit 示例代码
+export const INITIAL_CODE = `// Castor 示例代码
 // 基于 Monaco Editor 的代码编辑器
 
 /**

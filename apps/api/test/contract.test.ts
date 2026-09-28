@@ -324,19 +324,19 @@ describe('SPA fallback', () => {
   it('无前端产物时非 /api 路径返回 JSON 提示', async () => {
     const res = await app.inject('/admin/users')
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ message: 'castor-kit API', status: 'running' })
+    expect(res.json()).toEqual({ message: 'Castor API', status: 'running' })
   })
 
   it('有前端产物时非 /api 路径落到 index.html，/api 仍为 JSON，静态资源带长缓存', async () => {
-    const dist = mkdtempSync(join(tmpdir(), 'castor-kit-dist-'))
-    writeFileSync(join(dist, 'index.html'), '<!doctype html><title>castor-kit</title>')
+    const dist = mkdtempSync(join(tmpdir(), 'castor-dist-'))
+    writeFileSync(join(dist, 'index.html'), '<!doctype html><title>Castor</title>')
     writeFileSync(join(dist, 'app.js'), 'console.log(1)')
     const spa = await buildTestApp({ webDistDir: dist })
     try {
       const page = await spa.inject('/admin/users')
       expect(page.statusCode).toBe(200)
       expect(page.headers['content-type']).toContain('text/html')
-      expect(page.body).toContain('castor-kit')
+      expect(page.body).toContain('Castor')
 
       const asset = await spa.inject('/app.js')
       expect(asset.headers['cache-control']).toBe('public, max-age=604800')

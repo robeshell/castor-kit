@@ -319,7 +319,7 @@ describe('i18n messages coverage', () => {
     for (const text of [
       '健康检查失败', // request.log.error
       '创建通知失败，请稍后重试', // ServiceError(…, 500): replaced by the generic message
-      '你是 castor-kit 项目的专属 AI 助手。\n\n', // AI prompt
+      '你是 Castor 项目的专属 AI 助手。\n\n', // AI prompt
       '用户名', // export / import header
       '广东', // demo data
     ]) {

@@ -1,6 +1,6 @@
 # クイックスタート
 
-castor-kit の実行方法は 2 通りあります。
+Castor の実行方法は 2 通りあります。
 
 | 方法 | 用途 | 必要な環境 |
 |---|---|---|
@@ -12,8 +12,8 @@ castor-kit の実行方法は 2 通りあります。
 ### 1. リポジトリをクローンしてセットアップウィザードを実行する
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 
@@ -146,7 +146,7 @@ AI_MODEL=<モデル名>
 開発環境では、web プロセスはデフォルトで定期タスクのスケジューラーを起動しません。タスクを cron どおりに実行させたい場合は、次のどちらかを選びます。
 
 - `apps/api/.env.development` に `RUN_SCHEDULER_IN_WEB=true` を設定する
-- 別のターミナルで独立したスケジューラープロセスを実行する：`pnpm --filter @castor-kit/api worker`
+- 別のターミナルで独立したスケジューラープロセスを実行する：`pnpm --filter @castorjs/api worker`
 
 ## 次のステップ
 

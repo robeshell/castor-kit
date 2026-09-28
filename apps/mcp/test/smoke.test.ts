@@ -1,7 +1,7 @@
 /**
  * MCP smoke test: actually launches src/index.ts with the SDK's Client + StdioClientTransport and exercises the stdio protocol.
  *
- * Run: pnpm --filter @castor-kit/mcp test
+ * Run: pnpm --filter @castorjs/mcp test
  * get_menu_tree needs a database: when TEST_DATABASE_URL is set it connects to that DB with NODE_ENV=test, otherwise it is skipped.
  */
 
@@ -30,7 +30,7 @@ const TOOLS = [
 type TextResult = { content: { type: string; text: string }[] }
 const textOf = (res: unknown) => (res as TextResult).content.map((c) => c.text).join('\n')
 
-describe('castor-kit MCP server (stdio)', () => {
+describe('Castor MCP server (stdio)', () => {
   let client: Client
 
   before(async () => {
@@ -45,7 +45,7 @@ describe('castor-kit MCP server (stdio)', () => {
       env,
       stderr: 'pipe',
     })
-    client = new Client({ name: 'castor-kit-smoke', version: '0.0.0' })
+    client = new Client({ name: 'castor-smoke', version: '0.0.0' })
     await client.connect(transport)
   })
 
@@ -75,7 +75,7 @@ describe('castor-kit MCP server (stdio)', () => {
 
   it('get_project_context 返回 AGENTS.md + 当前后端模块', async () => {
     const out = textOf(await client.callTool({ name: 'get_project_context', arguments: {} }))
-    assert.match(out, /castor-kit/)
+    assert.match(out, /Castor/)
     assert.match(out, /## Current backend modules/)
     assert.match(out, /\n {2}admin\/: .*users/)
     assert.match(out, /\n {2}component-center\/: /)

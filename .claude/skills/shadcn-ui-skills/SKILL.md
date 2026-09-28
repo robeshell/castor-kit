@@ -1,18 +1,18 @@
 ---
 name: shadcn-ui-skills
-description: "Guide to shadcn/ui + Tailwind CSS v4 + motion in the castor-kit frontend (apps/web): component list, how to use castor-kit's shared components, design tokens, motion rules, common page patterns and things not to do, plus how to add shadcn primitives with the shadcn CLI through the local relay. Use when writing or changing any frontend page or component, or when looking up how to use a shadcn component."
+description: "Guide to shadcn/ui + Tailwind CSS v4 + motion in the Castor frontend (apps/web): component list, how to use Castor's shared components, design tokens, motion rules, common page patterns and things not to do, plus how to add shadcn primitives with the shadcn CLI through the local relay. Use when writing or changing any frontend page or component, or when looking up how to use a shadcn component."
 ---
 
-# shadcn/ui guide (castor-kit)
+# shadcn/ui guide (Castor)
 
-castor-kit's frontend is built on **shadcn/ui (new-york, Radix) + Tailwind CSS v4 + motion + lucide-react**; the frontend is written in TypeScript / TSX (see AGENTS.md "TypeScript")"), and UI copy is written in Chinese (as the i18n key).
+Castor's frontend is built on **shadcn/ui (new-york, Radix) + Tailwind CSS v4 + motion + lucide-react**; the frontend is written in TypeScript / TSX (see AGENTS.md "TypeScript")"), and UI copy is written in Chinese (as the i18n key).
 Design system: `docs/frontend-design-system.md`; project conventions: `AGENTS.md` "Frontend conventions".
 
 ## Files
 
 | File | Contents | When to read |
 |---|---|---|
-| [COMPONENTS.md](COMPONENTS.md) | shadcn primitive list (`@/components/ui/*`) + AI Elements (`@/components/ai-elements/*`) + props / usage of castor-kit's shared business components (`@/shared/components/*`) and lib | Choosing a component, looking up props |
+| [COMPONENTS.md](COMPONENTS.md) | shadcn primitive list (`@/components/ui/*`) + AI Elements (`@/components/ai-elements/*`) + props / usage of Castor's shared business components (`@/shared/components/*`) and lib | Choosing a component, looking up props |
 | [DESIGN.md](DESIGN.md) | Design tokens (semantic color classes, brand gradient utilities, radius / font size / spacing) + motion rules (`@/lib/motion`) | Writing styles, adding motion |
 | [PATTERNS.md](PATTERNS.md) | Common patterns: CRUD list page, form dialog / drawer, detail drawer, import / export, status badges, charts, empty and loading states | Creating / rewriting a page |
 

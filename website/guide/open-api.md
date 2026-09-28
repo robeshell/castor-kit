@@ -1,6 +1,6 @@
 # Open API: API tokens and webhooks
 
-Scripts, cron jobs and other systems call castor-kit's API with **API tokens**; when data changes in castor-kit, **webhooks** push it to other systems.
+Scripts, cron jobs and other systems call Castor's API with **API tokens**; when data changes in Castor, **webhooks** push it to other systems.
 
 ## API tokens
 

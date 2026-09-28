@@ -1,17 +1,17 @@
 # 项目结构
 
-castor-kit 是 pnpm monorepo。所有 `pnpm` 命令都在仓库根目录执行，根目录 `package.json` 的脚本会转发到对应的子包。
+Castor 是 pnpm monorepo。所有 `pnpm` 命令都在仓库根目录执行，根目录 `package.json` 的脚本会转发到对应的子包。
 
 ## 顶层目录
 
 ```text
-castor-kit/
+castorjs/
 ├── package.json              # workspace 根脚本（dev / verify / scaffold / db:* ...）
 ├── pnpm-workspace.yaml
 ├── apps/
-│   ├── api/                  # @castor-kit/api：Fastify 后端
-│   ├── web/                  # @castor-kit/web：React 前端
-│   └── mcp/                  # @castor-kit/mcp：MCP Server
+│   ├── api/                  # @castorjs/api：Fastify 后端
+│   ├── web/                  # @castorjs/web：React 前端
+│   └── mcp/                  # @castorjs/mcp：MCP Server
 ├── docs/
 │   ├── architecture.md       # 架构说明与设计决定
 │   ├── frontend-design-system.md  # 前端 UI 体系（shadcn/ui）
@@ -124,7 +124,7 @@ apps/web/
 
 | 对象 | 规则 | 示例 |
 |---|---|---|
-| 项目与包名 | 小写连字符 | `castor-kit`、`@castor-kit/api` |
+| 项目与包名 | 小写连字符 | `castorjs`、`@castorjs/api` |
 | 后端目录与文件名 | 小写连字符 | `component-center`、`scheduled-task` |
 | 数据库表名 | 下划线 | `scheduled_tasks` |
 | 前端目录、菜单 `component` 字段 | 下划线 | `component_center/patterns/card_list_page` |

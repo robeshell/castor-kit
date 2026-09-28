@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Changed
+
+- **castor-kit is now Castor.** The product name is Castor (the beaver keeps its place in the logo); the repository is `robeshell/castorjs`, the packages are `@castorjs/api` / `@castorjs/web` / `@castorjs/mcp` (so `pnpm --filter @castorjs/…`), the docs site moves to `https://robeshell.github.io/castorjs/`, the MCP server is named `castor` and its binary `castor-mcp`, and `APP_NAME` defaults to `Castor` (authenticator apps list new enrollments under Castor). The wordmark is "castor" in the app, the docs site and the README.
+- Kept on purpose, so existing installs keep working: database, user and volume names (`castor_kit`, `castor_kit_test`, `castor_kit_ro`, `castor-kit_postgres_data` / `castor-kit_app_data`), the session cookie and the key-derivation labels (`castor-kit-session`, `castor-kit-secret-box`, `castor-kit-assistant-approval`), the webhook headers `X-Castor-*` and User-Agents (`castor-kit-webhook`, `castor-kit-scheduler`, `castor-kit-assistant`), the browser storage keys and the public demo's address.
+- Upgrading: `git fetch` / `git merge` from the old URL keeps working (GitHub redirects renamed repositories), but point `upstream` at `https://github.com/robeshell/castorjs.git`; replace `@castor-kit/` with `@castorjs/` in your own scripts, CI and MCP client configs.
+
 ## [0.3.0] - 2026-09-28
 
 Reference implementations and a checked interface: the component gallery is rebuilt as the pages developers and AI agents copy from, a whole-app interface audit is fixed (accessibility, color, layout, copy), and a project can now start from a release with its own name and the gallery hidden.
@@ -148,7 +154,7 @@ First public release: an AI-first admin framework on Node.js + TypeScript (Fasti
 - Docker image with migrations and RBAC sync on start; a public demo mode (read-only system management, one-click sign-in, data reset on a schedule) and a Render + Neon blueprint.
 - Documentation site (VitePress) in Chinese, English and Japanese; MIT license and community files.
 
-[Unreleased]: https://github.com/robeshell/castor-kit/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/robeshell/castor-kit/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/robeshell/castor-kit/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/robeshell/castor-kit/releases/tag/v0.1.0
+[Unreleased]: https://github.com/robeshell/castorjs/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/robeshell/castorjs/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/robeshell/castorjs/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/robeshell/castorjs/releases/tag/v0.1.0

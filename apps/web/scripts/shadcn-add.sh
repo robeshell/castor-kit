@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs `npx shadcn@latest add` through a local relay (used to add shadcn/ui primitives to the castor-kit frontend).
+# Runs `npx shadcn@latest add` through a local relay (used to add shadcn/ui primitives to the Castor frontend).
 #
 # Why a relay: the shadcn CLI (node) ignores the system proxy, and connecting to ui.shadcn.com directly fails on this machine;
 # yet when the CLI sees HTTP(S)_PROXY it sends even 127.0.0.1 requests through the proxy. So this script:

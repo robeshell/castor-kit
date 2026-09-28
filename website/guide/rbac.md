@@ -1,6 +1,6 @@
 # Permissions (RBAC)
 
-castor-kit uses role-based access control: users have roles, and roles are granted menu and button permissions. Menus decide what appears in the sidebar, which frontend routes exist, and who can access which backend APIs.
+Castor uses role-based access control: users have roles, and roles are granted menu and button permissions. Menus decide what appears in the sidebar, which frontend routes exist, and who can access which backend APIs.
 
 ## Data model
 

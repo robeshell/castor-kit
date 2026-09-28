@@ -221,7 +221,7 @@ The `menus.icon` field stores a lucide icon name (e.g. `Users`, `Settings`), whi
 ## Testing and checks
 
 ```bash
-pnpm --filter @castor-kit/web test     # Frontend Vitest
-pnpm --filter @castor-kit/web lint     # Frontend ESLint
+pnpm --filter @castorjs/web test     # Frontend Vitest
+pnpm --filter @castorjs/web lint     # Frontend ESLint
 node apps/web/scripts/i18n-scan.mjs src/modules/admin/pages/users   # Scan one page directory for untranslated text
 ```

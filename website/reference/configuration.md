@@ -1,6 +1,6 @@
 # Configuration
 
-castor-kit has two kinds of configuration:
+Castor has two kinds of configuration:
 
 - **Environment variables**: what the server needs before it can reach the database (database URL, `SECRET_KEY`, ports …), validated with Zod in `apps/api/src/config.ts` and injected by `docker-compose.yml` in Docker deployments. See "Backend (API)" below
 - **System settings**: mail, file storage, upload limits, the AI model, the site URL, the sign-in lockout and security switches such as two-step verification, edited after signing in under System → Configuration → System settings and applied within seconds, without a restart. Environment variables can pin these too, see [Configuration in System settings](#configuration-in-system-settings)
@@ -33,7 +33,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 |---|---|---|
 | `NODE_ENV` | Runtime environment: `development` / `test` / `production`; any other value is treated as `development` | `development` |
 | `PORT` | Listening port | `5001` in development, `5002` in test, `5000` in production |
-| `APP_NAME` | Product name the server shows: the issuer in authenticator apps, the default mail sender and the test mail's subject, the AI assistant's introduction, the startup log. The web app's name is `APP_NAME` in `apps/web/src/lib/brand.ts` (see [Starting a project](/guide/new-project)) | `castor-kit` |
+| `APP_NAME` | Product name the server shows: the issuer in authenticator apps, the default mail sender and the test mail's subject, the AI assistant's introduction, the startup log. The web app's name is `APP_NAME` in `apps/web/src/lib/brand.ts` (see [Starting a project](/guide/new-project)) | `Castor` |
 | `DEV_DATABASE_URL` | Development database connection | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | Test database connection; the tests read it from the shell or `apps/api/.env.test` | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | Production database connection | `postgresql://localhost/castor_kit` |
@@ -137,7 +137,7 @@ These are edited on the System settings page (viewing needs `system_settings`, s
 | Port | `SMTP_PORT` | `587` |
 | Encryption: auto / SSL/TLS / STARTTLS (auto = SSL/TLS on port 465) | `SMTP_SECURE` (`true` = SSL/TLS, `false` = STARTTLS) | Auto |
 | Account / password | `SMTP_USER` / `SMTP_PASSWORD` | Empty |
-| Sender, e.g. `castor-kit <noreply@example.com>` | `MAIL_FROM` | The account |
+| Sender, e.g. `Castor <noreply@example.com>` | `MAIL_FROM` | The account |
 
 Password reset by email can only be turned on once the SMTP server and the site URL are set, see [Account security & settings](/guide/security#password-reset).
 

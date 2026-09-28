@@ -9,7 +9,7 @@ export interface JsonObject {
 /** Sample JSON loaded into the editor */
 export const EXAMPLE_JSON: JsonObject = {
   project: {
-    name: 'castor-kit',
+    name: 'Castor',
     version: '2.0.0',
     description: 'Fastify + React + RBAC AI-First 脚手架',
     active: true,
@@ -18,7 +18,7 @@ export const EXAMPLE_JSON: JsonObject = {
     tags: ['fastify', 'typescript', 'react', 'rbac', 'ai', 'scaffold'],
     author: {
       name: '研发团队',
-      email: 'dev@castor-kit.dev',
+      email: 'dev@example.com',
       roles: ['maintainer', 'committer'],
     },
     dependencies: {

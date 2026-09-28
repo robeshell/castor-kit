@@ -27,7 +27,7 @@ export class TwoFactorService {
     private readonly secretKey: string,
     private readonly settings: SettingsStore,
     /** Issuer shown in authenticator apps (APP_NAME) */
-    private readonly appName = 'castor-kit',
+    private readonly appName = 'Castor',
   ) {
     this.repo = new TwoFactorRepository(db)
   }

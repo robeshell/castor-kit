@@ -1,13 +1,13 @@
 # 开始一个项目
 
-castor-kit 是起点，不是装进项目里的依赖库：你的产品是一个仓库，从某个 castor-kit 版本复制出来，然后在上面继续开发。本页说明如何创建这个仓库、给产品命名、隐藏组件示例中心、上线，以及之后如何合并 castor-kit 的新版本。
+Castor 是起点，不是装进项目里的依赖库：你的产品是一个仓库，从某个 Castor 版本复制出来，然后在上面继续开发。本页说明如何创建这个仓库、给产品命名、隐藏组件示例中心、上线，以及之后如何合并 Castor 的新版本。
 
 ## 1. 创建仓库
 
-从某个版本的 tag 开始，并把 castor-kit 保留为第二个远端，之后的新版本就可以直接合并：
+从某个版本的 tag 开始，并把 Castor 保留为第二个远端，之后的新版本就可以直接合并：
 
 ```bash
-git clone --branch v0.3.0 https://github.com/robeshell/castor-kit.git my-app
+git clone --branch v0.3.0 https://github.com/robeshell/castorjs.git my-app
 cd my-app
 git switch -c main
 git remote rename origin upstream
@@ -30,7 +30,7 @@ git push -u origin main
 
 下面这些虽然带着 castor，但请保持不变：
 
-- 内部包名 `@castor-kit/*`：脚本和 `pnpm --filter` 命令都用到它，用户也看不到。
+- 内部包名 `@castorjs/*`：脚本和 `pnpm --filter` 命令都用到它，用户也看不到。
 - 会话 Cookie 名和密钥派生标签（`castor-kit-session`、`castor-kit-secret-box` 等）：改了会让所有人掉线，已保存的密钥（SMTP / S3 / AI）也无法再解密。
 - Webhook 请求头 `X-Castor-Event` / `X-Castor-Signature` 等：接收方要靠它们做校验。
 
@@ -56,7 +56,7 @@ git push -u origin main
 
 描述一个功能，让 AI 助手运行 `/new-feature-autopilot`；或者自己写 spec，运行 `pnpm scaffold -- --spec`：见 [AI 工作流](/zh/guide/ai-workflow)。不是普通列表的页面，照着组件示例中心里对应的页面模板来写（见[组件示例中心](/zh/guide/components#from-a-pattern)）。
 
-## 6. 合并 castor-kit 的新版本
+## 6. 合并 Castor 的新版本
 
 ```bash
 git fetch upstream --tags

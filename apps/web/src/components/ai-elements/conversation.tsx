@@ -12,7 +12,7 @@ import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 export type ConversationProps = ComponentProps<typeof StickToBottom>;
 
 export const Conversation = ({ className, ...props }: ConversationProps) => {
-  // castor-kit: jump instead of smooth-scrolling under prefers-reduced-motion
+  // Castor: jump instead of smooth-scrolling under prefers-reduced-motion
   const scroll = useReducedMotion() ? "instant" : "smooth";
   return (
     <StickToBottom

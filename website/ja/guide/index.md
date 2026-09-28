@@ -1,18 +1,18 @@
 # 概要
 
-castor-kit は AI ファーストのフルスタック管理画面スキャフォールドです。業務機能を自然言語で説明すると、AI コーディングツールがリポジトリに書かれた規約に従ってテーブル、API、画面、権限、データベースマイグレーションを生成し、最後に検証ゲートが納品品質を確認します。
+Castor は AI ファーストのフルスタック管理画面スキャフォールドです。業務機能を自然言語で説明すると、AI コーディングツールがリポジトリに書かれた規約に従ってテーブル、API、画面、権限、データベースマイグレーションを生成し、最後に検証ゲートが納品品質を確認します。
 
 名前の Castor はビーバーのラテン語の属名で、ビーバーは「自然界のエンジニア」と呼ばれています。Kit はスキャフォールドとツールキットを指します。
 
 ## 技術スタック
 
-castor-kit は pnpm monorepo で、3 つのアプリケーションで構成されています。
+Castor は pnpm monorepo で、3 つのアプリケーションで構成されています。
 
 | アプリケーション | パッケージ名 | 技術 |
 |---|---|---|
-| バックエンド `apps/api` | `@castor-kit/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
-| フロントエンド `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX） |
-| MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`。スキャフォールド、検証、RBAC 同期、マイグレーションなどのツールを MCP クライアントに公開 |
+| バックエンド `apps/api` | `@castorjs/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
+| フロントエンド `apps/web` | `@castorjs/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX） |
+| MCP Server `apps/mcp` | `@castorjs/mcp` | `@modelcontextprotocol/sdk`。スキャフォールド、検証、RBAC 同期、マイグレーションなどのツールを MCP クライアントに公開 |
 
 その他の主な依存ライブラリ：テーブル `@tanstack/react-table`、フォーム `react-hook-form`、グラフ ECharts、コードエディター Monaco、リッチテキスト react-quill-new、ドラッグ＆ドロップ dnd-kit。
 
@@ -36,7 +36,7 @@ castor-kit は pnpm monorepo で、3 つのアプリケーションで構成さ�
 
 ## ほかのスキャフォールドとの違い
 
-多くの管理画面スキャフォールドが提供するのは「コピーして手を加えるためのコード一式」です。castor-kit はそれに加えて、次の 2 つを行います。
+多くの管理画面スキャフォールドが提供するのは「コピーして手を加えるためのコード一式」です。Castor はそれに加えて、次の 2 つを行います。
 
 1. **規約を AI 向けに書いている。** レイヤールール、命名、フィールド型の推測表、権限コードのルール、メニュー ID の割り当て、アンチパターン一覧はすべて `AGENTS.md` に書かれています。AI はこれを読んだうえで自ら技術的な判断を下せるため、ルーティングやフィールド型について何度も確認を求めてくることはありません。
 2. **納品の可否をゲートが判定する。** AI が生成したコードは `pnpm verify` に合格しなければなりません。ゲートは静的チェックだけでなく、マイグレーションが実際にデータベースへ適用されていること、ルートとメニュー権限が登録されていることを確認し、フロントエンドのビルドとフロントエンド・バックエンドのテストも実行します。

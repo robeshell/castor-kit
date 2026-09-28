@@ -4,7 +4,7 @@
   "AI 正在思考": "AI is thinking",
   "Enter 发送 · Shift + Enter 换行": "Enter to send · Shift + Enter for a new line",
   "上下文已清除，之后的对话不再携带之前的消息": "Context cleared. Earlier messages won't be sent from here on.",
-  "你好！我是 castor-kit AI 助手。\n\n请从下方选择提示词，或直接输入你的问题。": "Hi! I'm the castor-kit AI assistant.\n\nPick a prompt below, or type your question.",
+  "你好！我是 Castor AI 助手。\n\n请从下方选择提示词，或直接输入你的问题。": "Hi! I'm the Castor AI assistant.\n\nPick a prompt below, or type your question.",
   "停止生成": "Stop generating",
   "发送": "Send",
   "回到底部": "Scroll to bottom",

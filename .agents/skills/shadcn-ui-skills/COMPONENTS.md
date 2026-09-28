@@ -32,11 +32,11 @@ Vercel's AI components (https://elements.ai-sdk.dev , built on shadcn), used wit
 | `suggestion` | `Suggestions` / `Suggestion` |
 | `confirmation` | `Confirmation` (pass the tool call's `approval` and `state`) / `ConfirmationTitle` / `ConfirmationRequest` / `ConfirmationAccepted` / `ConfirmationRejected` / `ConfirmationActions` / `ConfirmationAction`: tool calls that need user approval (`needsApproval`); see `components/app/assistant/ToolPart.tsx` |
 | `streamdown-translations.ts` | `useStreamdownTranslations()`: translations of Streamdown's button labels in all three languages, passed to `MessageResponse` as `translations` |
-| `code-highlighter.ts` | castor-kit's own Streamdown code highlighting plugin: common languages only, loaded on demand (the official `@streamdown/code` bundles 200+ grammars) |
+| `code-highlighter.ts` | Castor's own Streamdown code highlighting plugin: common languages only, loaded on demand (the official `@streamdown/code` bundles 200+ grammars) |
 
 Key points: override the components' built-in English copy (pass `t('中文')` to `aria-label` / `tooltip`, pass `useStreamdownTranslations()` to `MessageResponse`); `useChat` requests don't go through axios, so `DefaultChatTransport` has to send `X-CSRF-Token` and `Accept-Language` itself; the math and mermaid plugins are not installed (too large). To add AI Elements components, see AGENTS.md "Adding AI Elements components".
 
-## 2. castor-kit shared business components (`@/shared/components/*`)
+## 2. Castor shared business components (`@/shared/components/*`)
 
 Source in `apps/web/src/shared/components/`.
 

@@ -1,5 +1,5 @@
 /**
- * castor-kit code scaffold: generates a backend module, a frontend page and a migration from field definitions
+ * Castor code scaffold: generates a backend module, a frontend page and a migration from field definitions
  *
  * Usage:
  *   pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str,status:str"

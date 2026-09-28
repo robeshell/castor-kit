@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting! Please search [existing issues](https://github.com/robeshell/castor-kit/issues) first.
-        For security problems, follow [SECURITY.md](https://github.com/robeshell/castor-kit/blob/main/SECURITY.md) instead.
+        Thanks for reporting! Please search [existing issues](https://github.com/robeshell/castorjs/issues) first.
+        For security problems, follow [SECURITY.md](https://github.com/robeshell/castorjs/blob/main/SECURITY.md) instead.
   - type: textarea
     id: description
     attributes:

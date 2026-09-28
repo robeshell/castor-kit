@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
-  <img src=".github/assets/wordmark-light.svg" alt="castor-kit" height="110">
+  <img src=".github/assets/wordmark-light.svg" alt="Castor" height="110">
 </picture>
 
 ### A ready-made admin panel. New features? Just ask AI.
@@ -10,7 +10,7 @@
 Users, roles, permissions, menus and logs are already built.<br>
 Describe a new page, and AI generates the table, API and UI — then checks that it all works.
 
-[![CI](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/robeshell/castorjs/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castorjs/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 ![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
@@ -19,20 +19,20 @@ Describe a new page, and AI generates the table, API and UI — then checks that
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-**[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castor-kit/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
+**[Live demo](https://castor-kit-demo.onrender.com)** · [Documentation](https://robeshell.github.io/castorjs/) · [Quick start](#quick-start) · [Build a feature with AI](#build-a-feature-with-ai) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-dark.webp">
-  <img src=".github/assets/screenshot-light.webp" alt="castor-kit admin UI" width="900">
+  <img src=".github/assets/screenshot-light.webp" alt="Castor admin UI" width="900">
 </picture>
 
 </div>
 
-## What is castor-kit?
+## What is Castor?
 
-castor-kit is an open-source admin panel you can run today and extend with AI tomorrow.
+Castor is an open-source admin panel you can run today and extend with AI tomorrow.
 
 - **Out of the box** — sign-in, users, roles, button-level permissions, menus, logs, dictionaries, scheduled tasks, notifications and announcements, in a polished UI with light and dark themes.
 - **Built to be extended by AI** — the project's rules are written for AI coding tools (Claude Code, Cursor, Copilot, Codex CLI and more). Ask for a new page and you get the database table, API, UI and permissions, with automated checks before it's done.
@@ -62,14 +62,14 @@ castor-kit is an open-source admin panel you can run today and extend with AI to
 **With Docker** (recommended — only Docker is required):
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 
 The setup wizard asks for an admin password and a port (default `5000`). Then open `http://localhost:5000` and sign in as `admin`.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
 
 **Try it:** [https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com) — sign in with one click (free instance: the first visit after a while can take ~30 s to wake up).
 
@@ -141,7 +141,7 @@ AGENTS.md     conventions shared by people and AI tools
 | Topics | [Permissions](website/guide/rbac.md) · [i18n](website/guide/i18n.md) · [Theme & layout](website/guide/appearance.md) |
 | Reference | [Commands](website/reference/commands.md) · [Configuration](website/reference/configuration.md) · [Deployment](website/deploy/index.md) |
 
-Read it online at **[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
+Read it online at **[robeshell.github.io/castorjs](https://robeshell.github.io/castorjs/)**, or browse it locally: `npm --prefix website install && npm --prefix website run dev`.
 
 ## Contributing
 
@@ -149,7 +149,7 @@ Issues and pull requests are welcome — please read the [contributing guide](CO
 
 ## License
 
-[MIT](LICENSE) © castor-kit contributors
+[MIT](LICENSE) © Castor contributors
 
 <div align="center">
 <br>

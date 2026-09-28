@@ -1,4 +1,4 @@
-# castor-kit frontend design system
+# Castor frontend design system
 
 > The UI system of `apps/web`: shadcn/ui + Tailwind CSS v4 + motion + lucide-react (TypeScript / TSX, see AGENTS.md "TypeScript"). Visual direction: clean, with smooth motion, in the style of English-language SaaS products (Linear / Vercel / Stripe),
 > on a neutral gray base, with the **Ocean gradient (blue → sky → cyan)** as the default accent color; the gradient is only an accent. The accent can be switched to other presets in the Appearance menu (`src/lib/appearance.ts`), and each preset sets its decorative stops `--brand-from/via/to` plus the measured steps that carry text (`--brand-primary`, `--brand-strong-from/to`).

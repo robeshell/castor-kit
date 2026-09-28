@@ -29,8 +29,8 @@
 ## 方式一：安装向导
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 

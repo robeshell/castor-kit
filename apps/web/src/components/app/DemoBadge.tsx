@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAppInfo } from '@/shared/hooks/useAppInfo'
 
-const REPO_URL = 'https://github.com/robeshell/castor-kit'
+const REPO_URL = 'https://github.com/robeshell/castorjs'
 
 /** Compact "Demo" pill in the top bar on the public demo (DEMO_MODE); the details open in a popover */
 export default function DemoBadge() {

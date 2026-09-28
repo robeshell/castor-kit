@@ -153,7 +153,7 @@ describe('ai chat 流', () => {
     expect(req.body).not.toHaveProperty('max_tokens')
     expect(SYSTEM_PROMPT.content).toContain('Fastify')
     expect(SYSTEM_PROMPT.content).toContain('Drizzle')
-    expect(SYSTEM_PROMPT.content).toContain('castor-kit')
+    expect(SYSTEM_PROMPT.content).toContain('Castor')
   })
 
   it('失败留下的空回复不发给上游', async () => {

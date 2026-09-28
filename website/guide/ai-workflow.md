@@ -1,6 +1,6 @@
 # AI-driven workflow
 
-The goal of castor-kit: you describe a business requirement in plain language, and your AI coding tool works out the technical details on its own, delivering a feature module end to end (table, API, page, permissions, migration) that follows the project's conventions and passes the verification gate.
+The goal of Castor: you describe a business requirement in plain language, and your AI coding tool works out the technical details on its own, delivering a feature module end to end (table, API, page, permissions, migration) that follows the project's conventions and passes the verification gate.
 
 This page covers the four pieces the workflow relies on: the project context in `AGENTS.md`, the per-tool AI configuration, the scaffold generator `pnpm scaffold`, and the verification gate `pnpm verify`.
 
@@ -210,7 +210,7 @@ pnpm scaffold -- --spec device.spec.json
 ```
 
 - `title` and every field's `label` are required; a misspelled key (such as `requried`) is an error instead of being ignored silently
-- The full format is in [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json) (add `"$schema": "<relative path>/docs/spec.schema.json"` to the JSON for editor completion and hints); four requirement → spec examples with the reasoning behind every field are in [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs)
+- The full format is in [`docs/spec.schema.json`](https://github.com/robeshell/castorjs/blob/main/docs/spec.schema.json) (add `"$schema": "<relative path>/docs/spec.schema.json"` to the JSON for editor completion and hints); four requirement → spec examples with the reasoning behind every field are in [`docs/examples/specs/`](https://github.com/robeshell/castorjs/tree/main/docs/examples/specs)
 - `required`: the column is `NOT NULL`, an empty value on create / edit returns 400 `<label>不能为空`, and the form marks and checks it; `image` / `file` can't be required
 - `unique`: the column is `UNIQUE`, duplicates return 400; text and number types only
 - `default`: the column default, used when a new record leaves the field empty and prefilled in the form
@@ -304,9 +304,9 @@ Example Claude Desktop config (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "castor-kit": {
+    "castor": {
       "command": "pnpm",
-      "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
+      "args": ["--dir", "/path/to/castorjs", "-s", "mcp"]
     }
   }
 }
@@ -315,8 +315,8 @@ Example Claude Desktop config (`claude_desktop_config.json`):
 Or build it first and run it directly with node:
 
 ```bash
-pnpm --filter @castor-kit/mcp build
-node /path/to/castor-kit/apps/mcp/dist/index.js
+pnpm --filter @castorjs/mcp build
+node /path/to/castorjs/apps/mcp/dist/index.js
 ```
 
 By default the MCP Server derives the repo root from its own location; override it with the `CASTOR_KIT_ROOT` environment variable.

@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * castor-kit MCP Server
+ * Castor MCP Server
  *
- * Exposes the castor-kit dev tooling over the MCP protocol, so MCP clients such as Claude Desktop can drive the full feature-development flow without a command line.
+ * Exposes the Castor dev tooling over the MCP protocol, so MCP clients such as Claude Desktop can drive the full feature-development flow without a command line.
  *
  * Configure in Claude Desktop (~/Library/Application Support/Claude/claude_desktop_config.json):
  *   {
  *     "mcpServers": {
- *       "castor-kit": {
+ *       "castor": {
  *         "command": "pnpm",
- *         "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
+ *         "args": ["--dir", "/path/to/castorjs", "-s", "mcp"]
  *       }
  *     }
  *   }
- * Or build it and run with node directly: `pnpm --filter @castor-kit/mcp build` → `node /path/to/castor-kit/apps/mcp/dist/index.js`
+ * Or build it and run with node directly: `pnpm --filter @castorjs/mcp build` → `node /path/to/castorjs/apps/mcp/dist/index.js`
  *
  * Tools:
  *   get_project_context   returns AGENTS.md + the current module tree (for Step 1)
@@ -93,7 +93,7 @@ const SCRIPT_FALLBACK: Record<string, { bin: string; args: string[] }> = {
 
 /**
  * Runs a script from the root package.json: `pnpm -s <script> -- ...args`.
- * drizzle-kit does not understand `--` (castor-kit's own scripts ignore it), so db:generate takes the args directly.
+ * drizzle-kit does not understand `--` (Castor's own scripts ignore it), so db:generate takes the args directly.
  */
 export function runScript(script: string, args: string[] = []): Promise<RunResult> {
   const dash = script === 'db:generate' ? [] : ['--']
@@ -133,7 +133,7 @@ export function cleanOutput(output: string): string {
 
 /** Run the scaffold with a spec object: it is written to a temp file for `--spec` and removed afterwards */
 async function withSpecFile(spec: unknown, args: string[]): Promise<RunResult> {
-  const dir = mkdtempSync(join(tmpdir(), 'castor-kit-spec-'))
+  const dir = mkdtempSync(join(tmpdir(), 'castor-spec-'))
   const file = join(dir, 'spec.json')
   try {
     writeFileSync(file, JSON.stringify(spec, null, 2), 'utf8')
@@ -285,12 +285,12 @@ export function migrationName(message: string): string {
 // ─── Server ───────────────────────────────────────────────────────────────────
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: 'castor-kit', version: '0.3.0' })
+  const server = new McpServer({ name: 'castor', version: '0.3.0' })
 
   server.registerTool(
     'get_project_context',
     {
-      description: 'Returns the castor-kit project context: the full AGENTS.md and the current module structure. Call this before implementing a new feature.',
+      description: 'Returns the Castor project context: the full AGENTS.md and the current module structure. Call this before implementing a new feature.',
       inputSchema: {},
     },
     async () => text(projectContext()),

@@ -19,13 +19,13 @@ import type { AppConfig } from '@/config'
 
 const UPSTREAM_TIMEOUT_MS = 60_000
 
-/** Injected system prompt: describes castor-kit's positioning, tech stack, feature modules and dev conventions */
+/** Injected system prompt: describes Castor's positioning, tech stack, feature modules and dev conventions */
 export const SYSTEM_PROMPT = {
   role: 'system',
   content:
-    '你是 castor-kit 项目的专属 AI 助手。\n\n' +
-    '## 关于 castor-kit\n' +
-    'castor-kit 是一个 AI-First 的企业级全栈脚手架（Node.js + React），核心理念是：PM 用自然语言描述需求，AI Agent 端到端实现功能。\n\n' +
+    '你是 Castor 项目的专属 AI 助手。\n\n' +
+    '## 关于 Castor\n' +
+    'Castor 是一个 AI-First 的企业级全栈脚手架（Node.js + React），核心理念是：PM 用自然语言描述需求，AI Agent 端到端实现功能。\n\n' +
     '## 技术栈\n' +
     '- 后端：Node.js 22 + Fastify 5 + TypeScript + Zod + Drizzle ORM + PostgreSQL\n' +
     '- 前端：React 19 + Vite + React Router + Tailwind CSS v4\n' +
@@ -48,7 +48,7 @@ export const SYSTEM_PROMPT = {
     '- 权限检查：hasMenuPermission(request, code) / menuPermissionRequired(code)（common/auth.ts）\n' +
     '- 默认账号：admin（密码以部署配置为准）\n' +
     '- 开发端口：后端 5001，前端 5173（Vite）\n\n' +
-    '请使用用户提问所用的语言回答（中文提问用中文，English questions in English，日本語の質問には日本語で），回答要结合 castor-kit 的实际技术栈和实现方式。',
+    '请使用用户提问所用的语言回答（中文提问用中文，English questions in English，日本語の質問には日本語で），回答要结合 Castor 的实际技术栈和实现方式。',
 }
 
 export interface ChatStreamOptions {

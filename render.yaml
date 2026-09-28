@@ -1,4 +1,4 @@
-# Render Blueprint: a public castor-kit demo on Render's free plan, with PostgreSQL on Neon.
+# Render Blueprint: a public Castor demo on Render's free plan, with PostgreSQL on Neon.
 # Walkthrough: website/deploy/index.md ("Render + Neon").
 #
 # DATABASE_URL is asked for when you create the Blueprint: paste Neon's *direct* (non-pooled) connection string —

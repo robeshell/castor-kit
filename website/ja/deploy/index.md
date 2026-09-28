@@ -29,8 +29,8 @@ Docker Compose でのデプロイをおすすめします。compose 構成には
 ## 方法 1：セットアップウィザード
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 

@@ -1,13 +1,13 @@
 # Starting a project
 
-castor-kit is a starting point, not a library you install: your product is a repository that begins as a copy of a castor-kit release and grows from there. This page covers creating that repository, naming the product, hiding the component gallery, going live, and taking later castor-kit releases.
+Castor is a starting point, not a library you install: your product is a repository that begins as a copy of a Castor release and grows from there. This page covers creating that repository, naming the product, hiding the component gallery, going live, and taking later Castor releases.
 
 ## 1. Create the repository
 
-Start from a release tag and keep castor-kit as a second remote, so later releases can be merged:
+Start from a release tag and keep Castor as a second remote, so later releases can be merged:
 
 ```bash
-git clone --branch v0.3.0 https://github.com/robeshell/castor-kit.git my-app
+git clone --branch v0.3.0 https://github.com/robeshell/castorjs.git my-app
 cd my-app
 git switch -c main
 git remote rename origin upstream
@@ -30,7 +30,7 @@ Then follow [Quick start](/guide/getting-started) (local development) to install
 
 Leave these as they are, even though they contain "castor":
 
-- The internal package names `@castor-kit/*`: scripts and `pnpm --filter` commands use them, and users never see them.
+- The internal package names `@castorjs/*`: scripts and `pnpm --filter` commands use them, and users never see them.
 - The session cookie name and the key-derivation labels (`castor-kit-session`, `castor-kit-secret-box`, …): changing them signs everyone out and makes stored secrets (SMTP / S3 / AI keys) unreadable.
 - The webhook headers `X-Castor-Event` / `X-Castor-Signature` / …: your receivers verify them.
 
@@ -56,7 +56,7 @@ Deleting the gallery outright isn't a supported step yet: the framework's own te
 
 Describe a feature and let your AI agent run `/new-feature-autopilot`, or write the spec yourself and run `pnpm scaffold -- --spec`: see [AI workflow](/guide/ai-workflow). For pages other than a plain list, copy the matching page pattern from the gallery (see [Component gallery](/guide/components#from-a-pattern)).
 
-## 6. Take a new castor-kit release
+## 6. Take a new Castor release
 
 ```bash
 git fetch upstream --tags

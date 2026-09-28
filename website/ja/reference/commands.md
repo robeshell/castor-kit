@@ -3,7 +3,7 @@
 `pnpm` コマンドはすべてリポジトリのルートで実行します。
 
 ::: tip 引数の前の -- について
-castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）では、引数の前の `--` はあってもなくてもかまいません。**`pnpm db:generate` の後ろには `--` を書かないでください。** 引数がそのまま drizzle-kit に渡されますが、drizzle-kit は `--` を認識しないためです。
+Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）では、引数の前の `--` はあってもなくてもかまいません。**`pnpm db:generate` の後ろには `--` を書かないでください。** 引数がそのまま drizzle-kit に渡されますが、drizzle-kit は `--` を認識しないためです。
 :::
 
 ## 開発
@@ -14,9 +14,9 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 | `pnpm dev` | バックエンド（5001）とフロントエンド（5173）を同時に起動 |
 | `pnpm dev:api` | バックエンドだけを起動（`tsx watch` によるホットリロード） |
 | `pnpm dev:web` | フロントエンドだけを起動（Vite） |
-| `pnpm --filter @castor-kit/api worker` | 独立した定期タスクのスケジューラープロセスを起動 |
+| `pnpm --filter @castorjs/api worker` | 独立した定期タスクのスケジューラープロセスを起動 |
 | `pnpm build` | すべてのアプリケーションをビルド：フロントエンド（Vite）、バックエンド（tsup）、MCP Server |
-| `pnpm --filter @castor-kit/web preview` | フロントエンドのビルド成果物をプレビュー |
+| `pnpm --filter @castorjs/web preview` | フロントエンドのビルド成果物をプレビュー |
 
 ## 品質チェック
 
@@ -24,11 +24,11 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 |---|---|
 | `pnpm typecheck` | TypeScript の型チェック（`apps/api`、`apps/mcp`、テストを含む `apps/web`） |
 | `pnpm test` | すべてのテストを実行（バックエンドにはテスト用データベース `castor_kit_test` が必要） |
-| `pnpm --filter @castor-kit/api test` | バックエンドのテストだけを実行 |
-| `pnpm --filter @castor-kit/web test` | フロントエンドのテストだけを実行 |
-| `pnpm --filter @castor-kit/web test:watch` | フロントエンドのテストをウォッチモードで実行 |
+| `pnpm --filter @castorjs/api test` | バックエンドのテストだけを実行 |
+| `pnpm --filter @castorjs/web test` | フロントエンドのテストだけを実行 |
+| `pnpm --filter @castorjs/web test:watch` | フロントエンドのテストをウォッチモードで実行 |
 | `pnpm lint` | バックエンドの ESLint |
-| `pnpm --filter @castor-kit/web lint` | フロントエンドの ESLint |
+| `pnpm --filter @castorjs/web lint` | フロントエンドの ESLint |
 | `node apps/web/scripts/i18n-scan.mjs [ディレクトリ]` | 未翻訳の文言をスキャン。ディレクトリは `apps/web` からの相対パスで、省略すると `src` 全体をスキャン |
 
 ## データベース
@@ -39,7 +39,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 | `pnpm db:migrate` | マイグレーションを適用 |
 | `psql -d <データベース名> -c '\d <テーブル名>'` | テーブル構造が実際に DB に反映されたことを確認 |
 | `pnpm setup-once` | マイグレーション + RBAC の増分同期 + AI SQL 用読み取り専用アカウント。advisory lock 付きで、繰り返し実行可能 |
-| `pnpm --filter @castor-kit/api init-ro-role` | AI SQL 用の読み取り専用アカウント `castor_kit_ro` だけを作成（`POSTGRES_RO_PASSWORD` が必要） |
+| `pnpm --filter @castorjs/api init-ro-role` | AI SQL 用の読み取り専用アカウント `castor_kit_ro` だけを作成（`POSTGRES_RO_PASSWORD` が必要） |
 
 ## RBAC
 
@@ -84,7 +84,7 @@ castor-kit 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`ope
 | コマンド | 説明 |
 |---|---|
 | `pnpm mcp` | MCP Server を起動（stdio） |
-| `pnpm --filter @castor-kit/mcp build` | `apps/mcp/dist/` にビルド |
+| `pnpm --filter @castorjs/mcp build` | `apps/mcp/dist/` にビルド |
 
 ## フロントエンドのコンポーネント
 

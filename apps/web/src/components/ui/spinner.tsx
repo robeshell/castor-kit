@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 import { Loader2Icon } from "lucide-react"
 
-// castor-kit: decorative (aria-hidden) unless `label` is given. Most spinners sit next to text that already says
+// Castor: decorative (aria-hidden) unless `label` is given. Most spinners sit next to text that already says
 // what is happening (a button's label); a spinner standing alone passes its translated label.
 function Spinner({
   className,

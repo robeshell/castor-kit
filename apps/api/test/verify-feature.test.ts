@@ -360,7 +360,7 @@ describe('verify-feature 汇总与 CLI', () => {
 
     const human = run(['--module', 'ck_widget', '--skip-build', '--skip-frontend-tests', '--skip-api-tests', '--skip-db', '--root', root])
     expect(human.status).toBe(0)
-    expect(human.stdout).toContain('== castor-kit feature verification ==')
+    expect(human.stdout).toContain('== Castor feature verification ==')
     // Skipping checks with flags is for debugging: the summary says so instead of "ready to deliver"
     expect(human.stdout).toContain('  ⏭️  frontend build (--skip-build)')
     expect(human.stdout).toContain('✅ The checks that ran passed, but 4 were skipped (--skip-db --skip-build --skip-frontend-tests --skip-api-tests). Run verify without these flags before delivering.')

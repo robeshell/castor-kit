@@ -2,7 +2,7 @@
 set -e
 
 echo "============================================"
-echo "  Starting castor-kit"
+echo "  Starting Castor"
 echo "============================================"
 
 # Wait for the database (the compose healthcheck already guarantees this; this is an extra safeguard)

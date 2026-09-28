@@ -1,18 +1,18 @@
 # Introduction
 
-castor-kit is an AI-first, full-stack admin scaffold. You describe a business feature in plain language; your AI coding tool follows the conventions written into the repository to generate the table, API, page, permissions and database migration; and a verification gate confirms the result is fit to ship.
+Castor is an AI-first, full-stack admin scaffold. You describe a business feature in plain language; your AI coding tool follows the conventions written into the repository to generate the table, API, page, permissions and database migration; and a verification gate confirms the result is fit to ship.
 
 *Castor* is the Latin genus of the beaver, known as "nature's engineer". *Kit* stands for the scaffold and its toolkit.
 
 ## Tech stack
 
-castor-kit is a pnpm monorepo with three apps:
+Castor is a pnpm monorepo with three apps:
 
 | App | Package | Tech |
 |---|---|---|
-| Backend `apps/api` | `@castor-kit/api` | Node 22, TypeScript (strict), Fastify 5, Zod, Drizzle ORM, PostgreSQL 14+, pino |
-| Frontend `apps/web` | `@castor-kit/web` | React 19, Vite, React Router, shadcn/ui (Radix), Tailwind CSS v4, motion, lucide-react, i18next (TypeScript / TSX) |
-| MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`; exposes scaffolding, verification, RBAC sync, migrations and other tools to MCP clients |
+| Backend `apps/api` | `@castorjs/api` | Node 22, TypeScript (strict), Fastify 5, Zod, Drizzle ORM, PostgreSQL 14+, pino |
+| Frontend `apps/web` | `@castorjs/web` | React 19, Vite, React Router, shadcn/ui (Radix), Tailwind CSS v4, motion, lucide-react, i18next (TypeScript / TSX) |
+| MCP Server `apps/mcp` | `@castorjs/mcp` | `@modelcontextprotocol/sdk`; exposes scaffolding, verification, RBAC sync, migrations and other tools to MCP clients |
 
 Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form` for forms, ECharts for charts, Monaco for code editing, react-quill-new for rich text, and dnd-kit for drag and drop.
 
@@ -36,7 +36,7 @@ Other notable dependencies: `@tanstack/react-table` for tables, `react-hook-form
 
 ## How it differs from other scaffolds
 
-Most admin scaffolds give you "a codebase to copy and modify". castor-kit does two more things on top of that:
+Most admin scaffolds give you "a codebase to copy and modify". Castor does two more things on top of that:
 
 1. **The conventions are written for AI.** Layering rules, naming, the field-type inference table, permission code rules, menu ID allocation and a list of anti-patterns all live in `AGENTS.md`. Once an AI has read it, it can make technical decisions on its own instead of repeatedly asking you about routes or field types.
 2. **A gate decides when work is delivered.** AI-generated code must pass `pnpm verify`. The gate goes beyond static checks: it confirms that migrations have actually been applied to the database and that routes and menu permissions are registered, and it runs the frontend build and the backend and frontend tests.

@@ -319,7 +319,7 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-// castor-kit: math and mermaid plugins left out and code highlighting limited to common languages (code-highlighter.ts)
+// Castor: math and mermaid plugins left out and code highlighting limited to common languages (code-highlighter.ts)
 const streamdownPlugins = { cjk, code };
 
 export const MessageResponse = memo(

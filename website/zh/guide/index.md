@@ -1,18 +1,18 @@
 # 介绍
 
-castor-kit 是一个 AI-First 的全栈管理后台脚手架。你用自然语言描述一个业务功能，AI 编程工具按照仓库里写好的约定，生成数据表、接口、页面、权限和数据库迁移，最后由验证门禁确认交付质量。
+Castor 是一个 AI-First 的全栈管理后台脚手架。你用自然语言描述一个业务功能，AI 编程工具按照仓库里写好的约定，生成数据表、接口、页面、权限和数据库迁移，最后由验证门禁确认交付质量。
 
 名字里的 Castor 是河狸的拉丁属名，河狸被称为“自然界的工程师”；Kit 指脚手架和工具套件。
 
 ## 技术栈
 
-castor-kit 是一个 pnpm monorepo，包含三个应用：
+Castor 是一个 pnpm monorepo，包含三个应用：
 
 | 应用 | 包名 | 技术 |
 |---|---|---|
-| 后端 `apps/api` | `@castor-kit/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
-| 前端 `apps/web` | `@castor-kit/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX） |
-| MCP Server `apps/mcp` | `@castor-kit/mcp` | `@modelcontextprotocol/sdk`，把脚手架、验证、RBAC 同步、迁移等工具暴露给 MCP 客户端 |
+| 后端 `apps/api` | `@castorjs/api` | Node 22、TypeScript（strict）、Fastify 5、Zod、Drizzle ORM、PostgreSQL 14+、pino |
+| 前端 `apps/web` | `@castorjs/web` | React 19、Vite、React Router、shadcn/ui（Radix）、Tailwind CSS v4、motion、lucide-react、i18next（TypeScript / TSX） |
+| MCP Server `apps/mcp` | `@castorjs/mcp` | `@modelcontextprotocol/sdk`，把脚手架、验证、RBAC 同步、迁移等工具暴露给 MCP 客户端 |
 
 其他常用依赖：表格 `@tanstack/react-table`、表单 `react-hook-form`、图表 ECharts、代码编辑器 Monaco、富文本 react-quill-new、拖拽 dnd-kit。
 
@@ -36,7 +36,7 @@ castor-kit 是一个 pnpm monorepo，包含三个应用：
 
 ## 和其他脚手架的区别
 
-大多数管理后台脚手架提供的是“一套可以复制修改的代码”。castor-kit 在此之上多做了两件事：
+大多数管理后台脚手架提供的是“一套可以复制修改的代码”。Castor 在此之上多做了两件事：
 
 1. **约定写给 AI 看。** 分层规则、命名、字段类型推断表、权限编码规则、菜单 ID 分配、反模式清单都写在 `AGENTS.md` 里。AI 读完后可以自行做出技术决策，不需要反复向你确认路由或字段类型。
 2. **交付由门禁判定。** AI 生成的代码必须通过 `pnpm verify`。门禁不只做静态检查：它会确认迁移已经真实应用到数据库、路由与菜单权限已经登记，并运行前端构建与前后端测试。

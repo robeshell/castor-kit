@@ -1,17 +1,17 @@
 # Project structure
 
-castor-kit is a pnpm monorepo. Run every `pnpm` command from the repo root; the scripts in the root `package.json` forward to the relevant package.
+Castor is a pnpm monorepo. Run every `pnpm` command from the repo root; the scripts in the root `package.json` forward to the relevant package.
 
 ## Top level
 
 ```text
-castor-kit/
+castorjs/
 ├── package.json              # Workspace root scripts (dev / verify / scaffold / db:* ...)
 ├── pnpm-workspace.yaml
 ├── apps/
-│   ├── api/                  # @castor-kit/api: Fastify backend
-│   ├── web/                  # @castor-kit/web: React frontend
-│   └── mcp/                  # @castor-kit/mcp: MCP Server
+│   ├── api/                  # @castorjs/api: Fastify backend
+│   ├── web/                  # @castorjs/web: React frontend
+│   └── mcp/                  # @castorjs/mcp: MCP Server
 ├── docs/
 │   ├── architecture.md       # Architecture notes and design decisions
 │   ├── frontend-design-system.md  # Frontend UI system (shadcn/ui)
@@ -124,7 +124,7 @@ Page files must live at `modules/<module>/pages/<subdir>/<page>/index.tsx`, othe
 
 | What | Rule | Example |
 |---|---|---|
-| Project and package names | Lowercase, hyphenated | `castor-kit`, `@castor-kit/api` |
+| Project and package names | Lowercase, hyphenated | `castorjs`, `@castorjs/api` |
 | Backend directory and file names | Lowercase, hyphenated | `component-center`, `scheduled-task` |
 | Database table names | Underscores | `scheduled_tasks` |
 | Frontend directories, menu `component` field | Underscores | `component_center/patterns/card_list_page` |

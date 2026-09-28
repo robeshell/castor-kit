@@ -1,6 +1,6 @@
 # 开放接口：API Token 与 Webhook
 
-脚本、定时任务和其他系统可以用 **API Token** 调用 castor-kit 的接口；castor-kit 里的数据变化时，用 **Webhook** 主动推送给其他系统。
+脚本、定时任务和其他系统可以用 **API Token** 调用 Castor 的接口；Castor 里的数据变化时，用 **Webhook** 主动推送给其他系统。
 
 ## API Token
 

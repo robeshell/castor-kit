@@ -38,9 +38,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
       - name: Init test database (migrate + seed RBAC)
-        run: pnpm --filter @castor-kit/api setup-once
+        run: pnpm --filter @castorjs/api setup-once
       - name: Unit & contract tests
-        run: pnpm --filter @castor-kit/api test
+        run: pnpm --filter @castorjs/api test
       - name: Feature gate
         run: pnpm verify -- --skip-build --skip-api-tests  # API tests already ran in the previous step
 
@@ -57,6 +57,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Unit tests
-        run: pnpm --filter @castor-kit/web test
+        run: pnpm --filter @castorjs/web test
       - name: Build
-        run: pnpm --filter @castor-kit/web build
+        run: pnpm --filter @castorjs/web build

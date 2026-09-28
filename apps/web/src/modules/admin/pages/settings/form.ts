@@ -62,7 +62,7 @@ export const FIELD_META: Record<string, FieldMeta> = {
   },
   'mail.smtp_user': { label: '账号', placeholder: 'noreply@example.com' },
   'mail.smtp_password': { label: '密码 / 授权码', description: '加密保存，保存后不再显示' },
-  'mail.from': { label: '发件人', description: '留空时使用账号', placeholder: 'castor-kit <noreply@example.com>' },
+  'mail.from': { label: '发件人', description: '留空时使用账号', placeholder: 'Castor <noreply@example.com>' },
 
   'storage.driver': {
     label: '保存到',

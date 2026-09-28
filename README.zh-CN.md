@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
-  <img src=".github/assets/wordmark-light.svg" alt="castor-kit" height="110">
+  <img src=".github/assets/wordmark-light.svg" alt="Castor" height="110">
 </picture>
 
 ### 开箱即用的管理后台，新功能一句话生成
@@ -10,7 +10,7 @@
 用户、角色、权限、菜单、日志这些后台必备功能已经做好。<br>
 要加新页面，告诉 AI 你要什么，它会生成数据表、接口和页面，并自动检查能否正常运行。
 
-[![CI](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castor-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/robeshell/castorjs/actions/workflows/ci.yml/badge.svg)](https://github.com/robeshell/castorjs/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 ![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-0284c7)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-2563eb)
@@ -19,20 +19,20 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md)
 
-**[在线演示](https://castor-kit-demo.onrender.com)** · [文档](https://robeshell.github.io/castor-kit/zh/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
+**[在线演示](https://castor-kit-demo.onrender.com)** · [文档](https://robeshell.github.io/castorjs/zh/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-zh-dark.webp">
-  <img src=".github/assets/screenshot-zh-light.webp" alt="castor-kit 管理后台界面" width="900">
+  <img src=".github/assets/screenshot-zh-light.webp" alt="Castor 管理后台界面" width="900">
 </picture>
 
 </div>
 
-## castor-kit 是什么？
+## Castor 是什么？
 
-castor-kit 是一个开源的管理后台：今天就能直接用，以后可以让 AI 帮你加功能。
+Castor 是一个开源的管理后台：今天就能直接用，以后可以让 AI 帮你加功能。
 
 - **开箱即用**：登录、用户、角色、按钮级权限、菜单、日志、数据字典、定时任务、消息通知、公告都已做好，界面精致，支持浅色和深色。
 - **为 AI 扩展而设计**：项目的开发规范写成了 AI 编程工具（Claude Code、Cursor、Copilot、Codex CLI 等）能直接遵循的文档。说一句需求，就能得到数据表、接口、页面和权限，并经过自动检查才算完成。
@@ -62,14 +62,14 @@ castor-kit 是一个开源的管理后台：今天就能直接用，以后可以
 **用 Docker**（推荐，只需要安装 Docker）：
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 
 安装向导会让你设置管理员密码和端口（默认 `5000`）。完成后打开 `http://localhost:5000`，用 `admin` 登录。
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castor-kit)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
 
 **在线体验**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)，登录页一键登录（免费实例闲置后首次访问需要约 30 秒唤醒）。
 
@@ -141,7 +141,7 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 | 专题 | [权限 RBAC](website/zh/guide/rbac.md) · [多语言](website/zh/guide/i18n.md) · [主题与布局](website/zh/guide/appearance.md) |
 | 参考 | [命令速查](website/zh/reference/commands.md) · [配置项](website/zh/reference/configuration.md) · [部署指南](website/zh/deploy/index.md) |
 
-在线阅读：**[robeshell.github.io/castor-kit](https://robeshell.github.io/castor-kit/zh/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
+在线阅读：**[robeshell.github.io/castorjs](https://robeshell.github.io/castorjs/zh/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
 
 ## 参与贡献
 
@@ -149,7 +149,7 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 
 ## 许可证
 
-[MIT](LICENSE) © castor-kit contributors
+[MIT](LICENSE) © Castor contributors
 
 <div align="center">
 <br>

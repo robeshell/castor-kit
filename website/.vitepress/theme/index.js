@@ -6,7 +6,7 @@ import './custom.css'
 import Wordmark from './components/Wordmark.vue'
 import Landing from './components/Landing.vue'
 
-/** castor-kit docs theme: VitePress default theme + brand tokens, wordmark in the nav bar and a custom landing page */
+/** Castor docs theme: VitePress default theme + brand tokens, wordmark in the nav bar and a custom landing page */
 export default {
   extends: DefaultTheme,
   Layout: () =>

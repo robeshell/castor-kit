@@ -1,11 +1,11 @@
-# castor-kit — Claude Code additions
+# Castor — Claude Code additions
 
 > **Main docs**: `AGENTS.md` (tool-agnostic project context: architecture, layering, naming, field type inference, anti-patterns, delivery process, menu tree) + `docs/architecture.md` (architecture: tech stack, cross-cutting conventions, migrations, deployment, design decisions). For features on the roadmap, first read the matching section of `docs/roadmap.md`.
 > Read these two files before starting any implementation; for frontend UI work, also read `docs/frontend-design-system.md` (the shadcn/ui system). This file holds only what is specific to Claude Code.
 
 ## Rules
 
-- Names are always lowercase and hyphenated (`castor-kit`, `@castor-kit/api`), never camelCase
+- Names are always lowercase and hyphenated (`castorjs`, `@castorjs/api`), never camelCase
 - Before implementing a shadcn/ui component, check the official shadcn docs / registry first (use the shadcn MCP if available); add new primitives with `npx shadcn@latest add` (on this machine it has to go through a REGISTRY_URL relay, so run `apps/web/scripts/shadcn-add.sh <component>` directly; see AGENTS.md "Adding shadcn/ui primitives")
 - Migrations must actually be applied to the database and checked with `psql \d`; static checks don't count as done
 - **Code comments are always in English**; the UI supports Chinese / English / Japanese: in the frontend write `t('中文原文')` (the Chinese source text is the i18n key) and put translations in the page directory's `locales/en-US.json` and `ja-JP.json`; register translations for new backend errors in `apps/api/src/i18n/messages.ts` (see AGENTS.md "Internationalization (i18n) and code comments")
@@ -22,7 +22,7 @@
   3. Show a **business preview** for confirmation
   4. `pnpm scaffold -- --spec <file>` → fill in the business logic → incremental `seed-rbac` → `pnpm db:migrate` → prove it with `psql \d`
   5. Once the `pnpm verify -- --module <name>` gate is all green (including frontend and backend unit tests), output the delivery report (stating "migrated to <tag>")
-- `shadcn-ui-skills` (`.claude/skills/shadcn-ui-skills/SKILL.md`): shadcn/ui component list, how to use castor-kit's shared components, design tokens, motion rules, common patterns and things not to do
+- `shadcn-ui-skills` (`.claude/skills/shadcn-ui-skills/SKILL.md`): shadcn/ui component list, how to use Castor's shared components, design tokens, motion rules, common patterns and things not to do
 
 ### Docs first
 
@@ -31,7 +31,7 @@
 
 ### Local preview
 
-`.claude/launch.json` defines two dev servers, `api` (`pnpm --filter @castor-kit/api dev`, 5001) and `web` (`pnpm --filter @castor-kit/web dev`, 5173); start them from there when checking pages in the browser.
+`.claude/launch.json` defines two dev servers, `api` (`pnpm --filter @castorjs/api dev`, 5001) and `web` (`pnpm --filter @castorjs/web dev`, 5173); start them from there when checking pages in the browser.
 
 ---
 

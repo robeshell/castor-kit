@@ -1313,7 +1313,7 @@ export interface paths {
                      *           "parts": [
                      *             {
                      *               "type": "text",
-                     *               "text": "介绍一下 castor-kit"
+                     *               "text": "介绍一下 Castor"
                      *             }
                      *           ]
                      *         }

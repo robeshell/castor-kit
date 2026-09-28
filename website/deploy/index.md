@@ -29,8 +29,8 @@ The `Dockerfile` sets the npm registry to `https://registry.npmmirror.com`. If t
 ## Option 1: setup wizard
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 

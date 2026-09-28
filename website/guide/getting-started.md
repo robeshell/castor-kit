@@ -1,6 +1,6 @@
 # Quick start
 
-There are two ways to run castor-kit:
+There are two ways to run Castor:
 
 | Option | Use it for | Requirements |
 |---|---|---|
@@ -12,8 +12,8 @@ There are two ways to run castor-kit:
 ### 1. Clone the repo and run the setup wizard
 
 ```bash
-git clone https://github.com/robeshell/castor-kit.git
-cd castor-kit
+git clone https://github.com/robeshell/castorjs.git
+cd castorjs
 bash scripts/setup.sh
 ```
 
@@ -146,7 +146,7 @@ Without this configuration, those pages show a "not configured" notice; everythi
 In development, the web process does not start the task scheduler by default. To have tasks run on their cron schedule, pick one:
 
 - Set `RUN_SCHEDULER_IN_WEB=true` in `apps/api/.env.development`
-- Run the standalone scheduler process in another terminal: `pnpm --filter @castor-kit/api worker`
+- Run the standalone scheduler process in another terminal: `pnpm --filter @castorjs/api worker`
 
 ## Next steps
 

@@ -1,17 +1,17 @@
 # プロジェクト構成
 
-castor-kit は pnpm monorepo です。`pnpm` コマンドはすべてリポジトリのルートで実行し、ルートの `package.json` のスクリプトが対応するサブパッケージに処理を転送します。
+Castor は pnpm monorepo です。`pnpm` コマンドはすべてリポジトリのルートで実行し、ルートの `package.json` のスクリプトが対応するサブパッケージに処理を転送します。
 
 ## トップレベルのディレクトリ
 
 ```text
-castor-kit/
+castorjs/
 ├── package.json              # ワークスペースのルートスクリプト（dev / verify / scaffold / db:* ...）
 ├── pnpm-workspace.yaml
 ├── apps/
-│   ├── api/                  # @castor-kit/api：Fastify バックエンド
-│   ├── web/                  # @castor-kit/web：React フロントエンド
-│   └── mcp/                  # @castor-kit/mcp：MCP Server
+│   ├── api/                  # @castorjs/api：Fastify バックエンド
+│   ├── web/                  # @castorjs/web：React フロントエンド
+│   └── mcp/                  # @castorjs/mcp：MCP Server
 ├── docs/
 │   ├── architecture.md       # アーキテクチャの説明と設計上の決定
 │   ├── frontend-design-system.md  # フロントエンドの UI 体系（shadcn/ui）
@@ -124,7 +124,7 @@ apps/web/
 
 | 対象 | ルール | 例 |
 |---|---|---|
-| プロジェクト名とパッケージ名 | 小文字のハイフン区切り | `castor-kit`、`@castor-kit/api` |
+| プロジェクト名とパッケージ名 | 小文字のハイフン区切り | `castorjs`、`@castorjs/api` |
 | バックエンドのディレクトリ名とファイル名 | 小文字のハイフン区切り | `component-center`、`scheduled-task` |
 | データベースのテーブル名 | アンダースコア区切り | `scheduled_tasks` |
 | フロントエンドのディレクトリ、メニューの `component` フィールド | アンダースコア区切り | `component_center/patterns/card_list_page` |

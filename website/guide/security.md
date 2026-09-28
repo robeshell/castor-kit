@@ -1,6 +1,6 @@
 # Account security & settings
 
-castor-kit keeps sign-in state on the server, so sessions can be listed and signed out. On top of that it offers two-step verification, password reset by email, password rules and rate limits. Features that add friction are off by default; administrators turn them on under System → Configuration → System settings.
+Castor keeps sign-in state on the server, so sessions can be listed and signed out. On top of that it offers two-step verification, password reset by email, password rules and rate limits. Features that add friction are off by default; administrators turn them on under System → Configuration → System settings.
 
 ## System settings
 

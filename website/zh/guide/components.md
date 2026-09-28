@@ -39,7 +39,7 @@
 | 时间轴上的日期区间 | 甘特图 | 日期区间与进度列 |
 | 排序、行内编辑、批量操作 | 高级表格 | 可排序字段、批量更新 / 删除接口 |
 
-[AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) 的「Page patterns (which page to copy)」一节有同样的表，并列出要参照的 service 与 repository 函数，因此 AI 助手会自己选对页面：描述功能（「做一个工单看板」），它就会从看板页面开始。
+[AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) 的「Page patterns (which page to copy)」一节有同样的表，并列出要参照的 service 与 repository 函数，因此 AI 助手会自己选对页面：描述功能（「做一个工单看板」），它就会从看板页面开始。
 
 ### 共享的演示接口 {#shared-demo-api}
 
@@ -77,7 +77,7 @@
 | Markdown | `/component-center/components/markdown` | `MarkdownView` |
 | 条件构建器 | `/component-center/components/condition-builder` | `ConditionBuilder`：由字段 / 运算符 / 值组成的条件，用 AND / OR 组合，还可以加条件组；它的值是普通 JSON，可直接保存或传给接口（示例：过滤表格数据、在表单中保存查询、单层与只读） |
 
-每个页面位于 `components/<分组>_page/`：每个示例是 `examples/` 下的一个独立文件，页面把它导入两次，一次作为组件用于实时预览，一次用 Vite 的 `?raw` 取得下方显示的源码，所以预览和代码不会对不上；属性表格在页面的 `props.ts` 中。布局组件（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）在 `apps/web/src/modules/component_center/showcase/`。要新增页面或示例，按 [AGENTS.md](https://github.com/robeshell/castor-kit/blob/main/AGENTS.md) 的 “Component showcase pages” 一节来做；示例文件没有按两种方式导入时，会有测试报错。
+每个页面位于 `components/<分组>_page/`：每个示例是 `examples/` 下的一个独立文件，页面把它导入两次，一次作为组件用于实时预览，一次用 Vite 的 `?raw` 取得下方显示的源码，所以预览和代码不会对不上；属性表格在页面的 `props.ts` 中。布局组件（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）在 `apps/web/src/modules/component_center/showcase/`。要新增页面或示例，按 [AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) 的 “Component showcase pages” 一节来做；示例文件没有按两种方式导入时，会有测试报错。
 
 ## 数据可视化
 

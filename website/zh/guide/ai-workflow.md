@@ -1,6 +1,6 @@
 # AI 驱动开发
 
-castor-kit 的目标是：你用自然语言描述业务需求，AI 编程工具自行推断技术细节，端到端交付符合项目规范的功能模块（数据表、接口、页面、权限、迁移），并通过验证门禁。
+Castor 的目标是：你用自然语言描述业务需求，AI 编程工具自行推断技术细节，端到端交付符合项目规范的功能模块（数据表、接口、页面、权限、迁移），并通过验证门禁。
 
 本页介绍这套流程依赖的四样东西：项目上下文 `AGENTS.md`、各 AI 工具的配置、代码骨架生成器 `pnpm scaffold` 和验证门禁 `pnpm verify`。
 
@@ -210,7 +210,7 @@ pnpm scaffold -- --spec device.spec.json
 ```
 
 - `title` 和每个字段的 `label` 必填；拼错的属性名（如 `requried`）直接报错，不会被悄悄忽略
-- 完整格式见 [`docs/spec.schema.json`](https://github.com/robeshell/castor-kit/blob/main/docs/spec.schema.json)（在 JSON 里写 `"$schema": "<相对路径>/docs/spec.schema.json"`，编辑器就能补全和提示）；4 个「一句需求 → spec」示例及逐字段的推断理由见 [`docs/examples/specs/`](https://github.com/robeshell/castor-kit/tree/main/docs/examples/specs)
+- 完整格式见 [`docs/spec.schema.json`](https://github.com/robeshell/castorjs/blob/main/docs/spec.schema.json)（在 JSON 里写 `"$schema": "<相对路径>/docs/spec.schema.json"`，编辑器就能补全和提示）；4 个「一句需求 → spec」示例及逐字段的推断理由见 [`docs/examples/specs/`](https://github.com/robeshell/castorjs/tree/main/docs/examples/specs)
 - `required`：列加 `NOT NULL`，新增 / 编辑时为空返回 400「`<标签>不能为空`」，表单标出必填并校验；`image` / `file` 不能必填
 - `unique`：列加 `UNIQUE`，重复时返回 400；只用于文本和数字类型
 - `default`：列默认值，新增时留空就用它，表单也预先填好
@@ -304,9 +304,9 @@ Claude Desktop 配置示例（`claude_desktop_config.json`）：
 ```json
 {
   "mcpServers": {
-    "castor-kit": {
+    "castor": {
       "command": "pnpm",
-      "args": ["--dir", "/path/to/castor-kit", "-s", "mcp"]
+      "args": ["--dir", "/path/to/castorjs", "-s", "mcp"]
     }
   }
 }
@@ -315,8 +315,8 @@ Claude Desktop 配置示例（`claude_desktop_config.json`）：
 也可以先构建再用 node 直接运行：
 
 ```bash
-pnpm --filter @castor-kit/mcp build
-node /path/to/castor-kit/apps/mcp/dist/index.js
+pnpm --filter @castorjs/mcp build
+node /path/to/castorjs/apps/mcp/dist/index.js
 ```
 
 MCP Server 默认以自身所在位置推算仓库根目录，可用环境变量 `CASTOR_KIT_ROOT` 覆盖。

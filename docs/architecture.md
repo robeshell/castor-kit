@@ -1,6 +1,6 @@
-# castor-kit architecture
+# Castor architecture
 
-> castor-kit (Castor is the Latin genus name of the beaver, "nature's engineer"; Kit means scaffold/toolkit) is an AI-first admin scaffold built on Node.js/TypeScript + React + RBAC. All names are lowercase and hyphenated, never camelCase: GitHub repository `castor-kit`, npm scope `@castor-kit/*`.
+> Castor (the Latin genus name of the beaver, "nature's engineer") is an AI-first admin scaffold built on Node.js/TypeScript + React + RBAC. All technical names are lowercase and hyphenated, never camelCase: GitHub repository `castorjs`, npm scope `@castorjs/*`.
 >
 > This document covers the overall architecture, cross-cutting conventions and key design decisions. Day-to-day conventions (field type inference, delivery process, menu tree) are in `AGENTS.md`; the frontend UI system is in `docs/frontend-design-system.md`.
 
@@ -40,11 +40,11 @@ Alternatives considered (and why not):
 ## 2. Repository layout
 
 ```
-castor-kit/
+castorjs/
 ├── package.json                    # pnpm workspaces root (run every pnpm command from the root)
 ├── pnpm-workspace.yaml
 ├── apps/
-│   ├── api/                        # @castor-kit/api — Fastify backend
+│   ├── api/                        # @castorjs/api — Fastify backend
 │   │   ├── src/
 │   │   │   ├── main.ts             # web process entry
 │   │   │   ├── worker.ts           # standalone scheduler process entry
@@ -66,8 +66,8 @@ castor-kit/
 │   │   ├── scripts/                # toolchain (see §7)
 │   │   ├── test/                   # Vitest (real PostgreSQL)
 │   │   └── drizzle.config.ts
-│   ├── web/                        # @castor-kit/web — React 19 + shadcn/ui + Tailwind v4 (TypeScript)
-│   └── mcp/                        # @castor-kit/mcp — MCP server
+│   ├── web/                        # @castorjs/web — React 19 + shadcn/ui + Tailwind v4 (TypeScript)
+│   └── mcp/                        # @castorjs/mcp — MCP server
 ├── docs/
 │   ├── architecture.md             # this document
 │   ├── frontend-design-system.md   # frontend UI system
@@ -277,9 +277,9 @@ Naming: backend directories and file names are lowercase and hyphenated (`compon
 | `scripts/seed-rbac.ts` | `pnpm seed:rbac -- --incremental` | Single source of truth for the menu tree; `--incremental` upserts by code without deleting, syncs sequences and refreshes super admin permissions; with no flags it's a full rebuild (empty database only) |
 | (built-in) orphan file cleanup | Hourly in the scheduler process | See §4.12; doesn't run when `ENABLE_TASK_SCHEDULER=false` |
 | `scripts/seed-demo.ts` | `pnpm seed:demo` | Sample department tree, two restricted roles (`dept_manager`: own department and below; `staff`: self only) and 6 sample users; idempotent updates by code / username, never deletes or changes existing passwords; `NODE_ENV=production` requires `--force` |
-| `scripts/init-ro-role.ts` | `pnpm --filter @castor-kit/api init-ro-role` | Creates the AI SQL read-only account and grants privileges per the sensitive-table rules |
+| `scripts/init-ro-role.ts` | `pnpm --filter @castorjs/api init-ro-role` | Creates the AI SQL read-only account and grants privileges per the sensitive-table rules |
 | `scripts/setup-once.ts` | `pnpm setup-once` | `pg_advisory_lock` → migrate → seed-rbac (incremental) → init-ro-role; safe under concurrent multi-replica starts |
-| `src/worker.ts` | `pnpm --filter @castor-kit/api worker` | Standalone scheduler process |
+| `src/worker.ts` | `pnpm --filter @castorjs/api worker` | Standalone scheduler process |
 | `scripts/generate-openapi.ts` | `pnpm openapi:generate` | Adds skeletons for undocumented route + method pairs (lowercase methods, with path parameters), then checks the whole document with `scripts/lib/openapi-lint.ts` against AGENTS.md "OpenAPI writing rules"; `--strict` exits non-zero on non-compliant endpoints. Docs are written by hand from the code, enforced by `test/openapi-doc.test.ts` and verify's `openapi_sync`. Route collection (an `onRoute` hook while `buildApp()` runs) also records each route's `routeBody` declaration, and the `body-sync` rule (`scripts/lib/openapi-body-sync.ts`) compares every documented JSON request body with it: nullability, requiredness, types and enums per property, nested objects and array items included (types / enums from `z.toJSONSchema`, null / missing probed with real parses); export requests' `fields[]` / `file_type` enums are the contract by design (`isExportContractEnum`), other intentional differences are listed with a reason in `BODY_SYNC_ALLOWLIST`, and stale entries fail. Then regenerates the frontend's API types (`apps/web/src/shared/api/openapi.d.ts`, via `apps/web/scripts/api-types.mjs`, which marks response properties required because `xxxToDict()` always returns every key) |
 | `scripts/import-apifox.ts` | `pnpm openapi:apifox` | Pushes to Apifox |
 | `apps/mcp/src/index.ts` | `pnpm mcp` | Tools: `get_project_context / get_menu_tree / get_spec_guide / validate_spec / scaffold_feature (spec or name + fields) / check_openapi / run_verify / init_rbac / run_migration / list_templates`, which call the scripts above |
