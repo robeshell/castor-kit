@@ -1,4 +1,4 @@
-<!-- "castor" wordmark, same as the app's BrandMark; the beaver image comes from themeConfig.logo -->
+<!-- "Castor" wordmark, same as the app's BrandMark; the beaver image comes from themeConfig.logo -->
 <template>
-  <span class="ck-wordmark" aria-label="Castor">castor</span>
+  <span class="ck-wordmark">Castor</span>
 </template>

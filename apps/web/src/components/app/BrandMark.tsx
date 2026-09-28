@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils'
 import logoUrl from '@/assets/castor-logo.png'
 
 /**
- * Brand mark: logo + wordmark (the app name, lib/brand.ts). Castor's own wordmark is "castor" in lowercase bold Geist
- * (tight tracking); another name is set in the same type as written.
+ * Brand mark: logo + wordmark: the app name (lib/brand.ts) in bold Geist with tight tracking, written as it is named
+ * ("Castor", or a project's own name).
  * A project with its own logo replaces the image imported below.
  * The text sits in the last child div: the collapsed sidebar hides it with [&>div:last-child]:hidden.
  */
@@ -31,7 +31,7 @@ export default function BrandMark({ className, imageClassName, showText = true, 
       {showText ? (
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-[21px] leading-none font-bold tracking-[-0.04em]">
-            {APP_NAME === 'Castor' ? 'castor' : APP_NAME}
+            {APP_NAME}
           </span>
           {subtitle ? <span className="text-muted-foreground mt-1 truncate text-[11px]">{subtitle}</span> : null}
         </div>

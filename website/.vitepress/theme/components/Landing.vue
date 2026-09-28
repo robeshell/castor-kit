@@ -50,7 +50,7 @@ const ICONS = {
       <div class="hero-inner">
         <div class="lockup">
           <img :src="logo" alt="" width="68" height="68" />
-          <span class="ck-wordmark big">castor</span>
+          <span class="ck-wordmark big">Castor</span>
         </div>
         <p class="eyebrow">{{ c.hero.eyebrow }}</p>
         <h1 class="title">
