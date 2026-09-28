@@ -6,7 +6,8 @@
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview",
-    "screenshots": "node scripts/capture-screenshots.mjs"
+    "screenshots": "node scripts/capture-screenshots.mjs",
+    "og": "node scripts/capture-og.mjs"
   },
   "devDependencies": {
     "@fontsource-variable/geist": "^5.3.0",
