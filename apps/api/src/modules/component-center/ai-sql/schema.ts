@@ -1,5 +1,6 @@
 /**
- * AI SQL pure functions: SQL cleanup and safety checks, table visibility (isVisibleTable), read-only query wrapping
+ * AI SQL pure functions: SQL cleanup and safety checks, read-only query wrapping; table visibility (isVisibleTable) is
+ * common/sql-visibility.ts, shared with the read-only role
  *
  * Regexes follow Unicode semantics:
  * - `\b` word characters are Unicode letters/digits/underscore (JS `\b` without the u flag is ASCII-only, so lookarounds emulate it)
@@ -7,6 +8,7 @@
  */
 
 import { z } from 'zod'
+import { isVisibleTable } from '@/common/sql-visibility'
 import { field } from '@/common/validation'
 
 export const generateBody = z.object({ question: field.requiredText('问题', '问题不能为空') })
@@ -15,18 +17,8 @@ export const executeBody = z.object({ sql: field.requiredText('SQL', 'SQL 不能
 /** Max rows returned per query */
 export const MAX_SQL_ROWS = 200
 
-// ---- Sensitive tables: AI SQL neither shows their schema to the LLM/frontend nor grants them to the read-only role ----
-const SENSITIVE_EXACT = new Set(['roles', 'menus', 'user_roles', 'role_menus', 'role_depts', 'files', 'file_references', 'sessions', 'system_settings', 'password_reset_tokens', 'user_recovery_codes', 'api_tokens', 'webhooks', 'webhook_deliveries'])
-const SENSITIVE_PREFIX = ['admin_', 'audit_', 'scheduled_task']
-const SENSITIVE_SUFFIX = ['_logs']
-
-/** Only business tables are visible/grantable; tables holding credentials or internal info are always excluded */
-export function isVisibleTable(tableName: string | null | undefined): boolean {
-  const name = (tableName || '').toLowerCase()
-  if (SENSITIVE_EXACT.has(name)) return false
-  if (SENSITIVE_PREFIX.some((p) => name.startsWith(p)) || SENSITIVE_SUFFIX.some((s) => name.endsWith(s))) return false
-  return true
-}
+// Sensitive tables: AI SQL neither shows their schema to the LLM/frontend nor grants them to the read-only role
+export { isVisibleTable }
 
 // ---- Whitespace / word characters ----
 

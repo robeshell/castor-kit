@@ -2,7 +2,7 @@
  * AI SQL read-only role initialization
  *
  * Run after migrations create the tables: creates the non-superuser read-only role castor_kit_ro and grants it only SELECT on business tables
- * (excluding sensitive tables such as admin_users / logs / scheduled tasks, reusing the AI SQL module's isVisibleTable),
+ * (excluding sensitive tables such as admin_users / logs / scheduled tasks, see isVisibleTable in common/sql-visibility.ts),
  * and enforces role-level read-only + timeouts.
  *
  * Usage: `pnpm init-ro-role` (setup-once calls it after migrations and RBAC).
@@ -11,13 +11,13 @@
 
 import pg from 'pg'
 import { loadConfig, loadEnvFiles, type AppEnv, RO_ROLE_NAME } from '../src/config'
-import { isVisibleTable } from '../src/modules/component-center/ai-sql/schema'
+import { isVisibleTable } from '../src/common/sql-visibility'
 
 export const RO_ROLE = RO_ROLE_NAME
 const SAFE_TABLE_NAME = /^[a-z0-9_]+$/
 const SAFE_ROLE_NAME = /^[a-z_][a-z0-9_]*$/
 
-// The grant scope follows the same rules as AI SQL's schema visibility (isVisibleTable in ai-sql/schema.ts)
+// The grant scope follows the same rules as AI SQL's schema visibility (common/sql-visibility.ts)
 export { isVisibleTable }
 
 export interface InitRoRoleOptions {
