@@ -8,8 +8,10 @@
 /*
  * castor-kit design system (docs/frontend-design-system.md)
  * Neutral gray base plus one accent (default Ocean: blue → sky → cyan); gradients are for accents only.
- * The accent is switchable: presets at the bottom of this file only set --brand-from / --brand-via / --brand-to,
- * and every accent-colored token (primary, ring, charts, soft / glow / shadow) derives from those three.
+ * The accent is switchable: each preset below sets three decorative stops (--brand-from / --brand-via / --brand-to) plus
+ * the steps that carry text: --brand-primary (text, links, the focus ring, fills under --primary-foreground; ≥ 4.6:1 on
+ * every surface and on brand-soft) and --brand-strong-from / -to (the gradient under white text, ≥ 4.6:1 with white).
+ * Soft / glow / shadow derive from the stops. Chart series use a fixed categorical palette (--chart-1…5), not the accent.
  * All colors go through the CSS variables below; never hard-code hex values in pages.
  */
 
@@ -25,50 +27,63 @@
   --card-foreground: #0a0a0a;
   --popover: #ffffff;
   --popover-foreground: #0a0a0a;
-  --primary: var(--brand-from);
+  --primary: var(--brand-primary);
   --primary-foreground: #ffffff;
+  /* Hover moves away from the foreground (darker under white text, lighter under dark text), never toward it */
+  --primary-hover: color-mix(in oklab, var(--primary) 88%, black);
   --secondary: #f5f5f5;
   --secondary-foreground: #0a0a0a;
   --muted: #f5f5f5;
-  --muted-foreground: #737373;
+  --muted-foreground: #6b6b6b;
   --accent: #f4f4f4;
   --accent-foreground: #0a0a0a;
-  --destructive: #e5484d;
+  /* One red: destructive actions and the danger status are the same color */
+  --destructive: var(--danger);
   --destructive-foreground: #ffffff;
   --border: #ebebeb;
   --input: #e3e3e3;
-  --ring: var(--brand-from);
+  --ring: var(--primary);
 
-  --success: #16a34a;
+  /* Status: one step per status serves as text (≥ 4.6:1 on its soft background and on every surface), as dots / bars,
+     and as a fill under --<status>-foreground. Hues stay ≥ 15° (OKLCH) from every accent's --brand-primary. */
+  --success: #027d35;
   --success-soft: rgba(34, 197, 94, 0.12);
-  --warning: #d97706;
+  --success-foreground: #ffffff;
+  --warning: #a25701;
   --warning-soft: rgba(245, 158, 11, 0.14);
-  --danger: #dc2626;
-  --danger-soft: rgba(229, 72, 77, 0.1);
-  --info: #0284c7;
+  --warning-foreground: #ffffff;
+  --danger: #c81e1e;
+  --danger-soft: rgba(220, 38, 38, 0.1);
+  --danger-foreground: #ffffff;
+  --info: #0369a1;
   --info-soft: rgba(2, 132, 199, 0.1);
+  --info-foreground: #ffffff;
 
-  --chart-1: var(--brand-from);
-  --chart-2: var(--brand-via);
-  --chart-3: var(--brand-to);
-  --chart-4: #14b8a6;
-  --chart-5: #f59e0b;
+  /* Categorical series, fixed order (never follows the accent; validated for color-vision deficiency) */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
 
   --sidebar: #f7f8fa;
   --sidebar-foreground: #404040;
-  --sidebar-primary: var(--brand-from);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #ffffff;
   --sidebar-accent-foreground: #0a0a0a;
   --sidebar-border: #ebebeb;
-  --sidebar-ring: var(--brand-from);
+  --sidebar-ring: var(--primary);
 
   /* Brand gradient: three-stop for decoration, two-stop (strong) for elements carrying white text */
   --brand-from: #2563eb;
   --brand-via: #0284c7;
   --brand-to: #22d3ee;
+  --brand-primary: #2563eb;
+  --brand-strong-from: #2563eb;
+  --brand-strong-to: #077bba;
   --brand-gradient: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via) 55%, var(--brand-to) 100%);
-  --brand-gradient-strong: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via) 100%);
+  --brand-gradient-strong: linear-gradient(135deg, var(--brand-strong-from) 0%, var(--brand-strong-to) 100%);
   --brand-glow: color-mix(in srgb, var(--brand-via) 12%, transparent);
   --brand-shadow: color-mix(in srgb, var(--brand-from) 45%, transparent);
   --brand-soft: color-mix(in srgb, var(--brand-from) 8%, transparent);
@@ -84,33 +99,41 @@
   --card-foreground: #f5f5f5;
   --popover: #151515;
   --popover-foreground: #f5f5f5;
-  --primary-foreground: #ffffff;
+  /* Dark text on the accent: a step light enough to read as text on dark surfaces is too light for white text */
+  --primary-foreground: #0a0a0a;
+  --primary-hover: color-mix(in oklab, var(--primary) 85%, white);
   --secondary: #1a1a1a;
   --secondary-foreground: #f5f5f5;
   --muted: #1a1a1a;
   --muted-foreground: #a3a3a3;
   --accent: #1f1f1f;
   --accent-foreground: #f5f5f5;
-  --destructive: #f25c61;
-  --destructive-foreground: #ffffff;
+  --destructive-foreground: #0a0a0a;
   --border: #242424;
   --input: #2c2c2c;
 
   --success: #4ade80;
   --success-soft: rgba(74, 222, 128, 0.14);
+  --success-foreground: #0a0a0a;
   --warning: #fbbf24;
   --warning-soft: rgba(251, 191, 36, 0.14);
+  --warning-foreground: #0a0a0a;
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.14);
+  --danger-foreground: #0a0a0a;
   --info: #38bdf8;
   --info-soft: rgba(56, 189, 248, 0.14);
+  --info-foreground: #0a0a0a;
 
-  --chart-4: #2dd4bf;
-  --chart-5: #fbbf24;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
 
   --sidebar: #0d0d0d;
   --sidebar-foreground: #b5b5b5;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #0a0a0a;
   --sidebar-accent: #1f1f1f;
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: #1f1f1f;
@@ -118,6 +141,9 @@
   --brand-from: #3b82f6;
   --brand-via: #0ea5e9;
   --brand-to: #22d3ee;
+  --brand-primary: #3d85f9;
+  --brand-strong-from: #2970e3;
+  --brand-strong-to: #017cb2;
   --brand-glow: color-mix(in srgb, var(--brand-via) 14%, transparent);
   --brand-soft: color-mix(in srgb, var(--brand-from) 12%, transparent);
 }
@@ -127,23 +153,23 @@
  * any element with data-accent (e.g. a swatch in the appearance menu) previews that preset inside its own box.
  * Keep the three stops as hex: lib/chart-theme.ts converts --brand-from to rgba.
  */
-[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
-.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
+[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; --brand-primary: #2563eb; --brand-strong-from: #2563eb; --brand-strong-to: #077bba; }
+.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; --brand-primary: #3d85f9; --brand-strong-from: #2970e3; --brand-strong-to: #017cb2; }
 
-[data-accent='violet'] { --brand-from: #7c3aed; --brand-via: #9333ea; --brand-to: #e879f9; }
-.dark[data-accent='violet'], .dark [data-accent='violet'] { --brand-from: #8b5cf6; --brand-via: #a855f7; --brand-to: #f0abfc; }
+[data-accent='violet'] { --brand-from: #7c3aed; --brand-via: #9333ea; --brand-to: #e879f9; --brand-primary: #7c3aed; --brand-strong-from: #7c3aed; --brand-strong-to: #9333ea; }
+.dark[data-accent='violet'], .dark [data-accent='violet'] { --brand-from: #8b5cf6; --brand-via: #a855f7; --brand-to: #f0abfc; --brand-primary: #966cff; --brand-strong-from: #8555ef; --brand-strong-to: #9d48ea; }
 
-[data-accent='emerald'] { --brand-from: #059669; --brand-via: #0d9488; --brand-to: #2dd4bf; }
-.dark[data-accent='emerald'], .dark [data-accent='emerald'] { --brand-from: #10b981; --brand-via: #14b8a6; --brand-to: #5eead4; }
+[data-accent='emerald'] { --brand-from: #099573; --brand-via: #0a938e; --brand-to: #1ed4c8; --brand-primary: #077d60; --brand-strong-from: #008566; --brand-strong-to: #07837f; }
+.dark[data-accent='emerald'], .dark [data-accent='emerald'] { --brand-from: #08b88d; --brand-via: #0ab7ae; --brand-to: #57eadd; --brand-primary: #08b88d; --brand-strong-from: #088566; --brand-strong-to: #04837d; }
 
-[data-accent='rose'] { --brand-from: #e11d48; --brand-via: #db2777; --brand-to: #fb7185; }
-.dark[data-accent='rose'], .dark [data-accent='rose'] { --brand-from: #f43f5e; --brand-via: #ec4899; --brand-to: #fda4af; }
+[data-accent='rose'] { --brand-from: #dd1d69; --brand-via: #d32e93; --brand-to: #f7719d; --brand-primary: #d40a62; --brand-strong-from: #dd1d69; --brand-strong-to: #d22d92; }
+.dark[data-accent='rose'], .dark [data-accent='rose'] { --brand-from: #f03f7d; --brand-via: #e24db4; --brand-to: #faa4be; --brand-primary: #f3427f; --brand-strong-from: #dc276d; --brand-strong-to: #cb359f; }
 
-[data-accent='amber'] { --brand-from: #ea580c; --brand-via: #f97316; --brand-to: #fbbf24; }
-.dark[data-accent='amber'], .dark [data-accent='amber'] { --brand-from: #f97316; --brand-via: #fb923c; --brand-to: #fcd34d; }
+[data-accent='amber'] { --brand-from: #e85b02; --brand-via: #f87403; --brand-to: #f8c123; --brand-primary: #be4900; --brand-strong-from: #c84d01; --brand-strong-to: #be5702; }
+.dark[data-accent='amber'], .dark [data-accent='amber'] { --brand-from: #f87403; --brand-via: #fa9338; --brand-to: #f9d44e; --brand-primary: #f87403; --brand-strong-from: #be5702; --brand-strong-to: #b25f01; }
 
-[data-accent='slate'] { --brand-from: #334155; --brand-via: #475569; --brand-to: #94a3b8; }
-.dark[data-accent='slate'], .dark [data-accent='slate'] { --brand-from: #64748b; --brand-via: #94a3b8; --brand-to: #cbd5e1; }
+[data-accent='slate'] { --brand-from: #334155; --brand-via: #475569; --brand-to: #94a3b8; --brand-primary: #334155; --brand-strong-from: #334155; --brand-strong-to: #475569; }
+.dark[data-accent='slate'], .dark [data-accent='slate'] { --brand-from: #64748b; --brand-via: #94a3b8; --brand-to: #cbd5e1; --brand-primary: #7889a0; --brand-strong-from: #64748b; --brand-strong-to: #68768a; }
 
 @theme inline {
   --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
@@ -162,6 +188,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -182,7 +209,11 @@
   --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
-  --color-brand: var(--brand-from);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info-foreground: var(--info-foreground);
+  --color-brand: var(--brand-primary);
   --color-brand-via: var(--brand-via);
   --color-brand-to: var(--brand-to);
   --color-brand-soft: var(--brand-soft);

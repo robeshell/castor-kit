@@ -74,6 +74,17 @@ function ActiveBadge({ value }: { value: boolean | null }) {
   )
 }
 
+/** Black or white, whichever reads better on a #rrggbb background (WCAG relative luminance) */
+function readableTextClass(color: string): string {
+  const channel = (i: number) => {
+    const v = parseInt(color.slice(1 + i, 3 + i), 16) / 255
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  }
+  const luminance = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4)
+  // Contrast with white beats contrast with black below this luminance
+  return luminance > 0.179 ? 'text-black' : 'text-white'
+}
+
 /** Dict item color: color picker + text input + preview */
 interface ColorFieldProps {
   value: string
@@ -102,7 +113,10 @@ function ColorField({ value, onChange }: ColorFieldProps) {
       </label>
       <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={t('例如：#16a34a')} aria-label={t('颜色值')} className="h-9 w-44 font-mono" />
       {color ? (
-        <span className="inline-flex h-6 items-center rounded-md px-2 font-mono text-xs text-white" style={{ backgroundColor: color }}>
+        <span
+          className={cn('inline-flex h-6 items-center rounded-md px-2 font-mono text-xs', HEX_RE.test(color) ? readableTextClass(color) : 'text-white')}
+          style={{ backgroundColor: color }}
+        >
           {color}
         </span>
       ) : (
