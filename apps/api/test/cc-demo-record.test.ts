@@ -194,7 +194,7 @@ describe('demo_records: shared API of the page patterns', () => {
     const item = await make('pm-item')
     const page = await scopedSession(app, handle, { name: 'demo_record_page', codes: ['cc_patterns_standard_list'], dataScope: 'all' })
     const dir = await scopedSession(app, handle, { name: 'demo_record_dir', codes: ['cc_patterns'], dataScope: 'all' })
-    const other = await scopedSession(app, handle, { name: 'demo_record_other', codes: ['cc_admin_list'], dataScope: 'all' })
+    const other = await scopedSession(app, handle, { name: 'demo_record_other', codes: ['cc_components'], dataScope: 'all' })
     const editor = await scopedSession(app, handle, { name: 'demo_record_editor', codes: ['cc_patterns_edit'], dataScope: 'all' })
     for (const reader of [page, dir]) {
       for (const url of [BASE, BASE + '/tree', BASE + '/stats', BASE + '/' + item.id]) {

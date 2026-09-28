@@ -85,8 +85,8 @@ function baseFixture(): void {
   cpSync(join(API_DIR, 'drizzle'), join(root, 'apps/api/drizzle'), { recursive: true })
   trimDrizzleToInitial(join(root, 'apps/api/drizzle'))
   // Frontend
-  put('apps/web/src/modules/admin/api/ck_widget.js', '')
-  put('apps/web/src/modules/admin/pages/ck_widget/index.jsx', '')
+  put('apps/web/src/modules/admin/api/ck_widget.ts', '')
+  put('apps/web/src/modules/admin/pages/ck_widget/index.tsx', '')
   put('apps/web/src/modules/component_center/api/ck_gizmo_page.ts', '')
   put('apps/web/src/modules/component_center/pages/patterns/ck_gizmo_page/index.tsx', '')
   // Docs
@@ -129,16 +129,16 @@ describe('verify-feature 模块级检查', () => {
     expect(checkFrontendPage(ctx, 'ck_widget')).toEqual({
       name: 'frontend_page',
       passed: true,
-      path: 'apps/web/src/modules/admin/pages/ck_widget/index.jsx',
+      path: 'apps/web/src/modules/admin/pages/ck_widget/index.tsx',
     })
     expect(checkFrontendPage(ctx, 'nope')).toEqual({
       name: 'frontend_page',
       passed: false,
-      error: 'No frontend page index.tsx (or index.jsx) found; its directory should be named nope, nope or nope_page',
+      error: 'No frontend page index.tsx found; its directory should be named nope, nope or nope_page',
     })
-    expect(checkFrontendApi(ctx, 'ck_widget')).toEqual({ name: 'frontend_api', passed: true, path: 'apps/web/src/modules/admin/api/ck_widget.js' })
+    expect(checkFrontendApi(ctx, 'ck_widget')).toEqual({ name: 'frontend_api', passed: true, path: 'apps/web/src/modules/admin/api/ck_widget.ts' })
     expect(checkFrontendApi(ctx, 'nope').error).toBe(
-      'No frontend API file found; looked in: apps/web/src/modules/admin/api/nope.{ts,js}, apps/web/src/modules/component_center/api/nope.{ts,js}, apps/web/src/modules/component_center/api/nope_page.{ts,js}',
+      'No frontend API file found; looked in: apps/web/src/modules/admin/api/nope.ts, apps/web/src/modules/component_center/api/nope.ts, apps/web/src/modules/component_center/api/nope_page.ts',
     )
     // TypeScript files count too
     expect(checkFrontendApi(ctx, 'ck_gizmo')).toMatchObject({ passed: true, path: 'apps/web/src/modules/component_center/api/ck_gizmo_page.ts' })

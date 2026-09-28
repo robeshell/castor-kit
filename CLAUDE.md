@@ -47,7 +47,7 @@
 - **Import / export**: `common/tabular.ts` (`buildTable` / `sendTable` / `readTableFile`), csv / xlsx only
 
 ### Frontend (apps/web, shadcn/ui + Tailwind CSS v4 + motion + lucide-react, TypeScript / TSX; see AGENTS.md "TypeScript")
-- **Dynamic routing**: `App.tsx` resolves pages via `lib/page-modules.ts` (`import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`); `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/patterns/kanban_page`)
+- **Dynamic routing**: `App.tsx` resolves pages via `lib/page-modules.ts` (`import.meta.glob('../modules/**/pages/**/index.tsx')`); `menu.component` values have the form `<module>/<subdir>/<page>` (e.g. `component_center/patterns/kanban_page`)
 - **API client**: `apps/web/src/shared/api/request.ts` (intercepts 401 and redirects to the login page, adds the CSRF header automatically, responses are already unwrapped)
 - **Page structure**: follow `apps/web/src/modules/admin/pages/users/index.tsx`: PageHeader → FilterBar → DataTable → FormDialog (react-hook-form + FormFields) → ImportDialog / ExportDialog; deletes use ConfirmAction, feedback uses `@/lib/toast`; other page patterns (cards, tree, stats, detail, steps, dynamic form, kanban, gantt, advanced table) copy their gallery page, see AGENTS.md "Page patterns (which page to copy)"; shared component usage: the gallery's Components pages
 - **Import / export**: reuse `@/shared/components/data-transfer/ImportDialog` + `@/shared/components/data-transfer/ExportDialog`

@@ -360,7 +360,7 @@ The frontend consists of dynamic routing (`App.tsx`), the API layer (`shared/api
 
 ### Dynamic routing
 
-`apps/web/src/App.tsx` resolves pages through `lib/page-modules.ts`, which scans them with `import.meta.glob('../modules/**/pages/**/index.{jsx,tsx}')`.
+`apps/web/src/App.tsx` resolves pages through `lib/page-modules.ts`, which scans them with `import.meta.glob('../modules/**/pages/**/index.tsx')`.
 
 **Menu `component` field format:** `<module>/<subdir>/<page_name>`
 
