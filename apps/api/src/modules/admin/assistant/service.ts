@@ -209,7 +209,7 @@ export class AssistantService {
     const user = await getCurrentAdminUser(request)
     const roles = (user?.roles ?? []).map((r) => r.name).join('、') || '无'
     return [
-      '你是 castor-kit 管理后台里的 AI 小助手，帮当前用户回答问题、查询数据、完成操作。',
+      `你是 ${this.app.config.appName} 管理后台里的 AI 小助手，帮当前用户回答问题、查询数据、完成操作。`,
       '',
       '工作方式：',
       '- 需要数据或要做操作时，先用 search_api 找接口，再用 api_get 读取；修改数据用 api_write（系统会请用户确认后才执行，你不需要再口头确认）',

@@ -136,7 +136,7 @@ AGENTS.md     conventions shared by people and AI tools
 
 | Section | Pages |
 |---|---|
-| Getting started | [Introduction](website/guide/index.md) · [Quick start](website/guide/getting-started.md) · [Project structure](website/guide/project-structure.md) |
+| Getting started | [Introduction](website/guide/index.md) · [Quick start](website/guide/getting-started.md) · [Starting a project](website/guide/new-project.md) · [Project structure](website/guide/project-structure.md) |
 | Development | [AI workflow](website/guide/ai-workflow.md) · [Backend](website/guide/backend.md) · [Frontend](website/guide/frontend.md) |
 | Topics | [Permissions](website/guide/rbac.md) · [i18n](website/guide/i18n.md) · [Theme & layout](website/guide/appearance.md) |
 | Reference | [Commands](website/reference/commands.md) · [Configuration](website/reference/configuration.md) · [Deployment](website/deploy/index.md) |

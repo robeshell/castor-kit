@@ -22,6 +22,11 @@ export const DEFAULT_UPLOAD_TYPES = 'jpg,jpeg,png,gif,webp,pdf,txt,csv,doc,docx,
 
 export interface AppConfig {
   env: AppEnv
+  /**
+   * APP_NAME: the product name the server shows (authenticator apps, mails, the AI assistant, logs); default
+   * castor-kit. The frontend's is VITE_APP_NAME
+   */
+  appName: string
   isProduction: boolean
   port: number
   databaseUrl: string
@@ -103,6 +108,7 @@ const intFromEnv = (fallback: number) =>
     .pipe(z.number().int())
 
 const envSchema = z.object({
+  APP_NAME: z.string().optional().default(''),
   PORT: z.string().optional(),
   DATABASE_URL: z.string().optional(),
   DEV_DATABASE_URL: z.string().optional(),
@@ -207,6 +213,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 
   return {
     env,
+    appName: parsed.APP_NAME.trim() || 'castor-kit',
     isProduction: env === 'production',
     port: parsed.PORT ? Number(parsed.PORT) : defaultPort,
     databaseUrl,

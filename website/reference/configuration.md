@@ -33,6 +33,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 |---|---|---|
 | `NODE_ENV` | Runtime environment: `development` / `test` / `production`; any other value is treated as `development` | `development` |
 | `PORT` | Listening port | `5001` in development, `5002` in test, `5000` in production |
+| `APP_NAME` | Product name the server shows: the issuer in authenticator apps, the default mail sender and the test mail's subject, the AI assistant's introduction, the startup log. The web app's name is `APP_NAME` in `apps/web/src/lib/brand.ts` (see [Starting a project](/guide/new-project)) | `castor-kit` |
 | `DEV_DATABASE_URL` | Development database connection | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | Test database connection; the tests read it from the shell or `apps/api/.env.test` | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | Production database connection | `postgresql://localhost/castor_kit` |

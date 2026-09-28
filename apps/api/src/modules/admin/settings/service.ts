@@ -135,7 +135,7 @@ export class SettingsService {
     try {
       await mailer.send({
         to,
-        subject: 'castor-kit 测试邮件 / Test mail',
+        subject: `${this.config.appName} 测试邮件 / Test mail`,
         text: '这是一封测试邮件，收到说明邮件设置可用。\n\nThis is a test mail: your mail settings work.',
       })
     } catch (err) {

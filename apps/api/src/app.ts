@@ -149,7 +149,7 @@ export async function buildApp({ config, logger = false, dbHandle, mailer }: Bui
       return reply.status(404).send({ error: '资源不存在' })
     }
     if (hasSpa) return reply.sendFile('index.html')
-    return { message: 'castor-kit API', status: 'running' }
+    return { message: `${config.appName} API`, status: 'running' }
   })
 
   // ---- Built-in routes ----

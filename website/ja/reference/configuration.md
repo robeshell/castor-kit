@@ -33,6 +33,7 @@ castor-kit の設定は 2 種類です。
 |---|---|---|
 | `NODE_ENV` | 実行環境：`development` / `test` / `production`。それ以外の値は `development` として扱う | `development` |
 | `PORT` | 待ち受けポート | 開発 `5001`、テスト `5002`、本番 `5000` |
+| `APP_NAME` | サーバーが表示する製品名：認証アプリの発行者、既定の送信者とテストメールの件名、AI アシスタントの自己紹介、起動ログ。Web 側の名前は `apps/web/src/lib/brand.ts` の `APP_NAME`（[プロジェクトを始める](/ja/guide/new-project)を参照） | `castor-kit` |
 | `DEV_DATABASE_URL` | 開発環境のデータベース接続 | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | テスト環境のデータベース接続。テストはシェルまたは `apps/api/.env.test` から読み込む | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 本番環境のデータベース接続 | `postgresql://localhost/castor_kit` |

@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import BrandMark from '@/components/app/BrandMark'
 import LanguageSwitcher from '@/components/app/LanguageSwitcher'
 import ThemeToggle from '@/components/app/ThemeToggle'
+import { APP_NAME } from '@/lib/brand'
 import { EASE_OUT } from '@/lib/motion'
 import LoginBackdrop, { LoginCardBorder } from '@/modules/auth/pages/login/LoginBackdrop'
 
@@ -51,7 +52,7 @@ export default function AuthShell({ children }: AuthShellProps) {
         </motion.div>
       </main>
 
-      <footer className="text-muted-foreground relative px-5 pb-6 text-center text-xs sm:px-8">© 2026 castor-kit</footer>
+      <footer className="text-muted-foreground relative px-5 pb-6 text-center text-xs sm:px-8">© {new Date().getFullYear()} {APP_NAME}</footer>
     </div>
   )
 }

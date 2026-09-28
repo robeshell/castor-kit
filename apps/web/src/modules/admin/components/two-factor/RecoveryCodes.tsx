@@ -1,6 +1,7 @@
 import { Copy, Download, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { APP_SLUG } from '@/lib/brand'
 import { toast } from '@/lib/toast'
 import { downloadBlobFile } from '@/shared/utils/file'
 
@@ -44,7 +45,7 @@ export default function RecoveryCodes({ codes }: RecoveryCodesProps) {
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => downloadBlobFile(new Blob([`${text}\n`], { type: 'text/plain' }), 'castor-kit-recovery-codes.txt')}
+          onClick={() => downloadBlobFile(new Blob([`${text}\n`], { type: 'text/plain' }), `${APP_SLUG}-recovery-codes.txt`)}
         >
           <Download />
           {t('下载')}

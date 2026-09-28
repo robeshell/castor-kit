@@ -136,7 +136,7 @@ AGENTS.md     人と AI ツールが共有する開発ルール
 
 | カテゴリ | ページ |
 |---|---|
-| はじめに | [概要](website/ja/guide/index.md) · [クイックスタート](website/ja/guide/getting-started.md) · [プロジェクト構成](website/ja/guide/project-structure.md) |
+| はじめに | [概要](website/ja/guide/index.md) · [クイックスタート](website/ja/guide/getting-started.md) · [プロジェクトを始める](website/ja/guide/new-project.md) · [プロジェクト構成](website/ja/guide/project-structure.md) |
 | 開発 | [AI 駆動開発](website/ja/guide/ai-workflow.md) · [バックエンド](website/ja/guide/backend.md) · [フロントエンド](website/ja/guide/frontend.md) |
 | トピック | [権限](website/ja/guide/rbac.md) · [多言語対応](website/ja/guide/i18n.md) · [テーマとレイアウト](website/ja/guide/appearance.md) |
 | リファレンス | [コマンド一覧](website/ja/reference/commands.md) · [設定](website/ja/reference/configuration.md) · [デプロイ](website/ja/deploy/index.md) |

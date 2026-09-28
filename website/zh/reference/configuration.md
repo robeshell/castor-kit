@@ -33,6 +33,7 @@ castor-kit 的配置分两类：
 |---|---|---|
 | `NODE_ENV` | 运行环境：`development` / `test` / `production`，其他值按 `development` 处理 | `development` |
 | `PORT` | 监听端口 | 开发 `5001`、测试 `5002`、生产 `5000` |
+| `APP_NAME` | 服务端显示的产品名：身份验证器 App 里的发行方、默认发件人与测试邮件标题、AI 助手的自我介绍、启动日志。前端的名称是 `apps/web/src/lib/brand.ts` 里的 `APP_NAME`（见[开始一个项目](/zh/guide/new-project)） | `castor-kit` |
 | `DEV_DATABASE_URL` | 开发环境数据库连接 | `postgresql://localhost/castor_kit` |
 | `TEST_DATABASE_URL` | 测试环境数据库连接；测试从 shell 或 `apps/api/.env.test` 读取 | `postgresql://localhost/castor_kit_test` |
 | `DATABASE_URL` | 生产环境数据库连接 | `postgresql://localhost/castor_kit` |
