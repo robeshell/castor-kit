@@ -13,7 +13,7 @@ Tokens are defined in `apps/web/src/index.css` (`:root` for light, `.dark` for d
 | Focus style (shared) | Controls: `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`; bordered text fields: `focus-visible:border-ring focus-visible:outline-1 focus-visible:outline-ring` (border + outline = one 2px perimeter; `focus-within:` on outer containers). Always a solid outline in the full `ring` color: it measures ≥ 3:1 on every surface and, unlike a box-shadow `ring-*`, survives Windows forced-colors mode. Never a bare `outline-none`, never a translucent `ring-ring/20` halo as the only cue, never shadcn's `ring-[3px]` + `ring-ring/50` (`apps/web/test/focus-ring.test.ts` rejects all three); convert a newly added component's focus classes to this |
 | Subtle backgrounds (hover, placeholders) | `bg-muted` / `bg-accent` / `hover:bg-muted/60` |
 | Brand color | `text-primary` / `bg-primary` / `bg-brand-soft` (light background for selected state) |
-| Status | `text-success` `bg-success-soft` / `text-warning` `bg-warning-soft` / `text-danger` `bg-danger-soft` / `text-info` `bg-info-soft` |
+| Status | `text-success` `bg-success-soft` / `text-warning` `bg-warning-soft` / `text-danger` `bg-danger-soft` / `text-info` `bg-info-soft`; text on a solid status fill: `bg-success text-success-foreground` (never `text-white`: dark mode's status fills are light) |
 | Dangerous action text | `text-danger hover:text-danger` (ghost buttons); solid dangerous buttons use `variant="destructive"` |
 
 With semantic classes only, dark mode (`<html class="dark">`, toggled by ThemeContext) is correct automatically; **don't** write `text-gray-500`, `#2563eb` or `dark:` branches to set colors by hand.
@@ -69,4 +69,4 @@ const option = {
 }
 ```
 
-`c` contains `brand-from / brand-via / brand-to`, `chart-1`...`chart-5`, `foreground`, `muted-foreground`, `border`, `card`, `popover`, `success / warning / danger`; for multiple series use token values such as `c['chart-1']`..., never hard-coded hex.
+`c` contains `brand-from / brand-via / brand-to` (the accent, for single-series lines and areas), `chart-1`...`chart-5` (a fixed categorical palette, independent of the accent; assign series in that order), `foreground`, `muted-foreground`, `border`, `card`, `popover`, `success / warning / danger`; for multiple series use token values such as `c['chart-1']`..., never hard-coded hex.

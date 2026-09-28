@@ -49,13 +49,13 @@ import type { TreeSelectNode } from '@/shared/components/TreeSelect'
 
 /**
  * Status → bar track and progress fill, in the same colors as the status badge tones in the shared options
- * (solid: dark enough for white text on the fill).
+ * (solid: the percentage sits on the fill in the status's foreground color, e.g. text-info-foreground on bg-info).
  */
-const STATUS_BAR: Record<Status, { track: string; fill: string; solid: boolean }> = {
-  todo: { track: 'bg-warning-soft', fill: 'bg-warning/60', solid: false },
-  in_progress: { track: 'bg-info-soft', fill: 'bg-info', solid: true },
-  done: { track: 'bg-success-soft', fill: 'bg-success', solid: true },
-  archived: { track: 'bg-muted', fill: 'bg-muted-foreground/30', solid: false },
+const STATUS_BAR: Record<Status, { track: string; fill: string; solid: string | null }> = {
+  todo: { track: 'bg-warning-soft', fill: 'bg-warning/60', solid: null },
+  in_progress: { track: 'bg-info-soft', fill: 'bg-info', solid: 'text-info-foreground' },
+  done: { track: 'bg-success-soft', fill: 'bg-success', solid: 'text-success-foreground' },
+  archived: { track: 'bg-muted', fill: 'bg-muted-foreground/30', solid: null },
 }
 /** status is NOT NULL in the database (default todo); the API type is nullable because every field is */
 const statusOf = (record: Row): Status => record.status ?? 'todo'
@@ -303,7 +303,7 @@ function TaskBar({ row: { record, hasChildren }, range, px, index, onEdit }: Tas
         <span
           className={cn(
             'absolute inset-y-0 left-2 flex items-center text-[11px] font-medium tabular-nums',
-            meta.solid && (progress / 100) * width >= 40 ? 'text-white' : 'text-foreground/70',
+            meta.solid && (progress / 100) * width >= 40 ? meta.solid : 'text-foreground/70',
           )}
         >
           {progress}%

@@ -14,7 +14,8 @@ Compared on 2026-09-27 against `https://ui.shadcn.com/r/styles/new-york-v4/<name
 
 | Component | Change |
 |---|---|
-| button | `duration-150` and `active:scale-[0.98]` press feedback on every variant; an extra `brand` variant (`bg-brand-gradient-strong text-white shadow-brand hover:brightness-110`) for the page's one primary action |
+| badge | `default` hovers to `bg-primary-hover`; `destructive` uses `text-destructive-foreground` without `dark:bg-destructive/60` (as button) |
+| button | `duration-150` and `active:scale-[0.98]` press feedback on every variant; an extra `brand` variant (`bg-brand-gradient-strong text-white shadow-brand hover:brightness-110`) for the page's one primary action; `default` hovers to `bg-primary-hover` instead of `bg-primary/90` (a lighter blue under white text fell below 4.5:1); `destructive` uses `text-destructive-foreground` and drops `dark:bg-destructive/60` (the dark-mode red is a light step with dark text) |
 | checkbox | Indeterminate state: `data-[state=indeterminate]` styles like checked, and the indicator shows `MinusIcon` when `checked === "indeterminate"` |
 | command | `CommandDialog` takes `closeLabel` and passes it to `DialogContent`; its sr-only `DialogHeader` sits inside `DialogContent` (upstream renders it outside, so the title stays on the page, outside any landmark, while the dialog is closed) |
 | dialog | `DialogContent` takes `closeLabel` (default `"Close"`): the close button's screen-reader text, translated by the caller |
