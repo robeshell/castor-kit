@@ -139,6 +139,8 @@ const PINNED_CELL = [
   'group-data-[state=selected]/row:bg-[linear-gradient(var(--brand-soft),var(--brand-soft))]',
   'group-data-[active]/row:bg-[linear-gradient(var(--brand-soft),var(--brand-soft))]',
 ].join(' ')
+/** The pinned header cell: opaque too, painted with the header row's own tint (bg-muted/40 over the card) */
+const PINNED_HEADER = 'sticky end-0 z-[1] shadow-[inset_1px_0_0_var(--border)] bg-[color-mix(in_srgb,var(--muted)_40%,var(--card))]'
 
 export default function DataTable<Row extends object = Record<string, unknown>, TKey extends RowKey = RowKey>({
   data = [],
@@ -239,7 +241,7 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                     'text-muted-foreground h-9 px-3 text-left text-xs font-medium whitespace-nowrap',
                     col.align === 'right' && 'text-right',
                     col.align === 'center' && 'text-center',
-                    col.pin === 'end' && PINNED_CELL,
+                    col.pin === 'end' && PINNED_HEADER,
                     col.headerClassName,
                   )}
                 >

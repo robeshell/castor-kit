@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ComponentType, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type ComponentType, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ArrowLeftToLine, ArrowRightToLine, ChevronDown, RotateCw, X, XCircle } from 'lucide-react'
@@ -73,17 +73,33 @@ export default function TagsView() {
   const reduceMotion = useReducedMotion()
   // Tabs that don't fit scroll sideways with no scrollbar: fade the side that has more
   const [fadeRef, fade] = useOverflowFade<HTMLElement>()
+  const stripRef = useRef<HTMLElement | null>(null)
+  const setStrip = useCallback(
+    (el: HTMLElement | null) => {
+      stripRef.current = el
+      fadeRef(el)
+    },
+    [fadeRef],
+  )
 
-  // Keep the active tab visible when the bar overflows
+  // Keep the active tab visible when the bar overflows. Scroll the strip itself: scrollIntoView on the (focusable)
+  // link would move the browser's sequential-focus starting point there, so the first Tab would skip the skip link
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' })
+    const strip = stripRef.current
+    const tab = activeRef.current?.parentElement
+    if (!strip || !tab) return
+    const outer = strip.getBoundingClientRect()
+    const inner = tab.getBoundingClientRect()
+    const behavior = reduceMotion ? 'auto' : 'smooth'
+    if (inner.left < outer.left) strip.scrollBy({ left: inner.left - outer.left - 8, behavior })
+    else if (inner.right > outer.right) strip.scrollBy({ left: inner.right - outer.right + 8, behavior })
   }, [activePath, reduceMotion])
 
   const activeTab = tabs.find((tab) => tab.path === activePath)
 
   return (
     <div className="bg-background hidden h-10 shrink-0 items-center gap-2 border-b pr-2 pl-3 md:flex md:pl-4">
-      <nav ref={fadeRef} style={fade} aria-label={t('已打开的页面')} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+      <nav ref={setStrip} style={fade} aria-label={t('已打开的页面')} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
         <AnimatePresence initial={false}>
           {tabs.map((tab) => {
             const menu = findActiveMenu(flat, tab.path)
