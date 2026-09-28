@@ -33,7 +33,7 @@ process.on('SIGINT', () => void shutdown('SIGINT'))
 process.on('SIGTERM', () => void shutdown('SIGTERM'))
 
 await app.listen({ host: '0.0.0.0', port })
-app.log.info(`castor-kit 启动｜环境 ${config.env}｜端口 ${port}`)
+app.log.info(`${config.appName} 启动｜环境 ${config.env}｜端口 ${port}`)
 // Neon pooler endpoints reject the startup options the AI SQL read-only pool relies on, and don't keep the session-level
 // advisory lock used at startup: point this out instead of letting AI SQL fail with a generic error
 if (/-pooler\./.test(config.databaseUrl)) {

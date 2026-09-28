@@ -9,7 +9,6 @@
 import { createHash, randomInt } from 'node:crypto'
 import { Secret, TOTP } from 'otpauth'
 
-export const TOTP_ISSUER = 'castor-kit'
 const PERIOD = 30
 const RECOVERY_CODE_COUNT = 10
 /** Crockford-style alphabet without look-alikes (0/O, 1/I/L) */
@@ -19,13 +18,13 @@ export function newTotpSecret(): string {
   return new Secret({ size: 20 }).base32
 }
 
-function totpFor(secret: string, label = ''): TOTP {
-  return new TOTP({ issuer: TOTP_ISSUER, label, algorithm: 'SHA1', digits: 6, period: PERIOD, secret: Secret.fromBase32(secret) })
+function totpFor(secret: string, label = '', issuer = ''): TOTP {
+  return new TOTP({ issuer, label, algorithm: 'SHA1', digits: 6, period: PERIOD, secret: Secret.fromBase32(secret) })
 }
 
-/** otpauth:// URI for the QR code */
-export function totpUri(secret: string, username: string): string {
-  return totpFor(secret, username).toString()
+/** otpauth:// URI for the QR code; the issuer (the app name, APP_NAME) is what authenticator apps list it under */
+export function totpUri(secret: string, username: string, issuer: string): string {
+  return totpFor(secret, username, issuer).toString()
 }
 
 /** The time step a code matches (within ±1 period), or null */

@@ -51,6 +51,13 @@ describe('settings pinned by environment variables', () => {
     })
   })
 
+  it('APP_NAME：默认 castor-kit，去空白；未配置发件人和账号时，默认发件人用它', () => {
+    expect(fromEnv({}).config.appName).toBe('castor-kit')
+    const { config, settings } = fromEnv({ APP_NAME: '  Acme Admin ', SMTP_HOST: 'smtp.example.com' })
+    expect(config.appName).toBe('Acme Admin')
+    expect(settings.mail.from).toBe('Acme Admin <noreply@localhost>')
+  })
+
   it('取值不合法的变量 → 启动时报错（指出变量名）', () => {
     expect(() => fromEnv({ STORAGE_DRIVER: 'ftp' })).toThrow('环境变量 STORAGE_DRIVER 的值不合法')
     expect(() => fromEnv({ SMTP_PORT: 'abc' })).toThrow('环境变量 SMTP_PORT 的值不合法')

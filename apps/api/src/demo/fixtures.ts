@@ -718,24 +718,6 @@ export const DEMO_FIXTURES: [table: string, rows: FixtureRow[]][] = [
       "link": "/component-center/ai/chat",
       "is_global": true,
       "user_id": null
-    },
-    {
-      "id": 5,
-      "title": "test",
-      "content": "11",
-      "noti_type": "success",
-      "link": null,
-      "is_global": true,
-      "user_id": null
-    },
-    {
-      "id": 6,
-      "title": "csrf ok",
-      "content": "",
-      "noti_type": "info",
-      "link": null,
-      "is_global": true,
-      "user_id": null
     }
   ]],
   ['announcements', [

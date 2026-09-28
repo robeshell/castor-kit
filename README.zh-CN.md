@@ -136,7 +136,7 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 
 | 分类 | 页面 |
 |---|---|
-| 入门 | [介绍](website/zh/guide/index.md) · [快速开始](website/zh/guide/getting-started.md) · [项目结构](website/zh/guide/project-structure.md) |
+| 入门 | [介绍](website/zh/guide/index.md) · [快速开始](website/zh/guide/getting-started.md) · [开始一个项目](website/zh/guide/new-project.md) · [项目结构](website/zh/guide/project-structure.md) |
 | 开发 | [AI 驱动开发](website/zh/guide/ai-workflow.md) · [后端开发](website/zh/guide/backend.md) · [前端开发](website/zh/guide/frontend.md) |
 | 专题 | [权限 RBAC](website/zh/guide/rbac.md) · [多语言](website/zh/guide/i18n.md) · [主题与布局](website/zh/guide/appearance.md) |
 | 参考 | [命令速查](website/zh/reference/commands.md) · [配置项](website/zh/reference/configuration.md) · [部署指南](website/zh/deploy/index.md) |

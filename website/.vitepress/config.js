@@ -16,6 +16,7 @@ function localeTheme(prefix, t) {
       items: [
         { text: t.intro, link: link('/guide/') },
         { text: t.gettingStarted, link: link('/guide/getting-started') },
+        { text: t.newProject, link: link('/guide/new-project') },
         { text: t.structure, link: link('/guide/project-structure') },
       ],
     },
@@ -56,7 +57,7 @@ function localeTheme(prefix, t) {
 }
 
 const zh = {
-  guide: '指南', start: '开始', intro: '介绍', gettingStarted: '快速开始', structure: '项目结构',
+  guide: '指南', start: '开始', intro: '介绍', gettingStarted: '快速开始', newProject: '开始一个项目', structure: '项目结构',
   develop: '开发', ai: 'AI 驱动开发', backend: '后端开发', frontend: '前端开发', rbac: '权限 RBAC', security: '账号安全与系统设置', openApi: '开放接口', assistant: 'AI 小助手',
   i18n: '多语言', appearance: '主题与布局', components: '组件示例',
   reference: '参考', commands: '命令速查', configuration: '配置项', deploy: '部署', deployGuide: '部署指南',
@@ -76,7 +77,7 @@ const zh = {
 }
 
 const en = {
-  guide: 'Guide', start: 'Getting started', intro: 'Introduction', gettingStarted: 'Quick start', structure: 'Project structure',
+  guide: 'Guide', start: 'Getting started', intro: 'Introduction', gettingStarted: 'Quick start', newProject: 'Starting a project', structure: 'Project structure',
   develop: 'Development', ai: 'AI-driven workflow', backend: 'Backend', frontend: 'Frontend', rbac: 'Permissions (RBAC)', security: 'Account security & settings', openApi: 'Open API', assistant: 'AI assistant',
   i18n: 'Internationalization', appearance: 'Theme & layout', components: 'Component gallery',
   reference: 'Reference', commands: 'Commands', configuration: 'Configuration', deploy: 'Deploy', deployGuide: 'Deployment guide',
@@ -85,7 +86,7 @@ const en = {
 }
 
 const ja = {
-  guide: 'ガイド', start: 'はじめに', intro: '概要', gettingStarted: 'クイックスタート', structure: 'プロジェクト構成',
+  guide: 'ガイド', start: 'はじめに', intro: '概要', gettingStarted: 'クイックスタート', newProject: 'プロジェクトを始める', structure: 'プロジェクト構成',
   develop: '開発', ai: 'AI 駆動開発', backend: 'バックエンド', frontend: 'フロントエンド', rbac: '権限（RBAC）', security: 'アカウントセキュリティとシステム設定', openApi: 'オープン API', assistant: 'AI アシスタント',
   i18n: '多言語対応', appearance: 'テーマとレイアウト', components: 'コンポーネント例',
   reference: 'リファレンス', commands: 'コマンド一覧', configuration: '設定', deploy: 'デプロイ', deployGuide: 'デプロイガイド',

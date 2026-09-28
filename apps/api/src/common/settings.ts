@@ -287,7 +287,7 @@ function toSettings(values: Map<string, SettingValue>, config: AppConfig): Setti
       secure: security === 'auto' ? port === 465 : security === 'tls',
       user,
       password: get<string>('mail.smtp_password'),
-      from: get<string>('mail.from') || user || 'castor-kit <noreply@localhost>',
+      from: get<string>('mail.from') || user || `${config.appName} <noreply@localhost>`,
     },
     storage: {
       driver: get<string>('storage.driver') === 's3' ? 's3' : 'local',

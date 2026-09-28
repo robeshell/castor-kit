@@ -26,6 +26,8 @@ export class TwoFactorService {
     private readonly db: Db,
     private readonly secretKey: string,
     private readonly settings: SettingsStore,
+    /** Issuer shown in authenticator apps (APP_NAME) */
+    private readonly appName = 'castor-kit',
   ) {
     this.repo = new TwoFactorRepository(db)
   }
@@ -64,7 +66,7 @@ export class TwoFactorService {
     if (row.totp_enabled_at) throw new ServiceError('已开启两步验证，如需更换请先关闭', 400)
     const secret = newTotpSecret()
     await this.repo.setPendingSecret(userId, sealSecret(secret, this.secretKey))
-    return { secret, otpauth_url: totpUri(secret, row.username) }
+    return { secret, otpauth_url: totpUri(secret, row.username, this.appName) }
   }
 
   /** Finish enrollment with the first code from the app; returns the recovery codes (only time they are shown) */
