@@ -30,7 +30,7 @@ export async function registerMenuRoutes(app: FastifyInstance): Promise<void> {
   const menuInput = routeBody(menuBody, 'create')
   app.post('/api/admin/menus', { ...opts, ...menuInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_menus_add'))) {
-      return reply.status(403).send({ error: '无权限新增菜单' })
+      return reply.status(403).send({ error: '无权限新建菜单' })
     }
     return reply.status(201).send(await service.createMenu(menuInput.parse(request)))
   })

@@ -95,7 +95,7 @@ export async function registerDemoRecordRoutes(app: FastifyInstance): Promise<vo
   const create = routeBody(demoRecordBody, 'create')
   app.post(BASE, { ...opts, ...create.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, PERMS.add))) {
-      return reply.status(403).send({ error: '无权限新增' })
+      return reply.status(403).send({ error: '无权限新建' })
     }
     return reply.status(201).send(await service.createItem(create.parse(request)))
   })

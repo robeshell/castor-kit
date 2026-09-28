@@ -33,7 +33,7 @@ export async function registerScheduledTaskRoutes(app: FastifyInstance): Promise
   const taskInput = routeBody(taskBody, 'create')
   app.post('/api/admin/scheduled-tasks', { ...opts, ...taskInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_scheduled_tasks_add'))) {
-      return reply.status(403).send({ error: '无权限新增定时任务' })
+      return reply.status(403).send({ error: '无权限新建定时任务' })
     }
     return reply.status(201).send(await service.createTask(taskInput.parse(request)))
   })

@@ -169,7 +169,15 @@ export default function <Resource>Page() {
               ))}
             </div>
           ) : list.length === 0 ? (
-            <EmptyState title="暂无数据" description="点击右上角「新建」添加第一条数据" />
+            <EmptyState
+              title="还没有记录"
+              action={
+                <Button size="sm" onClick={openCreate}>
+                  <Plus />
+                  {t('新建')}
+                </Button>
+              }
+            />
           ) : (
             <motion.div variants={stagger.container} initial="hidden" animate="show">
               {list.map((item) => (

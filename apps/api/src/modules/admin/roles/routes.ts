@@ -29,7 +29,7 @@ export async function registerRoleRoutes(app: FastifyInstance): Promise<void> {
   const roleInput = routeBody(roleBody, 'create')
   app.post('/api/admin/roles', { ...opts, ...roleInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_roles_add'))) {
-      return reply.status(403).send({ error: '无权限新增角色' })
+      return reply.status(403).send({ error: '无权限新建角色' })
     }
     return reply.status(201).send(await service.createRole(roleInput.parse(request)))
   })

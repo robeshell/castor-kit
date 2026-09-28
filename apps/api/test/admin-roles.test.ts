@@ -381,7 +381,7 @@ describe('roles 权限', () => {
     const role = await roleByCode(`${P}a`)
     const cases: [string, string, string][] = [
       ['GET', '/api/admin/roles', '无权限查看角色列表'],
-      ['POST', '/api/admin/roles', '无权限新增角色'],
+      ['POST', '/api/admin/roles', '无权限新建角色'],
       ['PUT', `/api/admin/roles/${role.id}`, '无权限编辑角色'],
       ['DELETE', `/api/admin/roles/${role.id}`, '无权限删除角色'],
       ['POST', '/api/admin/roles/export', '无权限导出角色'],

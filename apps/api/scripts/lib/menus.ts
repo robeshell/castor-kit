@@ -38,7 +38,7 @@ export interface MenuEntry {
 }
 
 const BUTTONS = [
-  { suffix: '_add', zh: '新增', en: 'Add', ja: '追加' },
+  { suffix: '_add', zh: '新建', en: 'Add', ja: '追加' },
   { suffix: '_edit', zh: '编辑', en: 'Edit', ja: '編集' },
   { suffix: '_delete', zh: '删除', en: 'Delete', ja: '削除' },
   { suffix: '_export', zh: '导出', en: 'Export', ja: 'エクスポート' },

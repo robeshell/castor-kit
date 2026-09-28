@@ -33,7 +33,7 @@ export async function registerDepartmentRoutes(app: FastifyInstance): Promise<vo
   const departmentInput = routeBody(departmentBody, 'create')
   app.post(BASE, { ...opts, ...departmentInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_departments_add'))) {
-      return reply.status(403).send({ error: '无权限新增部门' })
+      return reply.status(403).send({ error: '无权限新建部门' })
     }
     return reply.status(201).send(await service.createItem(departmentInput.parse(request)))
   })

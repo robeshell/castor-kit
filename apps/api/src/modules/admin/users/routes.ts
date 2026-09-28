@@ -51,7 +51,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   const userInput = routeBody(userBody, 'create')
   app.post('/api/admin/users', { ...opts, ...userInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_users_add'))) {
-      return reply.status(403).send({ error: '无权限新增用户' })
+      return reply.status(403).send({ error: '无权限新建用户' })
     }
     return reply.status(201).send(await service.createUser(userInput.parse(request), await resolveDataScope(request), await callerOf(request)))
   })

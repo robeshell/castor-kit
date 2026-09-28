@@ -46,7 +46,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
   const dictTypeInput = routeBody(dictTypeBody, 'create')
   app.post('/api/admin/dicts', { ...opts, ...dictTypeInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_dicts_add'))) {
-      return reply.status(403).send({ error: '无权限新增数据字典' })
+      return reply.status(403).send({ error: '无权限新建数据字典' })
     }
     return reply.status(201).send(await service.createDictType(dictTypeInput.parse(request)))
   })
@@ -89,7 +89,7 @@ export async function registerDictRoutes(app: FastifyInstance): Promise<void> {
   const dictItemInput = routeBody(dictItemBody, 'create')
   app.post(`${dictPath}/items`, { ...opts, ...dictItemInput.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, 'system_dicts_add'))) {
-      return reply.status(403).send({ error: '无权限新增字典项' })
+      return reply.status(403).send({ error: '无权限新建字典项' })
     }
     const type = await service.getTypeOr404(dictIdOf(request))
     return reply.status(201).send(await service.createDictItem(type, dictItemInput.parse(request)))

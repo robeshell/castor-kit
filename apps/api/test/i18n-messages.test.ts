@@ -329,7 +329,7 @@ describe('i18n messages coverage', () => {
 
   it('scaffold-generated messages are translated (keep in sync with scripts/scaffold.ts)', () => {
     const scaffold = [
-      { text: '无权限新增', template: false },
+      { text: '无权限新建', template: false },
       { text: '无权限编辑', template: false },
       { text: '无权限删除', template: false },
       { text: '无权限导出', template: false },

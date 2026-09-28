@@ -9720,7 +9720,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description 无权限新增定时任务 */
+                /** @description 无权限新建定时任务 */
                 403: {
                     headers: {
                         [name: string]: unknown;
