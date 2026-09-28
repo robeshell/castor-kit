@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Changed
+
+- The wordmark is written "Castor", the way the name is written in text, in the app, the docs site and the README (it was a lowercase "castor" in 0.4.0).
+
 ## [0.4.0] - 2026-09-28
 
 castor-kit is now **Castor**: a professional name that keeps the beaver. The repository is `robeshell/castorjs`, the packages are `@castorjs/*` and the docs live at https://robeshell.github.io/castorjs/. Nothing changes for running installs: databases, cookies, stored secrets and the webhook contract are untouched.
