@@ -1,13 +1,27 @@
 /**
  * Adding a generated module's menu to scripts/seed-rbac.ts (MENUS_DATA) — used by `pnpm scaffold -- --spec`.
  *
- * - Modules go under the business group (code `biz`, id 1000), created on first use, unless the spec names another
- *   parent; module menus take the first free id in 1001–1999 whose button ids (id × 10 + 1…5) are free as well
+ * - admin modules go under the business group (code `biz`, id 1000), created on first use, and take the first free id
+ *   in 1001–1999; component_center modules go under the gallery's Page patterns directory (code `cc_patterns`, id 43), which
+ *   must exist, and take the first free id in 4301–4399 (AGENTS.md "Menu ID allocation"). The spec can name another
+ *   parent; the id range stays the domain's. Button ids (id × 10 + 1…5) must be free as well
  * - Entries are written in the same one-line, double-quoted shape as the rest of MENUS_DATA
  * - Menu names in other languages go to apps/web/src/locales/menus/<lang>.json
  */
 
 export const BIZ_GROUP = { id: 1000, code: 'biz', name: '业务管理', icon: 'Box', names: { 'en-US': 'Business', 'ja-JP': '業務管理' } }
+
+/** Where a domain's generated menus go: the default parent (by code) and the menu id range */
+export interface MenuPlacement {
+  /** Code of the default parent; the business group is created when missing, any other must exist */
+  parentCode: string
+  /** First and last menu id the domain's generated menus may take */
+  ids: readonly [number, number]
+}
+
+export const ADMIN_PLACEMENT: MenuPlacement = { parentCode: BIZ_GROUP.code, ids: [1001, 1999] }
+/** The gallery's Page patterns directory, whose pages are 43 × 100 + n */
+export const GALLERY_PLACEMENT: MenuPlacement = { parentCode: 'cc_patterns', ids: [4301, 4399] }
 
 export interface MenuRequest {
   /** Menu / page title (Chinese) */
@@ -21,8 +35,10 @@ export interface MenuRequest {
   /** Route path, e.g. /biz/devices */
   path: string
   icon?: string
-  /** Parent menu id; default: the business group */
+  /** Parent menu id; default: the placement's parent */
   parentId?: number
+  /** Default parent and id range (default: the business group, 1001–1999) */
+  placement?: MenuPlacement
 }
 
 export interface MenuEntry {
@@ -90,11 +106,14 @@ export function planMenus(content: string, request: MenuRequest): MenuEntry[] | 
   const ids = new Set(menus.map((m) => m.id))
   const entries: MenuEntry[] = []
 
+  const placement = request.placement ?? ADMIN_PLACEMENT
   let parentId = request.parentId
   if (parentId === undefined) {
-    const group = menus.find((m) => m.code === BIZ_GROUP.code)
+    const group = menus.find((m) => m.code === placement.parentCode)
     if (group) {
       parentId = group.id
+    } else if (placement.parentCode !== BIZ_GROUP.code) {
+      throw new Error(`The parent directory ${placement.parentCode} isn't in MENUS_DATA; add it first or set menu.parentId`)
     } else {
       if (ids.has(BIZ_GROUP.id)) throw new Error(`Menu ID ${BIZ_GROUP.id} is already taken, so the 业务管理 (Business) directory can't be created`)
       const topSort = Math.max(0, ...menus.filter((m) => m.parent_id === null && m.code !== 'system').map((m) => m.sort_order))
@@ -106,9 +125,10 @@ export function planMenus(content: string, request: MenuRequest): MenuEntry[] | 
     throw new Error(`Parent menu ${parentId} doesn't exist`)
   }
 
-  let id = 1001
-  while (id <= 1999 && (ids.has(id) || BUTTONS.some((_, i) => ids.has(id * 10 + i + 1)))) id++
-  if (id > 1999) throw new Error('No business module menu IDs left (1001–1999)')
+  const [first, last] = placement.ids
+  let id = first
+  while (id <= last && (ids.has(id) || BUTTONS.some((_, i) => ids.has(id * 10 + i + 1)))) id++
+  if (id > last) throw new Error(`No generated module menu IDs left (${first}–${last})`)
   const sort = Math.max(0, ...menus.filter((m) => m.parent_id === parentId).map((m) => m.sort_order)) + 1
   entries.push({
     id,

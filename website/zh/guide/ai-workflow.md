@@ -215,7 +215,7 @@ pnpm scaffold -- --spec device.spec.json
 - `unique`：列加 `UNIQUE`，重复时返回 400；只用于文本和数字类型
 - `default`：列默认值，新增时留空就用它，表单也预先填好
 - `label` / `title`：页面、表头、导入导出和报错里的中文；`i18n` 是它们的英文、日文，没写的用字段名代替
-- `menu`：同时把菜单和按钮权限（新增 / 编辑 / 删除 / 导出 / 导入）写进 `apps/api/scripts/seed-rbac.ts`，默认挂在顶级目录「业务管理」下（ID 1000，第一次生成时创建；模块 ID 从 1001 起），`parentId` 可以指定其他目录；菜单的英文、日文名写进 `apps/web/src/locales/menus/`
+- `menu`：同时把菜单和按钮权限（新增 / 编辑 / 删除 / 导出 / 导入）写进 `apps/api/scripts/seed-rbac.ts`，默认挂在顶级目录「业务管理」下（ID 1000，第一次生成时创建；模块 ID 从 1001 起）；`component_center` 域的模块则挂在组件示例中心的「页面模板」目录下（ID 4301–4399，接口在 `/api/admin/component-center/` 下）；`parentId` 可以指定其他目录；菜单的英文、日文名写进 `apps/web/src/locales/menus/`
 - `options[].tone`：该选项在列表中的徽标颜色（默认 `neutral`；状态类字段用 `success` / `warning` / `danger` 等）
 - 生成的接口测试多一条「字段规则」用例，覆盖必填、选项、唯一和默认值
 

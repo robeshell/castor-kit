@@ -49,7 +49,7 @@ import {
   validateSpec,
   type SpecFile,
 } from '../scripts/scaffold'
-import { existingMenus, insertMenus, planMenus } from '../scripts/lib/menus'
+import { existingMenus, GALLERY_PLACEMENT, insertMenus, planMenus } from '../scripts/lib/menus'
 import Ajv2020 from 'ajv/dist/2020'
 import type { RouteBodyDeclaration } from '../scripts/lib/openapi-body-sync'
 import { lintOpenApi } from '../scripts/lib/openapi-lint'
@@ -206,7 +206,7 @@ describe('scaffold 纯函数', () => {
     const cc = buildSpec('order_item', 'component_center', parseFields('qty:int,price:float'))
     expect(cc).toMatchObject({
       permPrefix: 'cc_order_item',
-      apiBase: '/api/admin/order-items',
+      apiBase: '/api/admin/component-center/order-items',
       menuComponent: 'component_center/patterns/order_item_page',
       pageDir: 'patterns/order_item_page',
       domainDir: 'component-center',
@@ -525,6 +525,33 @@ describe('scaffold --spec 纯函数', () => {
     ])
     expect(planMenus(insertMenus(seed, entries, 'Ck'), request)).toBeNull()
   })
+
+  it('菜单：component_center 模块放进「页面模板」目录（cc_patterns），取 4301–4399 中第一个空闲 ID；目录不存在时报错', () => {
+    const seed = readFileSync(join(API_DIR, 'scripts', 'seed-rbac.ts'), 'utf8')
+    const request = {
+      title: '样例',
+      titles: { 'en-US': 'Samples', 'ja-JP': 'サンプル' },
+      permPrefix: 'cc_ck_sample',
+      component: 'component_center/patterns/ck_sample_page',
+      path: '/component-center/patterns/ck-sample',
+      placement: GALLERY_PLACEMENT,
+    }
+    const entries = planMenus(seed, request)!
+    const patterns = existingMenus(seed).find((m) => m.code === 'cc_patterns')!
+    const taken = new Set(existingMenus(seed).map((m) => m.id))
+    const module = entries[0]!
+    expect(entries).toHaveLength(6) // no directory is created
+    expect(module).toMatchObject({ code: 'cc_ck_sample', parent_id: patterns.id, path: '/component-center/patterns/ck-sample' })
+    expect(module.id).toBeGreaterThanOrEqual(4301)
+    expect(module.id).toBeLessThanOrEqual(4399)
+    expect(taken.has(module.id)).toBe(false)
+    expect(entries.slice(1).map((e) => e.id)).toEqual([1, 2, 3, 4, 5].map((n) => module.id * 10 + n))
+    const withoutDir = seed
+      .split('\n')
+      .filter((l) => !l.includes('code: "cc_patterns"'))
+      .join('\n')
+    expect(() => planMenus(withoutDir, request)).toThrow(/cc_patterns isn't in MENUS_DATA/)
+  })
 })
 
 describe('scaffold OpenAPI 条目', () => {
@@ -644,6 +671,11 @@ describe('spec 工具：JSON Schema 与示例', () => {
     const planned: string[] = []
     expect(validateOnly({ ...DEVICE_SPEC, name: 'ck_not_registered' }, (l) => planned.push(l))).toBe(0)
     expect(planned.join('\n')).toMatch(/Menu: 设备台账 \(ID \d+, \/biz\/ck-not-registereds, buttons \d+–\d+\)/)
+    // component_center: the API lives under the gallery prefix and the menu goes into Page patterns
+    const gallery: string[] = []
+    expect(validateOnly({ ...DEVICE_SPEC, name: 'ck_gallery_item', domain: 'component_center' }, (l) => gallery.push(l))).toBe(0)
+    expect(gallery.join('\n')).toContain('API: /api/admin/component-center/ck-gallery-items')
+    expect(gallery.join('\n')).toMatch(/Menu: 设备台账 \(ID 43\d\d, \/component-center\/patterns\/ck-gallery-item, buttons \d+–\d+\)/)
   })
 })
 

@@ -52,13 +52,13 @@ pnpm scaffold -- --spec <dir>/<name>.spec.json --validate-only
 #    Menu: 设备台账 (ID 1001, /biz/devices, buttons 10011–10015), in the new 业务管理 directory (ID 1000); written to scripts/seed-rbac.ts
 ```
 
-With `"menu": {}` in the spec, scaffold allocates the menu ID, path (`/biz/<name-kebab>s`) and buttons itself under 业务管理 (Business); the manual menu rules below (ID ranges, `/system/...` paths) only apply when you generate with `--fields` and register the menu by hand.
+With `"menu": {}` in the spec, scaffold allocates the menu ID, path and buttons itself: admin modules under 业务管理 (Business, `/biz/<name-kebab>s`, IDs from 1001), component_center modules under the gallery's 页面模板 (Page patterns, `/component-center/patterns/<name-kebab>`, IDs 4301–4399); the manual menu rules below (ID ranges, `/system/...` paths) only apply when you generate with `--fields` and register the menu by hand.
 
 What to infer (the spec and `--validate-only` settle all of it):
 
 ```
 - Resource name (snake_case, e.g. customer_order) and domain (admin | component_center)
-- API path (/api/admin/<resource>s, hyphens for multiple words, e.g. /api/admin/customer-orders)
+- API path (/api/admin/<resource>s, hyphens for multiple words, e.g. /api/admin/customer-orders; component_center domain /api/admin/component-center/<resource>s)
 - Field names + scaffold types (str/str20/str50/str500/text/int/float/bool/date/datetime/file/image, following AGENTS.md "Field type inference"; images and attachments use image / file, which store a file ID from the file center)
 - Permission codes (admin domain system_<name>, component_center domain cc_<name>, matching the Perm prefix scaffold prints; buttons _add/_edit/_delete/_export/_import)
 - Frontend file path (admin domain modules/admin/pages/<name>/index.tsx;
@@ -68,7 +68,7 @@ What to infer (the spec and `--validate-only` settle all of it):
 - Menu order: last among its siblings; icon: reuse a name already in the mapping table in `apps/web/src/lib/menu-icons.ts`
 - Resource name: scaffold always appends `s` to the table name / API path, so think about the plural when choosing the name (`equipment` becomes `equipments`; use a countable noun such as `device` instead)
 - Enum fields: the database stores English codes (e.g. `raw_material`), the UI / exports show Chinese, imports accept either Chinese or English; the list gets a filter per enum field and shows each option as a badge, so give status-like options a `tone` (`success` / `warning` / `danger`, default `neutral`)
-- parent_id: the 业务管理 (Business) directory by default; spec `menu.parentId` when the PM names another place
+- parent_id: the 业务管理 (Business) directory by default (component_center: 页面模板); spec `menu.parentId` when the PM names another place
 - Migration name (scaffold uses <name> by default)
 - Page pattern: a plain list unless the requirement says otherwise ("board", "drag between states" → kanban; "categories / nested" → tree list; "totals / by status" → stats list; "timeline / schedule" → gantt; "custom attributes" → dynamic form …); look it up in AGENTS.md "Page patterns (which page to copy)", which also lists the backend pieces the pattern needs (e.g. a date range for gantt, `parent_id` for a tree)
 ```

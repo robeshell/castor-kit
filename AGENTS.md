@@ -37,7 +37,7 @@ Inference guidelines (field types: see "Field type inference" below):
 - Options that are fixed and spelled out in the requirement (status, type, level) → `enum` + `options` (`value` in English, `label` in Chinese; the list gets a filter for each enum field and shows the options as badges, and status-like options get a `tone`: in use / active → `success`, pending / under repair → `warning`, scrapped / failed → `danger`, the rest `neutral`); options that grow or shrink and are maintained by admins (category, source, industry) → `dict` + a data dictionary code
 - `required`: fields the requirement calls "required / must not be empty"; status fields with a default are also required (they can't be cleared when editing); file / image fields can't be required
 - `unique`: only when the requirement says "must not repeat / unique", and only for text and number fields; `default`: only when the requirement says "defaults to ...", and the value must match the type (for `enum`, use an option value)
-- `dataScope: true`: when the requirement says "users only see their own / their department's ..."; `menu: {}`: every new business module needs a menu (it goes under `业务管理` (Business))
+- `dataScope: true`: when the requirement says "users only see their own / their department's ..."; `menu: {}`: every new business module needs a menu (it goes under `业务管理` (Business); a component_center module goes under the gallery's `页面模板` (Page patterns))
 - The record's main name field is called `name` or `title` (list search and the required import column use it); don't declare `id` / `created_at` / `updated_at` (generated automatically)
 - Anything beyond the scaffold (relations between tables, approval flows, computed fields, cross-field validation): generate the single-table module first, then write the rest by hand following the layering rules below
 
@@ -245,6 +245,7 @@ Standard CRUD (resource names are hyphenated plurals, e.g. customer_order → /a
   POST   /api/admin/<resource>s/export       export (responseType: blob)
   GET    /api/admin/<resource>s/template     download the import template (file_type=csv|xlsx)
   POST   /api/admin/<resource>s/import       import (multipart/form-data, field name file)
+Component gallery modules (component_center domain) use the gallery prefix: /api/admin/component-center/<resource>s
 Error response: { error: string, ...payload }; every 5xx returns "服务器内部错误，请稍后重试" (internal server error, try again later)
 Every input problem is a 400: declare the request body with Zod (field.* from @/common/validation; in the route, routeBody(schema, mode) and .parse(request) after the permission check); a wrong type → "<label>的值无效" (<label> has an invalid value);
   uniqueness / business rules are checked in the service, with a Chinese message; a wrong shape (e.g. an array where an object belongs) throws invalidInput() (@/common/errors);
@@ -642,7 +643,8 @@ Component gallery (parent_id=3):              ID 40-499
    ID 42 and 421-429, the removed 3D / Creative group)
   页面模板 [Page Patterns] (ID 43, parent_id=3):  the directory's buttons (the shared demo API) ID 431-435;
                                                 pages (parent_id=43) ID 4301-4399 (43 × 100 + n: a directory with
-                                                its own buttons can't also use 431-439 for pages)
+                                                its own buttons can't also use 431-439 for pages); scaffold --spec
+                                                registers component_center modules here (first free ID, buttons = ID × 10 + 1...5)
   组件 [Components] (ID 47, parent_id=3):        pages (parent_id=47) ID 4701-4799 (47 × 100 + n, like 页面模板); no buttons
   AI 应用 [AI Apps] (parent_id=44):               ID 441-449
   编辑器 [Editors] (parent_id=45):                ID 451-459
