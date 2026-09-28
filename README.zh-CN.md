@@ -19,7 +19,7 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md)
 
-**[在线演示](https://castor-kit-demo.onrender.com)** · [文档](https://robeshell.github.io/castorjs/zh/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
+**[在线演示](https://castor.wenworks.app)** · [文档](https://castor.wenworks.dev/zh/) · [快速开始](#快速开始) · [用 AI 做一个功能](#用-ai-做一个功能) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
@@ -71,7 +71,7 @@ bash scripts/setup.sh
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/robeshell/castorjs)
 
-**在线体验**：[https://castor-kit-demo.onrender.com](https://castor-kit-demo.onrender.com)，登录页一键登录（免费实例闲置后首次访问需要约 30 秒唤醒）。
+**在线体验**：[https://castor.wenworks.app](https://castor.wenworks.app)，登录页一键登录（免费实例闲置后首次访问需要约 30 秒唤醒）。
 
 **部署你自己的演示**：一键部署到 Render，数据库用 Neon 免费版（系统管理只读，数据每天自动恢复）。步骤见 [Render + Neon](website/zh/deploy/index.md)。
 
@@ -141,7 +141,7 @@ AGENTS.md     人和 AI 工具共同遵循的开发规范
 | 专题 | [权限 RBAC](website/zh/guide/rbac.md) · [多语言](website/zh/guide/i18n.md) · [主题与布局](website/zh/guide/appearance.md) |
 | 参考 | [命令速查](website/zh/reference/commands.md) · [配置项](website/zh/reference/configuration.md) · [部署指南](website/zh/deploy/index.md) |
 
-在线阅读：**[robeshell.github.io/castorjs](https://robeshell.github.io/castorjs/zh/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
+在线阅读：**[castor.wenworks.dev](https://castor.wenworks.dev/zh/)**，也可以本地浏览：`npm --prefix website install && npm --prefix website run dev`。
 
 ## 参与贡献
 

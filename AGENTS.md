@@ -798,7 +798,7 @@ Next steps for the user:
 - The docs site and project website are in `website/` (VitePress, a standalone npm project, not in the pnpm workspace): English is the root language (`website/guide/…`), Chinese is at `website/zh/` and Japanese at `website/ja/`, and the pages of the three languages correspond one to one; the landing page is `.vitepress/theme/components/Landing.vue`, with its copy in `landing-content.js`
 - The UI images on the landing page and in the READMEs are real screenshots (`website/public/screenshots/`, `.github/assets/screenshot-*.webp`), captured automatically by `npm --prefix website run screenshots` while `pnpm dev` is running (it prompts for the admin password); take new screenshots when the UI's look changes noticeably
 - When feature behavior, commands or environment variables change, update the docs in all three languages in the same PR; preview locally with `npm --prefix website run dev`, and run `npm --prefix website run build` before committing (it checks for dead links)
-- The docs site is published to GitHub Pages (https://robeshell.github.io/castorjs/) by `.github/workflows/docs.yml`: changes to `website/` deploy automatically once merged into main; PRs only run the build check
+- The docs site is published to GitHub Pages (https://castor.wenworks.dev/) by `.github/workflows/docs.yml`: changes to `website/` deploy automatically once merged into main; PRs only run the build check
 - `README.md` (English) / `README.zh-CN.md` / `README.ja.md`, `CONTRIBUTING.md`, `SECURITY.md` and `CHANGELOG.md` in the repo root are for outside contributors; record user-visible changes under `[Unreleased]` in `CHANGELOG.md`
 
 ## Command reference

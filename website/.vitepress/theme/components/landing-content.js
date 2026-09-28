@@ -222,6 +222,6 @@ export const CONTENT = {
 
 export const STACK = ['Node.js 22', 'TypeScript', 'Fastify 5', 'Drizzle ORM', 'PostgreSQL', 'Zod', 'React 19', 'shadcn/ui', 'Tailwind CSS v4', 'Motion', 'i18next', 'Vite', 'Vitest', 'Docker', 'MCP']
 
-export const DEMO_URL = 'https://castor-kit-demo.onrender.com'
+export const DEMO_URL = 'https://castor.wenworks.app'
 
 export const INSTALL = 'git clone https://github.com/robeshell/castorjs.git && cd castorjs && bash scripts/setup.sh'
