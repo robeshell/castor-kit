@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-28
+
+castor-kit is now **Castor**: a professional name that keeps the beaver. The repository is `robeshell/castorjs`, the packages are `@castorjs/*` and the docs live at https://robeshell.github.io/castorjs/. Nothing changes for running installs: databases, cookies, stored secrets and the webhook contract are untouched.
+
 ### Changed
 
 - **castor-kit is now Castor.** The product name is Castor (the beaver keeps its place in the logo); the repository is `robeshell/castorjs`, the packages are `@castorjs/api` / `@castorjs/web` / `@castorjs/mcp` (so `pnpm --filter @castorjs/…`), the docs site moves to `https://robeshell.github.io/castorjs/`, the MCP server is named `castor` and its binary `castor-mcp`, and `APP_NAME` defaults to `Castor` (authenticator apps list new enrollments under Castor). The wordmark is "castor" in the app, the docs site and the README.
@@ -154,7 +158,8 @@ First public release: an AI-first admin framework on Node.js + TypeScript (Fasti
 - Docker image with migrations and RBAC sync on start; a public demo mode (read-only system management, one-click sign-in, data reset on a schedule) and a Render + Neon blueprint.
 - Documentation site (VitePress) in Chinese, English and Japanese; MIT license and community files.
 
-[Unreleased]: https://github.com/robeshell/castorjs/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/robeshell/castorjs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/robeshell/castorjs/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/robeshell/castorjs/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/robeshell/castorjs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/robeshell/castorjs/releases/tag/v0.1.0
