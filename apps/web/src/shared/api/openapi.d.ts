@@ -3734,6 +3734,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 系统状态
+         * @description 登录即可（不校验菜单权限）。采集一次 API 服务器所在机器的 CPU、内存、根分区磁盘与网络累计流量，供工作台的「系统状态」卡片轮询；字段与组件示例中心的性能监控接口相同。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description CPU 总使用率（%，1 位小数） */
+                            cpu: number;
+                            /** @description 已用内存（MB，1 位小数） */
+                            mem_used: number;
+                            /** @description 内存总量（MB，1 位小数） */
+                            mem_total: number;
+                            /** @description 内存使用率（%，1 位小数） */
+                            mem_pct: number;
+                            /** @description 根分区已用（GB，2 位小数） */
+                            disk_used: number;
+                            /** @description 根分区总量（GB，2 位小数） */
+                            disk_total: number;
+                            /** @description 根分区使用率（%，1 位小数） */
+                            disk_pct: number;
+                            /** @description 开机以来所有网卡累计发送（MB，2 位小数） */
+                            net_sent: number;
+                            /** @description 开机以来所有网卡累计接收（MB，2 位小数） */
+                            net_recv: number;
+                            /** @description 采集时间（毫秒时间戳） */
+                            ts: number;
+                        };
+                    };
+                };
+                /** @description 未授权 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 服务器错误 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/departments": {
         parameters: {
             query?: never;

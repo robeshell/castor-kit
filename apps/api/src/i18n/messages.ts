@@ -334,7 +334,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
   // component center: AI chat / prompt / SQL
   '未配置 AI 模型，请在「系统设置 → AI」中填写 API Key 和模型名': { 'en-US': 'The AI model is not configured: add the API key and model name under System settings → AI', 'ja-JP': 'AI モデルが設定されていません。「システム設定 → AI」で API キーとモデル名を入力してください' },
-  // AI chat stream error events (SSE, translated in ai-chat/service.ts)
+  // AI chat stream error events (SSE, translated in common/ai-chat.ts)
   '请求超时，请重试': { 'en-US': 'The request timed out. Please try again.', 'ja-JP': 'リクエストがタイムアウトしました。再度お試しください。' },
   'AI 响应异常，请稍后重试': { 'en-US': 'The AI response failed. Please try again later.', 'ja-JP': 'AI の応答でエラーが発生しました。しばらくしてから再度お試しください。' },
   '对话太长，请清除上下文后再试': { 'en-US': 'The conversation is too long. Clear the context and try again.', 'ja-JP': '会話が長すぎます。コンテキストをクリアしてから再度お試しください。' },

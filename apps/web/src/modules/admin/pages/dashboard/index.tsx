@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { flattenMenus } from '@/components/app/menu-tree'
 import { useAuth } from '@/context/AuthContext'
 import { chartBase, hexToRgba, useChartColors } from '@/lib/chart-theme'
 import { formatBytes, formatRelative } from '@/lib/format'
@@ -40,8 +41,9 @@ import { titleIfTruncated } from '@/lib/title-if-truncated'
 /** Workbench counters and the last 7 days of operation logs */
 type DashboardStats = ApiResponse<'/api/admin/dashboard/stats'>
 /** Server performance snapshot (net_sent / net_recv: cumulative MB since boot, not a rate) */
-type PerfStats = ApiResponse<'/api/admin/component-center/devtools/perf-stats'>
+type PerfStats = ApiResponse<'/api/admin/dashboard/system'>
 
+/** Gallery shortcuts; each one shows only when its page is in the user's menus (the gallery may be removed) */
 const QUICK_LINKS = [
   { label: '页面模板', desc: '列表 · 详情 · 表单 · 看板', icon: LayoutGrid, path: '/component-center/patterns/standard-list' },
   { label: '数据可视化', desc: '大屏 · 折线 · 热力 · 流量', icon: ChartPie, path: '/component-center/dashboard-page' },
@@ -101,7 +103,7 @@ function SystemHealth() {
     let alive = true
     const poll = async () => {
       try {
-        const data = await request.get<unknown, PerfStats>('/admin/component-center/devtools/perf-stats')
+        const data = await request.get<unknown, PerfStats>('/admin/dashboard/system')
         if (alive) {
           setStats(data)
           setOnline(true)
@@ -318,7 +320,10 @@ function RecentActivity() {
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation()
-  const { user } = useAuth()
+  const { user, menus } = useAuth()
+  // Links point only at pages the user can open (menus they hold; a removed gallery has none)
+  const openable = useMemo(() => new Set(flattenMenus(menus).map((m) => m.path)), [menus])
+  const quickLinks = QUICK_LINKS.filter((item) => openable.has(item.path))
   // null while loading, {} when loading failed (the cards then show 0)
   const [stats, setStats] = useState<Partial<DashboardStats> | null>(null)
   const now = new Date()
@@ -343,18 +348,22 @@ export default function Dashboard() {
           </h1>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/system/logs">
-              <FileText />
-              {t('审计日志')}
-            </Link>
-          </Button>
-          <Button size="sm" variant="brand" asChild>
-            <Link to="/component-center/ai/chat">
-              <Sparkles />
-              {t('问问 AI')}
-            </Link>
-          </Button>
+          {openable.has('/system/logs') ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/system/logs">
+                <FileText />
+                {t('审计日志')}
+              </Link>
+            </Button>
+          ) : null}
+          {openable.has('/component-center/ai/chat') ? (
+            <Button size="sm" variant="brand" asChild>
+              <Link to="/component-center/ai/chat">
+                <Sparkles />
+                {t('问问 AI')}
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -377,25 +386,27 @@ export default function Dashboard() {
           <RecentActivity />
         </div>
         <div className="space-y-4">
-          <Panel title="组件中心">
-            <div className="grid grid-cols-2 gap-2">
-              {QUICK_LINKS.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  className="group hover:bg-muted/60 flex items-start gap-2.5 rounded-lg p-2.5 transition-colors last:odd:col-span-2"
-                >
-                  <span className="bg-brand-soft text-primary flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
-                    <item.icon className="size-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[13px] font-medium">{t(item.label)}</span>
-                    <span className="text-muted-foreground block truncate text-[11px]" onMouseEnter={titleIfTruncated}>{t(item.desc)}</span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </Panel>
+          {quickLinks.length > 0 ? (
+            <Panel title="组件中心">
+              <div className="grid grid-cols-2 gap-2">
+                {quickLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    to={item.path}
+                    className="group hover:bg-muted/60 flex items-start gap-2.5 rounded-lg p-2.5 transition-colors last:odd:col-span-2"
+                  >
+                    <span className="bg-brand-soft text-primary flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                      <item.icon className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-medium">{t(item.label)}</span>
+                      <span className="text-muted-foreground block truncate text-[11px]" onMouseEnter={titleIfTruncated}>{t(item.desc)}</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </Panel>
+          ) : null}
           <Panel title="技术栈">
             <div className="flex flex-wrap gap-1.5">
               {STACK.map((s) => (

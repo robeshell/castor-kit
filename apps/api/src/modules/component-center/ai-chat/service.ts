@@ -8,25 +8,16 @@
  * The timeout (60 s by default) bounds connecting, waiting for the response and each gap between chunks.
  */
 
-import {
-  convertToModelMessages,
-  createUIMessageStream,
-  createUIMessageStreamResponse,
-  safeValidateUIMessages,
-  streamText,
-  type UIMessage,
-} from 'ai'
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, streamText, type UIMessage } from 'ai'
 import type { Agent } from 'undici'
-import { AI_CALL_DEFAULTS, aiConfigured, createAiAgent, isTimeoutError, languageModelFor, upstreamStatusOf } from '@/common/ai'
+import { AI_CALL_DEFAULTS, aiConfigured, createAiAgent, languageModelFor, upstreamStatusOf } from '@/common/ai'
+import { chatErrorMessage, parseChatMessages } from '@/common/ai-chat'
 import { DEMO_MAX_OUTPUT_TOKENS } from '@/common/demo'
-import { ServiceError } from '@/common/errors'
-import { translateMessage, type Language } from '@/common/i18n'
+import type { Language } from '@/common/i18n'
 import type { Settings } from '@/common/settings'
 import type { AppConfig } from '@/config'
 
 const UPSTREAM_TIMEOUT_MS = 60_000
-/** Longest conversation accepted (messages after the last "clear context") */
-const MAX_MESSAGES = 200
 
 /** Injected system prompt: describes castor-kit's positioning, tech stack, feature modules and dev conventions */
 export const SYSTEM_PROMPT = {
@@ -44,8 +35,9 @@ export const SYSTEM_PROMPT = {
     '- 权限：完整的 RBAC 菜单权限体系（用户/角色/菜单三张表）\n\n' +
     '## 核心功能模块\n' +
     '1. 系统管理：用户管理、角色权限、菜单管理、日志审计、数据字典、定时任务\n' +
-    '2. 组件示例中心（共 25 个页面）：\n' +
+    '2. 组件示例中心（共 36 个页面，6 组）：\n' +
     '   - 页面模板（每种页面模式一个参考实现，共用示例数据接口 /api/admin/component-center/demo-records）：标准列表、卡片列表、树形列表、统计列表、详情页、分步表单、动态表单、看板、甘特图、高级表格\n' +
+    '   - 组件（每组公共组件一个用法展示页，附源码与属性表）：数据表格、表单、筛选、选择器、树、上传、导入导出、反馈、数据展示、Markdown、条件构造器\n' +
     '   - 数据可视化：数据大屏、实时折线图、热力日历图、流量转化分析\n' +
     '   - AI 应用：AI 对话（即你当前所在页面）、AI 提示词工坊、AI 数据查询\n' +
     '   - 编辑器：富文本、代码编辑器、JSON 编辑器、Markdown 预览\n' +
@@ -65,30 +57,6 @@ export interface ChatStreamOptions {
   allowPrivate?: boolean
   /** Server-side log for upstream failures (the client only ever sees a generic message) */
   log?: { warn: (obj: unknown, msg: string) => void }
-}
-
-/** Generic, translated text for a failed call: the upstream status at most, never its body */
-export function chatErrorMessage(err: unknown, lang: Language): string {
-  if (isTimeoutError(err)) return translateMessage('请求超时，请重试', lang)
-  const status = upstreamStatusOf(err)
-  if (status) return translateMessage(`AI 服务暂时不可用（${status}），请稍后重试`, lang)
-  return translateMessage('AI 响应异常，请稍后重试', lang)
-}
-
-
-/** A chat request's messages (a list, see schema.ts) as UI messages; 400 when empty or malformed (shared with the AI assistant) */
-export async function parseChatMessages(raw: unknown[]): Promise<UIMessage[]> {
-  if (raw.length === 0) throw new ServiceError('消息不能为空', 400)
-  if (raw.length > MAX_MESSAGES) throw new ServiceError('对话太长，请清除上下文后再试', 400)
-  const result = await safeValidateUIMessages({ messages: raw })
-  if (!result.success) throw new ServiceError('消息格式不正确', 400)
-  // A reply that failed before any text arrived stays in the page's history as an empty assistant message;
-  // model APIs reject empty assistant turns, so they are dropped here
-  const hasContent = (m: UIMessage) =>
-    m.parts.some((p) => (p.type === 'text' ? Boolean(p.text.trim()) : p.type === 'file' || p.type.startsWith('tool-')))
-  const messages = result.data.filter((m) => m.role !== 'assistant' || hasContent(m))
-  if (!messages.some((m) => m.role === 'user')) throw new ServiceError('消息不能为空', 400)
-  return messages
 }
 
 export class AiChatService {

@@ -9,10 +9,10 @@
 import { Readable } from 'node:stream'
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import type { FastifyInstance } from 'fastify'
+import { parseChatMessages } from '@/common/ai-chat'
 import { loginRequired } from '@/common/auth'
 import { requestLanguage } from '@/common/i18n'
 import { routeBody } from '@/common/validation'
-import { parseChatMessages } from '@/modules/component-center/ai-chat/service'
 import { assistantChatBody } from './schema'
 import { AssistantService } from './service'
 

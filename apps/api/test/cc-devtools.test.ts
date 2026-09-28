@@ -9,7 +9,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import WebSocket from 'ws'
 import type { DbHandle } from '@/db/client'
 import { WS_TIMINGS, originAllowed, sameHost } from '@/modules/component-center/devtools/routes'
-import { metricMessage, systemSnapshot } from '@/modules/component-center/devtools/service'
+import { systemSnapshot } from '@/common/system-stats'
+import { metricMessage } from '@/modules/component-center/devtools/service'
 import {
   FIXTURE_PASSWORD,
   FIXTURE_USER,

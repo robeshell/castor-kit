@@ -5465,6 +5465,84 @@
         }
       }
     },
+    "/api/admin/dashboard/system": {
+      "get": {
+        "tags": [
+          "后台-工作台"
+        ],
+        "summary": "系统状态",
+        "x-apifox-folder": "后台/工作台",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "登录即可（不校验菜单权限）。采集一次 API 服务器所在机器的 CPU、内存、根分区磁盘与网络累计流量，供工作台的「系统状态」卡片轮询；字段与组件示例中心的性能监控接口相同。",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": {
+                      "type": "number",
+                      "description": "CPU 总使用率（%，1 位小数）"
+                    },
+                    "mem_used": {
+                      "type": "number",
+                      "description": "已用内存（MB，1 位小数）"
+                    },
+                    "mem_total": {
+                      "type": "number",
+                      "description": "内存总量（MB，1 位小数）"
+                    },
+                    "mem_pct": {
+                      "type": "number",
+                      "description": "内存使用率（%，1 位小数）"
+                    },
+                    "disk_used": {
+                      "type": "number",
+                      "description": "根分区已用（GB，2 位小数）"
+                    },
+                    "disk_total": {
+                      "type": "number",
+                      "description": "根分区总量（GB，2 位小数）"
+                    },
+                    "disk_pct": {
+                      "type": "number",
+                      "description": "根分区使用率（%，1 位小数）"
+                    },
+                    "net_sent": {
+                      "type": "number",
+                      "description": "开机以来所有网卡累计发送（MB，2 位小数）"
+                    },
+                    "net_recv": {
+                      "type": "number",
+                      "description": "开机以来所有网卡累计接收（MB，2 位小数）"
+                    },
+                    "ts": {
+                      "type": "integer",
+                      "description": "采集时间（毫秒时间戳）"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未授权"
+          },
+          "500": {
+            "description": "服务器错误"
+          }
+        }
+      }
+    },
     "/api/admin/departments": {
       "get": {
         "tags": [

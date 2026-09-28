@@ -1,5 +1,5 @@
 {
-  "例如：admin/users、component_center/list_page": "例：admin/users、component_center/list_page",
+  "例如：admin/users、component_center/patterns/kanban_page": "例：admin/users、component_center/patterns/kanban_page",
   "全部展开": "すべて展開",
   "全部收起": "すべて折りたたむ",
   "动态路由模式下，菜单的路径和组件名都需要配置": "動的ルーティングでは、メニューのパスとコンポーネント名の両方を設定する必要があります",

@@ -6,8 +6,8 @@
  */
 
 import { z } from 'zod'
+import { chatMessages } from '@/common/ai-chat'
 import { field, invalidMessage } from '@/common/validation'
-import { chatMessages } from '@/modules/component-center/ai-chat/schema'
 
 /** Text cut to `max` characters (it only goes into the prompt, so it is shortened rather than refused); blank → undefined */
 const clipped = (label: string, max: number) => field.text(label).transform((v) => v?.slice(0, max) || undefined)
