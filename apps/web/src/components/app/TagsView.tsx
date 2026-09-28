@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ComponentType, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ArrowLeftToLine, ArrowRightToLine, ChevronDown, RotateCw, X, XCircle } from 'lucide-react'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu'
 import {
@@ -69,11 +69,12 @@ export default function TagsView() {
   const { tabs, activePath, close } = useTagsView()
   const flat = flattenMenus(menus)
   const activeRef = useRef<HTMLAnchorElement>(null)
+  const reduceMotion = useReducedMotion()
 
   // Keep the active tab visible when the bar overflows
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-  }, [activePath])
+    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [activePath, reduceMotion])
 
   const activeTab = tabs.find((tab) => tab.path === activePath)
 
@@ -107,7 +108,7 @@ export default function TagsView() {
                         }
                       }}
                       className={cn(
-                        'group flex h-7 items-center gap-1 rounded-md pr-1.5 pl-2.5 text-[12.5px] whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                        'group flex h-7 items-center gap-1 rounded-md pr-1.5 pl-2.5 text-[12.5px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
                         tab.affix && 'pr-2.5',
                         active ? 'bg-brand-soft text-primary font-medium' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                       )}
@@ -147,7 +148,7 @@ export default function TagsView() {
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={t('标签页操作')}
-            className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-7 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-7 shrink-0 items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <ChevronDown className="size-4" />
           </DropdownMenuTrigger>

@@ -141,7 +141,7 @@ export interface AppSidebarProps {
 
 export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarProps) {
   // Subscribe to language changes: re-render menu names when the language switches (menuLabel reads i18n directly)
-  useTranslation()
+  const { t } = useTranslation()
   const { menus } = useAuth()
   const location = useLocation()
   const { isMobile, setOpenMobile } = useSidebar()
@@ -182,11 +182,12 @@ export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarP
       <SidebarHeader className="px-2 pt-3 pb-1">
         <Link
           to="/"
-          className="flex h-12 items-center rounded-md px-2 outline-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="flex h-12 items-center rounded-md px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
           <BrandMark className="group-data-[collapsible=icon]:[&>div:last-child]:hidden" />
         </Link>
       </SidebarHeader>
+      <nav aria-label={t('主导航')} className="flex min-h-0 flex-1 flex-col">
       <SidebarContent>
         {leafRoots.length > 0 ? (
           <SidebarGroup>
@@ -221,6 +222,7 @@ export default function AppSidebar({ variant = 'sidebar', section }: AppSidebarP
           </SidebarGroup>
         ))}
       </SidebarContent>
+      </nav>
       <SidebarFooter className="p-2">
         <UserMenu />
       </SidebarFooter>

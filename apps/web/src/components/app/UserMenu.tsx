@@ -98,7 +98,7 @@ export function UserMenuCompact() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label={t('个人设置')} className="ml-1 flex rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <button type="button" aria-label={t('个人设置')} className="ml-1 flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
           <MenuAvatar user={user} className="size-7" />
         </button>
       </DropdownMenuTrigger>

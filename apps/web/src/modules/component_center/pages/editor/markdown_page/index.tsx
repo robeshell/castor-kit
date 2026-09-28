@@ -142,7 +142,7 @@ export default function MarkdownPage() {
             placeholder={t('在此输入 Markdown 内容...')}
             spellCheck={false}
             aria-label={t('Markdown 编辑区')}
-            className="placeholder:text-muted-foreground min-h-[320px] flex-1 resize-none bg-transparent px-4 py-3 font-mono text-[13px] leading-relaxed outline-none"
+            className="placeholder:text-muted-foreground min-h-[320px] flex-1 resize-none bg-transparent px-4 py-3 font-mono text-[13px] leading-relaxed focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           />
         </Panel>
 

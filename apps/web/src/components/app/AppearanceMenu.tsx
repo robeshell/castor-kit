@@ -122,7 +122,7 @@ export default function AppearanceMenu() {
                 aria-pressed={accent === a.id}
                 onClick={() => setAppearance({ accent: a.id })}
                 className={cn(
-                  'focus-visible:ring-ring flex aspect-square items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-from),var(--brand-via)_55%,var(--brand-to))] text-white outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-offset-2',
+                  'flex aspect-square items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-from),var(--brand-via)_55%,var(--brand-to))] text-white transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                   accent === a.id && 'ring-foreground/70 ring-offset-popover ring-2 ring-offset-2',
                 )}
               >
@@ -141,7 +141,7 @@ export default function AppearanceMenu() {
                 aria-pressed={navMode === m.id}
                 onClick={() => setAppearance({ navMode: m.id })}
                 className={cn(
-                  'focus-visible:ring-ring flex flex-col items-center gap-1.5 rounded-lg p-1.5 text-xs outline-none transition-colors focus-visible:ring-2',
+                  'flex flex-col items-center gap-1.5 rounded-lg p-1.5 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                   navMode === m.id ? 'bg-brand-soft text-foreground font-medium' : 'text-muted-foreground hover:bg-accent',
                 )}
               >

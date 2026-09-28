@@ -6,8 +6,11 @@ Compared on 2026-09-27 against `https://ui.shadcn.com/r/styles/new-york-v4/<name
 
 ## shadcn/ui
 
-**Focus ring.** Upstream's `ring-[3px] ring-ring/50` looks heavy next to the brand color, so every focusable primitive uses `ring-2 ring-ring/20` instead (`apps/web/test/focus-ring.test.ts` rejects the upstream values):
-accordion (trigger), badge, button, calendar (`dropdown_root` and the focused day), checkbox, input, input-group, input-otp (active slot), radio-group, scroll-area (viewport), select (trigger), switch, tabs (trigger), textarea, toggle (and so toggle-group items). slider keeps its `ring-4` on the thumb but with `ring-ring/20`.
+**Focus indicator.** Upstream removes the outline (`outline-none`) and draws a `ring-[3px] ring-ring/50` box-shadow halo: a translucent halo misses 3:1 against the surface, and box-shadows disappear in forced-colors mode. Every focusable primitive instead draws a solid outline in the full `ring` color and drops `outline-none` (`apps/web/test/focus-ring.test.ts` rejects bare `outline-none`, translucent focus rings and `ring-[3px]`):
+- controls, `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`: accordion (trigger), badge, button (destructive: `outline-destructive`), checkbox and radio-group (plus `border-ring`), slider (thumb; the hover halo stays as `hover:ring-4 hover:ring-ring/20`), switch, tabs (trigger, and the content panel, which Radix makes tabbable), toggle (and so toggle-group items), calendar days (through button);
+- bordered text fields, `focus-visible:border-ring focus-visible:outline-1 focus-visible:outline-ring` (one 2px perimeter): input, textarea, select (trigger), input-group (on the group, `focus-visible:outline-none` on its control), input-otp (active slot), calendar (`dropdown_root`, with `has-focus:`);
+- inset (`-outline-offset-2`), where an outer edge would be clipped: scroll-area (viewport), sidebar (group label, group action, menu button, menu action, sub button: `outline-sidebar-ring`, replacing `ring-sidebar-ring outline-hidden focus-visible:ring-2`).
+`aria-invalid` sets `outline-destructive` instead of `ring-destructive/20` (`/40` in dark).
 
 | Component | Change |
 |---|---|
@@ -15,7 +18,7 @@ accordion (trigger), badge, button, calendar (`dropdown_root` and the focused da
 | checkbox | Indeterminate state: `data-[state=indeterminate]` styles like checked, and the indicator shows `MinusIcon` when `checked === "indeterminate"` |
 | form | `FormMessage` translates the error with `i18n.t(...)`: validation messages are Chinese source text used as i18n keys |
 | skeleton | Base `bg-foreground/[0.06] dark:bg-foreground/[0.08]` instead of `bg-accent`; a shimmer sweep (`after:animate-shimmer`) instead of `animate-pulse`; fades in after a short delay (`animate-skeleton-in`) so fast loads don't flash |
-| sidebar | `useIsMobile` from `@/shared/hooks/use-mobile` (a `useSyncExternalStore` implementation); `SidebarMenuSkeleton` picks its random width with a lazy `useState` instead of `useMemo` (react-hooks purity rule) |
+| sidebar | `useIsMobile` from `@/shared/hooks/use-mobile` (a `useSyncExternalStore` implementation); `SidebarMenuSkeleton` picks its random width with a lazy `useState` instead of `useMemo` (react-hooks purity rule); `SidebarInset` renders a `<div>` instead of `<main>` (it also holds the top bar; `AppLayout` puts `<main id="main">` around the page area) |
 | sonner | Theme from `@/context/ThemeContext` (`light` / `dark`) instead of `next-themes` |
 
 Added during the TSX conversion: exported props types `ButtonProps`, `BadgeProps`, `AlertProps`, `ButtonGroupProps` and `CalendarProps`.
@@ -29,5 +32,6 @@ Unchanged from upstream: alert, alert-dialog, avatar, breadcrumb, button-group, 
 | message | Code blocks use castor-kit's `code-highlighter` instead of `@streamdown/code` (common languages only, grammars loaded on demand; `@streamdown/code` bundles 200+ Shiki grammars, about 10 MB of build output); the `@streamdown/math` and `@streamdown/mermaid` plugins are left out for bundle size |
 | code-highlighter.ts | castor-kit only: implements Streamdown's `CodeHighlighterPlugin` |
 | streamdown-translations.ts | castor-kit only: i18n labels for Streamdown's built-in buttons |
+| conversation | `Conversation` passes `initial` / `resize` as `"instant"` instead of `"smooth"` under `prefers-reduced-motion` (`useReducedMotion` from `motion/react`) |
 
-Unchanged from upstream: confirmation, conversation, prompt-input, suggestion. Their English default copy ("No messages yet", "What would you like to know?", "Submit", ...) is still upstream's; the callers (`AssistantWidget`, the AI chat page) pass translated `t()` copy for the parts they use.
+Unchanged from upstream: confirmation, prompt-input, suggestion. Their English default copy ("No messages yet", "What would you like to know?", "Submit", ...) is still upstream's; the callers (`AssistantWidget`, the AI chat page) pass translated `t()` copy for the parts they use.

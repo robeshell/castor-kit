@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { MotionConfig } from 'motion/react'
 import { AuthProvider, useAuth, type MenuNode } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import AppLayout from '@/components/app/AppLayout'
@@ -100,6 +101,8 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      {/* motion/react animations follow prefers-reduced-motion (the global CSS rule only covers CSS animations) */}
+      <MotionConfig reducedMotion="user">
       <ThemeProvider>
         <TooltipProvider delayDuration={300}>
           <AuthProvider>
@@ -108,6 +111,7 @@ export default function App() {
           <Toaster position="top-center" richColors={false} closeButton />
         </TooltipProvider>
       </ThemeProvider>
+      </MotionConfig>
     </BrowserRouter>
   )
 }

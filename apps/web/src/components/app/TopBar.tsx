@@ -1,5 +1,5 @@
-import { Fragment, useMemo } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Fragment } from 'react'
+import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import {
   Breadcrumb,
@@ -12,7 +12,6 @@ import {
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
-import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import AppearanceMenu from '@/components/app/AppearanceMenu'
 import BrandMark from '@/components/app/BrandMark'
@@ -21,9 +20,8 @@ import NotificationBell from '@/components/app/NotificationBell'
 import ThemeToggle from '@/components/app/ThemeToggle'
 import TopNav from '@/components/app/TopNav'
 import { UserMenuCompact } from '@/components/app/UserMenu'
-import { STATIC_TITLES, findActiveMenu, flattenMenus } from '@/components/app/menu-tree'
+import { usePageTrail } from '@/components/app/usePageTrail'
 import LanguageSwitcher from '@/components/app/LanguageSwitcher'
-import { menuLabel } from '@/lib/menu-label'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
@@ -37,31 +35,18 @@ export interface TopBarProps {
   onOpenSearch: () => void
 }
 
-/** One breadcrumb: an ancestor, or the current page */
-interface Crumb {
-  name: string
-  current?: boolean
-}
-
 export default function TopBar({ onOpenSearch }: TopBarProps) {
   const { t } = useTranslation()
-  const { menus } = useAuth()
   const { navMode } = useTheme()
   const { isMobile } = useSidebar()
   const mode = isMobile ? 'sidebar' : navMode
-  const location = useLocation()
-  const trail = useMemo<Crumb[]>(() => {
-    const active = findActiveMenu(flattenMenus(menus), location.pathname)
-    if (active) return [...active.parents.map((p) => ({ name: menuLabel(p) })), { name: menuLabel(active), current: true }]
-    const title = STATIC_TITLES[location.pathname]
-    return title ? [{ name: t(title), current: true }] : []
-  }, [menus, location.pathname, t])
+  const trail = usePageTrail()
 
   return (
     <header className="bg-background/80 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur-md md:px-6">
       {mode === 'top' ? (
         <>
-          <Link to="/" className="mr-3 flex shrink-0 items-center rounded-md outline-none">
+          <Link to="/" className="mr-3 flex shrink-0 items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
             <BrandMark />
           </Link>
           <TopNav mode="full" className="flex-1" />

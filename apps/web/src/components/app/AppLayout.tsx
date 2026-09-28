@@ -17,6 +17,9 @@ import TopBar from '@/components/app/TopBar'
 import { TagsViewProvider, useTagsView } from '@/context/TagsViewContext'
 import { findActiveMenu, flattenMenus, sectionOf, type FlatMenu } from '@/components/app/menu-tree'
 import { useAppInfo } from '@/shared/hooks/useAppInfo'
+import { usePageTrail } from '@/components/app/usePageTrail'
+import { useDocumentTitle } from '@/lib/document-title'
+import { useTranslation } from 'react-i18next'
 
 // Loaded only when the assistant is on (it pulls in the markdown renderer)
 const AssistantWidget = lazy(() => import('@/components/app/assistant/AssistantWidget'))
@@ -49,7 +52,7 @@ function PageArea({ keepAlive, container }: PageAreaProps) {
     setPages((prev) => new Map([...prev].filter(([path]) => openPaths.has(path))))
   }
 
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLElement>(null)
   const scrollTops = useRef(new Map<string, number>())
   const version = versions[current] ?? 0
   const scrollVersions = useRef(new Map<string, number>())
@@ -61,6 +64,17 @@ function PageArea({ keepAlive, container }: PageAreaProps) {
     }
     if (scrollRef.current) scrollRef.current.scrollTop = cacheable ? (scrollTops.current.get(current) ?? 0) : 0
   }, [current, cacheable, version])
+
+  // Client-side navigation neither moves focus nor announces anything: move focus to <main> so the next Tab
+  // starts in the new page and screen readers read it (not on first load, which keeps the browser's own start)
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      return
+    }
+    scrollRef.current?.focus({ preventScroll: true })
+  }, [current])
 
   // Full-height pages (AI chat, prompt studio) size themselves from --page-area-height: the scroll area's real height,
   // which already leaves out the top bar and the tags view
@@ -87,9 +101,11 @@ function PageArea({ keepAlive, container }: PageAreaProps) {
   )
 
   return (
-    <div
+    <main
+      id="main"
       ref={scrollRef}
-      className="flex-1 overflow-y-auto"
+      tabIndex={-1}
+      className="flex-1 overflow-y-auto focus:outline-none"
       onScroll={(e) => scrollTops.current.set(current, e.currentTarget.scrollTop)}
     >
       <Suspense
@@ -110,7 +126,7 @@ function PageArea({ keepAlive, container }: PageAreaProps) {
             })
           : animated(`${current}#${versions[current] ?? 0}`, outlet)}
       </Suspense>
-    </div>
+    </main>
   )
 }
 
@@ -146,6 +162,7 @@ function usePrefetchLightPages(flat: FlatMenu[]) {
  * On mobile every nav mode falls back to the full menu in the sidebar sheet, and the tags view is hidden.
  */
 function Shell() {
+  const { t } = useTranslation()
   const location = useLocation()
   const { menus } = useAuth()
   const { navMode, sidebarVariant, contentWidth, tagsView } = useTheme()
@@ -157,9 +174,22 @@ function Shell() {
   usePrefetchLightPages(flat)
   const section = useMemo(() => sectionOf(findActiveMenu(flat, location.pathname)), [flat, location.pathname])
   const showSidebar = isMobile || navMode !== 'top'
+  const trail = usePageTrail()
+  useDocumentTitle(trail.at(-1)?.name)
 
   return (
     <SidebarProvider className="h-svh">
+      {/* First focusable element: jumps past the sidebar and top bar */}
+      <a
+        href="#main"
+        onClick={(e) => {
+          e.preventDefault()
+          document.getElementById('main')?.focus()
+        }}
+        className="bg-background text-foreground focus-visible:outline-ring sr-only z-50 rounded-md text-sm font-medium shadow-md focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:px-3 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        {t('跳到主内容')}
+      </a>
       {showSidebar ? (
         <AppSidebar variant={sidebarVariant} section={!isMobile && navMode === 'mixed' ? section : undefined} />
       ) : null}

@@ -26,7 +26,7 @@ export default function TagInput({ value = [], onChange, placeholder = '输入�
   return (
     <div
       className={cn(
-        'border-input focus-within:border-ring focus-within:ring-ring/20 flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border bg-transparent px-2 py-1 text-sm shadow-xs transition-[color,box-shadow] focus-within:ring-2',
+        'border-input focus-within:border-ring focus-within:outline-1 focus-within:outline-ring flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border bg-transparent px-2 py-1 text-sm shadow-xs transition-[color,box-shadow]',
         disabled && 'opacity-50',
         className,
       )}
@@ -60,7 +60,7 @@ export default function TagInput({ value = [], onChange, placeholder = '输入�
         }}
         onBlur={add}
         placeholder={value.length ? '' : tx(placeholder)}
-        className="placeholder:text-muted-foreground min-w-24 flex-1 bg-transparent py-0.5 outline-none"
+        className="placeholder:text-muted-foreground min-w-24 flex-1 bg-transparent py-0.5 focus-visible:outline-none"
       />
     </div>
   )

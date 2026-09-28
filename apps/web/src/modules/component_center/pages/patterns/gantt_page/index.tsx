@@ -320,7 +320,7 @@ function TaskBar({ row: { record, hasChildren }, range, px, index, onEdit }: Tas
             {...bar}
             onClick={() => onEdit(record)}
             aria-label={t('编辑「{{name}}」', { name: record.name })}
-            className={cn(bar.className, 'focus-visible:ring-ring/20 hover:ring-primary/35 cursor-pointer outline-none hover:ring-2 focus-visible:ring-2')}
+            className={cn(bar.className, 'hover:ring-primary/35 cursor-pointer hover:ring-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring')}
           >
             {fill}
           </motion.button>
