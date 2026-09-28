@@ -339,6 +339,20 @@
     0 1px 2px rgba(0, 0, 0, 0.035);
 }
 
+/*
+ * iOS Safari zooms the whole page when a focused text field's font is under 16px. Touch devices get 16px in every
+ * text field (compact 13–14px classes included, and third-party fields such as cmdk or the rich-text editor);
+ * pointer devices keep the design's sizes. !important because utility classes sit in a later layer.
+ */
+@media (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='button'], [type='submit']),
+  textarea,
+  select,
+  [contenteditable='true'] {
+    font-size: 16px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -349,15 +363,10 @@
   }
 }
 
-/* Color transition when switching themes (temporarily added to <html> by ThemeContext) */
-.theme-transition,
-.theme-transition *,
-.theme-transition *::before,
-.theme-transition *::after {
-  transition:
-    background-color 0.3s var(--ease-out-soft),
-    border-color 0.3s var(--ease-out-soft),
-    color 0.3s var(--ease-out-soft),
-    fill 0.3s var(--ease-out-soft),
-    box-shadow 0.3s var(--ease-out-soft) !important;
+/* Theme / accent switch happens in one frame: transitions are off while ThemeContext flips the class */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }

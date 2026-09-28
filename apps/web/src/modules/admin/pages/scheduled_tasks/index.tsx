@@ -291,6 +291,7 @@ export default function ScheduledTasks() {
     {
       // Many columns scroll horizontally: pin the action column to the right
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 196,
@@ -358,8 +359,16 @@ export default function ScheduledTasks() {
         loading={loading}
         minWidth={1740}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="暂无定时任务"
-        emptyDescription={hasFilters ? '换个筛选条件试试' : '点击右上角「新建任务」创建第一个定时任务'}
+        filtered={hasFilters}
+        onClearFilters={handleReset}
+        emptyTitle="还没有定时任务"
+        emptyDescription="定时任务按 Cron 表达式定期请求你填写的地址"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建任务')}
+          </Button>
+        }
       />
 
       <FormDialog

@@ -24,7 +24,7 @@
   "拖拽卡片到此处": "Drop cards here",
   "按空格或回车拿起卡片，用方向键移动，再按空格或回车放下，按 Esc 取消。": "Press Space or Enter to pick up the card, move it with the arrow keys, press Space or Enter again to drop it, or Esc to cancel.",
   "描述": "Description",
-  "新增卡片": "New card",
+  "新建卡片": "Add card",
   "显示前 {{shown}} 张卡片，共 {{count}} 张": "Showing the first {{shown}} of {{count}} cards",
   "暂无卡片": "No cards yet",
   "标签": "Tags",

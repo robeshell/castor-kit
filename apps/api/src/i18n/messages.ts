@@ -23,7 +23,6 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '未登录': { 'en-US': 'Not signed in', 'ja-JP': 'ログインしていません' },
   '未授权访问': { 'en-US': 'Unauthorized', 'ja-JP': '認証されていません' },
   '请求过于频繁，请稍后再试': { 'en-US': 'Too many requests. Please try again later.', 'ja-JP': 'リクエストが多すぎます。しばらくしてから再度お試しください' },
-  '会话异常': { 'en-US': 'Session error', 'ja-JP': 'セッションに異常があります' },
   '用户不存在': { 'en-US': 'User not found', 'ja-JP': 'ユーザーが存在しません' },
   '无权限': { 'en-US': 'Permission denied', 'ja-JP': '権限がありません' },
   '删除成功': { 'en-US': 'Deleted', 'ja-JP': '削除しました' },
@@ -40,15 +39,15 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '文件过大，最大支持 5MB': { 'en-US': 'File too large (max 5 MB)', 'ja-JP': 'ファイルが大きすぎます（最大 5MB）' },
 
   // database constraint errors (common/db-errors.ts)
-  '数据重复：唯一字段的值已存在': { 'en-US': 'Duplicate data: a unique field value already exists', 'ja-JP': 'データが重複しています：一意の項目の値が既に存在します' },
-  '必填字段不能为空': { 'en-US': 'Required fields cannot be empty', 'ja-JP': '必須項目は空にできません' },
-  '关联的数据不存在或仍被引用': { 'en-US': 'Related data does not exist or is still referenced', 'ja-JP': '関連データが存在しないか、まだ参照されています' },
-  '数据不符合约束条件': { 'en-US': 'Data violates a constraint', 'ja-JP': 'データが制約条件を満たしていません' },
-  '字段长度超出限制': { 'en-US': 'A field exceeds its maximum length', 'ja-JP': '項目の長さが上限を超えています' },
-  '数值超出范围': { 'en-US': 'A number is out of range', 'ja-JP': '数値が範囲外です' },
-  '日期时间格式不正确': { 'en-US': 'Invalid date/time format', 'ja-JP': '日時の形式が正しくありません' },
-  '日期时间超出范围': { 'en-US': 'Date/time out of range', 'ja-JP': '日時が範囲外です' },
-  '字段格式不正确': { 'en-US': 'Invalid field format', 'ja-JP': '項目の形式が正しくありません' },
+  '已有记录使用了相同的值，请换一个值后再保存': { 'en-US': 'Another record already uses that value. Change it and save again.', 'ja-JP': '同じ値を使っているレコードが既にあります。値を変えてから保存してください。' },
+  '有必填字段没有填写，请补全后再保存': { 'en-US': 'A required field is empty. Fill it in and save again.', 'ja-JP': '未入力の必須項目があります。入力してから保存してください。' },
+  '关联的数据不存在，或这条数据仍被其他数据使用，请检查关联后重试': { 'en-US': "The related record doesn't exist, or this record is still used by other records. Check the related records and try again.", 'ja-JP': '関連するデータが存在しないか、このデータが他のデータから使われています。関連を確認してから再度お試しください。' },
+  '有字段的值不在允许的范围内，请检查后再保存': { 'en-US': "A value isn't in the allowed range. Check it and save again.", 'ja-JP': '許可されていない値の項目があります。確認してから保存してください。' },
+  '有字段超出了长度上限，请缩短后再保存': { 'en-US': 'A field is too long. Shorten it and save again.', 'ja-JP': '長さの上限を超えている項目があります。短くしてから保存してください。' },
+  '有数字超出了允许的范围，请检查后再保存': { 'en-US': 'A number is out of the allowed range. Check it and save again.', 'ja-JP': '許可された範囲を超えている数値があります。確認してから保存してください。' },
+  '有日期时间的格式不正确，请检查后再保存': { 'en-US': 'A date or time is in the wrong format. Check it and save again.', 'ja-JP': '日時の形式が正しくない項目があります。確認してから保存してください。' },
+  '有日期时间超出了允许的范围，请检查后再保存': { 'en-US': 'A date or time is out of the allowed range. Check it and save again.', 'ja-JP': '許可された範囲を超えている日時があります。確認してから保存してください。' },
+  '有字段的格式不正确（例如数字字段里填了文字），请检查后再保存': { 'en-US': 'A field is in the wrong format (for example, text in a number field). Check it and save again.', 'ja-JP': '形式が正しくない項目があります（数値の項目に文字が入っているなど）。確認してから保存してください。' },
 
   // shared by several modules (generic CRUD / import / export)
   '执行成功': { 'en-US': 'Executed successfully', 'ja-JP': '実行しました' },
@@ -157,7 +156,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '该接口不支持 API Token': { 'en-US': 'This endpoint does not accept API tokens', 'ja-JP': 'このエンドポイントは API トークンに対応していません' },
   '请填写名称（最多 100 个字符）': { 'en-US': 'Enter a name (up to 100 characters)', 'ja-JP': '名前を入力してください（100 文字以内）' },
   '请至少选择一项权限': { 'en-US': 'Select at least one permission', 'ja-JP': '権限を 1 つ以上選択してください' },
-  '有效期不合法': { 'en-US': 'Invalid expiry', 'ja-JP': '有効期限が不正です' },
+  '有效期请填 1–3650 之间的整数（天），或选择永不过期': { 'en-US': 'Set the expiry to a whole number of days from 1 to 3650, or choose never.', 'ja-JP': '有効期限は 1〜3650 の整数（日）で入力するか、無期限を選んでください' },
   '已吊销': { 'en-US': 'Revoked', 'ja-JP': '失効させました' },
   '无权限查看 API Token': { 'en-US': "You don't have permission to view API tokens", 'ja-JP': 'API トークンを表示する権限がありません' },
   '无权限吊销 API Token': { 'en-US': "You don't have permission to revoke API tokens", 'ja-JP': 'API トークンを失効させる権限がありません' },
@@ -390,6 +389,9 @@ export const PATTERNS: Array<{ re: RegExp } & MessageEntry> = [
   { re: /^AI 服务暂时不可用（(.+)），请稍后重试$/, 'en-US': 'The AI service is temporarily unavailable ($1). Please try again later.', 'ja-JP': 'AI サービスは一時的に利用できません（$1）。しばらくしてから再度お試しください。' },
   // framework / common
   { re: /^缺少权限: (.+)$/, 'en-US': 'Missing permission: $1', 'ja-JP': '権限がありません：$1' },
+  // database constraint errors that name the column (common/db-errors.ts)
+  { re: /^字段「(.+)」的值已被使用，请换一个值后再保存$/, 'en-US': 'That $1 is already in use. Choose a different one and save again.', 'ja-JP': '「$1」の値は既に使われています。別の値にしてから保存してください。' },
+  { re: /^必填字段「(.+)」没有填写，请补全后再保存$/, 'en-US': 'The required field $1 is empty. Fill it in and save again.', 'ja-JP': '必須項目「$1」が未入力です。入力してから保存してください。' },
 
   // users / roles
   { re: /^角色不存在: (.+)$/, 'en-US': 'Roles not found: $1', 'ja-JP': 'ロールが存在しません：$1' },

@@ -224,6 +224,7 @@ export default function DynamicFormPage() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 120,
@@ -254,7 +255,7 @@ export default function DynamicFormPage() {
           canAdd ? (
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增')}
+              {t('新建')}
             </Button>
           ) : null
         }
@@ -272,14 +273,24 @@ export default function DynamicFormPage() {
         loading={loading}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         minWidth={1000}
-        emptyTitle="暂无数据"
-        emptyDescription={filters.search || filters.category || filters.status ? '换个筛选条件试试' : undefined}
+        filtered={Boolean(filters.search || filters.category || filters.status)}
+        onClearFilters={reset}
+        emptyTitle="还没有记录"
+        emptyDescription="每条记录除了固定字段，还可以加自定义字段"
+        emptyAction={
+          canAdd ? (
+            <Button size="sm" onClick={openCreate}>
+              <Plus />
+              {t('新建')}
+            </Button>
+          ) : null
+        }
       />
 
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        title={editing ? '编辑记录' : '新增记录'}
+        title={editing ? '编辑记录' : '新建记录'}
         description={editing ? t('正在编辑 {{name}}', { name: editing.name }) : undefined}
         form={form}
         onSubmit={submit}

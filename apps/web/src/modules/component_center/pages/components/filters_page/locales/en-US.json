@@ -55,7 +55,6 @@
   "传入选项值的字符串形式，选「全部」时为 ''": "Gets the option value as a string, '' for \"All\"",
   "选项 { label, value }，label 为中文原文": "Options { label, value }; label is Chinese source text",
   "「全部」项的文字，替代默认的「全部」+ 名称": "Text of the \"All\" item, instead of the default \"All\" + name",
-  "触发器的 class，用来改宽度（默认 w-36）": "Class of the trigger, for the width (w-36 by default)",
   "当前项（受控）": "The current item (controlled)",
   "点击某一项时调用": "Called when an item is clicked",
   "选项，见下方 SegmentedTabItem": "The items, see SegmentedTabItem below",
@@ -67,5 +66,10 @@
   "占位文字（中文原文，组件内翻译）": "Placeholder (Chinese source text, translated by the component)",
   "筛选项名称，「全部」项显示为「全部」+ 名称": "The filter's name; the \"All\" item reads \"All\" + name",
   "无障碍名称（中文原文，组件内翻译），默认用 placeholder": "Accessible name (Chinese source text, translated inside); defaults to placeholder",
-  "无障碍名称（中文原文，组件内翻译），默认用 placeholder；当前值由下拉框自己报出": "Accessible name (Chinese source text, translated inside); defaults to placeholder. The select announces its current value itself"
+  "无障碍名称（中文原文，组件内翻译），默认用 placeholder；当前值由下拉框自己报出": "Accessible name (Chinese source text, translated inside); defaults to placeholder. The select announces its current value itself",
+  "触发器的 class，用来改宽度（默认随内容在 min-w-36 与 max-w-60 之间）": "Class of the trigger, for the width (by default it follows the content between min-w-36 and max-w-60)",
+  "全部状态": "All statuses",
+  "全部优先级": "All priorities",
+  "全部套餐": "All plans",
+  "全部负责人": "All owners"
 }

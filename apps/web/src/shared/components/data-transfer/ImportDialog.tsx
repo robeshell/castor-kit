@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { downloadErrorRowsCsv } from '@/shared/utils/file'
 import type { ImportErrorRow } from '@/shared/utils/file'
 import { useReturnFocus } from '@/shared/hooks/useReturnFocus'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 /** Success body of every `POST …/import` endpoint */
 export interface ImportResult {
@@ -282,7 +283,7 @@ function ImportBody({
               <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
                 <FileSpreadsheet className="text-success size-5 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-medium">{file.name}</div>
+                  <div className="truncate text-[13px] font-medium" onMouseEnter={titleIfTruncated}>{file.name}</div>
                   <div className="text-muted-foreground text-xs">{(file.size / 1024).toFixed(1)} KB</div>
                 </div>
                 {!importing ? (

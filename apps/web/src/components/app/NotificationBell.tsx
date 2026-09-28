@@ -91,7 +91,7 @@ export default function NotificationBell() {
           ) : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="w-[360px] p-0">
+      <PopoverContent align="end" sideOffset={8} collisionPadding={8} className="w-[min(360px,calc(100vw-1rem))] p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-medium">{t('消息通知')}</span>
           <Button variant="ghost" size="sm" className="text-muted-foreground h-7 px-2 text-xs" onClick={readAll}>

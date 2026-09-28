@@ -20,7 +20,7 @@
   "未设置日期": "No dates set",
   "没有设置开始日期的记录，无法绘制时间轴": "No record has a start date, so there is no timeline to draw",
   "状态": "Status",
-  "甘特图": "Gantt Chart",
+  "甘特图": "Gantt chart",
   "确定删除「{{name}}」？": "Delete \"{{name}}\"?",
   "结束日期": "End date",
   "结束日期不能早于开始日期": "The end date can't be before the start date",

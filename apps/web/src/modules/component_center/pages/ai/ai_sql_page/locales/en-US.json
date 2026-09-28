@@ -1,5 +1,5 @@
 {
-  "AI 数据查询": "AI Data Query",
+  "AI 数据查询": "AI data query",
   "AI 正在分析数据库结构并生成 SQL…": "AI is analyzing the schema and writing SQL…",
   "AI 生成": "Generate with AI",
   "AI 生成 SQL 时参考的业务表（敏感表不对外暴露）": "Business tables the AI uses when writing SQL (sensitive tables are hidden)",

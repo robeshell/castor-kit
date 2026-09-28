@@ -691,7 +691,7 @@ export default function KanbanPage() {
           canAdd ? (
             <Button size="sm" variant="brand" onClick={() => openCreate('todo')}>
               <Plus />
-              {t('新增卡片')}
+              {t('新建卡片')}
             </Button>
           ) : null
         }
@@ -741,7 +741,7 @@ export default function KanbanPage() {
         </DndContext>
       )}
 
-      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑卡片' : '新增卡片'} form={form} onSubmit={submit}>
+      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑卡片' : '新建卡片'} form={form} onSubmit={submit}>
         <FormInput control={form.control} name="name" label="名称" rules={{ required: '此项必填' }} />
         <FormGrid>
           <FormInput control={form.control} name="code" label="编码" rules={{ required: '此项必填' }} />

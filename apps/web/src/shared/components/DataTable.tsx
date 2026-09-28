@@ -1,10 +1,11 @@
-import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SearchX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTx } from '@/i18n'
+import { titleIfAnyTruncated } from '@/lib/title-if-truncated'
 import { cn } from '@/lib/utils'
 import EmptyState from '@/shared/components/EmptyState'
 import { useIsScrollable } from '@/shared/hooks/useIsScrollable'
@@ -22,6 +23,7 @@ import { useIsScrollable } from '@/shared/hooks/useIsScrollable'
  *   pagination = { page, perPage, total, onChange(page) }   // omit to hide pagination
  *   selectable + selectedKeys + onSelectionChange(keys, rows)
  *   onRowClick(row) / isRowActive(row) / rowClassName(row) / emptyTitle / emptyDescription / emptyAction
+ *   filtered + onClearFilters: an empty result under search / filters shows "no matches" with a clear-filters button
  *   bordered (default true: outer card border) / dense (compact row height)
  */
 /** A row's identity: React key and the selection value */
@@ -38,8 +40,13 @@ interface DataTableColumnBase {
   /** Body cell class */
   className?: string
   headerClassName?: string
-  /** Single line with an ellipsis (a string cell gets the full text as its title) */
+  /** Single line with an ellipsis (any clipped cell shows its full text as a tooltip on hover) */
   ellipsis?: boolean
+  /**
+   * 'end': stick to the right edge while the table scrolls sideways (row actions stay in reach on narrow screens).
+   * Use it for every actions column.
+   */
+  pin?: 'end'
   /**
    * With onRowClick: this column's cell holds the row's button (keyboard and screen-reader access to the row click).
    * Default: the first column. Pick a column that names the row (name, title, code) and has no controls of its own.
@@ -98,7 +105,15 @@ export interface DataTableProps<Row extends object = Record<string, unknown>, TK
   /** Chinese source text (translated here) or a node */
   emptyTitle?: ReactNode
   emptyDescription?: ReactNode
+  /** The next step when there is no data yet, usually the page's create button */
   emptyAction?: ReactNode
+  /**
+   * Search or filters are narrowing the list: an empty result then reads as "no matches" with a clear-filters button
+   * (onClearFilters) instead of the no-data-yet empty state above
+   */
+  filtered?: boolean
+  /** Clears the search and filters (usually the FilterBar's reset) */
+  onClearFilters?: () => void
   /** Outer card border (default true) */
   bordered?: boolean
   /** Compact row height */
@@ -113,6 +128,17 @@ const SKELETON_WIDTHS = ['w-2/3', 'w-1/2', 'w-3/4', 'w-2/5', 'w-3/5']
 function skeletonWidth(row: number, col: number) {
   return SKELETON_WIDTHS[(row * 7 + col * 3) % SKELETON_WIDTHS.length]
 }
+
+/**
+ * A pinned cell is opaque (the scrolled columns pass underneath) and paints the row's hover / selected / active tint
+ * as a background image over the card color, so it matches the translucent tint on the rest of the row.
+ */
+const PINNED_CELL = [
+  'bg-card sticky end-0 z-[1] shadow-[inset_1px_0_0_var(--border)]',
+  'group-hover/row:bg-[linear-gradient(color-mix(in_oklab,var(--muted)_40%,transparent),color-mix(in_oklab,var(--muted)_40%,transparent))]',
+  'group-data-[state=selected]/row:bg-[linear-gradient(var(--brand-soft),var(--brand-soft))]',
+  'group-data-[active]/row:bg-[linear-gradient(var(--brand-soft),var(--brand-soft))]',
+].join(' ')
 
 export default function DataTable<Row extends object = Record<string, unknown>, TKey extends RowKey = RowKey>({
   data = [],
@@ -129,6 +155,8 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
   emptyTitle = '暂无数据',
   emptyDescription,
   emptyAction,
+  filtered = false,
+  onClearFilters,
   bordered = true,
   dense = false,
   className,
@@ -164,6 +192,16 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
   }
 
   const [scrollRef, scrollable] = useIsScrollable<HTMLDivElement>()
+  // Rows fade in on the first load only; paging and filtering swap them in place (a replayed entrance reads as a reload).
+  // The flag flips once the first entrance has had time to finish, so removing the classes doesn't cut it short.
+  const [entered, setEntered] = useState(false)
+  const hasRows = data.length > 0 && !loading
+  useEffect(() => {
+    if (entered || !hasRows) return undefined
+    const timer = window.setTimeout(() => setEntered(true), 800)
+    return () => window.clearTimeout(timer)
+  }, [entered, hasRows])
+  const animateRows = !entered
   const rowHeight = dense ? 'h-10' : 'h-12'
   const primaryIndex = Math.max(
     0,
@@ -201,6 +239,7 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                     'text-muted-foreground h-9 px-3 text-left text-xs font-medium whitespace-nowrap',
                     col.align === 'right' && 'text-right',
                     col.align === 'center' && 'text-center',
+                    col.pin === 'end' && PINNED_CELL,
                     col.headerClassName,
                   )}
                 >
@@ -234,9 +273,11 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                       key={key}
                       onClick={onRowClick ? () => onRowClick(row, index) : undefined}
                       data-state={selected ? 'selected' : undefined}
-                      style={{ animationDelay: `${Math.min(index, 12) * 18}ms` }}
+                      data-active={active || undefined}
+                      style={animateRows ? { animationDelay: `${Math.min(index, 12) * 18}ms` } : undefined}
                       className={cn(
-                        'group/row animate-in fade-in-0 slide-in-from-bottom-0.5 fill-mode-both border-b transition-colors duration-150 last:border-0',
+                        'group/row border-b transition-colors duration-150 last:border-0',
+                        animateRows && 'animate-in fade-in-0 slide-in-from-bottom-0.5 fill-mode-both',
                         'hover:bg-muted/40 data-[state=selected]:bg-brand-soft',
                         onRowClick && 'cursor-pointer',
                         loading && 'opacity-60',
@@ -267,9 +308,11 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
                               col.align === 'right' && 'text-right',
                               col.align === 'center' && 'text-center',
                               col.ellipsis && 'max-w-0 truncate',
+                              col.pin === 'end' && PINNED_CELL,
                               col.className,
                             )}
-                            title={col.ellipsis && typeof content === 'string' ? content : undefined}
+                            // Clipped text anywhere in the cell (ellipsis columns, truncated spans from render) shows in full on hover
+                            onMouseEnter={titleIfAnyTruncated}
                           >
                             {onRowClick && j === primaryIndex ? (
                               // No handler of its own: Enter / Space click it, and the click bubbles to the row's onClick
@@ -296,7 +339,22 @@ export default function DataTable<Row extends object = Record<string, unknown>, 
         </table>
       </div>
       {!loading && data.length === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
+        filtered ? (
+          <EmptyState
+            icon={SearchX}
+            title="没有符合条件的记录"
+            description="换个关键词或筛选条件试试"
+            action={
+              onClearFilters ? (
+                <Button size="sm" variant="outline" onClick={onClearFilters}>
+                  {tx('清除筛选')}
+                </Button>
+              ) : null
+            }
+          />
+        ) : (
+          <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
+        )
       ) : null}
       {pagination ? <DataPagination {...pagination} loading={loading && data.length === 0} /> : null}
     </div>

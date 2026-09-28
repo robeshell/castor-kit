@@ -46,7 +46,18 @@ request.interceptors.response.use(
     if (status === 401 && !PUBLIC_PATHS.includes(window.location.pathname)) {
       window.location.replace('/login')
     }
-    return Promise.reject(err.response?.data || err)
+    // No response (offline, server down) or no answer in time: an `{ error }` that says what to do, in Chinese source
+    // text that toast / errorMessage translate, instead of axios' English "Network Error" / "timeout of 10000ms exceeded"
+    if (!err.response) {
+      const timedOut = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT'
+      return Promise.reject({ error: timedOut ? '服务器响应超时，请稍后重试。' : '无法连接服务器，请检查网络后重试。', code: err.code })
+    }
+    // A 5xx without our { error } body (a proxy's HTML error page)
+    const body: unknown = err.response.data
+    if (status !== undefined && status >= 500 && !(body && typeof body === 'object' && 'error' in body)) {
+      return Promise.reject({ error: '服务器出错了，请稍后重试；如果一直出现，请联系管理员。', status })
+    }
+    return Promise.reject(body || err)
   }
 )
 

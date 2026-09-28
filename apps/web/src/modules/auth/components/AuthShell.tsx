@@ -22,7 +22,7 @@ export interface AuthShellProps {
 /** Page frame of the public pages (sign-in, password reset): animated backdrop, brand header, one glass card */
 export default function AuthShell({ children }: AuthShellProps) {
   return (
-    <div className="bg-sidebar relative flex h-svh flex-col overflow-y-auto">
+    <div className="bg-sidebar relative flex h-svh flex-col overflow-x-hidden overflow-y-auto">
       <LoginBackdrop />
 
       <header className="relative flex items-center justify-between px-5 py-4 sm:px-8">

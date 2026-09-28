@@ -153,7 +153,7 @@ describe('demo_records 接口', () => {
     // code: unique
     const firstCode = (await s.inject({ method: 'POST', url: BASE, payload: sample('uq1-code') })).json()
     const dupCode = await s.inject({ method: 'POST', url: BASE, payload: { ...sample('uq2-code'), code: firstCode.code } })
-    expect([dupCode.statusCode, dupCode.json()]).toEqual([400, { error: '数据重复：唯一字段的值已存在' }])
+    expect([dupCode.statusCode, dupCode.json()]).toEqual([400, { error: '字段「code」的值已被使用，请换一个值后再保存' }])
     // category: only the listed option values (import files may use the labels)
     const badCategory = await s.inject({ method: 'POST', url: BASE, payload: { ...sample('op-category'), category: 'not-an-option' } })
     expect([badCategory.statusCode, badCategory.json()]).toEqual([400, { error: '分类的值无效' }])

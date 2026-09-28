@@ -332,6 +332,7 @@ export default function Menus() {
     { key: 'is_active', title: '启用', dataIndex: 'is_active', width: 64, render: (v) => <YesNo value={v} /> },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 236,
@@ -438,8 +439,16 @@ export default function Menus() {
         onSelectionChange={setSelectedKeys}
         dense
         minWidth={1320}
-        emptyTitle="没有找到菜单"
-        emptyDescription={querySearch ? '换个关键词试试' : '点击右上角「新建菜单」添加第一个菜单'}
+        filtered={Boolean(querySearch)}
+        onClearFilters={reset}
+        emptyTitle="还没有菜单"
+        emptyDescription="菜单组成侧边导航，按钮级菜单用于控制操作权限"
+        emptyAction={
+          <Button size="sm" onClick={() => openCreate()}>
+            <Plus />
+            {t('新建菜单')}
+          </Button>
+        }
       />
 
       <FormDialog

@@ -32,7 +32,7 @@
   "删除「{{name}}」？": "Delete \"{{name}}\"?",
   "投递记录一并删除，接收方不再收到事件。": "Its deliveries are deleted too and the receiver gets no more events.",
   "数据变动时把事件推送到其他系统；失败会自动重试 5 次（1 分钟到 6 小时）": "Push events to other systems when data changes; failures are retried 5 times (1 minute to 6 hours)",
-  "新增 Webhook": "New webhook",
+  "新建 Webhook": "Add webhook",
   "还没有 Webhook": "No webhooks yet",
   "新增后，用户、角色、部门等数据变动时会推送到你填写的地址": "Once added, changes to users, roles, departments and more are pushed to your address",
   "编辑 Webhook": "Edit webhook",
@@ -58,5 +58,6 @@
   "部门已修改": "Department updated",
   "示例数据已新增": "Sample data created",
   "示例数据已修改": "Sample data updated",
-  "示例数据已删除": "Sample data deleted"
+  "示例数据已删除": "Sample data deleted",
+  "全部状态": "All statuses"
 }

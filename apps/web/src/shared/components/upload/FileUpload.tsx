@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useTx } from '@/i18n'
 import { useUploader } from '@/shared/components/upload/useUploader'
 import type { UploadApi, UploadFileItem, UploadResponse } from '@/shared/components/upload/useUploader'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 export interface FileUploadProps<R extends UploadResponse = UploadResponse> {
   /** Controlled list of files (see UploadFileItem) */
@@ -93,11 +94,11 @@ export default function FileUpload<R extends UploadResponse = UploadResponse>({
               <div className="flex items-center gap-2.5">
                 <FileText className="text-muted-foreground size-4 shrink-0" />
                 {f.url ? (
-                  <a href={f.url} target="_blank" rel="noreferrer" className="hover:text-primary min-w-0 flex-1 truncate">
+                  <a href={f.url} target="_blank" rel="noreferrer" className="hover:text-primary min-w-0 flex-1 truncate" onMouseEnter={titleIfTruncated}>
                     {f.name}
                   </a>
                 ) : (
-                  <span className={cn('min-w-0 flex-1 truncate', f.status === 'error' && 'text-danger')}>{f.name}</span>
+                  <span className={cn('min-w-0 flex-1 truncate', f.status === 'error' && 'text-danger')} onMouseEnter={titleIfTruncated}>{f.name}</span>
                 )}
                 {f.size ? <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{formatBytes(f.size)}</span> : null}
                 {f.status === 'error' ? <span className="text-danger text-xs">{tx('上传失败')}</span> : null}

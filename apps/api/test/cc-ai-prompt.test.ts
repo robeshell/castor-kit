@@ -136,7 +136,7 @@ describe('ai-prompt', () => {
       [{ name: `${P}x`, content: 'y', is_active: 'yes' }, '启用的值无效'],
       [{ name: `${P}x`, content: 'y', is_active: 1 }, '启用的值无效'],
       [{ name: `${P}x`, content: 'y', tags: [1] }, '标签的值无效'],
-      [{ name: `${P}x${'n'.repeat(120)}`, content: 'y' }, '字段长度超出限制'],
+      [{ name: `${P}x${'n'.repeat(120)}`, content: 'y' }, '有字段超出了长度上限，请缩短后再保存'],
     ]
     for (const [payload, error] of cases) {
       const res = await s.inject({ method: 'POST', url: `${B}/templates`, payload })
@@ -166,7 +166,7 @@ describe('ai-prompt', () => {
     expect((await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { name: '' } })).json()).toEqual({ error: '模板名称不能为空' })
     expect((await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { content: null } })).json()).toEqual({ error: '模板内容不能为空' })
     const tooLong = await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { name: 'n'.repeat(121) } })
-    expect([tooLong.statusCode, tooLong.json()]).toEqual([400, { error: '字段长度超出限制' }])
+    expect([tooLong.statusCode, tooLong.json()]).toEqual([400, { error: '有字段超出了长度上限，请缩短后再保存' }])
     expect((await s.inject({ method: 'PUT', url: `${B}/templates/${a!.id}`, payload: { is_active: 'no' } })).json()).toEqual({ error: '启用的值无效' })
 
     for (const id of ['99999999', '99999999999']) {

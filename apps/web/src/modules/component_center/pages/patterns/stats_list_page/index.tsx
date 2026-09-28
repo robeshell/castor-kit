@@ -436,6 +436,7 @@ export default function StatsListPage() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 120,
@@ -467,7 +468,7 @@ export default function StatsListPage() {
           canAdd ? (
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增')}
+              {t('新建')}
             </Button>
           ) : null
         }
@@ -475,9 +476,9 @@ export default function StatsListPage() {
 
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="名称 / 编码" />
-        <FilterSelect value={category} onChange={(v) => setCategory(pick(CATEGORY_OPTIONS, v))} options={CATEGORY_OPTIONS} placeholder="分类" />
-        <FilterSelect value={status} onChange={(v) => setStatus(pick(STATUS_OPTIONS, v))} options={STATUS_OPTIONS} placeholder="状态" />
-        <FilterSelect value={isActive} onChange={(v) => setIsActive(pick(ENABLED_OPTIONS, v))} options={ENABLED_OPTIONS} placeholder="是否启用" />
+        <FilterSelect value={category} onChange={(v) => setCategory(pick(CATEGORY_OPTIONS, v))} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" />
+        <FilterSelect value={status} onChange={(v) => setStatus(pick(STATUS_OPTIONS, v))} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
+        <FilterSelect value={isActive} onChange={(v) => setIsActive(pick(ENABLED_OPTIONS, v))} options={ENABLED_OPTIONS} placeholder="是否启用" allLabel="启用与停用" />
       </FilterBar>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -509,11 +510,21 @@ export default function StatsListPage() {
         loading={loading}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         minWidth={1080}
-        emptyTitle="暂无数据"
-        emptyDescription={hasFilters ? '换个筛选条件试试' : canAdd ? '点击右上角「新增」添加第一条数据' : undefined}
+        filtered={hasFilters}
+        onClearFilters={reset}
+        emptyTitle="还没有记录"
+        emptyDescription="新建记录后，上方的统计和图表会随之更新"
+        emptyAction={
+          canAdd ? (
+            <Button size="sm" onClick={openCreate}>
+              <Plus />
+              {t('新建')}
+            </Button>
+          ) : null
+        }
       />
 
-      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新增'} form={form} onSubmit={submit}>
+      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新建'} form={form} onSubmit={submit}>
         <FormGrid>
           <FormInput control={form.control} name="name" label="名称" rules={{ required: '请输入名称' }} />
           <FormInput control={form.control} name="code" label="编码" rules={{ required: '请输入编码' }} />

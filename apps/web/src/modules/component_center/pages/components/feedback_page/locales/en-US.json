@@ -29,7 +29,7 @@
   "还没有项目": "No projects yet",
   "创建第一个项目，再邀请成员一起协作。": "Create your first project, then invite members to work on it together.",
   "这里打开新建表单": "The create form opens here",
-  "新建项目": "New project",
+  "新建项目": "Add project",
   "搜索项目": "Search projects",
   "没有名称包含「{{keyword}}」的项目。": "No project name contains \"{{keyword}}\".",
   "清除搜索": "Clear search",
@@ -84,10 +84,10 @@
   "只渲染触发按钮，不弹确认框": "Renders only the trigger, without the confirmation",
   "字符串消息自动翻译；带变量的文字先用 t() 拼好": "String messages are translated; build text with variables with t() first",
   "没有图标的普通消息": "A plain message without an icon",
-  "显示接口返回的 { error }，没有时显示兜底文案": "Shows the API's { error }, or the fallback when there is none",
   "sonner 原样透出：文字不会自动翻译，需要自己用 t()": "Passed through from sonner as is: texts are not translated, use t() yourself",
   "取出接口错误文字（已翻译），用于页面内显示错误": "The API's error text (translated), for showing errors in the page",
   "sonner 选项（description、duration、action 等），不会自动翻译": "sonner options (description, duration, action, …); not translated",
   "尺寸和形状，照着真实内容写，例如 h-4 w-32、size-9 rounded-full": "Size and shape, following the real content, e.g. h-4 w-32 or size-9 rounded-full",
-  "其他 div 属性": "Other div attributes"
+  "其他 div 属性": "Other div attributes",
+  "显示接口返回的 { error }；没有时显示兜底文案，自定义兜底（如「保存失败」）下面会补一句下一步怎么做": "Shows the API's { error }; without one, the fallback, and under a custom fallback (such as \"Save failed\") a line on what to do next"
 }

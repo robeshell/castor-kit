@@ -16,6 +16,7 @@ import { roleName } from '@/lib/role-label'
 import { userDisplayName } from '@/lib/user'
 import UserAvatar from '@/shared/components/UserAvatar'
 import { useTranslation } from 'react-i18next'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 function MenuAvatar({ user, className }: { user: CurrentUser | null; className?: string }) {
   return <UserAvatar src={user?.avatar} name={userDisplayName(user)} className={className} />
@@ -125,8 +126,8 @@ export default function UserMenu() {
             >
               <MenuAvatar user={user} />
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-[13px] font-medium">{userDisplayName(user)}</span>
-                <span className="text-muted-foreground truncate text-[11px]">{roleText}</span>
+                <span className="truncate text-[13px] font-medium" onMouseEnter={titleIfTruncated}>{userDisplayName(user)}</span>
+                <span className="text-muted-foreground truncate text-[11px]" onMouseEnter={titleIfTruncated}>{roleText}</span>
               </div>
               <ChevronsUpDown className="text-muted-foreground ml-auto size-4" />
             </SidebarMenuButton>

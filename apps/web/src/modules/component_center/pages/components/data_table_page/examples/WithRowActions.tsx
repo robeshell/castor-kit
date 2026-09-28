@@ -43,6 +43,7 @@ export default function WithRowActions() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 150,

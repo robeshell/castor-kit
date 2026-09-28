@@ -33,6 +33,7 @@ import SegmentedTabs from '@/shared/components/SegmentedTabs'
 import StatCard from '@/shared/components/StatCard'
 import request from '@/shared/api/request'
 import type { ApiResponse } from '@/shared/api/types'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 /** Workbench counters and the last 7 days of operation logs */
 type DashboardStats = ApiResponse<'/api/admin/dashboard/stats'>
@@ -280,7 +281,7 @@ function RecentActivity() {
               <span className="bg-muted flex size-7 items-center justify-center rounded-full text-[11px] font-medium">
                 {(log.username || '?').slice(0, 1).toUpperCase()}
               </span>
-              <span className="min-w-0 truncate">
+              <span className="min-w-0 truncate" onMouseEnter={titleIfTruncated}>
                 <span className="font-medium">{log.username}</span>
                 <span className="text-muted-foreground ml-2 text-[11px] font-medium">{log.method}</span>
                 <span className="text-muted-foreground ml-1.5">{log.path}</span>
@@ -374,7 +375,7 @@ export default function Dashboard() {
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[13px] font-medium">{t(item.label)}</span>
-                    <span className="text-muted-foreground block truncate text-[11px]">{t(item.desc)}</span>
+                    <span className="text-muted-foreground block truncate text-[11px]" onMouseEnter={titleIfTruncated}>{t(item.desc)}</span>
                   </span>
                 </Link>
               ))}

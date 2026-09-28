@@ -149,6 +149,7 @@ export default function Files() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 190,
@@ -210,8 +211,8 @@ export default function Files() {
 
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索文件名" />
-        <FilterSelect value={kind} onChange={setKind} options={KIND_OPTIONS} placeholder="类型" />
-        <FilterSelect value={referenced} onChange={setReferenced} options={REF_OPTIONS} placeholder="使用情况" />
+        <FilterSelect value={kind} onChange={setKind} options={KIND_OPTIONS} placeholder="类型" allLabel="全部类型" />
+        <FilterSelect value={referenced} onChange={setReferenced} options={REF_OPTIONS} placeholder="使用情况" allLabel="在用与未用" />
       </FilterBar>
 
       <DataTable

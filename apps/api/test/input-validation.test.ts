@@ -71,10 +71,10 @@ describe('bad input → 400', () => {
   })
 
   it('the database rejecting a value: a readable message instead of a 500', async () => {
-    expect(await send('POST', '/api/admin/dicts', { name: 'x', code: 'x'.repeat(300) })).toEqual(bad('字段长度超出限制'))
-    expect(await send('POST', '/api/admin/announcements', { title: `${P}${'x'.repeat(300)}`, content: 'c' })).toEqual(bad('字段长度超出限制'))
-    expect(await send('POST', '/api/admin/menus', { name: 'x', code: `${P}m1`, parent_id: 99999999 })).toEqual(bad('关联的数据不存在或仍被引用'))
-    expect(await send('POST', `${CC}/demo-records`, { name: 'x'.repeat(300), code: `${P}long` })).toEqual(bad('字段长度超出限制'))
+    expect(await send('POST', '/api/admin/dicts', { name: 'x', code: 'x'.repeat(300) })).toEqual(bad('有字段超出了长度上限，请缩短后再保存'))
+    expect(await send('POST', '/api/admin/announcements', { title: `${P}${'x'.repeat(300)}`, content: 'c' })).toEqual(bad('有字段超出了长度上限，请缩短后再保存'))
+    expect(await send('POST', '/api/admin/menus', { name: 'x', code: `${P}m1`, parent_id: 99999999 })).toEqual(bad('关联的数据不存在，或这条数据仍被其他数据使用，请检查关联后重试'))
+    expect(await send('POST', `${CC}/demo-records`, { name: 'x'.repeat(300), code: `${P}long` })).toEqual(bad('有字段超出了长度上限，请缩短后再保存'))
   })
 
   it('module rules: roles, users, announcements, menus, notifications, demo record dates', async () => {

@@ -154,7 +154,7 @@ export default function <Resource>Page() {
         actions={
           <Button size="sm" variant="brand" onClick={openCreate}>
             <Plus />
-            {t('新增')}
+            {t('新建')}
           </Button>
         }
       />
@@ -169,7 +169,7 @@ export default function <Resource>Page() {
               ))}
             </div>
           ) : list.length === 0 ? (
-            <EmptyState title="暂无数据" description="点击右上角「新增」添加第一条数据" />
+            <EmptyState title="暂无数据" description="点击右上角「新建」添加第一条数据" />
           ) : (
             <motion.div variants={stagger.container} initial="hidden" animate="show">
               {list.map((item) => (
@@ -234,7 +234,7 @@ export default function <Resource>Page() {
         </Panel>
       </div>
 
-      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新增'} form={form} onSubmit={submit}>
+      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新建'} form={form} onSubmit={submit}>
         {/* Add the actual form fields */}
         <FormInput control={form.control} name="name" label="名称" placeholder="请输入名称" rules={{ required: '请输入名称' }} />
         <FormTextarea control={form.control} name="remark" label="备注" placeholder="选填" />

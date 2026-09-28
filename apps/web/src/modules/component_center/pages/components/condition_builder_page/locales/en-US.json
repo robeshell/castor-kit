@@ -46,7 +46,7 @@
   "是 / 否": "Yes / No",
   "显示「新增条件组」；false 时只有一层条件": "Shows \"Add group\"; with false there is a single level of conditions",
   "普通": "Basic",
-  "条件构建器": "Condition Builder",
+  "条件构建器": "Condition builder",
   "条件组：{ logic, items }，只有一层嵌套": "Condition groups: { logic, items }, nested one level only",
   "查询名称": "Query name",
   "标题": "Title",

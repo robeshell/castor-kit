@@ -4,7 +4,7 @@
   "JSON 有效": "Valid JSON",
   "JSON 格式错误，无法压缩": "Invalid JSON, so it can't be minified",
   "JSON 格式错误，无法格式化": "Invalid JSON, so it can't be formatted",
-  "JSON 编辑器": "JSON Editor",
+  "JSON 编辑器": "JSON editor",
   "JSON 解析失败": "Failed to parse JSON",
   "JSON 错误：{{message}}": "JSON error: {{message}}",
   "压缩": "Minify",

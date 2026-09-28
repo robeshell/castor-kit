@@ -219,6 +219,7 @@ export default function <Resource>Page() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 132,
@@ -254,7 +255,7 @@ export default function <Resource>Page() {
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增')}
+              {t('新建')}
             </Button>
           </>
         }
@@ -303,11 +304,11 @@ export default function <Resource>Page() {
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="暂无数据"
-        emptyDescription={filters.search || filters.status ? '换个筛选条件试试' : '点击右上角「新增」添加第一条数据'}
+        emptyDescription={filters.search || filters.status ? '换个筛选条件试试' : '点击右上角「新建」添加第一条数据'}
       />
 
       {/* Create / Edit (react-hook-form): name must be a FormValues field; write rules' messages following backend/product copy */}
-      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新增'} form={form} onSubmit={submit}>
+      <FormDialog open={formOpen} onOpenChange={setFormOpen} title={editing ? '编辑' : '新建'} form={form} onSubmit={submit}>
         <FormInput control={form.control} name="name" label="名称" placeholder="请输入名称" rules={{ required: '请输入名称' }} />
         <FormSelect control={form.control} name="status" label="状态" options={STATUS_OPTIONS} />
         <FormTextarea control={form.control} name="remark" label="备注" placeholder="选填" />

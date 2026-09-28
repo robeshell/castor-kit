@@ -248,6 +248,7 @@ export default function Announcements() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 168,
@@ -298,7 +299,7 @@ export default function Announcements() {
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增公告')}
+              {t('新建公告')}
             </Button>
           </>
         }
@@ -318,14 +319,22 @@ export default function Announcements() {
         loading={loading}
         minWidth={860}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="暂无公告"
-        emptyDescription={statusFilter ? '换个状态筛选试试' : '点击右上角「新增公告」发布第一条'}
+        filtered={Boolean(statusFilter)}
+        onClearFilters={() => handleSearch({ status: '' })}
+        emptyTitle="还没有公告"
+        emptyDescription="新公告先存为草稿，发布后用户才能看到"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建公告')}
+          </Button>
+        }
       />
 
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        title={editing ? '编辑公告' : '新增公告'}
+        title={editing ? '编辑公告' : '新建公告'}
         description={editing ? t('正在编辑「{{title}}」', { title: editing.title }) : '保存为草稿后可在列表中发布'}
         form={form}
         onSubmit={submit}

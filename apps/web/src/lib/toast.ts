@@ -23,6 +23,11 @@ function tr(message: ToastMessage): ToastMessage {
   return typeof message === 'string' ? i18n.t(message) : message
 }
 
+/** Generic fallback when the server sent no message */
+const DEFAULT_FALLBACK = '操作没有完成，请重试；如果一直失败，请联系管理员。'
+/** Next step shown under a caller's short fallback ("save failed") */
+const NEXT_STEP = '请重试；如果一直失败，请联系管理员。'
+
 /** Error toasts don't time out; pass `duration` to override */
 const STICKY: ExternalToast = { duration: Infinity }
 
@@ -41,15 +46,17 @@ export const toast = Object.assign(
     error: (message: ToastMessage, options?: ExternalToast) => sonnerToast.error(tr(message), { ...STICKY, ...options }),
     warning: (message: ToastMessage, options?: ExternalToast) => sonnerToast.warning(tr(message), options),
     info: (message: ToastMessage, options?: ExternalToast) => sonnerToast.info(tr(message), options),
-    apiError(err: unknown, fallback = '操作失败，请稍后重试'): string | number {
-      const message = rawMessage(err) || fallback
-      return sonnerToast.error(tr(typeof message === 'string' ? message : fallback), STICKY)
+    apiError(err: unknown, fallback = DEFAULT_FALLBACK): string | number {
+      const message = rawMessage(err)
+      if (typeof message === 'string' && message) return sonnerToast.error(tr(message), STICKY)
+      // No message from the server: the caller's fallback names what failed, the description says what to do
+      return sonnerToast.error(tr(fallback), { ...STICKY, description: fallback === DEFAULT_FALLBACK ? undefined : tr(NEXT_STEP) })
     },
   },
 )
 
 /** Extract the backend message from the error object thrown by request.ts */
-export function errorMessage(err: unknown, fallback = '操作失败，请稍后重试'): string {
+export function errorMessage(err: unknown, fallback = DEFAULT_FALLBACK): string {
   const message = rawMessage(err)
   return tr(typeof message === 'string' && message ? message : fallback)
 }

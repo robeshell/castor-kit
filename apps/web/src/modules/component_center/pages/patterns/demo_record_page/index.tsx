@@ -330,6 +330,7 @@ export default function StandardListPage() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 132,
@@ -364,7 +365,7 @@ export default function StandardListPage() {
             </Button>
             <Button size="sm" variant="brand" onClick={openCreate}>
               <Plus />
-              {t('新增')}
+              {t('新建')}
             </Button>
           </>
         }
@@ -372,9 +373,9 @@ export default function StandardListPage() {
 
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
-        <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" />
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
-        <FilterSelect value={isActive} onChange={setIsActive} options={ENABLED_OPTIONS} placeholder="是否启用" />
+        <FilterSelect value={category} onChange={setCategory} options={CATEGORY_OPTIONS} placeholder="分类" allLabel="全部分类" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
+        <FilterSelect value={isActive} onChange={setIsActive} options={ENABLED_OPTIONS} placeholder="是否启用" allLabel="启用与停用" />
       </FilterBar>
 
       <AnimatePresence>
@@ -410,14 +411,21 @@ export default function StandardListPage() {
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="暂无数据"
-        emptyDescription={filters.search || filters.category || filters.status || filters.is_active ? '换个关键词试试' : '点击右上角「新增」添加第一条数据'}
+        filtered={Boolean(filters.search || filters.category || filters.status || filters.is_active)}
+        onClearFilters={reset}
+        emptyTitle="还没有记录"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建')}
+          </Button>
+        }
       />
 
       <FormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        title={editing ? '编辑' : '新增'}
+        title={editing ? '编辑' : '新建'}
         form={form}
         onSubmit={submit}
       >

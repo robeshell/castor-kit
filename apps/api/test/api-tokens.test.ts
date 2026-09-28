@@ -78,7 +78,7 @@ describe('API tokens: creating', () => {
     expect((await createToken(staff, ['system_users', 'system_roles'])).json()).toEqual({ error: '不能授予自己没有的权限：system_roles' })
     expect((await createToken(staff, [])).json()).toEqual({ error: '请至少选择一项权限' })
     expect((await createToken(staff, ['system_users'], { name: '' })).json()).toEqual({ error: '请填写名称（最多 100 个字符）' })
-    expect((await createToken(staff, ['system_users'], { expires_in_days: 0 })).json()).toEqual({ error: '有效期不合法' })
+    expect((await createToken(staff, ['system_users'], { expires_in_days: 0 })).json()).toEqual({ error: '有效期请填 1–3650 之间的整数（天），或选择永不过期' })
     expect((await createToken(staff, ['system_users'], { expires_in_days: null })).json().item.expires_at).toBeNull()
     // Values of the wrong JSON type are rejected, and the expiry must be sent (null = never)
     expect((await createToken(staff, ['system_users'], { expires_in_days: '30' })).json()).toEqual({ error: '有效期的值无效' })

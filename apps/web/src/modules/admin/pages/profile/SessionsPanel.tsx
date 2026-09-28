@@ -10,6 +10,7 @@ import { getMySessions, revokeMyOtherSessions, revokeMySession, type MySession }
 import ConfirmAction from '@/shared/components/ConfirmAction'
 import Panel from '@/shared/components/Panel'
 import StatusBadge from '@/shared/components/StatusBadge'
+import { titleIfTruncated } from '@/lib/title-if-truncated'
 
 /** Where the signed-in user is logged in; other devices can be signed out one by one or all at once */
 export default function SessionsPanel() {
@@ -93,7 +94,7 @@ export default function SessionsPanel() {
                 </div>
                 <div className="min-w-0 flex-1 leading-tight">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-[13px] font-medium">{device.label || t('未知设备')}</span>
+                    <span className="truncate text-[13px] font-medium" onMouseEnter={titleIfTruncated}>{device.label || t('未知设备')}</span>
                     {s.current ? <StatusBadge tone="success">{t('当前设备')}</StatusBadge> : null}
                   </div>
                   <div className="text-muted-foreground mt-1 truncate text-xs tabular-nums" title={formatDateTime(s.created_at)}>

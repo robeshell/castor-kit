@@ -126,9 +126,9 @@ export default function CombinedFilters() {
           value={draft.priority}
           onChange={(priority) => setDraft((prev) => ({ ...prev, priority }))}
           options={PRIORITY_OPTIONS}
-          placeholder="优先级"
+          placeholder="优先级" allLabel="全部优先级"
         />
-        <FilterSelect value={draft.owner} onChange={(owner) => setDraft((prev) => ({ ...prev, owner }))} options={OWNER_OPTIONS} placeholder="负责人" />
+        <FilterSelect value={draft.owner} onChange={(owner) => setDraft((prev) => ({ ...prev, owner }))} options={OWNER_OPTIONS} placeholder="负责人" allLabel="全部负责人" />
       </FilterBar>
       <div className="mb-3 overflow-x-auto">
         <SegmentedTabs value={tab} onChange={setTab} items={tabs} />

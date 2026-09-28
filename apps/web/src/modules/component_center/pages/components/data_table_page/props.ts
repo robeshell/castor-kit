@@ -16,7 +16,9 @@ export const DATA_TABLE_PROPS: readonly PropDoc[] = [
   // i18n-ignore-next-line: the default value shown as code
   { name: 'emptyTitle', type: 'ReactNode', default: "'暂无数据'", description: '空状态标题（中文原文，组件内翻译）' },
   { name: 'emptyDescription', type: 'ReactNode', description: '空状态说明，写下一步做什么' },
-  { name: 'emptyAction', type: 'ReactNode', description: '空状态里的按钮' },
+  { name: 'emptyAction', type: 'ReactNode', description: '还没有数据时空状态里的下一步，通常是新建按钮' },
+  { name: 'filtered', type: 'boolean', default: 'false', description: '搜索或筛选正在缩小列表：为空时显示“没有符合条件的记录”和清除筛选按钮，而不是还没有数据的空状态' },
+  { name: 'onClearFilters', type: '() => void', description: '清除搜索和筛选（通常就是 FilterBar 的重置）' },
   { name: 'bordered', type: 'boolean', default: 'true', description: '外层卡片边框；放在 Panel 里时设为 false' },
   { name: 'dense', type: 'boolean', default: 'false', description: '紧凑行高' },
   { name: 'minWidth', type: 'CSSProperties["minWidth"]', description: '表格最小宽度，容器更窄时横向滚动' },
@@ -33,6 +35,7 @@ export const DATA_TABLE_COLUMN_PROPS: readonly PropDoc[] = [
   { name: 'minWidth', type: 'CSSProperties["minWidth"]', description: '列最小宽度' },
   { name: 'align', type: "'left' | 'center' | 'right'", default: "'left'", description: '对齐；数字列用 right + tabular-nums' },
   { name: 'ellipsis', type: 'boolean', default: 'false', description: '单行省略，文本单元格悬停显示全文' },
+  { name: 'pin', type: "'end'", description: '表格横向滚动时固定在右侧，窄屏也能点到行操作；每个操作列都用它' },
   { name: 'primary', type: 'boolean', default: 'false', description: '配合 onRowClick：行按钮放在这一列（默认第一列）；选能说出这一行是谁的列，且列里没有别的控件' },
   { name: 'className', type: 'string', description: '单元格 class' },
   { name: 'headerClassName', type: 'string', description: '表头单元格 class' },

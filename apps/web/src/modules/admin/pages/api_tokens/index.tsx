@@ -166,6 +166,7 @@ export default function ApiTokens() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 80,
@@ -212,7 +213,7 @@ export default function ApiTokens() {
       ) : null}
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索名称、前缀、创建人" className="sm:w-72" />
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
       </FilterBar>
       <DataTable
         columns={columns}
@@ -222,7 +223,9 @@ export default function ApiTokens() {
         minWidth={1000}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
         emptyTitle="还没有 API Token"
-        emptyDescription={filters.search || filters.status ? '换个条件试试' : '用户可以在「个人设置」里创建自己的 Token'}
+        filtered={Boolean(filters.search || filters.status)}
+        onClearFilters={reset}
+        emptyDescription="用户可以在「个人设置」里创建自己的 Token"
       />
     </div>
   )

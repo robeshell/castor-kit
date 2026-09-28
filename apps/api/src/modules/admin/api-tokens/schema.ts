@@ -9,7 +9,8 @@ import { field, invalidMessage } from '@/common/validation'
 export const MAX_DAYS = 3650
 
 const NAME_MESSAGE = '请填写名称（最多 100 个字符）'
-const DAYS_MESSAGE = '有效期不合法'
+// Keep the number in step with MAX_DAYS (a literal, so the message has one translation entry)
+const DAYS_MESSAGE = '有效期请填 1–3650 之间的整数（天），或选择永不过期'
 
 /** Create body; whether the caller may grant each scope is checked in the service */
 export const apiTokenBody = z.object({

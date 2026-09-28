@@ -283,6 +283,7 @@ export default function Departments() {
     },
     {
       key: 'actions',
+      pin: 'end',
       title: '',
       align: 'right',
       width: 236,
@@ -345,7 +346,7 @@ export default function Departments() {
         }
       >
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索部门名称 / 编码" />
-        <FilterSelect value={status} onChange={(v) => setStatus(toStatusFilter(v))} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={(v) => setStatus(toStatusFilter(v))} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
       </FilterBar>
 
       <DataTable
@@ -354,8 +355,16 @@ export default function Departments() {
         loading={loading}
         dense
         minWidth={1100}
-        emptyTitle={filtered ? '没有找到部门' : '还没有部门'}
-        emptyDescription={filtered ? '换个关键词试试' : '点击右上角「新建部门」搭建组织架构'}
+        filtered={filtered}
+        onClearFilters={reset}
+        emptyTitle="还没有部门"
+        emptyDescription="部门组成组织架构，用户可以归属到部门"
+        emptyAction={
+          <Button size="sm" onClick={() => openCreate()}>
+            <Plus />
+            {t('新建部门')}
+          </Button>
+        }
       />
 
       <FormDialog
