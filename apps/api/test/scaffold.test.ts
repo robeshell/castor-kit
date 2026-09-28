@@ -766,7 +766,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(routes).toContain("const BASE = '/api/admin/ck-scaffold-demos'")
     for (const [code, msg] of [
       ['system_ck_scaffold_demo', '无权限'],
-      ['system_ck_scaffold_demo_add', '无权限新增'],
+      ['system_ck_scaffold_demo_add', '无权限新建'],
       ['system_ck_scaffold_demo_edit', '无权限编辑'],
       ['system_ck_scaffold_demo_delete', '无权限删除'],
       ['system_ck_scaffold_demo_export', '无权限导出'],
@@ -1081,7 +1081,7 @@ describe('scaffold CLI（临时目录副本）', () => {
     expect(page).toContain('  weight === null || grade === null ? null : { ...rest, weight, grade }')
     expect(page).toContain('        await createItem(body)')
     // ... and a filter per enum field, sent with the search
-    expect(page).toContain('<FilterSelect value={filterValues.status} onChange={(value) => setFilterValues((prev) => ({ ...prev, status: value }))} options={FIELD_OPTIONS.status} placeholder="设备状态" />')
+    expect(page).toContain('<FilterSelect value={filterValues.status} onChange={(value) => setFilterValues((prev) => ({ ...prev, status: value }))} options={FIELD_OPTIONS.status} placeholder="设备状态" allLabel="全部设备状态" />')
     expect(page).toContain('    list.handleSearch({ search: search.trim(), ...filterValues })')
     const lint = spawnSync(ESLINT, ['--max-warnings', '0', '--stdin', '--stdin-filename', 'src/modules/admin/pages/ck_spec_device/index.tsx'], {
       cwd: WEB_DIR,

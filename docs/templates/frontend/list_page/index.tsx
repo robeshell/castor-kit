@@ -265,7 +265,7 @@ export default function <Resource>Page() {
       <FilterBar onSearch={runSearch} onReset={reset}>
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />
         {/* The backend reads ?status= in routes.ts and filters in repository.ts (TODOs in docs/templates/backend) */}
-        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" />
+        <FilterSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="状态" allLabel="全部状态" />
       </FilterBar>
 
       {/* Selection banner */}
@@ -303,8 +303,15 @@ export default function <Resource>Page() {
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="暂无数据"
-        emptyDescription={filters.search || filters.status ? '换个筛选条件试试' : '点击右上角「新建」添加第一条数据'}
+        emptyTitle="还没有记录"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建')}
+          </Button>
+        }
+        filtered={Boolean(filters.search || filters.status)}
+        onClearFilters={reset}
       />
 
       {/* Create / Edit (react-hook-form): name must be a FormValues field; write rules' messages following backend/product copy */}

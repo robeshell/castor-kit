@@ -258,7 +258,7 @@ Every input problem is a 400: declare the request body with Zod (field.* from @/
   ```ts
   const create = routeBody(itemBody, 'create')
   app.post(BASE, { ...opts, ...create.route }, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_xxx_add'))) return reply.status(403).send({ error: '无权限新增' })
+    if (!(await hasMenuPermission(request, 'system_xxx_add'))) return reply.status(403).send({ error: '无权限新建' })
     return reply.status(201).send(await service.createItem(create.parse(request)))
   })
   ```

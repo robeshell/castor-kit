@@ -375,7 +375,7 @@ describe('menus 权限 / my-menus', () => {
   it('无权限用户 → 403 文案（GET/PUT/DELETE 先 403 再 404）', async () => {
     const cases: [string, string, string][] = [
       ['GET', '/api/admin/menus', '无权限查看菜单列表'],
-      ['POST', '/api/admin/menus', '无权限新增菜单'],
+      ['POST', '/api/admin/menus', '无权限新建菜单'],
       ['GET', `/api/admin/menus/${rootId}`, '无权限查看菜单'],
       ['PUT', `/api/admin/menus/${rootId}`, '无权限编辑菜单'],
       ['DELETE', `/api/admin/menus/${rootId}`, '无权限删除菜单'],

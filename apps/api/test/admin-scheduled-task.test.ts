@@ -217,7 +217,7 @@ describe('新增', () => {
 
   it('无权限 403', async () => {
     const res = await nobody.inject({ method: 'POST', url: T, payload: valid() })
-    expect([res.statusCode, res.json()]).toEqual([403, { error: '无权限新增定时任务' }])
+    expect([res.statusCode, res.json()]).toEqual([403, { error: '无权限新建定时任务' }])
   })
 })
 

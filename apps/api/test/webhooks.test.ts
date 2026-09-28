@@ -202,7 +202,7 @@ describe('webhooks', () => {
     const viewer = await scopedSession(app, handle, { name: 'hook_viewer', codes: ['system_webhooks'], dataScope: 'all' })
     const events = (await viewer.inject({ url: '/api/admin/webhooks/events' })).json().items.map((e: { event: string }) => e.event)
     expect(events).toEqual(expect.arrayContaining(['ping', 'user.created', 'role.deleted', 'department.updated']))
-    expect((await viewer.inject({ method: 'POST', url: '/api/admin/webhooks', payload: {} })).json()).toEqual({ error: '无权限新增 Webhook' })
+    expect((await viewer.inject({ method: 'POST', url: '/api/admin/webhooks', payload: {} })).json()).toEqual({ error: '无权限新建 Webhook' })
     const none = await scopedSession(app, handle, { name: 'hook_none', codes: [], dataScope: 'all' })
     expect((await none.inject({ url: '/api/admin/webhooks' })).json()).toEqual({ error: '无权限查看 Webhook' })
   })

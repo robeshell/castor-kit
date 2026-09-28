@@ -38,7 +38,7 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
 
   const webhookInput = routeBody(webhookBody, 'create')
   app.post(BASE, { ...opts, ...webhookInput.route }, async (request, reply) => {
-    if (!(await hasMenuPermission(request, 'system_webhooks_add'))) return reply.status(403).send({ error: '无权限新增 Webhook' })
+    if (!(await hasMenuPermission(request, 'system_webhooks_add'))) return reply.status(403).send({ error: '无权限新建 Webhook' })
     requireRecentAuth(request)
     const values = webhookInput.parse(request)
     const actor = await actorOf(request)

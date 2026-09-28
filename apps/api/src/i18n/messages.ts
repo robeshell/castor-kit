@@ -59,7 +59,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '无权限下载模板': { 'en-US': "You don't have permission to download the template", 'ja-JP': 'テンプレートをダウンロードする権限がありません' },
 
   // scaffold-generated modules (scripts/scaffold.ts)
-  '无权限新增': { 'en-US': "You don't have permission to create records", 'ja-JP': '追加する権限がありません' },
+  '无权限新建': { 'en-US': "You don't have permission to create records", 'ja-JP': '追加する権限がありません' },
   '无权限编辑': { 'en-US': "You don't have permission to edit records", 'ja-JP': '編集する権限がありません' },
   '无权限删除': { 'en-US': "You don't have permission to delete records", 'ja-JP': '削除する権限がありません' },
   '无权限导出': { 'en-US': "You don't have permission to export", 'ja-JP': 'エクスポートする権限がありません' },
@@ -88,7 +88,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
   // users
   '无权限查看用户列表': { 'en-US': "You don't have permission to view the user list", 'ja-JP': 'ユーザー一覧を閲覧する権限がありません' },
-  '无权限新增用户': { 'en-US': "You don't have permission to create users", 'ja-JP': 'ユーザーを追加する権限がありません' },
+  '无权限新建用户': { 'en-US': "You don't have permission to create users", 'ja-JP': 'ユーザーを追加する権限がありません' },
   '无权限编辑用户': { 'en-US': "You don't have permission to edit users", 'ja-JP': 'ユーザーを編集する権限がありません' },
   '无权限删除用户': { 'en-US': "You don't have permission to delete users", 'ja-JP': 'ユーザーを削除する権限がありません' },
   '无权限导出用户': { 'en-US': "You don't have permission to export users", 'ja-JP': 'ユーザーをエクスポートする権限がありません' },
@@ -161,7 +161,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   '无权限查看 API Token': { 'en-US': "You don't have permission to view API tokens", 'ja-JP': 'API トークンを表示する権限がありません' },
   '无权限吊销 API Token': { 'en-US': "You don't have permission to revoke API tokens", 'ja-JP': 'API トークンを失効させる権限がありません' },
   '无权限查看 Webhook': { 'en-US': "You don't have permission to view webhooks", 'ja-JP': 'Webhook を表示する権限がありません' },
-  '无权限新增 Webhook': { 'en-US': "You don't have permission to add webhooks", 'ja-JP': 'Webhook を追加する権限がありません' },
+  '无权限新建 Webhook': { 'en-US': "You don't have permission to add webhooks", 'ja-JP': 'Webhook を追加する権限がありません' },
   '无权限编辑 Webhook': { 'en-US': "You don't have permission to edit webhooks", 'ja-JP': 'Webhook を編集する権限がありません' },
   '无权限删除 Webhook': { 'en-US': "You don't have permission to delete webhooks", 'ja-JP': 'Webhook を削除する権限がありません' },
   '请填写正确的地址（http:// 或 https://）': { 'en-US': 'Enter a valid URL (http:// or https://)', 'ja-JP': '正しい URL を入力してください（http:// または https://）' },
@@ -204,7 +204,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
   // departments
   '无权限查看部门': { 'en-US': "You don't have permission to view departments", 'ja-JP': '部署を閲覧する権限がありません' },
-  '无权限新增部门': { 'en-US': "You don't have permission to create departments", 'ja-JP': '部署を追加する権限がありません' },
+  '无权限新建部门': { 'en-US': "You don't have permission to create departments", 'ja-JP': '部署を追加する権限がありません' },
   '无权限编辑部门': { 'en-US': "You don't have permission to edit departments", 'ja-JP': '部署を編集する権限がありません' },
   '无权限删除部门': { 'en-US': "You don't have permission to delete departments", 'ja-JP': '部署を削除する権限がありません' },
   '部门名称不能为空': { 'en-US': 'Department name is required', 'ja-JP': '部署名を入力してください' },
@@ -222,7 +222,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
   // roles
   '无权限查看角色列表': { 'en-US': "You don't have permission to view the role list", 'ja-JP': 'ロール一覧を閲覧する権限がありません' },
-  '无权限新增角色': { 'en-US': "You don't have permission to create roles", 'ja-JP': 'ロールを追加する権限がありません' },
+  '无权限新建角色': { 'en-US': "You don't have permission to create roles", 'ja-JP': 'ロールを追加する権限がありません' },
   '无权限编辑角色': { 'en-US': "You don't have permission to edit roles", 'ja-JP': 'ロールを編集する権限がありません' },
   '无权限删除角色': { 'en-US': "You don't have permission to delete roles", 'ja-JP': 'ロールを削除する権限がありません' },
   '无权限导出角色': { 'en-US': "You don't have permission to export roles", 'ja-JP': 'ロールをエクスポートする権限がありません' },
@@ -238,7 +238,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   // menus
   '无权限查看菜单列表': { 'en-US': "You don't have permission to view the menu list", 'ja-JP': 'メニュー一覧を閲覧する権限がありません' },
   '无权限查看菜单': { 'en-US': "You don't have permission to view menus", 'ja-JP': 'メニューを閲覧する権限がありません' },
-  '无权限新增菜单': { 'en-US': "You don't have permission to create menus", 'ja-JP': 'メニューを追加する権限がありません' },
+  '无权限新建菜单': { 'en-US': "You don't have permission to create menus", 'ja-JP': 'メニューを追加する権限がありません' },
   '无权限编辑菜单': { 'en-US': "You don't have permission to edit menus", 'ja-JP': 'メニューを編集する権限がありません' },
   '无权限删除菜单': { 'en-US': "You don't have permission to delete menus", 'ja-JP': 'メニューを削除する権限がありません' },
   '无权限排序菜单': { 'en-US': "You don't have permission to reorder menus", 'ja-JP': 'メニューを並べ替える権限がありません' },
@@ -269,11 +269,11 @@ export const MESSAGES: Record<string, MessageEntry> = {
 
   // dictionaries
   '无权限查看数据字典': { 'en-US': "You don't have permission to view dictionaries", 'ja-JP': '辞書を閲覧する権限がありません' },
-  '无权限新增数据字典': { 'en-US': "You don't have permission to create dictionaries", 'ja-JP': '辞書を追加する権限がありません' },
+  '无权限新建数据字典': { 'en-US': "You don't have permission to create dictionaries", 'ja-JP': '辞書を追加する権限がありません' },
   '无权限编辑数据字典': { 'en-US': "You don't have permission to edit dictionaries", 'ja-JP': '辞書を編集する権限がありません' },
   '无权限删除数据字典': { 'en-US': "You don't have permission to delete dictionaries", 'ja-JP': '辞書を削除する権限がありません' },
   '无权限查看字典项': { 'en-US': "You don't have permission to view dictionary items", 'ja-JP': '辞書項目を閲覧する権限がありません' },
-  '无权限新增字典项': { 'en-US': "You don't have permission to create dictionary items", 'ja-JP': '辞書項目を追加する権限がありません' },
+  '无权限新建字典项': { 'en-US': "You don't have permission to create dictionary items", 'ja-JP': '辞書項目を追加する権限がありません' },
   '无权限编辑字典项': { 'en-US': "You don't have permission to edit dictionary items", 'ja-JP': '辞書項目を編集する権限がありません' },
   '无权限删除字典项': { 'en-US': "You don't have permission to delete dictionary items", 'ja-JP': '辞書項目を削除する権限がありません' },
   '无权限导出字典项': { 'en-US': "You don't have permission to export dictionary items", 'ja-JP': '辞書項目をエクスポートする権限がありません' },
@@ -300,7 +300,7 @@ export const MESSAGES: Record<string, MessageEntry> = {
   // scheduled tasks (incl. common/scheduler cron / URL validation)
   '无权限查看定时任务列表': { 'en-US': "You don't have permission to view the scheduled task list", 'ja-JP': 'スケジュールタスク一覧を閲覧する権限がありません' },
   '无权限查看定时任务': { 'en-US': "You don't have permission to view scheduled tasks", 'ja-JP': 'スケジュールタスクを閲覧する権限がありません' },
-  '无权限新增定时任务': { 'en-US': "You don't have permission to create scheduled tasks", 'ja-JP': 'スケジュールタスクを追加する権限がありません' },
+  '无权限新建定时任务': { 'en-US': "You don't have permission to create scheduled tasks", 'ja-JP': 'スケジュールタスクを追加する権限がありません' },
   '无权限编辑定时任务': { 'en-US': "You don't have permission to edit scheduled tasks", 'ja-JP': 'スケジュールタスクを編集する権限がありません' },
   '无权限删除定时任务': { 'en-US': "You don't have permission to delete scheduled tasks", 'ja-JP': 'スケジュールタスクを削除する権限がありません' },
   '无权限执行定时任务': { 'en-US': "You don't have permission to run scheduled tasks", 'ja-JP': 'スケジュールタスクを実行する権限がありません' },

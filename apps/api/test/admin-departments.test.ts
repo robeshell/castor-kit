@@ -150,7 +150,7 @@ describe('departments', () => {
     const u = await loginSession(app, FIXTURE_USER, FIXTURE_PASSWORD, fx.userId)
     expect((await u.inject({ url: BASE })).json()).toEqual({ error: '无权限查看部门' })
     expect((await u.inject({ method: 'POST', url: BASE, payload: { name: 'x', code: `${P}y` } })).json()).toEqual({
-      error: '无权限新增部门',
+      error: '无权限新建部门',
     })
   })
 })

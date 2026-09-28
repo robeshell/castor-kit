@@ -341,12 +341,12 @@ describe('dicts：权限', () => {
       .returning()
     const cases: [string, string, string][] = [
       ['GET', '/api/admin/dicts', '无权限查看数据字典'],
-      ['POST', '/api/admin/dicts', '无权限新增数据字典'],
+      ['POST', '/api/admin/dicts', '无权限新建数据字典'],
       ['GET', `/api/admin/dicts/${id}`, '无权限查看数据字典'],
       ['PUT', `/api/admin/dicts/${id}`, '无权限编辑数据字典'],
       ['DELETE', `/api/admin/dicts/${id}`, '无权限删除数据字典'],
       ['GET', `/api/admin/dicts/${id}/items`, '无权限查看字典项'],
-      ['POST', `/api/admin/dicts/${id}/items`, '无权限新增字典项'],
+      ['POST', `/api/admin/dicts/${id}/items`, '无权限新建字典项'],
       ['GET', `/api/admin/dicts/${id}/items/export`, '无权限导出字典项'],
       ['GET', `/api/admin/dicts/${id}/items/template`, '无权限下载模板'],
       ['POST', `/api/admin/dicts/${id}/items/import`, '无权限导入字典项'],

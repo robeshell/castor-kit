@@ -863,7 +863,7 @@ export async function register${s.pascal}Routes(app: FastifyInstance): Promise<v
   const create = routeBody(${s.camel}Body, 'create')
   app.post(BASE, { ...opts, ...create.route }, async (request, reply) => {
     if (!(await hasMenuPermission(request, ${q(`${p}_add`)}))) {
-      return reply.status(403).send({ error: '无权限新增' })
+      return reply.status(403).send({ error: '无权限新建' })
     }
     return reply.status(201).send(await service.createItem(create.parse(request)${actor}))
   })
@@ -1267,13 +1267,7 @@ export const PAGE_TEXTS: Record<string, Record<PageLang, string>> = {
     'ja-JP': '<0>{{count}}</0> 件を選択中。エクスポート時は選択したデータが優先されます',
   },
   清空勾选: { 'en-US': 'Clear selection', 'ja-JP': '選択を解除' },
-  暂无数据: { 'en-US': 'No data', 'ja-JP': 'データがありません' },
-  换个关键词试试: { 'en-US': 'Try a different keyword', 'ja-JP': '別のキーワードでお試しください' },
-  换个筛选条件试试: { 'en-US': 'Try different filters', 'ja-JP': '別の条件でお試しください' },
-  '点击右上角「新建」添加第一条数据': {
-    'en-US': 'Click "Add" in the top right to add the first record',
-    'ja-JP': '右上の「追加」から最初のデータを追加してください',
-  },
+  还没有记录: { 'en-US': 'No records yet', 'ja-JP': 'レコードはまだありません' },
   导出设置: { 'en-US': 'Export settings', 'ja-JP': 'エクスポート設定' },
   '已勾选 {{count}} 条，将优先导出勾选数据。': {
     'en-US': '{{count}} selected. Only the selected rows will be exported.',
@@ -1731,7 +1725,7 @@ ${columns.join('\n')}
         <SearchInput value={search} onChange={setSearch} onSubmit={runSearch} placeholder="搜索…" />${enumFields
           .map(
             (f) =>
-              `\n        <FilterSelect value={filterValues.${f}} onChange={(value) => setFilterValues((prev) => ({ ...prev, ${key(f)}: value }))} options={${optionsRef(f)}} placeholder="${labelOf(s, f)}" />`,
+              `\n        <FilterSelect value={filterValues.${f}} onChange={(value) => setFilterValues((prev) => ({ ...prev, ${key(f)}: value }))} options={${optionsRef(f)}} placeholder="${labelOf(s, f)}"${allLabelAttr(s, f)} />`,
           )
           .join('')}
       </FilterBar>
@@ -1769,12 +1763,15 @@ ${columns.join('\n')}
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         pagination={{ page, perPage, total, onChange: handlePageChange }}
-        emptyTitle="暂无数据"
-        emptyDescription={${
-          enumFields.length
-            ? `filters.search || ${enumFields.map((f) => `filters.${f}`).join(' || ')} ? '换个筛选条件试试'`
-            : `filters.search ? '换个关键词试试'`
-        } : '点击右上角「新建」添加第一条数据'}
+        emptyTitle="还没有记录"
+        emptyAction={
+          <Button size="sm" onClick={openCreate}>
+            <Plus />
+            {t('新建')}
+          </Button>
+        }
+        filtered={Boolean(filters.search${enumFields.map((f) => ` || filters.${f}`).join('')})}
+        onClearFilters={reset}
       />
 
       <FormDialog
@@ -1868,13 +1865,47 @@ function eventTexts(s: ScaffoldSpec): Record<string, Record<PageLang, string>> {
   )
 }
 
+/** Key of the "all" item of a filter over a Chinese label: the label with the Chinese "all" prefix */
+const allLabelKey = (label: string) => `全部${label}`
+const hasChinese = (text: string) => /[\u4e00-\u9fff]/.test(text)
+
+/** allLabel attribute for a field's FilterSelect: only when the label is Chinese (an English label keeps the default) */
+function allLabelAttr(s: ScaffoldSpec, field: string): string {
+  const label = labelOf(s, field)
+  return hasChinese(label) ? ` allLabel="${allLabelKey(label)}"` : ''
+}
+
+/** English plural of a lowercase noun phrase, good enough for filter names (status → statuses, category → categories) */
+function pluralize(phrase: string): string {
+  if (/(s|x|z|ch|sh)$/.test(phrase)) return `${phrase}es`
+  if (/[^aeiou]y$/.test(phrase)) return `${phrase.slice(0, -1)}ies`
+  return `${phrase}s`
+}
+
+/** Translations of each enum filter's "all" item */
+function allLabelTexts(s: ScaffoldSpec): Record<string, Record<PageLang, string>> {
+  // The same fields the list page puts in its FilterBar
+  const enumFields = s.fields.filter(([, t]) => frontendKind(t) === 'enum').map(([f]) => f)
+  const fallback = specFallbackTexts(s)
+  return Object.fromEntries(
+    enumFields
+      .map((f) => labelOf(s, f))
+      .filter(hasChinese)
+      .map((label) => {
+        const en = s.i18n['en-US']?.[label] ?? fallback[label] ?? label
+        const ja = s.i18n['ja-JP']?.[label] ?? fallback[label] ?? label
+        return [allLabelKey(label), { 'en-US': `All ${pluralize(en.charAt(0).toLowerCase() + en.slice(1))}`, 'ja-JP': `すべての${ja}` }]
+      }),
+  )
+}
+
 /**
  * Page locales: translations of the page's fixed Chinese strings that the shared catalogs (apps/web/src/locales) lack.
  * Both languages get the same keys (a string missing in either shared catalog goes into both page files).
  * Returns null when the shared catalogs already cover everything.
  */
 export function genFrontendLocales(s: ScaffoldSpec, shared: Catalogs = {}): Record<PageLang, Record<string, string>> | null {
-  const events = eventTexts(s)
+  const events = { ...eventTexts(s), ...allLabelTexts(s) }
   const texts = [...pageTexts(genFrontendPage(s)), ...Object.keys(events)]
   const missing = texts.filter((text) => PAGE_LANGS.some((lang) => !shared[lang]?.[text]))
   if (missing.length === 0) return null

@@ -13867,7 +13867,7 @@
             "description": "未授权"
           },
           "403": {
-            "description": "无权限新增定时任务"
+            "description": "无权限新建定时任务"
           },
           "500": {
             "description": "服务器错误"
