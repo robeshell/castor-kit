@@ -58,7 +58,7 @@ export function customerToDict(item: Customer) {
 
 ## 接口规范
 
-所有业务接口挂在 `/api/admin/` 下。资源名用连字符复数，例如 `customer_order` 对应 `/api/admin/customer-orders`。
+所有业务接口挂在 `/api/admin/` 下。资源名用连字符复数，例如 `customer_order` 对应 `/api/admin/customer-orders`。`component_center` 域的模块改用示例中心的前缀：`/api/admin/component-center/<resource>s`。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
@@ -83,10 +83,10 @@ export function customerToDict(item: Customer) {
 | 工具 | 来源 | 用途 |
 |---|---|---|
 | `intParam('item_id')` | `@/common/http` | 生成只匹配数字的路径参数 |
-| `parseIntParam(value)` | `@/common/http` | 解析路径参数 |
-| `routeBody(schema, 'create' \| 'patch' \| 'array')` + `field.*` | `@/common/validation` | 用 Zod 声明请求体：`.route` 放进路由选项（OpenAPI 检查据此对照文档里的请求体），权限检查之后 `.parse(request)` 校验（新建取默认值 / 编辑只含传入字段）；只收 JSON 原生类型，类型不对 → 400`<字段>的值无效` |
-| `queryString(request, key)` | `@/common/http` | 读取查询参数 |
-| `getUploadedFile(request)` | `@/common/http` | 读取上传文件 |
+| `parseIntParam(value)` | `@/common/http` | 解析路径参数；超出 PostgreSQL integer 范围的 id 按 404 处理 |
+| `routeBody(schema, 'create' \| 'patch' \| 'array')` + `field.*` | `@/common/validation` | 用 Zod 声明请求体：`.route` 放进路由选项（OpenAPI 检查据此对照文档里的请求体），权限检查之后 `.parse(request)` 校验（新建取默认值 / 编辑只含传入字段）；只收 JSON 原生类型，类型不对 → 400 `<字段名>的值无效`（`<字段名>` 是字段的中文名） |
+| `queryString(request, key, fallback = '')` | `@/common/http` | 以字符串读取查询参数（重复时取第一个） |
+| `getUploadedFile(request, field = 'file')` | `@/common/http` | 读取 multipart 字段里上传的文件，没有时返回 `null` |
 | `parsePagination(query)` | `@/common/pagination` | 分页参数，默认 20 条，上限 200 |
 
 ### 横切约定
@@ -95,7 +95,7 @@ export function customerToDict(item: Customer) {
 - **数值**：`numeric` 列保持字符串输出（如 `"12.50"`），`toDict()` 里不要转成数字。
 - **请求体校验**：在 `schema.ts` 用 `@/common/validation` 的 `field.*` 声明请求体，路由用 `routeBody(schema, mode)` 声明，在权限检查之后 `.parse(request)`；`pnpm openapi:generate -- --strict` 会拿同一份声明核对文档里的请求体。只收 JSON 原生类型（文本是字符串并去首尾空白，整数是 number，布尔是 true / false），多余字段忽略，类型不对返回 400。`pnpm scaffold` 生成的模块同样如此，导入行经 `rowToBody` 转成请求体形状后走同一份声明。
 - **操作日志**：由 logs 模块注册的全局 `onResponse` 钩子统一写入 `operation_logs`，不要在 service 里手写。
-- **CSRF**：`/api/*` 下的写请求需要带 `X-CSRF-Token` 头，前端的 `request.ts` 已自动处理，登录接口豁免。
+- **CSRF**：`/api/*` 下用会话 cookie 发起的写请求（`POST` / `PUT` / `PATCH` / `DELETE`）需要带 `X-CSRF-Token` 头，前端的 `request.ts` 已自动处理。登录接口豁免，用 API Token（`Authorization: Bearer …`）认证的请求也不做这项检查。
 
 ## 权限检查
 
@@ -107,6 +107,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam } from '@/common/http'
 import { routeBody } from '@/common/validation'
 import { customerBody } from './schema'
+import { CustomerService } from './service'
 
 export async function registerCustomerRoutes(app: FastifyInstance): Promise<void> {
   const service = new CustomerService(app.db)
@@ -168,10 +169,10 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 | 结构不对的请求值（service 抛 `invalidInput()`，见 `apps/api/src/common/errors.ts`） | 400，“请求参数格式不正确” |
 | 数据库因请求里的值拒绝写入 | 400，见下文 |
 | 未知异常 | 500，“服务器内部错误，请稍后重试” |
-| 未匹配的 `/api/*` GET 请求 | 404 JSON |
-| 未匹配的其他方法 | 405 `{ error: '请求方法不允许' }` |
+| `/api/*` 下未匹配的 `GET` / `HEAD` / `OPTIONS` 请求 | 404 `{ error: '资源不存在' }` |
+| 任意路径下未匹配的其他方法请求 | 405 `{ error: '请求方法不允许' }` |
 
-报错文案写中文即可，后端会按请求头 `Accept-Language` 翻译成英文或日文。新文案要登记译文，见 [多语言](/zh/guide/i18n#后端报错翻译)。
+报错文案写中文即可，后端会按请求头 `Accept-Language` 翻译成英文或日文（没有带受支持语言的请求，例如 API Token 客户端，返回英文）。新文案要登记译文，见 [多语言](/zh/guide/i18n#后端报错翻译)。
 
 ### 数据库约束错误映射
 
@@ -219,7 +220,7 @@ psql -d castor_kit -c '\d customers'
 - 不要手写迁移 SQL，否则会破坏 journal 链（`pnpm verify` 的 `migration_chain` 会检查）。
 - 迁移必须真实执行并用 `psql \d` 确认，`pnpm verify` 的 `migration_applied` 会对比 journal 与数据库记录。
 - scaffold 会自动生成新表的迁移。之后再改表结构，用 `pnpm db:generate --name <描述>` 生成增量迁移。
-- 在其他环境部署时执行 `pnpm db:migrate && pnpm seed:rbac -- --incremental`；Docker 部署时容器启动会自动完成，见 [部署指南](/zh/deploy/)。
+- 在其他环境部署时执行 `pnpm db:migrate && pnpm seed:rbac -- --incremental`（或 `pnpm setup-once`，它还会创建 AI SQL 只读账号）；Docker 部署时容器启动会自动完成，见 [部署指南](/zh/deploy/)。
 
 ## 导入导出
 
@@ -229,9 +230,9 @@ psql -d castor_kit -c '\d customers'
 
 | 函数 | 说明 |
 |---|---|
-| `buildTable(headers, rows, baseFilename, fileType)` | 构建表格文件载荷，csv 带 BOM |
+| `buildTable(headers, rows, baseFilename, fileType)` | 构建表格文件载荷（异步），csv 带 BOM，无法识别的 `fileType` 按 csv 处理 |
 | `sendTable(reply, table)` | 设置 `Content-Type`、`Content-Disposition` 并发送 |
-| `readTableFile(file)` | 读取上传文件，返回 `{ fieldnames, rows, fileType }`，5MB 上限，rows 带行号 |
+| `readTableFile(file)` | 读取上传文件，返回 `{ fieldnames, rows, fileType }`，5MB 上限，每一行是 `[行号, 值]`。文件不合法时抛 `TableFileError`，service 再转成 `ServiceError(err.message, 400)` 抛出 |
 | `normalizeTableFileType(raw, fallback)` | 标准化文件类型 |
 | `sanitizeFormula()` | 公式注入防护 |
 
@@ -246,7 +247,7 @@ psql -d castor_kit -c '\d customers'
 
 ### 导入事务
 
-整批导入在一个事务中完成。存在错误行时抛出 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })`，整批回滚。前端的导入弹窗会展示错误行并支持下载。
+整批导入在一个事务中完成。存在错误行时抛出 `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })`（`error_rows` 最多保留前 500 行），整批回滚。前端的导入弹窗会展示错误行并支持下载。
 
 ### 权限
 
@@ -255,12 +256,12 @@ psql -d castor_kit -c '\d customers'
 ## OpenAPI
 
 ```bash
-pnpm openapi:generate              # 为缺文档的路由 + 方法补骨架，并检查规范
+pnpm openapi:generate              # 为缺文档的路由 + 方法补骨架，检查规范，并重新生成前端接口类型
 pnpm openapi:generate -- --strict  # 逐个列出不合规的接口和原因，有则非 0 退出（加 --dry-run 不写回）
 pnpm openapi:apifox                # 推送到 Apifox
 ```
 
-`docs/apifox-full.openapi.json` 是接口的唯一说明书，外部调用方、Apifox 和 [AI 小助手](/zh/guide/assistant) 都只读它，所以每个已注册的 `/api` 接口都必须写完整：中文 summary、description（所需权限、数据权限、关键行为）、一个分组标签和 Apifox 目录、路径和查询参数、请求体字段（不读请求体的写 `"x-no-body": true`）、成功响应的结构和可能的错误码。完整规则见仓库里 `AGENTS.md` 的「OpenAPI 编写规范」，由 API 测试和 `pnpm verify` 强制检查，不合规就不通过。`pnpm scaffold` 生成模块时会把它的接口直接写成合规的条目；`openapi:generate` 只为缺文档的接口补骨架，骨架本身通不过检查，需要照着代码补全。推送到 Apifox 需要 `APIFOX_PROJECT_ID` 和 `APIFOX_ACCESS_TOKEN`，见 [配置项](/zh/reference/configuration)。
+`docs/apifox-full.openapi.json` 是接口的唯一说明书，外部调用方、Apifox 和 [AI 小助手](/zh/guide/assistant) 都只读它，所以每个已注册的 `/api` 接口都必须写完整：中文 summary、description（所需权限、数据权限、关键行为）、一个分组标签和 Apifox 目录、路径和查询参数、请求体字段（不读请求体的写 `"x-no-body": true`）、成功响应的结构和可能的错误码。完整规则见仓库里 `AGENTS.md` 的「OpenAPI writing rules」一节，由 API 测试和 `pnpm verify` 强制检查，不合规就不通过。`pnpm scaffold` 生成模块时会把它的接口直接写成合规的条目；`openapi:generate` 只为缺文档的接口补骨架，骨架本身通不过检查，需要照着代码补全。不加 `--dry-run` 时，它还会根据文档重新生成前端的接口类型（`apps/web/src/shared/api/openapi.d.ts`）。推送到 Apifox 需要 `APIFOX_PROJECT_ID` 和 `APIFOX_ACCESS_TOKEN`，见 [配置项](/zh/reference/configuration)。
 
 ## 测试
 

@@ -4,10 +4,10 @@ Castor is a starting point, not a library you install: your product is a reposit
 
 ## 1. Create the repository
 
-Start from a release tag and keep Castor as a second remote, so later releases can be merged:
+Start from a release tag (the latest is listed on the [releases page](https://github.com/robeshell/castorjs/releases); `v0.4.0` below) and keep Castor as a second remote, so later releases can be merged:
 
 ```bash
-git clone --branch v0.3.0 https://github.com/robeshell/castorjs.git my-app
+git clone --branch v0.4.0 https://github.com/robeshell/castorjs.git my-app
 cd my-app
 git switch -c main
 git remote rename origin upstream
@@ -31,7 +31,8 @@ Then follow [Quick start](/guide/getting-started) (local development) to install
 Leave these as they are, even though they contain "castor":
 
 - The internal package names `@castorjs/*`: scripts and `pnpm --filter` commands use them, and users never see them.
-- The session cookie name and the key-derivation labels (`castor-kit-session`, `castor-kit-secret-box`, …): changing them signs everyone out and makes stored secrets (SMTP / S3 / AI keys) unreadable.
+- The session cookie `castor_session`: renaming it signs everyone out.
+- The key-derivation labels (`castor-kit-session`, `castor-kit-secret-box`, …): changing them signs everyone out and makes stored secrets (SMTP / S3 / AI keys) unreadable.
 - The webhook headers `X-Castor-Event` / `X-Castor-Signature` / …: your receivers verify them.
 
 ## 3. Hide the component gallery
@@ -58,9 +59,11 @@ Describe a feature and let your AI agent run `/new-feature-autopilot`, or write 
 
 ## 6. Take a new Castor release
 
+Replace `<tag>` with the release you are taking, for example `v0.5.0`:
+
 ```bash
 git fetch upstream --tags
-git merge v0.4.0
+git merge <tag>
 ```
 
 Read the release's CHANGELOG first. Conflicts are usually in files both sides extend, such as `seed-rbac.ts` (keep both sides' menus), and they resolve the usual way.
@@ -73,7 +76,7 @@ git diff --name-only --diff-filter=A HEAD MERGE_HEAD -- 'apps/api/drizzle/*.sql'
 # 2. Put apps/api/drizzle back to your version (drops the release's migration files)
 git restore --source=HEAD --staged --worktree apps/api/drizzle
 # 3. One migration for the release's schema changes (its schema code is already merged)
-pnpm db:generate --name upstream_v0_4_0
+pnpm db:generate --name upstream_<tag>   # e.g. upstream_v0_5_0: letters, digits and underscores
 ```
 
 4. Open each migration from step 1 (`git show MERGE_HEAD:apps/api/drizzle/<file>.sql`) and copy every statement that isn't a table / column change (`INSERT`, `UPDATE`, `DELETE` …) to the end of the new migration, each after a `--> statement-breakpoint` line.

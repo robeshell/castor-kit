@@ -3,7 +3,7 @@
 推荐使用 Docker Compose 部署。一套 compose 包含两个服务：PostgreSQL（`db`）和 Node 应用（`app`）。应用进程同时提供后端接口和构建好的前端页面。
 
 ::: info 应用不做自动部署
-应用不做 CI 自动部署。`.github/workflows/ci.yml` 只在推送和 Pull Request 时运行 lint、类型检查、测试、门禁和前端构建。部署在服务器上手动完成，更新流程见下文。
+应用不做 CI 自动部署。`.github/workflows/ci.yml` 只在推送到 main 和 Pull Request 时运行 lint、类型检查、测试、门禁和前端构建。部署在服务器上手动完成，更新流程见下文。
 
 文档站是例外：`.github/workflows/docs.yml` 在 `website/` 有改动合入 main 时自动构建并发布到 GitHub Pages（需在仓库 Settings → Pages 中把 Source 设为 GitHub Actions），Pull Request 只构建、检查死链。
 :::
@@ -19,11 +19,11 @@
 
 容器启动时，`docker-entrypoint.sh` 依次执行：
 
-1. `node dist/setup-once.js`：在 PostgreSQL advisory lock 保护下执行数据库迁移、RBAC 增量同步、创建或更新 AI SQL 只读账号 `castor_kit_ro`。多个副本同时启动时也只会依次执行，结果幂等。
+1. `node dist/setup-once.js`：在 PostgreSQL advisory lock 保护下执行数据库迁移、RBAC 增量同步、创建或更新 AI SQL 只读账号 `castor_kit_ro`；[演示模式](/zh/reference/configuration#公开演示)下还会在到期时恢复演示数据。多个副本同时启动时也只会依次执行，结果幂等。
 2. `node dist/main.js`：启动服务。
 
 ::: warning 构建时使用的镜像源
-`Dockerfile` 中把 npm registry 设置为 `https://registry.npmmirror.com`。如果服务器访问该源较慢，可以在 `Dockerfile` 中修改。
+`Dockerfile` 从构建参数 `NPM_REGISTRY` 指定的源安装依赖，默认为 `https://registry.npmjs.org`；`docker-compose.yml` 传入的是国内镜像 `https://registry.npmmirror.com`，所以通过 compose 构建时默认使用该镜像。要换成其他源，在 `.env.production` 中设置 `NPM_REGISTRY`，例如 `NPM_REGISTRY=https://registry.npmjs.org`。
 :::
 
 ## 方式一：安装向导
@@ -37,7 +37,7 @@ bash scripts/setup.sh
 向导会询问管理员密码、访问端口（默认 5000）以及可选的 AI 配置，随机生成 `SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD`，写入 `.env.production`，然后构建并启动服务，等待 `/health` 就绪。
 
 ::: warning setup.sh 会修改 Docker 配置
-如果 Docker 的 `daemon.json`（macOS 为 `~/.docker/daemon.json`，Linux 为 `/etc/docker/daemon.json`）里没有 `registry-mirrors`，脚本会写入一个镜像加速地址并重启 Docker（Linux 上通过 `sudo systemctl restart docker`）。在已有其他容器运行的服务器上，建议使用方式二。
+如果 Docker 的 `daemon.json`（macOS 为 `~/.docker/daemon.json`，Linux 为 `/etc/docker/daemon.json`）里没有 `registry-mirrors`，脚本会写入镜像加速地址 `https://docker.xuanyuan.me` 并重启 Docker（macOS 上会退出并重新打开 Docker Desktop，Linux 上执行 `sudo systemctl restart docker`）。在已有其他容器运行的服务器上，建议使用方式二。
 :::
 
 ## 方式二：手动配置
@@ -57,6 +57,7 @@ POSTGRES_RO_PASSWORD=<AI SQL 只读账号密码>
 
 ```bash
 APP_PORT=5000          # 宿主机端口，不设置时为 8080
+NPM_REGISTRY=https://registry.npmjs.org   # 构建镜像时使用的 npm 源；compose 默认用 https://registry.npmmirror.com
 ```
 
 邮件、文件存储、上传限制、AI 模型不用写在这里：部署后登录，在「系统设置」页面里配置即可。想用环境变量锁定某一项时，见 [系统设置里的配置](/zh/reference/configuration#系统设置里的配置)。全部可用变量见 [配置项](/zh/reference/configuration#docker)。随机字符串可以用 `openssl rand -base64 48` 生成。
@@ -105,7 +106,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 
 1. 用 GitHub 账号注册 Render。如果仓库不在你的账号下，先 Fork 一份
 2. 在 Render 控制台选择 **New → Blueprint**，选中仓库，Render 会读取 `render.yaml`
-3. 按提示填入 `DATABASE_URL`（上一步复制的连接串），其余变量已在 `render.yaml` 中设置或自动生成
+3. 按提示填入 `DATABASE_URL`（上一步复制的连接串）。Render 还会询问 `AI_API_KEY` 和 `AI_MODEL`，可以先留空，需要 AI 时再设置（见下文第 4 步）。其余变量已在 `render.yaml` 中设置或自动生成
 4. 点 **Apply**。首次构建大约需要 5–10 分钟，状态变成 **Live** 后打开服务地址（`https://<服务名>.onrender.com`），登录页就能看到演示账号
 
 也可以直接点击 README 中的 **Deploy to Render** 按钮，效果相同。
@@ -114,7 +115,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 
 - `render.yaml` 没有关闭自动部署：推送到 main 后 Render 会自动重新构建，构建失败会发邮件通知。不需要时可以在服务的 **Settings → Build & Deploy** 里关闭 Auto-Deploy
 - 演示账号的密码是 `render.yaml` 里的 `ADMIN_PASSWORD`，只在首次初始化、账号还不存在时生效，要改请在第一次部署前修改
-- 手动立即恢复演示数据：在 Render 服务的 **Shell** 中执行 `node dist/demo-reset.js`，或在本地对同一个数据库执行 `pnpm demo:reset`
+- 手动立即恢复演示数据：在本地检出的仓库中带上 Neon 连接串执行 `pnpm demo:reset`，例如 `DEV_DATABASE_URL='<Neon 连接串>' pnpm demo:reset`（脚本使用当前 `NODE_ENV` 对应的数据库，开发环境下就是 `DEV_DATABASE_URL`）。付费的 Render 实例也可以在服务的 **Shell** 中执行 `node dist/demo-reset.js`；免费实例没有 Shell
 
 ### 4. 接入 AI（可选）
 
@@ -271,7 +272,7 @@ pnpm install --frozen-lockfile
 pnpm build
 
 # 2. 在仓库根目录或 apps/api/ 下创建 .env.production，至少包含：
-#    DATABASE_URL、SECRET_KEY、ADMIN_PASSWORD、AI_SQL_DATABASE_URL、POSTGRES_RO_PASSWORD
+#    DATABASE_URL、SECRET_KEY、ADMIN_PASSWORD、POSTGRES_RO_PASSWORD
 
 # 3. 初始化数据库（迁移 + RBAC 增量同步 + 只读账号）
 NODE_ENV=production node apps/api/dist/setup-once.js
@@ -281,7 +282,7 @@ NODE_ENV=production node apps/api/dist/main.js
 ```
 
 - `NODE_ENV` 必须在命令行（或进程管理工具）中设置，后端据此决定加载 `.env.production`。
-- `AI_SQL_DATABASE_URL` 应指向只读账号，例如 `postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<库名>`。只读账号由第 3 步按 `POSTGRES_RO_PASSWORD` 创建。
+- 第 3 步会用 `POSTGRES_RO_PASSWORD` 创建只读账号 `castor_kit_ro`，所以 `DATABASE_URL` 中的账号需要有创建角色的权限。未设置 `AI_SQL_DATABASE_URL` 时，AI 数据查询使用把 `DATABASE_URL` 换成该账号后的连接；只有想用其他连接时才需要设置 `AI_SQL_DATABASE_URL`，并让它指向只读账号，例如 `postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<库名>`。
 - 前端构建产物在 `apps/web/dist/`，后端默认从这里提供页面。
 - 建议用 systemd、pm2 等进程管理工具托管 `main.js`；独立调度进程为 `apps/api/dist/worker.js`。
 - 更新时：`git pull` → `pnpm install --frozen-lockfile` → `pnpm build` → 再次执行第 3 步 → 重启服务。

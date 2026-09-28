@@ -4,10 +4,10 @@ Castor 是起点，不是装进项目里的依赖库：你的产品是一个仓�
 
 ## 1. 创建仓库
 
-从某个版本的 tag 开始，并把 Castor 保留为第二个远端，之后的新版本就可以直接合并：
+从某个版本的 tag 开始（最新版本见 [Releases 页面](https://github.com/robeshell/castorjs/releases)，下面用 `v0.4.0`），并把 Castor 保留为第二个远端，之后的新版本就可以直接合并：
 
 ```bash
-git clone --branch v0.3.0 https://github.com/robeshell/castorjs.git my-app
+git clone --branch v0.4.0 https://github.com/robeshell/castorjs.git my-app
 cd my-app
 git switch -c main
 git remote rename origin upstream
@@ -31,12 +31,13 @@ git push -u origin main
 下面这些虽然带着 castor，但请保持不变：
 
 - 内部包名 `@castorjs/*`：脚本和 `pnpm --filter` 命令都用到它，用户也看不到。
-- 会话 Cookie 名和密钥派生标签（`castor-kit-session`、`castor-kit-secret-box` 等）：改了会让所有人掉线，已保存的密钥（SMTP / S3 / AI）也无法再解密。
+- 会话 Cookie 名 `castor_session`：改了会让所有人掉线。
+- 密钥派生标签（`castor-kit-session`、`castor-kit-secret-box` 等）：改了会让所有人掉线，已保存的密钥（SMTP / S3 / AI）也无法再解密。
 - Webhook 请求头 `X-Castor-Event` / `X-Castor-Signature` 等：接收方要靠它们做校验。
 
 ## 3. 隐藏组件示例中心
 
-组件示例中心（36 个示例页面）是 AI 助手照着写的参考，AGENTS.md 的「Page patterns (which page to copy)」就指向它。建议保留代码、只对用户隐藏：在 `apps/api/scripts/seed-rbac.ts` 里把根菜单设为停用：
+组件示例中心（36 个示例页面）是 AI 编程工具照着写的参考，AGENTS.md 的「Page patterns (which page to copy)」就指向它。建议保留代码、只对用户隐藏：在 `apps/api/scripts/seed-rbac.ts` 里把根菜单设为停用：
 
 ```ts
 { id: 3, name: "组件示例中心", code: "component_center", …, is_visible: true, is_active: false },
@@ -54,13 +55,15 @@ git push -u origin main
 
 ## 5. 开发功能
 
-描述一个功能，让 AI 助手运行 `/new-feature-autopilot`；或者自己写 spec，运行 `pnpm scaffold -- --spec`：见 [AI 工作流](/zh/guide/ai-workflow)。不是普通列表的页面，照着组件示例中心里对应的页面模板来写（见[组件示例中心](/zh/guide/components#from-a-pattern)）。
+描述一个功能，让 AI 编程工具运行 `/new-feature-autopilot`；或者自己写 spec，运行 `pnpm scaffold -- --spec`：见 [AI 工作流](/zh/guide/ai-workflow)。不是普通列表的页面，照着组件示例中心里对应的页面模板来写（见[组件示例中心](/zh/guide/components#from-a-pattern)）。
 
 ## 6. 合并 Castor 的新版本
 
+把 `<tag>` 换成要合并的版本，例如 `v0.5.0`：
+
 ```bash
 git fetch upstream --tags
-git merge v0.4.0
+git merge <tag>
 ```
 
 先读一遍该版本的 CHANGELOG。冲突通常出现在双方都会扩展的文件里，比如 `seed-rbac.ts`（两边的菜单都保留），按常规方式解决即可。
@@ -73,7 +76,7 @@ git diff --name-only --diff-filter=A HEAD MERGE_HEAD -- 'apps/api/drizzle/*.sql'
 # 2. 把 apps/api/drizzle 恢复成你的版本（新版本的迁移文件会被去掉）
 git restore --source=HEAD --staged --worktree apps/api/drizzle
 # 3. 为新版本的表结构改动生成一个迁移（它的 schema 代码已经合并进来）
-pnpm db:generate --name upstream_v0_4_0
+pnpm db:generate --name upstream_<tag>   # 例如 upstream_v0_5_0：只能用字母、数字和下划线
 ```
 
 4. 逐个打开第 1 步列出的迁移（`git show MERGE_HEAD:apps/api/drizzle/<file>.sql`），把其中不是表 / 列改动的语句（`INSERT`、`UPDATE`、`DELETE` 等）复制到新迁移的末尾，每条前面加一行 `--> statement-breakpoint`。

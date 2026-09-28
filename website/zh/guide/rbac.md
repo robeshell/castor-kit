@@ -54,7 +54,7 @@ Castor 使用基于角色的权限控制：用户拥有角色，角色被授予�
 
 `code = 'super_admin'` 的角色拥有全部权限：
 
-- 后端的 `hasMenuPermission` 对它直接放行。
+- 后端的 `hasMenuPermission` 对它直接放行。唯一的例外是用 API Token 发起的请求：先检查 Token 自己勾选的权限，所以超级管理员创建的 Token 也只有勾选的那些权限（见 [开放接口](/zh/guide/open-api#使用)）。
 - `seed-rbac` 每次运行都会把全部菜单授予它。
 
 例外：`GET /api/admin/my-menus` 不做超级管理员短路，而是按角色实际被授予的菜单返回。因为 `seed-rbac` 会把全部菜单授予超级管理员，正常情况下两者一致。
@@ -68,7 +68,7 @@ Castor 使用基于角色的权限控制：用户拥有角色，角色被授予�
 - 不能移除自己的超级管理员角色，也不能停用或删除自己
 - 最后一个启用中的超级管理员不能被停用、删除或移除角色；导入用户时同样检查
 
-真遇到超级管理员角色或 `admin` 账号出问题，运行 `pnpm seed:rbac -- --incremental`（Docker 部署时重启容器即可）：它会重建 `super_admin` 角色、重新授予全部菜单，并把 `admin` 账号重新挂到超级管理员角色上。它不会恢复其他账号的角色，也不会重置密码或启用状态；需要把 `admin` 的密码重置为 `ADMIN_PASSWORD` 时加上 `--reset-admin-password`。
+真遇到超级管理员角色或 `admin` 账号出问题，运行 `pnpm seed:rbac -- --incremental`（Docker 部署时重启容器即可）：它会重建 `super_admin` 角色、重新授予全部菜单，并把 `admin` 账号重新挂到超级管理员角色上。它不会恢复其他账号的角色和启用状态，也不动密码；需要把 `admin` 的密码重置为 `ADMIN_PASSWORD` 时加上 `--reset-admin-password`（如果库里 `admin` 的密码哈希是无法校验的格式，也会自动重置）。
 
 ## 菜单的唯一事实源：seed-rbac.ts
 
@@ -101,11 +101,11 @@ pnpm seed:rbac -- --incremental
 
 `--incremental` 的行为：
 
-- 按 `code` 匹配：已存在的菜单只更新字段（ID 不变），不存在的按指定 ID 插入
+- 按 `code` 匹配：已存在的菜单只更新字段（ID 不变），不存在的按指定 ID 插入；该 ID 已被其他菜单占用时改用序列的下一个值
 - 只新增和更新，**不删除**任何已有记录
 - 把全部菜单授予超级管理员
 - 插入后同步 `menus` 表的 ID 序列，避免后续新增撞主键
-- `admin` 账号不存在时才创建
+- `admin` 账号不存在时才创建，并确保它拥有 `super_admin` 角色
 
 删除菜单需要手动执行 SQL，例如 `DELETE FROM menus WHERE id = <id>`。
 

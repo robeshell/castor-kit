@@ -16,7 +16,7 @@ Reference implementations:
 There is no hand-written route table. `apps/web/src/App.tsx` builds the routes from the current user's menus, and `lib/page-modules.ts` finds each menu's page with `import.meta.glob` over `modules/**/pages/**/index.tsx`:
 
 - A menu's `path` field is the browser URL, e.g. `/system/users`
-- A menu's `component` field decides which page to load, in the form `<module>/<subdir>/<page>`
+- A menu's `component` field decides which page to load: `<module>/<page path under pages/>`, e.g. `admin/users` (system pages sit directly under `pages/`) or `<module>/<subdir>/<page>` (gallery pages sit in a group directory)
 
 | `component` value | File |
 |---|---|
@@ -27,7 +27,7 @@ There is no hand-written route table. `apps/web/src/App.tsx` builds the routes f
 Only menus that are active, visible and of type `menu` produce routes. Page components are lazy-loaded. If a menu exists but its file can't be found, the page area shows a "Page not configured" notice.
 
 ::: warning Page location
-Pages must live at `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx`, otherwise dynamic routing won't find them. The matching API file goes in `apps/web/src/modules/<module>/api/<page>.ts`.
+Pages must live at `apps/web/src/modules/<module>/pages/<page>/index.tsx` (optionally with group directories in between, e.g. `pages/<subdir>/<page>/index.tsx`), otherwise dynamic routing won't find them. The matching API file goes in `apps/web/src/modules/<module>/api/<page>.ts`.
 :::
 
 After adding a page, you also need to add its menu in `seed-rbac.ts`; see [Permissions (RBAC)](/guide/rbac).
@@ -52,26 +52,31 @@ PageHeader     Title + actions on the right (outline for import / export, varian
 
 A simplified skeleton:
 
-```jsx
+```tsx
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from '@/lib/toast'
-import DataTable from '@/shared/components/DataTable'
+import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
 import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import { useCrudList } from '@/shared/hooks/useCrudList'
-import { getItems } from '@/modules/admin/api/customer'
+import { getItems, type Customer as Row } from '@/modules/admin/api/customer'
+
+interface FormValues {
+  name: string
+}
 
 export default function Customers() {
   const list = useCrudList((params) =>
-    getItems(params).catch((err) => {
+    getItems(params).catch((err: unknown) => {
       toast.apiError(err, '加载失败')
       return { items: [], total: 0 }
     }),
   )
-  const form = useForm({ defaultValues: { name: '' } })
+  const form = useForm<FormValues>({ defaultValues: { name: '' } })
+  const columns: DataTableColumn<Row>[] = [/* ... */]
 
   useEffect(() => {
     list.fetchData()
@@ -82,43 +87,57 @@ export default function Customers() {
 }
 ```
 
-For the complete version, `apps/web/src/modules/admin/pages/users/index.tsx` is the source of truth.
+For the complete version, `apps/web/src/modules/admin/pages/users/index.tsx` is the source of truth; `docs/templates/frontend/list_page/` is the template that `pnpm scaffold` fills in. The row type comes from the API file, the form has its own `FormValues` interface, and pages use no `any` or type casts.
 
 ## API calls
 
 Send every request through the shared Axios instance `@/shared/api/request`; don't use `fetch` or `XMLHttpRequest` directly.
 
-```js
+```ts
 import request from '@/shared/api/request'
+import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types'
+
+/** A record as the API returns it */
+export type Customer = ApiItem<'/api/admin/customers'>
 
 const BASE = '/admin/customers'
 
-export const getItems = (params) => request.get(BASE, { params })
-export const createItem = (data) => request.post(BASE, data)
-export const updateItem = (id, data) => request.put(`${BASE}/${id}`, data)
-export const deleteItem = (id) => request.delete(`${BASE}/${id}`)
+// The second type argument of request.get<unknown, T> is the (already unwrapped) response body
+export const getItems = (params?: ApiQuery<'/api/admin/customers'>) =>
+  request.get<unknown, ApiResponse<'/api/admin/customers'>>(BASE, { params })
+export const createItem = (data: ApiBody<'/api/admin/customers', 'post'>) =>
+  request.post<unknown, ApiResponse<'/api/admin/customers', 'post'>>(BASE, data)
+export const updateItem = (id: number, data: ApiBody<'/api/admin/customers/{item_id}', 'put'>) =>
+  request.put<unknown, ApiResponse<'/api/admin/customers/{item_id}', 'put'>>(`${BASE}/${id}`, data)
+export const deleteItem = (id: number) =>
+  request.delete<unknown, ApiResponse<'/api/admin/customers/{item_id}', 'delete'>>(`${BASE}/${id}`)
 
 // Export (blob)
-export const exportItems = (data) => request.post(`${BASE}/export`, data, { responseType: 'blob' })
+export const exportItems = (data: ApiBody<'/api/admin/customers/export', 'post'>) =>
+  request.post<unknown, Blob>(`${BASE}/export`, data, { responseType: 'blob' })
 // Download the import template
-export const downloadTemplate = (fileType = 'xlsx') =>
-  request.get(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
+export const downloadTemplate = (fileType: 'csv' | 'xlsx' = 'xlsx') =>
+  request.get<unknown, Blob>(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
 // Import (multipart/form-data)
-export const importItems = (file) => {
+export const importItems = (file: Blob) => {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post(`${BASE}/import`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return request.post<unknown, ApiResponse<'/api/admin/customers/import', 'post'>>(`${BASE}/import`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }
 ```
 
+The types come from the OpenAPI document (`pnpm openapi:generate` writes `apps/web/src/shared/api/openapi.d.ts`; paths keep the `/api` prefix and `{param}` placeholders). If an endpoint isn't documented yet, `ApiItem` / `ApiBody` resolve to `never`. `pnpm scaffold` writes both the document entries and this file for you; the template is `docs/templates/frontend/list_page/api.ts`.
+
 `request.ts` already takes care of:
 
-- `baseURL` is `/api`, so paths start with `/admin/...`
+- `baseURL` is `/api`, so paths start with `/admin/...`; requests time out after 10 seconds
 - Responses are unwrapped: use `res.items` and `res.total` directly; **don't** write `res.data.items`
 - Write requests (POST / PUT / PATCH / DELETE) send the `X-CSRF-Token` header automatically
-- The `Accept-Language` header is sent automatically, and the backend uses it to translate errors
-- A 401 response redirects to the login page
-- On failure it rejects with the `{ error, ... }` object returned by the backend, which you can pass straight to `toast.apiError`
+- The `Accept-Language` header is sent automatically, and the backend uses it to translate errors; the `X-Time-Zone` header carries the browser's time zone, which exports and the dashboard use
+- A 401 response redirects to the login page (except on the sign-in and password-reset pages themselves)
+- On failure it rejects with the `{ error, ... }` object returned by the backend, which you can pass straight to `toast.apiError`. Network errors, timeouts and 5xx responses without such a body are turned into an `{ error }` with a readable message as well
 
 The path alias `@` points to `apps/web/src`.
 
@@ -136,15 +155,17 @@ Components come in two layers: shadcn/ui primitives in `@/components/ui/*` (sour
 | `ConfirmAction` / `RowActions` | Confirmation for destructive actions / row actions |
 | `StatusBadge` | Status badge; `tone` can be neutral / brand / info / success / warning / danger |
 | `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | Empty state / segmented tabs / tree / stat card |
-| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | Date values are formatted as `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
+| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | `DatePicker` values are `'YYYY-MM-DD'`; `DateTimePicker` takes an API time (ISO 8601) and returns ISO 8601 with the browser's offset, which the API stores as UTC |
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | Import / export dialogs |
 | `TreeSelect` / `CheckableTree` | Searchable single-pick tree / multi-select tree with cascading checks |
-| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | File (drag and drop, progress) / image / avatar upload; pair with `uploadFile` from `@/shared/api/files` to store in the file center |
+| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` / `upload/FileIdUpload` | File (drag and drop, progress) / image / avatar upload; pair with `uploadFile` from `@/shared/api/files` to store in the file center. `FileIdUpload` holds file-center ids directly |
 | `ConditionBuilder` | Conditions (field / operator / value) combined with AND / OR, plus one level of condition groups; controlled, and its value `ConditionTree` is plain JSON to save or send to an API |
+| `Chart` | ECharts wrapper bound to the on-demand build in `@/lib/echarts`; takes a typed `option` and a required `summary` (text alternative for screen readers) |
+| `UserAvatar` / `markdown/MarkdownView` | Avatar with a letter fallback / Markdown renderer |
 
 Form field example:
 
-```jsx
+```tsx
 <FormInput control={form.control} name="name" label="客户名称" rules={{ required: '请输入客户名称' }} />
 ```
 
@@ -156,7 +177,8 @@ Utility libraries:
 | `@/lib/toast` | `toast.success / error / warning / info`, `toast.apiError(err, fallback)` |
 | `@/lib/format` | `formatDate / formatDateTime / formatNumber / formatRelative` |
 | `@/lib/motion` | Motion presets such as `fadeUp / stagger / pageTransition / layoutSpring` |
-| `@/lib/chart-theme` | `useChartColors()`; ECharts must use it to get theme colors |
+| `@/lib/chart-theme` | `useChartColors()` plus `chartBase` / `brandLine` / `brandArea`; charts must take their colors from here |
+| `@/lib/echarts` | The on-demand ECharts build; register new chart types and components here |
 | `@/lib/menu-icons` | Maps menu icon names to lucide icons |
 
 ::: tip Component usage and adding primitives
@@ -208,10 +230,11 @@ Always use Tailwind semantic color classes for color. They adapt automatically t
 | Emoji as icons | Use `lucide-react` |
 | A separate table, dialog or confirm box written for every page | Reuse `DataTable` / `FormDialog` / `ConfirmAction` and friends |
 | Sending requests with `fetch` | Use `@/shared/api/request` |
+| Importing `echarts` / `echarts-for-react` directly | Use `@/shared/components/Chart`; register chart types in `@/lib/echarts` |
 
 ## Menu icons
 
-The `menus.icon` field stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.ts` resolves to a lucide icon component. When adding a menu, reuse a name that already exists in the map; if you need a new icon, add an entry to the map.
+The `menus.icon` field stores a lucide icon name (e.g. `Users`, `Settings`), which `apps/web/src/lib/menu-icons.ts` resolves to a lucide icon component. When adding a menu, reuse a name that already exists in the `MENU_ICONS` map; if you need a new icon, import it in that file and add it to the map. Names not in the map fall back to the `List` icon.
 
 ## i18n and side effects
 

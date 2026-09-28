@@ -12,7 +12,7 @@ Castor 的配置分两类：
 1. `apps/api/.env.<NODE_ENV>`
 2. 仓库根目录的 `.env.<NODE_ENV>`
 
-先加载的优先；已经存在的环境变量（例如 shell 或 compose 注入的）不会被文件覆盖。
+两个文件设置了同一个变量时，以 `apps/api/` 下的为准；已经存在的环境变量（例如 shell 或 compose 注入的）不会被文件覆盖。
 
 | 文件 | 用途 | 是否提交 |
 |---|---|---|
@@ -44,7 +44,7 @@ Castor 的配置分两类：
 | 变量 | 作用 | 默认值 |
 |---|---|---|
 | `SECRET_KEY` | 会话加密密钥，cookie 密钥由它通过 HKDF 派生 | 开发 / 测试有内置不安全默认值；**生产必填** |
-| `ADMIN_PASSWORD` | `admin` 账号的初始密码，仅在账号不存在时使用 | 开发 / 测试为 `admin123`；**生产必填** |
+| `ADMIN_PASSWORD` | `admin` 账号的初始密码，仅在账号不存在时使用（`pnpm seed:rbac -- --incremental --reset-admin-password` 可把它应用到已有账号） | 开发 / 测试为 `admin123`；**生产必填** |
 | `SESSION_TTL_HOURS` | 会话有效期（小时）的初始值；之后可以在「系统设置」里修改 | `8` |
 | `COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |
@@ -66,7 +66,7 @@ Castor 的配置分两类：
 | `STORAGE_LOCAL_DIR` | 「本机磁盘」存储的目录 | `<DATA_DIR>/uploads/files` |
 | `MAIL_DRIVER` | 留空时按系统设置里的 SMTP 发送；`log` 表示不发送，把邮件打印到后端日志（本地开发用）；`none` 表示永远不发送 | 空 |
 
-「本机磁盘」存储需要持久化磁盘：Docker Compose 已把 `DATA_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请在系统设置里改用 S3 兼容存储（例如 Cloudflare R2）。没有被任何记录引用的文件会在上传 24 小时后由调度器进程清理，所以 `ENABLE_TASK_SCHEDULER=false` 时也不会清理。
+「本机磁盘」存储需要持久化磁盘：Docker Compose 已把 `DATA_DIR` 挂载为数据卷；Render 这类重新部署就清空磁盘的平台请在系统设置里改用 S3 兼容存储（例如 Cloudflare R2）；页面只读时（演示模式）用 `STORAGE_DRIVER` / `S3_*` 环境变量设置。没有被任何记录引用的文件会在上传 24 小时后由定时任务调度器清理，所以没有调度器运行时（`ENABLE_TASK_SCHEDULER=false`，或 `RUN_SCHEDULER_IN_WEB=false` 且没有单独的 worker 进程）不会清理。
 
 ### 公开演示
 
@@ -74,7 +74,7 @@ Castor 的配置分两类：
 |---|---|---|
 | `DEMO_MODE` | 公开演示模式：登录页显示演示账号并可一键登录；除登录、组件示例、上传文件、通知已读外的写操作都返回 403（系统管理只读、不能改密码）；登录锁定只按 IP 计数；示例数据按周期自动恢复 | `false` |
 | `DEMO_RESET_HOURS` | 演示数据恢复周期（小时）。服务启动时和运行中每小时检查一次，距上次恢复超过该时长就恢复；也可手动执行 `pnpm demo:reset` | `24` |
-| `DEMO_AI_HOURLY_PER_IP` | 演示模式下每个 IP 每小时可调用 AI 的次数（AI 对话、AI 生成 SQL），超出返回 429；未登录的请求不计数 | `20` |
+| `DEMO_AI_HOURLY_PER_IP` | 演示模式下每个 IP 每小时可调用 AI 的次数（AI 对话、AI 生成 SQL、AI 小助手），超出返回 429；未登录的请求不计数 | `20` |
 | `DEMO_AI_DAILY` | 演示模式下全站每天可调用 AI 的总次数，用完后当天返回 429 | `300` |
 | `DEMO_AI_MAX_INPUT_CHARS` | 演示模式下单次 AI 请求的最大长度（字符；AI 对话只计消息文字），超出返回 400。演示模式还会限制模型回复长度 | `4000` |
 
@@ -100,7 +100,6 @@ AI 模型（接口地址、API Key、模型名）在系统设置里配置，见�
 | `AI_SQL_DATABASE_URL` | AI 数据查询使用的只读连接，应指向非超级用户的只读账号 | 开发 / 测试回退到主库连接（仍强制只读）；生产环境未设置时，若设置了 `POSTGRES_RO_PASSWORD`，则由 `DATABASE_URL` 推导（换成 `castor_kit_ro` 账号），否则拒绝启动 |
 | `AI_SQL_STATEMENT_TIMEOUT_MS` | AI 数据查询的单条语句超时（毫秒） | `5000` |
 | `POSTGRES_RO_PASSWORD` | 只读账号 `castor_kit_ro` 的密码，`setup-once` / `init-ro-role` 用它创建账号；未设置时跳过 | 空 |
-
 
 ### Apifox（仅 `pnpm openapi:apifox` 使用）
 

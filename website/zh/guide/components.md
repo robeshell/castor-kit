@@ -77,11 +77,11 @@
 | Markdown | `/component-center/components/markdown` | `MarkdownView` |
 | 条件构建器 | `/component-center/components/condition-builder` | `ConditionBuilder`：由字段 / 运算符 / 值组成的条件，用 AND / OR 组合，还可以加条件组；它的值是普通 JSON，可直接保存或传给接口（示例：过滤表格数据、在表单中保存查询、单层与只读） |
 
-每个页面位于 `components/<分组>_page/`：每个示例是 `examples/` 下的一个独立文件，页面把它导入两次，一次作为组件用于实时预览，一次用 Vite 的 `?raw` 取得下方显示的源码，所以预览和代码不会对不上；属性表格在页面的 `props.ts` 中。布局组件（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）在 `apps/web/src/modules/component_center/showcase/`。要新增页面或示例，按 [AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) 的 “Component showcase pages” 一节来做；示例文件没有按两种方式导入时，会有测试报错。
+每个页面位于 `components/<名称>_page/`（如 `components/data_table_page/`）：每个示例是 `examples/` 下的一个独立文件，页面把它导入两次，一次作为组件用于实时预览，一次用 Vite 的 `?raw` 取得下方显示的源码，所以预览和代码不会对不上；属性表格在页面的 `props.ts` 中。布局组件（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）在 `apps/web/src/modules/component_center/showcase/`。要新增页面或示例，按 [AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) 的 “Component showcase pages” 一节来做；示例文件没有按两种方式导入时，会有测试报错。
 
 ## 数据可视化
 
-分组目录 `dataviz/`，基于 ECharts，图表颜色通过 `useChartColors()` 跟随主题与强调色。
+分组目录 `dataviz/`，通过 `@/shared/components/Chart` 使用 ECharts；颜色取自 `useChartColors()`，因此跟随浅色 / 深色模式，品牌色系列还会跟随强调色（见 [主题与布局](/zh/guide/appearance#token-如何派生)）。
 
 | 页面 | 路由 | 说明 |
 |---|---|---|
@@ -101,7 +101,7 @@
 | AI 数据查询 | `/component-center/ai/sql` | 用自然语言生成 SQL，在只读连接上执行并展示结果与图表 |
 
 ::: tip AI 数据查询的安全边界
-查询在独立的只读连接上执行，结果行数有上限，并过滤权限、日志等敏感表。生产环境必须配置指向只读账号的 `AI_SQL_DATABASE_URL`，见 [部署指南](/zh/deploy/)。
+查询在独立的只读连接上执行，结果行数有上限，并过滤权限、日志等敏感表。生产环境没有只读连接时 API 会拒绝启动：要么把 `AI_SQL_DATABASE_URL` 指向只读账号，要么设置 `POSTGRES_RO_PASSWORD` 由它自动推导（项目自带的 `docker-compose.yml` 已替你配好），见 [配置项](/zh/reference/configuration#ai-数据查询)。
 :::
 
 ## 编辑器 / 低代码
@@ -132,7 +132,7 @@ WebSocket 和性能监控页面依赖 `/ws/devtools`。部署在反向代理后�
 
 ## 系统管理
 
-除组件示例外，“系统管理”下是脚手架自带的业务功能，按“组织权限”（用户、角色、部门）、“安全审计”（在线用户、日志）、“系统配置”（系统设置、菜单、字典、定时任务）、“内容消息”（文件、通知、公告）四组排列：
+除组件示例外，“系统管理”下是脚手架自带的业务功能，按“组织权限”（用户、角色、部门）、“安全审计”（在线用户、日志、API Token）、“系统配置”（系统设置、菜单、字典、定时任务、Webhook）、“内容消息”（文件、通知、公告）四组排列：
 
 | 页面 | 路由 | 说明 |
 |---|---|---|
@@ -146,6 +146,8 @@ WebSocket 和性能监控页面依赖 `/ws/devtools`。部署在反向代理后�
 | 日志管理 | `/system/logs` | 操作日志与登录日志 |
 | 数据字典 | `/system/dicts` | 维护字典数据，并为下拉选项提供数据源 |
 | 定时任务 | `/system/scheduled-tasks` | 按 cron 定时调用 HTTP 地址，查看执行记录 |
+| API Token | `/system/api-tokens` | 数据范围内所有人的 API Token：搜索、按状态筛选、吊销（见 [开放接口](/zh/guide/open-api#api-token)） |
+| Webhook | `/system/webhooks` | 接收签名事件通知的地址：测试发送、投递记录、重新投递（见 [开放接口](/zh/guide/open-api#webhook)） |
 | 消息通知 | `/system/notifications` | 站内通知 |
 | 公告管理 | `/system/announcements` | 公告发布与管理 |
 

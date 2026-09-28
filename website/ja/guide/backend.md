@@ -58,7 +58,7 @@ export function customerToDict(item: Customer) {
 
 ## API 規約
 
-業務 API はすべて `/api/admin/` の下に置きます。リソース名はハイフン区切りの複数形にします。たとえば `customer_order` は `/api/admin/customer-orders` に対応します。
+業務 API はすべて `/api/admin/` の下に置きます。リソース名はハイフン区切りの複数形にします。たとえば `customer_order` は `/api/admin/customer-orders` に対応します。`component_center` ドメインのモジュールは、コンポーネントギャラリーのプレフィックス `/api/admin/component-center/<resource>s` を使います。
 
 | メソッド | パス | 説明 |
 |---|---|---|
@@ -83,10 +83,10 @@ export function customerToDict(item: Customer) {
 | ユーティリティ | インポート元 | 用途 |
 |---|---|---|
 | `intParam('item_id')` | `@/common/http` | 数字だけにマッチするパスパラメーターを生成 |
-| `parseIntParam(value)` | `@/common/http` | パスパラメーターを解析 |
-| `routeBody(schema, 'create' \| 'patch' \| 'array')` + `field.*` | `@/common/validation` | Zod の宣言でリクエストボディを宣言。`.route` をルートのオプションに入れ（OpenAPI チェックがドキュメントのボディと照合）、権限チェックの後に `.parse(request)` で検証（新規はデフォルト値を補完、編集は送られた項目のみ）。JSON の型のみ受け付け、型が違えば 400`<項目>的值无效` |
-| `queryString(request, key)` | `@/common/http` | クエリパラメーターを読み取る |
-| `getUploadedFile(request)` | `@/common/http` | アップロードされたファイルを読み取る |
+| `parseIntParam(value)` | `@/common/http` | パスパラメーターを解析。PostgreSQL の integer の範囲外の id は 404 |
+| `routeBody(schema, 'create' \| 'patch' \| 'array')` + `field.*` | `@/common/validation` | Zod の宣言でリクエストボディを宣言。`.route` をルートのオプションに入れ（OpenAPI チェックがドキュメントのボディと照合）、権限チェックの後に `.parse(request)` で検証（新規はデフォルト値を補完、編集は送られた項目のみ）。JSON の型のみ受け付け、型が違えば 400 `<項目名>的值无效`（`<項目名>` は項目の中国語の表示名） |
+| `queryString(request, key, fallback = '')` | `@/common/http` | クエリパラメーターを文字列として読み取る（複数ある場合は最初の値） |
+| `getUploadedFile(request, field = 'file')` | `@/common/http` | multipart のフィールドでアップロードされたファイルを読み取る。ない場合は `null` |
 | `parsePagination(query)` | `@/common/pagination` | ページングパラメーター。デフォルトは 20 件、上限は 200 件 |
 
 ### 横断的な規約
@@ -95,7 +95,7 @@ export function customerToDict(item: Customer) {
 - **数値**：`numeric` 列は文字列のまま出力します（例：`"12.50"`）。`toDict()` の中で数値に変換しないでください。
 - **リクエストボディの検証**：`schema.ts` で `@/common/validation` の `field.*` を使ってボディを宣言し、ルートは `routeBody(schema, mode)` で宣言し、権限チェックの後に `.parse(request)` を呼びます。`pnpm openapi:generate -- --strict` はドキュメントのリクエストボディを同じ宣言と照合します。JSON の型のみ受け付け（テキストは前後の空白を除いた文字列、整数は number、真偽値は true / false）、余分なフィールドは無視し、型が違えば 400 を返します。`pnpm scaffold` で生成したモジュールも同じ書き方で、インポート行は `rowToBody` でボディの形に変換され、同じ宣言で検証されます。
 - **操作ログ**：logs モジュールが登録するグローバルな `onResponse` フックが `operation_logs` にまとめて書き込むので、service の中で手書きしないでください。
-- **CSRF**：`/api/*` 配下の書き込みリクエストには `X-CSRF-Token` ヘッダーが必要です。フロントエンドの `request.ts` が自動で処理し、ログイン API は対象外です。
+- **CSRF**：`/api/*` 配下でセッション Cookie を使う書き込みリクエスト（`POST` / `PUT` / `PATCH` / `DELETE`）には `X-CSRF-Token` ヘッダーが必要です。フロントエンドの `request.ts` が自動で処理します。ログイン API は対象外で、API トークン（`Authorization: Bearer …`）で認証されたリクエストもこのチェックを受けません。
 
 ## 権限チェック
 
@@ -107,6 +107,7 @@ import { hasMenuPermission, loginRequired } from '@/common/auth'
 import { intParam, parseIntParam } from '@/common/http'
 import { routeBody } from '@/common/validation'
 import { customerBody } from './schema'
+import { CustomerService } from './service'
 
 export async function registerCustomerRoutes(app: FastifyInstance): Promise<void> {
   const service = new CustomerService(app.db)
@@ -168,10 +169,10 @@ throw new ServiceError('导入失败，存在错误数据', 400, { error_rows, e
 | 構造が正しくないリクエストの値（service が `invalidInput()` を投げる。`apps/api/src/common/errors.ts` を参照） | 400。「请求参数格式不正确」（リクエストパラメーターの形式が正しくありません） |
 | リクエストの値がデータベースに拒否された | 400。下記を参照 |
 | 未知の例外 | 500。「服务器内部错误，请稍后重试」（サーバー内部エラーが発生しました。しばらくしてから再度お試しください。） |
-| マッチしない `/api/*` への GET リクエスト | 404 の JSON |
-| マッチしないその他のメソッド | 405 `{ error: '请求方法不允许' }`（許可されていないリクエストメソッドです） |
+| `/api/*` 配下でマッチしない `GET` / `HEAD` / `OPTIONS` リクエスト | 404 `{ error: '资源不存在' }`（リソースが見つかりません） |
+| 任意のパスでマッチしない、その他のメソッドのリクエスト | 405 `{ error: '请求方法不允许' }`（許可されていないリクエストメソッドです） |
 
-エラーメッセージは中国語で書くだけでかまいません。バックエンドがリクエストヘッダー `Accept-Language` に応じて英語または日本語に翻訳します。新しい文言は翻訳を登録する必要があります。[多言語対応](/ja/guide/i18n#backend-error-translation) を参照してください。
+エラーメッセージは中国語で書くだけでかまいません。バックエンドがリクエストヘッダー `Accept-Language` に応じて英語または日本語に翻訳します（対応する言語を指定していないリクエスト、たとえば API トークンのクライアントには英語で返します）。新しい文言は翻訳を登録する必要があります。[多言語対応](/ja/guide/i18n#backend-error-translation) を参照してください。
 
 ### データベース制約エラーのマッピング
 
@@ -219,7 +220,7 @@ psql -d castor_kit -c '\d customers'
 - マイグレーション SQL を手書きしないでください。journal のチェーンが壊れます（`pnpm verify` の `migration_chain` がチェックします）。
 - マイグレーションは必ず実際に実行し、`psql \d` で確認してください。`pnpm verify` の `migration_applied` が journal とデータベースの記録を照合します。
 - 新しいテーブルのマイグレーションは scaffold が自動で生成します。その後にテーブル構造を変更する場合は、`pnpm db:generate --name <説明>` で差分のマイグレーションを生成してください。
-- ほかの環境にデプロイするときは `pnpm db:migrate && pnpm seed:rbac -- --incremental` を実行します。Docker でデプロイする場合はコンテナの起動時に自動で行われます。[デプロイガイド](/ja/deploy/) を参照してください。
+- ほかの環境にデプロイするときは `pnpm db:migrate && pnpm seed:rbac -- --incremental`（または、AI SQL 用の読み取り専用アカウントも作成する `pnpm setup-once`）を実行します。Docker でデプロイする場合はコンテナの起動時に自動で行われます。[デプロイガイド](/ja/deploy/) を参照してください。
 
 ## インポート / エクスポート {#import-export}
 
@@ -229,9 +230,9 @@ psql -d castor_kit -c '\d customers'
 
 | 関数 | 説明 |
 |---|---|
-| `buildTable(headers, rows, baseFilename, fileType)` | 表ファイルのペイロードを構築。csv は BOM 付き |
+| `buildTable(headers, rows, baseFilename, fileType)` | 表ファイルのペイロードを構築（非同期）。csv は BOM 付きで、認識できない `fileType` は csv として扱う |
 | `sendTable(reply, table)` | `Content-Type`、`Content-Disposition` を設定して送信 |
-| `readTableFile(file)` | アップロードされたファイルを読み取り、`{ fieldnames, rows, fileType }` を返す。上限は 5MB、rows には行番号が付く |
+| `readTableFile(file)` | アップロードされたファイルを読み取り、`{ fieldnames, rows, fileType }` を返す。上限は 5MB、各行は `[行番号, 値]`。不正なファイルでは `TableFileError` を投げ、service がそれを `ServiceError(err.message, 400)` として投げ直す |
 | `normalizeTableFileType(raw, fallback)` | ファイル形式を正規化 |
 | `sanitizeFormula()` | 数式インジェクション対策 |
 
@@ -246,7 +247,7 @@ psql -d castor_kit -c '\d customers'
 
 ### インポートのトランザクション
 
-インポートはバッチ全体を 1 つのトランザクションで処理します。エラー行がある場合は `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` をスローし、バッチ全体をロールバックします。フロントエンドのインポートダイアログはエラー行を表示し、ダウンロードすることもできます。
+インポートはバッチ全体を 1 つのトランザクションで処理します。エラー行がある場合は `ServiceError('导入失败，存在错误数据', 400, { error_rows, error_count })` をスローし（`error_rows` には先頭の最大 500 行が入ります）、バッチ全体をロールバックします。フロントエンドのインポートダイアログはエラー行を表示し、ダウンロードすることもできます。
 
 ### 権限
 
@@ -255,12 +256,12 @@ psql -d castor_kit -c '\d customers'
 ## OpenAPI
 
 ```bash
-pnpm openapi:generate              # ドキュメントのないルート + メソッドに骨格を追加し、規約をチェック
+pnpm openapi:generate              # ドキュメントのないルート + メソッドに骨格を追加し、規約をチェックして、フロントエンドの API 型を再生成
 pnpm openapi:generate -- --strict  # 規約に合わない API と理由を一覧表示し、あれば 0 以外で終了（--dry-run で書き戻さない）
 pnpm openapi:apifox                # Apifox にプッシュ
 ```
 
-`docs/apifox-full.openapi.json` は API の唯一の説明書で、外部の呼び出し側、Apifox、[AI アシスタント](/ja/guide/assistant) はすべてこれを頼りにします。そのため登録済みの `/api` の API はすべて完全に書く必要があります：中国語の summary、description（必要な権限、データ権限、重要な動作）、タグ 1 つと Apifox フォルダー、パスとクエリのパラメーター、リクエストボディのフィールド（ボディを読まない場合は `"x-no-body": true`）、成功レスポンスの構造と起こりうるエラーコード。規則の全文はリポジトリの `AGENTS.md`「OpenAPI 编写规范」にあり、API テストと `pnpm verify` で強制されます。`pnpm scaffold` は新しいモジュールの API を規約どおりの内容で書き込みます。`openapi:generate` はドキュメントのない API に骨格を追加するだけで、骨格はコードに沿って書き上げるまでチェックを通りません。Apifox へのプッシュには `APIFOX_PROJECT_ID` と `APIFOX_ACCESS_TOKEN` が必要です。[設定](/ja/reference/configuration) を参照してください。
+`docs/apifox-full.openapi.json` は API の唯一の説明書で、外部の呼び出し側、Apifox、[AI アシスタント](/ja/guide/assistant) はすべてこれを頼りにします。そのため登録済みの `/api` の API はすべて完全に書く必要があります：中国語の summary、description（必要な権限、データ権限、重要な動作）、タグ 1 つと Apifox フォルダー、パスとクエリのパラメーター、リクエストボディのフィールド（ボディを読まない場合は `"x-no-body": true`）、成功レスポンスの構造と起こりうるエラーコード。規則の全文はリポジトリの `AGENTS.md` の「OpenAPI writing rules」の節にあり、API テストと `pnpm verify` で強制されます。`pnpm scaffold` は新しいモジュールの API を規約どおりの内容で書き込みます。`openapi:generate` はドキュメントのない API に骨格を追加するだけで、骨格はコードに沿って書き上げるまでチェックを通りません。`--dry-run` を付けない場合は、ドキュメントからフロントエンドの API 型（`apps/web/src/shared/api/openapi.d.ts`）も再生成します。Apifox へのプッシュには `APIFOX_PROJECT_ID` と `APIFOX_ACCESS_TOKEN` が必要です。[設定](/ja/reference/configuration) を参照してください。
 
 ## テスト
 

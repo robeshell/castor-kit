@@ -85,9 +85,9 @@ pnpm dev                                              # API :5001 · web :5173
 3. **智能体构建并验证。** 它运行脚手架、执行迁移、同步权限，然后跑交付闸门：
 
 ```text
-$ pnpm scaffold -- --spec equipment.spec.json
+$ pnpm scaffold -- --spec device.spec.json
 $ pnpm db:migrate && pnpm seed:rbac -- --incremental
-$ pnpm verify -- --module equipment
+$ pnpm verify -- --module device
   ✅ typescript compile   ✅ migration chain   ✅ openapi sync     ✅ router registration
   ✅ rbac seed            ✅ api tests         ✅ frontend tests   ✅ frontend build
   … 16 checks in total

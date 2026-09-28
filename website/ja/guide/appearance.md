@@ -7,8 +7,8 @@
 ## ライト / ダーク
 
 - `<html class="dark">` で切り替えます。shadcn / Tailwind の慣例に従っています。
-- 選択内容は `localStorage` の `theme` キーに保存されます。一度も選択していない場合はシステムの設定に従います。
-- 切り替え時には一時的にグローバルな色のトランジションを有効にし、終わったら解除します。通常の hover アニメーションには影響しません。
+- 現在のモードは `localStorage` の `theme` キーに保存されます。初回アクセスでまだ保存された値がない場合は、システムの設定を初期値にします。
+- 切り替えの瞬間は 1 フレームだけすべての CSS トランジションを無効にし（`<html>` の `theme-switching` クラス）、hover や色のトランジションが新旧の色の間でアニメーションせず、ページが一度に切り替わるようにしています。
 
 実装は `apps/web/src/context/ThemeContext.tsx` にあります。ページでセマンティックカラークラスを使っていれば（[フロントエンド](/ja/guide/frontend#スタイル規約) を参照）、ダークモードは自動で正しく表示されます。
 
@@ -27,32 +27,34 @@
 
 ### トークンの派生方法
 
-アクセントカラーは `<html data-accent="<id>">` の形で適用されます。`apps/web/src/index.css` では、各プリセットに 3 つのグラデーションのカラーストップだけを、ライトとダークでそれぞれ 1 組ずつ定義しています。
+アクセントカラーは `<html data-accent="<id>">` の形で適用されます。`apps/web/src/index.css` では、各プリセットが 6 つの変数を、ライトとダークでそれぞれ 1 組ずつ設定しています。
 
 ```css
-[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
-.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
+[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; --brand-primary: #2563eb; --brand-strong-from: #2563eb; --brand-strong-to: #077bba; }
+.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; --brand-primary: #3d85f9; --brand-strong-from: #2970e3; --brand-strong-to: #017cb2; }
 ```
 
-アクセントカラーに追従するそのほかのトークンは、すべてこの 3 つの変数から派生します。
+- `--brand-from` / `--brand-via` / `--brand-to`：装飾用の 3 つのグラデーションのカラーストップ。
+- `--brand-primary`：文字を載せる色（リンク、フォーカスリング、`--primary-foreground` の下の塗り）。すべての背景と `brand-soft` の上で 4.6:1 以上のコントラストになるように選ばれています。
+- `--brand-strong-from` / `--brand-strong-to`：白い文字の下に敷くグラデーション。白に対して 4.6:1 以上です。
+
+アクセントカラーに追従するそのほかのトークンは、すべてこれらから派生します。
 
 | トークン | 派生元 |
 |---|---|
-| `--primary`、`--ring`、`--sidebar-primary`、`--sidebar-ring` | `--brand-from` |
-| `--chart-1` / `--chart-2` / `--chart-3` | `--brand-from` / `--brand-via` / `--brand-to` |
-| `--brand-gradient`、`--brand-gradient-strong` | 3 つのカラーストップによる線形グラデーション |
-| `--brand-soft`、`--brand-glow`、`--brand-shadow` | `color-mix()` で透明色と混ぜる |
-
-`--chart-4`、`--chart-5` は固定色で、アクセントカラーによって変わりません。
+| `--primary`、`--ring`、`--sidebar-primary`、`--sidebar-ring` | `--brand-primary` |
+| `--brand-gradient` | 3 つのカラーストップによる線形グラデーション |
+| `--brand-gradient-strong` | `--brand-strong-from` / `--brand-strong-to` による線形グラデーション |
+| `--brand-soft`、`--brand-glow`、`--brand-shadow` | `color-mix()` でカラーストップを透明色と混ぜる |
 
 したがって、ページで `primary`、`brand-*` などのセマンティッククラスを使っていれば、アクセントカラーを切り替えたときに自動で追従します。**ページ内で特定のアクセントカラーの色値を直接書かないでください。**
 
-ECharts のグラフは `@/lib/chart-theme` の `useChartColors()` で現在の CSS 変数の実際の値を読み取り、テーマやアクセントカラーが切り替わると再計算します。
+グラフの系列色 `--chart-1` … `--chart-5` は、アクセントカラーに追従しない固定のカテゴリ用パレット（ライトとダークで別の値）です。ECharts のグラフは `@/lib/chart-theme` の `useChartColors()` で現在の CSS 変数の実際の値を読み取り、テーマやアクセントカラーが切り替わると再計算します。`chartBase()` はカテゴリ用パレットを適用し、単一系列のグラフではアクセントカラーのカラーストップから作る `brandLine()` / `brandArea()` を使います。
 
 ### アクセントカラーを追加する
 
 1. `apps/web/src/lib/appearance.ts` の `ACCENTS` に `{ id, label }` を追加します。`label` は中国語の原文で、翻訳キーも兼ねます。
-2. `apps/web/src/index.css` に、対応する `[data-accent='<id>']` のライトとダークの 2 組のカラーストップを追加します。カラーストップは 16 進表記のままにしてください。`chart-theme.ts` が `--brand-from` を rgba に変換します。
+2. `apps/web/src/index.css` に、対応する `[data-accent='<id>']` のライトとダークの 2 つのルールを追加します。どちらも 6 つの変数をすべて設定し、上記のコントラストの基準を満たすようにします。色は 16 進表記のままにしてください。`chart-theme.ts` が `--brand-from` を rgba に変換します。
 3. `label` の英語と日本語の訳文を追加します。
 
 ## ナビゲーションモード
@@ -120,7 +122,7 @@ shadcn の `<Sidebar variant>` と 1 対 1 で対応しています。
 - モジュールのトップレベルやレンダリング中にタイマーを開始しないでください。ページが非表示になっても動き続けてしまいます。
 :::
 
-```jsx
+```tsx
 useEffect(() => {
   const timer = setInterval(refresh, 5000)
   return () => clearInterval(timer)

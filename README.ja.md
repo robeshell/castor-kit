@@ -85,9 +85,9 @@ Castor でプロダクトを作るなら、まず [新しいプロジェクト�
 3. **エージェントが構築して検証する。** スキャフォールド、マイグレーション、権限同期を実行し、納品ゲートを通します：
 
 ```text
-$ pnpm scaffold -- --spec equipment.spec.json
+$ pnpm scaffold -- --spec device.spec.json
 $ pnpm db:migrate && pnpm seed:rbac -- --incremental
-$ pnpm verify -- --module equipment
+$ pnpm verify -- --module device
   ✅ typescript compile   ✅ migration chain   ✅ openapi sync     ✅ router registration
   ✅ rbac seed            ✅ api tests         ✅ frontend tests   ✅ frontend build
   … 16 checks in total

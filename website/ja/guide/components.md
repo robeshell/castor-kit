@@ -77,11 +77,11 @@
 | Markdown | `/component-center/components/markdown` | `MarkdownView` |
 | 条件ビルダー | `/component-center/components/condition-builder` | `ConditionBuilder`：フィールド / 演算子 / 値からなる条件を AND / OR で組み合わせ、条件グループも追加できる。値はプレーンな JSON で、そのまま保存したり API に送ったりできる（サンプル：テーブルのデータの絞り込み、フォームでのクエリ保存、1 階層のみと読み取り専用） |
 
-各ページは `components/<グループ>_page/` にあります。サンプルはそれぞれ `examples/` 配下の独立したファイルで、ページはこれを 2 回インポートします。1 回はライブプレビュー用のコンポーネントとして、もう 1 回は下に表示するソースを取得するために Vite の `?raw` 付きでインポートするので、プレビューとコードが食い違うことはありません。プロパティの表はページの `props.ts` にあります。レイアウト用の部品（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）は `apps/web/src/modules/component_center/showcase/` にあります。ページやサンプルを追加するときは、[AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) の「Component showcase pages」の節に従ってください。サンプルのファイルが 2 通りの方法でインポートされていないと、テストが失敗します。
+各ページは `components/<名前>_page/`（例：`components/data_table_page/`）にあります。サンプルはそれぞれ `examples/` 配下の独立したファイルで、ページはこれを 2 回インポートします。1 回はライブプレビュー用のコンポーネントとして、もう 1 回は下に表示するソースを取得するために Vite の `?raw` 付きでインポートするので、プレビューとコードが食い違うことはありません。プロパティの表はページの `props.ts` にあります。レイアウト用の部品（`ShowcasePage`、`ShowcaseSection`、`Example`、`PropsTable`、`CodeBlock`）は `apps/web/src/modules/component_center/showcase/` にあります。ページやサンプルを追加するときは、[AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md) の「Component showcase pages」の節に従ってください。サンプルのファイルが 2 通りの方法でインポートされていないと、テストが失敗します。
 
 ## データ可視化
 
-グループのディレクトリは `dataviz/` です。ECharts をベースにしており、グラフの色は `useChartColors()` によってテーマとアクセントカラーに追従します。
+グループのディレクトリは `dataviz/` です。`@/shared/components/Chart` を通じて ECharts を使います。色は `useChartColors()` から取るのでライト / ダークモードに追従し、ブランドカラーの系列はアクセントカラーにも追従します（[テーマとレイアウト](/ja/guide/appearance#トークンの派生方法)を参照）。
 
 | ページ | ルート | 説明 |
 |---|---|---|
@@ -101,7 +101,7 @@
 | AI データ検索 | `/component-center/ai/sql` | 自然言語から SQL を生成し、読み取り専用の接続で実行して結果とグラフを表示 |
 
 ::: tip AI データ検索のセキュリティ境界
-クエリは独立した読み取り専用の接続で実行され、結果の行数には上限があり、権限やログなどの機密性の高いテーブルは除外されます。本番環境では、読み取り専用アカウントを指す `AI_SQL_DATABASE_URL` を必ず設定してください。[デプロイガイド](/ja/deploy/) を参照してください。
+クエリは独立した読み取り専用の接続で実行され、結果の行数には上限があり、権限やログなどの機密性の高いテーブルは除外されます。本番環境では読み取り専用の接続がないと API は起動しません。`AI_SQL_DATABASE_URL` に読み取り専用アカウントを設定するか、`POSTGRES_RO_PASSWORD` を設定して自動で導出させてください（付属の `docker-compose.yml` はこれを設定済みです）。[設定](/ja/reference/configuration#ai-data-query) を参照してください。
 :::
 
 ## エディター / ローコード
@@ -132,7 +132,7 @@ WebSocket 通信とパフォーマンス監視のページは `/ws/devtools` に
 
 ## システム管理
 
-コンポーネント例のほかに、「システム管理」の下にはスキャフォールドに標準で付属する業務機能があり、「組織と権限」（ユーザー・ロール・部門）、「セキュリティと監査」（オンラインユーザー・ログ）、「システム構成」（システム設定・メニュー・辞書・定期タスク）、「コンテンツとメッセージ」（ファイル・通知・お知らせ）の 4 つのグループに分かれています。
+コンポーネント例のほかに、「システム管理」の下にはスキャフォールドに標準で付属する業務機能があり、「組織と権限」（ユーザー・ロール・部門）、「セキュリティと監査」（オンラインユーザー・ログ・API トークン）、「システム構成」（システム設定・メニュー・辞書・定期タスク・Webhook）、「コンテンツとメッセージ」（ファイル・通知・お知らせ）の 4 つのグループに分かれています。
 
 | ページ | ルート | 説明 |
 |---|---|---|
@@ -146,6 +146,8 @@ WebSocket 通信とパフォーマンス監視のページは `/ws/devtools` に
 | ログ管理 | `/system/logs` | 操作ログとログインログ |
 | データ辞書 | `/system/dicts` | 辞書データを管理し、ドロップダウンの選択肢のデータソースを提供 |
 | 定期タスク | `/system/scheduled-tasks` | cron に従って HTTP アドレスを定期的に呼び出し、実行履歴を確認 |
+| API トークン | `/system/api-tokens` | データ範囲内の全員の API トークン：検索、状態での絞り込み、失効（[オープン API](/ja/guide/open-api#api-トークン)を参照） |
+| Webhook | `/system/webhooks` | 署名付きのイベント通知を受け取るエンドポイント：テスト送信、配信履歴、再配信（[オープン API](/ja/guide/open-api#webhook)を参照） |
 | 通知 | `/system/notifications` | サイト内通知 |
 | お知らせ管理 | `/system/announcements` | お知らせの公開と管理 |
 

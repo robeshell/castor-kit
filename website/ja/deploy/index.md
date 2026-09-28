@@ -3,7 +3,7 @@
 Docker Compose でのデプロイをおすすめします。compose 構成には PostgreSQL（`db`）と Node アプリケーション（`app`）の 2 つのサービスが含まれます。アプリケーションのプロセスは、バックエンド API とビルド済みのフロントエンドのページを両方とも配信します。
 
 ::: info アプリの自動デプロイはありません
-アプリケーションは CI による自動デプロイを行いません。`.github/workflows/ci.yml` は push と Pull Request のときに lint、型チェック、テスト、検証ゲート、フロントエンドのビルドを実行するだけです。デプロイはサーバー上で手動で行います。更新の手順は後述します。
+アプリケーションは CI による自動デプロイを行いません。`.github/workflows/ci.yml` は main への push と Pull Request のときに lint、型チェック、テスト、検証ゲート、フロントエンドのビルドを実行するだけです。デプロイはサーバー上で手動で行います。更新の手順は後述します。
 
 ドキュメントサイトは例外です。`website/` の変更が main にマージされると、`.github/workflows/docs.yml` がビルドして GitHub Pages に公開します（リポジトリの Settings → Pages で Source を GitHub Actions に設定してください）。Pull Request ではビルドとリンク切れのチェックのみ行います。
 :::
@@ -19,11 +19,11 @@ Docker Compose でのデプロイをおすすめします。compose 構成には
 
 コンテナの起動時、`docker-entrypoint.sh` は次の処理を順番に実行します。
 
-1. `node dist/setup-once.js`：PostgreSQL の advisory lock で保護したうえで、データベースのマイグレーション、RBAC の増分同期、AI SQL 用読み取り専用アカウント `castor_kit_ro` の作成または更新を行います。複数のレプリカが同時に起動しても順番に実行されるだけで、結果は冪等です。
+1. `node dist/setup-once.js`：PostgreSQL の advisory lock で保護したうえで、データベースのマイグレーション、RBAC の増分同期、AI SQL 用読み取り専用アカウント `castor_kit_ro` の作成または更新を行います。[デモモード](/ja/reference/configuration#public-demo)では、復元の時期が来ていればデモデータも復元します。複数のレプリカが同時に起動しても順番に実行されるだけで、結果は冪等です。
 2. `node dist/main.js`：サービスを起動します。
 
 ::: warning ビルド時に使うレジストリ
-`Dockerfile` では npm registry を `https://registry.npmmirror.com` に設定しています。サーバーからこのレジストリへのアクセスが遅い場合は、`Dockerfile` で変更してください。
+`Dockerfile` はビルド引数 `NPM_REGISTRY` のレジストリから依存関係をインストールします。デフォルトは `https://registry.npmjs.org` ですが、`docker-compose.yml` は中国本土のミラー `https://registry.npmmirror.com` を渡すため、compose でビルドするとデフォルトでこのミラーを使います。別のレジストリを使うには、`.env.production` で `NPM_REGISTRY` を設定してください（例：`NPM_REGISTRY=https://registry.npmjs.org`）。
 :::
 
 ## 方法 1：セットアップウィザード
@@ -37,7 +37,7 @@ bash scripts/setup.sh
 ウィザードは管理者パスワード、アクセスポート（デフォルトは 5000）、任意の AI 設定を尋ね、`SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD` をランダムに生成して `.env.production` に書き込みます。そのあとサービスをビルド・起動し、`/health` の準備が整うまで待ちます。
 
 ::: warning setup.sh は Docker の設定を変更します
-Docker の `daemon.json`（macOS では `~/.docker/daemon.json`、Linux では `/etc/docker/daemon.json`）に `registry-mirrors` がない場合、スクリプトはミラーのアドレスを書き込んで Docker を再起動します（Linux では `sudo systemctl restart docker` を使用）。ほかのコンテナがすでに動いているサーバーでは、方法 2 を使うことをおすすめします。
+Docker の `daemon.json`（macOS では `~/.docker/daemon.json`、Linux では `/etc/docker/daemon.json`）に `registry-mirrors` がない場合、スクリプトはミラー `https://docker.xuanyuan.me` を書き込んで Docker を再起動します（macOS では Docker Desktop を終了して開き直し、Linux では `sudo systemctl restart docker` を実行）。ほかのコンテナがすでに動いているサーバーでは、方法 2 を使うことをおすすめします。
 :::
 
 ## 方法 2：手動で設定する
@@ -57,6 +57,7 @@ POSTGRES_RO_PASSWORD=<AI SQL 用読み取り専用アカウントのパスワー
 
 ```bash
 APP_PORT=5000          # ホスト側のポート。未設定の場合は 8080
+NPM_REGISTRY=https://registry.npmjs.org   # イメージのビルドに使う npm レジストリ。compose のデフォルトは https://registry.npmmirror.com
 ```
 
 メール、ファイル保存、アップロード制限、AI モデルはここに書く必要はありません。デプロイ後にログインし、「システム設定」ページで設定します。環境変数で固定したい場合は[システム設定で行う設定](/ja/reference/configuration#settings-page)を参照してください。使用できるすべての変数は [設定](/ja/reference/configuration#docker) を参照してください。ランダムな文字列は `openssl rand -base64 48` で生成できます。
@@ -105,7 +106,7 @@ compose がデフォルトで読み込むのは `.env` だけで、`.env.product
 
 1. GitHub アカウントで Render に登録します。リポジトリが自分のアカウントにない場合は、先に Fork してください
 2. Render のダッシュボードで **New → Blueprint** を選び、リポジトリを選択します。Render が `render.yaml` を読み込みます
-3. 画面の案内に従って `DATABASE_URL`（前の手順でコピーした接続文字列）を入力します。そのほかの変数は `render.yaml` で設定済みか、自動生成されます
+3. 画面の案内に従って `DATABASE_URL`（前の手順でコピーした接続文字列）を入力します。`AI_API_KEY` と `AI_MODEL` も尋ねられますが、空のままにして AI を使うときに設定できます（後述の手順 4 を参照）。そのほかの変数は `render.yaml` で設定済みか、自動生成されます
 4. **Apply** をクリックします。初回のビルドには 5〜10 分ほどかかります。ステータスが **Live** になったらサービスの URL（`https://<サービス名>.onrender.com`）を開くと、ログイン画面にデモアカウントが表示されます
 
 README の **Deploy to Render** ボタンからでも同じようにデプロイできます。
@@ -114,7 +115,7 @@ README の **Deploy to Render** ボタンからでも同じようにデプロイ
 
 - `render.yaml` では自動デプロイを無効にしていません。main に push するたびに Render が再ビルドし、ビルドに失敗するとメールで通知されます。不要な場合はサービスの **Settings → Build & Deploy** で Auto-Deploy をオフにしてください
 - デモアカウントのパスワードは `render.yaml` の `ADMIN_PASSWORD` です。アカウントを初めて作成するときにだけ使われるので、変更する場合は最初のデプロイ前に変えてください
-- デモデータをすぐに復元するには、Render サービスの **Shell** で `node dist/demo-reset.js` を実行するか、ローカルから同じデータベースに対して `pnpm demo:reset` を実行します
+- デモデータをすぐに復元するには、ローカルのチェックアウトで Neon の接続文字列を指定して `pnpm demo:reset` を実行します（例：`DEV_DATABASE_URL='<Neon の接続文字列>' pnpm demo:reset`。スクリプトは現在の `NODE_ENV` のデータベースを使い、開発環境では `DEV_DATABASE_URL` です）。有料の Render インスタンスでは、サービスの **Shell** で `node dist/demo-reset.js` を実行することもできます。無料インスタンスには Shell がありません
 
 ### 4. AI を接続する（任意）
 
@@ -271,7 +272,7 @@ pnpm install --frozen-lockfile
 pnpm build
 
 # 2. リポジトリのルートまたは apps/api/ に .env.production を作成し、少なくとも次を含める：
-#    DATABASE_URL、SECRET_KEY、ADMIN_PASSWORD、AI_SQL_DATABASE_URL、POSTGRES_RO_PASSWORD
+#    DATABASE_URL、SECRET_KEY、ADMIN_PASSWORD、POSTGRES_RO_PASSWORD
 
 # 3. データベースを初期化する（マイグレーション + RBAC の増分同期 + 読み取り専用アカウント）
 NODE_ENV=production node apps/api/dist/setup-once.js
@@ -281,7 +282,7 @@ NODE_ENV=production node apps/api/dist/main.js
 ```
 
 - `NODE_ENV` は必ずコマンドライン（またはプロセスマネージャー）で設定してください。バックエンドはこれに基づいて `.env.production` を読み込むかどうかを決めます。
-- `AI_SQL_DATABASE_URL` は読み取り専用アカウントを指すようにします（例：`postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<データベース名>`）。読み取り専用アカウントは手順 3 で `POSTGRES_RO_PASSWORD` をもとに作成されます。
+- 手順 3 は `POSTGRES_RO_PASSWORD` を使って読み取り専用アカウント `castor_kit_ro` を作成するため、`DATABASE_URL` のアカウントにはロールを作成する権限が必要です。`AI_SQL_DATABASE_URL` が未設定の場合、AI データ検索は `DATABASE_URL` のアカウントをこのアカウントに置き換えた接続を使います。別の接続を使いたいときだけ `AI_SQL_DATABASE_URL` を設定し、読み取り専用アカウントを指すようにしてください（例：`postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<データベース名>`）。
 - フロントエンドのビルド成果物は `apps/web/dist/` にあり、バックエンドはデフォルトでここからページを配信します。
 - `main.js` は systemd や pm2 などのプロセスマネージャーで管理することをおすすめします。独立したスケジューラーのプロセスは `apps/api/dist/worker.js` です。
 - 更新時の手順：`git pull` → `pnpm install --frozen-lockfile` → `pnpm build` → 手順 3 を再度実行 → サービスを再起動。

@@ -19,16 +19,17 @@ bash scripts/setup.sh
 
 `setup.sh` does the following, in order:
 
-1. Checks that Docker and `docker compose` are available.
-2. Asks for the admin password (press Enter for `admin123`), the port (press Enter for `5000`), and whether to configure the AI features (API key, base URL and model name of an OpenAI-compatible API).
-3. Generates a random `SECRET_KEY`, database password and AI SQL read-only account password, and writes them to `.env.production` in the repo root. If the file already exists, it first asks whether to reconfigure.
-4. Runs `docker compose --env-file .env.production up -d --build` to build and start the services.
-5. Polls `http://localhost:<port>/health` until the service is ready.
+1. Checks that Docker is installed and running and that the `docker compose` plugin is available.
+2. If `.env.production` already exists in the repo root, asks whether to reconfigure; if you answer no, it keeps the file and skips to step 4.
+3. Asks for the admin password (press Enter for `admin123`), the port (press Enter for `5000`), and whether to configure the AI features now (API key, base URL and model name of an OpenAI-compatible API). It then generates a random `SECRET_KEY`, database password and AI SQL read-only account password, and writes everything to `.env.production`. AI values entered here pin those settings, so the System settings page shows them read-only.
+4. Adds a Docker registry mirror if none is configured (see the warning below).
+5. Runs `docker compose --env-file .env.production up -d --build` to build and start the services.
+6. Polls `http://localhost:<port>/health` until the service is ready (for about 90 seconds; if it's still not up, it prints the command for viewing the logs).
 
 The first run downloads dependencies and builds the image, which usually takes a few minutes.
 
 ::: warning setup.sh modifies your Docker configuration
-If Docker's `daemon.json` has no `registry-mirrors` entry, the script adds a registry mirror and restarts Docker. If you don't need a mirror, skip the wizard and follow the [Deployment guide](/deploy/) to configure and start everything manually.
+If Docker's `daemon.json` has no `registry-mirrors` entry, the script adds the registry mirror `https://docker.xuanyuan.me` and restarts Docker. If you don't need a mirror, skip the wizard and follow the [Deployment guide](/deploy/) to configure and start everything manually.
 :::
 
 ### 2. Sign in
@@ -114,12 +115,12 @@ Open `http://localhost:5173` and sign in with `admin` / `admin123`.
 You can also start them separately: `pnpm dev:api`, `pnpm dev:web`.
 
 ::: tip Default account
-In development, if `ADMIN_PASSWORD` is not set, the initial password is `admin123`. The `admin` account is only created when it doesn't exist, so changing `ADMIN_PASSWORD` later won't change the existing account's password. Change it in the UI instead.
+In development, if `ADMIN_PASSWORD` is not set, the initial password is `admin123`. The `admin` account is only created when it doesn't exist, so changing `ADMIN_PASSWORD` later won't change the existing account's password. Change it in the UI, or run `pnpm seed:rbac -- --incremental --reset-admin-password` to set it to the current `ADMIN_PASSWORD`.
 :::
 
 ### 6. Run tests (optional)
 
-Backend tests run against a real PostgreSQL test database (default `postgresql://localhost/castor_kit_test`; override with `TEST_DATABASE_URL` in the shell or in `apps/api/.env.test`, not `.env.development`). Migrations are applied automatically before the tests start:
+`pnpm test` runs the backend and frontend tests. The backend tests run against a real PostgreSQL test database (default `postgresql://localhost/castor_kit_test`; override with `TEST_DATABASE_URL` in the shell or in `apps/api/.env.test`, not in `.env.development`). Before the tests start, migrations and an incremental RBAC sync are applied to it automatically:
 
 ```bash
 createdb castor_kit_test      # Or clone the dev database: createdb -T castor_kit castor_kit_test
