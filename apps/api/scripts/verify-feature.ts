@@ -414,13 +414,13 @@ export function checkBackendFile(ctx: VerifyContext, module: string): CheckResul
   return { name: 'backend_file', passed: true, path: rel(ctx, found) }
 }
 
-/** Frontend page index.jsx exists */
+/** Frontend page index.tsx exists */
 export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResult {
   const singular = singularOf(module)
   const names = new Set([module, singular, `${module}_page`, `${singular}_page`])
   for (const m of WEB_MODULES) {
     const base = join(ctx.webDir, 'src', 'modules', m, 'pages')
-    const hit = walk(base, (p) => p.endsWith('/index.jsx') || p.endsWith('/index.tsx')).find((p) =>
+    const hit = walk(base, (p) => p.endsWith('/index.tsx')).find((p) =>
       names.has(dirname(p).slice(dirname(p).lastIndexOf('/') + 1)),
     )
     if (hit) return { name: 'frontend_page', passed: true, path: rel(ctx, hit) }
@@ -428,7 +428,7 @@ export function checkFrontendPage(ctx: VerifyContext, module: string): CheckResu
   return {
     name: 'frontend_page',
     passed: false,
-    error: `No frontend page index.tsx (or index.jsx) found; its directory should be named ${module}, ${singular} or ${module}_page`,
+    error: `No frontend page index.tsx found; its directory should be named ${module}, ${singular} or ${module}_page`,
   }
 }
 
@@ -443,12 +443,12 @@ export function checkFrontendApi(ctx: VerifyContext, module: string): CheckResul
     api('component_center', singular),
     api('component_center', `${module}_page`),
   ]
-  const found = bases.flatMap((base) => [`${base}.ts`, `${base}.js`]).find((p) => existsSync(p))
+  const found = bases.map((base) => `${base}.ts`).find((p) => existsSync(p))
   if (found) return { name: 'frontend_api', passed: true, path: rel(ctx, found) }
   return {
     name: 'frontend_api',
     passed: false,
-    error: `No frontend API file found; looked in: ${[...new Set(bases)].slice(0, 3).map((p) => `${rel(ctx, p)}.{ts,js}`).join(', ')}`,
+    error: `No frontend API file found; looked in: ${[...new Set(bases)].slice(0, 3).map((p) => `${rel(ctx, p)}.ts`).join(', ')}`,
   }
 }
 
