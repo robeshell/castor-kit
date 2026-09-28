@@ -59,7 +59,7 @@ export default function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title={t('搜索')} description={t('跳转页面或执行操作')}>
+    <CommandDialog open={open} onOpenChange={onOpenChange} title={t('搜索')} description={t('跳转页面或执行操作')} closeLabel={t('关闭')}>
       <CommandInput placeholder={t('搜索页面或操作…')} />
       <CommandList className="max-h-[420px]">
         <CommandEmpty>{t('没有匹配的结果')}</CommandEmpty>

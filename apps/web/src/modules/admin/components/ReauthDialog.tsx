@@ -72,7 +72,7 @@ export default function ReauthDialog({ open, onVerified, onCancel }: ReauthDialo
         }
       }}
     >
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent closeLabel={t('关闭')} className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="text-primary size-4" />

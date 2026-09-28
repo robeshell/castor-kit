@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentProps } from 'react'
 import { Check, ChevronsUpDown, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,8 @@ export interface MultiSelectOption<V extends string | number = string | number> 
   value: V
 }
 
-export interface MultiSelectProps<V extends string | number = string | number> {
+export interface MultiSelectProps<V extends string | number = string | number>
+  extends Omit<ComponentProps<typeof Button>, 'value' | 'onChange' | 'type' | 'placeholder' | 'disabled' | 'className'> {
   value?: readonly V[]
   onChange?: (value: V[]) => void
   options?: readonly MultiSelectOption<V>[]
@@ -26,6 +27,7 @@ export interface MultiSelectProps<V extends string | number = string | number> {
 
 /**
  * Multi-select (searchable): options = [{ label, value }], value is an array (original types are kept; numbers stay numbers).
+ * Extra props (id / aria-* / ref) go to the trigger button, so it works inside FormControl.
  */
 export default function MultiSelect<V extends string | number>({
   value = [],
@@ -35,6 +37,7 @@ export default function MultiSelect<V extends string | number>({
   disabled,
   className,
   maxShown = 3,
+  ...triggerProps
 }: MultiSelectProps<V>) {
   const tx = useTx()
   const [open, setOpen] = useState(false)
@@ -49,7 +52,12 @@ export default function MultiSelect<V extends string | number>({
         <Button
           type="button"
           variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          // A combobox isn't named by its content: standalone (no id for a <label>, no aria-*), the placeholder names it
+          aria-label={triggerProps.id || triggerProps['aria-labelledby'] ? undefined : tx(placeholder)}
           disabled={disabled}
+          {...triggerProps}
           className={cn('h-auto min-h-9 w-full justify-between px-2 py-1 font-normal', className)}
         >
           <span className="flex flex-1 flex-wrap items-center gap-1">
@@ -57,10 +65,10 @@ export default function MultiSelect<V extends string | number>({
             {selected.slice(0, maxShown).map((opt) => (
               <Badge key={String(opt.value)} variant="secondary" className="gap-1 rounded-md pr-1 font-normal">
                 {tx(opt.label)}
+                {/* A pointer shortcut only (a control can't sit inside the trigger button); keyboard users deselect in the list */}
                 <span
-                  role="button"
-                  tabIndex={-1}
-                  aria-label={tx('移除 {{name}}', { name: tx(opt.label) })}
+                  aria-hidden
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation()
                     toggle(opt)

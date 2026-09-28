@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Copy, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -35,6 +35,7 @@ export default function TotpEnrollment({ onEnabled, submitText = '开启两步�
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const errorId = useId()
 
   useEffect(() => {
     let alive = true
@@ -53,7 +54,12 @@ export default function TotpEnrollment({ onEnabled, submitText = '开启两步�
   }
 
   const submit = async (value: string = code) => {
-    if (value.length !== 6 || submitting) return
+    if (submitting) return
+    // The button stays enabled: an incomplete code says what's missing instead of doing nothing
+    if (value.length !== 6) {
+      setError(t('请输入 6 位验证码'))
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -129,12 +135,17 @@ export default function TotpEnrollment({ onEnabled, submitText = '开启两步�
           onComplete={submit}
           disabled={!setup || submitting}
           invalid={Boolean(error)}
+          describedBy={error ? errorId : undefined}
           autoFocus={false}
         />
-        {error ? <p className="text-destructive text-center text-xs">{error}</p> : null}
+        {error ? (
+          <p id={errorId} role="alert" className="text-destructive text-center text-xs">
+            {error}
+          </p>
+        ) : null}
       </div>
 
-      <Button type="button" variant="brand" className="w-full" disabled={!setup || code.length !== 6 || submitting} onClick={() => submit()}>
+      <Button type="button" variant="brand" className="w-full" disabled={!setup || submitting} onClick={() => submit()}>
         {submitting ? <Spinner /> : null}
         {t(submitText)}
       </Button>

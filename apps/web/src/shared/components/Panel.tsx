@@ -15,18 +15,21 @@ export interface PanelProps extends Omit<ComponentProps<'section'>, 'title'> {
   actions?: ReactNode
   /** Pad the body (default true); false for flush content such as tables */
   padded?: boolean
+  /** Heading level of the title: 2 under the page's h1 (default), 3 for a panel nested under another heading */
+  headingLevel?: 2 | 3
   bodyClassName?: string
 }
 
-export default function Panel({ title, description, actions, padded = true, className, bodyClassName, children, ...props }: PanelProps) {
+export default function Panel({ title, description, actions, padded = true, headingLevel = 2, className, bodyClassName, children, ...props }: PanelProps) {
   const tx = useTx()
+  const Heading = headingLevel === 3 ? 'h3' : 'h2'
   const hasHeader = title || description || actions
   return (
     <section className={cn('surface-card overflow-hidden', className)} {...props}>
       {hasHeader ? (
         <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
           <div className="min-w-0 space-y-0.5">
-            {title ? <h3 className="text-sm font-medium">{tx(title)}</h3> : null}
+            {title ? <Heading className="text-sm font-medium">{tx(title)}</Heading> : null}
             {description ? <p className="text-muted-foreground text-xs">{tx(description)}</p> : null}
           </div>
           {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}

@@ -80,7 +80,7 @@ export default function TagsView() {
 
   return (
     <div className="bg-background hidden h-10 shrink-0 items-center gap-2 border-b pr-2 pl-3 md:flex md:pl-4">
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+      <nav aria-label={t('已打开的页面')} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
         <AnimatePresence initial={false}>
           {tabs.map((tab) => {
             const menu = findActiveMenu(flat, tab.path)
@@ -98,42 +98,50 @@ export default function TagsView() {
               >
                 <ContextMenu>
                   <ContextMenuTrigger asChild>
-                    <Link
-                      ref={active ? activeRef : undefined}
-                      to={tab.fullPath}
-                      onAuxClick={(e) => {
-                        if (e.button === 1 && !tab.affix) {
-                          e.preventDefault()
-                          close(tab.path)
-                        }
-                      }}
+                    <div
                       className={cn(
-                        'group flex h-7 items-center gap-1 rounded-md pr-1.5 pl-2.5 text-[12.5px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-                        tab.affix && 'pr-2.5',
+                        'flex h-7 items-center rounded-md text-[12.5px] whitespace-nowrap transition-colors',
                         active ? 'bg-brand-soft text-primary font-medium' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                       )}
                     >
-                      <span className="max-w-40 truncate">{title}</span>
-                      {tab.affix ? null : (
-                        <span
-                          role="button"
-                          tabIndex={-1}
-                          aria-label={t('关闭')}
-                          onClick={(e) => {
+                      <Link
+                        ref={active ? activeRef : undefined}
+                        to={tab.fullPath}
+                        aria-current={active ? 'page' : undefined}
+                        onAuxClick={(e) => {
+                          if (e.button === 1 && !tab.affix) {
                             e.preventDefault()
-                            e.stopPropagation()
                             close(tab.path)
-                          }}
-                          className={cn(
-                            'flex size-4 items-center justify-center rounded-sm transition-opacity hover:bg-foreground/10',
-                            // Always faintly visible: an invisible button still takes its 16px, which reads as uneven spacing
-                            active ? 'opacity-100' : 'opacity-40 group-hover:opacity-100',
-                          )}
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // Delete closes the focused tab, like the close button
+                          if (e.key === 'Delete' && !tab.affix) {
+                            e.preventDefault()
+                            close(tab.path)
+                          }
+                        }}
+                        className={cn(
+                          'flex h-full items-center rounded-md pl-2.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                          tab.affix ? 'pr-2.5' : 'pr-1',
+                        )}
+                      >
+                        <span className="max-w-40 truncate" title={title}>
+                          {title}
+                        </span>
+                      </Link>
+                      {tab.affix ? null : (
+                        // A sibling of the link (a control inside a link is unreachable), 24px to hit
+                        <button
+                          type="button"
+                          aria-label={t('关闭 {{title}}', { title })}
+                          onClick={() => close(tab.path)}
+                          className="hover:bg-foreground/10 mr-0.5 flex size-6 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                         >
                           <X className="size-3" />
-                        </span>
+                        </button>
                       )}
-                    </Link>
+                    </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="min-w-40">
                     <TabActions Item={ContextMenuItem} Separator={ContextMenuSeparator} tab={tab} />
@@ -143,7 +151,7 @@ export default function TagsView() {
             )
           })}
         </AnimatePresence>
-      </div>
+      </nav>
       {activeTab ? (
         <DropdownMenu>
           <DropdownMenuTrigger

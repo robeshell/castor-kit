@@ -171,7 +171,7 @@ export default function TwoFactorPanel() {
       )}
 
       <Dialog open={dialog === 'enroll'} onOpenChange={(open) => !open && setDialog(null)}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent closeLabel={t('关闭')} className="sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle>{t('开启两步验证')}</DialogTitle>
             <DialogDescription>{t('用验证器 App 扫码绑定')}</DialogDescription>
@@ -191,7 +191,7 @@ export default function TwoFactorPanel() {
       </Dialog>
 
       <Dialog open={Boolean(codes)} onOpenChange={(open) => !open && setCodes(null)}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent closeLabel={t('关闭')} className="sm:max-w-[440px]">
           <DialogHeader>
             <DialogTitle>{t('保存恢复码')}</DialogTitle>
           </DialogHeader>

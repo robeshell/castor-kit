@@ -69,8 +69,12 @@ function TestAction({ label, run, disabled, children }: TestActionProps) {
           {t(label)}
         </Button>
       </div>
+      {/* Always rendered, so each test result is announced (the line below shows it) */}
+      <p role="status" className="sr-only">
+        {state?.text ?? ''}
+      </p>
       {state ? (
-        <p className={`flex items-start gap-1.5 text-xs ${state.ok ? 'text-success' : 'text-destructive'}`}>
+        <p aria-hidden className={`flex items-start gap-1.5 text-xs ${state.ok ? 'text-success' : 'text-destructive'}`}>
           {state.ok ? <CircleCheck className="mt-px size-3.5 shrink-0" /> : <CircleX className="mt-px size-3.5 shrink-0" />}
           <span className="break-all">{state.text}</span>
         </p>

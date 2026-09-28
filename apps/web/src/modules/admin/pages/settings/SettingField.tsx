@@ -1,6 +1,7 @@
 import type { Control } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { FormControl } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { FormCustom, FormInput, FormMultiSelect, FormSelect, FormSwitch, FormTags } from '@/shared/components/FormFields'
 import type { SettingItem } from '@/modules/admin/api/settings'
@@ -63,21 +64,24 @@ export default function SettingField({ item, control, canEdit, switchOn, roleOpt
         rules={{ validate }}
         render={({ field }) => (
           <div className="flex items-center gap-2">
-            <Input
-              name={field.name}
-              ref={field.ref}
-              onBlur={field.onBlur}
-              type="number"
-              inputMode="decimal"
-              step={mb ? 0.1 : 1}
-              min={min}
-              max={max}
-              // Integer settings hold a number, or null while the input is empty (toFormValues / onChange below)
-              value={typeof field.value === 'number' ? field.value : ''}
-              onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-              disabled={disabled}
-              className="h-9 w-40 tabular-nums"
-            />
+            {/* FormControl links the input to its label, description and error */}
+            <FormControl>
+              <Input
+                name={field.name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                type="number"
+                inputMode="decimal"
+                step={mb ? 0.1 : 1}
+                min={min}
+                max={max}
+                // Integer settings hold a number, or null while the input is empty (toFormValues / onChange below)
+                value={typeof field.value === 'number' ? field.value : ''}
+                onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                disabled={disabled}
+                className="h-9 w-40 tabular-nums"
+              />
+            </FormControl>
             {meta.unit ? <span className="text-muted-foreground text-xs">{t(meta.unit)}</span> : null}
           </div>
         )}
@@ -102,16 +106,18 @@ export default function SettingField({ item, control, canEdit, switchOn, roleOpt
           const placeholder = clearing ? t('保存后清除') : item.has_value ? t('已设置，留空则不修改') : t('未设置')
           return (
             <div className="flex items-center gap-2">
-              <Input
-                type="password"
-                autoComplete="new-password"
-                // Secrets hold the typed text, or null when marked for clearing
-                value={typeof value === 'string' ? value : ''}
-                placeholder={placeholder}
-                onChange={(e) => onChange(e.target.value)}
-                disabled={disabled || clearing}
-                className="h-9"
-              />
+              <FormControl>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  // Secrets hold the typed text, or null when marked for clearing
+                  value={typeof value === 'string' ? value : ''}
+                  placeholder={placeholder}
+                  onChange={(e) => onChange(e.target.value)}
+                  disabled={disabled || clearing}
+                  className="h-9"
+                />
+              </FormControl>
               {item.has_value && !disabled ? (
                 <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" onClick={() => onChange(clearing ? '' : null)}>
                   {clearing ? t('撤销') : t('清除')}

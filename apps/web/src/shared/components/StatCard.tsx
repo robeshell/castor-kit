@@ -99,7 +99,10 @@ export interface StatCardProps {
   icon?: ComponentType<{ className?: string }>
   loading?: boolean
   className?: string
-  onClick?: MouseEventHandler<HTMLDivElement>
+  /** Makes the card a button */
+  onClick?: MouseEventHandler<HTMLButtonElement>
+  /** With onClick: the card is the chosen one (announced as pressed; style it through className) */
+  selected?: boolean
 }
 
 export default function StatCard({
@@ -115,18 +118,17 @@ export default function StatCard({
   loading = false,
   className,
   onClick,
+  selected,
 }: StatCardProps) {
   const tx = useTx()
   const toneClass = deltaTone === 'danger' ? 'bg-danger-soft text-danger' : deltaTone === 'neutral' ? 'bg-muted text-muted-foreground' : 'bg-success-soft text-success'
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'surface-card group flex flex-col gap-3 p-4 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_0_0_1px_var(--border),0_12px_28px_-16px_rgba(15,23,42,0.25)]',
-        onClick && 'cursor-pointer',
-        className,
-      )}
-    >
+  const rootClass = cn(
+    'surface-card group flex flex-col gap-3 p-4 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_0_0_1px_var(--border),0_12px_28px_-16px_rgba(15,23,42,0.25)]',
+    onClick && 'focus-visible:outline-ring w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2',
+    className,
+  )
+  const body = (
+    <>
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground flex items-center gap-2 text-[13px]">
           {Icon ? <Icon className="size-3.5" /> : null}
@@ -147,7 +149,19 @@ export default function StatCard({
         </div>
         {trend ? <Sparkline points={trend} /> : null}
       </div>
-      {hint ? <div className="text-muted-foreground -mt-1 truncate text-xs">{tx(hint)}</div> : null}
-    </div>
+      {hint ? (
+        <div className="text-muted-foreground -mt-1 truncate text-xs" title={typeof hint === 'string' ? tx(hint) : undefined}>
+          {tx(hint)}
+        </div>
+      ) : null}
+    </>
+  )
+  // A clickable card is a real button (focusable, Enter / Space); otherwise a plain block
+  return onClick ? (
+    <button type="button" onClick={onClick} aria-pressed={selected} className={rootClass}>
+      {body}
+    </button>
+  ) : (
+    <div className={rootClass}>{body}</div>
   )
 }

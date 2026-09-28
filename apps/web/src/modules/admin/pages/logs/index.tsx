@@ -303,6 +303,7 @@ export default function Logs() {
               if (e.key === 'Enter') handleOpSearch()
             }}
             placeholder={t('模块名')}
+            aria-label={t('模块名')}
             className="h-8 w-full text-[13px] sm:w-36"
           />
         </FilterBar>

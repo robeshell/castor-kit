@@ -1,5 +1,6 @@
 import { BarChart, FunnelChart, HeatmapChart, LineChart, PieChart, SankeyChart } from 'echarts/charts'
 import {
+  AriaComponent,
   AxisPointerComponent,
   CalendarComponent,
   GridComponent,
@@ -15,6 +16,7 @@ import { CanvasRenderer, SVGRenderer } from 'echarts/renderers'
 /**
  * ECharts with only the charts and components the pages use, instead of the whole library (about a third of the size).
  * A chart type or component that isn't registered here renders nothing, so add it to this list when a page needs one.
+ * AriaComponent: decal patterns (series told apart without color) and the generated description (shared/components/Chart).
  */
 echarts.use([
   BarChart,
@@ -23,6 +25,7 @@ echarts.use([
   LineChart,
   PieChart,
   SankeyChart,
+  AriaComponent,
   AxisPointerComponent,
   CalendarComponent,
   GridComponent,

@@ -63,6 +63,7 @@ export default function CustomNodes() {
 
   return (
     <TreeView
+      aria-label="文件"
       nodes={files}
       expandedKeys={expanded}
       onExpandedChange={setExpanded}

@@ -59,7 +59,7 @@ export default function CheckableTreeForm() {
             // validate alone doesn't show the required mark: ask for it
             required
             rules={{ validate: (scopes) => scopes.length > 0 || '请至少勾选一项' }}
-            render={({ value, onChange }) => <CheckableTree tree={SCOPES} value={value} onChange={onChange} className="rounded-lg border p-1.5" />}
+            render={({ value, onChange }) => <CheckableTree aria-label="权限范围" tree={SCOPES} value={value} onChange={onChange} className="rounded-lg border p-1.5" />}
           />
           <Button type="submit" size="sm">
             {t('保存')}

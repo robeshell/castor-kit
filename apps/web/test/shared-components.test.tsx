@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { useForm } from 'react-hook-form'
 import DataTable, { DataPagination } from '@/shared/components/DataTable'
 import type { DataTableColumn } from '@/shared/components/DataTable'
-import { FilterBar, SearchInput } from '@/shared/components/Filters'
+import { FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
 import ExportDialog from '@/shared/components/data-transfer/ExportDialog'
@@ -95,8 +95,8 @@ describe('DataPagination', () => {
   it('perPage 不是正数时按一页处理', () => {
     const { container } = render(<DataPagination page={1} perPage={0} total={50} />)
     expect(screen.getByText('第 1–50 条，共 50 条')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '第 1 页' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('button', { name: '第 2 页' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('下一页')).toBeDisabled()
     expect(container.textContent).not.toMatch(/Infinity|NaN/)
   })
@@ -227,7 +227,7 @@ describe('CheckableTree', () => {
     { key: 1, label: '总部', children: [{ key: 2, label: '研发部' }, { key: 3, label: '市场部' }] },
     { key: 4, label: '分公司' },
   ]
-  const checkboxOf = (label: string) => screen.getByText(label).closest('[role="checkbox"]')
+  const checkboxOf = (label: string) => screen.getByText(label).closest('[role="treeitem"]')
   /** The keys of onChange's last call */
   const lastKeys = (onChange: Mock<(keys: TreeKey[]) => void>) => onChange.mock.lastCall?.[0] ?? []
 
@@ -252,5 +252,65 @@ describe('CheckableTree', () => {
     render(<CheckableTree tree={tree} value={[2]} onChange={onChange} />)
     await userEvent.click(screen.getByText('市场部'))
     expect([...lastKeys(onChange)].sort()).toEqual([1, 2, 3])
+  })
+
+  it('is one Tab stop: arrows move between rows, Space toggles the focused row', async () => {
+    const onChange = vi.fn<(keys: TreeKey[]) => void>()
+    render(<CheckableTree aria-label="部门" tree={tree} value={[]} onChange={onChange} />)
+    expect(screen.getByRole('tree', { name: '部门' })).toBeInTheDocument()
+    const items = screen.getAllByRole('treeitem')
+    expect(items.map((item) => item.tabIndex)).toEqual([0, -1, -1, -1])
+
+    await userEvent.tab()
+    expect(checkboxOf('总部')).toHaveFocus()
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}')
+    expect(checkboxOf('市场部')).toHaveFocus()
+    await userEvent.keyboard(' ')
+    expect(lastKeys(onChange)).toEqual([3])
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(checkboxOf('总部')).toHaveFocus()
+    await userEvent.keyboard('{End}')
+    expect(checkboxOf('分公司')).toHaveFocus()
+  })
+
+  it('collapses and expands with ← / →', async () => {
+    render(<CheckableTree tree={tree} value={[]} onChange={vi.fn()} />)
+    await userEvent.tab()
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(checkboxOf('总部')).toHaveAttribute('aria-expanded', 'false')
+    await waitFor(() => expect(screen.queryByText('研发部')).not.toBeInTheDocument())
+    await userEvent.keyboard('{ArrowRight}')
+    expect(checkboxOf('总部')).toHaveAttribute('aria-expanded', 'true')
+  })
+})
+
+describe('keyboard and names', () => {
+  it('DataTable onRowClick: the primary cell holds a button; Enter and a row click each call it once', async () => {
+    const onRowClick = vi.fn()
+    render(<DataTable columns={COLUMNS} data={ROWS} onRowClick={onRowClick} isRowActive={(row) => row.id === 2} />)
+    const button = screen.getByRole('button', { name: 'alpha' })
+    button.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(onRowClick).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByText('5 个'))
+    expect(onRowClick).toHaveBeenCalledTimes(2)
+    expect(onRowClick).toHaveBeenLastCalledWith(ROWS[1], 1)
+    expect(screen.getByRole('button', { name: 'beta' })).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('FilterSelect is named by its filter; the trigger shows the value', () => {
+    render(<FilterSelect value="" onChange={vi.fn()} options={[{ label: '启用', value: 'on' }]} placeholder="状态" />)
+    expect(screen.getByRole('combobox', { name: '状态' })).toHaveTextContent('全部状态')
+  })
+
+  it('SearchInput is a named search box', () => {
+    render(<SearchInput value="" onChange={vi.fn()} placeholder="搜索用户名" />)
+    expect(screen.getByRole('searchbox', { name: '搜索用户名' })).toBeInTheDocument()
+  })
+
+  it('TreeSelect clear button sits next to the trigger, not inside it', () => {
+    render(<TreeSelect tree={DEPTS} value={3} onChange={vi.fn()} />)
+    const clear = screen.getByRole('button', { name: '清空' })
+    expect(screen.getByRole('combobox').contains(clear)).toBe(false)
   })
 })

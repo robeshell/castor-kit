@@ -99,6 +99,7 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const { t } = useTranslation()
   return (
     <BrowserRouter>
       {/* motion/react animations follow prefers-reduced-motion (the global CSS rule only covers CSS animations) */}
@@ -108,7 +109,13 @@ export default function App() {
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>
-          <Toaster position="top-center" richColors={false} closeButton />
+          <Toaster
+            position="top-center"
+            richColors={false}
+            closeButton
+            containerAriaLabel={t('通知')}
+            toastOptions={{ closeButtonAriaLabel: t('关闭通知') }}
+          />
         </TooltipProvider>
       </ThemeProvider>
       </MotionConfig>

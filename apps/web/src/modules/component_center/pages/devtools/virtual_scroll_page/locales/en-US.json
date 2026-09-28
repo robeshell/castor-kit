@@ -23,6 +23,7 @@
   "行": "row",
   "试用期": "Probation",
   "跳转": "Jump",
+  "跳转到的行号": "Row to jump to",
   "跳转到第": "Go to",
   "部门": "Department",
   "首次渲染时生成一次": "Generated once on first render"

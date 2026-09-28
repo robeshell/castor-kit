@@ -69,6 +69,7 @@ interface ResultChartProps {
 }
 
 function ResultChart({ axes, rows }: ResultChartProps) {
+  const { t } = useTranslation()
   const c = useChartColors()
   const option = useMemo((): EChartsOption => {
     const base = chartBase(c)
@@ -108,7 +109,18 @@ function ResultChart({ axes, rows }: ResultChartProps) {
       ],
     }
   }, [c, axes, rows])
-  return <ReactECharts option={option} style={{ height: 320 }} notMerge opts={{ renderer: 'svg' }} />
+  // Text alternative for screen readers: what is plotted and the largest bar
+  const top = rows.reduce<SqlRow | undefined>((best, r) => (best === undefined || Number(r[axes.y]) > Number(best[axes.y]) ? r : best), undefined)
+  const summary = top
+    ? t('{{y}} 按 {{x}} 的柱状图，共 {{count}} 项，最大的是 {{name}}：{{max}}', {
+        y: axes.y,
+        x: axes.x,
+        count: rows.length,
+        name: String(top[axes.x] ?? ''),
+        max: Number(top[axes.y]),
+      })
+    : t('暂无数据')
+  return <ReactECharts option={option} summary={summary} style={{ height: 320 }} notMerge opts={{ renderer: 'svg' }} />
 }
 
 export default function AiSqlPage() {
@@ -224,6 +236,7 @@ export default function AiSqlPage() {
                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleGenerate()
               }}
               placeholder={t('用自然语言描述你想查什么，例如：最近7天每天新增的用户数')}
+              aria-label={t('要查询的问题')}
               className="h-10 pl-9"
             />
           </div>

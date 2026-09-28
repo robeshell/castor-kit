@@ -53,12 +53,12 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
         </>
       ) : (
         <>
-          <SidebarTrigger className="-ml-1 size-8" />
+          <SidebarTrigger label={t('切换侧边栏')} className="-ml-1 size-8" />
           <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
         </>
       )}
       {mode === 'mixed' ? <TopNav mode="sections" className="flex-1" /> : null}
-      <Breadcrumb className={cn('min-w-0 flex-1', mode !== 'sidebar' && 'hidden')}>
+      <Breadcrumb aria-label={t('面包屑')} className={cn('min-w-0 flex-1', mode !== 'sidebar' && 'hidden')}>
         <BreadcrumbList className="flex-nowrap">
           <BreadcrumbItem className="hidden shrink-0 whitespace-nowrap sm:inline-flex">
             <BreadcrumbLink asChild>

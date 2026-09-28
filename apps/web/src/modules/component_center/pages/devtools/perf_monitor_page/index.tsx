@@ -206,11 +206,17 @@ const HistoryChart = memo(function HistoryChart({ label, data, level, c }: Histo
       animation: false,
     }
   }, [c, data, level])
+  // Text alternative for screen readers: the latest reading and the peak (updates every second)
+  const summary = t('{{name}} 近 60 秒走势：当前 {{value}}%，最高 {{max}}%', {
+    name: t(label),
+    value: (data.at(-1) ?? 0).toFixed(1),
+    max: Math.max(0, ...data).toFixed(1),
+  })
   return (
     <Panel title={`${t(label)} (60s)`} bodyClassName="pt-0">
       {/* Mount the chart only after the first data point to avoid an echarts-for-react race with repeated setOption during init */}
       {data.length ? (
-        <ReactECharts option={option} style={{ height: 96 }} opts={{ renderer: 'canvas' }} />
+        <ReactECharts option={option} summary={summary} style={{ height: 96 }} opts={{ renderer: 'canvas' }} />
       ) : (
         <Skeleton className="h-24 w-full" />
       )}

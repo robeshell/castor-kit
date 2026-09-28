@@ -14,6 +14,8 @@
   "注册": "Sign-up",
   "活动页": "Campaign page",
   "流量流向": "Traffic flow",
+  "流量流向桑基图，{{count}} 个来源共 {{total}} 次访问，最大的来源是{{name}}，占 {{share}}%": "Sankey chart of traffic flow: {{total}} visits from {{count}} sources, largest is {{name}} at {{share}}%",
+  "流量流向桑基图，暂无数据": "Sankey chart of traffic flow: no data",
   "流量转化分析": "Traffic flow",
   "浏览商品": "Product view",
   "直接访问": "Direct",
@@ -23,6 +25,8 @@
   "访问": "Visit",
   "访问来源 → 落地页 → 结果": "Source → landing page → outcome",
   "转化漏斗": "Conversion funnel",
+  "转化漏斗，从{{first}} {{firstValue}} 到{{last}} {{lastValue}}，整体转化率 {{rate}}%": "Conversion funnel from {{first}} ({{firstValue}}) to {{last}} ({{lastValue}}): {{rate}}% overall",
+  "转化漏斗，暂无数据": "Conversion funnel: no data",
   "邮件营销": "Email",
   "首页": "Home"
 }

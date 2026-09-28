@@ -10,7 +10,8 @@ export const DATA_TABLE_PROPS: readonly PropDoc[] = [
   { name: 'selectable', type: 'boolean', default: 'false', description: '显示勾选列' },
   { name: 'selectedKeys', type: 'Key[]', default: '[]', description: '选中行的 key（受控）' },
   { name: 'onSelectionChange', type: '(keys, rows) => void', description: '勾选变化时调用，传入新的 key 列表' },
-  { name: 'onRowClick', type: '(row, index) => void', description: '点击行；传了之后行显示手型光标' },
+  { name: 'onRowClick', type: '(row, index) => void', description: '点击行；传了之后行显示手型光标，主列里放一个按钮供键盘和读屏使用' },
+  { name: 'isRowActive', type: '(row, index) => boolean', description: '页面当前打开的那一行（如主从表的主行），读屏报 aria-current；样式仍用 rowClassName' },
   { name: 'rowClassName', type: '(row, index) => string | undefined', description: '按行追加 class' },
   // i18n-ignore-next-line: the default value shown as code
   { name: 'emptyTitle', type: 'ReactNode', default: "'暂无数据'", description: '空状态标题（中文原文，组件内翻译）' },
@@ -32,6 +33,7 @@ export const DATA_TABLE_COLUMN_PROPS: readonly PropDoc[] = [
   { name: 'minWidth', type: 'CSSProperties["minWidth"]', description: '列最小宽度' },
   { name: 'align', type: "'left' | 'center' | 'right'", default: "'left'", description: '对齐；数字列用 right + tabular-nums' },
   { name: 'ellipsis', type: 'boolean', default: 'false', description: '单行省略，文本单元格悬停显示全文' },
+  { name: 'primary', type: 'boolean', default: 'false', description: '配合 onRowClick：行按钮放在这一列（默认第一列）；选能说出这一行是谁的列，且列里没有别的控件' },
   { name: 'className', type: 'string', description: '单元格 class' },
   { name: 'headerClassName', type: 'string', description: '表头单元格 class' },
 ]

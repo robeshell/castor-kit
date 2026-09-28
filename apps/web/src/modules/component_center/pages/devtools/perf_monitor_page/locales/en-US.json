@@ -1,6 +1,7 @@
 {
   "CPU 使用率": "CPU usage",
   "DOM 解析": "DOM parsing",
+  "{{name}} 近 60 秒走势：当前 {{value}}%，最高 {{max}}%": "{{name}} over the last 60 seconds: now {{value}}%, peak {{max}}%",
   "下载": "Download",
   "内存 %": "Memory %",
   "内存使用": "Memory usage",

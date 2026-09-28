@@ -63,7 +63,14 @@ function CodeBlock({ children }: { children?: ReactNode }) {
   )
 }
 
+/** GFM task-list box: read-only, and named by its state (the item's text follows it) */
+function TaskCheckbox({ checked }: { checked?: boolean }) {
+  const { t } = useTranslation()
+  return <input type="checkbox" checked={Boolean(checked)} disabled readOnly aria-label={checked ? t('已完成') : t('未完成')} />
+}
+
 const COMPONENTS: Components = {
+  input: ({ type, checked, node: _node, ...rest }) => (type === 'checkbox' ? <TaskCheckbox checked={checked} /> : <input type={type} {...rest} />),
   pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
   table: ({ children }) => (
     <div className="md-table-wrap">

@@ -16,6 +16,7 @@ export const SEARCH_INPUT_PROPS: readonly PropDoc[] = [
   { name: 'onSubmit', type: '() => void', description: '按回车时调用' },
   // i18n-ignore-next-line: the default value shown as code
   { name: 'placeholder', type: 'string', default: "'搜索'", description: '占位文字（中文原文，组件内翻译）' },
+  { name: 'label', type: 'string', description: '无障碍名称（中文原文，组件内翻译），默认用 placeholder' },
   { name: 'className', type: 'string', description: '外层 class，用来改宽度（默认 w-full sm:w-60）' },
 ]
 
@@ -27,6 +28,7 @@ export const FILTER_SELECT_PROPS: readonly PropDoc[] = [
   // i18n-ignore-next-line: the default value shown as code
   { name: 'placeholder', type: 'string', default: "'全部'", description: '筛选项名称，「全部」项显示为「全部」+ 名称' },
   { name: 'allLabel', type: 'string', description: '「全部」项的文字，替代默认的「全部」+ 名称' },
+  { name: 'label', type: 'string', description: '无障碍名称（中文原文，组件内翻译），默认用 placeholder；当前值由下拉框自己报出' },
   { name: 'className', type: 'string', description: '触发器的 class，用来改宽度（默认 w-36）' },
 ]
 

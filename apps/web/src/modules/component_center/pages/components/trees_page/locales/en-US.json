@@ -42,9 +42,7 @@
   "搜索菜单": "Search menus",
   "树节点，N 是 TreeNode 或它的子类型": "Tree nodes; N is TreeNode or a subtype of it",
   "高亮的节点": "The highlighted node",
-  "点击行时调用（点箭头只展开 / 收起）": "Called on row click (the chevron only expands / collapses)",
   "行内容，默认显示 node.label（不翻译）": "Row content; defaults to node.label (not translated)",
-  "悬停时显示在行尾的操作，点击不会触发 onSelect": "Actions shown at the end of the row on hover; clicking them doesn't trigger onSelect",
   "非受控时初始展开全部节点": "Uncontrolled: start with every node expanded",
   "展开的节点（受控，和 onExpandedChange 一起用）": "Expanded nodes (controlled, together with onExpandedChange)",
   "展开 / 收起时调用，传入新的展开列表": "Called on expand / collapse with the new list of expanded keys",
@@ -55,5 +53,14 @@
   "树节点，同 TreeView 的 nodes；始终全部展开": "Tree nodes, like TreeView's nodes; always fully expanded",
   "勾选的节点（受控）；父节点的 key 会勾选它的全部子节点": "The checked nodes (controlled); a parent's key checks all of its children",
   "勾选变化时调用：全部勾选的节点（包括父节点），不含半选的父节点": "Called when the checks change: every fully checked node (parents included), without half-checked parents",
-  "勾选框后面的文字，默认 node.label": "Text after the checkbox; defaults to node.label"
+  "勾选框后面的文字，默认 node.label": "Text after the checkbox; defaults to node.label",
+  "点击行或在行上按 Enter / 空格时调用（点箭头只展开 / 收起）": "Called on row click, or Enter / Space on the row (the chevron only expands / collapses)",
+  "悬停或行获得焦点时显示在行尾的操作，点击不会触发 onSelect": "Actions shown at the end of the row on hover or while the row has focus; clicking them doesn't trigger onSelect",
+  "让行可勾选：返回勾选状态，读屏报勾选而不是选中（CheckableTree 用它）": "Makes rows checkable: returns the checked state, which screen readers announce instead of selection (CheckableTree uses it)",
+  "树的无障碍名称（中文原文，组件内翻译）；或用 aria-labelledby 指向可见标题": "Accessible name of the tree (Chinese source text, translated inside); or point aria-labelledby at a visible heading",
+  "树的无障碍名称（中文原文，组件内翻译）": "Accessible name of the tree (Chinese source text, translated inside)",
+  "权限": "Permissions",
+  "地区": "Region",
+  "菜单": "Menu",
+  "文件": "File"
 }

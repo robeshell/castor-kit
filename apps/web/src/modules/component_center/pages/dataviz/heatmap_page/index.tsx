@@ -185,6 +185,24 @@ export default function HeatmapPage() {
     }
   }, [c, ramp, hourData, t])
 
+  // Text alternatives for screen readers: the range and totals of the calendar, the busiest slot of the matrix
+  const calSummary = t('近 365 天活跃日历（{{from}} 至 {{to}}），共 {{total}} 次活跃，{{days}} 天有活跃，最高的一天是 {{day}}，{{max}} 次', {
+    from: calData[0]?.[0] ?? '',
+    to: calData.at(-1)?.[0] ?? '',
+    total: stats.total,
+    days: stats.activeDays,
+    day: stats.maxDay[0],
+    max: stats.maxDay[1],
+  })
+  const busiest = hourData.reduce<HourPoint | undefined>((mx, d) => (mx === undefined || d[2] > mx[2] ? d : mx), undefined)
+  const hourSummary = busiest
+    ? t('一周 7 天 × 24 小时活跃热力矩阵，最活跃的是{{day}} {{hour}}，活跃度 {{value}}', {
+        day: t(DAYS[busiest[1]] ?? ''),
+        hour: t('{{h}}时', { h: busiest[0] }),
+        value: busiest[2],
+      })
+    : t('一周 7 天 × 24 小时活跃热力矩阵，暂无活跃')
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -222,8 +240,9 @@ export default function HeatmapPage() {
           </div>
         }
       >
-        <div className="-mx-1 overflow-x-auto px-1">
-          <ReactECharts option={calOption} style={{ height: 136, minWidth: 760 }} opts={{ renderer: 'canvas' }} notMerge />
+        {/* Scrolls sideways on narrow screens: focusable so the keyboard can scroll it */}
+        <div tabIndex={0} role="region" aria-label={calSummary} className="focus-visible:outline-ring -mx-1 overflow-x-auto px-1 focus-visible:outline-2 focus-visible:-outline-offset-2">
+          <ReactECharts option={calOption} summary={calSummary} style={{ height: 136, minWidth: 760 }} opts={{ renderer: 'canvas' }} notMerge />
         </div>
       </Panel>
 
@@ -235,8 +254,8 @@ export default function HeatmapPage() {
           </span>
         }
       >
-        <div className="-mx-1 overflow-x-auto px-1">
-          <ReactECharts option={hourOption} style={{ height: 240, minWidth: 600 }} opts={{ renderer: 'canvas' }} notMerge />
+        <div tabIndex={0} role="region" aria-label={hourSummary} className="focus-visible:outline-ring -mx-1 overflow-x-auto px-1 focus-visible:outline-2 focus-visible:-outline-offset-2">
+          <ReactECharts option={hourOption} summary={hourSummary} style={{ height: 240, minWidth: 600 }} opts={{ renderer: 'canvas' }} notMerge />
         </div>
       </Panel>
     </div>

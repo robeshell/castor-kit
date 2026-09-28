@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Spinner } from '@/components/ui/spinner'
 import { useTx } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { useReturnFocus } from '@/shared/hooks/useReturnFocus'
 
 export type FormDialogSize = 'sm' | 'md' | 'lg' | 'xl'
 
@@ -24,11 +25,14 @@ function useSubmit<TFieldValues extends FieldValues, TContext, TTransformedValue
   const handle = form.handleSubmit(async (values) => {
     // The caller closes the dialog on success: blur the submit button first so Radix does not warn
     // about applying aria-hidden to content that still holds focus
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    focused?.blur()
     try {
       setSubmitting(true)
       await onSubmit?.(values)
     } catch (err) {
+      // Still open: put focus back where it was (the submit button), not on <body>
+      if (focused?.isConnected) focused.focus()
       // The caller already showed a toast and rethrew only to keep the dialog open; swallow it here to
       // avoid an unhandled rejection. Non-API errors (page bugs) are still logged in development.
       if (import.meta.env.DEV && err instanceof Error && !('isAxiosError' in err && err.isAxiosError)) console.error(err)
@@ -82,9 +86,10 @@ export function FormDialog<TFieldValues extends FieldValues = FieldValues, TCont
 }: FormDialogProps<TFieldValues, TContext, TTransformedValues>) {
   const tx = useTx()
   const [submitting, handleSubmit] = useSubmit(form, onSubmit)
+  const returnFocus = useReturnFocus(open)
   return (
     <Dialog open={open} onOpenChange={(next) => !submitting && onOpenChange?.(next)}>
-      <DialogContent className={cn('gap-0 p-0', SIZES[size])}>
+      <DialogContent closeLabel={tx('关闭')} className={cn('gap-0 p-0', SIZES[size])} onCloseAutoFocus={returnFocus}>
         <Form {...form}>
           <form onSubmit={handleSubmit} noValidate className="flex max-h-[85vh] flex-col">
             <DialogHeader className="px-6 pt-6 pb-4">
@@ -131,9 +136,10 @@ export function FormSheet<TFieldValues extends FieldValues = FieldValues, TConte
 }: FormSheetProps<TFieldValues, TContext, TTransformedValues>) {
   const tx = useTx()
   const [submitting, handleSubmit] = useSubmit(form, onSubmit)
+  const returnFocus = useReturnFocus(open)
   return (
     <Sheet open={open} onOpenChange={(next) => !submitting && onOpenChange?.(next)}>
-      <SheetContent className="gap-0 p-0 sm:max-w-none" style={{ width: `min(${width}px, 100vw)` }}>
+      <SheetContent closeLabel={tx('关闭')} className="gap-0 p-0 sm:max-w-none" style={{ width: `min(${width}px, 100vw)` }} onCloseAutoFocus={returnFocus}>
         <Form {...form}>
           <form onSubmit={handleSubmit} noValidate className="flex h-full flex-col">
             <SheetHeader className="border-b px-6 py-4">
@@ -175,9 +181,10 @@ export interface DetailSheetProps {
 /** Read-only detail sheet */
 export function DetailSheet({ open, onOpenChange, title, description, width = 480, children, footer }: DetailSheetProps) {
   const tx = useTx()
+  const returnFocus = useReturnFocus(open)
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="gap-0 p-0 sm:max-w-none" style={{ width: `min(${width}px, 100vw)` }}>
+      <SheetContent closeLabel={tx('关闭')} className="gap-0 p-0 sm:max-w-none" style={{ width: `min(${width}px, 100vw)` }} onCloseAutoFocus={returnFocus}>
         <SheetHeader className="border-b px-6 py-4">
           <SheetTitle>{tx(title)}</SheetTitle>
           {description ? <SheetDescription>{tx(description)}</SheetDescription> : null}

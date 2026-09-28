@@ -50,7 +50,7 @@ export default function BasicTree() {
   return (
     <div className="grid gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
       {/* Clicking a row selects it; the chevron only expands / collapses */}
-      <TreeView nodes={DEPARTMENTS} selectedKey={selected?.key} onSelect={setSelected} defaultExpandAll className="rounded-lg border p-1.5" />
+      <TreeView aria-label="部门" nodes={DEPARTMENTS} selectedKey={selected?.key} onSelect={setSelected} defaultExpandAll className="rounded-lg border p-1.5" />
       <div className="self-start rounded-lg border p-4 text-[13px]">
         {selected ? (
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">

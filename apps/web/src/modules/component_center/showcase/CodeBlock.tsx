@@ -59,7 +59,11 @@ export default function CodeBlock({ code, language = 'tsx', className }: CodeBlo
           {t('复制')}
         </Button>
       </div>
-      <pre className="showcase-code max-h-[480px] overflow-auto p-4 font-mono text-xs leading-relaxed">
+      {/* Long code scrolls: focusable so the keyboard can scroll it */}
+      <pre
+        tabIndex={0}
+        className="showcase-code focus-visible:outline-ring max-h-[480px] overflow-auto p-4 font-mono text-xs leading-relaxed focus-visible:outline-2 focus-visible:-outline-offset-2"
+      >
         <code>
           {tokens
             ? tokens.tokens.map((line, i) => (

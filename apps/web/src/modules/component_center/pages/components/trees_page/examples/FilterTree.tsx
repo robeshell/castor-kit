@@ -80,6 +80,7 @@ export default function FilterTree() {
       <div className="rounded-lg border p-1.5">
         {visible.length ? (
           <TreeView
+            aria-label="菜单"
             nodes={visible}
             expandedKeys={expanded}
             onExpandedChange={setExpanded}

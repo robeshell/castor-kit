@@ -277,5 +277,20 @@
   "晚于": "After",
   "主导航": "Main navigation",
   "跳到主内容": "Skip to main content",
-  "栏目导航": "Sections"
+  "栏目导航": "Sections",
+  "时间": "Time",
+  "第 {{page}} 页": "Page {{page}}",
+  "关闭 {{title}}": "Close {{title}}",
+  "请输入 6 位验证码": "Enter the 6-digit code",
+  "请输入恢复码": "Enter a recovery code",
+  "通知": "Notifications",
+  "关闭通知": "Close notification",
+  "切换侧边栏": "Toggle sidebar",
+  "面包屑": "Breadcrumb",
+  "主导航菜单": "Main navigation menu",
+  "上传中": "Uploading",
+  "已打开的页面": "Open pages",
+  "表格（可横向滚动）": "Table (scrolls sideways)",
+  "已完成": "Completed",
+  "未完成": "Not completed"
 }

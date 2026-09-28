@@ -100,7 +100,7 @@ function ColorField({ value, onChange }: ColorFieldProps) {
           className="absolute inset-0 cursor-pointer opacity-0"
         />
       </label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={t('例如：#16a34a')} className="h-9 w-44 font-mono" />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={t('例如：#16a34a')} aria-label={t('颜色值')} className="h-9 w-44 font-mono" />
       {color ? (
         <span className="inline-flex h-6 items-center rounded-md px-2 font-mono text-xs text-white" style={{ backgroundColor: color }}>
           {color}
@@ -447,6 +447,7 @@ export default function Dicts() {
             dense
             minWidth={760}
             onRowClick={(row) => setSelectedType(row)}
+            isRowActive={(row) => row.id === typeId}
             rowClassName={(row) => (row.id === typeId ? 'bg-brand-soft hover:bg-brand-soft' : undefined)}
             pagination={{ page: typeList.page, perPage: typeList.perPage, total: typeList.total, onChange: typeList.handlePageChange }}
             emptyTitle="暂无字典类型"

@@ -10,7 +10,7 @@ import type {
   UseControllerProps,
 } from 'react-hook-form'
 import { Checkbox } from '@/components/ui/checkbox'
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormField } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -86,6 +86,32 @@ const isStringList = (value: unknown): value is string[] => Array.isArray(value)
 const isKeyList = (value: unknown): value is (string | number)[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string' || typeof item === 'number')
 
+/** Ids of the enclosing field, for controls FormControl can't reach (groups, and components with an inner trigger) */
+interface FieldIds {
+  /** The FormControl id (the element FormLabel's htmlFor points at) */
+  id: string
+  /** id of the field's FormLabel */
+  labelId: string
+  describedBy: string
+  invalid: boolean
+}
+
+function WithFieldIds({ children }: { children: (ids: FieldIds) => ReactNode }) {
+  const { formItemId, formDescriptionId, formMessageId, error } = useFormField()
+  return children({
+    id: formItemId,
+    labelId: `${formItemId}-label`,
+    describedBy: error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId,
+    invalid: Boolean(error),
+  })
+}
+
+/** FormLabel with an id, so groups (radio / checkbox / upload) can point aria-labelledby at it */
+function FieldLabel(props: ComponentProps<typeof FormLabel>) {
+  const { formItemId } = useFormField()
+  return <FormLabel id={`${formItemId}-label`} {...props} />
+}
+
 interface FieldProps<TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>> extends FormFieldProps<TFieldValues, TName> {
   layout?: FieldLayout
   children: (field: ControllerRenderProps<TFieldValues, TName>, fieldState: ControllerFieldState) => ReactNode
@@ -118,10 +144,10 @@ function Field<TFieldValues extends FieldValues, TName extends FieldPath<TFieldV
         >
           {label ? (
             <div className={cn(layout === 'inline' && 'space-y-0.5')}>
-              <FormLabel className="text-[13px] font-medium">
+              <FieldLabel className="text-[13px] font-medium">
                 {tx(label)}
                 {isRequired ? <span className="text-destructive -ml-1">*</span> : null}
-              </FormLabel>
+              </FieldLabel>
               {layout === 'inline' && description ? <FormDescription className="text-xs">{tx(description)}</FormDescription> : null}
             </div>
           ) : null}
@@ -284,7 +310,7 @@ export function FormSelect<TFieldValues extends FieldValues, TName extends Field
           disabled={disabled}
         >
           <FormControl>
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-9 w-full">
               <SelectValue placeholder={tx(placeholder)} />
             </SelectTrigger>
           </FormControl>
@@ -320,6 +346,8 @@ export function FormMultiSelect<TFieldValues extends FieldValues, TName extends 
       {(field: FieldControl) => (
         <FormControl>
           <MultiSelect
+            ref={field.ref}
+            onBlur={field.onBlur}
             value={isKeyList(field.value) ? field.value : []}
             onChange={field.onChange}
             options={options}
@@ -352,6 +380,8 @@ export function FormTreeSelect<TFieldValues extends FieldValues, TName extends F
       {(field: FieldControl) => (
         <FormControl>
           <TreeSelect
+            ref={field.ref}
+            onBlur={field.onBlur}
             value={isString(field.value) || typeof field.value === 'number' ? field.value : null}
             onChange={field.onChange}
             tree={tree}
@@ -384,15 +414,21 @@ export function FormFileUpload<TFieldValues extends FieldValues, TName extends F
   return (
     <Field {...rest}>
       {(field: FieldControl) => (
-        <FileIdUpload
-          value={isString(field.value) || isStringList(field.value) ? field.value : null}
-          onChange={field.onChange}
-          variant={variant}
-          multiple={multiple}
-          accept={accept}
-          maxSizeMB={maxSizeMB}
-          disabled={disabled}
-        />
+        <WithFieldIds>
+          {({ labelId, describedBy }) => (
+            <div role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
+              <FileIdUpload
+                value={isString(field.value) || isStringList(field.value) ? field.value : null}
+                onChange={field.onChange}
+                variant={variant}
+                multiple={multiple}
+                accept={accept}
+                maxSizeMB={maxSizeMB}
+                disabled={disabled}
+              />
+            </div>
+          )}
+        </WithFieldIds>
       )}
     </Field>
   )
@@ -425,15 +461,20 @@ export function FormAvatarUpload<TFieldValues extends FieldValues, TName extends
   return (
     <Field {...rest}>
       {(field: FieldControl) => (
-        <FormControl>
-          <AvatarUpload
-            value={isString(field.value) ? field.value : null}
-            onChange={field.onChange}
-            name={displayName}
-            maxSizeMB={maxSizeMB}
-            disabled={disabled}
-          />
-        </FormControl>
+        <WithFieldIds>
+          {({ labelId, describedBy }) => (
+            <AvatarUpload
+              role="group"
+              aria-labelledby={labelId}
+              aria-describedby={describedBy}
+              value={isString(field.value) ? field.value : null}
+              onChange={field.onChange}
+              name={displayName}
+              maxSizeMB={maxSizeMB}
+              disabled={disabled}
+            />
+          )}
+        </WithFieldIds>
       )}
     </Field>
   )
@@ -456,7 +497,7 @@ export function FormSwitch<TFieldValues extends FieldValues, TName extends Field
     <Field layout={layout} {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} disabled={disabled} />
+          <Switch ref={field.ref} onBlur={field.onBlur} checked={Boolean(field.value)} onCheckedChange={field.onChange} disabled={disabled} />
         </FormControl>
       )}
     </Field>
@@ -480,24 +521,30 @@ export function FormRadioGroup<TFieldValues extends FieldValues, TName extends F
   return (
     <Field {...rest}>
       {(field: FieldControl) => (
-        <FormControl>
-          <RadioGroup
-            value={field.value === null || field.value === undefined ? '' : String(field.value)}
-            onValueChange={(v) => {
-              const opt = options.find((o) => String(o.value) === v)
-              field.onChange(opt ? opt.value : v)
-            }}
-            disabled={disabled}
-            className={cn(direction === 'horizontal' ? 'flex flex-wrap gap-4' : 'grid gap-2')}
-          >
-            {options.map((opt) => (
-              <label key={String(opt.value)} className="flex cursor-pointer items-center gap-2 text-[13px]">
-                <RadioGroupItem value={String(opt.value)} />
-                {tx(opt.label)}
-              </label>
-            ))}
-          </RadioGroup>
-        </FormControl>
+        <WithFieldIds>
+          {({ labelId, describedBy, invalid }) => (
+            <RadioGroup
+              aria-labelledby={labelId}
+              aria-describedby={describedBy}
+              aria-invalid={invalid}
+              value={field.value === null || field.value === undefined ? '' : String(field.value)}
+              onValueChange={(v) => {
+                const opt = options.find((o) => String(o.value) === v)
+                field.onChange(opt ? opt.value : v)
+              }}
+              disabled={disabled}
+              className={cn(direction === 'horizontal' ? 'flex flex-wrap gap-4' : 'grid gap-2')}
+            >
+              {options.map((opt, index) => (
+                <label key={String(opt.value)} className="flex cursor-pointer items-center gap-2 text-[13px]">
+                  {/* The first radio takes the field's ref so a failed submit can focus the group */}
+                  <RadioGroupItem value={String(opt.value)} ref={index === 0 ? field.ref : undefined} />
+                  {tx(opt.label)}
+                </label>
+              ))}
+            </RadioGroup>
+          )}
+        </WithFieldIds>
       )}
     </Field>
   )
@@ -523,23 +570,34 @@ export function FormCheckboxGroup<TFieldValues extends FieldValues, TName extend
       {(field: FieldControl) => {
         const value: unknown[] = Array.isArray(field.value) ? field.value : []
         return (
-          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
-            {options.map((opt) => {
-              const checked = value.some((v) => String(v) === String(opt.value))
-              return (
-                <label key={String(opt.value)} className="flex cursor-pointer items-center gap-2 text-[13px]">
-                  <Checkbox
-                    checked={checked}
-                    disabled={disabled}
-                    onCheckedChange={(c) =>
-                      field.onChange(c ? [...value, opt.value] : value.filter((v) => String(v) !== String(opt.value)))
-                    }
-                  />
-                  {tx(opt.label)}
-                </label>
-              )
-            })}
-          </div>
+          <WithFieldIds>
+            {({ labelId, describedBy }) => (
+              <div
+                role="group"
+                aria-labelledby={labelId}
+                aria-describedby={describedBy}
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+              >
+                {options.map((opt, index) => {
+                  const checked = value.some((v) => String(v) === String(opt.value))
+                  return (
+                    <label key={String(opt.value)} className="flex cursor-pointer items-center gap-2 text-[13px]">
+                      <Checkbox
+                        ref={index === 0 ? field.ref : undefined}
+                        checked={checked}
+                        disabled={disabled}
+                        onCheckedChange={(c) =>
+                          field.onChange(c ? [...value, opt.value] : value.filter((v) => String(v) !== String(opt.value)))
+                        }
+                      />
+                      {tx(opt.label)}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </WithFieldIds>
         )
       }}
     </Field>
@@ -561,7 +619,14 @@ export function FormDate<TFieldValues extends FieldValues, TName extends FieldPa
     <Field {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <DatePicker value={isString(field.value) ? field.value : ''} onChange={field.onChange} placeholder={placeholder} disabled={disabled} />
+          <DatePicker
+            ref={field.ref}
+            onBlur={field.onBlur}
+            value={isString(field.value) ? field.value : ''}
+            onChange={field.onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
         </FormControl>
       )}
     </Field>
@@ -581,7 +646,7 @@ export function FormDateTime<TFieldValues extends FieldValues, TName extends Fie
     <Field {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <DateTimePicker value={isString(field.value) ? field.value : ''} onChange={field.onChange} disabled={disabled} />
+          <DateTimePicker ref={field.ref} value={isString(field.value) ? field.value : ''} onChange={field.onChange} disabled={disabled} />
         </FormControl>
       )}
     </Field>
@@ -603,7 +668,13 @@ export function FormTags<TFieldValues extends FieldValues, TName extends FieldPa
     <Field {...rest}>
       {(field: FieldControl) => (
         <FormControl>
-          <TagInput value={isStringList(field.value) ? field.value : []} onChange={field.onChange} placeholder={placeholder} disabled={disabled} />
+          <TagInput
+            ref={field.ref}
+            value={isStringList(field.value) ? field.value : []}
+            onChange={field.onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
         </FormControl>
       )}
     </Field>

@@ -38,11 +38,13 @@ import {
   type DragOverEvent,
   type DragStartEvent,
   type DropAnimation,
+  type DndContextProps,
+  type Over,
   type UniqueIdentifier,
 } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { CalendarDays, ChevronsLeftRight, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { CalendarDays, ChevronsLeftRight, CircleAlert, GripVertical, Pencil, Plus, Trash2, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -195,18 +197,21 @@ interface CardBodyProps {
   card: Row
   /** Local date (YYYY-MM-DD): open cards due before it are overdue */
   today: string
+  /** Drag handle for the keyboard, next to the name */
+  grip?: ReactNode
   /** Edit / delete buttons shown next to the name */
   actions?: ReactNode
   /** Drag overlay look (tilted, raised) */
   lifted?: boolean
 }
 
-function CardBody({ card, today, actions, lifted = false }: CardBodyProps) {
+function CardBody({ card, today, grip, actions, lifted = false }: CardBodyProps) {
   const { t } = useTranslation()
   const category = categoryLabel(card.category)
   const priority = card.priority ?? 0
   const due = formatDate(card.end_date, '')
   const open = card.status === 'todo' || card.status === 'in_progress'
+  const overdue = Boolean(due) && open && due < today
   return (
     <div
       data-lift={lifted ? '' : undefined}
@@ -218,6 +223,7 @@ function CardBody({ card, today, actions, lifted = false }: CardBodyProps) {
     >
       <div className="flex items-start gap-2">
         <p className="min-w-0 flex-1 text-[13px] leading-5 font-medium break-words">{card.name}</p>
+        {grip}
         {actions}
       </div>
       {category || priority > 0 || card.tags.length ? (
@@ -240,12 +246,11 @@ function CardBody({ card, today, actions, lifted = false }: CardBodyProps) {
             </span>
           ) : null}
           {due ? (
-            <span
-              className={cn('inline-flex items-center gap-1 tabular-nums', open && due < today && 'text-danger')}
-              title={open && due < today ? t('已逾期') : undefined}
-            >
-              <CalendarDays className="size-3.5" />
+            // Overdue is said in words and with its own icon, not by the red alone
+            <span className={cn('inline-flex items-center gap-1 tabular-nums', overdue && 'text-danger')}>
+              {overdue ? <CircleAlert className="size-3.5" aria-hidden /> : <CalendarDays className="size-3.5" aria-hidden />}
               {due}
+              {overdue ? <span className="font-medium">{t('已逾期')}</span> : null}
             </span>
           ) : null}
         </div>
@@ -303,25 +308,35 @@ interface SortableCardProps extends CardActionsProps {
 
 function SortableCard({ card, today, draggable, onEdit, onDelete }: SortableCardProps) {
   const { t } = useTranslation()
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: cardDndId(card.id),
     data: { type: 'card', card } satisfies CardDragData,
     disabled: !draggable,
   })
+  // The pointer drags the whole card; the keyboard drags through the grip button (a card holding the edit / delete
+  // buttons can't itself be a button). Read-only cards (no edit permission) have no grip.
+  const grip = draggable ? (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...attributes}
+      aria-roledescription={t('可拖拽卡片')}
+      aria-label={t('拖动卡片「{{name}}」', { name: card.name })}
+      className="text-muted-foreground hover:text-foreground -mt-1 flex size-6 shrink-0 cursor-grab items-center justify-center rounded-sm opacity-0 transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-md:opacity-100"
+    >
+      <GripVertical className="size-3.5" />
+    </button>
+  ) : null
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      // Read-only cards (no edit permission) are not focusable drag handles
-      {...(draggable ? { ...attributes, ...listeners, 'aria-roledescription': t('可拖拽卡片') } : {})}
-      className={cn(
-        'group/card relative rounded-lg select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-        draggable && 'cursor-grab touch-manipulation',
-        isDragging && 'z-10',
-      )}
+      // Key presses reach these listeners by bubbling up from the grip, which dnd-kit checks is the activator
+      {...(draggable ? listeners : {})}
+      className={cn('group/card relative rounded-lg select-none', draggable && 'cursor-grab touch-manipulation', isDragging && 'z-10')}
     >
       <div className={cn(isDragging && 'invisible')}>
-        <CardBody card={card} today={today} actions={<CardActions card={card} onEdit={onEdit} onDelete={onDelete} />} />
+        <CardBody card={card} today={today} grip={grip} actions={<CardActions card={card} onEdit={onEdit} onDelete={onDelete} />} />
       </div>
       {isDragging ? <div className="border-primary/35 bg-brand-soft absolute inset-0 rounded-lg border border-dashed" /> : null}
     </div>
@@ -472,6 +487,35 @@ export default function KanbanPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Row | null>(null)
   const form = useForm<FormValues>({ defaultValues: emptyValues('todo') })
+
+  // Screen-reader instructions and announcements in the UI language (dnd-kit's defaults are English and name ids)
+  const cardName = (data: Data | undefined) => (isCardDragData(data) ? data.card.name : '')
+  const placeOf = (over: Over | null) => {
+    if (!over) return null
+    const data = over.data.current
+    const status = isCardDragData(data) ? statusOf(data.card) : isColumnDropData(data) ? data.status : null
+    const column = COLUMNS.find((c) => c.status === status)
+    return column ? t(column.label) : null
+  }
+  const accessibility: DndContextProps['accessibility'] = {
+    screenReaderInstructions: { draggable: t('按空格或回车拿起卡片，用方向键移动，再按空格或回车放下，按 Esc 取消。') },
+    announcements: {
+      onDragStart: ({ active }) => t('已拿起卡片「{{name}}」', { name: cardName(active.data.current) }),
+      onDragOver: ({ active, over }) => {
+        const place = placeOf(over)
+        return place
+          ? t('「{{name}}」移到「{{column}}」列', { name: cardName(active.data.current), column: place })
+          : t('「{{name}}」不在任何列上', { name: cardName(active.data.current) })
+      },
+      onDragEnd: ({ active, over }) => {
+        const place = placeOf(over)
+        return place
+          ? t('已放下「{{name}}」，位于「{{column}}」列', { name: cardName(active.data.current), column: place })
+          : t('已放下「{{name}}」', { name: cardName(active.data.current) })
+      },
+      onDragCancel: ({ active }) => t('已取消拖动，「{{name}}」回到原位', { name: cardName(active.data.current) }),
+    },
+  }
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -657,6 +701,7 @@ export default function KanbanPage() {
         <BoardSkeleton />
       ) : (
         <DndContext
+          accessibility={accessibility}
           sensors={sensors}
           collisionDetection={collisionDetection}
           onDragStart={handleDragStart}

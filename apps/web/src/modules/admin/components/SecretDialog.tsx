@@ -39,7 +39,7 @@ export default function SecretDialog({ open, onOpenChange, title, description, s
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent closeLabel={t('关闭')} className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>{t(title)}</DialogTitle>
           {description ? <DialogDescription>{t(description)}</DialogDescription> : null}

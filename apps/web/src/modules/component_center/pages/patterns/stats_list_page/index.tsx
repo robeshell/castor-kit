@@ -163,6 +163,17 @@ function CategoryDistribution({ stats }: StatsPanelProps) {
     }
   }, [c, items, t])
 
+  // Text alternative for screen readers: the total and the largest category with its share
+  const largest = items.reduce<(typeof items)[number] | undefined>((a, b) => (a === undefined || b.count > a.count ? b : a), undefined)
+  const summary = largest
+    ? t('分类分布环形图，共 {{total}} 条记录，最多的是{{name}}，{{records}} 条，占 {{percent}}%', {
+        total: formatNumber(total),
+        name: largest.name,
+        records: formatNumber(largest.count),
+        percent: percent(largest.count, total),
+      })
+    : t('没有符合条件的记录')
+
   const highlight = (index: number, on: boolean) => {
     chartRef.current?.getEchartsInstance().dispatchAction({ type: on ? 'highlight' : 'downplay', seriesIndex: 0, dataIndex: index })
   }
@@ -183,7 +194,7 @@ function CategoryDistribution({ stats }: StatsPanelProps) {
       ) : (
         <div className="flex flex-col items-center gap-5 sm:flex-row">
           <div className="relative size-40 shrink-0">
-            <ReactECharts ref={chartRef} option={option} style={{ height: 160, width: 160 }} notMerge opts={{ renderer: 'svg' }} />
+            <ReactECharts ref={chartRef} option={option} summary={summary} patterns style={{ height: 160, width: 160 }} notMerge opts={{ renderer: 'svg' }} />
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <CountUp value={total} className="text-xl leading-none font-semibold" />
               <span className="text-muted-foreground mt-1 text-[11px]">{t('条记录')}</span>

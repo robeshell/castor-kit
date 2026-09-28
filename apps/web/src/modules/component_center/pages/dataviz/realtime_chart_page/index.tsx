@@ -137,6 +137,15 @@ export default function RealtimeChartPage() {
     }
   }, [c, timestamps, series, t])
 
+  // Text alternative for screen readers: the sample count and each sensor's latest reading (updates with the data)
+  const latest = perSensor((s) => series[s.key].at(-1))
+  const summary = timestamps.length
+    ? t('4 条传感器曲线，{{count}} 个采样点，最新读数：温度 {{temperature}} °C，湿度 {{humidity}}%，压力 {{pressure}} kPa，流量 {{flow}} m³/h', {
+        count: timestamps.length,
+        ...latest,
+      })
+    : t('传感器曲线，暂无采样点')
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -147,7 +156,7 @@ export default function RealtimeChartPage() {
               {running ? 'LIVE' : 'PAUSED'}
             </StatusBadge>
             <Select value={speed} onValueChange={setSpeed}>
-              <SelectTrigger size="sm" className="h-8 w-[112px] text-[13px]">
+              <SelectTrigger size="sm" aria-label={t('刷新速度')} className="h-8 w-[112px] text-[13px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -191,6 +200,8 @@ export default function RealtimeChartPage() {
       <Panel title="传感器曲线" description={t('最近 {{count}} 个采样点', { count: MAX_POINTS })}>
         <ReactECharts
           option={option}
+          summary={summary}
+          patterns
           style={{ height: isMobile ? 240 : 400 }}
           opts={{ renderer: 'canvas' }}
           notMerge={false}

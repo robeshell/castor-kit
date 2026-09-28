@@ -65,7 +65,7 @@ export default function ImageUpload<R extends UploadResponse = UploadResponse>({
               ) : null}
               {f.status === 'uploading' ? (
                 <div className="bg-background/60 absolute inset-0 flex flex-col items-center justify-center gap-1 backdrop-blur-[1px]">
-                  <Spinner />
+                  <Spinner label={tx('上传中')} />
                   {f.percent ? <span className="text-[11px] tabular-nums">{f.percent}%</span> : null}
                 </div>
               ) : null}
