@@ -77,11 +77,11 @@ Group directory `components/`. Where the page patterns show whole pages, these p
 | Markdown | `/component-center/components/markdown` | `MarkdownView` |
 | Condition Builder | `/component-center/components/condition-builder` | `ConditionBuilder`: field / operator / value conditions combined with AND / OR, plus condition groups; its value is plain JSON to save or send to an API (examples: filtering table rows, saving a query in a form, single-level and read-only) |
 
-Each page lives in `components/<group>_page/`: every example is its own file under `examples/`, imported by the page twice, once as a component for the live preview and once with Vite's `?raw` for the source shown under it, so the preview and the code can't drift; the props tables are in the page's `props.ts`. The layout pieces (`ShowcasePage`, `ShowcaseSection`, `Example`, `PropsTable`, `CodeBlock`) are in `apps/web/src/modules/component_center/showcase/`. To add a page or an example, follow "Component showcase pages" in [AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md); a test fails when an example file isn't wired both ways.
+Each page lives in `components/<name>_page/` (e.g. `components/data_table_page/`): every example is its own file under `examples/`, imported by the page twice, once as a component for the live preview and once with Vite's `?raw` for the source shown under it, so the preview and the code can't drift; the props tables are in the page's `props.ts`. The layout pieces (`ShowcasePage`, `ShowcaseSection`, `Example`, `PropsTable`, `CodeBlock`) are in `apps/web/src/modules/component_center/showcase/`. To add a page or an example, follow "Component showcase pages" in [AGENTS.md](https://github.com/robeshell/castorjs/blob/main/AGENTS.md); a test fails when an example file isn't wired both ways.
 
 ## Data Visualization
 
-Group directory `dataviz/`. Built on ECharts; chart colors follow the theme and accent color through `useChartColors()`.
+Group directory `dataviz/`. Built on ECharts through `@/shared/components/Chart`; colors come from `useChartColors()`, so they follow light / dark mode, and brand-colored series also follow the accent color (see [Theme & layout](/guide/appearance#how-tokens-are-derived)).
 
 | Page | Route | Description |
 |---|---|---|
@@ -101,7 +101,7 @@ Group directory `ai/`. Requires a model service, configured on the AI tab of Sys
 | AI Data Query | `/component-center/ai/sql` | Generates SQL from natural language, runs it on a read-only connection, and shows the results and a chart |
 
 ::: tip Security boundaries of AI Data Query
-Queries run on a separate read-only connection, the number of result rows is capped, and sensitive tables such as permissions and logs are filtered out. In production you must set `AI_SQL_DATABASE_URL` to point at a read-only account; see the [Deployment guide](/deploy/).
+Queries run on a separate read-only connection, the number of result rows is capped, and sensitive tables such as permissions and logs are filtered out. In production the API refuses to start unless it has a read-only connection: set `AI_SQL_DATABASE_URL` to a read-only account, or set `POSTGRES_RO_PASSWORD` and let it be derived (the provided `docker-compose.yml` does this for you); see [Configuration](/reference/configuration#ai-data-query).
 :::
 
 ## Editors / Low-code
@@ -132,7 +132,7 @@ The WebSocket and Performance Monitor pages depend on `/ws/devtools`. Behind a r
 
 ## System
 
-Besides the component examples, the System menu holds the business features that ship with the scaffold, in four groups: Organization (users, roles, departments), Security & Audit (online users, logs), Configuration (system settings, menus, dictionaries, scheduled tasks) and Content & Messages (files, notifications, announcements):
+Besides the component examples, the System menu holds the business features that ship with the scaffold, in four groups: Organization (users, roles, departments), Security & Audit (online users, logs, API tokens), Configuration (system settings, menus, dictionaries, scheduled tasks, webhooks) and Content & Messages (files, notifications, announcements):
 
 | Page | Route | Description |
 |---|---|---|
@@ -146,6 +146,8 @@ Besides the component examples, the System menu holds the business features that
 | Logs | `/system/logs` | Operation logs and login logs |
 | Dictionaries | `/system/dicts` | Maintains dictionary data and serves as a data source for dropdown options |
 | Scheduled Tasks | `/system/scheduled-tasks` | Calls HTTP URLs on a cron schedule and shows execution history |
+| API tokens | `/system/api-tokens` | Everyone's API tokens within your data scope: search, filter by status, revoke (see [Open API](/guide/open-api#api-tokens)) |
+| Webhooks | `/system/webhooks` | Endpoints that receive signed event notifications: test sends, delivery history, redelivery (see [Open API](/guide/open-api#webhooks)) |
 | Notifications | `/system/notifications` | In-app notifications |
 | Announcements | `/system/announcements` | Publishing and managing announcements |
 

@@ -14,25 +14,25 @@ Castor 的登录状态保存在服务端，可以查看和强制下线；在此�
 | `security.password_min_length` | 密码最短长度（6–64） | `6` |
 | `security.password_require_letters_digits` | 密码必须同时包含字母和数字 | 关闭 |
 | `security.password_require_symbol` | 密码必须包含符号 | 关闭 |
-| `security.session_ttl_hours` | 登录有效期（小时，1–720，滑动续期） | `SESSION_TTL_HOURS` |
-| `security.login_max_failures` / `security.login_lockout_minutes` | 登录失败锁定次数 / 锁定时长（分钟） | `10` / `15` |
-| `security.rate_limit_per_minute` | 每个 IP 每分钟的 `/api` 请求上限 | `600` |
-| `security.auth_rate_limit_per_minute` | 每个 IP 每分钟的登录类请求上限（登录、两步验证码、找回密码共用） | `20` |
+| `security.session_ttl_hours` | 登录有效期（小时，1–720，滑动续期） | `SESSION_TTL_HOURS`（`8`） |
+| `security.login_max_failures` / `security.login_lockout_minutes` | 登录失败锁定次数（3–1000）/ 锁定时长兼失败计数的时间窗（分钟，1–1440），见 [登录失败锁定](#登录失败锁定) | `10` / `15` |
+| `security.rate_limit_per_minute` | 每个 IP 每分钟的 `/api` 和 `/ws` 请求上限（60–100000） | `600` |
+| `security.auth_rate_limit_per_minute` | 每个 IP 每分钟的登录类请求上限（3–1000；登录、两步验证码、验证身份、找回密码共用） | `20` |
 | `security.api_tokens_enabled` | 允许使用 API Token，见 [开放接口](/zh/guide/open-api) | 关闭 |
 
-- 默认值偏保守：不打开开关时这些功能都不生效
-- 前置条件不满足的开关不能打开，页面上会写明原因。例如没有配置邮件时，「邮件找回密码」不能打开；演示模式下两步验证和找回密码都不能打开
-- 密码、Secret Key、API Key 这类密钥用由 `SECRET_KEY` 派生的密钥加密后存储，接口和页面都不会再返回明文
-- 设置了对应环境变量的项（如 `SMTP_HOST`、`AI_API_KEY`）以环境变量为准，页面上只读。只有服务启动前就要用的配置（数据库地址、`SECRET_KEY`、端口等）必须放环境变量
+- 会给用户增加步骤的功能（两步验证、找回密码、API Token）在打开开关前都不生效；登录失败锁定和接口限流则从一开始就按上表的默认值生效
+- 前置条件不满足的开关不能打开，页面上会写明原因。例如「邮件」页签没有填 SMTP 服务器和网站地址时，「邮件找回密码」不能打开；演示模式下两步验证、找回密码和 API Token 都不能打开
+- SMTP 密码、S3 Secret Key、AI API Key 这类密钥用由 `SECRET_KEY` 派生的密钥加密后存储，接口和页面都不会再返回明文
+- 设置了对应环境变量的项（如 `SMTP_HOST`、`AI_API_KEY`）以环境变量为准，页面上只读。`SESSION_TTL_HOURS` 是例外：它只决定登录有效期的默认值，不会锁定该项。只有服务启动前就要用的配置（数据库地址、`SECRET_KEY`、端口等）必须放环境变量
 - 查看需要菜单权限 `system_settings`，修改需要按钮权限 `system_settings_edit`
 
 ### 系统设置的安全措施
 
 系统设置能改邮件服务器、文件存储、AI 接口这些「把数据送到哪里」的配置。一个被盗用的管理员账号如果改了它们，可能截获找回密码邮件、把新上传的文件或 AI 请求送到别人的服务器。因此：
 
-- **需要近期验证身份**：保存设置、点测试按钮时，要求 10 分钟内登录过或验证过身份，否则会弹出「验证身份」，输入当前密码（开启了两步验证的还要输入验证码或恢复码）。只偷到登录状态（cookie）的人改不了设置；验证失败计入登录失败锁定。接口是 `POST /api/admin/reauth`，后端用 `common/session.ts` 的 `requireRecentAuth(request)` 保护接口
+- **需要近期验证身份**：保存设置、点测试按钮时，要求 10 分钟内登录过或验证过身份，否则会弹出「验证身份」，输入当前密码（开启了两步验证的还要输入验证码或恢复码）。只偷到登录状态（cookie）的人改不了设置；验证失败计入登录失败锁定。创建 API Token、新增或修改 Webhook 也要经过同样的验证（见 [开放接口](/zh/guide/open-api)）。接口是 `POST /api/admin/reauth`，后端用 `common/session.ts` 的 `requireRecentAuth(request)` 保护接口
 - **变更通知**：每次保存都会给所有启用的超级管理员发站内通知，写明谁改了哪些项（密钥只写「已更新 / 已清除」），操作日志里也有记录（密钥脱敏）
-- **不能指向保留地址和内网**：SMTP 服务器、S3 接口地址、AI 接口地址不能指向云服务器元数据（`169.254.169.254`）等保留地址；生产环境默认也不能指向内网（`127.0.0.1`、`10.x`、`192.168.x` 等）。要用内网的 MinIO、邮件服务器时设置 `SETTINGS_ALLOW_PRIVATE_NETWORK=true`。保存、测试时都会检查，AI 请求在连接时还会再检查一次实际地址，防止域名事后改指向内网
+- **不能指向保留地址和内网**：SMTP 服务器、S3 接口地址、AI 接口地址不能指向云服务器元数据（`169.254.169.254`）等保留地址；生产环境默认也不能指向内网（`127.0.0.1`、`10.x`、`192.168.x` 等）。要用内网的 MinIO、邮件服务器时设置 `SETTINGS_ALLOW_PRIVATE_NETWORK=true`。保存、测试时都会检查，AI 请求在连接时还会再检查一次实际地址，防止域名事后改指向内网。用环境变量锁定的值由运维自行负责，不做这项检查
 - **只给少数人权限**：查看需要菜单权限 `system_settings`，修改需要按钮权限 `system_settings_edit`，默认只有超级管理员有
 
 生产环境建议：
@@ -43,13 +43,14 @@ Castor 的登录状态保存在服务端，可以查看和强制下线；在此�
 
 ### 新增一个设置项
 
-设置项定义在 `apps/api/src/common/settings.ts` 的 `SETTING_DEFINITIONS` 里，每项写明分组、类型（布尔、整数、字符串、密钥、枚举、字符串列表）、默认值、取值范围、可以锁定它的环境变量、是否公开（公开的会通过 `/api/admin/app-info` 发给未登录的页面）以及不可用的原因。新的环境变量名还要加进 `common/settings-env.ts`，前端在 `pages/settings/form.js` 里补上标签和说明。代码里通过 `app.settings.get()` 读取；在每个请求都会用到的地方（例如限流）用 `app.settings.peek()`，它直接返回缓存，不等待数据库。
+设置项定义在 `apps/api/src/common/settings.ts` 的 `SETTING_DEFINITIONS` 里，每项写明分组、类型（布尔、整数、字符串、密钥、枚举、字符串列表）、默认值、取值范围、可以锁定它的环境变量、是否公开（公开的会通过 `/api/admin/app-info` 发给未登录的页面）以及不可用的原因。新的环境变量名还要加进 `common/settings-env.ts`。前端在 `apps/web/src/modules/admin/pages/settings/form.ts` 的 `FIELD_META` 里补上标签和说明，在同目录 `index.tsx` 对应页签里放上这个字段，并在该页面的 `locales/` 里补译文。代码里通过 `app.settings.get()` 读取；在每个请求都会用到的地方（例如限流）用 `app.settings.peek()`，它直接返回缓存，不等待数据库。
 
 新功能如果需要「默认关闭、管理员可以打开」，应该在这里加一个设置项，而不是再加一个环境变量。
 
 ## 服务端会话
 
-- 登录后在 `sessions` 表中新建一条会话。cookie `castor_session` 仍然加密，但只保存会话 ID 和 CSRF token，登录状态与用户以表中记录为准
+- 登录后在 `sessions` 表中新建一条会话。cookie `castor_session`（加密、`HttpOnly`、`SameSite=Lax`）只保存会话 ID 和 CSRF token，登录状态与用户以表中记录为准
+- 带会话的 `/api/` 写请求（POST / PUT / PATCH / DELETE）必须在 `X-CSRF-Token` 请求头里带上这个 CSRF token；前端的请求封装会自动处理，见 [后端开发](/zh/guide/backend)
 - 每个请求校验一次会话；最近活动时间和到期时间每分钟最多更新一次（滑动续期）
 - 过期或已撤销超过一天的会话由调度器进程每小时清理一次
 
@@ -67,7 +68,7 @@ Castor 的登录状态保存在服务端，可以查看和强制下线；在此�
 
 ### 在线用户
 
-「系统管理 → 在线用户」列出当前已登录的会话，包括用户、设备、IP、登录时间和最近活动时间，结果按操作人的 [数据权限](/zh/guide/rbac#数据权限) 过滤。拥有按钮权限 `system_sessions_revoke` 时可以强制下线：不能下线自己当前的会话，非超级管理员不能下线超级管理员。
+「系统管理 → 安全审计 → 在线用户」列出当前已登录的会话，包括用户、设备、IP、登录时间和最近活动时间，结果按操作人的 [数据权限](/zh/guide/rbac#数据权限) 过滤。拥有按钮权限 `system_sessions_revoke` 时可以强制下线：不能下线自己当前的会话，非超级管理员不能下线超级管理员。
 
 每个用户在「个人设置 → 登录设备」里可以看到自己在哪些设备上登录，并退出单个设备或其他所有设备。
 
@@ -85,7 +86,7 @@ Castor 的登录状态保存在服务端，可以查看和强制下线；在此�
 - 使用 TOTP（6 位、30 秒、SHA-1），允许前后各一个时间窗的时钟误差；同一时间窗的验证码只能用一次
 - 密钥用从 `SECRET_KEY` 派生的密钥做 AES-256-GCM 加密后存储；更换 `SECRET_KEY` 后已有的绑定会失效，需要重新绑定
 - 恢复码只存 sha256 哈希，每个只能用一次
-- 验证码输错与密码输错一样计入登录失败锁定（`LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES`）
+- 验证码输错与密码输错一样计入 [登录失败锁定](#登录失败锁定)
 - 密码正确但还没通过第二步时，会话处于等待状态，不能访问任何需要登录的接口，5 分钟后失效；通过后会换发新的会话 ID。「登录成功」日志和最近登录时间在第二步通过后才记录
 - 关闭总开关只是让登录不再询问验证码，已有的绑定会保留，重新打开后立即恢复
 
@@ -106,8 +107,15 @@ Castor 的登录状态保存在服务端，可以查看和强制下线；在此�
 ## 接口限流
 
 - 所有 `/api` 和 `/ws` 请求按 IP 计数，超过每分钟上限返回 429，报错按语言翻译，响应头带 `Retry-After`；静态文件和 `/health` 不计数
-- 登录、两步验证码、找回密码共用一个更严格的额度
+- 登录、两步验证码（登录时和绑定时）、验证身份、找回密码（申请邮件和设置新密码）共用一个更严格的额度，即 `security.auth_rate_limit_per_minute`
 - 计数保存在进程内存中，多实例部署时每个实例分别计数，实际上限最多是设置值乘以实例数
 - `RATE_LIMIT_ENABLED=false` 可以整体关闭（测试环境默认关闭）
 
 限流与登录失败锁定同时生效：限流限制请求频率，锁定限制失败次数。
+
+### 登录失败锁定
+
+- 计为失败的有：密码错误（包括已停用账号输对了密码）、登录时两步验证码或恢复码错误、验证身份失败（密码或验证码错误）。统计最近 `security.login_lockout_minutes` 分钟内的次数，按 IP 和按用户名分别计数
+- 任一计数达到 `security.login_max_failures` 后，登录、第二步验证和验证身份都返回 429，直到较早的失败移出时间窗。演示模式下只按 IP 计数，避免有人故意输错把公共演示账号锁住
+- 登录成功会清除时间窗内该用户和该 IP 的失败记录
+- `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES` 可以锁定这两个值，见 [配置项](/zh/reference/configuration#登录锁定)

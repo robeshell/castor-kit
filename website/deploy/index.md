@@ -3,7 +3,7 @@
 The recommended way to deploy is Docker Compose. One compose stack contains two services: PostgreSQL (`db`) and the Node app (`app`). The app process serves both the backend API and the built frontend.
 
 ::: info No automatic deployment
-The app has no CI-driven deployment. `.github/workflows/ci.yml` only runs lint, type checks, tests, the gate and the frontend build on pushes and pull requests. Deployment is done by hand on the server; see the update process below.
+The app has no CI-driven deployment. `.github/workflows/ci.yml` only runs lint, type checks, tests, the gate and the frontend build on pushes to main and on pull requests. Deployment is done by hand on the server; see the update process below.
 
 The docs site is the exception: `.github/workflows/docs.yml` builds it and publishes it to GitHub Pages whenever changes under `website/` land on main (set Settings → Pages → Source to GitHub Actions in the repository). Pull requests only build it and check for dead links.
 :::
@@ -19,11 +19,11 @@ The image is built in two stages, both based on `node:22-bookworm-slim` (glibc: 
 
 On container start, `docker-entrypoint.sh` runs, in order:
 
-1. `node dist/setup-once.js`: under a PostgreSQL advisory lock, runs database migrations, the incremental RBAC sync, and creates or updates the AI SQL read-only account `castor_kit_ro`. Even when several replicas start at once, they run one after another and the result is idempotent.
+1. `node dist/setup-once.js`: under a PostgreSQL advisory lock, runs database migrations, the incremental RBAC sync, and creates or updates the AI SQL read-only account `castor_kit_ro`; in [demo mode](/reference/configuration#public-demo) it also restores the demo data when it is due. Even when several replicas start at once, they run one after another and the result is idempotent.
 2. `node dist/main.js`: starts the server.
 
 ::: warning Registry used during the build
-The `Dockerfile` sets the npm registry to `https://registry.npmmirror.com`. If that registry is slow from your server, change it in the `Dockerfile`.
+The `Dockerfile` installs dependencies from the registry in the `NPM_REGISTRY` build argument, which defaults to `https://registry.npmjs.org`. `docker-compose.yml` passes `https://registry.npmmirror.com` (a mainland-China mirror) instead, so builds through compose use the mirror by default. To use a different registry, set `NPM_REGISTRY` in `.env.production`, for example `NPM_REGISTRY=https://registry.npmjs.org`.
 :::
 
 ## Option 1: setup wizard
@@ -37,7 +37,7 @@ bash scripts/setup.sh
 The wizard asks for the admin password, the port (default 5000) and optional AI settings; generates a random `SECRET_KEY`, `POSTGRES_PASSWORD` and `POSTGRES_RO_PASSWORD`; writes them to `.env.production`; then builds and starts the services and waits for `/health` to be ready.
 
 ::: warning setup.sh modifies your Docker configuration
-If Docker's `daemon.json` (`~/.docker/daemon.json` on macOS, `/etc/docker/daemon.json` on Linux) has no `registry-mirrors`, the script adds a registry mirror and restarts Docker (via `sudo systemctl restart docker` on Linux). On a server that is already running other containers, Option 2 is recommended.
+If Docker's `daemon.json` (`~/.docker/daemon.json` on macOS, `/etc/docker/daemon.json` on Linux) has no `registry-mirrors`, the script adds the registry mirror `https://docker.xuanyuan.me` and restarts Docker (on macOS it quits and reopens Docker Desktop; on Linux it runs `sudo systemctl restart docker`). On a server that is already running other containers, Option 2 is recommended.
 :::
 
 ## Option 2: manual setup
@@ -57,6 +57,7 @@ Optional variables:
 
 ```bash
 APP_PORT=5000          # Host port; 8080 if not set
+NPM_REGISTRY=https://registry.npmjs.org   # npm registry for the image build; compose defaults to https://registry.npmmirror.com
 ```
 
 Mail, file storage, upload limits and the AI model don't go here: sign in after deploying and configure them on the System settings page. To pin one with an environment variable instead, see [Configuration in System settings](/reference/configuration#configuration-in-system-settings). For every available variable, see [Configuration](/reference/configuration#docker). You can generate random strings with `openssl rand -base64 48`.
@@ -105,7 +106,7 @@ Startup initialization (migrations, RBAC sync, demo data restore) uses a session
 
 1. Sign up for Render with your GitHub account. If the repository isn't under your account, fork it first
 2. In the Render dashboard choose **New → Blueprint** and select the repository; Render reads `render.yaml`
-3. When prompted, enter `DATABASE_URL` (the connection string from the previous step); every other variable is set in `render.yaml` or generated
+3. When prompted, enter `DATABASE_URL` (the connection string from the previous step). Render also asks for `AI_API_KEY` and `AI_MODEL`; leave them empty and set them later if you want AI (see step 4 below). Every other variable is set in `render.yaml` or generated
 4. Click **Apply**. The first build takes about 5–10 minutes. Once the status is **Live**, open the service URL (`https://<service-name>.onrender.com`) and the login page shows the demo account
 
 The **Deploy to Render** button in the README does the same thing.
@@ -114,7 +115,7 @@ The **Deploy to Render** button in the README does the same thing.
 
 - `render.yaml` leaves auto-deploy on: every push to main triggers a rebuild, and failed builds are emailed to you. Turn off Auto-Deploy under the service's **Settings → Build & Deploy** if you don't want that
 - The demo account's password is `ADMIN_PASSWORD` in `render.yaml`. It only applies when the account is first created, so change it before the first deploy
-- To restore the demo data right away, run `node dist/demo-reset.js` in the Render service's **Shell**, or run `pnpm demo:reset` locally against the same database
+- To restore the demo data right away, run `pnpm demo:reset` from a local checkout with the Neon connection string, e.g. `DEV_DATABASE_URL='<Neon connection string>' pnpm demo:reset` (the script uses the database of the current `NODE_ENV`, which is `DEV_DATABASE_URL` in development). On a paid Render instance you can also run `node dist/demo-reset.js` in the service's **Shell**; free instances have no Shell
 
 ### 4. Connect AI (optional)
 
@@ -140,7 +141,7 @@ Then redeploy on Render. Initialization updates the password of the existing acc
 :::
 
 ::: tip Running production on Render
-Set `DEMO_MODE` to `false` and replace `ADMIN_PASSWORD` with a strong password. A free instance still sleeps and scheduled tasks won't run on time, so for real use pick a paid instance or deploy to your own server with option 1 or 2.
+Set `DEMO_MODE` to `false` and replace `ADMIN_PASSWORD` with a strong password. A free instance still sleeps, scheduled tasks won't run on time, and its disk is wiped (uploaded files need the `s3` driver), so for real use pick a paid instance or deploy to your own server with option 1 or 2.
 :::
 
 ## Common operations
@@ -271,7 +272,7 @@ pnpm install --frozen-lockfile
 pnpm build
 
 # 2. Create .env.production in the repo root or in apps/api/, containing at least:
-#    DATABASE_URL, SECRET_KEY, ADMIN_PASSWORD, AI_SQL_DATABASE_URL, POSTGRES_RO_PASSWORD
+#    DATABASE_URL, SECRET_KEY, ADMIN_PASSWORD, POSTGRES_RO_PASSWORD
 
 # 3. Initialize the database (migrations + incremental RBAC sync + read-only account)
 NODE_ENV=production node apps/api/dist/setup-once.js
@@ -281,7 +282,7 @@ NODE_ENV=production node apps/api/dist/main.js
 ```
 
 - `NODE_ENV` must be set on the command line (or in your process manager); the backend uses it to decide to load `.env.production`.
-- `AI_SQL_DATABASE_URL` should point at the read-only account, e.g. `postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<database>`. Step 3 creates the read-only account using `POSTGRES_RO_PASSWORD`.
+- Step 3 creates the read-only account `castor_kit_ro` with `POSTGRES_RO_PASSWORD`, so the account in `DATABASE_URL` must be allowed to create roles. When `AI_SQL_DATABASE_URL` is not set, AI Data Query connects with `DATABASE_URL` switched to that account; set `AI_SQL_DATABASE_URL` only to use a different connection, and point it at a read-only account, e.g. `postgresql://castor_kit_ro:<POSTGRES_RO_PASSWORD>@<host>/<database>`.
 - The frontend build is in `apps/web/dist/`, and the backend serves pages from there by default.
 - Run `main.js` under a process manager such as systemd or pm2; the standalone scheduler process is `apps/api/dist/worker.js`.
 - To update: `git pull` → `pnpm install --frozen-lockfile` → `pnpm build` → run step 3 again → restart the server.

@@ -3,7 +3,7 @@
 `pnpm` コマンドはすべてリポジトリのルートで実行します。
 
 ::: tip 引数の前の -- について
-Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）では、引数の前の `--` はあってもなくてもかまいません。**`pnpm db:generate` の後ろには `--` を書かないでください。** 引数がそのまま drizzle-kit に渡されますが、drizzle-kit は `--` を認識しないためです。
+Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`seed:demo`、`openapi:*`）では、引数の前の `--` はあってもなくてもかまいません。**`pnpm db:generate` の後ろには `--` を書かないでください。** 引数がそのまま drizzle-kit に渡されますが、drizzle-kit は `--` を認識しないためです。
 :::
 
 ## 開発
@@ -27,8 +27,9 @@ Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi
 | `pnpm --filter @castorjs/api test` | バックエンドのテストだけを実行 |
 | `pnpm --filter @castorjs/web test` | フロントエンドのテストだけを実行 |
 | `pnpm --filter @castorjs/web test:watch` | フロントエンドのテストをウォッチモードで実行 |
-| `pnpm lint` | バックエンドの ESLint |
-| `pnpm --filter @castorjs/web lint` | フロントエンドの ESLint |
+| `pnpm --filter @castorjs/mcp test` | MCP Server のテストだけを実行 |
+| `pnpm lint` | バックエンドとフロントエンドの ESLint |
+| `pnpm --filter @castorjs/web lint` | フロントエンドの ESLint だけを実行 |
 | `node apps/web/scripts/i18n-scan.mjs [ディレクトリ]` | 未翻訳の文言をスキャン。ディレクトリは `apps/web` からの相対パスで、省略すると `src` 全体をスキャン |
 
 ## データベース
@@ -38,22 +39,26 @@ Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi
 | `pnpm db:generate --name <説明>` | テーブル定義からマイグレーション SQL を `apps/api/drizzle/` に生成 |
 | `pnpm db:migrate` | マイグレーションを適用 |
 | `psql -d <データベース名> -c '\d <テーブル名>'` | テーブル構造が実際に DB に反映されたことを確認 |
-| `pnpm setup-once` | マイグレーション + RBAC の増分同期 + AI SQL 用読み取り専用アカウント。advisory lock 付きで、繰り返し実行可能 |
+| `pnpm setup-once` | マイグレーション + RBAC の増分同期 + AI SQL 用読み取り専用アカウント（`DEMO_MODE` が有効でリセットの時期が来ていれば、デモデータのリセットも）。advisory lock 付きで、繰り返し実行可能。Docker イメージは起動のたびに実行します |
 | `pnpm --filter @castorjs/api init-ro-role` | AI SQL 用の読み取り専用アカウント `castor_kit_ro` だけを作成（`POSTGRES_RO_PASSWORD` が必要） |
+| `pnpm demo:reset` | 公開デモのデータを今すぐ復元。先にデモデータのテーブルとログをすべて空にするので、データを残したいデータベースでは実行しないでください |
 
 ## RBAC
 
 | コマンド | 説明 |
 |---|---|
 | `pnpm seed:rbac -- --incremental` | メニューと権限の増分同期：`code` で upsert し、削除はしない |
-| `pnpm seed:rbac` | 全件再構築：ユーザー、ロール、メニューを空にしてから書き込み直す。**空のデータベースの初期化専用** |
-| `pnpm seed:demo` | データ権限を試すためのサンプル部署・ロール（部門主管 / 一般社員）・ユーザーを登録。何度実行しても安全。本番環境では `--force` が必要 |
+| `pnpm seed:rbac -- --incremental --reset-admin-password` | あわせて `admin` アカウントのパスワードを `ADMIN_PASSWORD` に設定し直す |
+| `pnpm seed:rbac` | 全件再構築：ユーザー、ロール、メニューとその関連付けを空にしてから書き込み直す。**空のデータベースの初期化専用** |
+| `pnpm seed:demo` | データ権限を試すためのサンプル部署・ロール（部門主管 / 一般社員）・ユーザーを登録。何度実行しても安全。本番環境では `--force` が必要。`--password <パスワード>` でサンプルユーザーのパスワードを指定（デフォルトは `demo123456` または `DEMO_USER_PASSWORD`）、`--reset-passwords` で既存のサンプルユーザーにも適用 |
 
 ## コード生成と検証ゲート
 
 | コマンド | 説明 |
 |---|---|
-| `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<フィールド:型,...>"` | バックエンドのモジュール、フロントエンドのページ、API テスト、マイグレーションを生成 |
+| `pnpm scaffold -- --spec <ファイル>` | JSON の spec からモジュールを生成（形式は `docs/spec.schema.json`、例は `docs/examples/specs/`）：バックエンドのモジュール、フロントエンドのページと API ファイル、API テスト、OpenAPI のエントリー、マイグレーション。spec に `menu` があれば、メニューとボタン権限も `seed-rbac.ts` に追加 |
+| `pnpm scaffold -- --spec <ファイル> --validate-only` | spec をチェックし、生成される内容を表示するだけ。ファイルは書き込まず、問題があれば 1 で終了 |
+| `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<フィールド:型,...>"` | spec なしでモジュールを生成（生成物は同じだが、中国語の表示名、制約、メニューはなし） |
 | `pnpm scaffold -- ... --dry-run` | 生成される内容を表示するだけで、ファイルは書き込まない |
 | `pnpm scaffold -- ... --skip-migration` | コードは生成するが、マイグレーションは生成しない |
 | `pnpm scaffold -- ... --data-scope` | 生成したモジュールをデータ権限で絞り込む（`dept_id` / `created_by` を追加） |
@@ -74,10 +79,11 @@ Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi
 
 | コマンド | 説明 |
 |---|---|
-| `pnpm openapi:generate` | ドキュメントのないルート + メソッドに骨格を追加（`docs/apifox-full.openapi.json` に書き戻し）し、OpenAPI の規約をチェック |
-| `pnpm openapi:generate -- --dry-run` | チェックのみで、書き戻さない |
+| `pnpm openapi:generate` | ドキュメントのないルート + メソッドに骨格を追加（`docs/apifox-full.openapi.json` に書き戻し）し、OpenAPI の規約をチェックして、フロントエンドの API 型 `apps/web/src/shared/api/openapi.d.ts` を再生成 |
+| `pnpm openapi:generate -- --dry-run` | チェックのみで、書き戻さない（API 型も再生成しない） |
 | `pnpm openapi:generate -- --strict` | 規約に合わない API と理由を一覧表示し、あれば 0 以外で終了 |
 | `pnpm openapi:apifox` | Apifox にプッシュ（`APIFOX_PROJECT_ID`、`APIFOX_ACCESS_TOKEN` が必要） |
+| `pnpm --filter @castorjs/web api:types` | OpenAPI ドキュメントから `openapi.d.ts` だけを再生成（`--check` を付けると、古い場合に 1 で終了） |
 
 ## MCP Server
 
@@ -115,5 +121,6 @@ Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`openapi
 | `npm --prefix website run dev` | ドキュメントサイトをローカルでプレビュー |
 | `npm --prefix website run build` | ドキュメントサイトをビルド（リンク切れがあると失敗） |
 | `npm --prefix website run screenshots` | 起動中のアプリからランディングページと README のスクリーンショットを撮り直す（先に `pnpm dev` を実行。admin のパスワードを尋ねられます） |
+| `npm --prefix website run og` | ダッシュボードのスクリーンショットからソーシャルプレビュー画像（`website/public/og.png` と `.github/assets/social-preview.png`）を生成 |
 
 main にマージされると、`.github/workflows/docs.yml` がサイトを GitHub Pages に公開します。

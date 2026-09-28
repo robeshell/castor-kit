@@ -16,7 +16,7 @@
 フロントエンドには手書きのルート定義がありません。`apps/web/src/App.tsx` が現在のユーザーのメニューからルートを生成し、`lib/page-modules.ts` が `import.meta.glob` で `modules/**/pages/**/index.tsx` をスキャンして各メニューのページを見つけます。
 
 - メニューの `path` フィールドはブラウザのアドレスです（例：`/system/users`）
-- メニューの `component` フィールドは読み込むページを決めます。形式は `<module>/<subdir>/<page>` です
+- メニューの `component` フィールドは読み込むページを決めます。形式は `<module>/<pages 配下のページのパス>` です。システムのページは `pages/` の直下に置かれ（例：`admin/users`）、コンポーネント例のページはグループのディレクトリを 1 階層挟んだ `<module>/<subdir>/<page>` になります
 
 | `component` の値 | 対応するファイル |
 |---|---|
@@ -27,7 +27,7 @@
 ルートが生成されるのは、有効かつ表示状態で、種類が `menu` のメニューだけです。ページコンポーネントは必要に応じて遅延読み込みされます。メニューは存在するのに対応するファイルが見つからない場合、ページ領域に「ページが設定されていません」と表示されます。
 
 ::: warning ページの配置場所
-ページは必ず `apps/web/src/modules/<module>/pages/<subdir>/<page>/index.tsx` に置いてください。そうしないと動的ルーティングがページを見つけられません。対応する API ファイルは `apps/web/src/modules/<module>/api/<page>.ts` に置きます。
+ページは必ず `apps/web/src/modules/<module>/pages/<page>/index.tsx`（間にグループのディレクトリを挟んで `pages/<subdir>/<page>/index.tsx` としてもよい）に置いてください。そうしないと動的ルーティングがページを見つけられません。対応する API ファイルは `apps/web/src/modules/<module>/api/<page>.ts` に置きます。
 :::
 
 ページを追加したら、`seed-rbac.ts` にメニューも追加する必要があります。[権限（RBAC）](/ja/guide/rbac) を参照してください。
@@ -52,26 +52,31 @@ PageHeader     タイトル + 右側の操作（インポート / エクスポ�
 
 簡略化した骨格：
 
-```jsx
+```tsx
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from '@/lib/toast'
-import DataTable from '@/shared/components/DataTable'
+import DataTable, { type DataTableColumn } from '@/shared/components/DataTable'
 import { FilterBar, SearchInput } from '@/shared/components/Filters'
 import { FormDialog } from '@/shared/components/FormDialog'
 import { FormInput } from '@/shared/components/FormFields'
 import PageHeader from '@/shared/components/PageHeader'
 import { useCrudList } from '@/shared/hooks/useCrudList'
-import { getItems } from '@/modules/admin/api/customer'
+import { getItems, type Customer as Row } from '@/modules/admin/api/customer'
+
+interface FormValues {
+  name: string
+}
 
 export default function Customers() {
   const list = useCrudList((params) =>
-    getItems(params).catch((err) => {
+    getItems(params).catch((err: unknown) => {
       toast.apiError(err, '加载失败')
       return { items: [], total: 0 }
     }),
   )
-  const form = useForm({ defaultValues: { name: '' } })
+  const form = useForm<FormValues>({ defaultValues: { name: '' } })
+  const columns: DataTableColumn<Row>[] = [/* ... */]
 
   useEffect(() => {
     list.fetchData()
@@ -82,43 +87,57 @@ export default function Customers() {
 }
 ```
 
-完全な書き方は `apps/web/src/modules/admin/pages/users/index.tsx` を基準にしてください。
+完全な書き方は `apps/web/src/modules/admin/pages/users/index.tsx` を基準にしてください。`docs/templates/frontend/list_page/` は `pnpm scaffold` が使うテンプレートです。行の型は API ファイルから取り、フォームには専用の `FormValues` インターフェースを定義します。ページでは `any` も型アサーションも使いません。
 
 ## API の呼び出し
 
 リクエストはすべて共有の Axios インスタンス `@/shared/api/request` を通して送ります。`fetch` や `XMLHttpRequest` を直接使わないでください。
 
-```js
+```ts
 import request from '@/shared/api/request'
+import type { ApiBody, ApiItem, ApiQuery, ApiResponse } from '@/shared/api/types'
+
+/** A record as the API returns it */
+export type Customer = ApiItem<'/api/admin/customers'>
 
 const BASE = '/admin/customers'
 
-export const getItems = (params) => request.get(BASE, { params })
-export const createItem = (data) => request.post(BASE, data)
-export const updateItem = (id, data) => request.put(`${BASE}/${id}`, data)
-export const deleteItem = (id) => request.delete(`${BASE}/${id}`)
+// The second type argument of request.get<unknown, T> is the (already unwrapped) response body
+export const getItems = (params?: ApiQuery<'/api/admin/customers'>) =>
+  request.get<unknown, ApiResponse<'/api/admin/customers'>>(BASE, { params })
+export const createItem = (data: ApiBody<'/api/admin/customers', 'post'>) =>
+  request.post<unknown, ApiResponse<'/api/admin/customers', 'post'>>(BASE, data)
+export const updateItem = (id: number, data: ApiBody<'/api/admin/customers/{item_id}', 'put'>) =>
+  request.put<unknown, ApiResponse<'/api/admin/customers/{item_id}', 'put'>>(`${BASE}/${id}`, data)
+export const deleteItem = (id: number) =>
+  request.delete<unknown, ApiResponse<'/api/admin/customers/{item_id}', 'delete'>>(`${BASE}/${id}`)
 
 // Export (blob)
-export const exportItems = (data) => request.post(`${BASE}/export`, data, { responseType: 'blob' })
+export const exportItems = (data: ApiBody<'/api/admin/customers/export', 'post'>) =>
+  request.post<unknown, Blob>(`${BASE}/export`, data, { responseType: 'blob' })
 // Download the import template
-export const downloadTemplate = (fileType = 'xlsx') =>
-  request.get(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
+export const downloadTemplate = (fileType: 'csv' | 'xlsx' = 'xlsx') =>
+  request.get<unknown, Blob>(`${BASE}/template`, { params: { file_type: fileType }, responseType: 'blob' })
 // Import (multipart/form-data)
-export const importItems = (file) => {
+export const importItems = (file: Blob) => {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post(`${BASE}/import`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return request.post<unknown, ApiResponse<'/api/admin/customers/import', 'post'>>(`${BASE}/import`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }
 ```
 
+型は OpenAPI ドキュメントから生成されます（`pnpm openapi:generate` が `apps/web/src/shared/api/openapi.d.ts` を出力し、パスは `/api` プレフィックスと `{param}` プレースホルダーを含みます）。エンドポイントがまだドキュメントに書かれていないと、`ApiItem` / `ApiBody` は `never` になります。`pnpm scaffold` はドキュメントの項目とこのファイルの両方を書き出します。テンプレートは `docs/templates/frontend/list_page/api.ts` です。
+
 `request.ts` が処理済みの内容：
 
-- `baseURL` は `/api` なので、パスは `/admin/...` と書きます
+- `baseURL` は `/api` なので、パスは `/admin/...` と書きます。リクエストは 10 秒でタイムアウトします
 - レスポンスはアンラップ済みです。`res.items`、`res.total` をそのまま使い、`res.data.items` とは**書かない**でください
 - 書き込みリクエスト（POST / PUT / PATCH / DELETE）には `X-CSRF-Token` ヘッダーが自動で付きます
-- `Accept-Language` ヘッダーが自動で付き、バックエンドはこれに基づいてエラーメッセージを翻訳します
-- 401 が返されるとログインページに遷移します
-- 失敗時に reject されるのはバックエンドが返した `{ error, ... }` オブジェクトなので、そのまま `toast.apiError` に渡せます
+- `Accept-Language` ヘッダーが自動で付き、バックエンドはこれに基づいてエラーメッセージを翻訳します。`X-Time-Zone` ヘッダーはブラウザのタイムゾーンを伝え、エクスポートとダッシュボードの集計に使われます
+- 401 が返されるとログインページに遷移します（ログインページとパスワード再設定ページ自体を除く）
+- 失敗時に reject されるのはバックエンドが返した `{ error, ... }` オブジェクトなので、そのまま `toast.apiError` に渡せます。ネットワークエラー、タイムアウト、そうした本文のない 5xx も、読みやすいメッセージ付きの `{ error }` に変換されます
 
 パスエイリアス `@` は `apps/web/src` を指します。
 
@@ -136,15 +155,17 @@ export const importItems = (file) => {
 | `ConfirmAction` / `RowActions` | 危険な操作の確認 / 行操作 |
 | `StatusBadge` | ステータスバッジ。`tone` は neutral / brand / info / success / warning / danger から選択 |
 | `EmptyState` / `SegmentedTabs` / `TreeView` / `StatCard` | 空の状態 / セグメントタブ / ツリー / 指標カード |
-| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | 日付の値の形式は `'YYYY-MM-DD'` / `'YYYY-MM-DD HH:mm:ss'` |
+| `DatePicker` / `DateTimePicker` / `MultiSelect` / `TagInput` | `DatePicker` の値は `'YYYY-MM-DD'`。`DateTimePicker` は API の時刻（ISO 8601）を受け取り、ブラウザのオフセット付き ISO 8601 を返す（API が UTC に変換して保存） |
 | `data-transfer/ImportDialog` / `data-transfer/ExportDialog` | インポート / エクスポートダイアログ |
 | `TreeSelect` / `CheckableTree` | 検索できるツリーの単一選択 / 親子連動のツリー複数選択 |
-| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` | ファイル（ドラッグ＆ドロップ、進捗表示）/ 画像 / アバターのアップロード。`@/shared/api/files` の `uploadFile` と組み合わせてファイルセンターに保存 |
+| `upload/FileUpload` / `upload/ImageUpload` / `upload/AvatarUpload` / `upload/FileIdUpload` | ファイル（ドラッグ＆ドロップ、進捗表示）/ 画像 / アバターのアップロード。`@/shared/api/files` の `uploadFile` と組み合わせてファイルセンターに保存。`FileIdUpload` はファイルセンターのファイル ID を値として直接持つ |
 | `ConditionBuilder` | フィールド / 演算子 / 値からなる条件を AND / OR で組み合わせ、1 階層の条件グループも使える。制御コンポーネントで、値の `ConditionTree` はそのまま保存したり API に送ったりできるプレーンな JSON |
+| `Chart` | `@/lib/echarts` のオンデマンドビルドに紐づいた ECharts ラッパー。`option` は型付きで、`summary`（スクリーンリーダー向けの代替テキスト）は必須 |
+| `UserAvatar` / `markdown/MarkdownView` | 頭文字のフォールバック付きアバター / Markdown レンダラー |
 
 フォームフィールドの例：
 
-```jsx
+```tsx
 <FormInput control={form.control} name="name" label="客户名称" rules={{ required: '请输入客户名称' }} />
 ```
 
@@ -156,7 +177,8 @@ export const importItems = (file) => {
 | `@/lib/toast` | `toast.success / error / warning / info`、`toast.apiError(err, fallback)` |
 | `@/lib/format` | `formatDate / formatDateTime / formatNumber / formatRelative` |
 | `@/lib/motion` | `fadeUp / stagger / pageTransition / layoutSpring` などのアニメーションのプリセット |
-| `@/lib/chart-theme` | `useChartColors()`。ECharts では必ずこれでテーマカラーを取得する |
+| `@/lib/chart-theme` | `useChartColors()` と `chartBase` / `brandLine` / `brandArea`。グラフの色は必ずここから取る |
+| `@/lib/echarts` | ECharts のオンデマンドビルド。新しいグラフの種類やコンポーネントはここに登録する |
 | `@/lib/menu-icons` | メニューのアイコン名から lucide アイコンへのマッピング |
 
 ::: tip コンポーネントの使い方とアトミックコンポーネントの追加
@@ -208,10 +230,11 @@ apps/web/scripts/shadcn-add.sh --view badge      # registry の内容を表示�
 | 絵文字をアイコンとして使う | `lucide-react` を使う |
 | ページごとにテーブル、ダイアログ、確認ボックスを独自に作る | `DataTable` / `FormDialog` / `ConfirmAction` などを再利用する |
 | `fetch` でリクエストを送る | `@/shared/api/request` を使う |
+| `echarts` / `echarts-for-react` を直接インポートする | `@/shared/components/Chart` を使い、グラフの種類は `@/lib/echarts` に登録する |
 
 ## メニューアイコン
 
-`menus.icon` フィールドには lucide のアイコン名（例：`Users`、`Settings`）が保存されており、`apps/web/src/lib/menu-icons.ts` で lucide のアイコンコンポーネントに解決されます。メニューを追加するときはマッピング表にある既存の名前を使い、新しいアイコンが必要な場合はマッピング表に 1 行追加してください。
+`menus.icon` フィールドには lucide のアイコン名（例：`Users`、`Settings`）が保存されており、`apps/web/src/lib/menu-icons.ts` で lucide のアイコンコンポーネントに解決されます。メニューを追加するときは `MENU_ICONS` マッピング表にある既存の名前を使ってください。新しいアイコンが必要な場合は、そのファイルでアイコンをインポートしてマッピング表に追加します。マッピング表にない名前は `List` アイコンで表示されます。
 
 ## 多言語対応と副作用
 

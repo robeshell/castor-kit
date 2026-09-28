@@ -18,11 +18,12 @@ castorjs/
 │   ├── apifox-full.openapi.json   # OpenAPI ドキュメント
 │   ├── spec.schema.json      # モジュール spec（scaffold --spec）の JSON Schema
 │   ├── examples/specs/       # 「要件 → spec」の例
+│   ├── roadmap.md            # 予定している機能（実装する前に該当する節を読む）
 │   └── templates/            # コード骨格のテンプレート（backend/、frontend/）
 ├── website/                  # このドキュメントサイト（VitePress。独立した npm プロジェクトで、pnpm ワークスペースには含まれない）
 ├── AGENTS.md                 # すべての AI ツールが共有するプロジェクトコンテキスト
 ├── CLAUDE.md                 # Claude Code 用の補足
-├── .claude/ .agents/ .github/   # AI スキル（.agents は .claude/skills のミラー）。.github には CI と issue テンプレート
+├── .claude/ .agents/ .github/   # AI スキル（.agents は .claude/skills のミラー）。.github には CI、ドキュメントサイトの公開、issue テンプレート
 ├── scripts/                  # setup.sh（Docker のワンステップセットアップ）、docker-entrypoint.sh（イメージのエントリーポイント）
 └── Dockerfile / docker-compose.yml / render.yaml
 ```
@@ -39,32 +40,41 @@ apps/api/
 │   ├── app.ts                # buildApp()：プラグイン、ルート、エラー処理、静的アセット、SPA フォールバック
 │   ├── config.ts             # 環境ごとの設定（Zod で検証。本番環境で重要な変数が欠けていると起動を拒否）
 │   ├── router.ts             # 第 1 階層のルート組み立て。新しい業務ドメインはここで登録
-│   ├── common/               # 横断的な機能
+│   ├── common/               # 横断的な機能（主なファイルのみ）
 │   │   ├── auth.ts           # loginRequired / hasMenuPermission / hasAnyMenuPermission / menuPermissionRequired
 │   │   ├── rbac.ts           # 権限判定の純粋関数
 │   │   ├── csrf.ts           # CSRF のダブルサブミット検証
 │   │   ├── errors.ts         # ServiceError と共通のエラー処理
 │   │   ├── db-errors.ts      # データベースの制約エラー → 400 の業務エラー
-│   │   ├── http.ts           # intParam / parseIntParam / jsonBody / queryString / getUploadedFile
+│   │   ├── http.ts           # intParam / parseIntParam / notFound / queryString / getUploadedFile
+│   │   ├── validation.ts     # field.* / routeBody：リクエストボディの宣言（Zod）
 │   │   ├── pagination.ts     # parsePagination（デフォルト 20、上限 200）
 │   │   ├── serialize.ts      # toIso() などの日時出力ユーティリティ
+│   │   ├── time-zone.ts      # X-Time-Zone リクエストヘッダー、withZoneOffset()
+│   │   ├── data-scope.ts     # 行レベルのデータ権限（resolveDataScope / dataScopeWhere）
+│   │   ├── api-token.ts      # Bearer の API トークン認証
 │   │   ├── tabular.ts        # csv / xlsx の読み書き
 │   │   ├── i18n.ts           # Accept-Language に応じてレスポンスの文言を翻訳
+│   │   ├── storage/          # ファイルストレージのドライバー（local / s3）
 │   │   └── scheduler/        # 定期タスクの runner、cron マッチャー、SSRF 対策
 │   ├── i18n/messages.ts      # バックエンドのエラーメッセージの英語 / 日本語訳
+│   ├── demo/                 # 公開デモ（DEMO_MODE）のデータとリセット
 │   ├── db/
 │   │   ├── client.ts         # pg コネクションプール + Drizzle インスタンス
 │   │   ├── readonly.ts       # AI データ検索専用の読み取り専用コネクションプール
 │   │   ├── migrate.ts        # マイグレーション実行器
 │   │   ├── migrate-cli.ts    # pnpm db:migrate のエントリーポイント
-│   │   └── schema/           # model 層：Drizzle のテーブル定義。ドメインごとにディレクトリを分け、index.ts でまとめてエクスポート
+│   │   └── schema/           # model 層：Drizzle のテーブル定義。ドメインごとにディレクトリを分け、index.ts でまとめてエクスポート。
+│   │                         #   columns.ts に共通の createdAt() / updatedAt() 列
 │   └── modules/
-│       ├── admin/            # システム管理ドメイン：auth / users / roles / menu / logs / dicts /
-│       │                     #   scheduled-task / notification / announcement / dashboard
-│       └── component-center/ # コンポーネント例ドメイン
+│       ├── admin/            # システム管理ドメイン：auth / users / roles / departments / menu / logs / dicts /
+│       │                     #   files / settings / sessions / two-factor / password-reset / api-tokens /
+│       │                     #   webhooks / scheduled-task / notification / announcement / dashboard / assistant
+│       └── component-center/ # コンポーネント例ドメイン：demo-record / ai-chat / ai-prompt / ai-sql /
+│                             #   devtools / traffic-flow
 ├── drizzle/                  # SQL マイグレーションファイル + meta/_journal.json（drizzle-kit が生成）
-├── scripts/                  # ツールチェーン：scaffold / verify-feature / seed-rbac / setup-once /
-│                             #   init-ro-role / generate-openapi / import-apifox
+├── scripts/                  # ツールチェーン：scaffold / verify-feature / seed-rbac / seed-demo / setup-once /
+│                             #   init-ro-role / generate-openapi / import-apifox / demo-reset。lib/ は共通コード
 ├── test/                     # Vitest。実際の PostgreSQL に接続
 └── drizzle.config.ts
 ```
@@ -88,33 +98,38 @@ apps/web/
 ├── components.json           # shadcn CLI の設定
 ├── scripts/
 │   ├── shadcn-add.sh         # ローカルの中継経由で npx shadcn@latest add を実行
-│   └── i18n-scan.mjs         # 未翻訳の文言をスキャン
+│   ├── i18n-scan.mjs         # 未翻訳の文言をスキャン
+│   └── api-types.mjs         # OpenAPI ドキュメントから src/shared/api/openapi.d.ts を生成
 ├── test/                     # Vitest（i18n、外観、タブバー、共通コンポーネントなど）
 └── src/
-    ├── App.tsx               # 動的ルーティング（import.meta.glob でページをスキャン）
+    ├── App.tsx               # 動的ルーティング（lib/page-modules.ts でメニューに対応するページを探す）
     ├── index.css             # Tailwind v4 のエントリー + デザイントークン（ライト / ダーク / アクセントカラー）
     ├── i18n/index.ts         # i18next の初期化
     ├── locales/              # 共通文言の翻訳。menus/ はメニュー名の翻訳
     ├── context/              # AuthContext / ThemeContext / TagsViewContext
     ├── components/
     │   ├── ui/               # shadcn/ui のアトミックコンポーネント（ソースはリポジトリ内）
+    │   ├── ai-elements/      # AI チャットの部品（会話、メッセージ、入力欄など）
     │   └── app/              # アプリケーションシェル：AppLayout / AppSidebar / TopBar / TopNav / TagsView /
     │                         #   AppearanceMenu / CommandMenu / LanguageSwitcher / ...
-    ├── lib/                  # cn / toast / format / motion / chart-theme / menu-icons / appearance
+    ├── lib/                  # page-modules（import.meta.glob でページを検索）/ cn / toast / format / motion /
+    │                         #   chart-theme / menu-icons / appearance / ...
     ├── modules/
-    │   ├── auth/pages/login/         # ログインページ
-    │   ├── admin/{pages,api}/        # システム管理のページと API
+    │   ├── auth/pages/{login,reset_password}/  # ログインページとパスワード再設定ページ
+    │   ├── admin/{pages,api,components}/       # システム管理のページ、API、ページ用コンポーネント
     │   └── component_center/
-    │       ├── pages/{patterns,dataviz,ai,editor,devtools}/
+    │       ├── pages/{patterns,components,dataviz,ai,editor,devtools}/
+    │       ├── showcase/     # components/ の各ページのレイアウト部品（ShowcasePage / Example / PropsTable）
     │       └── api/
     └── shared/
-        ├── api/request.js    # Axios インスタンス（baseURL '/api'。CSRF ヘッダーと Accept-Language を自動付与）
-        ├── hooks/            # useCrudList / useDebouncedValue / useIsMobile
-        ├── utils/file.js     # downloadBlobFile
+        ├── api/request.ts    # Axios インスタンス（baseURL '/api'。CSRF ヘッダー、Accept-Language、X-Time-Zone を自動付与）
+        ├── api/openapi.d.ts  # OpenAPI ドキュメントから生成した API の型
+        ├── hooks/            # useCrudList / useDebouncedValue / useIsMobile / useDictOptions / useAppInfo
+        ├── utils/file.ts     # downloadBlobFile
         └── components/       # 業務向け共通コンポーネント：PageHeader / DataTable / FormDialog / ...
 ```
 
-ページファイルは必ず `modules/<module>/pages/<subdir>/<page>/index.tsx` に置いてください。そうしないと動的ルーティングがページを見つけられません。詳しくは [フロントエンド](/ja/guide/frontend) を参照してください。
+メニューの `component` の値 `<module>/<page_path>` は、ファイル `modules/<module>/pages/<page_path>/index.tsx` に対応します（例：`admin/users` → `modules/admin/pages/users/index.tsx`、`component_center/patterns/kanban_page` → `modules/component_center/pages/patterns/kanban_page/index.tsx`）。それ以外の場所に置いたページは動的ルーティングが見つけられません。詳しくは [フロントエンド](/ja/guide/frontend) を参照してください。
 
 ## MCP Server apps/mcp
 

@@ -19,16 +19,17 @@ bash scripts/setup.sh
 
 `setup.sh` は次の処理を順番に行います。
 
-1. Docker と `docker compose` が使えるかを確認します。
-2. 管理者パスワード（Enter で `admin123`）、アクセスポート（Enter で `5000`）、AI 機能を設定するかどうか（OpenAI 互換 API の API Key、Base URL、モデル名）を尋ねます。
-3. `SECRET_KEY`、データベースのパスワード、AI SQL 用の読み取り専用アカウントのパスワードをランダムに生成し、リポジトリのルートにある `.env.production` に書き込みます。このファイルがすでに存在する場合は、設定し直すかどうかを先に確認します。
-4. `docker compose --env-file .env.production up -d --build` を実行してサービスをビルド・起動します。
-5. サービスの準備ができるまで `http://localhost:<ポート>/health` をポーリングします。
+1. Docker がインストールされて動作していること、`docker compose` プラグインが使えることを確認します。
+2. リポジトリのルートに `.env.production` がすでにある場合は、設定し直すかどうかを尋ねます。「いいえ」と答えるとファイルをそのまま使い、手順 4 に進みます。
+3. 管理者パスワード（Enter で `admin123`）、アクセスポート（Enter で `5000`）、AI 機能をいま設定するかどうか（OpenAI 互換 API の API Key、Base URL、モデル名）を尋ねます。続いて `SECRET_KEY`、データベースのパスワード、AI SQL 用の読み取り専用アカウントのパスワードをランダムに生成し、すべて `.env.production` に書き込みます。ここで入力した AI の値はその設定を固定するため、「システム設定」ページでは読み取り専用になります。
+4. Docker のレジストリミラーが未設定なら追加します（下の注意を参照）。
+5. `docker compose --env-file .env.production up -d --build` を実行してサービスをビルド・起動します。
+6. サービスの準備ができるまで `http://localhost:<ポート>/health` をポーリングします（約 90 秒まで。それでも応答がない場合はログを確認するコマンドを表示します）。
 
 初回は依存関係のダウンロードとイメージのビルドが必要なため、通常数分かかります。
 
 ::: warning setup.sh は Docker の設定を変更します
-Docker の `daemon.json` にまだ `registry-mirrors` がない場合、スクリプトはミラーのアドレスを書き込み、Docker を再起動します。ミラーが不要な場合はウィザードを使わず、[デプロイガイド](/ja/deploy/) に従って手動で設定・起動してください。
+Docker の `daemon.json` にまだ `registry-mirrors` がない場合、スクリプトはミラー `https://docker.xuanyuan.me` を書き込み、Docker を再起動します。ミラーが不要な場合はウィザードを使わず、[デプロイガイド](/ja/deploy/) に従って手動で設定・起動してください。
 :::
 
 ### 2. ログインする
@@ -114,12 +115,12 @@ pnpm dev
 `pnpm dev:api`、`pnpm dev:web` で個別に起動することもできます。
 
 ::: tip デフォルトアカウント
-開発環境で `ADMIN_PASSWORD` を設定していない場合、初期パスワードは `admin123` です。`admin` アカウントは存在しないときにだけ作成されるため、後から `ADMIN_PASSWORD` を変更しても既存アカウントのパスワードは変わりません。パスワードは画面上で変更してください。
+開発環境で `ADMIN_PASSWORD` を設定していない場合、初期パスワードは `admin123` です。`admin` アカウントは存在しないときにだけ作成されるため、後から `ADMIN_PASSWORD` を変更しても既存アカウントのパスワードは変わりません。パスワードは画面上で変更するか、`pnpm seed:rbac -- --incremental --reset-admin-password` を実行して現在の `ADMIN_PASSWORD` に設定し直してください。
 :::
 
 ### 6. テストを実行する（任意）
 
-バックエンドのテストは実際の PostgreSQL テスト用データベース（デフォルトは `postgresql://localhost/castor_kit_test`。シェルまたは `apps/api/.env.test` の `TEST_DATABASE_URL` で上書き可能。`.env.development` の値は使われません）に接続し、テスト開始前にマイグレーションを自動で実行します。
+`pnpm test` はバックエンドとフロントエンドのテストを実行します。バックエンドのテストは実際の PostgreSQL テスト用データベース（デフォルトは `postgresql://localhost/castor_kit_test`。シェルまたは `apps/api/.env.test` の `TEST_DATABASE_URL` で上書き可能。`.env.development` の値は使われません）に接続し、テスト開始前にそのデータベースへマイグレーションと RBAC の増分同期を自動で実行します。
 
 ```bash
 createdb castor_kit_test      # または開発用データベースを複製：createdb -T castor_kit castor_kit_test

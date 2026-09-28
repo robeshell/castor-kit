@@ -47,7 +47,9 @@ AI 在内部推断以下内容，不向你询问：
 - 接口路径，例如 `/api/admin/customer-orders`
 - 字段名与字段类型（依据下方的字段类型推断表）
 - 权限编码：`admin` 域为 `system_<name>`，`component_center` 域为 `cc_<name>`，按钮权限加 `_add` / `_edit` / `_delete` / `_export` / `_import`
-- 前端文件路径、菜单 ID、父菜单、迁移名称
+- 前端文件路径、父菜单、迁移名称，以及页面模板（默认是普通列表，需求需要时换成别的[页面模板](/zh/guide/components#from-a-pattern)）
+
+推断结果写成一个 [spec 文件](#spec-文件)，并用 `pnpm scaffold -- --spec <file> --validate-only` 校验；校验结果还会列出接口路径、权限、表名，以及 scaffold 将分配的菜单 ID。
 
 ### 3. 展示业务预览
 
@@ -56,7 +58,8 @@ AI 只展示业务层面的信息，等你确认或调整：
 ```text
 客户管理
 
-位置：系统管理 → 客户管理
+位置：业务管理 → 客户管理
+展示为：列表
 功能：列表查看、新增、编辑、删除、导入、导出
 字段：
   · 客户名称（必填）
@@ -70,12 +73,12 @@ AI 只展示业务层面的信息，等你确认或调整：
 
 ### 4. 实现
 
-1. `pnpm scaffold` 生成骨架（先 `--dry-run` 预览）。
-2. 按 `db/schema → schema → repository → service → routes` 顺序补充业务逻辑、中文表头和校验。
-3. 打磨前端页面：中文标签、表单校验、枚举字段、多语言译文。
-4. 在 `seed-rbac.ts` 添加菜单和按钮权限，运行 `pnpm seed:rbac -- --incremental`。
+1. 用 `pnpm scaffold -- --spec <file>` 生成模块（可先加 `--dry-run` 列出将写入的文件）。
+2. 按 `db/schema → schema → repository → service → routes` 顺序补充业务逻辑。中文标签、必填 / 唯一 / 默认值规则和选项已经由 spec 生成；超出这些的部分（表间关系、跨字段校验、计算字段）在这一步手写。
+3. 打磨前端页面（页面专属文字的译文、额外的校验），或按选定的页面模板重做页面。
+4. spec 里有 `menu` 时，scaffold 已经把菜单和按钮权限写进 `seed-rbac.ts`；否则手动添加。然后运行 `pnpm seed:rbac -- --incremental`。
 5. 审查新生成的迁移 SQL，运行 `pnpm db:migrate`，并用 `psql -d <库名> -c '\d <表名>'` 确认表真实存在。
-6. 接口文档：`pnpm scaffold` 已把模块的接口写进 `docs/apifox-full.openapi.json`。改了生成的路由、字段或校验，或新增了路由时，按 `AGENTS.md`「OpenAPI 编写规范」照代码同步修改（必须，`pnpm verify` 会检查）。
+6. 接口文档：`pnpm scaffold` 已把模块的接口写进 `docs/apifox-full.openapi.json`。改了生成的路由、字段或校验，或新增了路由时，按 `AGENTS.md` 的「OpenAPI writing rules」照代码同步修改。这一步必须做，否则 `pnpm verify` 的 `openapi_sync` 检查不通过。
 
 ### 5. 验证门禁
 
@@ -117,7 +120,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--validate-only` | 配合 `--spec`：只校验规格并说明会生成的接口、权限、表和菜单，不写任何文件；有问题时逐条列出并以 1 退出 | 关闭 |
 | `--write-schema` | 按脚手架当前的字段类型等规则重新生成 `docs/spec.schema.json` | 关闭 |
 | `--skip-migration` | 不调用 drizzle-kit 生成迁移 | 关闭 |
-| `--data-scope` | 接入[数据权限](/zh/guide/rbac#数据权限)：表上加 `dept_id` / `created_by`，列表、详情、修改、删除、导出按当前用户的数据范围过滤，新建时写入创建人与部门，并生成对应的接口测试 | 关闭 |
+| `--data-scope` | 配合 `--fields` 时，接入[数据权限](/zh/guide/rbac#数据权限)：表上加 `dept_id` / `created_by`，列表、详情、修改、删除、导出按当前用户的数据范围过滤，新建时写入创建人与部门，并生成对应的接口测试。用 `--spec` 时改在 spec 里写 `"dataScope": true`（此参数会被忽略） | 关闭 |
 | `-h` / `--help` | 打印用法 | — |
 
 ### 生成内容
@@ -131,7 +134,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | 接口基础测试（增删改查、搜索、404、导出、导入模板、导入） |
 | `apps/web/src/modules/<module>/api/<name>.ts` | 前端 API 调用，类型来自模块的 OpenAPI 条目（行类型 `ApiItem<'/api/admin/<name-kebab>s'>`） |
 | 前端列表页 `index.tsx` | `admin` 域在 `pages/<name>/`，`component_center` 域在 `pages/patterns/<name>_page/`；用公共组件的类型写成（`FormValues`、`DataTableColumn<Row>[]`） |
-| 页面 `locales/{en-US,ja-JP}.json` | 仅当页面有公共译文没覆盖的中文时生成 |
+| 页面 `locales/{en-US,ja-JP}.json` | 公共译文里还没有的译文：模块的 Webhook 事件名（新增 / 修改 / 删除）以及标题、标签等页面文字 |
 
 `<domain-dir>` 为 `admin` 或 `component-center`，`<name-kebab>` 是把下划线换成连字符后的资源名。
 
@@ -139,9 +142,10 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 
 - 在 `apps/api/src/db/schema/index.ts` 和 `apps/api/src/modules/<domain-dir>/router.ts` 注册
 - 把模块的接口写进 `docs/apifox-full.openapi.json`，并据此重新生成前端 API 类型（`apps/web/src/shared/api/openapi.d.ts`）
+- spec 里有 `menu` 时：把菜单和按钮权限写进 `apps/api/scripts/seed-rbac.ts`，菜单的英文、日文名写进 `apps/web/src/locales/menus/`
 - 执行 `drizzle-kit generate --name <name>` 生成迁移
 
-scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `component` 值和接口路径，添加菜单时直接使用。
+scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `component` 值和接口路径，手动添加菜单时（用 `--fields`，或 spec 里没有 `menu`）直接使用。
 
 ### 字段类型
 
@@ -162,7 +166,7 @@ scaffold 会在输出中打印权限编码前缀（Perm prefix）、菜单 `comp
 | `enum` | `varchar(50)`，存选项值 | `FormSelect` | 固定选项（只能用 `--spec` 写 `options`）；列表可按它筛选，并以徽标显示选项名称（颜色取选项的 `tone`），导出显示名称，导入时名称和值都接受 |
 | `dict` | `varchar(100)`，存字典项的值 | `FormSelect` | 选项来自「数据字典」（`--spec` 写 `dict` 字典编码）；列表显示字典标签 |
 
-未知类型按 `str` 处理。`id`、`created_at`、`updated_at` 会自动添加。
+用 `--fields` 时未知类型按 `str` 处理；spec 里写未知类型会报错。`id`、`created_at`、`updated_at` 会自动添加。
 
 ### 字段类型推断
 
@@ -172,7 +176,9 @@ AI 根据业务描述推断类型，你不需要指定：
 |---|---|
 | 名称、标题、姓名、邮箱 | `str` |
 | 编码、代码、编号 | `str50` |
-| 手机、电话、状态、类型、颜色 | `str20` |
+| 手机、电话、颜色 | `str20` |
+| 选项固定的状态、类型、等级 | `enum`（spec 里写 `options`；只用 `--fields` 时为 `str20`） |
+| 选项由管理员维护的分类、来源、行业 | `dict`（spec 里写数据字典编码） |
 | URL、链接、地址（外部地址） | `str500` |
 | 图片、头像、封面、照片 | `image` |
 | 附件、文件、合同、扫描件 | `file` |
@@ -216,6 +222,7 @@ pnpm scaffold -- --spec device.spec.json
 - `default`：列默认值，新增时留空就用它，表单也预先填好
 - `label` / `title`：页面、表头、导入导出和报错里的中文；`i18n` 是它们的英文、日文，没写的用字段名代替
 - `menu`：同时把菜单和按钮权限（新增 / 编辑 / 删除 / 导出 / 导入）写进 `apps/api/scripts/seed-rbac.ts`，默认挂在顶级目录「业务管理」下（ID 1000，第一次生成时创建；模块 ID 从 1001 起）；`component_center` 域的模块则挂在组件示例中心的「页面模板」目录下（ID 4301–4399，接口在 `/api/admin/component-center/` 下）；`parentId` 可以指定其他目录；菜单的英文、日文名写进 `apps/web/src/locales/menus/`
+- `dataScope`：设为 `true` 时模块接入[数据权限](/zh/guide/rbac#数据权限)，相当于 `--fields` 方式下的 `--data-scope`
 - `options[].tone`：该选项在列表中的徽标颜色（默认 `neutral`；状态类字段用 `success` / `warning` / `danger` 等）
 - 生成的接口测试多一条「字段规则」用例，覆盖必填、选项、唯一和默认值
 
@@ -240,15 +247,17 @@ pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout
 
 ### 检查项
 
+共 16 项检查，分三组。不适用的检查（例如没有数据权限的模块上的 `data_scope_filter`）会显示为跳过。
+
 全局检查（每次都执行）：
 
 | 检查 | 内容 |
 |---|---|
-| `typescript_compile` | `tsc --noEmit`，覆盖 `apps/api`（含 scripts、test）与 `apps/mcp` |
+| `typescript_compile` | `tsc --noEmit`，覆盖 `apps/api`（含 scripts、test）、`apps/mcp` 和 `apps/web`（含测试） |
 | `no_local_has_permission` | routes 文件中不得自定义 `hasPermission` |
 | `migration_chain` | drizzle 迁移 journal 线性、快照链完整、每条记录都有 SQL、没有多余 SQL |
 | `migration_applied` | 对比 journal 与数据库中的 `drizzle.__drizzle_migrations`，并确认模块表存在 |
-| `openapi_sync` | OpenAPI 文档是否与路由同步（只警告） |
+| `openapi_sync` | 每个已注册的 `/api` 路由都按 AGENTS.md「OpenAPI writing rules」写进了 `docs/apifox-full.openapi.json`，请求体也要与代码一致（执行 `pnpm openapi:generate -- --dry-run --strict`） |
 | `docs_paths` | AI 上下文文档中引用的路径是否存在（默认只警告，`--strict-docs` 时阻断） |
 
 模块检查（传入 `--module` 时执行）：
@@ -293,7 +302,7 @@ pnpm verify -- --module customer --json          # 输出结构化 JSON（stdout
 | `get_spec_guide` | 返回 spec 的 JSON Schema 和「需求 → spec」示例，写 spec 前调用 |
 | `validate_spec` | 校验 spec（参数 `spec`），说明会生成什么；不写文件 |
 | `scaffold_feature` | 调用 `pnpm scaffold`：传 `spec`（推荐），或 `name`、`domain`、`fields`；`dry_run` 只预览 |
-| `check_openapi` | 按 OpenAPI 编写规范检查接口文档，列出不合规的接口 |
+| `check_openapi` | 按 AGENTS.md「OpenAPI writing rules」检查接口文档，列出不合规的接口 |
 | `run_verify` | 调用 `pnpm verify --json` 并返回结果（参数 `module`、`skip_build`） |
 | `init_rbac` | 调用 `pnpm seed:rbac -- --incremental` |
 | `run_migration` | 执行 `db:generate` + `db:migrate`（参数 `message` 作为迁移描述） |

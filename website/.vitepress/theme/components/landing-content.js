@@ -1,9 +1,9 @@
 /**
  * Landing page copy per locale. Keys match the sections in Landing.vue.
- * The terminal script mirrors the real flow (autopilot → scaffold → migrate → seed:rbac → verify gate names).
+ * The terminal script mirrors the real flow (autopilot → scaffold → seed:rbac → migrate → verify gate names, in run order).
  */
 
-const SCAFFOLD = 'pnpm scaffold -- --spec equipment.spec.json'
+const SCAFFOLD = 'pnpm scaffold -- --spec device.spec.json'
 
 export const CONTENT = {
   'zh-CN': {
@@ -44,16 +44,16 @@ export const CONTENT = {
       more: '了解详情',
       prompt: '做一个「设备台账」：名称、编号、状态、采购日期、负责人',
       script: [
-        ['info', '理解需求：新建表 equipments，5 个字段，加一个「设备台账」菜单'],
+        ['info', '理解需求：新建表 devices，5 个字段，加一个「设备台账」菜单'],
         ['cmd', SCAFFOLD],
         ['ok', '已生成数据表、后端接口、前端页面和测试'],
         ['cmd', 'pnpm seed:rbac -- --incremental'],
         ['ok', '菜单和按钮权限已添加'],
         ['cmd', 'pnpm db:migrate'],
         ['ok', '数据库已更新'],
-        ['cmd', 'pnpm verify -- --module equipment'],
-        ['gate', 'typescript compile · migration chain · openapi sync · router registration · rbac seed · api tests · frontend tests · frontend build'],
-        ['done', '全部检查通过，可以上线'],
+        ['cmd', 'pnpm verify -- --module device'],
+        ['gate', 'typescript compile · migration chain · migration applied · openapi sync · router registration · rbac seed · frontend build · frontend tests · api tests'],
+        ['done', '全部检查通过，可以交付'],
       ],
     },
     features: {
@@ -108,23 +108,23 @@ export const CONTENT = {
       title: 'Describe it. AI writes the code.',
       lead: 'The project’s conventions are written for AI, so Claude Code, Cursor and other tools all follow the same rules.',
       points: [
-        ['You describe it', 'For example: an equipment list with name, code and status.'],
+        ['You describe it', 'For example: a device registry with name, code and status.'],
         ['AI builds it', 'Table, API, page and permissions — all in one go.'],
         ['Checked for you', 'Type checks, tests and the build must pass before it’s done.'],
       ],
       more: 'Learn more',
-      prompt: 'Build an "Equipment" registry: name, code, status, purchase date, owner',
+      prompt: 'Build a "Devices" registry: name, code, status, purchase date, owner',
       script: [
-        ['info', 'Got it: new table equipments, 5 fields, an "Equipment" menu'],
+        ['info', 'Got it: new table devices, 5 fields, a "Devices" menu'],
         ['cmd', SCAFFOLD],
         ['ok', 'Generated the table, API, page and tests'],
         ['cmd', 'pnpm seed:rbac -- --incremental'],
         ['ok', 'Menu and button permissions added'],
         ['cmd', 'pnpm db:migrate'],
         ['ok', 'Database updated'],
-        ['cmd', 'pnpm verify -- --module equipment'],
-        ['gate', 'typescript compile · migration chain · openapi sync · router registration · rbac seed · api tests · frontend tests · frontend build'],
-        ['done', 'All checks passed, ready to ship'],
+        ['cmd', 'pnpm verify -- --module device'],
+        ['gate', 'typescript compile · migration chain · migration applied · openapi sync · router registration · rbac seed · frontend build · frontend tests · api tests'],
+        ['done', 'All checks passed, ready to deliver'],
       ],
     },
     features: {
@@ -186,16 +186,16 @@ export const CONTENT = {
       more: '詳しく見る',
       prompt: '「設備台帳」を作って：名称、コード、状態、購入日、担当者',
       script: [
-        ['info', '了解：テーブル equipments（5 フィールド）と「設備台帳」メニューを追加'],
+        ['info', '了解：テーブル devices（5 フィールド）と「設備台帳」メニューを追加'],
         ['cmd', SCAFFOLD],
         ['ok', 'テーブル、API、画面、テストを生成'],
         ['cmd', 'pnpm seed:rbac -- --incremental'],
         ['ok', 'メニューとボタン権限を追加'],
         ['cmd', 'pnpm db:migrate'],
         ['ok', 'データベースを更新'],
-        ['cmd', 'pnpm verify -- --module equipment'],
-        ['gate', 'typescript compile · migration chain · openapi sync · router registration · rbac seed · api tests · frontend tests · frontend build'],
-        ['done', 'すべてのチェックに合格、リリース可能'],
+        ['cmd', 'pnpm verify -- --module device'],
+        ['gate', 'typescript compile · migration chain · migration applied · openapi sync · router registration · rbac seed · frontend build · frontend tests · api tests'],
+        ['done', 'すべてのチェックに合格、納品できます'],
       ],
     },
     features: {

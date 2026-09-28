@@ -7,8 +7,8 @@ This page explains how these options are implemented and what they require of yo
 ## Light / dark
 
 - Toggled via `<html class="dark">`, following the shadcn / Tailwind convention.
-- The choice is saved under the `theme` key in `localStorage`; if the user has never chosen, it follows the system setting.
-- While switching, a global color transition is briefly enabled and then removed, so it doesn't affect normal hover animations.
+- The current mode is saved under the `theme` key in `localStorage`. On the first visit, when nothing is saved yet, it starts from the system setting.
+- While switching, all CSS transitions are turned off for one frame (the `theme-switching` class on `<html>`), so the page changes color at once instead of hover and color transitions animating through mixed colors.
 
 The implementation is in `apps/web/src/context/ThemeContext.tsx`. As long as a page uses semantic color classes (see [Frontend](/guide/frontend#styling-rules)), dark mode just works.
 
@@ -27,32 +27,34 @@ Appearance offers 6 accent colors; the default is Ocean:
 
 ### How tokens are derived
 
-The accent color is applied as `<html data-accent="<id>">`. In `apps/web/src/index.css`, each preset defines only three gradient stops, one set for light and one for dark:
+The accent color is applied as `<html data-accent="<id>">`. In `apps/web/src/index.css`, each preset sets six variables, once for light and once for dark:
 
 ```css
-[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
-.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
+[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; --brand-primary: #2563eb; --brand-strong-from: #2563eb; --brand-strong-to: #077bba; }
+.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; --brand-primary: #3d85f9; --brand-strong-from: #2970e3; --brand-strong-to: #017cb2; }
 ```
 
-Every other token that follows the accent color is derived from these three variables:
+- `--brand-from` / `--brand-via` / `--brand-to`: the three decorative gradient stops.
+- `--brand-primary`: the step that carries text (links, the focus ring, fills under `--primary-foreground`), chosen for at least 4.6:1 contrast on every surface and on `brand-soft`.
+- `--brand-strong-from` / `--brand-strong-to`: the gradient that sits under white text, at least 4.6:1 against white.
+
+Every other token that follows the accent color is derived from these:
 
 | Token | Source |
 |---|---|
-| `--primary`, `--ring`, `--sidebar-primary`, `--sidebar-ring` | `--brand-from` |
-| `--chart-1` / `--chart-2` / `--chart-3` | `--brand-from` / `--brand-via` / `--brand-to` |
-| `--brand-gradient`, `--brand-gradient-strong` | A linear gradient of the three stops |
-| `--brand-soft`, `--brand-glow`, `--brand-shadow` | Mixed with transparent via `color-mix()` |
-
-`--chart-4` and `--chart-5` are fixed colors that don't change with the accent.
+| `--primary`, `--ring`, `--sidebar-primary`, `--sidebar-ring` | `--brand-primary` |
+| `--brand-gradient` | A linear gradient of the three stops |
+| `--brand-gradient-strong` | A linear gradient of `--brand-strong-from` / `--brand-strong-to` |
+| `--brand-soft`, `--brand-glow`, `--brand-shadow` | Stops mixed with transparent via `color-mix()` |
 
 So as long as a page uses semantic classes such as `primary` and `brand-*`, it follows accent changes automatically. **Don't hard-code any accent color value in a page.**
 
-ECharts charts read the actual values of the current CSS variables through `useChartColors()` from `@/lib/chart-theme`, and recompute when the theme or accent changes.
+Chart series colors `--chart-1` … `--chart-5` are a fixed categorical palette (separate light and dark steps) that does not follow the accent. ECharts charts read the current CSS variable values through `useChartColors()` from `@/lib/chart-theme` and recompute when the theme or accent changes; `chartBase()` applies the categorical palette, and single-series charts use `brandLine()` / `brandArea()`, which are built from the accent stops.
 
 ### Adding an accent color
 
 1. Add `{ id, label }` to `ACCENTS` in `apps/web/src/lib/appearance.ts`. `label` is the Chinese source text and also serves as the translation key.
-2. Add the matching `[data-accent='<id>']` light and dark stop sets to `apps/web/src/index.css`. Keep the stops in hex; `chart-theme.ts` converts `--brand-from` to rgba.
+2. Add the matching `[data-accent='<id>']` light and dark rules to `apps/web/src/index.css`, each setting all six variables and meeting the contrast targets above. Keep the values in hex; `chart-theme.ts` converts `--brand-from` to rgba.
 3. Add English and Japanese translations for `label`.
 
 ## Navigation mode
@@ -120,7 +122,7 @@ Closing a tab unmounts its page; refreshing a tab remounts the page and shows it
 - Don't start timers at module top level or during render, or they will keep running after the page is hidden.
 :::
 
-```jsx
+```tsx
 useEffect(() => {
   const timer = setInterval(refresh, 5000)
   return () => clearInterval(timer)

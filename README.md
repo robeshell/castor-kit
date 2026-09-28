@@ -80,14 +80,14 @@ Building a product on Castor? Start with [Starting a project](https://castor.wen
 
 ## How the AI workflow works
 
-1. **Describe the feature** to your agent: *"An equipment registry: name, code, category, status, purchase date and owner, with import and export."*
+1. **Describe the feature** to your agent: *"A device registry: name, code, category, status, purchase date and owner, with import and export."*
 2. **Review the business preview.** The agent writes a module spec (fields, types, options, menu, permissions) and shows you what will be built in plain terms.
 3. **The agent builds and verifies.** It scaffolds the module, applies the migration, syncs permissions and runs the delivery gate:
 
 ```text
-$ pnpm scaffold -- --spec equipment.spec.json
+$ pnpm scaffold -- --spec device.spec.json
 $ pnpm db:migrate && pnpm seed:rbac -- --incremental
-$ pnpm verify -- --module equipment
+$ pnpm verify -- --module device
   ✅ typescript compile   ✅ migration chain   ✅ openapi sync     ✅ router registration
   ✅ rbac seed            ✅ api tests         ✅ frontend tests   ✅ frontend build
   … 16 checks in total

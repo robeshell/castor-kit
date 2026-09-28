@@ -54,7 +54,7 @@ The backend check is the real security boundary; hiding buttons on the frontend 
 
 The role with `code = 'super_admin'` has every permission:
 
-- The backend's `hasMenuPermission` lets it through unconditionally.
+- The backend's `hasMenuPermission` lets it through unconditionally. The one exception is a request made with an API token: the token's own permissions are checked first, so a super admin's token only has what was ticked on it (see [Open API](/guide/open-api#using-a-token)).
 - Every run of `seed-rbac` grants it all menus.
 
 Exception: `GET /api/admin/my-menus` has no super admin shortcut; it returns the menus actually granted to the role. Since `seed-rbac` grants all menus to the super admin, the two normally match.
@@ -68,7 +68,7 @@ So a mistake can't leave nobody able to run the system, the backend enforces the
 - You can't remove the super admin role from yourself, or disable or delete yourself
 - The last active super admin can't be disabled, deleted or lose the role; imports are checked the same way
 
-If the super admin role or the `admin` account still ends up broken, run `pnpm seed:rbac -- --incremental` (with Docker, restarting the container does it): it recreates the `super_admin` role, grants it every menu again and puts the `admin` account back in it. It doesn't restore other accounts' roles, and doesn't reset passwords or account status; add `--reset-admin-password` to set the `admin` password to `ADMIN_PASSWORD`.
+If the super admin role or the `admin` account still ends up broken, run `pnpm seed:rbac -- --incremental` (with Docker, restarting the container does it): it recreates the `super_admin` role, grants it every menu again and puts the `admin` account back in it. It doesn't restore other accounts' roles or account status, and leaves passwords alone; add `--reset-admin-password` to set the `admin` password to `ADMIN_PASSWORD` (this also happens automatically when the stored `admin` password hash is in a format that can't be verified).
 
 ## seed-rbac.ts: the single source of truth for menus
 
@@ -101,11 +101,11 @@ pnpm seed:rbac -- --incremental
 
 What `--incremental` does:
 
-- Matches by `code`: existing menus only have their fields updated (IDs stay the same); missing ones are inserted with the specified ID
+- Matches by `code`: existing menus only have their fields updated (IDs stay the same); missing ones are inserted with the specified ID, or with the next sequence value if another menu already holds that ID
 - Only inserts and updates; **never deletes** existing records
 - Grants all menus to the super admin
 - After inserting, syncs the ID sequence of the `menus` table so later inserts don't collide on the primary key
-- Creates the `admin` account only if it doesn't exist
+- Creates the `admin` account only if it doesn't exist, and makes sure it has the `super_admin` role
 
 To delete a menu, run the SQL by hand, e.g. `DELETE FROM menus WHERE id = <id>`.
 

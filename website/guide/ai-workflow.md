@@ -47,7 +47,9 @@ The AI infers the following internally, without asking you:
 - The API path, e.g. `/api/admin/customer-orders`
 - Field names and field types (based on the field-type inference table below)
 - Permission codes: `system_<name>` for the `admin` domain, `cc_<name>` for the `component_center` domain, with `_add` / `_edit` / `_delete` / `_export` / `_import` appended for button permissions
-- Frontend file paths, menu ID, parent menu, migration name
+- Frontend file paths, parent menu, migration name, and the page pattern (a plain list unless the requirement calls for another [pattern](/guide/components#from-a-pattern))
+
+It writes the result as a [spec file](#spec-files) and checks it with `pnpm scaffold -- --spec <file> --validate-only`, which also reports the API path, permissions, table and the menu ID scaffold will allocate.
 
 ### 3. Show a business preview
 
@@ -56,7 +58,8 @@ The AI shows only business-level information and waits for you to confirm or adj
 ```text
 Customers
 
-Location: System → Customers
+Location: Business → Customers
+Shown as: a list
 Features: list, create, edit, delete, import, export
 Fields:
   · Customer name (required)
@@ -70,12 +73,12 @@ The AI asks additional questions only when the data model has an ambiguity that 
 
 ### 4. Implement
 
-1. Generate the scaffold with `pnpm scaffold` (preview with `--dry-run` first).
-2. Fill in business logic, Chinese column headers and validation in the order `db/schema → schema → repository → service → routes`.
-3. Polish the frontend page: Chinese labels, form validation, enum fields, translations.
-4. Add the menu and button permissions to `seed-rbac.ts` and run `pnpm seed:rbac -- --incremental`.
+1. Generate the module with `pnpm scaffold -- --spec <file>` (list the files first with `--dry-run`).
+2. Add the business logic in the order `db/schema → schema → repository → service → routes`. The spec already produced the Chinese labels, required / unique / default rules and options; anything beyond them (relations, cross-field checks, computed values) is written here.
+3. Polish the frontend page (translations of page-specific text, extra validation), or rebuild it after the chosen page pattern.
+4. With `menu` in the spec, scaffold has already written the menu and button permissions into `seed-rbac.ts`; otherwise add them by hand. Then run `pnpm seed:rbac -- --incremental`.
 5. Review the newly generated migration SQL, run `pnpm db:migrate`, and confirm the table really exists with `psql -d <database> -c '\d <table>'`.
-6. API docs: `pnpm scaffold` has already written the module's endpoints into `docs/apifox-full.openapi.json`. If you change the generated routes, fields or validation, or add routes, update the entries from the code per `AGENTS.md` ("OpenAPI 编写规范") — required; `pnpm verify` checks it.
+6. API docs: `pnpm scaffold` has already written the module's endpoints into `docs/apifox-full.openapi.json`. If you change the generated routes, fields or validation, or add routes, update the entries from the code per `AGENTS.md` "OpenAPI writing rules". This is required: the `openapi_sync` check of `pnpm verify` fails otherwise.
 
 ### 5. Verification gate
 
@@ -117,7 +120,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--validate-only` | With `--spec`: only check the spec and say which endpoints, permissions, table and menu it would generate; writes nothing, lists problems and exits 1 if any | Off |
 | `--write-schema` | Regenerate `docs/spec.schema.json` from the scaffold's current field types and rules | Off |
 | `--skip-migration` | Don't call drizzle-kit to generate a migration | Off |
-| `--data-scope` | Adds [data scope](/guide/rbac#data-scope): `dept_id` / `created_by` columns, list / detail / edit / delete / export filtered by the caller's scope, creator and department stamped on create, plus matching API tests | Off |
+| `--data-scope` | With `--fields`, adds [data scope](/guide/rbac#data-scope): `dept_id` / `created_by` columns, list / detail / edit / delete / export filtered by the caller's scope, creator and department stamped on create, plus matching API tests. With `--spec`, set `"dataScope": true` in the spec instead (the flag is ignored) | Off |
 | `-h` / `--help` | Print usage | — |
 
 ### What gets generated
@@ -131,7 +134,7 @@ Existing files are skipped, never overwritten.
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | Basic API tests (CRUD, search, 404, export, import template, import) |
 | `apps/web/src/modules/<module>/api/<name>.ts` | Frontend API client, typed from the module's OpenAPI entries (row type `ApiItem<'/api/admin/<name-kebab>s'>`) |
 | Frontend list page `index.tsx` | In `pages/<name>/` for the `admin` domain, `pages/patterns/<name>_page/` for the `component_center` domain; typed with the shared components (`FormValues`, `DataTableColumn<Row>[]`) |
-| Page `locales/{en-US,ja-JP}.json` | Only generated when the page has Chinese text not covered by the shared translations |
+| Page `locales/{en-US,ja-JP}.json` | Translations the shared locale files don't have yet: the module's webhook event names (created / updated / deleted) and page text such as the title and labels |
 
 `<domain-dir>` is `admin` or `component-center`; `<name-kebab>` is the resource name with underscores replaced by hyphens.
 
@@ -139,9 +142,10 @@ It also automatically:
 
 - Registers the module in `apps/api/src/db/schema/index.ts` and `apps/api/src/modules/<domain-dir>/router.ts`
 - Writes the module's endpoints into `docs/apifox-full.openapi.json` and regenerates the frontend API types (`apps/web/src/shared/api/openapi.d.ts`) from it
+- With `menu` in the spec: adds the menu and button permissions to `apps/api/scripts/seed-rbac.ts` and their English / Japanese names to `apps/web/src/locales/menus/`
 - Runs `drizzle-kit generate --name <name>` to generate the migration
 
-scaffold prints the permission code prefix (Perm prefix), the menu `component` value and the API path in its output; use them directly when adding the menu.
+scaffold prints the permission code prefix (Perm prefix), the menu `component` value and the API path in its output; use them when you add the menu by hand (`--fields`, or a spec without `menu`).
 
 ### Field types
 
@@ -162,7 +166,7 @@ scaffold prints the permission code prefix (Perm prefix), the menu `component` v
 | `enum` | `varchar(50)` holding the option value | `FormSelect` | Fixed options (`options`, `--spec` only); the list filters on it and shows the option name as a badge (colour from the option's `tone`), exports show the name, imports accept name or value |
 | `dict` | `varchar(100)` holding the dictionary item value | `FormSelect` | Options from the Data dictionary (`dict` = dictionary code in `--spec`); the list shows the item label |
 
-Unknown types are treated as `str`. `id`, `created_at` and `updated_at` are added automatically.
+With `--fields`, an unknown type is treated as `str`; in a spec it is an error. `id`, `created_at` and `updated_at` are added automatically.
 
 ### Field-type inference
 
@@ -172,7 +176,9 @@ The AI infers types from the business description, so you don't have to specify 
 |---|---|
 | name, title, person's name, email | `str` |
 | code, identifier, number (as in an ID or serial number) | `str50` |
-| mobile, phone, status, type, color | `str20` |
+| mobile, phone, color | `str20` |
+| status, type, level with fixed options | `enum` (`options` in the spec; `str20` with `--fields`) |
+| category, source, industry with options admins maintain | `dict` (a data dictionary code in the spec) |
 | URL, link, address (external) | `str500` |
 | image, avatar, cover, photo | `image` |
 | attachment, file, contract, scan | `file` |
@@ -216,6 +222,7 @@ pnpm scaffold -- --spec device.spec.json
 - `default`: the column default, used when a new record leaves the field empty and prefilled in the form
 - `label` / `title`: the Chinese text of the page, headers, imports / exports and errors; `i18n` holds their English and Japanese (missing ones fall back to the field name)
 - `menu`: also adds the menu and button permissions (add / edit / delete / export / import) to `apps/api/scripts/seed-rbac.ts`, under the top-level 「业务管理」 (Business) group by default (ID 1000, created with the first module; modules from 1001); a `component_center` module goes under the gallery's 「页面模板」 (Page patterns) directory instead (IDs 4301–4399, API under `/api/admin/component-center/`); `parentId` picks another directory. Menu names in English and Japanese go to `apps/web/src/locales/menus/`
+- `dataScope`: `true` makes the module follow [data scope](/guide/rbac#data-scope), like `--data-scope` does for `--fields`
 - `options[].tone`: the badge colour of that option in the list (`neutral` by default; `success` / `warning` / `danger` … for status-like fields)
 - The generated API test gets a "field rules" case covering required, options, unique and defaults
 
@@ -240,15 +247,17 @@ pnpm verify -- --module customer --json          # Structured JSON output (stdou
 
 ### Checks
 
+There are 16 checks in three groups. A check that doesn't apply (for example `data_scope_filter` on a module without data scope) is reported as skipped.
+
 Global checks (always run):
 
 | Check | What it checks |
 |---|---|
-| `typescript_compile` | `tsc --noEmit` over `apps/api` (including scripts and test) and `apps/mcp` |
+| `typescript_compile` | `tsc --noEmit` over `apps/api` (including scripts and test), `apps/mcp` and `apps/web` (including its tests) |
 | `no_local_has_permission` | Routes files must not define their own `hasPermission` |
 | `migration_chain` | The drizzle migration journal is linear, the snapshot chain is complete, every entry has SQL, and there is no stray SQL |
 | `migration_applied` | Compares the journal with `drizzle.__drizzle_migrations` in the database and confirms the module's table exists |
-| `openapi_sync` | Whether the OpenAPI document is in sync with the routes (warning only) |
+| `openapi_sync` | Every registered `/api` route is documented in `docs/apifox-full.openapi.json` per AGENTS.md "OpenAPI writing rules", request bodies included (runs `pnpm openapi:generate -- --dry-run --strict`) |
 | `docs_paths` | Whether paths referenced in the AI context docs exist (warning only by default; blocking with `--strict-docs`) |
 
 Module checks (run when `--module` is passed):

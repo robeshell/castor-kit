@@ -36,13 +36,14 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 | 情况 | 响应 |
 |---|---|
 | 系统设置里没有打开 API Token | 401 `API Token 未开启` |
-| Token 不存在、已吊销、已过期，或创建人被停用 / 删除 | 401 `API Token 无效或已过期` |
+| Token 不存在、已吊销、已过期，或创建人已被删除（账号删除时其 Token 一并删除） | 401 `API Token 无效或已过期` |
+| 创建人已被停用 | 401 `未授权访问`，与未登录的请求相同 |
 | 调用了不接受 Token 的接口 | 403 `该接口不支持 API Token` |
 | Token 没有这个接口需要的权限 | 403（与普通用户无权限时相同） |
 
-错误信息和其他接口一样按 `Accept-Language` 翻译。
+错误信息和其他接口一样按 `Accept-Language` 翻译；不带这个请求头时（例如直接用 `curl`）返回英文。
 
-下列账号与安全类接口一律不接受 Token，即使 Token 拥有全部权限：登录 / 退出、找回密码、修改密码、验证身份、两步验证（包括管理员重置别人的两步验证）、个人设置、在线用户与会话、API Token 管理本身、修改系统设置与测试按钮、Webhook 的所有写操作（新增、修改、删除、重新生成密钥、发送测试、重新投递）和查看密钥。读取系统设置、Webhook 列表这类只读接口可以用。
+下列账号与安全类接口一律不接受 Token，即使 Token 拥有全部权限：登录 / 退出、找回密码、修改密码、验证身份、两步验证（包括管理员重置别人的两步验证）、个人设置、在线用户与会话、API Token 管理本身、AI 助手、修改系统设置与测试按钮、Webhook 的所有写操作（新增、修改、删除、重新生成密钥、发送测试、重新投递）和查看密钥。读取系统设置、Webhook 列表这类只读接口可以用。
 
 ### 管理
 
@@ -51,18 +52,19 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 - 每个 Token 记录最近使用时间和 IP；操作日志的 `api_token_id` 列注明请求来自哪个 Token
 
 ::: tip 后端开发
-新增账号或安全相关的接口（修改密码、密钥、会话等）时，把路径加进 `apps/api/src/common/api-token.ts` 的 `API_TOKEN_DENIED`。其他接口不用做任何处理：`hasMenuPermission` 已经按 Token 的权限判断。
+新增账号或安全相关的接口（修改密码、密钥、会话等）时，把路径加进 `apps/api/src/common/api-token.ts` 的 `API_TOKEN_DENIED`，并且在 OpenAPI 文档里它的 `security` 只写 `cookieAuth`（`pnpm openapi:generate -- --strict` 会检查两者是否一致）。其他接口在文档里写 `cookieAuth` + `bearerAuth` 即可，代码不用额外处理：`hasMenuPermission` 已经按 Token 的权限判断。
 :::
 
 ## Webhook
 
 ### 配置
 
-「系统管理 → 系统配置 → Webhook」（查看需要 `system_webhooks`，新增 / 编辑 / 删除分别需要 `system_webhooks_add` / `_edit` / `_delete`）：
+「系统管理 → 系统配置 → Webhook」（查看（含投递记录）需要 `system_webhooks`，新增 / 编辑 / 删除分别需要 `system_webhooks_add` / `_edit` / `_delete`；签名密钥、「发送测试」和重新投递需要 `system_webhooks_edit`）：
 
 - **推送地址**：http 或 https。不能指向云服务器元数据（`169.254.169.254`）等保留地址；生产环境默认也不能指向内网，需要时设置 `SETTINGS_ALLOW_PRIVATE_NETWORK=true`。发送时在连接层会再检查一次实际 IP
 - **订阅事件**：具体事件、某一类的全部事件（如 `user.*`）或全部事件（`*`）
-- **签名密钥**：新增后显示一次；之后在「签名密钥」里查看或重新生成，都需要近期验证身份
+- **签名密钥**（`whsec_…`）：新增后显示一次；之后在「签名密钥」里查看或重新生成
+- 新增、编辑 Webhook 以及查看、重新生成签名密钥，和保存系统设置一样需要近期验证过身份（见 [账号安全](/zh/guide/security#系统设置的安全措施)）
 - 新增 Webhook、修改推送地址时，所有超级管理员会收到站内通知
 - 「发送测试」立即发送一个 `ping` 事件并显示结果；「投递记录」列出每次投递的请求内容、响应和重试情况，可以重新投递
 
@@ -76,7 +78,7 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 | `<模块>.created` / `.updated` / `.deleted` | 用 `pnpm scaffold` 生成的模块 | 记录；删除时为 `{ id }` |
 | `ping` | 「发送测试」按钮 | `{ message, webhook }` |
 
-事件在业务数据**写入成功之后**发出；推送失败不会影响业务操作。导入和调整排序不发事件。
+事件在业务数据**写入成功之后**发出；推送失败不会影响业务操作。导入和调整部门排序不发事件。
 
 ### 请求格式
 
@@ -94,7 +96,9 @@ X-Castor-Signature: sha256=e6f82d49…
 
 - 返回任意 2xx 表示成功。重定向不会跟随，算作失败
 - 10 秒超时；响应体只保存前 2000 个字符
+- `X-Castor-Timestamp` 是发送时间（Unix 秒）；请求体里的 `created_at` 是事件发生的时间
 - 失败后按 1 分钟、5 分钟、30 分钟、2 小时、6 小时重试，第 6 次仍失败记为「失败」。停用 Webhook 后排队中的重试也会停止
+- 第一次发送由处理这次修改的进程立即发出；重试由定时任务调度器发送，调度器没有运行时不会重试（见 [定时任务](/zh/reference/configuration#定时任务)）
 - `X-Castor-Delivery` 是事件 ID，重试和手动重新投递都不变，接收方可以用它去重
 
 ### 校验签名

@@ -4,10 +4,10 @@ Castor はインストールして使うライブラリではなく、出発点�
 
 ## 1. リポジトリを作る
 
-リリースのタグから始め、Castor を 2 つ目のリモートとして残しておくと、後のリリースをマージできます。
+リリースのタグから始め（最新版は [Releases ページ](https://github.com/robeshell/castorjs/releases)で確認できます。以下では `v0.4.0`）、Castor を 2 つ目のリモートとして残しておくと、後のリリースをマージできます。
 
 ```bash
-git clone --branch v0.3.0 https://github.com/robeshell/castorjs.git my-app
+git clone --branch v0.4.0 https://github.com/robeshell/castorjs.git my-app
 cd my-app
 git switch -c main
 git remote rename origin upstream
@@ -31,7 +31,8 @@ git push -u origin main
 次のものは「castor」を含んでいても変更しないでください。
 
 - 内部パッケージ名 `@castorjs/*`：スクリプトや `pnpm --filter` コマンドが使っており、ユーザーには見えません。
-- セッション Cookie 名と鍵導出のラベル（`castor-kit-session`、`castor-kit-secret-box` など）：変更すると全員がログアウトされ、保存済みの秘密情報（SMTP / S3 / AI の鍵）が復号できなくなります。
+- セッション Cookie 名 `castor_session`：変更すると全員がログアウトされます。
+- 鍵導出のラベル（`castor-kit-session`、`castor-kit-secret-box` など）：変更すると全員がログアウトされ、保存済みの秘密情報（SMTP / S3 / AI の鍵）が復号できなくなります。
 - Webhook のヘッダー `X-Castor-Event` / `X-Castor-Signature` など：受信側がこれで検証しています。
 
 ## 3. コンポーネント例を非表示にする
@@ -58,9 +59,11 @@ git push -u origin main
 
 ## 6. Castor の新しいリリースを取り込む
 
+`<tag>` は取り込むリリースに置き換えます（例：`v0.5.0`）。
+
 ```bash
 git fetch upstream --tags
-git merge v0.4.0
+git merge <tag>
 ```
 
 先にそのリリースの CHANGELOG を読んでください。コンフリクトはふつう `seed-rbac.ts` のように双方が拡張するファイルで起き（両方のメニューを残します）、通常どおり解決できます。
@@ -73,7 +76,7 @@ git diff --name-only --diff-filter=A HEAD MERGE_HEAD -- 'apps/api/drizzle/*.sql'
 # 2. apps/api/drizzle を自分の版に戻す（リリースのマイグレーションファイルは外れます）
 git restore --source=HEAD --staged --worktree apps/api/drizzle
 # 3. リリースのスキーマ変更からマイグレーションを 1 つ生成（スキーマのコードはすでにマージ済み）
-pnpm db:generate --name upstream_v0_4_0
+pnpm db:generate --name upstream_<tag>   # 例：upstream_v0_5_0（英数字とアンダースコアのみ）
 ```
 
 4. 手順 1 のマイグレーションを 1 つずつ開き（`git show MERGE_HEAD:apps/api/drizzle/<file>.sql`）、テーブル / 列の変更ではない文（`INSERT`、`UPDATE`、`DELETE` など）を新しいマイグレーションの末尾にコピーします。各文の前に `--> statement-breakpoint` の行を入れます。

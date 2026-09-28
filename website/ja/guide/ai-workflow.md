@@ -47,7 +47,9 @@ AI は次の内容を内部で推測し、あなたに質問はしません。
 - API パス（例：`/api/admin/customer-orders`）
 - フィールド名とフィールド型（後述のフィールド型の推測表に基づく）
 - 権限コード：`admin` ドメインは `system_<name>`、`component_center` ドメインは `cc_<name>`。ボタン権限には `_add` / `_edit` / `_delete` / `_export` / `_import` を付ける
-- フロントエンドのファイルパス、メニュー ID、親メニュー、マイグレーション名
+- フロントエンドのファイルパス、親メニュー、マイグレーション名、そしてページテンプレート（要件が別の[ページテンプレート](/ja/guide/components#from-a-pattern)を求めない限り、通常の一覧）
+
+推測した内容は [spec ファイル](#spec-ファイル)に書き出し、`pnpm scaffold -- --spec <file> --validate-only` で検証します。検証結果には API パス、権限、テーブル、scaffold が割り当てるメニュー ID も表示されます。
 
 ### 3. 業務プレビューを提示する
 
@@ -56,7 +58,8 @@ AI は業務レベルの情報だけを提示し、あなたの確認や修正�
 ```text
 顧客管理
 
-場所：システム管理 → 顧客管理
+場所：業務管理 → 顧客管理
+表示形式：一覧
 機能：一覧表示、追加、編集、削除、インポート、エクスポート
 フィールド：
   · 顧客名（必須）
@@ -70,12 +73,12 @@ AI が追加で質問するのは、データモデルに取り返しのつか�
 
 ### 4. 実装する
 
-1. `pnpm scaffold` で骨格を生成します（先に `--dry-run` でプレビューします）。
-2. `db/schema → schema → repository → service → routes` の順に、ビジネスロジック、中国語の列見出し、バリデーションを補います。
-3. フロントエンドのページを仕上げます：中国語のラベル、フォームのバリデーション、列挙型フィールド、多言語の翻訳。
-4. `seed-rbac.ts` にメニューとボタン権限を追加し、`pnpm seed:rbac -- --incremental` を実行します。
+1. `pnpm scaffold -- --spec <file>` でモジュールを生成します（先に `--dry-run` で書き込むファイルを確認できます）。
+2. `db/schema → schema → repository → service → routes` の順にビジネスロジックを補います。中国語のラベル、必須・一意・デフォルト値のルール、選択肢は spec からすでに生成されています。それ以外（テーブル間の関連、項目をまたぐチェック、計算項目）はここで書きます。
+3. フロントエンドのページを仕上げます（ページ固有の文言の翻訳、追加のバリデーション）。または選んだページテンプレートに倣ってページを作り直します。
+4. spec に `menu` があれば、メニューとボタン権限は scaffold が `seed-rbac.ts` に書き込み済みです。なければ手で追加します。そのうえで `pnpm seed:rbac -- --incremental` を実行します。
 5. 新しく生成されたマイグレーション SQL をレビューしてから `pnpm db:migrate` を実行し、`psql -d <データベース名> -c '\d <テーブル名>'` でテーブルが実際に存在することを確認します。
-6. API ドキュメント：`pnpm scaffold` がモジュールの API を `docs/apifox-full.openapi.json` に書き込み済みです。生成されたルート・フィールド・バリデーションを変更したり、ルートを追加したりした場合は、`AGENTS.md`「OpenAPI 编写规范」に沿ってコードから更新します（必須。`pnpm verify` がチェックします）。
+6. API ドキュメント：`pnpm scaffold` がモジュールの API を `docs/apifox-full.openapi.json` に書き込み済みです。生成されたルート・フィールド・バリデーションを変更したり、ルートを追加したりした場合は、`AGENTS.md` の「OpenAPI writing rules」に沿ってコードから更新します。これは必須で、行わないと `pnpm verify` の `openapi_sync` チェックが失敗します。
 
 ### 5. 検証ゲート
 
@@ -117,7 +120,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `--validate-only` | `--spec` と併用：spec を検証し、生成される API・権限・テーブル・メニューを表示するだけでファイルは書かない。問題があれば一覧表示して 1 で終了 | オフ |
 | `--write-schema` | スキャフォールドの現在のフィールド型などのルールから `docs/spec.schema.json` を再生成 | オフ |
 | `--skip-migration` | drizzle-kit によるマイグレーションの生成を行わない | オフ |
-| `--data-scope` | [データ権限](/ja/guide/rbac#data-scope)を組み込む：テーブルに `dept_id` / `created_by` を追加し、一覧・詳細・編集・削除・エクスポートを現在のユーザーのデータ範囲で絞り込み、作成時に作成者と部署を記録し、対応する API テストも生成する | オフ |
+| `--data-scope` | `--fields` と併用時に[データ権限](/ja/guide/rbac#data-scope)を組み込む：テーブルに `dept_id` / `created_by` を追加し、一覧・詳細・編集・削除・エクスポートを現在のユーザーのデータ範囲で絞り込み、作成時に作成者と部署を記録し、対応する API テストも生成する。`--spec` の場合は代わりに spec に `"dataScope": true` を書く（この引数は無視される） | オフ |
 | `-h` / `--help` | 使い方を表示する | — |
 
 ### 生成される内容
@@ -131,7 +134,7 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 | `apps/api/test/<admin\|cc>-<name-kebab>.test.ts` | API の基本テスト（CRUD、検索、404、エクスポート、インポートテンプレート、インポート） |
 | `apps/web/src/modules/<module>/api/<name>.ts` | フロントエンドの API 呼び出し。型はモジュールの OpenAPI エントリから（行の型は `ApiItem<'/api/admin/<name-kebab>s'>`） |
 | フロントエンドの一覧ページ `index.tsx` | `admin` ドメインは `pages/<name>/`、`component_center` ドメインは `pages/patterns/<name>_page/`。共通コンポーネントの型に沿って書かれます（`FormValues`、`DataTableColumn<Row>[]`） |
-| ページの `locales/{en-US,ja-JP}.json` | 共通の翻訳でカバーされない中国語がページにある場合のみ生成 |
+| ページの `locales/{en-US,ja-JP}.json` | 共通の翻訳ファイルにまだない翻訳：モジュールの Webhook イベント名（作成 / 更新 / 削除）と、タイトルやラベルなどのページの文言 |
 
 `<domain-dir>` は `admin` または `component-center`、`<name-kebab>` はリソース名のアンダースコアをハイフンに置き換えたものです。
 
@@ -139,9 +142,10 @@ pnpm scaffold -- --name customer --domain admin --fields "name:str,phone:str20,s
 
 - `apps/api/src/db/schema/index.ts` と `apps/api/src/modules/<domain-dir>/router.ts` への登録
 - モジュールのエンドポイントを `docs/apifox-full.openapi.json` に書き込み、そこからフロントエンドの API 型（`apps/web/src/shared/api/openapi.d.ts`）を再生成
+- spec に `menu` がある場合：メニューとボタン権限を `apps/api/scripts/seed-rbac.ts` に、その英語・日本語名を `apps/web/src/locales/menus/` に追加
 - `drizzle-kit generate --name <name>` の実行によるマイグレーションの生成
 
-scaffold は出力に権限コードのプレフィックス（Perm prefix）、メニューの `component` 値、API パスを表示するので、メニューを追加するときはそのまま使ってください。
+scaffold は出力に権限コードのプレフィックス（Perm prefix）、メニューの `component` 値、API パスを表示するので、メニューを手で追加するとき（`--fields` を使う場合や、spec に `menu` がない場合）はそのまま使ってください。
 
 ### フィールド型
 
@@ -162,7 +166,7 @@ scaffold は出力に権限コードのプレフィックス（Perm prefix）、
 | `enum` | `varchar(50)`。選択肢の値を保存 | `FormSelect` | 固定の選択肢（`--spec` の `options` のみ）。一覧はこの項目で絞り込めて、選択肢の名前をバッジで表示し（色は選択肢の `tone`）、エクスポートは名前を表示し、インポートは名前・値のどちらも受け付ける |
 | `dict` | `varchar(100)`。辞書項目の値を保存 | `FormSelect` | 選択肢は「データ辞書」から（`--spec` の `dict` に辞書コード）。一覧は辞書のラベルを表示 |
 
-未知の型は `str` として扱われます。`id`、`created_at`、`updated_at` は自動で追加されます。
+`--fields` では未知の型は `str` として扱われ、spec ではエラーになります。`id`、`created_at`、`updated_at` は自動で追加されます。
 
 ### フィールド型の推測
 
@@ -172,7 +176,9 @@ AI は業務上の説明から型を推測するので、あなたが指定す�
 |---|---|
 | 名称、タイトル、氏名、メールアドレス | `str` |
 | コード、番号 | `str50` |
-| 携帯電話、電話、ステータス、種類、色 | `str20` |
+| 携帯電話、電話、色 | `str20` |
+| 選択肢が決まっているステータス、種類、レベル | `enum`（spec では `options`。`--fields` だけなら `str20`） |
+| 管理者が選択肢を管理する分類、流入元、業種 | `dict`（spec ではデータ辞書のコード） |
 | URL、リンク、アドレス（外部） | `str500` |
 | 画像、アバター、カバー、写真 | `image` |
 | 添付ファイル、ファイル、契約書、スキャン | `file` |
@@ -216,6 +222,7 @@ pnpm scaffold -- --spec device.spec.json
 - `default`：列のデフォルト値。追加時に空ならこの値を使い、フォームにもあらかじめ入力されます
 - `label` / `title`：ページ、見出し、インポート・エクスポート、エラーに使う中国語。`i18n` はその英語・日本語（ないものはフィールド名で代用）
 - `menu`：メニューとボタン権限（追加・編集・削除・エクスポート・インポート）も `apps/api/scripts/seed-rbac.ts` に追加します。デフォルトでは最上位の「業務管理」（ID 1000、最初の生成時に作成。モジュールは 1001 から）の下に置きます。`component_center` ドメインのモジュールは「コンポーネント例」の「ページテンプレート」ディレクトリの下に置きます（ID 4301–4399、API は `/api/admin/component-center/` 配下）。`parentId` で別のディレクトリを指定できます。メニュー名の英語・日本語は `apps/web/src/locales/menus/` に書き込みます
+- `dataScope`：`true` にするとモジュールが[データ権限](/ja/guide/rbac#data-scope)に従います。`--fields` での `--data-scope` に相当します
 - `options[].tone`：一覧でのその選択肢のバッジの色（デフォルトは `neutral`。状態を表す項目では `success` / `warning` / `danger` など）
 - 生成される API テストに、必須・選択肢・一意・デフォルト値を確認する「フィールドルール」のケースが加わります
 
@@ -240,15 +247,17 @@ pnpm verify -- --module customer --json          # 構造化 JSON を出力（st
 
 ### チェック項目
 
+チェックは 3 グループ、全 16 項目です。対象外のチェック（データ権限のないモジュールでの `data_scope_filter` など）はスキップとして表示されます。
+
 グローバルチェック（毎回実行）：
 
 | チェック | 内容 |
 |---|---|
-| `typescript_compile` | `tsc --noEmit`。`apps/api`（scripts、test を含む）と `apps/mcp` が対象 |
+| `typescript_compile` | `tsc --noEmit`。`apps/api`（scripts、test を含む）、`apps/mcp`、`apps/web`（テストを含む）が対象 |
 | `no_local_has_permission` | routes ファイル内で `hasPermission` を独自に定義していないこと |
 | `migration_chain` | drizzle のマイグレーション journal が線形で、スナップショットのチェーンが完全であり、すべてのエントリーに SQL があり、余分な SQL がないこと |
 | `migration_applied` | journal とデータベースの `drizzle.__drizzle_migrations` を照合し、モジュールのテーブルが存在することを確認 |
-| `openapi_sync` | OpenAPI ドキュメントがルートと同期しているか（警告のみ） |
+| `openapi_sync` | 登録されているすべての `/api` ルートが AGENTS.md「OpenAPI writing rules」に沿って `docs/apifox-full.openapi.json` に記載され、リクエストボディもコードと一致していること（`pnpm openapi:generate -- --dry-run --strict` を実行） |
 | `docs_paths` | AI コンテキストのドキュメントで参照しているパスが存在するか（デフォルトは警告のみ。`--strict-docs` 指定時はブロック） |
 
 モジュールチェック（`--module` を指定したときに実行）：

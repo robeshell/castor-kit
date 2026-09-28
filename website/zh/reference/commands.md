@@ -3,7 +3,7 @@
 所有 `pnpm` 命令都在仓库根目录执行。
 
 ::: tip 关于参数前的 --
-Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参数前的 `--` 可写可不写。**`pnpm db:generate` 后面不能写 `--`**，因为参数会直接交给 drizzle-kit，它不认识 `--`。
+Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`seed:demo`、`openapi:*`）参数前的 `--` 可写可不写。**`pnpm db:generate` 后面不能写 `--`**，因为参数会直接交给 drizzle-kit，它不认识 `--`。
 :::
 
 ## 开发
@@ -27,8 +27,9 @@ Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参
 | `pnpm --filter @castorjs/api test` | 只运行后端测试 |
 | `pnpm --filter @castorjs/web test` | 只运行前端测试 |
 | `pnpm --filter @castorjs/web test:watch` | 前端测试监听模式 |
-| `pnpm lint` | 后端 ESLint |
-| `pnpm --filter @castorjs/web lint` | 前端 ESLint |
+| `pnpm --filter @castorjs/mcp test` | 只运行 MCP Server 测试 |
+| `pnpm lint` | 后端和前端的 ESLint |
+| `pnpm --filter @castorjs/web lint` | 只跑前端 ESLint |
 | `node apps/web/scripts/i18n-scan.mjs [目录]` | 扫描未翻译文案，目录相对 `apps/web`，省略时扫描整个 `src` |
 
 ## 数据库
@@ -38,22 +39,26 @@ Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参
 | `pnpm db:generate --name <描述>` | 根据表定义生成迁移 SQL 到 `apps/api/drizzle/` |
 | `pnpm db:migrate` | 应用迁移 |
 | `psql -d <库名> -c '\d <表名>'` | 确认表结构已真实落库 |
-| `pnpm setup-once` | 迁移 + RBAC 增量同步 + AI SQL 只读账号，带 advisory lock，可重复执行 |
+| `pnpm setup-once` | 迁移 + RBAC 增量同步 + AI SQL 只读账号（开启 `DEMO_MODE` 且到期时还会重置演示数据），带 advisory lock，可重复执行；Docker 镜像每次启动都会执行 |
 | `pnpm --filter @castorjs/api init-ro-role` | 单独创建 AI SQL 只读账号 `castor_kit_ro`（需要 `POSTGRES_RO_PASSWORD`） |
+| `pnpm demo:reset` | 立即恢复公开演示数据。会先清空所有演示数据表和日志，不要在需要保留数据的库上执行 |
 
 ## RBAC
 
 | 命令 | 说明 |
 |---|---|
 | `pnpm seed:rbac -- --incremental` | 增量同步菜单与权限：按 `code` upsert，不删除 |
-| `pnpm seed:rbac` | 全量重建：清空用户、角色、菜单后重写，**仅用于空库初始化** |
-| `pnpm seed:demo` | 写入示例部门、角色（部门主管 / 普通员工）和用户，用来体验数据权限；可重复执行，生产环境需加 `--force` |
+| `pnpm seed:rbac -- --incremental --reset-admin-password` | 同时把 `admin` 账号的密码重置为 `ADMIN_PASSWORD` |
+| `pnpm seed:rbac` | 全量重建：清空用户、角色、菜单及其关联后重写，**仅用于空库初始化** |
+| `pnpm seed:demo` | 写入示例部门、角色（部门主管 / 普通员工）和用户，用来体验数据权限；可重复执行，生产环境需加 `--force`。`--password <密码>` 指定示例用户的密码（默认 `demo123456` 或 `DEMO_USER_PASSWORD`），`--reset-passwords` 让已有的示例用户也改用该密码 |
 
 ## 代码生成与门禁
 
 | 命令 | 说明 |
 |---|---|
-| `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<字段:类型,...>"` | 生成后端模块、前端页面、接口测试和迁移 |
+| `pnpm scaffold -- --spec <文件>` | 按 JSON spec 生成模块（格式见 `docs/spec.schema.json`，示例在 `docs/examples/specs/`）：后端模块、前端页面和 API 文件、接口测试、OpenAPI 条目和迁移；spec 带 `menu` 时还会把菜单和按钮权限写进 `seed-rbac.ts` |
+| `pnpm scaffold -- --spec <文件> --validate-only` | 只校验 spec 并打印将生成的内容，不写任何文件，有问题时以 1 退出 |
+| `pnpm scaffold -- --name <name> --domain <admin\|component_center> --fields "<字段:类型,...>"` | 不用 spec 生成模块（产物相同，但没有中文名、约束和菜单） |
 | `pnpm scaffold -- ... --dry-run` | 只打印将生成的内容，不写文件 |
 | `pnpm scaffold -- ... --skip-migration` | 生成代码但不生成迁移 |
 | `pnpm scaffold -- ... --data-scope` | 生成的模块按数据权限过滤（加 `dept_id` / `created_by`） |
@@ -74,10 +79,11 @@ Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参
 
 | 命令 | 说明 |
 |---|---|
-| `pnpm openapi:generate` | 为缺文档的路由 + 方法补骨架（写回 `docs/apifox-full.openapi.json`），并按 OpenAPI 编写规范检查 |
-| `pnpm openapi:generate -- --dry-run` | 只检查，不写回 |
+| `pnpm openapi:generate` | 为缺文档的路由 + 方法补骨架（写回 `docs/apifox-full.openapi.json`），按 OpenAPI 编写规范检查，并重新生成前端的接口类型 `apps/web/src/shared/api/openapi.d.ts` |
+| `pnpm openapi:generate -- --dry-run` | 只检查，不写回（也不重新生成接口类型） |
 | `pnpm openapi:generate -- --strict` | 逐个列出不合规的接口和原因，有则以非 0 退出 |
 | `pnpm openapi:apifox` | 推送到 Apifox（需要 `APIFOX_PROJECT_ID`、`APIFOX_ACCESS_TOKEN`） |
+| `pnpm --filter @castorjs/web api:types` | 只根据 OpenAPI 文档重新生成 `openapi.d.ts`（加 `--check` 时，文件过期则以 1 退出） |
 
 ## MCP Server
 
@@ -115,5 +121,6 @@ Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`openapi:*`）参
 | `npm --prefix website run dev` | 本地预览文档站 |
 | `npm --prefix website run build` | 构建文档站（会检查死链） |
 | `npm --prefix website run screenshots` | 从运行中的应用重新截取落地页和 README 的截图（需先 `pnpm dev`，会提示输入 admin 密码） |
+| `npm --prefix website run og` | 用仪表盘截图渲染社交预览图（`website/public/og.png` 和 `.github/assets/social-preview.png`） |
 
 合入 main 后，文档站由 `.github/workflows/docs.yml` 自动发布到 GitHub Pages。

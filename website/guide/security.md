@@ -14,25 +14,25 @@ The System settings page holds switches and parameters that can change at runtim
 | `security.password_min_length` | Minimum password length (6–64) | `6` |
 | `security.password_require_letters_digits` | Passwords must contain letters and digits | Off |
 | `security.password_require_symbol` | Passwords must contain a symbol | Off |
-| `security.session_ttl_hours` | Session lifetime (hours, 1–720, sliding) | `SESSION_TTL_HOURS` |
-| `security.login_max_failures` / `security.login_lockout_minutes` | Failed attempts before lockout / lockout duration (minutes) | `10` / `15` |
-| `security.rate_limit_per_minute` | `/api` requests per IP per minute | `600` |
-| `security.auth_rate_limit_per_minute` | Sign-in requests per IP per minute (sign-in, 2FA code and password reset share it) | `20` |
+| `security.session_ttl_hours` | Session lifetime (hours, 1–720, sliding) | `SESSION_TTL_HOURS` (`8`) |
+| `security.login_max_failures` / `security.login_lockout_minutes` | Failed attempts before lockout (3–1000) / lockout duration and counting window (minutes, 1–1440), see [Sign-in lockout](#sign-in-lockout) | `10` / `15` |
+| `security.rate_limit_per_minute` | `/api` and `/ws` requests per IP per minute (60–100000) | `600` |
+| `security.auth_rate_limit_per_minute` | Sign-in requests per IP per minute (3–1000; sign-in, 2FA codes, identity checks and password reset share it) | `20` |
 | `security.api_tokens_enabled` | Allow API tokens, see [Open API](/guide/open-api) | Off |
 
-- The defaults are conservative: none of these features take effect until their switch is turned on
-- A switch whose prerequisites are missing can't be turned on, and the page says why. For example, password reset needs mail to be configured, and neither two-step verification nor password reset can be turned on in demo mode
-- Secrets such as passwords, the S3 secret key and API keys are stored encrypted with a key derived from `SECRET_KEY`; neither the API nor the page returns them again
-- A setting whose environment variable is set (e.g. `SMTP_HOST`, `AI_API_KEY`) follows the variable and is read-only on the page. Only what the server needs before it starts (database URL, `SECRET_KEY`, ports …) must be an environment variable
+- Features that add a step for users (two-step verification, password reset, API tokens) stay off until their switch is turned on. The sign-in lockout and rate limits are active from the start with the defaults above
+- A switch whose prerequisites are missing can't be turned on, and the page says why. For example, password reset needs an SMTP server and the site URL on the Mail tab, and two-step verification, password reset and API tokens can't be turned on in demo mode
+- Secrets (the SMTP password, the S3 secret key and the AI API key) are stored encrypted with a key derived from `SECRET_KEY`; neither the API nor the page returns them again
+- A setting whose environment variable is set (e.g. `SMTP_HOST`, `AI_API_KEY`) follows the variable and is read-only on the page. `SESSION_TTL_HOURS` is the exception: it only sets the default of the session lifetime and doesn't lock it. Only what the server needs before it starts (database URL, `SECRET_KEY`, ports …) must be an environment variable
 - Viewing needs the menu permission `system_settings`; saving needs the button permission `system_settings_edit`
 
 ### How system settings are protected
 
 System settings control where data goes — the mail server, file storage, the AI API. A hijacked admin account changing them could intercept password reset mails or send new uploads and AI requests to someone else's server. So:
 
-- **Recent identity check**: saving settings or using a test button needs a sign-in or identity check within the last 10 minutes; otherwise a "Confirm it's you" dialog asks for the current password (plus a two-step code or recovery code for enrolled accounts). A stolen session cookie alone can't change settings, and failures count toward the sign-in lockout. The endpoint is `POST /api/admin/reauth`; the backend protects endpoints with `requireRecentAuth(request)` from `common/session.ts`
+- **Recent identity check**: saving settings or using a test button needs a sign-in or identity check within the last 10 minutes; otherwise an identity check dialog asks for the current password (plus a two-step code or recovery code for enrolled accounts). A stolen session cookie alone can't change settings, and failures count toward the sign-in lockout. Creating an API token and adding or changing a webhook need the same check (see [Open API](/guide/open-api)). The endpoint is `POST /api/admin/reauth`; the backend protects endpoints with `requireRecentAuth(request)` from `common/session.ts`
 - **Change notifications**: every save sends all active super admins a notification naming who changed which settings (secrets only say "updated / cleared"); the operation log records it too, with secrets masked
-- **No reserved or internal addresses**: the SMTP server, S3 endpoint and AI API URL can't point at reserved addresses such as cloud metadata (`169.254.169.254`), and in production by default not at internal networks either (`127.0.0.1`, `10.x`, `192.168.x` …). Set `SETTINGS_ALLOW_PRIVATE_NETWORK=true` to use a MinIO or mail server on your own network. Saving and testing check this, and AI requests re-check the address actually connected to, so a hostname can't later be pointed inside
+- **No reserved or internal addresses**: the SMTP server, S3 endpoint and AI API URL can't point at reserved addresses such as cloud metadata (`169.254.169.254`), and in production by default not at internal networks either (`127.0.0.1`, `10.x`, `192.168.x` …). Set `SETTINGS_ALLOW_PRIVATE_NETWORK=true` to use a MinIO or mail server on your own network. Saving and testing check this, and AI requests re-check the address actually connected to, so a hostname can't later be pointed inside. Values pinned by environment variables are the operator's choice and aren't checked
 - **Few people with access**: viewing needs the menu permission `system_settings`, changing needs the button permission `system_settings_edit`; by default only super admins have them
 
 Recommended for production:
@@ -43,13 +43,14 @@ Recommended for production:
 
 ### Adding a setting
 
-Settings are defined in `SETTING_DEFINITIONS` in `apps/api/src/common/settings.ts`: group, type (boolean, integer, string, secret, enum, string list), default, bounds, the environment variable that can pin it, whether it is public (public ones are sent to signed-out pages through `/api/admin/app-info`) and why it may be unavailable. New environment variable names also go into `common/settings-env.ts`, and the frontend gets a label and description in `pages/settings/form.js`. Code reads them with `app.settings.get()`; on hot paths that run for every request (like rate limiting) use `app.settings.peek()`, which returns the cached values without waiting for the database.
+Settings are defined in `SETTING_DEFINITIONS` in `apps/api/src/common/settings.ts`: group, type (boolean, integer, string, secret, enum, string list), default, bounds, the environment variable that can pin it, whether it is public (public ones are sent to signed-out pages through `/api/admin/app-info`) and why it may be unavailable. New environment variable names also go into `common/settings-env.ts`. On the frontend, add the label and description to `FIELD_META` in `apps/web/src/modules/admin/pages/settings/form.ts`, place the field on its tab in `index.tsx` next to it, and add the translations to that page's `locales/`. Code reads them with `app.settings.get()`; on hot paths that run for every request (like rate limiting) use `app.settings.peek()`, which returns the cached values without waiting for the database.
 
 When a new feature should be "off by default, an admin can turn it on", add a setting here rather than another environment variable.
 
 ## Server-side sessions
 
-- Signing in creates a row in `sessions`. The `castor_session` cookie is still encrypted but holds only the session ID and the CSRF token; the row decides whether the request is signed in and as whom
+- Signing in creates a row in `sessions`. The `castor_session` cookie (encrypted, `HttpOnly`, `SameSite=Lax`) holds only the session ID and the CSRF token; the row decides whether the request is signed in and as whom
+- Write requests (POST / PUT / PATCH / DELETE) under `/api/` from a session must send that CSRF token in the `X-CSRF-Token` header; the frontend's request client does this, see [Backend](/guide/backend)
 - Each request checks the session once; last activity and expiry are updated at most once a minute (sliding expiry)
 - Sessions that expired or were revoked more than a day ago are deleted hourly by the scheduler process
 
@@ -67,7 +68,7 @@ On the backend, check sign-in with `isSignedIn(request)` from `common/session.ts
 
 ### Online users
 
-System → Online users lists the signed-in sessions (user, device, IP, sign-in time and last activity), filtered by the viewer's [data scope](/guide/rbac#data-scope). With the button permission `system_sessions_revoke` an admin can force a sign-out, except for their own current session; only super admins can sign out super admins.
+System → Security & audit → Online users lists the signed-in sessions (user, device, IP, sign-in time and last activity), filtered by the viewer's [data scope](/guide/rbac#data-scope). With the button permission `system_sessions_revoke` an admin can force a sign-out, except for their own current session; only super admins can sign out super admins.
 
 Under Profile → Signed-in devices, every user sees where they are signed in and can sign out one device or all others.
 
@@ -85,7 +86,7 @@ Details:
 - TOTP (6 digits, 30 s, SHA-1), with one period of clock drift either way; a code for a given period can be used only once
 - The secret is stored encrypted with AES-256-GCM, using a key derived from `SECRET_KEY`; changing `SECRET_KEY` invalidates existing enrollments
 - Recovery codes are stored as sha256 hashes and each works once
-- Wrong codes count toward the sign-in lockout just like wrong passwords (`LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES`)
+- Wrong codes count toward the [sign-in lockout](#sign-in-lockout) just like wrong passwords
 - After the password but before the second step, the session is pending: it can't reach any endpoint that needs sign-in and expires after 5 minutes. Passing the step issues a new session ID. The "signed in" log entry and last sign-in time are recorded only then
 - Turning the master switch off only stops sign-in from asking for codes; enrollments are kept and apply again when it is turned back on
 
@@ -106,8 +107,15 @@ Every place a password is set checks the rules from System settings: changing a 
 ## Rate limits
 
 - Every `/api` and `/ws` request counts per IP; over the per-minute limit the response is 429 with a translated error and a `Retry-After` header. Static files and `/health` don't count
-- Sign-in, 2FA codes and password reset share a stricter limit
+- Sign-in, 2FA codes (at sign-in and when enrolling), identity checks and password reset (requesting the mail and setting the new password) share a stricter limit, `security.auth_rate_limit_per_minute`
 - Counters live in process memory: with several instances each one counts separately, so the effective limit can be up to the setting times the number of instances
 - `RATE_LIMIT_ENABLED=false` turns it off entirely (it is off in the test environment)
 
 Rate limits and the sign-in lockout work together: one limits how often requests come in, the other how many attempts may fail.
+
+### Sign-in lockout
+
+- Failed attempts are wrong passwords (including correct passwords for a disabled account), wrong two-step or recovery codes at sign-in, and failed identity checks (wrong password or code). They are counted over the last `security.login_lockout_minutes` minutes, per IP and per username
+- Once either count reaches `security.login_max_failures`, sign-in, the second step and identity checks answer 429 until older failures leave the window. In demo mode only the IP is counted, so nobody can lock the shared demo account
+- A successful sign-in clears that user's and IP's failures in the window
+- `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES` pin both values, see [Configuration](/reference/configuration#sign-in-lockout)

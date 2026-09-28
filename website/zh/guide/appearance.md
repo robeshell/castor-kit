@@ -7,8 +7,8 @@
 ## 浅色 / 深色
 
 - 通过 `<html class="dark">` 切换，遵循 shadcn / Tailwind 的约定。
-- 选择保存在 `localStorage` 的 `theme` 键中；从未选择过时跟随系统设置。
-- 切换时会短暂开启全局颜色过渡，结束后移除，不影响平常的 hover 动效。
+- 当前模式保存在 `localStorage` 的 `theme` 键中。首次访问、还没有保存值时，以系统设置为初始值。
+- 切换时会在一帧内关闭所有 CSS 过渡（`<html>` 上的 `theme-switching` 类），让页面一次性换色，避免 hover 和颜色过渡在新旧颜色之间渐变。
 
 实现位于 `apps/web/src/context/ThemeContext.tsx`。页面只要使用语义色类（见 [前端开发](/zh/guide/frontend#样式规范)），深色模式就自动正确。
 
@@ -27,32 +27,34 @@
 
 ### token 如何派生
 
-强调色以 `<html data-accent="<id>">` 的形式应用。`apps/web/src/index.css` 中每个预设只定义三个渐变色标，浅色和深色各一组：
+强调色以 `<html data-accent="<id>">` 的形式应用。`apps/web/src/index.css` 中每个预设设置六个变量，浅色和深色各一组：
 
 ```css
-[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; }
-.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; }
+[data-accent='ocean'] { --brand-from: #2563eb; --brand-via: #0284c7; --brand-to: #22d3ee; --brand-primary: #2563eb; --brand-strong-from: #2563eb; --brand-strong-to: #077bba; }
+.dark[data-accent='ocean'], .dark [data-accent='ocean'] { --brand-from: #3b82f6; --brand-via: #0ea5e9; --brand-to: #22d3ee; --brand-primary: #3d85f9; --brand-strong-from: #2970e3; --brand-strong-to: #017cb2; }
 ```
 
-其他所有跟随强调色的 token 都由这三个变量派生：
+- `--brand-from` / `--brand-via` / `--brand-to`：三个装饰用的渐变色标。
+- `--brand-primary`：承载文字的色阶（链接、焦点环、`--primary-foreground` 下的填充），在所有背景和 `brand-soft` 上对比度不低于 4.6:1。
+- `--brand-strong-from` / `--brand-strong-to`：白字下方的渐变，与白色的对比度不低于 4.6:1。
+
+其他所有跟随强调色的 token 都由它们派生：
 
 | token | 来源 |
 |---|---|
-| `--primary`、`--ring`、`--sidebar-primary`、`--sidebar-ring` | `--brand-from` |
-| `--chart-1` / `--chart-2` / `--chart-3` | `--brand-from` / `--brand-via` / `--brand-to` |
-| `--brand-gradient`、`--brand-gradient-strong` | 三个色标组成的线性渐变 |
-| `--brand-soft`、`--brand-glow`、`--brand-shadow` | 用 `color-mix()` 与透明色混合 |
-
-`--chart-4`、`--chart-5` 是固定颜色，不随强调色变化。
+| `--primary`、`--ring`、`--sidebar-primary`、`--sidebar-ring` | `--brand-primary` |
+| `--brand-gradient` | 三个色标组成的线性渐变 |
+| `--brand-gradient-strong` | `--brand-strong-from` / `--brand-strong-to` 组成的线性渐变 |
+| `--brand-soft`、`--brand-glow`、`--brand-shadow` | 用 `color-mix()` 把色标与透明色混合 |
 
 因此，页面里只要使用 `primary`、`brand-*` 等语义类，切换强调色时就会自动跟随。**不要在页面中写死某个强调色的色值。**
 
-ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS 变量的实际值，主题或强调色切换时会重新计算。
+图表系列色 `--chart-1` … `--chart-5` 是一套固定的分类色板（浅色、深色各有一组），不随强调色变化。ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS 变量的实际值，主题或强调色切换时会重新计算；`chartBase()` 套用分类色板，单系列图表用 `brandLine()` / `brandArea()`，它们取自强调色的色标。
 
 ### 新增一个强调色
 
 1. 在 `apps/web/src/lib/appearance.ts` 的 `ACCENTS` 中添加 `{ id, label }`，`label` 是中文原文，同时作为翻译 key。
-2. 在 `apps/web/src/index.css` 中添加对应的 `[data-accent='<id>']` 浅色和深色两组色标。色标保持十六进制写法，`chart-theme.ts` 会把 `--brand-from` 转换为 rgba。
+2. 在 `apps/web/src/index.css` 中添加对应的 `[data-accent='<id>']` 浅色和深色两条规则，每条都设置全部六个变量，并满足上面的对比度要求。颜色保持十六进制写法，`chart-theme.ts` 会把 `--brand-from` 转换为 rgba。
 3. 为 `label` 补充英文和日文译文。
 
 ## 导航模式
@@ -120,7 +122,7 @@ ECharts 图表通过 `@/lib/chart-theme` 的 `useChartColors()` 读取当前 CSS
 - 不要在模块顶层或渲染过程中启动定时器，否则页面隐藏后仍会继续运行。
 :::
 
-```jsx
+```tsx
 useEffect(() => {
   const timer = setInterval(refresh, 5000)
   return () => clearInterval(timer)

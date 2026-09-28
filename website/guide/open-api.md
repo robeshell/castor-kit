@@ -14,7 +14,7 @@ Each user creates their own tokens under Profile → API Token:
 
 - Enter a name, pick an expiry (30 days, 90 days, 180 days, 1 year or never) and check permissions
 - Only menu / button permissions you have can be checked; checking a button also grants the page it belongs to
-- Creating a token needs a recent identity check (a sign-in or check within 10 minutes; otherwise the "Verify identity" dialog opens first)
+- Creating a token needs a recent identity check (a sign-in or check within 10 minutes; otherwise the identity check dialog opens first)
 - A token looks like `ck_` plus 43 characters and is **shown only once**, at creation; the list shows its first 11 characters
 - At most 20 active tokens per user
 
@@ -35,34 +35,36 @@ curl -H "Authorization: Bearer ck_xxxxxxxx…" \
 
 | Situation | Response |
 |---|---|
-| API tokens aren't turned on in System settings | 401 `API Token 未开启` (API tokens are turned off) |
-| The token doesn't exist, was revoked or expired, or its creator was disabled / deleted | 401 `API Token 无效或已过期` (invalid or expired) |
-| The endpoint doesn't accept tokens | 403 `该接口不支持 API Token` (not available to API tokens) |
+| API tokens aren't turned on in System settings | 401 `API tokens are not turned on` |
+| The token doesn't exist, was revoked or expired, or its creator was deleted (their tokens are deleted with the account) | 401 `The API token is invalid or has expired` |
+| The token's creator is disabled | 401 `Unauthorized`, as for a signed-out request |
+| The endpoint doesn't accept tokens | 403 `This endpoint does not accept API tokens` |
 | The token lacks the permission the endpoint needs | 403 (as for a user without the permission) |
 
-Error messages follow the `Accept-Language` header like every other API error.
+Error messages follow the `Accept-Language` header like every other API error; without the header (e.g. plain `curl`) they are in English.
 
-These account and security endpoints never accept tokens, even a token with every permission: sign-in / sign-out, password reset, changing the password, identity checks, two-step verification (including an admin resetting someone else's), the profile, online users and sessions, API token management itself, changing System settings and its test buttons, and every webhook write (add, change, delete, regenerate the secret, send a test, redeliver) or viewing its secret. Read-only endpoints such as reading System settings or the webhook list do accept tokens.
+These account and security endpoints never accept tokens, even a token with every permission: sign-in / sign-out, password reset, changing the password, identity checks, two-step verification (including an admin resetting someone else's), the profile, online users and sessions, API token management itself, the AI assistant, changing System settings and its test buttons, and every webhook write (add, change, delete, regenerate the secret, send a test, redeliver) or viewing its secret. Read-only endpoints such as reading System settings or the webhook list do accept tokens.
 
 ### Managing tokens
 
 - Owners revoke their tokens under Profile → API Token at any time; the next request with the token fails
-- System → Security → API Token (menu permission `system_api_tokens`) lists everyone's tokens within your data scope, searchable by name, prefix and creator and filterable by active / expired / revoked; with the button permission `system_api_tokens_revoke` you can revoke them. Only super admins can revoke a super admin's token
+- System → Security & audit → API tokens (menu permission `system_api_tokens`) lists everyone's tokens within your data scope, searchable by name, prefix and creator and filterable by active / expired / revoked; with the button permission `system_api_tokens_revoke` you can revoke them. Only super admins can revoke a super admin's token
 - Each token records when and from which IP it was last used; the `api_token_id` column of the operation log shows which token made a request
 
 ::: tip Backend development
-When you add an account or security endpoint (password, secrets, sessions …), add its path to `API_TOKEN_DENIED` in `apps/api/src/common/api-token.ts`. Other endpoints need nothing: `hasMenuPermission` already checks the token's permissions.
+When you add an account or security endpoint (password, secrets, sessions …), add its path to `API_TOKEN_DENIED` in `apps/api/src/common/api-token.ts` and list only `cookieAuth` in its OpenAPI `security` (`pnpm openapi:generate -- --strict` reports a mismatch). Other endpoints need nothing beyond `cookieAuth` + `bearerAuth` in the document: `hasMenuPermission` already checks the token's permissions.
 :::
 
 ## Webhooks
 
 ### Setting one up
 
-System → Configuration → Webhook (viewing needs `system_webhooks`; adding / editing / deleting need `system_webhooks_add` / `_edit` / `_delete`):
+System → Configuration → Webhooks (viewing, including deliveries, needs `system_webhooks`; adding / editing / deleting need `system_webhooks_add` / `_edit` / `_delete`; the signing secret, "Send test" and redelivering need `system_webhooks_edit`):
 
 - **Endpoint URL**: http or https. It can't point at reserved addresses such as cloud metadata (`169.254.169.254`), nor at internal networks in production unless `SETTINGS_ALLOW_PRIVATE_NETWORK=true`. The actual IP is checked again when connecting
 - **Events**: single events, every event of a kind (such as `user.*`) or everything (`*`)
-- **Signing secret**: shown once after adding; view or regenerate it later under "Signing secret", both behind an identity check
+- **Signing secret** (`whsec_…`): shown once after adding; view or regenerate it later under "Signing secret"
+- Adding or editing a webhook and viewing or regenerating its secret need a recent identity check, like saving System settings (see [Account security](/guide/security#how-system-settings-are-protected))
 - Adding a webhook or changing its URL sends a notification to every super admin
 - "Send test" sends a `ping` event right away and shows the result; "Deliveries" lists each delivery's request, response and retries, and can redeliver
 
@@ -76,7 +78,7 @@ System → Configuration → Webhook (viewing needs `system_webhooks`; adding / 
 | `<module>.created` / `.updated` / `.deleted` | modules generated with `pnpm scaffold` | the record; `{ id }` on delete |
 | `ping` | the "Send test" button | `{ message, webhook }` |
 
-Events are sent **after** the data was written; a failed push never fails the operation. Imports and reordering don't send events.
+Events are sent **after** the data was written; a failed push never fails the operation. Imports and department reordering don't send events.
 
 ### Request format
 
@@ -94,7 +96,9 @@ X-Castor-Signature: sha256=e6f82d49…
 
 - Any 2xx answer is a success. Redirects aren't followed and count as failures
 - 10-second timeout; only the first 2000 characters of the response are kept
+- `X-Castor-Timestamp` is the send time in Unix seconds; the body's `created_at` is when the event happened
 - Failures are retried after 1 minute, 5 minutes, 30 minutes, 2 hours and 6 hours; if the 6th attempt fails the delivery is marked failed. Disabling a webhook also stops its queued retries
+- The first attempt is made right away by the process that handled the change; retries are sent by the task scheduler, so they only happen while it runs (see [Scheduled tasks](/reference/configuration#scheduled-tasks))
 - `X-Castor-Delivery` is the event id; it stays the same across retries and manual redeliveries, so receivers can de-duplicate on it
 
 ### Verifying the signature

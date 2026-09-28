@@ -12,7 +12,7 @@ On startup, the backend loads `.env.<NODE_ENV>` based on `NODE_ENV`:
 1. `apps/api/.env.<NODE_ENV>`
 2. `.env.<NODE_ENV>` in the repo root
 
-The file loaded first wins. Environment variables that are already set (for example by the shell or by compose) are never overridden by a file.
+When both files set the same variable, the value in `apps/api/` wins. Environment variables that are already set (for example by the shell or by compose) are never overridden by a file.
 
 | File | Purpose | Committed |
 |---|---|---|
@@ -44,7 +44,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 | Variable | Purpose | Default |
 |---|---|---|
 | `SECRET_KEY` | Session encryption key; the cookie key is derived from it via HKDF | Built-in insecure default in development / test; **required in production** |
-| `ADMIN_PASSWORD` | Initial password of the `admin` account, used only when the account doesn't exist | `admin123` in development / test; **required in production** |
+| `ADMIN_PASSWORD` | Initial password of the `admin` account, used only when the account doesn't exist (`pnpm seed:rbac -- --incremental --reset-admin-password` applies it to an existing account) | `admin123` in development / test; **required in production** |
 | `SESSION_TTL_HOURS` | Initial session lifetime (hours); can be changed later in System settings | `8` |
 | `COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |
@@ -66,7 +66,7 @@ The file loaded first wins. Environment variables that are already set (for exam
 | `STORAGE_LOCAL_DIR` | Directory of the "local disk" storage | `<DATA_DIR>/uploads/files` |
 | `MAIL_DRIVER` | Empty = send through the SMTP server in System settings; `log` prints mails to the backend log instead of sending (local development); `none` never sends | Empty |
 
-Local-disk storage needs a persistent disk: Docker Compose mounts `DATA_DIR` as a volume; on platforms like Render that wipe the disk on redeploy, switch to S3-compatible storage (e.g. Cloudflare R2) in System settings. Files that nothing references are removed by the scheduler process 24 hours after upload, so with `ENABLE_TASK_SCHEDULER=false` they aren't cleaned up either.
+Local-disk storage needs a persistent disk: Docker Compose mounts `DATA_DIR` as a volume; on platforms like Render that wipe the disk on redeploy, switch to S3-compatible storage (e.g. Cloudflare R2) in System settings, or with the `STORAGE_DRIVER` / `S3_*` variables where the page is read-only (demo mode). Files that nothing references are removed by the task scheduler 24 hours after upload, so they aren't cleaned up while no scheduler runs (`ENABLE_TASK_SCHEDULER=false`, or `RUN_SCHEDULER_IN_WEB=false` without a separate worker process).
 
 ### Public demo
 
@@ -74,7 +74,7 @@ Local-disk storage needs a persistent disk: Docker Compose mounts `DATA_DIR` as 
 |---|---|---|
 | `DEMO_MODE` | Public demo mode: the login page shows the demo account with one-click sign-in; every write except sign-in, the component gallery, file uploads and marking notifications read returns 403 (system management is read-only and passwords can't be changed); login lockout counts per IP only; sample data is restored periodically | `false` |
 | `DEMO_RESET_HOURS` | How often the demo data is restored (hours). Checked at startup and then hourly; restores when the last restore is older than this. Run `pnpm demo:reset` to restore right away | `24` |
-| `DEMO_AI_HOURLY_PER_IP` | AI calls (AI chat, AI SQL generation) allowed per IP per hour in demo mode; over the limit returns 429. Signed-out requests don't count | `20` |
+| `DEMO_AI_HOURLY_PER_IP` | AI calls (AI chat, AI SQL generation, the AI assistant) allowed per IP per hour in demo mode; over the limit returns 429. Signed-out requests don't count | `20` |
 | `DEMO_AI_DAILY` | AI calls allowed per day for the whole site in demo mode; once used up, 429 for the rest of the day | `300` |
 | `DEMO_AI_MAX_INPUT_CHARS` | Max size of one AI request in demo mode (characters; for AI chat only the message text counts); larger requests return 400. Demo mode also caps the length of the model's reply | `4000` |
 

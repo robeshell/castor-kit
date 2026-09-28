@@ -19,16 +19,17 @@ bash scripts/setup.sh
 
 `setup.sh` 会依次完成：
 
-1. 检查 Docker 与 `docker compose` 是否可用。
-2. 询问管理员密码（回车使用 `admin123`）、访问端口（回车使用 `5000`），以及是否配置 AI 功能（OpenAI 兼容接口的 API Key、Base URL、模型名）。
-3. 随机生成 `SECRET_KEY`、数据库密码和 AI SQL 只读账号密码，写入仓库根目录的 `.env.production`。如果该文件已存在，会先询问是否重新配置。
-4. 执行 `docker compose --env-file .env.production up -d --build` 构建并启动服务。
-5. 轮询 `http://localhost:<端口>/health`，直到服务就绪。
+1. 检查 Docker 是否已安装并在运行，以及 `docker compose` 插件是否可用。
+2. 如果仓库根目录已有 `.env.production`，询问是否重新配置；选择否时保留该文件，直接跳到第 4 步。
+3. 询问管理员密码（回车使用 `admin123`）、访问端口（回车使用 `5000`），以及是否现在配置 AI 功能（OpenAI 兼容接口的 API Key、Base URL、模型名）；然后随机生成 `SECRET_KEY`、数据库密码和 AI SQL 只读账号密码，一并写入 `.env.production`。在这里填写的 AI 配置会锁定对应设置，「系统设置」页面上显示为只读。
+4. 如果还没有配置 Docker 镜像加速，写入一个镜像加速地址（见下方提示）。
+5. 执行 `docker compose --env-file .env.production up -d --build` 构建并启动服务。
+6. 轮询 `http://localhost:<端口>/health`，直到服务就绪（最多约 90 秒；仍未就绪时会提示查看日志的命令）。
 
 首次运行需要下载依赖和构建镜像，通常需要几分钟。
 
 ::: warning setup.sh 会修改 Docker 配置
-如果 Docker 的 `daemon.json` 里还没有 `registry-mirrors`，脚本会写入一个镜像加速地址并重启 Docker。不需要镜像加速时，可以跳过向导，按 [部署指南](/zh/deploy/) 手动配置并启动。
+如果 Docker 的 `daemon.json` 里还没有 `registry-mirrors`，脚本会写入镜像加速地址 `https://docker.xuanyuan.me` 并重启 Docker。不需要镜像加速时，可以跳过向导，按 [部署指南](/zh/deploy/) 手动配置并启动。
 :::
 
 ### 2. 登录
@@ -114,12 +115,12 @@ pnpm dev
 也可以分别启动：`pnpm dev:api`、`pnpm dev:web`。
 
 ::: tip 默认账号
-开发环境未设置 `ADMIN_PASSWORD` 时，初始密码为 `admin123`。`admin` 账号只在不存在时创建，之后修改 `ADMIN_PASSWORD` 不会改变已有账号的密码，请在界面上修改。
+开发环境未设置 `ADMIN_PASSWORD` 时，初始密码为 `admin123`。`admin` 账号只在不存在时创建，之后修改 `ADMIN_PASSWORD` 不会改变已有账号的密码。请在界面上修改，或执行 `pnpm seed:rbac -- --incremental --reset-admin-password` 把密码重置为当前的 `ADMIN_PASSWORD`。
 :::
 
 ### 6. 运行测试（可选）
 
-后端测试连接真实的 PostgreSQL 测试库（默认 `postgresql://localhost/castor_kit_test`，可在 shell 或 `apps/api/.env.test` 里用 `TEST_DATABASE_URL` 覆盖，`.env.development` 里的不生效），测试开始前会自动执行迁移：
+`pnpm test` 会运行后端和前端的测试。后端测试连接真实的 PostgreSQL 测试库（默认 `postgresql://localhost/castor_kit_test`，可在 shell 或 `apps/api/.env.test` 里用 `TEST_DATABASE_URL` 覆盖，`.env.development` 里的不生效），测试开始前会自动对它执行迁移和 RBAC 增量同步：
 
 ```bash
 createdb castor_kit_test      # 或者克隆开发库：createdb -T castor_kit castor_kit_test
