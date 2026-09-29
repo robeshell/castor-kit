@@ -44,7 +44,7 @@ Castor の設定は 2 種類です。
 | 変数 | 役割 | デフォルト値 |
 |---|---|---|
 | `SECRET_KEY` | セッションの暗号化キー。cookie のキーはここから HKDF で派生 | 開発 / テストでは安全でない組み込みのデフォルト値あり。**本番では必須** |
-| `ADMIN_PASSWORD` | `admin` アカウントの初期パスワード。アカウントが存在しない場合にだけ使用（`pnpm seed:rbac -- --incremental --reset-admin-password` で既存のアカウントにも適用できます） | 開発 / テストでは `admin123`。**本番では必須** |
+| `ADMIN_PASSWORD` | `admin` アカウントの初期パスワード。アカウントが存在しない場合にだけ使用（`pnpm seed:rbac -- --incremental --reset-admin-password`、Docker では `node dist/reset-admin-password.js` で既存のアカウントにも適用できます） | 開発 / テストでは `admin123`。**本番では必須** |
 | `SESSION_TTL_HOURS` | セッションの有効期間（時間）の初期値。後から「システム設定」で変更できます | `8` |
 | `COOKIE_SECURE` | cookie の `Secure` フラグ：`true` / `false` で強制。空にするとリクエストのプロトコルから自動判定（HTTPS の場合のみ付与） | 空（自動） |
 | `CORS_ORIGINS` | クロスオリジンを許可するオリジン。カンマ区切り。WebSocket ハンドシェイクの Origin 許可リストにも使用 | 空 |

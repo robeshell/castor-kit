@@ -44,7 +44,7 @@ When both files set the same variable, the value in `apps/api/` wins. Environmen
 | Variable | Purpose | Default |
 |---|---|---|
 | `SECRET_KEY` | Session encryption key; the cookie key is derived from it via HKDF | Built-in insecure default in development / test; **required in production** |
-| `ADMIN_PASSWORD` | Initial password of the `admin` account, used only when the account doesn't exist (`pnpm seed:rbac -- --incremental --reset-admin-password` applies it to an existing account) | `admin123` in development / test; **required in production** |
+| `ADMIN_PASSWORD` | Initial password of the `admin` account, used only when the account doesn't exist (`pnpm seed:rbac -- --incremental --reset-admin-password`, or in Docker `node dist/reset-admin-password.js`, applies it to an existing account) | `admin123` in development / test; **required in production** |
 | `SESSION_TTL_HOURS` | Initial session lifetime (hours); can be changed later in System settings | `8` |
 | `COOKIE_SECURE` | The cookie's `Secure` flag: `true` / `false` forces it; leave empty to decide from the request protocol (set only over HTTPS) | Empty (auto) |
 | `CORS_ORIGINS` | Allowed cross-origin origins, comma-separated; also used as the Origin allowlist for the WebSocket handshake | Empty |

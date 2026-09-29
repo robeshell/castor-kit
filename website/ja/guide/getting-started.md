@@ -22,14 +22,13 @@ bash scripts/setup.sh
 1. Docker がインストールされて動作していること、`docker compose` プラグインが使えることを確認します。
 2. リポジトリのルートに `.env.production` がすでにある場合は、設定し直すかどうかを尋ねます。「いいえ」と答えるとファイルをそのまま使い、手順 4 に進みます。
 3. 管理者パスワード（Enter で `admin123`）、アクセスポート（Enter で `5000`）、AI 機能をいま設定するかどうか（OpenAI 互換 API の API Key、Base URL、モデル名）を尋ねます。続いて `SECRET_KEY`、データベースのパスワード、AI SQL 用の読み取り専用アカウントのパスワードをランダムに生成し、すべて `.env.production` に書き込みます。ここで入力した AI の値はその設定を固定するため、「システム設定」ページでは読み取り専用になります。
-4. Docker のレジストリミラーが未設定なら追加します（下の注意を参照）。
-5. `docker compose --env-file .env.production up -d --build` を実行してサービスをビルド・起動します。
-6. サービスの準備ができるまで `http://localhost:<ポート>/health` をポーリングします（約 90 秒まで。それでも応答がない場合はログを確認するコマンドを表示します）。
+4. `docker compose --env-file .env.production up -d --build` を実行してサービスをビルド・起動します。
+5. サービスの準備ができるまで `http://localhost:<ポート>/health` をポーリングします（約 90 秒まで。それでも応答がない場合はログを確認するコマンドを表示します）。
 
 初回は依存関係のダウンロードとイメージのビルドが必要なため、通常数分かかります。
 
-::: warning setup.sh は Docker の設定を変更します
-Docker の `daemon.json` にまだ `registry-mirrors` がない場合、スクリプトはミラー `https://docker.xuanyuan.me` を書き込み、Docker を再起動します。ミラーが不要な場合はウィザードを使わず、[デプロイガイド](/ja/deploy/) に従って手動で設定・起動してください。
+::: tip ダウンロードに失敗する場合
+スクリプトは Docker の設定を変更しません。イメージの取得や依存関係のインストールで止まる場合は、ネットワークから Docker Hub や npm レジストリに届いていない可能性があります。Docker Desktop でレジストリミラーを設定し（Settings → Docker Engine → `registry-mirrors`）、必要なら `.env.production` で `NPM_REGISTRY` を設定して（[デプロイガイド](/ja/deploy/) を参照）、スクリプトをもう一度実行してください。
 :::
 
 ### 2. ログインする
@@ -38,6 +37,8 @@ Docker の `daemon.json` にまだ `registry-mirrors` がない場合、スク�
 
 - ユーザー名：`admin`
 - パスワード：ウィザードで設定したパスワード（デフォルトは `admin123`）
+
+パスワードを忘れた場合は [管理者パスワードのリセット](/ja/deploy/#reset-the-admin-password) を参照してください。
 
 ### 3. よく使う操作
 

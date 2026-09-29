@@ -36,9 +36,7 @@ bash scripts/setup.sh
 
 The wizard asks for the admin password, the port (default 5000) and optional AI settings; generates a random `SECRET_KEY`, `POSTGRES_PASSWORD` and `POSTGRES_RO_PASSWORD`; writes them to `.env.production`; then builds and starts the services and waits for `/health` to be ready.
 
-::: warning setup.sh modifies your Docker configuration
-If Docker's `daemon.json` (`~/.docker/daemon.json` on macOS, `/etc/docker/daemon.json` on Linux) has no `registry-mirrors`, the script adds the registry mirror `https://docker.xuanyuan.me` and restarts Docker (on macOS it quits and reopens Docker Desktop; on Linux it runs `sudo systemctl restart docker`). On a server that is already running other containers, Option 2 is recommended.
-:::
+The script doesn't change your Docker settings. If pulling images or installing packages fails on your network, configure a registry mirror in Docker yourself and set `NPM_REGISTRY` (see the registry note above), then run it again.
 
 ## Option 2: manual setup
 
@@ -75,7 +73,7 @@ By default compose only reads `.env`, not `.env.production`. Without `--env-file
 :::
 
 ::: warning ADMIN_PASSWORD only applies the first time
-The `admin` account is only created if it doesn't exist. Changing `ADMIN_PASSWORD` after the first start won't change the existing account's password; sign in and change it in the UI.
+The `admin` account is only created if it doesn't exist. Changing `ADMIN_PASSWORD` after the first start won't change the existing account's password; sign in and change it in the UI, or [reset it](#reset-the-admin-password).
 :::
 
 ## Option 3: Render + Neon (free demo)
@@ -159,6 +157,17 @@ curl -f http://localhost:<APP_PORT>/health                 # Health check
 ::: danger Don't use down -v casually
 `docker compose down -v` deletes the volumes, and with them the database and all uploaded files.
 :::
+
+### Reset the admin password
+
+To set a new password for the `admin` account (for example, a forgotten one), put it in `ADMIN_PASSWORD` in `.env.production`, recreate the container so it picks up the value, then run the reset script inside it:
+
+```bash
+docker compose --env-file .env.production up -d
+docker compose --env-file .env.production exec app node dist/reset-admin-password.js
+```
+
+It only changes the `admin` password (and makes sure the account has the super admin role); other accounts are untouched. If sign-in is locked after failed attempts, wait for the lockout to end (15 minutes by default). Without Docker, run `node dist/reset-admin-password.js` in the API directory with the production environment, or `pnpm seed:rbac -- --incremental --reset-admin-password` from a checkout.
 
 ## Updating
 

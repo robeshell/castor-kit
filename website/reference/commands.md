@@ -49,6 +49,7 @@ For Castor's own scripts (`scaffold`, `verify`, `seed:rbac`, `seed:demo`, `opena
 |---|---|
 | `pnpm seed:rbac -- --incremental` | Incremental sync of menus and permissions: upserts by `code`, never deletes |
 | `pnpm seed:rbac -- --incremental --reset-admin-password` | Also sets the `admin` account's password to `ADMIN_PASSWORD` |
+| `docker compose --env-file .env.production exec app node dist/reset-admin-password.js` | In a Docker deployment: set the `admin` password to `ADMIN_PASSWORD` (see [Reset the admin password](/deploy/#reset-the-admin-password)) |
 | `pnpm seed:rbac` | Full rebuild: wipes users, roles, menus and their links, then rewrites them. **Only for initializing an empty database** |
 | `pnpm seed:demo` | Adds sample departments, roles (department manager / staff) and users for trying data scope; safe to re-run, needs `--force` in production. `--password <pwd>` sets the sample users' password (default `demo123456` or `DEMO_USER_PASSWORD`); `--reset-passwords` also applies it to existing sample users |
 
