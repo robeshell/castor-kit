@@ -7,7 +7,7 @@ This page explains how these options are implemented and what they require of yo
 ## Light / dark
 
 - Toggled via `<html class="dark">`, following the shadcn / Tailwind convention.
-- The current mode is saved under the `theme` key in `localStorage`. On the first visit, when nothing is saved yet, it starts from the system setting.
+- A mode the user picks is saved under the `theme` key in `localStorage`. Until they pick one, the app follows the system setting, including when it changes.
 - While switching, all CSS transitions are turned off for one frame (the `theme-switching` class on `<html>`), so the page changes color at once instead of hover and color transitions animating through mixed colors.
 
 The implementation is in `apps/web/src/context/ThemeContext.tsx`. As long as a page uses semantic color classes (see [Frontend](/guide/frontend#styling-rules)), dark mode just works.

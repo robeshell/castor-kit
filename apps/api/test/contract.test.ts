@@ -107,7 +107,7 @@ describe('登录 / 会话', () => {
     expect(log!.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{1,6}$/)
   })
 
-  it('登录成功：形状、csrf_token、cookie 属性，并清零失败计数', async () => {
+  it('登录成功：形状、csrf_token、cookie 属性，失败日志保留', async () => {
     // The user in the response is read before this sign-in is recorded: sign in once first so last_login_at has a value
     expect((await login()).statusCode).toBe(200)
     const res = await login()
@@ -143,7 +143,8 @@ describe('登录 / 会话', () => {
       .select()
       .from(login_logs)
       .where(and(eq(login_logs.username, FIXTURE_USER), eq(login_logs.status, 'failed')))
-    expect(failed).toHaveLength(0)
+    // A successful sign-in resets the lockout count but keeps the failed rows in the sign-in log
+    expect(failed.length).toBeGreaterThan(0)
   })
 
   it('反代声明 https 时 cookie 带 Secure（auto 策略）', async () => {
@@ -189,6 +190,28 @@ describe('登录 / 会话', () => {
       const blocked = await attempt()
       expect(blocked.statusCode).toBe(429)
       expect(blocked.json()).toEqual({ error: '登录失败次数过多，请稍后再试' })
+    } finally {
+      await strict.close()
+    }
+  })
+
+  it('a successful sign-in resets the lockout count without deleting failed rows', async () => {
+    const strict = await buildTestApp({ settingsEnv: { LOGIN_MAX_FAILURES: '3' } })
+    const ip = '10.99.0.2'
+    try {
+      const attempt = (password: string) =>
+        strict.inject({ method: 'POST', url: '/api/admin/login', remoteAddress: ip, payload: { username: FIXTURE_USER, password } })
+      for (let i = 0; i < 2; i += 1) expect((await attempt('wrong-password')).statusCode).toBe(401)
+      expect((await attempt(FIXTURE_PASSWORD)).statusCode).toBe(200)
+      // Two failures before the success no longer count: two more are still allowed, the third attempt is blocked
+      for (let i = 0; i < 2; i += 1) expect((await attempt('wrong-password')).statusCode).toBe(401)
+      expect((await attempt('wrong-password')).statusCode).toBe(401)
+      expect((await attempt('wrong-password')).statusCode).toBe(429)
+      const failed = await handle.db
+        .select()
+        .from(login_logs)
+        .where(and(eq(login_logs.ip, ip), eq(login_logs.status, 'failed')))
+      expect(failed).toHaveLength(5)
     } finally {
       await strict.close()
     }

@@ -117,5 +117,5 @@ Rate limits and the sign-in lockout work together: one limits how often requests
 
 - Failed attempts are wrong passwords (including correct passwords for a disabled account), wrong two-step or recovery codes at sign-in, and failed identity checks (wrong password or code). They are counted over the last `security.login_lockout_minutes` minutes, per IP and per username
 - Once either count reaches `security.login_max_failures`, sign-in, the second step and identity checks answer 429 until older failures leave the window. In demo mode only the IP is counted, so nobody can lock the shared demo account
-- A successful sign-in clears that user's and IP's failures in the window
+- After a successful sign-in, earlier failures no longer count for that username or that IP; they stay in the sign-in log
 - `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES` pin both values, see [Configuration](/reference/configuration#sign-in-lockout)

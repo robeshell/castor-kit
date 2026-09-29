@@ -138,7 +138,8 @@ export function menuPermissionRequired(menuCode: string): preHandlerAsyncHookHan
       endSession(request)
       return api ? reply.status(401).send({ error: '登录已失效，请重新登录' }) : reply.redirect(LOGIN_PAGE)
     }
-    if (!userHasMenuCode(user, menuCode)) {
+    // Same check as hasMenuPermission, so an API token is limited to its scopes here too
+    if (!(await hasMenuPermission(request, menuCode))) {
       return reply.status(403).send({ error: api ? `缺少权限: ${menuCode}` : '无权限' })
     }
   }

@@ -9,6 +9,7 @@
 
 import ExcelJS from 'exceljs'
 import { parse as parseCsv } from 'csv-parse/sync'
+import { ServiceError } from './errors'
 import type { FastifyReply } from 'fastify'
 
 export const MAX_TABLE_FILE_BYTES = 5 * 1024 * 1024
@@ -22,8 +23,13 @@ const MIME_MAP: Record<TableFileType, string> = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
-/** Read/validation failure; the caller turns it into a 400 */
-export class TableFileError extends Error {}
+/** Read/validation failure: a 400 ServiceError, so the global error handler answers 400 even when the caller doesn't catch it */
+export class TableFileError extends ServiceError {
+  constructor(message: string) {
+    super(message, 400)
+    this.name = 'TableFileError'
+  }
+}
 
 export interface UploadedFile {
   filename: string

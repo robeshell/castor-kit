@@ -24,7 +24,7 @@ export interface AppConfig {
   env: AppEnv
   /**
    * APP_NAME: the product name the server shows (authenticator apps, mails, the AI assistant, logs); default
-   * Castor. The frontend's is VITE_APP_NAME
+   * Castor. The frontend's is APP_NAME in apps/web/src/lib/brand.ts
    */
   appName: string
   isProduction: boolean

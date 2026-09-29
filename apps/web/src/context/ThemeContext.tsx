@@ -28,14 +28,21 @@ const ThemeContext = createContext<ThemeContextValue>({
   setAppearance: () => {},
 })
 
-function readInitialTheme(): Theme {
+const SYSTEM_DARK = '(prefers-color-scheme: dark)'
+
+/** The theme the user picked, or null while they haven't: the app then follows the system setting */
+function readSavedTheme(): Theme | null {
   try {
     const saved = localStorage.getItem('theme')
     if (saved === 'dark' || saved === 'light') return saved
   } catch {
     /* localStorage is unavailable in cases like private browsing */
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return null
+}
+
+function systemTheme(): Theme {
+  return window.matchMedia?.(SYSTEM_DARK).matches ? 'dark' : 'light'
 }
 
 /**
@@ -68,7 +75,7 @@ function withoutTransitions(apply: () => void) {
 
 export function ThemeProvider({ children }: { children?: ReactNode }) {
   const [theme, setThemeState] = useState(() => {
-    const initial = readInitialTheme()
+    const initial = readSavedTheme() ?? systemTheme()
     applyTheme(initial)
     return initial
   })
@@ -79,19 +86,31 @@ export function ThemeProvider({ children }: { children?: ReactNode }) {
     return initial
   })
 
+  // Until the user picks a theme, follow the system setting as it changes
   useEffect(() => {
-    try {
-      localStorage.setItem('theme', theme)
-    } catch {
-      /* ignore */
+    const query = window.matchMedia?.(SYSTEM_DARK)
+    if (!query) return
+    const onChange = () => {
+      if (readSavedTheme()) return
+      const next = systemTheme()
+      withoutTransitions(() => applyTheme(next))
+      setThemeState(next)
     }
-  }, [theme])
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => saveAppearance(appearance), [appearance])
 
+  /** An explicit choice: saved, and from then on the system setting no longer applies */
   const setTheme = useCallback((next: Theme) => {
     withoutTransitions(() => applyTheme(next))
     setThemeState(next)
+    try {
+      localStorage.setItem('theme', next)
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   const toggleTheme = useCallback(() => setTheme(theme === 'dark' ? 'light' : 'dark'), [theme, setTheme])

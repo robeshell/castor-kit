@@ -14,15 +14,15 @@
  *   5. OpenAPI document follows AGENTS.md's rules (blocking; runs scripts/generate-openapi.ts --dry-run --strict)
  *   6. Paths referenced by AI context docs exist (warning; blocking with --strict-docs)
  *   7. Backend routes/repository/service files exist
- *      + Data scope: a module whose schema.ts exports DATA_SCOPE must filter with dataScopeWhere in repository.ts
- *   8. Frontend page file exists
- *   9. Frontend API file exists
- *  10. Route registration (src/router.ts / modules/<domain>/router.ts)
- *  11. Table definition registration (db/schema/index.ts)
- *  12. RBAC seed (scripts/seed-rbac.ts) contains the menu component or permission code
- *  13. Frontend build passes (optional, skip with --skip-build)
- *  14. Frontend Vitest passes (optional, skip with --skip-frontend-tests)
- *  15. Backend Vitest passes (optional, skip with --skip-api-tests; ~45s, needs the test DB)
+ *   8. Data scope: a module whose schema.ts exports DATA_SCOPE must filter with dataScopeWhere in repository.ts
+ *   9. Frontend page file exists
+ *  10. Frontend API file exists
+ *  11. Route registration (src/router.ts / modules/<domain>/router.ts)
+ *  12. Table definition registration (db/schema/index.ts)
+ *  13. RBAC seed (scripts/seed-rbac.ts) contains the menu component or permission code
+ *  14. Frontend build passes (optional, skip with --skip-build)
+ *  15. Frontend Vitest passes (optional, skip with --skip-frontend-tests)
+ *  16. Backend Vitest passes (optional, skip with --skip-api-tests; ~45s, needs the test DB)
  *
  * JSON output shape: { passed, complete, module, checks: [{ name, passed, error?, skipped?, byFlag?, warn?, detail? }], summary }
  * (complete: no check was skipped by a --skip-* flag; byFlag: the flag that skipped the check)
