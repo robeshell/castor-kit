@@ -38,7 +38,7 @@ export function queryString(request: FastifyRequest, key: string, fallback = '')
 }
 
 /**
- * `request.files.get(field)`: first file of the given multipart field; returns null for non-multipart requests or when no file was selected.
+ * First file of the given multipart field (read through `request.parts()`); returns null for non-multipart requests or when no file was selected.
  * Remaining file streams are drained and discarded.
  */
 export async function getUploadedFile(request: FastifyRequest, field = 'file'): Promise<UploadedFile | null> {

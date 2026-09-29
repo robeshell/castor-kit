@@ -2,7 +2,7 @@
  * Auth module repository layer (includes login_logs queries)
  */
 
-import { and, count, eq, gte, or, sql, type SQL } from 'drizzle-orm'
+import { and, count, eq, gte, sql } from 'drizzle-orm'
 import type { Db } from '@/db/client'
 import { admin_users, departments, login_logs, operation_logs, type NewLoginLog, type NewOperationLog } from '@/db/schema'
 import { utcNow } from '@/db/schema/columns'
@@ -48,30 +48,26 @@ export class AuthRepository {
     await this.db.update(admin_users).set({ password_hash: passwordHash }).where(eq(admin_users.id, userId))
   }
 
-  /** Failed login count within the recent window; `by` is the ip or username dimension */
+  /**
+   * Failed login count within the recent window; `by` is the ip or username dimension. Only failures after the last
+   * successful sign-in on the same dimension count, so a success resets the lockout without deleting audit rows.
+   */
   async countRecentFailures(by: { ip: string } | { username: string }, lockoutMinutes: number): Promise<number> {
-    const dimension = 'ip' in by ? eq(login_logs.ip, by.ip) : eq(login_logs.username, by.username)
+    const dimension = 'ip' in by ? sql`${login_logs.ip} = ${by.ip}` : sql`${login_logs.username} = ${by.username}`
+    const since = windowStart(lockoutMinutes)
+    const lastSuccess = sql`(SELECT max(${login_logs.created_at}) FROM ${login_logs}
+      WHERE ${login_logs.status} = 'success' AND ${login_logs.created_at} >= ${since} AND ${dimension})`
     const [row] = await this.db
       .select({ n: count() })
       .from(login_logs)
       .where(
-        and(eq(login_logs.status, 'failed'), gte(login_logs.created_at, windowStart(lockoutMinutes)), dimension),
+        and(
+          eq(login_logs.status, 'failed'),
+          gte(login_logs.created_at, since),
+          dimension,
+          sql`${login_logs.created_at} > coalesce(${lastSuccess}, '-infinity'::timestamp)`,
+        ),
       )
     return row?.n ?? 0
-  }
-
-  /**
-   * Clear failed records within the window: with both username and IP, delete by OR; with only one, filter by that dimension;
-   * with neither, no dimension filter is applied.
-   */
-  async clearRecentFailures(username: string, ip: string, lockoutMinutes: number): Promise<void> {
-    const conditions: (SQL | undefined)[] = [
-      eq(login_logs.status, 'failed'),
-      gte(login_logs.created_at, windowStart(lockoutMinutes)),
-    ]
-    if (username && ip) conditions.push(or(eq(login_logs.username, username), eq(login_logs.ip, ip)))
-    else if (username) conditions.push(eq(login_logs.username, username))
-    else if (ip) conditions.push(eq(login_logs.ip, ip))
-    await this.db.delete(login_logs).where(and(...conditions))
   }
 }

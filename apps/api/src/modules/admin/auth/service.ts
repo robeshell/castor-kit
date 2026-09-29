@@ -124,7 +124,10 @@ export class AuthService {
     throw new ServiceError('用户名或密码错误', 401)
   }
 
-  /** Record a completed sign-in (last login, login log, reset the failure window); returns the login response body */
+  /**
+   * Record a completed sign-in (last login, login log); returns the login response body. The success row also resets
+   * the lockout count: countRecentFailures only counts failures after it
+   */
   async finishSignIn(user: AdminUserWithRoles, meta: ClientMeta) {
     await this.bestEffort('记录登录时间', () => this.repo.recordLogin(user.id, meta.ip))
     await this.bestEffort('记录登录日志', async () => {
@@ -136,8 +139,6 @@ export class AuthService {
         user_agent: meta.userAgent,
         message: '登录成功',
       })
-      // Login succeeded: reset the window's failure count so earlier mistakes don't keep rate limiting
-      await this.repo.clearRecentFailures(user.username, meta.ip, (await this.settings.get()).loginLockoutMinutes)
     })
     return { message: '登录成功', user: await this.userDict(user) }
   }

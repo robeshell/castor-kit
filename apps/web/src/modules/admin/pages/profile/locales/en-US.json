@@ -64,6 +64,7 @@
   "180 天": "180 days",
   "1 年": "1 year",
   "请至少选择一项权限": "Select at least one permission",
+  "API Token": "API tokens",
   "创建 API Token": "Create API token",
   "脚本和其他系统带上 Token 调用接口，只能使用这里勾选的权限": "Scripts and other systems call the API with the token, limited to the permissions checked here",
   "创建": "Create",

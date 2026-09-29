@@ -2,6 +2,8 @@ import type { FastifyInstance, InjectOptions } from 'fastify'
 import { and, desc, eq, like } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { API_TOKEN_DENIED } from '@/common/api-token'
+import { menuPermissionRequired } from '@/common/auth'
+import { buildApp } from '@/app'
 import type { DbHandle } from '@/db/client'
 import { admin_users, api_tokens, operation_logs, system_settings } from '@/db/schema'
 import {
@@ -13,6 +15,7 @@ import {
   openTestDb,
   scopedSession,
   superAdminSession,
+  testConfig,
   type AuthedSession,
 } from './helpers'
 
@@ -120,6 +123,23 @@ describe('API tokens: using', () => {
     expect(both.statusCode).toBe(403)
     // No session was created for the token
     expect(created.cookies.find((c) => c.name === 'castor_session')).toBeUndefined()
+  })
+
+  it('menuPermissionRequired also limits a token to its scopes', async () => {
+    const probe = await buildApp({ config: testConfig() })
+    probe.get('/api/admin/__probe', { preHandler: menuPermissionRequired('system_roles') }, async () => ({ ok: true }))
+    await probe.ready()
+    try {
+      const narrow = (await createToken(admin, ['system_users'])).json().token
+      const wide = (await createToken(admin, ['system_roles'])).json().token
+      const call = (token: string) => probe.inject({ url: '/api/admin/__probe', headers: { authorization: `Bearer ${token}` } })
+      expect((await call(narrow)).statusCode).toBe(403)
+      expect((await call(wide)).statusCode).toBe(200)
+      // A session is still checked against the user's own permissions
+      expect((await probe.inject({ url: '/api/admin/__probe', cookies: { castor_session: admin.cookie } })).statusCode).toBe(200)
+    } finally {
+      await probe.close()
+    }
   })
 
   it('账号与安全类接口一律拒绝 token（即使 token 拥有全部权限）', async () => {

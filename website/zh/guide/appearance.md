@@ -7,7 +7,7 @@
 ## 浅色 / 深色
 
 - 通过 `<html class="dark">` 切换，遵循 shadcn / Tailwind 的约定。
-- 当前模式保存在 `localStorage` 的 `theme` 键中。首次访问、还没有保存值时，以系统设置为初始值。
+- 用户选择的模式保存在 `localStorage` 的 `theme` 键中。还没有选择过时跟随系统设置，系统设置变化时也会跟着切换。
 - 切换时会在一帧内关闭所有 CSS 过渡（`<html>` 上的 `theme-switching` 类），让页面一次性换色，避免 hover 和颜色过渡在新旧颜色之间渐变。
 
 实现位于 `apps/web/src/context/ThemeContext.tsx`。页面只要使用语义色类（见 [前端开发](/zh/guide/frontend#样式规范)），深色模式就自动正确。
