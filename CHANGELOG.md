@@ -4,10 +4,22 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Added
+
+- `node dist/reset-admin-password.js` in the Docker image sets the `admin` password to `ADMIN_PASSWORD` (run it with `docker compose … exec app`); see the deployment guide, "Reset the admin password".
+
 ### Changed
 
+- `scripts/setup.sh` no longer edits Docker's `daemon.json` or restarts Docker to add a registry mirror. When the build fails it explains how to configure a mirror and `NPM_REGISTRY` yourself.
+- The theme follows the system light / dark setting, including live changes, until the user picks one; only an explicit choice is saved.
 - The docs site moves to https://castor.wenworks.dev (links to `robeshell.github.io/castorjs/…` redirect there) and the public demo to https://castor.wenworks.app (the old `castor-kit-demo.onrender.com` address keeps working).
 - The wordmark is written "Castor", the way the name is written in text, in the app, the docs site and the README (it was a lowercase "castor" in 0.4.0).
+
+### Fixed
+
+- `menuPermissionRequired` now limits API tokens to their scopes, like `hasMenuPermission` (no built-in route used it).
+- A successful sign-in no longer deletes earlier failed attempts from the sign-in log; the lockout only counts failures after the last success.
+- An unreadable import file answers 400 even where a module doesn't catch `TableFileError`.
 
 ## [0.4.0] - 2026-09-28
 

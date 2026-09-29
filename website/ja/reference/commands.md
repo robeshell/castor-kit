@@ -49,6 +49,7 @@ Castor 独自のスクリプト（`scaffold`、`verify`、`seed:rbac`、`seed:de
 |---|---|
 | `pnpm seed:rbac -- --incremental` | メニューと権限の増分同期：`code` で upsert し、削除はしない |
 | `pnpm seed:rbac -- --incremental --reset-admin-password` | あわせて `admin` アカウントのパスワードを `ADMIN_PASSWORD` に設定し直す |
+| `docker compose --env-file .env.production exec app node dist/reset-admin-password.js` | Docker でのデプロイで `admin` のパスワードを `ADMIN_PASSWORD` に設定し直す（[管理者パスワードのリセット](/ja/deploy/#reset-the-admin-password) を参照） |
 | `pnpm seed:rbac` | 全件再構築：ユーザー、ロール、メニューとその関連付けを空にしてから書き込み直す。**空のデータベースの初期化専用** |
 | `pnpm seed:demo` | データ権限を試すためのサンプル部署・ロール（部門主管 / 一般社員）・ユーザーを登録。何度実行しても安全。本番環境では `--force` が必要。`--password <パスワード>` でサンプルユーザーのパスワードを指定（デフォルトは `demo123456` または `DEMO_USER_PASSWORD`）、`--reset-passwords` で既存のサンプルユーザーにも適用 |
 

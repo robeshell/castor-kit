@@ -124,60 +124,6 @@ source .env.production
 set +a
 APP_PORT=${APP_PORT:-5000}
 
-# ── Configure registry mirrors (if daemon.json has none) ─────────
-configure_mirrors() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        local cfg="$HOME/.docker/daemon.json"
-    else
-        local cfg="/etc/docker/daemon.json"
-    fi
-
-    # Skip if already configured
-    if [[ -f "$cfg" ]] && grep -q "registry-mirrors" "$cfg" 2>/dev/null; then
-        return 0
-    fi
-
-    echo "  Configuring a Docker registry mirror..."
-    local mirrors='["https://docker.xuanyuan.me"]'
-    mkdir -p "$(dirname "$cfg")"
-
-    local compact
-    compact="$(tr -d ' \t\r\n' 2>/dev/null < "$cfg" || true)"
-    if [[ -z "$compact" || "$compact" == "{}" ]]; then
-        echo "{\"registry-mirrors\": $mirrors}" > "$cfg"
-    elif command -v node &>/dev/null; then
-        # Merge into the existing config
-        CFG="$cfg" MIRRORS="$mirrors" node -e '
-const fs = require("fs")
-const file = process.env.CFG
-const config = JSON.parse(fs.readFileSync(file, "utf8"))
-config["registry-mirrors"] = JSON.parse(process.env.MIRRORS)
-fs.writeFileSync(file, JSON.stringify(config, null, 2) + "\n")
-' 2>/dev/null || echo "{\"registry-mirrors\": $mirrors}" > "$cfg"
-    else
-        # No node: add the key right after the opening brace of the existing object
-        awk -v entry="\"registry-mirrors\": $mirrors," '!done && sub(/\{/, "{" entry) { done = 1 } { print }' "$cfg" > "$cfg.tmp" && mv "$cfg.tmp" "$cfg"
-    fi
-
-    # Restart Docker to apply the config
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        osascript -e 'quit app "Docker"' 2>/dev/null || true
-        sleep 2
-        open -a Docker 2>/dev/null || true
-        printf "  Waiting for Docker to restart"
-        for i in $(seq 1 30); do
-            docker info &>/dev/null 2>&1 && break
-            printf "."; sleep 2
-        done
-        echo ""
-    else
-        sudo systemctl restart docker 2>/dev/null || true
-    fi
-    info "Registry mirror configured (docker.xuanyuan.me)"
-}
-
-configure_mirrors
-
 # ── Start ─────────────────────────────────────────────────────
 heading "Step 3: Build and start the app"
 echo ""
@@ -185,7 +131,13 @@ echo "  Building the image and starting the services..."
 echo "  (The first run downloads dependencies and takes about 3-5 minutes.)"
 echo ""
 
-docker compose --env-file .env.production up -d --build
+if ! docker compose --env-file .env.production up -d --build; then
+    echo ""
+    warn "The build or start failed. If it stopped while downloading images or packages, your network may not reach"
+    warn "Docker Hub or the npm registry. You can configure a Docker registry mirror in Docker Desktop (Settings → Docker"
+    warn "Engine → \"registry-mirrors\") and set NPM_REGISTRY in .env.production, then run this script again."
+    exit 1
+fi
 
 # ── Wait for health check ──────────────────────────────────────
 heading "Step 4: Wait for the app to be ready"

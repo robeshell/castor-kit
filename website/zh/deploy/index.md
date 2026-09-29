@@ -36,9 +36,7 @@ bash scripts/setup.sh
 
 向导会询问管理员密码、访问端口（默认 5000）以及可选的 AI 配置，随机生成 `SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD`，写入 `.env.production`，然后构建并启动服务，等待 `/health` 就绪。
 
-::: warning setup.sh 会修改 Docker 配置
-如果 Docker 的 `daemon.json`（macOS 为 `~/.docker/daemon.json`，Linux 为 `/etc/docker/daemon.json`）里没有 `registry-mirrors`，脚本会写入镜像加速地址 `https://docker.xuanyuan.me` 并重启 Docker（macOS 上会退出并重新打开 Docker Desktop，Linux 上执行 `sudo systemctl restart docker`）。在已有其他容器运行的服务器上，建议使用方式二。
-:::
+脚本不会修改你的 Docker 设置。如果所在网络拉取镜像或安装依赖失败，请自行在 Docker 中配置镜像加速并设置 `NPM_REGISTRY`（见上方镜像源说明），然后重新运行。
 
 ## 方式二：手动配置
 
@@ -75,7 +73,7 @@ compose 默认只读取 `.env`，不会读取 `.env.production`。不带 `--env-
 :::
 
 ::: warning ADMIN_PASSWORD 只在首次生效
-`admin` 账号只在不存在时创建。首次启动后再修改 `ADMIN_PASSWORD` 不会改变已有账号的密码，请登录后在界面上修改。
+`admin` 账号只在不存在时创建。首次启动后再修改 `ADMIN_PASSWORD` 不会改变已有账号的密码，请登录后在界面上修改，或 [重置密码](#reset-the-admin-password)。
 :::
 
 ## 方式三：Render + Neon（免费演示）
@@ -159,6 +157,17 @@ curl -f http://localhost:<APP_PORT>/health                 # 健康检查
 ::: danger 不要随意使用 down -v
 `docker compose down -v` 会删除数据卷，数据库和上传文件都会丢失。
 :::
+
+### 重置管理员密码 {#reset-the-admin-password}
+
+要给 `admin` 账号设置新密码（例如忘记了密码），先在 `.env.production` 的 `ADMIN_PASSWORD` 里写入新密码，重建容器让它读到新值，再在容器里运行重置脚本：
+
+```bash
+docker compose --env-file .env.production up -d
+docker compose --env-file .env.production exec app node dist/reset-admin-password.js
+```
+
+它只修改 `admin` 的密码（并确保该账号有超级管理员角色），其他账号不受影响。如果因为多次失败登录被锁定，需要等锁定结束（默认 15 分钟）。不用 Docker 时，在 API 目录下以生产环境运行 `node dist/reset-admin-password.js`，或在源码目录运行 `pnpm seed:rbac -- --incremental --reset-admin-password`。
 
 ## 更新流程
 

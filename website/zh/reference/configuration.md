@@ -44,7 +44,7 @@ Castor 的配置分两类：
 | 变量 | 作用 | 默认值 |
 |---|---|---|
 | `SECRET_KEY` | 会话加密密钥，cookie 密钥由它通过 HKDF 派生 | 开发 / 测试有内置不安全默认值；**生产必填** |
-| `ADMIN_PASSWORD` | `admin` 账号的初始密码，仅在账号不存在时使用（`pnpm seed:rbac -- --incremental --reset-admin-password` 可把它应用到已有账号） | 开发 / 测试为 `admin123`；**生产必填** |
+| `ADMIN_PASSWORD` | `admin` 账号的初始密码，仅在账号不存在时使用（`pnpm seed:rbac -- --incremental --reset-admin-password`，或 Docker 中的 `node dist/reset-admin-password.js`，可把它应用到已有账号） | 开发 / 测试为 `admin123`；**生产必填** |
 | `SESSION_TTL_HOURS` | 会话有效期（小时）的初始值；之后可以在「系统设置」里修改 | `8` |
 | `COOKIE_SECURE` | cookie 的 `Secure` 标志：`true` / `false` 强制；留空则按请求协议自动判断（仅 HTTPS 时设置） | 空（自动） |
 | `CORS_ORIGINS` | 允许跨域的来源，逗号分隔；也用于 WebSocket 握手的 Origin 白名单 | 空 |

@@ -22,14 +22,13 @@ bash scripts/setup.sh
 1. Checks that Docker is installed and running and that the `docker compose` plugin is available.
 2. If `.env.production` already exists in the repo root, asks whether to reconfigure; if you answer no, it keeps the file and skips to step 4.
 3. Asks for the admin password (press Enter for `admin123`), the port (press Enter for `5000`), and whether to configure the AI features now (API key, base URL and model name of an OpenAI-compatible API). It then generates a random `SECRET_KEY`, database password and AI SQL read-only account password, and writes everything to `.env.production`. AI values entered here pin those settings, so the System settings page shows them read-only.
-4. Adds a Docker registry mirror if none is configured (see the warning below).
-5. Runs `docker compose --env-file .env.production up -d --build` to build and start the services.
-6. Polls `http://localhost:<port>/health` until the service is ready (for about 90 seconds; if it's still not up, it prints the command for viewing the logs).
+4. Runs `docker compose --env-file .env.production up -d --build` to build and start the services.
+5. Polls `http://localhost:<port>/health` until the service is ready (for about 90 seconds; if it's still not up, it prints the command for viewing the logs).
 
 The first run downloads dependencies and builds the image, which usually takes a few minutes.
 
-::: warning setup.sh modifies your Docker configuration
-If Docker's `daemon.json` has no `registry-mirrors` entry, the script adds the registry mirror `https://docker.xuanyuan.me` and restarts Docker. If you don't need a mirror, skip the wizard and follow the [Deployment guide](/deploy/) to configure and start everything manually.
+::: tip Downloads failing?
+The script doesn't change your Docker settings. If the build stops while pulling images or installing packages, your network may not reach Docker Hub or the npm registry: add a registry mirror in Docker Desktop (Settings → Docker Engine → `registry-mirrors`), set `NPM_REGISTRY` in `.env.production` if needed (see the [Deployment guide](/deploy/)), and run the script again.
 :::
 
 ### 2. Sign in
@@ -38,6 +37,8 @@ Open `http://localhost:5000` (or the port you chose in the wizard) and sign in w
 
 - Username: `admin`
 - Password: the password you set in the wizard (default `admin123`)
+
+Forgot it? See [Reset the admin password](/deploy/#reset-the-admin-password).
 
 ### 3. Common commands
 

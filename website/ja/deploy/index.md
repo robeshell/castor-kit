@@ -36,9 +36,7 @@ bash scripts/setup.sh
 
 ウィザードは管理者パスワード、アクセスポート（デフォルトは 5000）、任意の AI 設定を尋ね、`SECRET_KEY`、`POSTGRES_PASSWORD`、`POSTGRES_RO_PASSWORD` をランダムに生成して `.env.production` に書き込みます。そのあとサービスをビルド・起動し、`/health` の準備が整うまで待ちます。
 
-::: warning setup.sh は Docker の設定を変更します
-Docker の `daemon.json`（macOS では `~/.docker/daemon.json`、Linux では `/etc/docker/daemon.json`）に `registry-mirrors` がない場合、スクリプトはミラー `https://docker.xuanyuan.me` を書き込んで Docker を再起動します（macOS では Docker Desktop を終了して開き直し、Linux では `sudo systemctl restart docker` を実行）。ほかのコンテナがすでに動いているサーバーでは、方法 2 を使うことをおすすめします。
-:::
+スクリプトは Docker の設定を変更しません。お使いのネットワークでイメージの取得や依存関係のインストールに失敗する場合は、Docker にレジストリミラーを自分で設定し、`NPM_REGISTRY` を設定してから（上のレジストリの説明を参照）もう一度実行してください。
 
 ## 方法 2：手動で設定する
 
@@ -75,7 +73,7 @@ compose がデフォルトで読み込むのは `.env` だけで、`.env.product
 :::
 
 ::: warning ADMIN_PASSWORD が効くのは初回だけ
-`admin` アカウントは存在しないときにだけ作成されます。初回起動後に `ADMIN_PASSWORD` を変更しても既存アカウントのパスワードは変わらないので、ログインしてから画面上で変更してください。
+`admin` アカウントは存在しないときにだけ作成されます。初回起動後に `ADMIN_PASSWORD` を変更しても既存アカウントのパスワードは変わらないので、ログインしてから画面上で変更するか、[リセット](#reset-the-admin-password) してください。
 :::
 
 ## 方法 3：Render + Neon（無料のデモ）
@@ -159,6 +157,17 @@ curl -f http://localhost:<APP_PORT>/health                 # ヘルスチェッ�
 ::: danger down -v を安易に使わないこと
 `docker compose down -v` はデータボリュームを削除するため、データベースとアップロードされたファイルがすべて失われます。
 :::
+
+### 管理者パスワードのリセット {#reset-the-admin-password}
+
+`admin` アカウントに新しいパスワードを設定するには（パスワードを忘れた場合など）、`.env.production` の `ADMIN_PASSWORD` に新しいパスワードを書き、コンテナを作り直して値を読み込ませてから、コンテナ内でリセットスクリプトを実行します。
+
+```bash
+docker compose --env-file .env.production up -d
+docker compose --env-file .env.production exec app node dist/reset-admin-password.js
+```
+
+変更されるのは `admin` のパスワードだけで（そのアカウントがスーパー管理者ロールを持つことも確認します）、ほかのアカウントには影響しません。ログインの失敗が続いてロックされている場合は、ロックが解けるまで待ってください（デフォルトは 15 分）。Docker を使わない場合は、API ディレクトリで本番環境として `node dist/reset-admin-password.js` を実行するか、ソースのディレクトリで `pnpm seed:rbac -- --incremental --reset-admin-password` を実行してください。
 
 ## 更新の手順
 

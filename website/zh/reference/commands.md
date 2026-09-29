@@ -49,6 +49,7 @@ Castor 自己的脚本（`scaffold`、`verify`、`seed:rbac`、`seed:demo`、`op
 |---|---|
 | `pnpm seed:rbac -- --incremental` | 增量同步菜单与权限：按 `code` upsert，不删除 |
 | `pnpm seed:rbac -- --incremental --reset-admin-password` | 同时把 `admin` 账号的密码重置为 `ADMIN_PASSWORD` |
+| `docker compose --env-file .env.production exec app node dist/reset-admin-password.js` | Docker 部署中把 `admin` 的密码重置为 `ADMIN_PASSWORD`（见 [重置管理员密码](/zh/deploy/#reset-the-admin-password)） |
 | `pnpm seed:rbac` | 全量重建：清空用户、角色、菜单及其关联后重写，**仅用于空库初始化** |
 | `pnpm seed:demo` | 写入示例部门、角色（部门主管 / 普通员工）和用户，用来体验数据权限；可重复执行，生产环境需加 `--force`。`--password <密码>` 指定示例用户的密码（默认 `demo123456` 或 `DEMO_USER_PASSWORD`），`--reset-passwords` 让已有的示例用户也改用该密码 |
 

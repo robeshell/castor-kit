@@ -22,14 +22,13 @@ bash scripts/setup.sh
 1. 检查 Docker 是否已安装并在运行，以及 `docker compose` 插件是否可用。
 2. 如果仓库根目录已有 `.env.production`，询问是否重新配置；选择否时保留该文件，直接跳到第 4 步。
 3. 询问管理员密码（回车使用 `admin123`）、访问端口（回车使用 `5000`），以及是否现在配置 AI 功能（OpenAI 兼容接口的 API Key、Base URL、模型名）；然后随机生成 `SECRET_KEY`、数据库密码和 AI SQL 只读账号密码，一并写入 `.env.production`。在这里填写的 AI 配置会锁定对应设置，「系统设置」页面上显示为只读。
-4. 如果还没有配置 Docker 镜像加速，写入一个镜像加速地址（见下方提示）。
-5. 执行 `docker compose --env-file .env.production up -d --build` 构建并启动服务。
-6. 轮询 `http://localhost:<端口>/health`，直到服务就绪（最多约 90 秒；仍未就绪时会提示查看日志的命令）。
+4. 执行 `docker compose --env-file .env.production up -d --build` 构建并启动服务。
+5. 轮询 `http://localhost:<端口>/health`，直到服务就绪（最多约 90 秒；仍未就绪时会提示查看日志的命令）。
 
 首次运行需要下载依赖和构建镜像，通常需要几分钟。
 
-::: warning setup.sh 会修改 Docker 配置
-如果 Docker 的 `daemon.json` 里还没有 `registry-mirrors`，脚本会写入镜像加速地址 `https://docker.xuanyuan.me` 并重启 Docker。不需要镜像加速时，可以跳过向导，按 [部署指南](/zh/deploy/) 手动配置并启动。
+::: tip 下载失败？
+脚本不会修改你的 Docker 设置。如果构建卡在拉取镜像或安装依赖，可能是网络访问不了 Docker Hub 或 npm：在 Docker Desktop 里配置镜像加速（Settings → Docker Engine → `registry-mirrors`），需要时在 `.env.production` 里设置 `NPM_REGISTRY`（见 [部署指南](/zh/deploy/)），然后重新运行脚本。
 :::
 
 ### 2. 登录
@@ -38,6 +37,8 @@ bash scripts/setup.sh
 
 - 用户名：`admin`
 - 密码：向导中设置的密码（默认 `admin123`）
+
+忘记密码？见 [重置管理员密码](/zh/deploy/#reset-the-admin-password)。
 
 ### 3. 常用操作
 
