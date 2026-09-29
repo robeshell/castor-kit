@@ -297,7 +297,34 @@ Naming: backend directories and file names are lowercase and hyphenated (`compon
 - **scripts/setup.sh**: generates `.env.production` (random secrets) and starts with compose.
 - **CI** (`.github/workflows/ci.yml`): `pnpm install` → lint → typecheck → `setup-once` on an empty DB → api vitest (pg service) → `pnpm verify --skip-build` → web unit tests → `vite build`. No automatic deployment (deploy manually on the server with `git pull && docker compose --env-file .env.production up -d --build`). The docs site (`website/`) is built by `.github/workflows/docs.yml` and published to GitHub Pages after merging to main.
 
-### 8.2 Testing strategy
+### 8.2 Scope and scaling
+- **Target**: small and medium business systems such as admin back offices, internal tools and B2B consoles, with up to a few thousand users and request rates in the tens to hundreds per second. One PostgreSQL instance and one Node process cover this range; when it gets slow, the cause is almost always a query, and the fix is an index or a better query rather than a cache.
+- **PostgreSQL is the only infrastructure dependency; there is no Redis.** Work that other stacks give to Redis is done here in the database or in process:
+
+  | Concern | How Castor does it |
+  |---|---|
+  | Sessions | `sessions` table (§4.4); they can be listed and revoked, and every replica sees the same state |
+  | Login lockout | Counts recent failures in the database, so it holds across replicas |
+  | Scheduled tasks, locks | Lease model + `pg_try_advisory_xact_lock` (§4.9, §4.12) |
+  | Job queue, retries | Webhook deliveries are claimed with `FOR UPDATE SKIP LOCKED` (§4.16) |
+  | Settings cache | `SettingsStore`, in process, 5 seconds |
+  | Current user and permissions | Cached on `request`, loaded with one joined query |
+
+  The reasons: one less service to monitor, secure and back up (which matters most for small teams); deployment works on any managed Postgres; and sessions, deliveries and business writes can share one transaction, so there is no cache to fall out of sync with the database.
+- **Single process** (the default): no caveats.
+- **Multiple replicas** work (§8.1), with these per-process parts to keep in mind:
+  - Rate limiting (§4.4) counts per process, so with N replicas behind a load balancer the effective limit is up to N times the setting. The login lockout is unaffected.
+  - The `local` storage driver writes to `DATA_DIR`: every replica must mount the same volume, or use the `s3` driver.
+  - `/ws/devtools` reports the metrics of the replica the browser happens to be connected to.
+  - Every replica needs the same `SECRET_KEY`, or the session cookies issued by one replica can't be read by another.
+- **Scaling path**, in order:
+  1. Fix slow queries and add indexes; raise the database's resources.
+  2. Add replicas + a separate worker (§8.1).
+  3. If per-process rate limiting becomes a real problem, give `@fastify/rate-limit` a shared store. A PostgreSQL-backed store keeps the single dependency.
+  4. Add Redis only for needs Postgres doesn't serve well: high-volume pub/sub across replicas (try `LISTEN/NOTIFY` first), or a cache in front of hot reads.
+- **Out of scope**: consumer-facing apps with large user bases, high-frequency real-time push, and caches shared across several services. These need a different architecture, not just Redis added on.
+
+### 8.3 Testing strategy
 - Vitest + real PostgreSQL (locally `castor_kit_test`, in CI `services: postgres`); `test/global-setup.ts` runs migrations on the test database.
 - Route-level tests use `app.inject()`, one file per module (`admin-*.test.ts`, `cc-*.test.ts`).
 - Contract test `contract.test.ts`: response shape snapshots (`items/total/page/per_page`, `error`, `csrf_token`, time format).

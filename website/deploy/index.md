@@ -261,6 +261,15 @@ The scheduler service doesn't run `setup-once`; database initialization is still
 
 The scheduler is built on database leases: a given task is claimed by only one process at a time, so it never runs twice even when several processes run the scheduler at once. `setup-once` uses an advisory lock, so starting several replicas at the same time is also safe.
 
+### Scope and per-process state
+
+Castor targets small and medium business systems (admin back offices, internal tools, B2B consoles) and needs only PostgreSQL, with no Redis. Sessions, the login lockout, scheduled tasks and webhook retries all live in the database, so every replica sees the same state. A single `app` container is enough for most deployments; add replicas for availability or more CPU, and check these points first:
+
+- **Rate limiting counts per process.** With N replicas behind a load balancer, the effective limit is up to N times the value in System settings. The login lockout is counted in the database and is not affected.
+- **Local file storage needs a shared volume.** With the `local` storage driver, every replica must mount the same `/app/data` volume; otherwise switch to S3 in System settings.
+- **Use the same `SECRET_KEY` everywhere**, or a session cookie issued by one replica is rejected by the others.
+- The performance monitor page shows the replica the browser is connected to.
+
 ## Deploying without Docker
 
 You need Node 22+, pnpm and PostgreSQL 14+.
